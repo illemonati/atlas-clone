@@ -57,6 +57,8 @@ int main(int argc, char* argv[]){
 
 			//run EM
 			genome.runEM(maxIter, tol, initHet);
+		} else if(task=="test"){
+			TGenome genome(&logfile, myParameters.getParameterString("bam"));
 		}
 		else throw "Unknown task!";
 

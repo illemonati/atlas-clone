@@ -11,6 +11,7 @@
 #include <math.h>
 #include "stringFunctions.h"
 #include "TLog.h"
+#include "api/BamMultiReader.h"
 
 class TLocus{
 public:
@@ -74,11 +75,34 @@ public:
 	std::vector<TChromosome>::iterator chrIt;
 	std::string filename;
 	TLog* logfile;
+	BamTools::BamReader bamReader;
+ 	BamTools::BamRegion bamRegion;
 
 
 	TGenome(TLog* Logfile){
 		filename = "";
 		logfile = Logfile;
+	};
+
+	TGenome(TLog* Logfile, std::string Filename){
+		logfile = Logfile;
+		filename = Filename;
+
+		//open BAM file
+
+		if (!bamReader.Open(filename))
+			throw "Failed to open BAM file '" + filename + "'!";
+
+		//load index file
+		if(!bamReader.LocateIndex())
+			throw "No index file found for BAM file '" + filename + "'!";
+
+	};
+
+	bool readDataNextWindow(long windowSize){
+		//this function will parse the BAM file within teh next window
+
+
 	};
 
 	void readProbabilities(const std::string Filename, long maxPos=-1){
@@ -209,7 +233,11 @@ public:
 		return(newHet);
 	};
 
+
+
 };
+
+
 
 
 #endif /* LOCI_H_ */
