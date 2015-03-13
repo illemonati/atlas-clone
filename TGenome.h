@@ -11,8 +11,8 @@
 #include <math.h>
 #include "stringFunctions.h"
 #include "TLog.h"
-#include "api/BamReader.h"
-#include "api/SamSequenceDictionary.h"
+#include "bamtools/api/BamReader.h"
+#include "bamtools/api/SamSequenceDictionary.h"
 
 
 
