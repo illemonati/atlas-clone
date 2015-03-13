@@ -11,7 +11,45 @@
 #include <math.h>
 #include "stringFunctions.h"
 #include "TLog.h"
-#include "api/BamMultiReader.h"
+#include "api/BamReader.h"
+#include "api/SamSequenceDictionary.h"
+
+
+
+class TSite{
+public:
+	double errorRate;
+	int posThreePrime, posFivePrime;
+	double* emissionProbabilities;
+
+	TSite(double ErrorRate, int PosThreePrime, int PosFivePrime){
+		errorRate = ErrorRate;
+		posThreePrime = PosThreePrime;
+		posFivePrime = PosFivePrime;
+
+		//fill emission probabilities
+		emissionProbabilities = new double[10];
+		fillEmissionProbabilities();
+	};
+
+	virtual ~TSite(){
+		delete[] emissionProbabilities;
+	};
+
+	void update(double ErrorRate, int PosThreePrime, int PosFivePrime){
+		errorRate = ErrorRate;
+		posThreePrime = PosThreePrime;
+		posFivePrime = PosFivePrime;
+	};
+
+	virtual void fillEmissionProbabilities(){
+		fillEmissionProbabilities();
+	};
+
+	virtual double getEmissionProbability(int genotype){
+		return emissionProbabilities[genotype];
+	}
+};
 
 class TLocus{
 public:
@@ -35,61 +73,42 @@ public:
 	};
 };
 
-class TChromosome{
-public:
-	std::vector<TLocus> loci;
-	std::vector<TLocus>::iterator lociIt;
-	std::string name;
-
-	TChromosome(std::string & Name){
-		name = Name;
-	};
-
-	void addLocus(std::vector<std::string> & line){
-		loci.push_back(TLocus(line));
-	};
-
-	long size(){
-		return loci.size();
-	};
-
-	void addToSumsForEM(double & sumHom, double & sumHet, double & Het, double & oneMinusHet){
-		for(lociIt=loci.begin(); lociIt!=loci.end(); ++lociIt){
-			lociIt->addToSumsForEM(sumHom, sumHet, Het, oneMinusHet);
-		}
-	};
-
-	double LogLikelihood(double & Het, double & oneMinusHet){
-		double tmp = 0.0;
-		for(lociIt=loci.begin(); lociIt!=loci.end(); ++lociIt){
-			tmp += lociIt->LogLikelihood(Het, oneMinusHet);
-		}
-		return tmp;
-	};
-
-};
-
 class TGenome{
 public:
-	std::vector<TChromosome> chromosomes;
-	std::vector<TChromosome>::iterator chrIt;
+	//std::vector<TChromosome> chromosomes;
 	std::string filename;
 	TLog* logfile;
 	BamTools::BamReader bamReader;
  	BamTools::BamRegion bamRegion;
+ 	BamTools::SamHeader bamHeader;
+ 	BamTools::BamAlignment bamAlignement;
 
+ 	BamTools::SamSequenceIterator chrIterator;
+ 	int chrNumber;
+ 	long chrLength;
+ 	long curStart, curEnd;
+ 	long windowSize;
 
 	TGenome(TLog* Logfile){
 		filename = "";
 		logfile = Logfile;
+		curStart = -1;
+		curEnd = -1;
+		windowSize = -1;
+		chrNumber = -1;
+		chrLength = -1;
 	};
 
-	TGenome(TLog* Logfile, std::string Filename){
+	TGenome(TLog* Logfile, std::string Filename, long WindowSize){
 		logfile = Logfile;
 		filename = Filename;
+		windowSize = WindowSize;
+		chrNumber = -1;
+		chrLength = -1;
+		curStart = -1;
+		curEnd = -1;
 
 		//open BAM file
-
 		if (!bamReader.Open(filename))
 			throw "Failed to open BAM file '" + filename + "'!";
 
@@ -97,14 +116,94 @@ public:
 		if(!bamReader.LocateIndex())
 			throw "No index file found for BAM file '" + filename + "'!";
 
+		//read header
+		bamHeader = bamReader.GetHeader();
+		chrIterator = bamHeader.Sequences.End();
+
+
+
+	};
+/*
+	bool nextChromosome(){
+		if(chrIterator == bamHeader.Sequences.End()){
+			chrIterator = bamHeader.Sequences.Begin();
+			chrNumber = 0;
+		}
+		++chrIterator; ++chrNumber;
+
+
+		chrLength = stringToLong(chrIterator->Length);
+		curStart = 0;
+		curEnd = windowSize;
+
+		logfile->endIndent();
+		logfile->startIndent("Parsing chromosome '" + chrIterator->Name + "':");
+
+		return true;
+	}
+	*/
+
+	bool nextChromosome(){
+		if(chrIterator == bamHeader.Sequences.End()){
+			chrIterator = bamHeader.Sequences.Begin();
+			chrNumber = 0;
+		} else logfile->endIndent();
+
+		//move to next
+		++chrIterator; ++chrNumber;
+
+		//did we reach end?
+		if(chrIterator == bamHeader.Sequences.End()){
+			return false;
+		}
+
+		//restart windows
+		chrLength = stringToLong(chrIterator->Length);
+		curStart = 0;
+		curEnd = 0;
+
+		logfile->endIndent();
+		logfile->startIndent("Parsing chromosome '" + chrIterator->Name + "':");
+
+		return true;
+	}
+
+	bool nextWindow(){
+		//move to next region
+		curStart = curEnd;
+		curEnd += windowSize;
+		if(curEnd > chrLength) curEnd = chrLength + 1;
+
+		if(curStart > chrLength) return false;
+		return bamReader.SetRegion(chrNumber, curStart, chrNumber, curEnd);
+
+		while(bamReader.GetNextAlignment(bamAlignement)){
+			std::cout << bamAlignement.RefID << std::endl;
+		}
+
 	};
 
-	bool readDataNextWindow(long windowSize){
-		//this function will parse the BAM file within teh next window
+	bool readData(){
+		logfile->listFlush("Reading data on '" + chrIterator->Name + "' at [" + toString(curStart) + ", " + toString(curEnd) + ") ...");
+
+		//parse through reads
+		int coverage = 0;
+		coverage = bamReader.GetReferenceCount();
+		/*
+		while(bamReader.GetNextAlignment(bamAlignement)){
 
 
+
+			if(!bamAlignement.IsFailedQC() && !bamAlignement.IsDuplicate()){
+				++coverage;
+			}
+		}
+*/
+		logfile->write(" done!");
+		logfile->conclude("coverage = " + toString(coverage));
+		return true;
 	};
-
+/*
 	void readProbabilities(const std::string Filename, long maxPos=-1){
 		//clear current data
 		chromosomes.clear();
@@ -232,7 +331,15 @@ public:
 		logfile->endIndent();
 		return(newHet);
 	};
+*/
 
+	void test(){
+		while(nextChromosome()){
+			while(nextWindow()){
+				readData();
+			}
+		}
+	}
 
 
 };

@@ -53,12 +53,13 @@ int main(int argc, char* argv[]){
 
 			//read probabilities
 			TGenome genome(&logfile);
-			genome.readProbabilities(myParameters.getParameterString("probs"), myParameters.getParameterLongWithDefault("max", -1));
+			//genome.readProbabilities(myParameters.getParameterString("probs"), myParameters.getParameterLongWithDefault("max", -1));
 
 			//run EM
-			genome.runEM(maxIter, tol, initHet);
+			//genome.runEM(maxIter, tol, initHet);
 		} else if(task=="test"){
-			TGenome genome(&logfile, myParameters.getParameterString("bam"));
+			TGenome genome(&logfile, myParameters.getParameterString("bam"), myParameters.getParameterDouble("window"));
+			genome.test();
 		}
 		else throw "Unknown task!";
 
