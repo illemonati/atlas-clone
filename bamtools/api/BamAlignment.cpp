@@ -186,6 +186,7 @@ bool BamAlignment::BuildCharData(void) {
 
     // clear previous AlignedBases
     AlignedBases.clear();
+    AlignedQualities.clear();
 
     // if QueryBases has data, build AlignedBases using CIGAR data
     // otherwise, AlignedBases will remain empty (this case IS allowed)
@@ -193,6 +194,7 @@ bool BamAlignment::BuildCharData(void) {
 
         // resize AlignedBases
         AlignedBases.reserve(SupportData.QuerySequenceLength);
+        AlignedQualities.reserve(SupportData.QuerySequenceLength);
 
         // iterate over CigarOps
         int k = 0;
@@ -209,6 +211,7 @@ bool BamAlignment::BuildCharData(void) {
                 case (Constants::BAM_CIGAR_SEQMATCH_CHAR) :
                 case (Constants::BAM_CIGAR_MISMATCH_CHAR) :
                     AlignedBases.append(QueryBases.substr(k, op.Length));
+                	AlignedQualities.append(Qualities.substr(k, op.Length));
                     // fall through
 
                 // for 'S' - soft clip, do not write bases
@@ -220,16 +223,19 @@ bool BamAlignment::BuildCharData(void) {
                 // for 'D' - write gap character
                 case (Constants::BAM_CIGAR_DEL_CHAR) :
                     AlignedBases.append(op.Length, Constants::BAM_DNA_DEL);
+                	AlignedQualities.append(op.Length, '!');
                     break;
 
                 // for 'P' - write padding character
                 case (Constants::BAM_CIGAR_PAD_CHAR) :
                     AlignedBases.append( op.Length, Constants::BAM_DNA_PAD );
+                	AlignedQualities.append(op.Length, '!');
                     break;
 
                 // for 'N' - write N's, skip bases in original query sequence
                 case (Constants::BAM_CIGAR_REFSKIP_CHAR) :
                     AlignedBases.append( op.Length, Constants::BAM_DNA_N );
+                	AlignedQualities.append(op.Length, '!');
                     break;
 
                 // for 'H' - hard clip, do nothing to AlignedBases, move to next op

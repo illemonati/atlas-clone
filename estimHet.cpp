@@ -52,14 +52,14 @@ int main(int argc, char* argv[]){
 			logfile.list("Starting the EM at H = " + toString(initHet));
 
 			//read probabilities
-			TGenome genome(&logfile);
+			//TGenome genome(&logfile);
 			//genome.readProbabilities(myParameters.getParameterString("probs"), myParameters.getParameterLongWithDefault("max", -1));
 
 			//run EM
 			//genome.runEM(maxIter, tol, initHet);
 		} else if(task=="test"){
-			TGenome genome(&logfile, myParameters.getParameterString("bam"), myParameters.getParameterDouble("window"));
-			genome.test();
+			TGenome genome(&logfile, myParameters);
+			genome.estimateTheta();
 		}
 		else throw "Unknown task!";
 

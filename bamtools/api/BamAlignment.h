@@ -119,6 +119,8 @@ struct API_EXPORT BamAlignment {
         std::string QueryBases;         // 'original' sequence (contained in BAM file)
         std::string AlignedBases;       // 'aligned' sequence (QueryBases plus deletion, padding, clipping chars)
         std::string Qualities;          // FASTQ qualities (ASCII characters, not numeric values)
+        //Mod by Dan Wegmann: added AlignedQualities
+        std::string AlignedQualities;	// FASTQ qualities (ASCII characters) of those bases in AlignedBAses. Qualities of deletions etc. are set to '!'
         std::string TagData;            // tag data (use provided methods to query/modify)
         int32_t     RefID;              // ID number for reference sequence
         int32_t     Position;           // position (0-based) where alignment starts

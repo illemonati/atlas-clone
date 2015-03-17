@@ -11,68 +11,244 @@
 #include <math.h>
 #include "stringFunctions.h"
 #include "TLog.h"
+#include "TParameters.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/SamSequenceDictionary.h"
+#include <vector>
+#include <armadillo>
+
+enum Base {A, C, G, T};
+enum Genotype {AA, AC, AG, AT, CC, CG, CT, GG, GT, TT};
 
 
-
-class TSite{
+class TBaseFrequencies{
 public:
-	double errorRate;
-	int posThreePrime, posFivePrime;
-	double* emissionProbabilities;
+	double freq[4];
 
-	TSite(double ErrorRate, int PosThreePrime, int PosFivePrime){
-		errorRate = ErrorRate;
-		posThreePrime = PosThreePrime;
-		posFivePrime = PosFivePrime;
-
-		//fill emission probabilities
-		emissionProbabilities = new double[10];
-		fillEmissionProbabilities();
+	TBaseFrequencies(){
+		for(int i = 0; i < 4; ++i) freq[i]=0.0;
 	};
-
-	virtual ~TSite(){
-		delete[] emissionProbabilities;
+	void add(Base B, double & weight){
+		freq[B] += weight;
+	}
+	void normalize(){
+		double sum = 0.0;
+		for(int i = 0; i < 4; ++i) sum += freq[i];
+		for(int i = 0; i < 4; ++i) freq[i] /= sum;
 	};
-
-	void update(double ErrorRate, int PosThreePrime, int PosFivePrime){
-		errorRate = ErrorRate;
-		posThreePrime = PosThreePrime;
-		posFivePrime = PosFivePrime;
+	void print(){
+		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
 	};
-
-	virtual void fillEmissionProbabilities(){
-		fillEmissionProbabilities();
-	};
-
-	virtual double getEmissionProbability(int genotype){
-		return emissionProbabilities[genotype];
+	double& operator[](int pos){
+		return freq[pos];
 	}
 };
 
-class TLocus{
-public:
-	double pHet, pHom;
-	long pos;
+struct Constants{
+	//post mortem damage
+	double pdmC;
+	double pdmLambda;
 
-	TLocus(std::vector<std::string> & line){
-		pos = stringToLong(line[1]);
-		pHom = stringToDouble(line[2]);
-		pHet = stringToDouble(line[3]);
+	//EM parameters
+	int numIterations;
+	double maxEpsilon;
+	int NewtonRalphsonNumIterations;
+	double NewtonRalphsonMaxF;
+
+	//genotype map for enum type
+	Genotype** genotypeMap; //mapping base numbering to genotype numbering
+
+	Constants(){
+		pdmC = 0.0;
+		pdmLambda = 0.0;
+		numIterations = -1;
+		maxEpsilon = 0.0;
+		NewtonRalphsonNumIterations = -1;
+		NewtonRalphsonMaxF = 0.0;
+
+		//set up genotype map
+		genotypeMap = new Genotype*[4];
+		for(int i=0; i<4; ++i)
+			genotypeMap[i] = new Genotype[4];
+
+		int geno = 0;
+		for(int i=0; i<4; ++i){
+			for(int j=i; j<4; ++j){
+				genotypeMap[i][j] = static_cast<Genotype>(geno);
+				genotypeMap[j][i] = genotypeMap[i][j];
+				++geno;
+			}
+		}
 	};
 
-	void addToSumsForEM(double & sumHom, double & sumHet, double & Het, double & oneMinusHet){
-		double tmp = pHom * oneMinusHet + pHet * Het;
-		sumHom += pHom / tmp;
-		sumHet += pHet / tmp;
+	~Constants(){
+		for(int i=0; i<4; ++i) delete[] genotypeMap[i];
+		delete[] genotypeMap;
 	};
 
-	double LogLikelihood(double & Het, double & oneMinusHet){
-		return log(pHom * oneMinusHet + pHet * Het);
+	Genotype getGenotype(Base first, Base second){
+		return genotypeMap[first][second];
+	};
+	Genotype getGenotype(int first, int second){
+		return genotypeMap[first][second];
 	};
 };
 
+class TEmissionProbabilities{
+public:
+	double emission[10];
+
+	TEmissionProbabilities(){
+		for(int i=0; i<10; ++i) emission[i]=0.0;
+	};
+	void set(Genotype geno, double val){ emission[geno] = val; }
+	double& get(Genotype geno){ return emission[geno]; };
+	double& get(int geno){ return emission[geno]; };
+};
+//---------------------------------------------------------------
+//TBase
+//---------------------------------------------------------------
+class TBase{
+public:
+	double errorRate;
+	int pos5, pos3;
+	TEmissionProbabilities emissionProbabilities;
+
+	TBase(double & ErrorRate, int & Pos5, int & Pos3){
+		errorRate = ErrorRate;
+		pos5 = Pos5;
+		pos3 = Pos3;
+	};
+
+	virtual ~TBase(){};
+
+	void update(double & ErrorRate, int & Pos5, int & Pos3, Constants & constants){
+		errorRate = ErrorRate;
+		pos5 = Pos5;
+		pos3 = Pos3;
+		fillEmissionProbabilities(constants);
+	};
+
+	virtual void fillEmissionProbabilities(Constants & constants){
+		throw "Not implemented for base class!";
+	};
+
+	double probPDM(int & pos, Constants & constants);
+
+	double getEmissionProbability(Genotype genotype){
+		return emissionProbabilities.get(genotype);
+	};
+	double getEmissionProbability(int genotype){
+		return emissionProbabilities.get(genotype);
+	};
+
+	virtual char getBase(){ return '?'; };
+	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
+};
+
+//---------------------------------------------------------------
+class TBaseA:public TBase{
+public:
+	TBaseA(double & ErrorRate, int & Pos5, int & Pos3, Constants & constants):TBase(ErrorRate, Pos5, Pos3){
+		fillEmissionProbabilities(constants);
+	};
+	char getBase(){ return 'A'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
+	void fillEmissionProbabilities(Constants & constants);
+};
+
+//---------------------------------------------------------------
+class TBaseC:public TBase{
+public:
+	TBaseC(double & ErrorRate, int & Pos5, int & Pos3, Constants & constants):TBase(ErrorRate, Pos5, Pos3){
+		fillEmissionProbabilities(constants);
+	};
+	char getBase(){ return 'C'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
+	void fillEmissionProbabilities(Constants & constants);
+};
+
+//---------------------------------------------------------------
+class TBaseG:public TBase{
+public:
+	TBaseG(double & ErrorRate, int & Pos5, int Pos3, Constants & constants):TBase(ErrorRate, Pos5, Pos3){
+		fillEmissionProbabilities(constants);
+	};
+	char getBase(){ return 'G'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
+	void fillEmissionProbabilities(Constants & constants);
+};
+
+//---------------------------------------------------------------
+class TBaseT:public TBase{
+public:
+	TBaseT(double & ErrorRate, int & Pos5, int & Pos3, Constants & constants):TBase(ErrorRate, Pos5, Pos3){
+		fillEmissionProbabilities(constants);
+	};
+	char getBase(){ return 'T'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
+	void fillEmissionProbabilities(Constants & constants);
+};
+
+//---------------------------------------------------------------
+//TSite
+//---------------------------------------------------------------
+class TSite{
+public:
+	std::vector<TBase*> bases;
+	double emissionProbabilities[10];
+	double P_g[10]; //P(g|d, theta, pi), see equation (3)
+
+	TSite(){};
+	~TSite(){
+		clear();
+	};
+
+	void clear(){
+		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+			delete *it;
+		bases.clear();
+	};
+
+	void add(char & base, char & quality, int pos5, int pos3, Constants & constants);
+	void addToBaseFrequencies(TBaseFrequencies & frequencies);
+	void calcEmissionProbabilities();
+	void calculateP_g(double* genotypeProbabilities);
+	std::string getBases();
+	std::string getEmissionProbs();
+
+};
+
+//---------------------------------------------------------------
+//TWindow
+//---------------------------------------------------------------
+class TWindow{
+public:
+	long start;
+	long end; //end NOT included in window!
+	long length;
+	TSite* sites;
+	bool sitesInitialized;
+	TBaseFrequencies baseFreq;
+	double theta;
+	Constants* sharedConstants;
+	TWindow(Constants* SharedConstants);
+	TWindow(long Start, long End, Constants* SharedConstants);
+	~TWindow(){
+		if(sitesInitialized) delete[] sites;
+	};
+	void initSites(long newLength);
+	void clear();
+	void move(long Start, long End);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement);
+	void runEM();
+	void writeEMResults(std::ofstream & out);
+	void printPileup();
+};
+
+//---------------------------------------------------------------
+//TGenome
+//---------------------------------------------------------------
 class TGenome{
 public:
 	//std::vector<TChromosome> chromosomes;
@@ -82,266 +258,26 @@ public:
  	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignement;
-
  	BamTools::SamSequenceIterator chrIterator;
  	int chrNumber;
  	long chrLength;
  	long curStart, curEnd;
  	long windowSize;
+ 	Constants sharedConstants;
+ 	long oldPos;
+ 	TWindow* curWindow;
+ 	TWindow* nextWindow;
+ 	std::string outputName;
 
-	TGenome(TLog* Logfile){
-		filename = "";
-		logfile = Logfile;
-		curStart = -1;
-		curEnd = -1;
-		windowSize = -1;
-		chrNumber = -1;
-		chrLength = -1;
+	TGenome(TLog* Logfile, TParameters & params);
+	~TGenome(){
+		delete curWindow;
+		delete nextWindow;
 	};
-
-	TGenome(TLog* Logfile, std::string Filename, long WindowSize){
-		logfile = Logfile;
-		filename = Filename;
-		windowSize = WindowSize;
-		chrNumber = -1;
-		chrLength = -1;
-		curStart = -1;
-		curEnd = -1;
-
-		//open BAM file
-		if (!bamReader.Open(filename))
-			throw "Failed to open BAM file '" + filename + "'!";
-
-		//load index file
-		if(!bamReader.LocateIndex())
-			throw "No index file found for BAM file '" + filename + "'!";
-
-		//read header
-		bamHeader = bamReader.GetHeader();
-		chrIterator = bamHeader.Sequences.End();
-
-
-
-	};
-/*
-	bool nextChromosome(){
-		if(chrIterator == bamHeader.Sequences.End()){
-			chrIterator = bamHeader.Sequences.Begin();
-			chrNumber = 0;
-		}
-		++chrIterator; ++chrNumber;
-
-
-		chrLength = stringToLong(chrIterator->Length);
-		curStart = 0;
-		curEnd = windowSize;
-
-		logfile->endIndent();
-		logfile->startIndent("Parsing chromosome '" + chrIterator->Name + "':");
-
-		return true;
-	}
-	*/
-
-	bool nextChromosome(){
-		if(chrIterator == bamHeader.Sequences.End()){
-			chrIterator = bamHeader.Sequences.Begin();
-			chrNumber = 0;
-		} else logfile->endIndent();
-
-		//move to next
-		++chrIterator; ++chrNumber;
-
-		//did we reach end?
-		if(chrIterator == bamHeader.Sequences.End()){
-			return false;
-		}
-
-		//restart windows
-		chrLength = stringToLong(chrIterator->Length);
-		curStart = 0;
-		curEnd = 0;
-
-		logfile->endIndent();
-		logfile->startIndent("Parsing chromosome '" + chrIterator->Name + "':");
-
-		return true;
-	}
-
-	bool nextWindow(){
-		//move to next region
-		curStart = curEnd;
-		curEnd += windowSize;
-		if(curEnd > chrLength) curEnd = chrLength + 1;
-
-		if(curStart > chrLength) return false;
-		return bamReader.SetRegion(chrNumber, curStart, chrNumber, curEnd);
-
-		while(bamReader.GetNextAlignment(bamAlignement)){
-			std::cout << bamAlignement.RefID << std::endl;
-		}
-
-	};
-
-	bool readData(){
-		logfile->listFlush("Reading data on '" + chrIterator->Name + "' at [" + toString(curStart) + ", " + toString(curEnd) + ") ...");
-
-		//parse through reads
-		int coverage = 0;
-		coverage = bamReader.GetReferenceCount();
-		/*
-		while(bamReader.GetNextAlignment(bamAlignement)){
-
-
-
-			if(!bamAlignement.IsFailedQC() && !bamAlignement.IsDuplicate()){
-				++coverage;
-			}
-		}
-*/
-		logfile->write(" done!");
-		logfile->conclude("coverage = " + toString(coverage));
-		return true;
-	};
-/*
-	void readProbabilities(const std::string Filename, long maxPos=-1){
-		//clear current data
-		chromosomes.clear();
-
-		//open file
-		filename = Filename;
-		if(maxPos > 0) logfile->startIndent("Reading probabilities for up to " + toString(maxPos) + " loci from file '" + filename + "':");
-		else logfile->startIndent("Reading probabilities from file '" + filename + "':");
-		std::ifstream file(filename.c_str());
-		if(!file) throw "Could not open file '" + filename + "!";
-
-		//parse file
-		std::vector<std::string> line;
-		std::string curChr = "";
-		std::vector<TChromosome>::reverse_iterator revChrIt;
-		long counter = 0;
-
-		while(file.good() && !file.eof()){
-			fillVectorFromLineWhiteSpace(file, line);
-			if(line.size() > 0){
-				if(line.size() != 4) throw "Wrong number of columns (expect chr, pos, pHomo, pHet) on line:\n" + concatenateString(line, "\t");
-
-				//check if we move to new chr
-				if(line[0] != curChr){
-					//report old
-					if(curChr != ""){
-						logfile->write(" done!");
-						logfile->conclude("Read " + toString(revChrIt->size()) + " loci");
-					}
-
-					//move
-					curChr = line[0];
-					chromosomes.push_back(TChromosome(line[0]));
-					revChrIt = chromosomes.rbegin();
-					logfile->listFlush("Parsing data from chromosome '" + curChr + "' ...");
-				}
-
-				//append data to chromosome
-				revChrIt->addLocus(line);
-
-				//count
-				++counter;
-				if(counter == maxPos) break;
-			}
-		}
-
-		//report last
-		logfile->write(" done!");
-		logfile->conclude("Read " + toString(revChrIt->size()) + " loci");
-		logfile->endIndent();
-	};
-
-	double runEM(int numIter, double tol, double initHet){
-		//run EM to find estimate of heterozygosity
-		logfile->startIndent("Running EM algorithm to estimate heterozygosity:");
-
-		//variables
-		double newHet = 0.01;
-		double curHet = 0.01;
-		double oneMinusHet;
-		double sumHom, sumHet;
-		double LL = -999999999;
-		double newLL = -999999999;
-		std::string progressString;
-		int chrCounter = 0;
-
-		//run iterations
-		for(int i=0; i<numIter; ++i){
-			logfile->startIndent("Interation " + toString(i+1) + ":");
-			logfile->list("Initial het = " + toString(curHet));
-			progressString = "Updating het... ";
-			logfile->listFlush(progressString + "(0 / " + toString(chromosomes.size()) + " chromosomes)");
-
-			//Calculate required sums
-			curHet = newHet;
-			oneMinusHet = 1.0 - curHet;
-			sumHom = 0.0; sumHet = 0.0;
-			chrCounter = 0;
-
-			for(chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++chrCounter){
-				chrIt->addToSumsForEM(sumHom, sumHet, curHet, oneMinusHet);
-				logfile->listOverFlush(progressString + "(" + toString(chrCounter) + " / " + toString(chromosomes.size()) + " chromosomes)");
-			}
-			logfile->overList(progressString + "done!                    ");
-
-			//update F
-			newHet = curHet * sumHet / (curHet * sumHet + oneMinusHet * sumHom);
-			logfile->conclude("new het = " + toString(newHet));
-			oneMinusHet = 1.0 - newHet;
-
-			//break?
-			if(newHet == curHet){
-				logfile->conclude("H did not change -> stopping EM.");
-				break;
-			}
-
-			//calculate Likelihood
-			progressString = "Calculating LL with het = " + toString(newHet) + " ... ";
-			chrCounter = 0;
-			LL = newLL;
-			newLL = 0.0;
-			for(chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++chrCounter){
-				newLL += chrIt->LogLikelihood(newHet, oneMinusHet);
-				logfile->listFlush(progressString + "(0 / " + toString(chromosomes.size()) + " chromosomes)");
-			}
-			logfile->overList(progressString + "done!                    ");
-			logfile->conclude("LL = " + toString(newLL));
-			if(i > 0){
-				double improvement = newLL - LL;
-				logfile->conclude("LL improvement = " + toString(improvement));
-				if(improvement < tol){
-					logfile->conclude("LL improvement " + toString(improvement) + " < " + toString(tol) + " -> stopping EM.");
-					break;
-				}
-			}
-			logfile->endIndent();
-		}
-
-		//conclude
-		logfile->endIndent();
-		logfile->startIndent("MLE estimate:");
-		logfile->list("H = " + toString(newHet));
-		logfile->list("LL = " + toString(newLL));
-		logfile->endIndent();
-		logfile->endIndent();
-		return(newHet);
-	};
-*/
-
-	void test(){
-		while(nextChromosome()){
-			while(nextWindow()){
-				readData();
-			}
-		}
-	}
-
-
+	bool iterateChromosome();
+	bool iterateWindow();
+	bool readData();
+	void estimateTheta();
 };
 
 
