@@ -201,6 +201,8 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 	double len = bamAlignement.AlignedBases.length();
 	if(bamAlignement.Position + len < start) return false;
 
+	std::cout << "READ " << bamAlignement.Name << std::endl;
+
 	//find which position to consider first
 	int firstPos = start - bamAlignement.Position;
 	if(firstPos < 0) firstPos = 0;
@@ -375,7 +377,7 @@ void TWindow::writeEMResults(std::ofstream & out){
 
 void TWindow::printPileup(){
 	for(int i=0; i<length; ++i){
-		std::cout << start + i << ": " << sites[i].getBases() << std::endl;
+		std::cout << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << std::endl;
 	}
 }
 
@@ -500,13 +502,14 @@ bool TGenome::readData(){
 					nextWindow->addFromRead(bamAlignement);
 			}
 		}
+		if(coverage == 5) break;
 	}
 
 	logfile->write(" done!");
 	logfile->conclude("read data from " + toString(coverage) + " reads.");
 
 	//show pileup
-	//curWindow->printPileup();
+	curWindow->printPileup();
 
 	return true;
 };
@@ -535,7 +538,10 @@ void TGenome::estimateTheta(){
 			//save results to file
 			out << chrIterator->Name << "\t";
 			curWindow->writeEMResults(out);
+
+			break;
 		}
+		break;
 	}
 
 	//close output
