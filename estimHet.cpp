@@ -38,30 +38,12 @@ int main(int argc, char* argv[]){
 			logfile.writeFileOnly("**************");
 		}
 
-		//switch among tasks
-		std::string task=myParameters.getParameterString("task");
-		if(task=="EM"){
-			//run EM to estimate heterozygosity
-			//read variables
-			logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
-			int maxIter = myParameters.getParameterIntWithDefault("maxIter", 100);
-			logfile.list("Running the EM for up to " + toString(maxIter) + " iterations");
-			double tol = myParameters.getParameterDoubleWithDefault("tol", 0.01);
-			logfile.list("Stopping the EM if the LL has improved by less than " + toString(tol));
-			double initHet = myParameters.getParameterDoubleWithDefault("init", 0.01);
-			logfile.list("Starting the EM at H = " + toString(initHet));
+		//run EM to estimate heterozygosity
+		logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
+		TGenome genome(&logfile, myParameters);
+		genome.estimateTheta();
+		logfile.endIndent();
 
-			//read probabilities
-			//TGenome genome(&logfile);
-			//genome.readProbabilities(myParameters.getParameterString("probs"), myParameters.getParameterLongWithDefault("max", -1));
-
-			//run EM
-			//genome.runEM(maxIter, tol, initHet);
-		} else if(task=="test"){
-			TGenome genome(&logfile, myParameters);
-			genome.estimateTheta();
-		}
-		else throw "Unknown task!";
 
 		//write unsused parameters
 		std::string unusedParams=myParameters.getListOfUnusedParameters();

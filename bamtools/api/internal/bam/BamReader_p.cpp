@@ -114,7 +114,6 @@ SamHeader BamReaderPrivate::GetSamHeader(void) const {
 
 // get next alignment (with character data fully parsed)
 bool BamReaderPrivate::GetNextAlignment(BamAlignment& alignment) {
-
     // if valid alignment found
     if ( GetNextAlignmentCore(alignment) ) {
 

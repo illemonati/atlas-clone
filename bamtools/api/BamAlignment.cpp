@@ -200,14 +200,13 @@ bool BamAlignment::BuildCharData(void) {
         int k = 0;
         vector<CigarOp>::const_iterator cigarIter = CigarData.begin();
         vector<CigarOp>::const_iterator cigarEnd  = CigarData.end();
+
         for ( ; cigarIter != cigarEnd; ++cigarIter ) {
             const CigarOp& op = (*cigarIter);
-
             switch ( op.Type ) {
 
                 // for 'M', 'I', '=', 'X' - write bases
                 case (Constants::BAM_CIGAR_MATCH_CHAR)    :
-                case (Constants::BAM_CIGAR_INS_CHAR)      :
                 case (Constants::BAM_CIGAR_SEQMATCH_CHAR) :
                 case (Constants::BAM_CIGAR_MISMATCH_CHAR) :
                     AlignedBases.append(QueryBases.substr(k, op.Length));
@@ -215,8 +214,10 @@ bool BamAlignment::BuildCharData(void) {
                     // fall through
 
                 // for 'S' - soft clip, do not write bases
+                // for 'I' - insertion, do not write base! (Mod D Wegmann). Reason: algorithm uses reference coordinate system.
                 // but increment placeholder 'k'
                 case (Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
+                case (Constants::BAM_CIGAR_INS_CHAR)      :
                     k += op.Length;
                     break;
 
@@ -838,7 +839,6 @@ bool BamAlignment::IsValidSize(const std::string& tag, const std::string& type) 
     \param[in] tag 2-character name of field to remove
 */
 void BamAlignment::RemoveTag(const std::string& tag) {
-  
     // if char data not populated, do that first
     if ( SupportData.HasCoreOnly )
         BuildCharData();

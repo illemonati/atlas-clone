@@ -94,7 +94,7 @@ void TBaseT::fillEmissionProbabilities(Constants & constants){
 void TSite::add(char & base, char & quality, int pos5, int pos3, Constants & constants){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 		double error = pow(10.0, - ((double)quality - 33.0)/10.0);
-		if(error < 0.5){
+		if(error < 1.0){
 			if(base == 'A') bases.push_back(new TBaseA(error, pos5, pos3, constants));
 			else if(base == 'C') bases.push_back(new TBaseC(error, pos5, pos3, constants));
 			else if(base == 'G') bases.push_back(new TBaseG(error, pos5, pos3, constants));
@@ -144,7 +144,6 @@ void TSite::calculateP_g(double* genotypeProbabilities){
 		P_g[i] =  emissionProbabilities[i] * genotypeProbabilities[i];
 		sum += P_g[i];
 	}
-	double xxx = 0.0;
 	for(int i=0; i<10; ++i){
 		P_g[i] /= sum;
 	}
@@ -159,6 +158,7 @@ TWindow::TWindow(Constants* SharedConstants){
 	length = -1;
 	sites = NULL;
 	sitesInitialized = false;
+	theta = 0.0;
 };
 
 TWindow::TWindow(long Start, long End, Constants* SharedConstants){
@@ -201,8 +201,6 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 	double len = bamAlignement.AlignedBases.length();
 	if(bamAlignement.Position + len < start) return false;
 
-	std::cout << "READ " << bamAlignement.Name << std::endl;
-
 	//find which position to consider first
 	int firstPos = start - bamAlignement.Position;
 	if(firstPos < 0) firstPos = 0;
@@ -211,6 +209,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
+
 	for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 		/* Note:
 		 * Reference is 5' -> 3'
@@ -224,6 +223,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 		 *                2) Ignoring indels when calculating distances
 		 *                3) Function add need first pos5, then pos3
 		 */
+
 		if(bamAlignement.IsReverseStrand())
 			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), len - pos, pos + 1, *sharedConstants);
 		else
@@ -493,23 +493,23 @@ bool TGenome::readData(){
 
 			//check if still within current window and add to window
 			if(bamAlignement.Position >= curEnd){
-				nextWindow->addFromRead(bamAlignement);
+				//nextWindow->addFromRead(bamAlignement);
 				break;
 			} else {
 				++coverage;
 				if(curWindow->addFromRead(bamAlignement))
 					//add also to next window in case reads overhangs current window -> function returns true
 					nextWindow->addFromRead(bamAlignement);
+
 			}
 		}
-		if(coverage == 5) break;
 	}
 
 	logfile->write(" done!");
 	logfile->conclude("read data from " + toString(coverage) + " reads.");
 
-	//show pileup
-	curWindow->printPileup();
+	//show pileup (debugging)
+	//curWindow->printPileup();
 
 	return true;
 };
@@ -538,10 +538,7 @@ void TGenome::estimateTheta(){
 			//save results to file
 			out << chrIterator->Name << "\t";
 			curWindow->writeEMResults(out);
-
-			break;
 		}
-		break;
 	}
 
 	//close output
