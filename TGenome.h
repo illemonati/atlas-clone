@@ -229,6 +229,7 @@ public:
 	long length;
 	TSite* sites;
 	bool sitesInitialized;
+	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;;
 	TBaseFrequencies baseFreq;
 	double theta;
 	Constants* sharedConstants;
@@ -244,6 +245,7 @@ public:
 	void runEM();
 	void writeEMResults(std::ofstream & out);
 	void printPileup();
+	void calcCoverage();
 };
 
 //---------------------------------------------------------------
@@ -263,6 +265,7 @@ public:
  	long chrLength;
  	long curStart, curEnd;
  	long windowSize;
+ 	double maxMissing;
  	Constants sharedConstants;
  	long oldPos;
  	TWindow* curWindow;

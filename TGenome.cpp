@@ -158,6 +158,9 @@ TWindow::TWindow(Constants* SharedConstants){
 	length = -1;
 	sites = NULL;
 	sitesInitialized = false;
+	coverage = -1.0;
+	fractionSitesNoData = -1.0;
+	fractionsitesCoverageAtLeastTwo = -1.0;
 	theta = 0.0;
 };
 
@@ -174,10 +177,16 @@ void TWindow::initSites(long newLength){
 	length = newLength;
 	sites = new TSite[length];
 	sitesInitialized = true;
+	coverage = -1.0;
+	fractionSitesNoData = -1.0;
+	fractionsitesCoverageAtLeastTwo = -1.0;
 }
 
 void TWindow::clear(){
 	for(int i=0; i<length; ++i) sites[i].clear();
+	coverage = -1.0;
+	fractionSitesNoData = -1.0;
+	fractionsitesCoverageAtLeastTwo = -1.0;
 };
 
 void TWindow::move(long Start, long End){
@@ -265,9 +274,6 @@ void TWindow::runEM(){
 
 	//start EM loop
 	for(int iter = 0; iter < sharedConstants->numIterations; ++iter){
-
-		//std::cout << std::endl << "-------------------" << std::endl << "ITERATION " << iter << std::endl << "-------------------" << std::endl;
-
 		//b) calculate	substitution probabilities
 		for(int i=0; i<4; ++i){
 			//homozygous genotypes
@@ -297,7 +303,6 @@ void TWindow::runEM(){
 			for(int i=0; i<4; ++i)
 				sumPKK += P_G[sharedConstants->getGenotype(i, i)];
 			rho = (sumPKK) / (length - sumPKK);
-			//std::cout << "START RHO = " << rho << std::endl;
 		}
 
 		//d) Find new parameter estimates using Newton-Ralphson
@@ -344,8 +349,6 @@ void TWindow::runEM(){
 			rho -= JxF(4);
 			mu -= JxF(5);
 
-			//std::cout << "RHO = " << rho << std::endl;
-
 			//check if we break
 			maxF = 0.0;
 			for(int i=0; i<6; ++i){
@@ -358,17 +361,16 @@ void TWindow::runEM(){
 		//check if we stop EM
 		oldTheta = theta;
 		theta = -log(rho / (1.0 + rho));
-
-		//std::cout << "THETA = " << theta << std::endl;
-
-		//std::cout << "abc(new - old) = " << fabs(theta - oldTheta) << std::endl;
-
 		if(fabs(theta - oldTheta) < sharedConstants->maxEpsilon) break;
 	}
 }
 
 void TWindow::writeEMResults(std::ofstream & out){
+	//position
 	out << start << "\t" << end;
+	//coverage NOTE: assumes coverage has been calculated before...
+	out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
+	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
 	out << "\t" << theta << std::endl;
@@ -377,8 +379,23 @@ void TWindow::writeEMResults(std::ofstream & out){
 
 void TWindow::printPileup(){
 	for(int i=0; i<length; ++i){
-		std::cout << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << std::endl;
+		std::cout << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\n";
 	}
+}
+
+void TWindow::calcCoverage(){
+	//calculate and return coverage
+	coverage = 0.0;
+	long noData = 0;
+	long plentyData = 0;
+	for(int i=0; i<length; ++i){
+		coverage += sites[i].bases.size();
+		if(sites[i].bases.size() == 0) ++ noData;
+		else if(sites[i].bases.size() > 1) ++ plentyData;
+	}
+	coverage = coverage / (double) length;
+	fractionSitesNoData = (double) noData / (double) length;;
+	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
 //-------------------------------------------------------
@@ -390,7 +407,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//read parameters
 	filename = params.getParameterString("bam");
 	windowSize = params.getParameterDouble("window");
-	if(windowSize < 100) throw "Window size should be at least 1Kb!";
+	if(windowSize < 1000) throw "Window size should be at least 1Kb!";
+	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.9);
 
 	//post mortem damage
 	sharedConstants.pdmC = params.getParameterDoubleWithDefault("pdmC", 0.01);
@@ -443,13 +461,17 @@ bool TGenome::iterateChromosome(){
 	} else {
 		logfile->endIndent();
 		//move to next
-		++chrIterator; ++chrNumber;
+		++chrIterator;
+		++chrNumber;
 	}
 
 	//did we reach end?
 	if(chrIterator == bamHeader.Sequences.End()){
 		return false;
 	}
+
+	//jump reader
+	bamReader.Jump(chrNumber, 0);
 
 	//restart windows
 	chrLength = stringToLong(chrIterator->Length);
@@ -483,12 +505,15 @@ bool TGenome::readData(){
 	logfile->listFlush("Reading data on '" + chrIterator->Name + "' at [" + toString(curStart) + ", " + toString(curEnd) + ") ...");
 
 	//parse through reads
-	int coverage = 0;
-	while(bamReader.GetNextAlignment(bamAlignement)){
+	int numReads = 0;
+	while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
+		//std::cout << "REF ID = " << bamAlignement.RefID << "\tpos = " << bamAlignement.Position << std::endl;
 		//only take those reads that pass QC
 		if(!bamAlignement.IsFailedQC() && !bamAlignement.IsDuplicate() && bamAlignement.Position >= curStart){
 			//check if bam file is sorted
-			if(bamAlignement.Position < oldPos) throw "BAM file must be sorted by position!";
+			if(bamAlignement.Position < oldPos){
+				throw "BAM file must be sorted by position!";
+			}
 			oldPos = bamAlignement.Position;
 
 			//check if still within current window and add to window
@@ -496,7 +521,7 @@ bool TGenome::readData(){
 				//nextWindow->addFromRead(bamAlignement);
 				break;
 			} else {
-				++coverage;
+				++numReads;
 				if(curWindow->addFromRead(bamAlignement))
 					//add also to next window in case reads overhangs current window -> function returns true
 					nextWindow->addFromRead(bamAlignement);
@@ -505,11 +530,13 @@ bool TGenome::readData(){
 		}
 	}
 
-	logfile->write(" done!");
-	logfile->conclude("read data from " + toString(coverage) + " reads.");
+	curWindow->calcCoverage();
 
-	//show pileup (debugging)
-	//curWindow->printPileup();
+	logfile->write(" done!");
+	logfile->conclude("read data from " + toString(numReads) + " reads.");
+	logfile->conclude("coverage is " + toString(curWindow->coverage));
+	logfile->conclude(toString(curWindow->fractionsitesCoverageAtLeastTwo) + " of all sites are covered at least twice");
+	logfile->conclude(toString(curWindow->fractionSitesNoData) + " of all sites have no data");
 
 	return true;
 };
@@ -521,7 +548,7 @@ void TGenome::estimateTheta(){
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
-	out << "Chr\tstart\tend\tf(A)\tf(C)\tf(G)\tf(T)\ttheta" << std::endl;
+	out << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta" << std::endl;
 
 	//iterate through windows
 	while(iterateChromosome()){
@@ -529,15 +556,20 @@ void TGenome::estimateTheta(){
 			//read data for current window
 			readData();
 
-			//run EM
-			logfile->listFlush("Performing EM estimation of theta ...");
-			curWindow->runEM();
-			logfile->write(" done!");
-			logfile->conclude("theta was estimated at " + toString(curWindow->theta));
+			//check if we have data -> can be extended to ensure
+			if(curWindow->fractionSitesNoData > maxMissing){
+				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			} else {
+				//run EM
+				logfile->listFlush("Performing EM estimation of theta ...");
+				curWindow->runEM();
+				logfile->write(" done!");
+				logfile->conclude("theta was estimated at " + toString(curWindow->theta));
 
-			//save results to file
-			out << chrIterator->Name << "\t";
-			curWindow->writeEMResults(out);
+				//save results to file
+				out << chrIterator->Name << "\t";
+				curWindow->writeEMResults(out);
+			}
 		}
 	}
 
