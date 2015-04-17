@@ -255,7 +255,7 @@ void TWindow::runEM(){
 	//baseFreq.print();
 
 	//set initial parameters
-	theta = 0.01;
+	theta = sharedConstants->initalTheta;
 	double expTheta = exp(-theta);
 	double rho = expTheta / (1.0 - expTheta);
 	double mu = length;
@@ -361,6 +361,9 @@ void TWindow::runEM(){
 		//check if we stop EM
 		oldTheta = theta;
 		theta = -log(rho / (1.0 + rho));
+
+		//std::cout << iter << ": " << oldTheta << " -> " << theta << "\t(" << fabs(theta - oldTheta) << " < " << sharedConstants->maxEpsilon << ")" << std::endl;
+
 		if(fabs(theta - oldTheta) < sharedConstants->maxEpsilon) break;
 	}
 }
@@ -419,6 +422,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	sharedConstants.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.00001);
 	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 20);
 	sharedConstants.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.000001);
+	sharedConstants.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
 
 	//output
 	if(params.parameterExists("out"))

@@ -54,6 +54,7 @@ struct Constants{
 	double maxEpsilon;
 	int NewtonRalphsonNumIterations;
 	double NewtonRalphsonMaxF;
+	double initalTheta;
 
 	//genotype map for enum type
 	Genotype** genotypeMap; //mapping base numbering to genotype numbering
@@ -65,6 +66,7 @@ struct Constants{
 		maxEpsilon = 0.0;
 		NewtonRalphsonNumIterations = -1;
 		NewtonRalphsonMaxF = 0.0;
+		initalTheta = 0.01;
 
 		//set up genotype map
 		genotypeMap = new Genotype*[4];
