@@ -104,6 +104,7 @@ void TSite::add(char & base, char & quality, int pos5, int pos3, Constants & con
 };
 
 std::string TSite::getBases(){
+	if(bases.size()==0) return "-";
 	std::string b = "";
 	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
 		b += (*it)->getBase();
@@ -126,13 +127,12 @@ void TSite::calcEmissionProbabilities(){
 			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
 		}
 	}
-
 }
 
 std::string TSite::getEmissionProbs(){
 	std::string b = toString(emissionProbabilities[0]);
 	for(int i=1; i<10; ++i){
-		b += ", " + toString(emissionProbabilities[i]);
+		b += "\t" + toString(emissionProbabilities[i]);
 	}
 	return b;
 }
@@ -147,6 +147,15 @@ void TSite::calculateP_g(double* genotypeProbabilities){
 	for(int i=0; i<10; ++i){
 		P_g[i] /= sum;
 	}
+}
+
+double TSite::calculateLogLikelihood(double* genotypeProbabilities){
+	//calculate normalized genotype probabilities according to Bayes rule
+	double sum = 0.0;
+	for(int i=0; i<10; ++i){
+		sum +=  emissionProbabilities[i] * genotypeProbabilities[i];
+	}
+	return log(sum);
 }
 //-------------------------------------------------------
 //Twindow
@@ -368,6 +377,75 @@ void TWindow::runEM(){
 	}
 }
 
+void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
+	//estimate initial base frequencies
+	//calculate per site emission probabilities
+	for(int i=0; i<length; ++i){
+		sites[i].calcEmissionProbabilities();
+		sites[i].addToBaseFrequencies(baseFreq);
+	}
+	baseFreq.normalize();
+
+	baseFreq.freq[0]=0.25;
+	baseFreq.freq[1]=0.25;
+	baseFreq.freq[2]=0.25;
+	baseFreq.freq[3]=0.25;
+
+	//prepare storage
+	double pGenotype[10];
+
+	//calculate likelihood surface
+	double minLogTheta = log10(0.000001);
+	double maxLogTheta = log10(100);
+	int steps = 10;
+	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
+	double expTheta;
+	double logTheta;
+	double LL;
+
+	std::ofstream test;
+	test.open("pGenotype.txt");
+
+	test << "log10Theta\texpTheta";
+	for(int i=0; i<10; ++i)
+		test << "p(" << sharedConstants->getGenotypeString(i) << ")";
+	test << std::endl;
+
+	for(int i=0; i<steps; ++i){
+		//calc theta and expTheta
+		logTheta = minLogTheta + stepSize*i;
+		theta = pow(10.0, logTheta);
+		expTheta = exp (-theta);
+
+		//calculate	substitution probabilities
+		for(int i=0; i<4; ++i){
+			//homozygous genotypes
+			pGenotype[sharedConstants->getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
+			//heterozygous genotypes
+			for(int j=i+1; j<4; ++j){
+				pGenotype[sharedConstants->getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
+			}
+		}
+
+		//print
+		test << logTheta << "\t" << expTheta;
+		for(int i=0; i<10; ++i)
+			test << "\t" << pGenotype[i];
+		test << std::endl;
+
+		//calculate likelihood
+		LL = 0.0;
+		for(int i=0; i<length; ++i){
+			LL += sites[i].calculateLogLikelihood(pGenotype);
+		}
+
+		//write results
+		out << chr << "\t" << start << "\t" << end << "\t" << logTheta << "\t" << LL << "\n";
+	}
+
+	test.close();
+}
+
 void TWindow::writeEMResults(std::ofstream & out){
 	//position
 	out << start << "\t" << end;
@@ -380,9 +458,14 @@ void TWindow::writeEMResults(std::ofstream & out){
 }
 
 
-void TWindow::printPileup(){
+void TWindow::printPileup(std::ofstream & out, std::string & chr){
+	//calc emission probs
 	for(int i=0; i<length; ++i){
-		std::cout << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\n";
+		sites[i].calcEmissionProbabilities();
+	}
+	//print pileup
+	for(int i=0; i<length; ++i){
+		out << chr << "\t" << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
 	}
 }
 
@@ -581,4 +664,66 @@ void TGenome::estimateTheta(){
 	out.close();
 }
 
+void TGenome::calcLikelihoodSurfaces(){
+	//write header
+	std::ofstream out;
+	out.open(outputName.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
+	//write header
+	out << "Chr\tstart\tend\tlog10Theta\tLL" << std::endl;
+
+	//iterate through windows
+	while(iterateChromosome()){
+		while(iterateWindow()){
+			//read data for current window
+			readData();
+
+			//check if we have data -> can be extended to ensure
+			if(curWindow->fractionSitesNoData > maxMissing){
+				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			} else {
+				//calc surface
+				logfile->listFlush("Calculating likelihood surface ...");
+				curWindow->calcLikelihoodSurface(out, chrIterator->Name);
+				logfile->write(" done!");
+			}
+
+			break;
+		}
+		break;
+	}
+
+	//close output
+	out.close();
+}
+
+void TGenome::printPileup(){
+	//write header
+	std::ofstream out;
+	out.open(outputName.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+
+	//write header
+	out << "Chr\tposition\tcoverage\tbases";
+	for(int i=0; i<10; ++i)
+		out << "\tPem(" << sharedConstants.getGenotypeString(i) << ")";
+	out << std::endl;
+
+	//iterate through windows
+	while(iterateChromosome()){
+		while(iterateWindow()){
+			//read data for current window
+			readData();
+
+			//print pileup
+			curWindow->printPileup(out, chrIterator->Name);
+
+			break;
+		}
+		break;
+	}
+
+	//close output
+	out.close();
+}

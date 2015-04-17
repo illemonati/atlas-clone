@@ -38,12 +38,26 @@ int main(int argc, char* argv[]){
 			logfile.writeFileOnly("**************");
 		}
 
-		//run EM to estimate heterozygosity
-		logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
-		TGenome genome(&logfile, myParameters);
-		genome.estimateTheta();
-		logfile.endIndent();
+		//what to do?
+		std::string task = myParameters.getParameterStringWithDefault("task", "estimate");
 
+		if(task=="estimate"){
+				//run EM to estimate heterozygosity
+				logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
+				TGenome genome(&logfile, myParameters);
+				genome.estimateTheta();
+				logfile.endIndent();
+		} else if(task=="LLsurface"){
+				logfile.startIndent("Calculating the LL surface for each window:");
+				TGenome genome(&logfile, myParameters);
+				genome.calcLikelihoodSurfaces();
+				logfile.endIndent();
+		} else if(task=="pileup"){
+				logfile.startIndent("Printing pileup for each window:");
+				TGenome genome(&logfile, myParameters);
+				genome.printPileup();
+				logfile.endIndent();
+		} else throw "Unknown task '" + task + "'!";
 
 		//write unsused parameters
 		std::string unusedParams=myParameters.getListOfUnusedParameters();

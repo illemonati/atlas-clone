@@ -94,6 +94,19 @@ struct Constants{
 	Genotype getGenotype(int first, int second){
 		return genotypeMap[first][second];
 	};
+	std::string getGenotypeString(int num){
+		if(num==0) return "AA";
+		if(num==1) return "AC";
+		if(num==2) return "AG";
+		if(num==3) return "AT";
+		if(num==4) return "CC";
+		if(num==5) return "CG";
+		if(num==6) return "CT";
+		if(num==7) return "GG";
+		if(num==8) return "GT";
+		if(num==9) return "TT";
+		return "ERROR!";
+	};
 };
 
 class TEmissionProbabilities{
@@ -218,7 +231,7 @@ public:
 	void calculateP_g(double* genotypeProbabilities);
 	std::string getBases();
 	std::string getEmissionProbs();
-
+	double calculateLogLikelihood(double* genotypeProbabilities);
 };
 
 //---------------------------------------------------------------
@@ -246,8 +259,9 @@ public:
 	bool addFromRead(BamTools::BamAlignment & bamAlignement);
 	void runEM();
 	void writeEMResults(std::ofstream & out);
-	void printPileup();
+	void printPileup(std::ofstream & out, std::string & chr);
 	void calcCoverage();
+	void calcLikelihoodSurface(std::ofstream & out, std::string & chr);
 };
 
 //---------------------------------------------------------------
@@ -283,6 +297,8 @@ public:
 	bool iterateWindow();
 	bool readData();
 	void estimateTheta();
+	void calcLikelihoodSurfaces();
+	void printPileup();
 };
 
 
