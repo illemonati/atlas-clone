@@ -242,6 +242,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 		 *                3) Function add need first pos5, then pos3
 		 */
 
+		//DEBUG: ONLY ACCEPT ONE READ PER INDIVIDUAL
 		if(bamAlignement.IsReverseStrand())
 			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), len - pos, pos + 1, *sharedConstants);
 		else
