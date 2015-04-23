@@ -264,6 +264,10 @@ void TWindow::runEM(){
 	baseFreq.normalize();
 	//baseFreq.print();
 
+	baseFreq[0]=0.925;
+	baseFreq[1]=0.025;
+	baseFreq[2]=0.025;
+	baseFreq[3]=0.025;
 	//set initial parameters
 	theta = sharedConstants->initalTheta;
 	double expTheta = exp(-theta);
@@ -281,10 +285,12 @@ void TWindow::runEM(){
 	arma::mat JxF(6,6);
 	Genotype geno;
 	double maxF;
+	double LL;
 
 	//start EM loop
 	for(int iter = 0; iter < sharedConstants->numIterations; ++iter){
 		//b) calculate	substitution probabilities
+		expTheta = exp(-theta);
 		for(int i=0; i<4; ++i){
 			//homozygous genotypes
 			pGenotype[sharedConstants->getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
@@ -316,6 +322,7 @@ void TWindow::runEM(){
 		}
 
 		//d) Find new parameter estimates using Newton-Ralphson
+		std::cout << "START NEWTON:" << std::endl;
 		for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
 			//i) calculate F (Note: index is zero based!)
 			F(4) = length;
@@ -352,6 +359,9 @@ void TWindow::runEM(){
 			}
 
 			//iii) now estimate new parameters
+
+			std::cout << n << ") DET(Jacobian) = " << det(Jacobian) << std::endl;
+
 			JxF = inv(Jacobian) * F;
 			for(int k=0; k<4; ++k){
 				baseFreq[k] -= JxF(k);
@@ -368,11 +378,18 @@ void TWindow::runEM(){
 
 		}
 
+		//calc likelihood
+		LL = 0.0;
+		for(int i=0; i<length; ++i){
+			LL += sites[i].calculateLogLikelihood(pGenotype);
+		}
+
 		//check if we stop EM
 		oldTheta = theta;
 		theta = -log(rho / (1.0 + rho));
 
-		//std::cout << iter << ": " << oldTheta << " -> " << theta << "\t(" << fabs(theta - oldTheta) << " < " << sharedConstants->maxEpsilon << ")" << std::endl;
+
+		std::cout << iter << ": " << LL << "\t" << oldTheta << " -> " << theta << "\t(" << fabs(theta - oldTheta) << " < " << sharedConstants->maxEpsilon << ")" << std::endl;
 
 		if(fabs(theta - oldTheta) < sharedConstants->maxEpsilon) break;
 	}
@@ -398,7 +415,7 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	//calculate likelihood surface
 	double minLogTheta = log10(0.000001);
 	double maxLogTheta = log10(100);
-	int steps = 10;
+	int steps = 10000;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
 	double expTheta;
 	double logTheta;
@@ -504,7 +521,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//EM params
 	sharedConstants.numIterations = params.getParameterIntWithDefault("iterations", 100);
 	sharedConstants.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.00001);
-	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 20);
+	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 5);
 	sharedConstants.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.000001);
 	sharedConstants.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
 
