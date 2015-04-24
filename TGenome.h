@@ -15,6 +15,7 @@
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/SamSequenceDictionary.h"
 #include <vector>
+#define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
 enum Base {A, C, G, T};
@@ -247,6 +248,7 @@ public:
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;;
 	TBaseFrequencies baseFreq;
 	double theta;
+	double LL;
 	Constants* sharedConstants;
 	TWindow(Constants* SharedConstants);
 	TWindow(long Start, long End, Constants* SharedConstants);
@@ -271,6 +273,7 @@ class TGenome{
 public:
 	//std::vector<TChromosome> chromosomes;
 	std::string filename;
+	std::string outname;
 	TLog* logfile;
 	BamTools::BamReader bamReader;
  	BamTools::BamRegion bamRegion;

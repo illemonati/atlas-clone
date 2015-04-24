@@ -171,12 +171,15 @@ TWindow::TWindow(Constants* SharedConstants){
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	theta = 0.0;
+	LL = 0.0;
 };
 
 TWindow::TWindow(long Start, long End, Constants* SharedConstants){
 	sharedConstants = SharedConstants;
 	start = Start;
 	end = End;
+	theta = -1.0;
+	LL = 0.0;
 	initSites(end - start); //end NOT in window!
 };
 
@@ -264,16 +267,12 @@ void TWindow::runEM(){
 	baseFreq.normalize();
 	//baseFreq.print();
 
-	baseFreq[0]=0.925;
-	baseFreq[1]=0.025;
-	baseFreq[2]=0.025;
-	baseFreq[3]=0.025;
 	//set initial parameters
 	theta = sharedConstants->initalTheta;
 	double expTheta = exp(-theta);
 	double rho = expTheta / (1.0 - expTheta);
 	double mu = length;
-	double oldTheta;
+	double oldLL = -9e100;
 
 	//prepare storage
 	double pGenotype[10];
@@ -285,7 +284,7 @@ void TWindow::runEM(){
 	arma::mat JxF(6,6);
 	Genotype geno;
 	double maxF;
-	double LL;
+	int failedAttempts = 0;
 
 	//start EM loop
 	for(int iter = 0; iter < sharedConstants->numIterations; ++iter){
@@ -322,7 +321,6 @@ void TWindow::runEM(){
 		}
 
 		//d) Find new parameter estimates using Newton-Ralphson
-		std::cout << "START NEWTON:" << std::endl;
 		for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
 			//i) calculate F (Note: index is zero based!)
 			F(4) = length;
@@ -360,22 +358,29 @@ void TWindow::runEM(){
 
 			//iii) now estimate new parameters
 
-			std::cout << n << ") DET(Jacobian) = " << det(Jacobian) << std::endl;
+			//JxF = inv(Jacobian) * F;
+			if(solve(JxF, Jacobian, F)){
+				for(int k=0; k<4; ++k){
+					baseFreq[k] -= JxF(k);
+				}
+				rho -= JxF(4);
+				mu -= JxF(5);
 
-			JxF = inv(Jacobian) * F;
-			for(int k=0; k<4; ++k){
-				baseFreq[k] -= JxF(k);
+				//check if we break
+				maxF = 0.0;
+				for(int i=0; i<6; ++i){
+					if(F(i) > maxF) maxF = F(i);
+				}
+				if(maxF < sharedConstants->NewtonRalphsonMaxF) break;
+			} else {
+				++failedAttempts;
+				//solve did not work -> start with higher theta!
+				theta = sharedConstants->initalTheta;
+				for(int i=0; i<failedAttempts; ++i)
+					theta *= 10;
+				expTheta = exp(-theta);
+				rho = expTheta / (1.0 - expTheta);
 			}
-			rho -= JxF(4);
-			mu -= JxF(5);
-
-			//check if we break
-			maxF = 0.0;
-			for(int i=0; i<6; ++i){
-				if(F(i) > maxF) maxF = F(i);
-			}
-			if(maxF < sharedConstants->NewtonRalphsonMaxF) break;
-
 		}
 
 		//calc likelihood
@@ -385,13 +390,9 @@ void TWindow::runEM(){
 		}
 
 		//check if we stop EM
-		oldTheta = theta;
 		theta = -log(rho / (1.0 + rho));
-
-
-		std::cout << iter << ": " << LL << "\t" << oldTheta << " -> " << theta << "\t(" << fabs(theta - oldTheta) << " < " << sharedConstants->maxEpsilon << ")" << std::endl;
-
-		if(fabs(theta - oldTheta) < sharedConstants->maxEpsilon) break;
+		if(fabs(oldLL - LL) < sharedConstants->maxEpsilon) break;
+		oldLL = LL;
 	}
 }
 
@@ -415,11 +416,10 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	//calculate likelihood surface
 	double minLogTheta = log10(0.000001);
 	double maxLogTheta = log10(100);
-	int steps = 10000;
+	int steps = 1000;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
 	double expTheta;
 	double logTheta;
-	double LL;
 
 	std::ofstream test;
 	test.open("pGenotype.txt");
@@ -472,7 +472,7 @@ void TWindow::writeEMResults(std::ofstream & out){
 	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
-	out << "\t" << theta << std::endl;
+	out << "\t" << theta << "\t" << LL << std::endl;
 }
 
 
@@ -520,19 +520,17 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//EM params
 	sharedConstants.numIterations = params.getParameterIntWithDefault("iterations", 100);
-	sharedConstants.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.00001);
-	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 5);
-	sharedConstants.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.000001);
+	sharedConstants.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	sharedConstants.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
 	sharedConstants.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
 
-	//output
-	if(params.parameterExists("out"))
-		outputName = params.getParameterString("out");
-	else {
+	//outputname
+	outname = params.getParameterStringWithDefault("out", "");
+	if(outname == ""){
 		//guess from filename
 		outputName = filename;
 		outputName = extractBeforeLast(outputName, ".");
-		outputName += "_theta_estimates.txt";
 	}
 
 	//initialize iterators
@@ -649,11 +647,11 @@ bool TGenome::readData(){
 void TGenome::estimateTheta(){
 	//write header
 	std::ofstream out;
-	out.open(outputName.c_str());
+	out.open((outputName + "_theta_estimates.txt").c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
-	out << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta" << std::endl;
+	out << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta\tLL" << std::endl;
 
 	//iterate through windows
 	while(iterateChromosome()){
@@ -685,7 +683,7 @@ void TGenome::estimateTheta(){
 void TGenome::calcLikelihoodSurfaces(){
 	//write header
 	std::ofstream out;
-	out.open(outputName.c_str());
+	out.open((outputName + "_LLsurface.txt").c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
