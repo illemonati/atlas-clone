@@ -378,8 +378,6 @@ void TWindow::runEM(){
 				theta = sharedConstants->initalTheta;
 				for(int i=0; i<failedAttempts; ++i)
 					theta *= 10;
-				expTheta = exp(-theta);
-				rho = expTheta / (1.0 - expTheta);
 			}
 		}
 
@@ -388,6 +386,8 @@ void TWindow::runEM(){
 		for(int i=0; i<length; ++i){
 			LL += sites[i].calculateLogLikelihood(pGenotype);
 		}
+
+		std::cout << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
 
 		//check if we stop EM
 		theta = -log(rho / (1.0 + rho));
