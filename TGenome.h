@@ -27,7 +27,7 @@ public:
 	double freq[4];
 
 	TBaseFrequencies(){
-		for(int i = 0; i < 4; ++i) freq[i]=0.0;
+		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
 	};
 	void add(Base B, double & weight){
 		freq[B] += weight;
@@ -36,6 +36,9 @@ public:
 		double sum = 0.0;
 		for(int i = 0; i < 4; ++i) sum += freq[i];
 		for(int i = 0; i < 4; ++i) freq[i] /= sum;
+	};
+	void clear(){
+		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
 	};
 	void print(){
 		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
@@ -52,10 +55,13 @@ struct Constants{
 
 	//EM parameters
 	int numIterations;
+	int numThetaOnlyUpdates;
 	double maxEpsilon;
 	int NewtonRalphsonNumIterations;
 	double NewtonRalphsonMaxF;
 	double initalTheta;
+	double initThetaSearchFactor;
+	int initThetaNumSearchIterations;
 
 	//genotype map for enum type
 	Genotype** genotypeMap; //mapping base numbering to genotype numbering
@@ -64,10 +70,13 @@ struct Constants{
 		pdmC = 0.0;
 		pdmLambda = 0.0;
 		numIterations = -1;
+		numThetaOnlyUpdates = -1;
 		maxEpsilon = 0.0;
 		NewtonRalphsonNumIterations = -1;
 		NewtonRalphsonMaxF = 0.0;
-		initalTheta = 0.01;
+		initalTheta = 0.0;
+		initThetaSearchFactor = -1;
+		initThetaNumSearchIterations = -1;
 
 		//set up genotype map
 		genotypeMap = new Genotype*[4];
@@ -259,6 +268,10 @@ public:
 	void clear();
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement);
+	void fillPGenotype(double* pGenotype, double & expTheta);
+	void fillP_G(double* P_g, double* pGenotype);
+	void calcLogLikelihood(double* pGenotype);
+	void findGoodStartingTheta();
 	void runEM();
 	void writeEMResults(std::ofstream & out);
 	void printPileup(std::ofstream & out, std::string & chr);

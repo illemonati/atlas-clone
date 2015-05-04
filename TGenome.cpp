@@ -257,22 +257,51 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 	else return true;
 }
 
+void TWindow::fillPGenotype(double* pGenotype, double & expTheta){
+	for(int i=0; i<4; ++i){
+		//homozygous genotypes
+		pGenotype[sharedConstants->getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
+		//heterozygous genotypes
+		for(int j=i+1; j<4; ++j){
+			pGenotype[sharedConstants->getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
+		}
+	}
+}
+
+void TWindow::fillP_G(double* P_G, double* pGenotype){
+	for(int g=0; g<10; ++g)
+		P_G[g] = 0.0;
+
+	//calculate P_g for each site
+	for(int i=0; i<length; ++i){
+		sites[i].calculateP_g(pGenotype);
+		for(int g=0; g<10; ++g){
+			P_G[g] += sites[i].P_g[g];
+		}
+	}
+}
+
+void TWindow::calcLogLikelihood(double* pGenotype){
+	LL = 0.0;
+	for(int i=0; i<length; ++i)
+		LL += sites[i].calculateLogLikelihood(pGenotype);
+}
+
 void TWindow::runEM(){
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
+	baseFreq.clear();
 	for(int i=0; i<length; ++i){
 		sites[i].calcEmissionProbabilities();
 		sites[i].addToBaseFrequencies(baseFreq);
 	}
 	baseFreq.normalize();
-	//baseFreq.print();
 
 	//set initial parameters
-	theta = sharedConstants->initalTheta;
-	double expTheta = exp(-theta);
-	double rho = expTheta / (1.0 - expTheta);
-	double mu = length;
-	double oldLL = -9e100;
+	findGoodStartingTheta();
+	std::cout << "STARTING WITH THETA = " << theta << std::endl;
+	double expTheta, rho, mu = length;
+	double oldLL;
 
 	//prepare storage
 	double pGenotype[10];
@@ -287,112 +316,137 @@ void TWindow::runEM(){
 	int failedAttempts = 0;
 
 	//start EM loop
-	for(int iter = 0; iter < sharedConstants->numIterations; ++iter){
-		//b) calculate	substitution probabilities
+	int numThetaOnlyUpdatesDone = sharedConstants->numThetaOnlyUpdates; //do regular step first
+	numThetaOnlyUpdatesDone = 0;
+	int totIterations = sharedConstants->numIterations * sharedConstants->numThetaOnlyUpdates;
+	for(int iter = 0; iter < totIterations; ++iter){
+		//a) pre-calc expTheta
 		expTheta = exp(-theta);
-		for(int i=0; i<4; ++i){
-			//homozygous genotypes
-			pGenotype[sharedConstants->getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
-			//heterozygous genotypes
-			for(int j=i+1; j<4; ++j){
-				pGenotype[sharedConstants->getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
-			}
+
+		//b) calculate	substitution probabilities
+		fillPGenotype(pGenotype, expTheta);
+
+		//do we break EM? Check LL
+		if(iter > 0 && iter % sharedConstants->numThetaOnlyUpdates == 0){
+			oldLL = LL;
+			calcLogLikelihood(pGenotype);
+			if(LL > -9e100 && (LL - oldLL) < sharedConstants->maxEpsilon) break;
 		}
 
 		//c) Calculate all genotype probabilities for all sites
-		//calculate P_g for each site
-		for(int i=0; i<length; ++i){
-			sites[i].calculateP_g(pGenotype);
-		}
-		//calculate P_g
-		for(int g=0; g<10; ++g){
-			P_G[g] = 0.0;
-			for(int i=0; i<length; ++i){
-				P_G[g] += sites[i].P_g[g];
-			}
-		}
+		fillP_G(P_G, pGenotype);
 
-		//get sensible starting point for rho in first iteration
-		if(iter == 0){
+		//d) set rho
+		if(iter == 0){ //estimate in first iteration
 			double sumPKK = 0.0;
 			for(int i=0; i<4; ++i)
 				sumPKK += P_G[sharedConstants->getGenotype(i, i)];
 			rho = (sumPKK) / (length - sumPKK);
-		}
+		} else rho = expTheta / (1.0 - expTheta);
 
 		//d) Find new parameter estimates using Newton-Ralphson
-		for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
-			//i) calculate F (Note: index is zero based!)
-			F(4) = length;
-			F(5) = 0.0;
-			for(int k=0; k<4; ++k){
-				geno = sharedConstants->getGenotype(k, k);
-				tmpSum = 0.0;
-				for(int l=0; l<4; ++l){
-					if(l != k){
-						tmpSum += P_G[sharedConstants->getGenotype(k, l)];
-					}
-				}
-				F(k) = P_G[geno] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
-				F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
-				F(5) += baseFreq[k];
-			}
-			F(5) = F(5) - 1.0;
-
-			//ii) fill Jacobian (Note: index is zero based!)
-			Jacobian.zeros();
-			tmpSum = 0.0;
-			for(int k=0; k<4; ++k){
-				tmp[k] = P_G[sharedConstants->getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
-				tmpSum += tmp[k];
-			}
-
-			for(int k=0; k<4; ++k){
-				Jacobian(k,k) = tmp[k] * rho - mu;
-				Jacobian(k,4) = - tmp[k];
-				Jacobian(5,k) = 1.0;
-				Jacobian(4,k) = tmp[k] * (rho + 1.0);
-				Jacobian(k,5) = - baseFreq[k];
-				Jacobian(4,4) += tmp[k] * (1.0 - baseFreq[k]);
-			}
-
-			//iii) now estimate new parameters
-
-			//JxF = inv(Jacobian) * F;
-			if(solve(JxF, Jacobian, F)){
+		if(numThetaOnlyUpdatesDone < sharedConstants->numThetaOnlyUpdates){
+			//update only theta: most difficult parameter and it is much faster to update only this one alone.
+			for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
+				//i) calculate F() (Note: index is zero based!)
+				F(4) = length;
 				for(int k=0; k<4; ++k){
-					baseFreq[k] -= JxF(k);
+					geno = sharedConstants->getGenotype(k, k);
+					F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
 				}
-				rho -= JxF(4);
-				mu -= JxF(5);
+				//ii) fill Jacobian (Note: index is zero based!)
+				Jacobian(4,4) = 0.0;
+				for(int k=0; k<4; ++k){
+					tmpSum = P_G[sharedConstants->getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+					Jacobian(4,4) += tmpSum * (1.0 - baseFreq[k]);
+				}
+
+				//iii) now estimate new parameters
+				rho = rho - F(4) / Jacobian(4,4);
 
 				//check if we break
 				maxF = 0.0;
-				for(int i=0; i<6; ++i){
-					if(F(i) > maxF) maxF = F(i);
+					for(int i=0; i<6; ++i){
+						if(F(i) > maxF) maxF = F(i);
+					}
+				if(F(4) < sharedConstants->NewtonRalphsonMaxF){
+					theta = -log(rho / (1.0 + rho));
+					break;
 				}
-				if(maxF < sharedConstants->NewtonRalphsonMaxF) break;
-			} else {
-				++failedAttempts;
-				//solve did not work -> start with higher theta!
-				theta = sharedConstants->initalTheta;
-				for(int i=0; i<failedAttempts; ++i)
-					theta *= 10;
+			}
+			++numThetaOnlyUpdatesDone;
+		} else {
+			numThetaOnlyUpdatesDone = 0;
+			//update all parameters in EM
+			for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
+				//i) calculate F (Note: index is zero based!)
+				F(4) = length;
+				F(5) = 0.0;
+				for(int k=0; k<4; ++k){
+					geno = sharedConstants->getGenotype(k, k);
+					tmpSum = 0.0;
+					for(int l=0; l<4; ++l){
+						if(l != k){
+							tmpSum += P_G[sharedConstants->getGenotype(k, l)];
+						}
+					}
+					F(k) = P_G[geno] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
+					F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
+					F(5) += baseFreq[k];
+				}
+				F(5) = F(5) - 1.0;
+
+				//ii) fill Jacobian (Note: index is zero based!)
+				Jacobian.zeros();
+				tmpSum = 0.0;
+				for(int k=0; k<4; ++k){
+					tmp[k] = P_G[sharedConstants->getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+					tmpSum += tmp[k];
+				}
+
+				for(int k=0; k<4; ++k){
+					Jacobian(k,k) = tmp[k] * rho - mu;
+					Jacobian(k,4) = - tmp[k];
+					Jacobian(5,k) = 1.0;
+					Jacobian(4,k) = tmp[k] * (rho + 1.0);
+					Jacobian(k,5) = - baseFreq[k];
+					Jacobian(4,4) += tmp[k] * (1.0 - baseFreq[k]);
+				}
+
+				//iii) now estimate new parameters
+				if(solve(JxF, Jacobian, F)){
+					for(int k=0; k<4; ++k){
+						baseFreq[k] -= JxF(k);
+					}
+					rho -= JxF(4);
+					mu -= JxF(5);
+
+					//check if we break
+					maxF = 0.0;
+					for(int i=0; i<6; ++i){
+						if(F(i) > maxF) maxF = F(i);
+					}
+					if(maxF < sharedConstants->NewtonRalphsonMaxF){
+						theta = -log(rho / (1.0 + rho));
+						break;
+					}
+				} else {
+					++failedAttempts;
+					//solve did not work -> start with higher theta!
+					theta = sharedConstants->initalTheta;
+					for(int i=0; i<failedAttempts; ++i)
+						theta *= 10.0;
+					//reset others
+					mu = length;
+					LL = -9e100;
+					iter = 0;
+					numThetaOnlyUpdatesDone = 0;
+					break;
+				}
 			}
 		}
 
-		//calc likelihood
-		LL = 0.0;
-		for(int i=0; i<length; ++i){
-			LL += sites[i].calculateLogLikelihood(pGenotype);
-		}
-
 		std::cout << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
-
-		//check if we stop EM
-		theta = -log(rho / (1.0 + rho));
-		if(fabs(oldLL - LL) < sharedConstants->maxEpsilon) break;
-		oldLL = LL;
 	}
 }
 
@@ -405,11 +459,6 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	}
 	baseFreq.normalize();
 
-	baseFreq.freq[0]=0.25;
-	baseFreq.freq[1]=0.25;
-	baseFreq.freq[2]=0.25;
-	baseFreq.freq[3]=0.25;
-
 	//prepare storage
 	double pGenotype[10];
 
@@ -421,47 +470,66 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	double expTheta;
 	double logTheta;
 
-	std::ofstream test;
-	test.open("pGenotype.txt");
-
-	test << "log10Theta\texpTheta";
-	for(int i=0; i<10; ++i)
-		test << "p(" << sharedConstants->getGenotypeString(i) << ")";
-	test << std::endl;
-
 	for(int i=0; i<steps; ++i){
 		//calc theta and expTheta
 		logTheta = minLogTheta + stepSize*i;
 		theta = pow(10.0, logTheta);
-		expTheta = exp (-theta);
+		expTheta = exp(-theta);
 
-		//calculate	substitution probabilities
-		for(int i=0; i<4; ++i){
-			//homozygous genotypes
-			pGenotype[sharedConstants->getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
-			//heterozygous genotypes
-			for(int j=i+1; j<4; ++j){
-				pGenotype[sharedConstants->getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
-			}
-		}
-
-		//print
-		test << logTheta << "\t" << expTheta;
-		for(int i=0; i<10; ++i)
-			test << "\t" << pGenotype[i];
-		test << std::endl;
-
-		//calculate likelihood
-		LL = 0.0;
-		for(int i=0; i<length; ++i){
-			LL += sites[i].calculateLogLikelihood(pGenotype);
-		}
+		//calculate	substitution probabilities and Likelihood
+		fillPGenotype(pGenotype, expTheta);
+		calcLogLikelihood(pGenotype);
 
 		//write results
 		out << chr << "\t" << start << "\t" << end << "\t" << logTheta << "\t" << LL << "\n";
 	}
+}
 
-	test.close();
+void TWindow::findGoodStartingTheta(){
+	//assumes that initial base frequencies have been estimated and site emission probs calculated!
+	double pGenotype[10];
+	double initTheta = sharedConstants->initalTheta;
+	double oldTheta = initTheta;
+	double expTheta = exp(-initTheta);
+
+	//calc initial LL
+	fillPGenotype(pGenotype, expTheta);
+	calcLogLikelihood(pGenotype);
+	double oldLL = LL;
+
+	double factor = sharedConstants->initThetaSearchFactor;
+	int numUpdates;
+	for(int i=0; i<sharedConstants->initThetaNumSearchIterations; ++i){
+		numUpdates = -1;
+		while(oldLL <= LL){
+			++numUpdates;
+			oldLL = LL;
+			oldTheta = initTheta;
+			initTheta *= factor;
+			expTheta = exp(-initTheta);
+			fillPGenotype(pGenotype, expTheta);
+			calcLogLikelihood(pGenotype);
+		}
+		if(numUpdates == 0){
+			initTheta = oldTheta;
+			LL = oldLL;
+			//maybe smaller?
+			while(oldLL <= LL){
+				oldLL = LL;
+				oldTheta = initTheta;
+				initTheta /= factor;
+				expTheta = exp(-initTheta);
+				fillPGenotype(pGenotype, expTheta);
+				calcLogLikelihood(pGenotype);
+			}
+		}
+		factor = sqrt(factor);
+		initTheta = oldTheta;
+		LL = oldLL;
+	}
+	//return previous
+	theta = oldTheta;
+	LL = oldLL;
 }
 
 void TWindow::writeEMResults(std::ofstream & out){
@@ -519,11 +587,17 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	sharedConstants.pdmLambda = params.getParameterDoubleWithDefault("pdmLambda", 0.3);
 
 	//EM params
+	sharedConstants.numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
 	sharedConstants.numIterations = params.getParameterIntWithDefault("iterations", 100);
+
 	sharedConstants.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
 	sharedConstants.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
 	sharedConstants.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+
+	//params regarding initial search
 	sharedConstants.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	sharedConstants.initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 10);
+	sharedConstants.initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
 
 	//outputname
 	outname = params.getParameterStringWithDefault("out", "");
