@@ -223,8 +223,11 @@ public:
 	std::vector<TBase*> bases;
 	double emissionProbabilities[10];
 	double P_g[10]; //P(g|d, theta, pi), see equation (3)
+	bool hasData;
 
-	TSite(){};
+	TSite(){
+		hasData = false;
+	};
 	~TSite(){
 		clear();
 	};
@@ -233,6 +236,7 @@ public:
 		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
 			delete *it;
 		bases.clear();
+		hasData = false;
 	};
 
 	void add(char & base, char & quality, int pos5, int pos3, Constants & constants);
@@ -272,7 +276,7 @@ public:
 	void fillP_G(double* P_g, double* pGenotype);
 	void calcLogLikelihood(double* pGenotype);
 	void findGoodStartingTheta();
-	void runEM();
+	void runEM(TLog* logfile);
 	void writeEMResults(std::ofstream & out);
 	void printPileup(std::ofstream & out, std::string & chr);
 	void calcCoverage();

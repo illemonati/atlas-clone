@@ -100,6 +100,7 @@ void TSite::add(char & base, char & quality, int pos5, int pos3, Constants & con
 			else if(base == 'G') bases.push_back(new TBaseG(error, pos5, pos3, constants));
 			else bases.push_back(new TBaseT(error, pos5, pos3, constants));
 		}
+		hasData = true;
 	}
 };
 
@@ -274,34 +275,55 @@ void TWindow::fillP_G(double* P_G, double* pGenotype){
 
 	//calculate P_g for each site
 	for(int i=0; i<length; ++i){
-		sites[i].calculateP_g(pGenotype);
-		for(int g=0; g<10; ++g){
-			P_G[g] += sites[i].P_g[g];
+		if(sites[i].hasData){
+			sites[i].calculateP_g(pGenotype);
+			for(int g=0; g<10; ++g){
+				P_G[g] += sites[i].P_g[g];
+			}
 		}
 	}
 }
 
+
 void TWindow::calcLogLikelihood(double* pGenotype){
 	LL = 0.0;
-	for(int i=0; i<length; ++i)
-		LL += sites[i].calculateLogLikelihood(pGenotype);
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData)
+			LL += sites[i].calculateLogLikelihood(pGenotype);
+	}
 }
 
-void TWindow::runEM(){
+void TWindow::runEM(TLog* logfile){
+	logfile->startIndent("Performing estimation of theta:");
+
+	//measure runtime
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
+	logfile->listFlush("Calculating emission probabilities ...");
 	baseFreq.clear();
+	int lengthWithData = 0;
 	for(int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilities();
-		sites[i].addToBaseFrequencies(baseFreq);
+		if(sites[i].hasData){
+			sites[i].calcEmissionProbabilities();
+			sites[i].addToBaseFrequencies(baseFreq);
+			++lengthWithData;
+		}
 	}
 	baseFreq.normalize();
+	logfile->write(" done!");
+	logfile->list("Estimating initial base frequencies ... done!");
+	logfile->conclude("Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
 
 	//set initial parameters
+	logfile->listFlush("Estimating initial theta ...");
 	findGoodStartingTheta();
-	std::cout << "STARTING WITH THETA = " << theta << std::endl;
-	double expTheta, rho, mu = length;
-	double oldLL;
+	logfile->write(" done!");
+	logfile->conclude("Starting EM with theta = ", theta);
+	double oldTheta, expTheta, rho, mu = lengthWithData;
+	double oldLL = -9e100;
 
 	//prepare storage
 	double pGenotype[10];
@@ -316,11 +338,13 @@ void TWindow::runEM(){
 	int failedAttempts = 0;
 
 	//start EM loop
+	logfile->listFlush("Running EM to fine tune estimations ...");
 	int numThetaOnlyUpdatesDone = sharedConstants->numThetaOnlyUpdates; //do regular step first
 	numThetaOnlyUpdatesDone = 0;
 	int totIterations = sharedConstants->numIterations * sharedConstants->numThetaOnlyUpdates;
 	for(int iter = 0; iter < totIterations; ++iter){
 		//a) pre-calc expTheta
+		oldTheta = theta;
 		expTheta = exp(-theta);
 
 		//b) calculate	substitution probabilities
@@ -337,19 +361,20 @@ void TWindow::runEM(){
 		fillP_G(P_G, pGenotype);
 
 		//d) set rho
-		if(iter == 0){ //estimate in first iteration
+		/* if(iter == 0){ //estimate in first iteration
 			double sumPKK = 0.0;
 			for(int i=0; i<4; ++i)
 				sumPKK += P_G[sharedConstants->getGenotype(i, i)];
 			rho = (sumPKK) / (length - sumPKK);
-		} else rho = expTheta / (1.0 - expTheta);
+		} else	*/
+		rho = expTheta / (1.0 - expTheta);
 
 		//d) Find new parameter estimates using Newton-Ralphson
 		if(numThetaOnlyUpdatesDone < sharedConstants->numThetaOnlyUpdates){
 			//update only theta: most difficult parameter and it is much faster to update only this one alone.
 			for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
 				//i) calculate F() (Note: index is zero based!)
-				F(4) = length;
+				F(4) = lengthWithData;
 				for(int k=0; k<4; ++k){
 					geno = sharedConstants->getGenotype(k, k);
 					F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
@@ -365,22 +390,19 @@ void TWindow::runEM(){
 				rho = rho - F(4) / Jacobian(4,4);
 
 				//check if we break
-				maxF = 0.0;
-					for(int i=0; i<6; ++i){
-						if(F(i) > maxF) maxF = F(i);
-					}
 				if(F(4) < sharedConstants->NewtonRalphsonMaxF){
 					theta = -log(rho / (1.0 + rho));
 					break;
 				}
 			}
 			++numThetaOnlyUpdatesDone;
+			if(theta == oldTheta) numThetaOnlyUpdatesDone = sharedConstants->numThetaOnlyUpdates;
 		} else {
 			numThetaOnlyUpdatesDone = 0;
 			//update all parameters in EM
 			for(int n=0; n<sharedConstants->NewtonRalphsonNumIterations; ++n){
 				//i) calculate F (Note: index is zero based!)
-				F(4) = length;
+				F(4) = lengthWithData;
 				F(5) = 0.0;
 				for(int k=0; k<4; ++k){
 					geno = sharedConstants->getGenotype(k, k);
@@ -437,7 +459,7 @@ void TWindow::runEM(){
 					for(int i=0; i<failedAttempts; ++i)
 						theta *= 10.0;
 					//reset others
-					mu = length;
+					mu = lengthWithData;
 					LL = -9e100;
 					iter = 0;
 					numThetaOnlyUpdatesDone = 0;
@@ -445,9 +467,63 @@ void TWindow::runEM(){
 				}
 			}
 		}
-
-		std::cout << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
+		//For debugging
+		//std::cout << std::setprecision(9) << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
 	}
+	logfile->write(" done!");
+	logfile->conclude("theta was estimated at ", theta);
+	gettimeofday(&end, NULL);
+	logfile->list("Total computation time for this window was ", end.tv_sec  - start.tv_sec, "s");
+}
+
+void TWindow::findGoodStartingTheta(){
+	//assumes that initial base frequencies have been estimated and site emission probs calculated!
+	double pGenotype[10];
+	double initTheta = sharedConstants->initalTheta;
+	double oldTheta = initTheta;
+	double expTheta = exp(-initTheta);
+
+	//calc initial LL
+	fillPGenotype(pGenotype, expTheta);
+	calcLogLikelihood(pGenotype);
+
+	//run iterations
+	double oldLL = LL;
+	double factor = sharedConstants->initThetaSearchFactor;
+	int numUpdates;
+	for(int i=0; i<sharedConstants->initThetaNumSearchIterations; ++i){
+		//first test increase in theta
+		numUpdates = -1;
+		do{
+			++numUpdates;
+			oldLL = LL;
+			oldTheta = initTheta;
+			initTheta *= factor;
+			expTheta = exp(-initTheta);
+			fillPGenotype(pGenotype, expTheta);
+			calcLogLikelihood(pGenotype);
+		} while(oldLL < LL);
+		if(numUpdates == 0){
+			//then test decrease in theta
+			initTheta = oldTheta;
+			LL = oldLL;
+			//maybe smaller?
+			do{
+				oldLL = LL;
+				oldTheta = initTheta;
+				initTheta /= factor;
+				expTheta = exp(-initTheta);
+				fillPGenotype(pGenotype, expTheta);
+				calcLogLikelihood(pGenotype);
+			} while(oldLL < LL);
+		}
+		factor = sqrt(factor);
+		initTheta = oldTheta;
+		LL = oldLL;
+	}
+	//return previous
+	theta = oldTheta;
+	LL = oldLL;
 }
 
 void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
@@ -485,52 +561,6 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	}
 }
 
-void TWindow::findGoodStartingTheta(){
-	//assumes that initial base frequencies have been estimated and site emission probs calculated!
-	double pGenotype[10];
-	double initTheta = sharedConstants->initalTheta;
-	double oldTheta = initTheta;
-	double expTheta = exp(-initTheta);
-
-	//calc initial LL
-	fillPGenotype(pGenotype, expTheta);
-	calcLogLikelihood(pGenotype);
-	double oldLL = LL;
-
-	double factor = sharedConstants->initThetaSearchFactor;
-	int numUpdates;
-	for(int i=0; i<sharedConstants->initThetaNumSearchIterations; ++i){
-		numUpdates = -1;
-		while(oldLL <= LL){
-			++numUpdates;
-			oldLL = LL;
-			oldTheta = initTheta;
-			initTheta *= factor;
-			expTheta = exp(-initTheta);
-			fillPGenotype(pGenotype, expTheta);
-			calcLogLikelihood(pGenotype);
-		}
-		if(numUpdates == 0){
-			initTheta = oldTheta;
-			LL = oldLL;
-			//maybe smaller?
-			while(oldLL <= LL){
-				oldLL = LL;
-				oldTheta = initTheta;
-				initTheta /= factor;
-				expTheta = exp(-initTheta);
-				fillPGenotype(pGenotype, expTheta);
-				calcLogLikelihood(pGenotype);
-			}
-		}
-		factor = sqrt(factor);
-		initTheta = oldTheta;
-		LL = oldLL;
-	}
-	//return previous
-	theta = oldTheta;
-	LL = oldLL;
-}
 
 void TWindow::writeEMResults(std::ofstream & out){
 	//position
@@ -542,7 +572,6 @@ void TWindow::writeEMResults(std::ofstream & out){
 		out << "\t" << baseFreq[i];
 	out << "\t" << theta << "\t" << LL << std::endl;
 }
-
 
 void TWindow::printPileup(std::ofstream & out, std::string & chr){
 	//calc emission probs
@@ -566,7 +595,7 @@ void TWindow::calcCoverage(){
 		else if(sites[i].bases.size() > 1) ++ plentyData;
 	}
 	coverage = coverage / (double) length;
-	fractionSitesNoData = (double) noData / (double) length;;
+	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
@@ -580,7 +609,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	filename = params.getParameterString("bam");
 	windowSize = params.getParameterDouble("window");
 	if(windowSize < 1000) throw "Window size should be at least 1Kb!";
-	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.9);
+	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
 
 	//post mortem damage
 	sharedConstants.pdmC = params.getParameterDoubleWithDefault("pdmC", 0.01);
@@ -596,7 +625,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//params regarding initial search
 	sharedConstants.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
-	sharedConstants.initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 10);
+	sharedConstants.initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
 	sharedConstants.initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
 
 	//outputname
@@ -681,6 +710,10 @@ bool TGenome::iterateWindow(){
 bool TGenome::readData(){
 	logfile->listFlush("Reading data on '" + chrIterator->Name + "' at [" + toString(curStart) + ", " + toString(curEnd) + ") ...");
 
+	//measure runtime
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+
 	//parse through reads
 	int numReads = 0;
 	while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
@@ -709,7 +742,8 @@ bool TGenome::readData(){
 
 	curWindow->calcCoverage();
 
-	logfile->write(" done!");
+	gettimeofday(&end, NULL);
+	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 	logfile->conclude("read data from " + toString(numReads) + " reads.");
 	logfile->conclude("coverage is " + toString(curWindow->coverage));
 	logfile->conclude(toString(curWindow->fractionsitesCoverageAtLeastTwo) + " of all sites are covered at least twice");
@@ -725,7 +759,7 @@ void TGenome::estimateTheta(){
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
-	out << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta\tLL" << std::endl;
+	out << std::setprecision(9) << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta\tLL" << std::endl;
 
 	//iterate through windows
 	while(iterateChromosome()){
@@ -738,10 +772,7 @@ void TGenome::estimateTheta(){
 				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			} else {
 				//run EM
-				logfile->listFlush("Performing EM estimation of theta ...");
-				curWindow->runEM();
-				logfile->write(" done!");
-				logfile->conclude("theta was estimated at " + toString(curWindow->theta));
+				curWindow->runEM(logfile);
 
 				//save results to file
 				out << chrIterator->Name << "\t";
