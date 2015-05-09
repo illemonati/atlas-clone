@@ -51,6 +51,7 @@ TWindow::TWindow(Constants* SharedConstants){
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	theta = 0.0;
 	LL = 0.0;
+	thetaConfidence = 0.0;
 };
 
 TWindow::TWindow(long Start, long End, Constants* SharedConstants){
@@ -170,8 +171,8 @@ void TWindow::calcLogLikelihood(double* pGenotype){
 	}
 }
 
-void TWindow::runEM(TLog* logfile){
-	logfile->startIndent("Performing estimation of theta:");
+void TWindow::estimateTheta(TLog* logfile){
+	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
 	struct timeval start, end;
@@ -191,6 +192,7 @@ void TWindow::runEM(TLog* logfile){
 	}
 	baseFreq.normalize();
 	logfile->write(" done!");
+	logfile->startIndent("Estimating initial parameters:");
 	logfile->list("Estimating initial base frequencies ... done!");
 	logfile->conclude("Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
 
@@ -201,6 +203,7 @@ void TWindow::runEM(TLog* logfile){
 	logfile->conclude("Starting EM with theta = ", theta);
 	double oldTheta, expTheta, rho, mu = lengthWithData;
 	double oldLL = -9e100;
+	logfile->endIndent();
 
 	//prepare storage
 	double pGenotype[10];
@@ -215,7 +218,7 @@ void TWindow::runEM(TLog* logfile){
 	int failedAttempts = 0;
 
 	//start EM loop
-	logfile->listFlush("Running EM to fine tune estimations ...");
+	logfile->listFlush("Running EM to find ML estimations ...");
 	int numThetaOnlyUpdatesDone = sharedConstants->numThetaOnlyUpdates; //do regular step first
 	numThetaOnlyUpdatesDone = 0;
 	int totIterations = sharedConstants->numIterations * sharedConstants->numThetaOnlyUpdates;
@@ -349,8 +352,55 @@ void TWindow::runEM(TLog* logfile){
 	}
 	logfile->write(" done!");
 	logfile->conclude("theta was estimated at ", theta);
+
+	//confidence intervals
+	estimateConfidenceInterval(logfile);
+
+	//finish
 	gettimeofday(&end, NULL);
 	logfile->list("Total computation time for this window was ", end.tv_sec  - start.tv_sec, "s");
+	logfile->endIndent();
+}
+
+void TWindow::estimateConfidenceInterval(TLog* logfile){
+	//we estimate an approximate confidence interval for theta using the Fisher information
+	//This function assumes that EM has already been run!
+	logfile->listFlush("Estimating approximate confidence intervals from Fisher-Information ...");
+
+	//calculate P(g|theta, pi)
+	double expTheta = exp(-theta);
+	double pGenotype[10];
+	fillPGenotype(pGenotype, expTheta);
+
+	//calclate d/dtheta P(g|theta, pi)
+	double deriv_pGenotype[10];
+	for(int k=0; k<4; ++k){
+		//homozygous genotype
+		deriv_pGenotype[sharedConstants->getGenotype(k, k)] = (baseFreq[k] * baseFreq[k] - baseFreq[k]) * expTheta;
+		//heterozygosu genotypes
+		for(int l=k+1; l<4; ++l){
+			deriv_pGenotype[sharedConstants->getGenotype(k, l)] = baseFreq[k] * baseFreq[l] * expTheta;
+		}
+	}
+
+	//sum Ri over all sites
+	double FisherInfo = 0.0;
+	double Ri;
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			//calc Ri
+			Ri = -sites[i].calculateWeightedSumOfEmissionProbs(deriv_pGenotype) / sites[i].calculateWeightedSumOfEmissionProbs(pGenotype);
+			//add to Fisher Info
+			FisherInfo += Ri * (Ri + 1.0);
+		}
+	}
+
+	//estimate confidence interval
+	thetaConfidence = 1.96 / sqrt(FisherInfo);
+
+	//report
+	logfile->write(" done!");
+	logfile->conclude("95% confidence intervals are theta +- " + toString(thetaConfidence));
 }
 
 void TWindow::findGoodStartingTheta(){
@@ -438,16 +488,15 @@ void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
 	}
 }
 
-
-void TWindow::writeEMResults(std::ofstream & out){
+void TWindow::writeEstimationsTo(std::ofstream & out){
 	//position
-	out << start << "\t" << end;
+	out << start << "\t" << end-1;
 	//coverage NOTE: assumes coverage has been calculated before...
 	out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
 	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
-	out << "\t" << theta << "\t" << LL << std::endl;
+	out << "\t" << theta << "\t" << theta - thetaConfidence << "\t" << theta + thetaConfidence << "\t" << LL << std::endl;
 }
 
 void TWindow::printPileup(std::ofstream & out, std::string & chr){
@@ -542,6 +591,7 @@ bool TGenome::iterateChromosome(){
 		chrNumber = 0;
 	} else {
 		logfile->endIndent();
+		logfile->endNumbering();
 		//move to next
 		++chrIterator;
 		++chrNumber;
@@ -563,11 +613,13 @@ bool TGenome::iterateChromosome(){
 	nextWindow->move(0, windowSize);
 
 	//write progress
-	logfile->startIndent("Parsing chromosome '" + chrIterator->Name + "':");
+	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
 	return true;
 }
 
 bool TGenome::iterateWindow(){
+	if(curEnd > 0) logfile->endIndent();
+
 	//move to next region
 	curStart = curEnd;
 	curEnd += windowSize;
@@ -580,11 +632,15 @@ bool TGenome::iterateWindow(){
 	nextWindow = tmp;
 	nextWindow->move(curEnd, curEnd + windowSize);
 
+	//report
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") on '" + chrIterator->Name + "':");
+	logfile->addIndent();
+
 	return true;
 };
 
 bool TGenome::readData(){
-	logfile->listFlush("Reading data on '" + chrIterator->Name + "' at [" + toString(curStart) + ", " + toString(curEnd) + ") ...");
+	logfile->listFlush("Reading data ...");
 
 	//measure runtime
 	struct timeval start, end;
@@ -635,11 +691,14 @@ void TGenome::estimateTheta(){
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
-	out << std::setprecision(9) << "Chr\tstart\tend\tcoverage\tmissing\ttwoOrMore\tf(A)\tf(C)\tf(G)\tf(T)\ttheta\tLL" << std::endl;
+	out << std::setprecision(9) << "Chr\t";
+	out << "start\tend\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C90_l\ttheta_C90_u\tLL";
+	out << "\n";
 
 	//iterate through windows
 	while(iterateChromosome()){
 		while(iterateWindow()){
+
 			//read data for current window
 			readData();
 
@@ -647,12 +706,12 @@ void TGenome::estimateTheta(){
 			if(curWindow->fractionSitesNoData > maxMissing){
 				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			} else {
-				//run EM
-				curWindow->runEM(logfile);
+				//estimate Theta
+				curWindow->estimateTheta(logfile);
 
 				//save results to file
 				out << chrIterator->Name << "\t";
-				curWindow->writeEMResults(out);
+				curWindow->writeEstimationsTo(out);
 			}
 		}
 	}

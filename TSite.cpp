@@ -200,6 +200,15 @@ void TSite::calculateP_g(double* genotypeProbabilities){
 	}
 }
 
+double TSite::calculateWeightedSumOfEmissionProbs(double* weights){
+	//calculate normalized genotype probabilities according to Bayes rule
+	double sum = 0.0;
+	for(int i=0; i<10; ++i){
+		sum += emissionProbabilities[i] * weights[i];
+	}
+	return sum;
+}
+
 double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;

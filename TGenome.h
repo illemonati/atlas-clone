@@ -104,6 +104,7 @@ public:
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;;
 	TBaseFrequencies baseFreq;
 	double theta;
+	double thetaConfidence;
 	double LL;
 	Constants* sharedConstants;
 	TWindow(Constants* SharedConstants);
@@ -118,9 +119,10 @@ public:
 	void fillPGenotype(double* pGenotype, double & expTheta);
 	void fillP_G(double* P_g, double* pGenotype);
 	void calcLogLikelihood(double* pGenotype);
+	void estimateConfidenceInterval(TLog* logfile);
 	void findGoodStartingTheta();
-	void runEM(TLog* logfile);
-	void writeEMResults(std::ofstream & out);
+	void estimateTheta(TLog* logfile);
+	void writeEstimationsTo(std::ofstream & out);
 	void printPileup(std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	void calcLikelihoodSurface(std::ofstream & out, std::string & chr);

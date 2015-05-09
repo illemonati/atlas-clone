@@ -51,7 +51,7 @@ class TPMDFunction{
 public:
 	TPMDFunction(){};
 	virtual ~TPMDFunction(){};
-	virtual double getProb(double pos){
+	virtual double getProb(double & pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
@@ -69,7 +69,7 @@ public:
 	double getProb(double & pos){
 		return c + pow(1.0 - lambda, (double) pos - 1.0) * lambda;
 	};
-	virtual std::string getString(){ return "P(pmd|pos) = p * (1 - p)^pos + c = " + toString(lambda) + " * (1 - " + toString(lambda) + ")^pos + " + toString(c); };
+	std::string getString(){ return "P(pmd|pos) = p * (1 - p)^pos + c = " + toString(lambda) + " * (1 - " + toString(lambda) + ")^pos + " + toString(c); };
 };
 
 class TPMDVeeramah:public TPMDFunction{
@@ -83,7 +83,7 @@ public:
 	double getProb(double & pos){
 		return a * exp(-pos * b) + c;
 	};
-	virtual std::string getString(){ return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c); };
+	std::string getString(){ return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c); };
 };
 
 class TPMD{
@@ -225,6 +225,7 @@ public:
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities();
 	void calculateP_g(double* genotypeProbabilities);
+	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
