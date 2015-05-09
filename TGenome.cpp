@@ -9,155 +9,33 @@
 #include "TGenome.h"
 
 //-------------------------------------------------------
-//TBase
+//Constants
 //-------------------------------------------------------
-double TBase::probPDM(int & pos, Constants & constants){
-	//probability of a Post Mortem Damag (according to Skoglund et al. 2014)
-	return constants.pdmC + pow(1.0 - constants.pdmLambda, (double) pos - constants.pdmLambda) * constants.pdmLambda;
-}
+void Constants::initPmd(TParameters & params, TLog* logfile){
+	if(params.parameterExists("pmd")){
+		std::string pmd = params.getParameterString("pmd");
+		logfile->list("Initializing post mortem damage for both C->T and G->A with function '" + pmd +"'.");
+		pmd_C_T.initializeFunction(pmd);
+		pmd_G_A.initializeFunction(pmd);
+		logfile->conclude(pmd_C_T.getFunctionString());
+	} else {
+		//separate model for C->T and G->A
+		//first C->T
+		if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
+		std::string pmd = params.getParameterString("pmdCT");
+		logfile->list("Initializing post mortem C->T damage with function '" + pmd +"'.");
+		pmd_C_T.initializeFunction(pmd);
+		logfile->conclude(pmd_C_T.getFunctionString());
 
-void TBaseA::fillEmissionProbabilities(Constants & constants){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
-	double pdm = probPDM(pos3, constants);
-
-	emissionProbabilities.set(AA, oneMinusError);
-	emissionProbabilities.set(CC, errorOneThird);
-	emissionProbabilities.set(GG, (1.0 - pdm) * errorOneThird + pdm * oneMinusError);
-	emissionProbabilities.set(TT, errorOneThird);
-	emissionProbabilities.set(AC, 0.5 - errorOneThird);
-	emissionProbabilities.set(AG, ((1.0 + pdm) * oneMinusError + (1.0 - pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AT, 0.5 - errorOneThird);
-	emissionProbabilities.set(CG, (pdm * oneMinusError + (2.0 - pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(CT, errorOneThird);
-	emissionProbabilities.set(GT, emissionProbabilities.get(CG));
-};
-
-void TBaseC::fillEmissionProbabilities(Constants & constants){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
-	double pdm = probPDM(pos5, constants);
-
-	emissionProbabilities.set(AA , errorOneThird);
-	emissionProbabilities.set(CC , (1.0 - pdm) * oneMinusError + pdm * errorOneThird);
-	emissionProbabilities.set(GG , errorOneThird);
-	emissionProbabilities.set(TT , errorOneThird);
-	emissionProbabilities.set(AC , ((1.0 - pdm) * oneMinusError + (1.0 + pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AG , errorOneThird);
-	emissionProbabilities.set(AT , errorOneThird);
-	emissionProbabilities.set(CG , emissionProbabilities.get(AC));
-	emissionProbabilities.set(CT , emissionProbabilities.get(AC));
-	emissionProbabilities.set(GT , errorOneThird);
-};
-
-void TBaseG::fillEmissionProbabilities(Constants & constants){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
-	double pdm = probPDM(pos3, constants);
-
-	emissionProbabilities.set(AA, errorOneThird);
-	emissionProbabilities.set(CC, errorOneThird);
-	emissionProbabilities.set(GG, (1.0 - pdm) * oneMinusError + pdm * errorOneThird);
-	emissionProbabilities.set(TT, errorOneThird);
-	emissionProbabilities.set(AC, errorOneThird);
-	emissionProbabilities.set(AG, ((1.0 - pdm) * oneMinusError + (1.0 + pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AT, errorOneThird);
-	emissionProbabilities.set(CG, emissionProbabilities.get(AG));
-	emissionProbabilities.set(CT, errorOneThird);
-	emissionProbabilities.set(GT, emissionProbabilities.get(AG));
-
-};
-
-void TBaseT::fillEmissionProbabilities(Constants & constants){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
-	double pdm = probPDM(pos5, constants);
-
-	emissionProbabilities.set(AA, errorOneThird);
-	emissionProbabilities.set(CC, (1.0 - pdm) * errorOneThird + pdm * oneMinusError);
-	emissionProbabilities.set(GG, errorOneThird);
-	emissionProbabilities.set(TT, oneMinusError);
-	emissionProbabilities.set(AC, (pdm * oneMinusError + (2.0 - pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AG, errorOneThird);
-	emissionProbabilities.set(AT, 0.5 - errorOneThird);
-	emissionProbabilities.set(CG, emissionProbabilities.get(AC));
-	emissionProbabilities.set(CT, ((1.0 + pdm) * oneMinusError + (1.0 - pdm) * errorOneThird) / 2.0);
-	emissionProbabilities.set(GT, 0.5 - errorOneThird);
-};
-//-------------------------------------------------------
-//TSite
-//-------------------------------------------------------
-void TSite::add(char & base, char & quality, int pos5, int pos3, Constants & constants){
-	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-		double error = pow(10.0, - ((double)quality - 33.0)/10.0);
-		if(error < 1.0){
-			if(base == 'A') bases.push_back(new TBaseA(error, pos5, pos3, constants));
-			else if(base == 'C') bases.push_back(new TBaseC(error, pos5, pos3, constants));
-			else if(base == 'G') bases.push_back(new TBaseG(error, pos5, pos3, constants));
-			else bases.push_back(new TBaseT(error, pos5, pos3, constants));
-		}
-		hasData = true;
-	}
-};
-
-std::string TSite::getBases(){
-	if(bases.size()==0) return "-";
-	std::string b = "";
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		b += (*it)->getBase();
-	}
-	return b;
-}
-
-void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
-	double weight = 1.0 / bases.size();
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->addToBaseFrequencies(frequencies, weight);
+		//second G->A
+		if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damaga: argument 'pmd' or 'pmdGA' has to be provided!";
+		pmd = params.getParameterString("pmdGA");
+		logfile->list("Initializing post mortem G->A damage with function '" + pmd +"'.");
+		pmd_G_A.initializeFunction(pmd);
+		logfile->conclude(pmd_G_A.getFunctionString());
 	}
 }
 
-void TSite::calcEmissionProbabilities(){
-	//calculate normalized genotype probabilities according to Bayes rule
-	for(int i=0; i<10; ++i){
-		emissionProbabilities[i] = 1.0;
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
-		}
-	}
-}
-
-std::string TSite::getEmissionProbs(){
-	std::string b = toString(emissionProbabilities[0]);
-	for(int i=1; i<10; ++i){
-		b += "\t" + toString(emissionProbabilities[i]);
-	}
-	return b;
-}
-
-void TSite::calculateP_g(double* genotypeProbabilities){
-	//calculate normalized genotype probabilities according to Bayes rule
-	double sum = 0.0;
-	for(int i=0; i<10; ++i){
-		P_g[i] =  emissionProbabilities[i] * genotypeProbabilities[i];
-		sum += P_g[i];
-	}
-	for(int i=0; i<10; ++i){
-		P_g[i] /= sum;
-	}
-}
-
-double TSite::calculateLogLikelihood(double* genotypeProbabilities){
-	//calculate normalized genotype probabilities according to Bayes rule
-	double sum = 0.0;
-	for(int i=0; i<10; ++i){
-		sum +=  emissionProbabilities[i] * genotypeProbabilities[i];
-	}
-	return log(sum);
-}
 //-------------------------------------------------------
 //Twindow
 //-------------------------------------------------------
@@ -246,11 +124,10 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 		 *                3) Function add need first pos5, then pos3
 		 */
 
-		//DEBUG: ONLY ACCEPT ONE READ PER INDIVIDUAL
 		if(bamAlignement.IsReverseStrand())
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), len - pos, pos + 1, *sharedConstants);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), len - pos, pos + 1, &(sharedConstants->pmd_C_T), &(sharedConstants->pmd_G_A));
 		else
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, *sharedConstants);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, &(sharedConstants->pmd_C_T), &(sharedConstants->pmd_G_A));
 	}
 
 	//return if part of the read maps to next window
@@ -612,8 +489,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
 
 	//post mortem damage
-	sharedConstants.pdmC = params.getParameterDoubleWithDefault("pdmC", 0.01);
-	sharedConstants.pdmLambda = params.getParameterDoubleWithDefault("pdmLambda", 0.3);
+	sharedConstants.initPmd(params, logfile);
 
 	//EM params
 	sharedConstants.numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
