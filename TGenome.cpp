@@ -379,7 +379,7 @@ void TWindow::estimateConfidenceInterval(TLog* logfile){
 		deriv_pGenotype[sharedConstants->getGenotype(k, k)] = (baseFreq[k] * baseFreq[k] - baseFreq[k]) * expTheta;
 		//heterozygosu genotypes
 		for(int l=k+1; l<4; ++l){
-			deriv_pGenotype[sharedConstants->getGenotype(k, l)] = baseFreq[k] * baseFreq[l] * expTheta;
+			deriv_pGenotype[sharedConstants->getGenotype(k, l)] = 2.0 * baseFreq[k] * baseFreq[l] * expTheta;
 		}
 	}
 
@@ -389,7 +389,7 @@ void TWindow::estimateConfidenceInterval(TLog* logfile){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			//calc Ri
-			Ri = -sites[i].calculateWeightedSumOfEmissionProbs(deriv_pGenotype) / sites[i].calculateWeightedSumOfEmissionProbs(pGenotype);
+			Ri = sites[i].calculateWeightedSumOfEmissionProbs(deriv_pGenotype) / sites[i].calculateWeightedSumOfEmissionProbs(pGenotype);
 			//add to Fisher Info
 			FisherInfo += Ri * (Ri + 1.0);
 		}
