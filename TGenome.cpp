@@ -692,7 +692,7 @@ void TGenome::estimateTheta(){
 
 	//write header
 	out << std::setprecision(9) << "Chr\t";
-	out << "start\tend\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C90_l\ttheta_C90_u\tLL";
+	out << "start\tend\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
 	out << "\n";
 
 	//iterate through windows
