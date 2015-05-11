@@ -94,47 +94,50 @@ void TPMD::initializeFunction(std::string & pmdString){
 	// Veeramah[a,b,c]
 	std::string example = "Use either Skoglund[p,c] or Veeramah[a,b,c]";
 
-	std::string::size_type pos = pmdString.find_first_of('[');
-	if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-	std::string name = pmdString.substr(0,pos);
+	//check if it is none
+	if(pmdString == "none"){
+		myFunction = new TPMDFunction();
+	} else {
+		std::string::size_type pos = pmdString.find_first_of('[');
+		if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
+		std::string name = pmdString.substr(0,pos);
 
-	//prepare first value
-	std::string tmp = pmdString.substr(pos+1, pmdString.length() - pos - 1);
-	pos = tmp.find_first_of(',');
-	if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-	double first = atof(tmp.substr(0, pos).c_str());
-
-	//switch between functions
-	if(name == "Skoglund"){
-		//get lambda and
-		if(first < 0.0) throw "Can not initialize Skoglund function with lambda < 0!";
-		if(first > 1.0) throw "Can not initialize Skoglund function with lambda > 1!";
-		double c = atof(tmp.substr(pos+1).c_str());
-		if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
-		myFunction = new TPMDSkoglund(first, c);
-	} else if(name == "Veeramah"){
-		//get a, b and c
-		if(first < 0.0) throw "Can not initialize Veeramah function with a < 0!";
-
-		//get b
-		tmp = tmp.substr(pos+1);
+		//prepare first value
+		std::string tmp = pmdString.substr(pos+1, pmdString.length() - pos - 1);
 		pos = tmp.find_first_of(',');
 		if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-		double b = atof(tmp.substr(0, pos).c_str());
-		if(b < 0.0) throw "Can not initialize Veeramah function with b < 0!";
+		double first = atof(tmp.substr(0, pos).c_str());
 
-		//get c
-		double c = atof(tmp.substr(pos+1).c_str());
-		if(c < 0.0) throw "Can not initialize Veeramah function with c < 0!";
+		//switch between functions
+		if(name == "Skoglund"){
+			//get lambda and
+			if(first < 0.0) throw "Can not initialize Skoglund function with lambda < 0!";
+			if(first > 1.0) throw "Can not initialize Skoglund function with lambda > 1!";
+			double c = atof(tmp.substr(pos+1).c_str());
+			if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
+			myFunction = new TPMDSkoglund(first, c);
+		} else if(name == "Veeramah"){
+			//get a, b and c
+			if(first < 0.0) throw "Can not initialize Veeramah function with a < 0!";
 
-		//test if it can be > 1
-		if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
+			//get b
+			tmp = tmp.substr(pos+1);
+			pos = tmp.find_first_of(',');
+			if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
+			double b = atof(tmp.substr(0, pos).c_str());
+			if(b < 0.0) throw "Can not initialize Veeramah function with b < 0!";
 
-		//initialze
-		myFunction = new TPMDVeeramah(first, b, c);
-	} else if(name == "none"){
-		myFunction = new TPMDFunction();
-	} else throw "Can not initialize post mortem damage function: wrong name!\n" + example;
+			//get c
+			double c = atof(tmp.substr(pos+1).c_str());
+			if(c < 0.0) throw "Can not initialize Veeramah function with c < 0!";
+
+			//test if it can be > 1
+			if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
+
+			//initialze
+			myFunction = new TPMDVeeramah(first, b, c);
+		} else throw "Can not initialize post mortem damage function: wrong name!\n" + example;
+	}
 	functionInitialized = true;
 }
 
