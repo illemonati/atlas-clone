@@ -230,13 +230,6 @@ void TWindow::estimateTheta(TLog* logfile){
 		//b) calculate	substitution probabilities
 		fillPGenotype(pGenotype, expTheta);
 
-		//do we break EM? Check LL
-		if(iter > 0 && iter % sharedConstants->numThetaOnlyUpdates == 0){
-			oldLL = LL;
-			calcLogLikelihood(pGenotype);
-			if(LL > -9e100 && (LL - oldLL) < sharedConstants->maxEpsilon) break;
-		}
-
 		//c) Calculate all genotype probabilities for all sites
 		fillP_G(P_G, pGenotype);
 
@@ -347,6 +340,31 @@ void TWindow::estimateTheta(TLog* logfile){
 				}
 			}
 		}
+
+		//e) do we break EM? Check LL
+		if(iter > 0 && iter % sharedConstants->numThetaOnlyUpdates == 0){
+			oldLL = LL;
+			calcLogLikelihood(pGenotype);
+			if(LL > -9e100 && (LL - oldLL) < sharedConstants->maxEpsilon) break;
+
+			//maybe theta = 0?
+			if(theta < 0.1/length){
+				oldLL = LL;
+				oldTheta = theta;
+				//test with theta = 0.0
+				theta = 0.0;
+				expTheta = exp(-theta);
+				fillPGenotype(pGenotype, expTheta);
+				calcLogLikelihood(pGenotype);
+
+				if(LL < oldLL){
+					theta = oldTheta;
+					LL = oldLL;
+				}
+				break;
+			}
+		}
+
 		//For debugging
 		//std::cout << std::setprecision(9) << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
 	}
@@ -451,6 +469,14 @@ void TWindow::findGoodStartingTheta(){
 	//return previous
 	theta = oldTheta;
 	LL = oldLL;
+
+	//check if values make sense. If theta < 1/(10*windowsize), set it to 1/(10*windowsize)
+	if(theta < 0.1/length){
+		theta = 0.1/length;
+		expTheta = exp(-theta);
+		fillPGenotype(pGenotype, expTheta);
+		calcLogLikelihood(pGenotype);
+	}
 }
 
 void TWindow::calcLikelihoodSurface(std::ofstream & out, std::string & chr){
