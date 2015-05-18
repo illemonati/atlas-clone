@@ -266,9 +266,10 @@ void TGenome::printPileup(){
 	//prepare windows
 	TWindowPairDiploid windows;
 
-	//write header
+	//open output
 	std::ofstream out;
-	out.open(outputName.c_str());
+	std::string filename = outputName + "_pileup.txt";
+	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
@@ -295,12 +296,28 @@ void TGenome::printPileup(){
 
 void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
-	double maxA = params.getParameterIntWithDefault("maxA", 1.0);
-	int steps = params.getParameterIntWithDefault("steps", 1.0);
+	double minA = params.getParameterDoubleWithDefault("minA", 0.1);
+	if(minA < 0.0) throw "minA has to be > 0.0!";
+	double maxA = params.getParameterDoubleWithDefault("maxA", 1.0);
+	if(maxA < minA) throw "minA has to be < maxA!";
+	double minB = params.getParameterDoubleWithDefault("minB", 0.1);
+	if(minB <= 0.0) throw "minB has to be > 0.0!";
+	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
+	if(maxB < minB) throw "minB has to be < maxB!";
+	if(maxB > 1.0) throw "maxB has to be < 1.0!";
+
+	int steps = params.getParameterIntWithDefault("steps", 10);
 	int numIterations = params.getParameterIntWithDefault("iterations", 2);
 
 	//prepare windows
 	TWindowPairHaploid windows;
+
+	//open output
+	std::ofstream out;
+	std::string filename = outputName + "_calibration.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	out << "a\tb\tLL\n";
 
 	//prepare storage for grid search
 	std::vector<double> a, b, LL;
@@ -312,13 +329,18 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	LL.push_back(0.0);
 
 	//prepare grid for b != 0
-	double sizeA = maxA / (double)(steps - 1.0);
-	double sizeB = 1.0 / (double)(steps - 1.0); //without b=0
+	double sizeA = (maxA - minA) / (double)(steps - 1.0);
+	double sizeB = (maxB - minB) / (double)(steps - 1.0); //without b=0
+	double tmp;
 	for(int i=0; i<steps; ++i){
-		for(int j=1; j<steps; ++j){
-			a.push_back(i*sizeA);
-			b.push_back(j*sizeB);
-			LL.push_back(0.0);
+		for(int j=0; j<steps; ++j){
+			//only one with b=0
+			tmp = minB + j*sizeB;
+			if(tmp > 0.0){
+				a.push_back(minA + i*sizeA);
+				b.push_back(minB + j*sizeB);
+				LL.push_back(0.0);
+			}
 		}
 	}
 
@@ -332,6 +354,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 			aIt = a.begin();
 			bIt = b.begin();
 			LLIt = LL.begin();
+			windows.cur->estimateBaseFrequencies();
 			windows.cur->calculateEmissionProbabilities(pmdObject);
 			*LLIt += windows.cur->calcLogLikelihood();
 			++aIt; ++bIt; ++LLIt;
@@ -349,8 +372,10 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	bIt = b.begin();
 	LLIt = LL.begin();
 	for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
-		std::cout << *aIt << "\t" << *bIt << "\t" << *LLIt << "\n";
+		out << *aIt << "\t" << *bIt << "\t" << *LLIt << "\n";
 	}
+
+	out.close();
 
 }
 

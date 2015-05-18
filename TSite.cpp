@@ -50,7 +50,8 @@ void TBase::fillEmissionProbabilities(TPMD & pmdObject){
 void TBase::fillEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b){
 	//first scale error rate
 	double tmp = log10(errorRate);
-	double newError = b * (1.0 - exp(-a * tmp)) + (1.0 - b) * tmp;
+	double newError = pow10(b * (1.0 - exp(-a * tmp)) + (1.0 - b) * tmp);
+
 	fillEmissionProbabilitiesCore(pmdObject, newError);
 }
 
@@ -268,9 +269,9 @@ void TSiteHaploid::add(char & base, char & quality, int pos5, int pos3){
 		double error = qualityToError(quality);
 		if(error < 1.0){
 			if(base == 'A') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
-			else if(base == 'C') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
-			else if(base == 'G') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
-			else bases.push_back(new TBaseHaploidA(error, pos5, pos3));
+			else if(base == 'C') bases.push_back(new TBaseHaploidC(error, pos5, pos3));
+			else if(base == 'G') bases.push_back(new TBaseHaploidG(error, pos5, pos3));
+			else bases.push_back(new TBaseHaploidT(error, pos5, pos3));
 		}
 		hasData = true;
 	}

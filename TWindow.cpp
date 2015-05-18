@@ -567,14 +567,14 @@ void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, std::ofstream & out
 
 
 //-------------------------------------------------------
-//TwindowHaploid
+//TWindowHaploid
 //-------------------------------------------------------
 
 void TWindowHaploid::initSites(long newLength){
 	if(sitesInitialized)
 		delete[] sites;
 	length = newLength;
-	sites = new TSiteDiploid[length];
+	sites = new TSiteHaploid[length];
 	sitesInitialized = true;
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
@@ -593,8 +593,9 @@ double TWindowHaploid::calcLogLikelihood(){
 
 	double LL = 0.0;
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData)
+		if(sites[i].hasData){
 			LL += sites[i].calculateLogLikelihood(pGenotype);
+		}
 	}
 	return LL;
 }
