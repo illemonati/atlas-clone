@@ -13,6 +13,24 @@
 
 enum Base {A, C, G, T};
 enum Genotype {AA, AC, AG, AT, CC, CG, CT, GG, GT, TT};
+enum PMDType {pmdCT, pmdGA};
+
+//---------------------------------------------------------------
+//GenotypeMap
+//---------------------------------------------------------------
+//genotype map for enum type
+struct GenotypeMap{
+	Genotype** genotypeMap; //mapping base numbering to genotype numbering
+
+	GenotypeMap();
+	Genotype getGenotype(Base first, Base second){
+		return genotypeMap[first][second];
+	};
+	Genotype getGenotype(int first, int second){
+		return genotypeMap[first][second];
+	};
+	std::string getGenotypeString(int num);
+};
 
 //---------------------------------------------------------------
 //TBaseFrequencies
@@ -88,29 +106,45 @@ public:
 
 class TPMD{
 private:
-	TPMDFunction* myFunction;
-	bool functionInitialized;
+	TPMDFunction* myFunctions[2];
+	bool functionsInitialized[2];
 
 public:
-	TPMD(){ myFunction = NULL; functionInitialized = false; };
-	~TPMD(){ if(functionInitialized) delete myFunction; };
-	void initializeFunction(std::string & pmdString);
-	double getProb(double pos){ return myFunction->getProb(pos); };
-	std::string getFunctionString(){ return myFunction->getString(); };
+	TPMD();
+	~TPMD(){
+		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
+		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA]; };
+	void initializeFunction(std::string & pmdString, PMDType type);
+	double getProb(double pos, PMDType type){ return myFunctions[type]->getProb(pos); };
+	double getProbCT(double pos){ return myFunctions[pmdCT]->getProb(pos); };
+	double getProbGA(double pos){ return myFunctions[pmdGA]->getProb(pos); };
+	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
 };
 
 //---------------------------------------------------------------
 //TEmissionProbabilities
 //---------------------------------------------------------------
-class TEmissionProbabilities{
+class TEmissionProbabilitiesDiploid{
 public:
 	double emission[10];
 
-	TEmissionProbabilities(){
+	TEmissionProbabilitiesDiploid(){
 		for(int i=0; i<10; ++i) emission[i]=0.0;
 	};
 	void set(Genotype geno, double val){ emission[geno] = val; }
 	double& get(Genotype geno){ return emission[geno]; };
+	double& get(int geno){ return emission[geno]; };
+};
+
+class TEmissionProbabilitiesHaploid{
+public:
+	double emission[4];
+
+	TEmissionProbabilitiesHaploid(){
+		for(int i=0; i<4; ++i) emission[i]=0.0;
+	};
+	void set(Base geno, double val){ emission[geno] = val; }
+	double& get(Base geno){ return emission[geno]; };
 	double& get(int geno){ return emission[geno]; };
 };
 //---------------------------------------------------------------
@@ -120,7 +154,6 @@ class TBase{
 public:
 	double errorRate;
 	int pos5, pos3;
-	TEmissionProbabilities emissionProbabilities;
 
 	TBase(double & ErrorRate, int & Pos5, int & Pos3){
 		errorRate = ErrorRate;
@@ -130,16 +163,31 @@ public:
 
 	virtual ~TBase(){};
 
-	void update(double & ErrorRate, int & Pos5, int & Pos3, TPMD* pmdCT, TPMD* pmdGA){
+	void update(double & ErrorRate, int & Pos5, int & Pos3, TPMD & pmdObject){
 		errorRate = ErrorRate;
 		pos5 = Pos5;
 		pos3 = Pos3;
-		fillEmissionProbabilities(pmdCT, pmdGA);
+		fillEmissionProbabilities(pmdObject);
 	};
+	void fillEmissionProbabilities(TPMD & pmdObject);
+	void fillEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b);
+	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
+	};
+	virtual char getBase(){ return '?'; };
+	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
+	virtual double getEmissionProbability(int genotype){
+		throw "Function 'getEmissionProbability' Not implemented for base class TBase!";
+	};
+};
 
-	virtual void fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
-		throw "Not implemented for base class!";
-	};
+class TBaseDiploid:public TBase{
+public:
+	TEmissionProbabilitiesDiploid emissionProbabilities;
+
+	TBaseDiploid(double & ErrorRate, int & Pos5, int & Pos3):TBase(ErrorRate, Pos5, Pos3){};
+
+	virtual ~TBaseDiploid(){};
 
 	double getEmissionProbability(Genotype genotype){
 		return emissionProbabilities.get(genotype);
@@ -147,88 +195,138 @@ public:
 	double getEmissionProbability(int genotype){
 		return emissionProbabilities.get(genotype);
 	};
-
-	virtual char getBase(){ return '?'; };
-	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
 };
 
-//---------------------------------------------------------------
-class TBaseA:public TBase{
+class TBaseHaploid:public TBase{
 public:
-	TBaseA(double & ErrorRate, int & Pos5, int & Pos3, TPMD* pmdCT, TPMD* pmdGA):TBase(ErrorRate, Pos5, Pos3){
-		fillEmissionProbabilities(pmdCT, pmdGA);
+	TEmissionProbabilitiesHaploid emissionProbabilities;
+
+	TBaseHaploid(double & ErrorRate, int & Pos5, int & Pos3):TBase(ErrorRate, Pos5, Pos3){};
+	virtual ~TBaseHaploid(){};
+
+	double getEmissionProbability(Base genotype){
+		return emissionProbabilities.get(genotype);
 	};
+	double getEmissionProbability(int genotype){
+		return emissionProbabilities.get(genotype);
+	};
+};
+//---------------------------------------------------------------
+class TBaseDiploidA:public TBaseDiploid{
+public:
+	TBaseDiploidA(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
 	char getBase(){ return 'A'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
-	void fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
-
-//---------------------------------------------------------------
-class TBaseC:public TBase{
+class TBaseHaploidA:public TBaseHaploid{
 public:
-	TBaseC(double & ErrorRate, int & Pos5, int & Pos3, TPMD* pmdCT, TPMD* pmdGA):TBase(ErrorRate, Pos5, Pos3){
-		fillEmissionProbabilities(pmdCT, pmdGA);
-	};
+	TBaseHaploidA(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	char getBase(){ return 'A'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+};
+//---------------------------------------------------------------
+class TBaseDiploidC:public TBaseDiploid{
+public:
+	TBaseDiploidC(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
 	char getBase(){ return 'C'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
-	void fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
-
-//---------------------------------------------------------------
-class TBaseG:public TBase{
+class TBaseHaploidC:public TBaseHaploid{
 public:
-	TBaseG(double & ErrorRate, int & Pos5, int Pos3, TPMD* pmdCT, TPMD* pmdGA):TBase(ErrorRate, Pos5, Pos3){
-		fillEmissionProbabilities(pmdCT, pmdGA);
-	};
+	TBaseHaploidC(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	char getBase(){ return 'C'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+};
+//---------------------------------------------------------------
+class TBaseDiploidG:public TBaseDiploid{
+public:
+	TBaseDiploidG(double & ErrorRate, int & Pos5, int Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
 	char getBase(){ return 'G'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
-	void fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
-
-//---------------------------------------------------------------
-class TBaseT:public TBase{
+class TBaseHaploidG:public TBaseHaploid{
 public:
-	TBaseT(double & ErrorRate, int & Pos5, int & Pos3, TPMD* pmdCT, TPMD* pmdGA):TBase(ErrorRate, Pos5, Pos3){
-		fillEmissionProbabilities(pmdCT, pmdGA);
-	};
+	TBaseHaploidG(double & ErrorRate, int & Pos5, int Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	char getBase(){ return 'G'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+};
+//---------------------------------------------------------------
+class TBaseDiploidT:public TBaseDiploid{
+public:
+	TBaseDiploidT(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
 	char getBase(){ return 'T'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
-	void fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
-
-
+class TBaseHaploidT:public TBaseHaploid{
+public:
+	TBaseHaploidT(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	char getBase(){ return 'T'; };
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+};
 //---------------------------------------------------------------
 //TSite
 //---------------------------------------------------------------
 class TSite{
 public:
-	std::vector<TBase*> bases;
-	double emissionProbabilities[10];
-	double P_g[10]; //P(g|d, theta, pi), see equation (3)
 	bool hasData;
+	std::vector<TBase*> bases;
+	int numGenotypes;
+	double* emissionProbabilities;
+	double* P_g; //P(g|d, theta, pi), see equation (3)
 
 	TSite(){
 		hasData = false;
+		numGenotypes = 0;
+		emissionProbabilities = NULL;
+		P_g = NULL;
 	};
-	~TSite(){
-		clear();
-	};
+	virtual ~TSite(){ clear(); };
 
-	void clear(){
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
-			delete *it;
-		bases.clear();
-		hasData = false;
-	};
+	void clear();
 
-	void add(char & base, char & quality, int pos5, int pos3, TPMD* pmdCT, TPMD* pmdGA);
+	double qualityToError(char & quality);
+	virtual void add(char & base, char & quality, int pos5, int pos3){throw "Function 'add' Not implemented for base class TSite!"; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
-	void calcEmissionProbabilities();
+	void calcEmissionProbabilities(TPMD & pmdObject);
+	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
 };
+
+class TSiteDiploid:public TSite{
+public:
+
+	TSiteDiploid(){
+		hasData = false;
+		numGenotypes = 10;
+		emissionProbabilities = new double[numGenotypes];
+		P_g = new double[numGenotypes];
+	}
+	void add(char & base, char & quality, int pos5, int pos3);
+};
+
+class TSiteHaploid:public TSite{
+public:
+
+	TSiteHaploid(){
+		hasData = false;
+		numGenotypes = 4;
+		emissionProbabilities = new double[numGenotypes];
+		P_g = new double[numGenotypes];
+	}
+	void add(char & base, char & quality, int pos5, int pos3);
+};
+
 
 #endif /* TSITE_H_ */

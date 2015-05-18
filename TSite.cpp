@@ -7,15 +7,58 @@
 
 #include "TSite.h"
 
+//---------------------------------------------------------------
+//GenotypeMap
+//---------------------------------------------------------------
+GenotypeMap::GenotypeMap(){
+//set up genotype map
+	genotypeMap = new Genotype*[4];
+	for(int i=0; i<4; ++i)
+		genotypeMap[i] = new Genotype[4];
+
+	int geno = 0;
+	for(int i=0; i<4; ++i){
+		for(int j=i; j<4; ++j){
+			genotypeMap[i][j] = static_cast<Genotype>(geno);
+			genotypeMap[j][i] = genotypeMap[i][j];
+			++geno;
+		}
+	}
+}
+
+std::string GenotypeMap::getGenotypeString(int num){
+	if(num==0) return "AA";
+	if(num==1) return "AC";
+	if(num==2) return "AG";
+	if(num==3) return "AT";
+	if(num==4) return "CC";
+	if(num==5) return "CG";
+	if(num==6) return "CT";
+	if(num==7) return "GG";
+	if(num==8) return "GT";
+	if(num==9) return "TT";
+	return "ERROR!";
+};
 
 //-------------------------------------------------------
 //TBase
 //-------------------------------------------------------
-void TBaseA::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
+void TBase::fillEmissionProbabilities(TPMD & pmdObject){
+	fillEmissionProbabilitiesCore(pmdObject, errorRate);
+}
+
+void TBase::fillEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b){
+	//first scale error rate
+	double tmp = log10(errorRate);
+	double newError = b * (1.0 - exp(-a * tmp)) + (1.0 - b) * tmp;
+	fillEmissionProbabilitiesCore(pmdObject, newError);
+}
+
+void TBaseDiploidA::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
-	double pmd = pmdGA->getProb(pos3);
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
+	double pmd = pmdObject.getProbGA(pos3);
 
 	emissionProbabilities.set(AA, oneMinusError);
 	emissionProbabilities.set(CC, errorOneThird);
@@ -29,11 +72,22 @@ void TBaseA::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
 	emissionProbabilities.set(GT, emissionProbabilities.get(CG));
 };
 
-void TBaseC::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
+void TBaseHaploidA::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
+	double pmd = pmdObject.getProbGA(pos3);
+
+	emissionProbabilities.set(A, oneMinusError);
+	emissionProbabilities.set(C, errorOneThird);
+	emissionProbabilities.set(G, pmd * oneMinusError + (1.0 - pmd) * errorOneThird);
+	emissionProbabilities.set(T, errorOneThird);
+}
+
+void TBaseDiploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
-	double pmd = pmdCT->getProb(pos5);
+	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(AA , errorOneThird);
 	emissionProbabilities.set(CC , (1.0 - pmd) * oneMinusError + pmd * errorOneThird);
@@ -47,11 +101,23 @@ void TBaseC::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
 	emissionProbabilities.set(GT , errorOneThird);
 };
 
-void TBaseG::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
+void TBaseHaploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
-	double pmd = pmdGA->getProb(pos3);
+	double pmd = pmdObject.getProbCT(pos5);
+
+	emissionProbabilities.set(A, errorOneThird);
+	emissionProbabilities.set(C, (1.0 - pmd) * oneMinusError + pmd * errorOneThird);
+	emissionProbabilities.set(G, errorOneThird);
+	emissionProbabilities.set(T, errorOneThird);
+}
+
+void TBaseDiploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
+	double errorOneThird = errorRate / 3.0;
+	double oneMinusError = 1.0 - errorRate;
+	double pmd = pmdObject.getProbGA(pos3);
 
 	emissionProbabilities.set(AA, errorOneThird);
 	emissionProbabilities.set(CC, errorOneThird);
@@ -66,11 +132,23 @@ void TBaseG::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
 
 };
 
-void TBaseT::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
+void TBaseHaploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
-	double pmd = pmdCT->getProb(pos5);
+	double pmd = pmdObject.getProbGA(pos3);
+
+	emissionProbabilities.set(A, errorOneThird);
+	emissionProbabilities.set(C, errorOneThird);
+	emissionProbabilities.set(G, (1.0 - pmd) * oneMinusError + pmd * errorOneThird);
+	emissionProbabilities.set(T, errorOneThird);
+}
+
+void TBaseDiploidT::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
+	double errorOneThird = errorRate / 3.0;
+	double oneMinusError = 1.0 - errorRate;
+	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(AA, errorOneThird);
 	emissionProbabilities.set(CC, (1.0 - pmd) * errorOneThird + pmd * oneMinusError);
@@ -84,10 +162,28 @@ void TBaseT::fillEmissionProbabilities(TPMD* pmdCT, TPMD* pmdGA){
 	emissionProbabilities.set(GT, 0.5 - errorOneThird);
 };
 
+void TBaseHaploidT::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
+	double errorOneThird = errorRate / 3.0;
+	double oneMinusError = 1.0 - errorRate;
+	double pmd = pmdObject.getProbCT(pos5);
+
+	emissionProbabilities.set(A, errorOneThird);
+	emissionProbabilities.set(C, pmd * oneMinusError + (1.0 - pmd) * errorOneThird);
+	emissionProbabilities.set(G, errorOneThird);
+	emissionProbabilities.set(T, oneMinusError);
+}
 //-------------------------------------------------------
 //TPMD
 //-------------------------------------------------------
-void TPMD::initializeFunction(std::string & pmdString){
+TPMD::TPMD(){
+	myFunctions[pmdCT] = NULL;
+	myFunctions[pmdGA] = NULL;
+	functionsInitialized[pmdCT] = false;
+	functionsInitialized[pmdGA] = false;
+};
+
+void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]
@@ -96,7 +192,7 @@ void TPMD::initializeFunction(std::string & pmdString){
 
 	//check if it is none
 	if(pmdString == "none"){
-		myFunction = new TPMDFunction();
+		myFunctions[type] = new TPMDFunction();
 	} else {
 		std::string::size_type pos = pmdString.find_first_of('[');
 		if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
@@ -115,7 +211,7 @@ void TPMD::initializeFunction(std::string & pmdString){
 			if(first > 1.0) throw "Can not initialize Skoglund function with lambda > 1!";
 			double c = atof(tmp.substr(pos+1).c_str());
 			if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
-			myFunction = new TPMDSkoglund(first, c);
+			myFunctions[type] = new TPMDSkoglund(first, c);
 		} else if(name == "Veeramah"){
 			//get a, b and c
 			if(first < 0.0) throw "Can not initialize Veeramah function with a < 0!";
@@ -135,27 +231,77 @@ void TPMD::initializeFunction(std::string & pmdString){
 			if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
 
 			//initialze
-			myFunction = new TPMDVeeramah(first, b, c);
+			myFunctions[type] = new TPMDVeeramah(first, b, c);
 		} else throw "Can not initialize post mortem damage function: wrong name!\n" + example;
 	}
-	functionInitialized = true;
+	functionsInitialized[type] = true;
 }
 
 //-------------------------------------------------------
 //TSite
 //-------------------------------------------------------
-void TSite::add(char & base, char & quality, int pos5, int pos3, TPMD* pmdCT, TPMD* pmdGA){
+void TSite::clear(){
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+		delete *it;
+	bases.clear();
+	hasData = false;
+};
+
+double TSite::qualityToError(char & quality){
+	return pow(10.0, - ((double)quality - 33.0)/10.0);
+}
+
+void TSiteDiploid::add(char & base, char & quality, int pos5, int pos3){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-		double error = pow(10.0, - ((double)quality - 33.0)/10.0);
+		double error = qualityToError(quality);
 		if(error < 1.0){
-			if(base == 'A') bases.push_back(new TBaseA(error, pos5, pos3, pmdCT, pmdGA));
-			else if(base == 'C') bases.push_back(new TBaseC(error, pos5, pos3, pmdCT, pmdGA));
-			else if(base == 'G') bases.push_back(new TBaseG(error, pos5, pos3, pmdCT, pmdGA));
-			else bases.push_back(new TBaseT(error, pos5, pos3, pmdCT, pmdGA));
+			if(base == 'A') bases.push_back(new TBaseDiploidA(error, pos5, pos3));
+			else if(base == 'C') bases.push_back(new TBaseDiploidC(error, pos5, pos3));
+			else if(base == 'G') bases.push_back(new TBaseDiploidG(error, pos5, pos3));
+			else bases.push_back(new TBaseDiploidT(error, pos5, pos3));
 		}
 		hasData = true;
 	}
 };
+void TSiteHaploid::add(char & base, char & quality, int pos5, int pos3){
+	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+		double error = qualityToError(quality);
+		if(error < 1.0){
+			if(base == 'A') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
+			else if(base == 'C') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
+			else if(base == 'G') bases.push_back(new TBaseHaploidA(error, pos5, pos3));
+			else bases.push_back(new TBaseHaploidA(error, pos5, pos3));
+		}
+		hasData = true;
+	}
+};
+
+void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
+	double weight = 1.0 / bases.size();
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		(*it)->addToBaseFrequencies(frequencies, weight);
+	}
+}
+
+void TSite::calcEmissionProbabilities(TPMD & pmdObject){
+	for(int i=0; i<numGenotypes; ++i){
+		emissionProbabilities[i] = 1.0;
+		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+			(*it)->fillEmissionProbabilities(pmdObject);
+			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
+		}
+	}
+}
+
+void TSite::calcEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b){
+	for(int i=0; i<numGenotypes; ++i){
+		emissionProbabilities[i] = 1.0;
+		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+			(*it)->fillEmissionProbabilitiesScaledError(pmdObject, a, b);
+			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
+		}
+	}
+}
 
 std::string TSite::getBases(){
 	if(bases.size()==0) return "-";
@@ -166,26 +312,9 @@ std::string TSite::getBases(){
 	return b;
 }
 
-void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
-	double weight = 1.0 / bases.size();
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->addToBaseFrequencies(frequencies, weight);
-	}
-}
-
-void TSite::calcEmissionProbabilities(){
-	//calculate normalized genotype probabilities according to Bayes rule
-	for(int i=0; i<10; ++i){
-		emissionProbabilities[i] = 1.0;
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
-		}
-	}
-}
-
 std::string TSite::getEmissionProbs(){
 	std::string b = toString(emissionProbabilities[0]);
-	for(int i=1; i<10; ++i){
+	for(int i=1; i<numGenotypes; ++i){
 		b += "\t" + toString(emissionProbabilities[i]);
 	}
 	return b;
@@ -194,7 +323,7 @@ std::string TSite::getEmissionProbs(){
 void TSite::calculateP_g(double* genotypeProbabilities){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
-	for(int i=0; i<10; ++i){
+	for(int i=0; i<numGenotypes; ++i){
 		P_g[i] =  emissionProbabilities[i] * genotypeProbabilities[i];
 		sum += P_g[i];
 	}
@@ -206,7 +335,7 @@ void TSite::calculateP_g(double* genotypeProbabilities){
 double TSite::calculateWeightedSumOfEmissionProbs(double* weights){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
-	for(int i=0; i<10; ++i){
+	for(int i=0; i<numGenotypes; ++i){
 		sum += emissionProbabilities[i] * weights[i];
 	}
 	return sum;
@@ -215,7 +344,7 @@ double TSite::calculateWeightedSumOfEmissionProbs(double* weights){
 double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
-	for(int i=0; i<10; ++i){
+	for(int i=0; i<numGenotypes; ++i){
 		sum +=  emissionProbabilities[i] * genotypeProbabilities[i];
 	}
 	return log(sum);

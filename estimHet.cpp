@@ -38,26 +38,25 @@ int main(int argc, char* argv[]){
 			logfile.writeFileOnly("**************");
 		}
 
+		//create genome object
+		TGenome genome(&logfile, myParameters);
+
 		//what to do?
 		std::string task = myParameters.getParameterStringWithDefault("task", "estimate");
-
 		if(task=="estimate"){
-				//run EM to estimate heterozygosity
-				logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
-				TGenome genome(&logfile, myParameters);
-				genome.estimateTheta();
-				logfile.endIndent();
+			logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
+			genome.estimateTheta(myParameters);
 		} else if(task=="LLsurface"){
-				logfile.startIndent("Calculating the LL surface for each window:");
-				TGenome genome(&logfile, myParameters);
-				genome.calcLikelihoodSurfaces();
-				logfile.endIndent();
+			logfile.startIndent("Calculating the LL surface for each window:");
+			genome.calcLikelihoodSurfaces(myParameters);
 		} else if(task=="pileup"){
-				logfile.startIndent("Printing pileup for each window:");
-				TGenome genome(&logfile, myParameters);
-				genome.printPileup();
-				logfile.endIndent();
+			logfile.startIndent("Printing pileup for each window:");
+			genome.printPileup();
+		} else if(task=="calibration"){
+			logfile.startIndent("Estimating eror calibration function:");
+			genome.estimateErrorCalibration(myParameters);
 		} else throw "Unknown task '" + task + "'!";
+		logfile.endIndent();
 
 		//write unsused parameters
 		std::string unusedParams=myParameters.getListOfUnusedParameters();
