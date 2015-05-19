@@ -35,6 +35,27 @@ struct EMParameters{
 };
 
 //---------------------------------------------------------------
+//Recalibration
+//---------------------------------------------------------------
+struct Recalibration{
+	bool doRecalibration;
+	double a,b;
+
+	Recalibration(){
+		doRecalibration = false;
+		a = 0.0;
+		b = 0.0;
+	};
+	Recalibration(const double & paramA, const double & paramB){
+		doRecalibration = true;
+		a = paramA;
+		b = paramB;
+	};
+	Recalibration(std::string recalString);
+	~Recalibration(){};
+};
+
+//---------------------------------------------------------------
 //Theta
 //---------------------------------------------------------------
 struct Theta{
@@ -60,6 +81,7 @@ public:
 	long start;
 	long end; //end NOT included in window!
 	long length;
+	long lengthWithData;
 	TSite* sites;
 	bool sitesInitialized;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
@@ -80,7 +102,7 @@ public:
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
-	void recalculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b);
+	void calculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b);
 };
 
 class TWindowDiploid:public TWindow{
@@ -96,8 +118,8 @@ public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TPMD & pmd, std::ofstream & out, TLog* logfile);
-	void calcLikelihoodSurface(TPMD & pmd, std::ofstream & out, int & steps);
+	void estimateTheta(EMParameters & constants, TPMD & pmd, Recalibration & recal, std::ofstream & out, TLog* logfile);
+	void calcLikelihoodSurface(TPMD & pmd, Recalibration & recal, std::ofstream & out, int & steps);
 };
 
 class TWindowHaploid:public TWindow{

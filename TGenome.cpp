@@ -173,6 +173,9 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 }
 
 void TGenome::estimateTheta(TParameters & params){
+	//Error rate recalibration
+	Recalibration recal(params.getParameterString("recal", false));
+
 	//EM params
  	EMParameters EMParams;
 	EMParams.numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
@@ -212,7 +215,7 @@ void TGenome::estimateTheta(TParameters & params){
 			} else {
 				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, pmdObject, out, logfile);
+				windows.cur->estimateTheta(EMParams, pmdObject, recal, out, logfile);
 			}
 		}
 	}
@@ -222,6 +225,9 @@ void TGenome::estimateTheta(TParameters & params){
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
+	//Error rate recalibration
+	Recalibration recal(params.getParameterString("recal", false));
+
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 1000);
 	int numWindows = params.getParameterIntWithDefault("numWindows", 1);
@@ -247,7 +253,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 				//calc surface
 				logfile->listFlush("Calculating likelihood surface ...");
-				windows.cur->calcLikelihoodSurface(pmdObject, out, steps);
+				windows.cur->calcLikelihoodSurface(pmdObject, recal, out, steps);
 				logfile->write(" done!");
 
 				//close output
@@ -296,11 +302,11 @@ void TGenome::printPileup(){
 
 void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
-	double minA = params.getParameterDoubleWithDefault("minA", 0.1);
+	double minA = params.getParameterDoubleWithDefault("minA", 0.0);
 	if(minA < 0.0) throw "minA has to be > 0.0!";
-	double maxA = params.getParameterDoubleWithDefault("maxA", 1.0);
+	double maxA = params.getParameterDoubleWithDefault("maxA", 0.2);
 	if(maxA < minA) throw "minA has to be < maxA!";
-	double minB = params.getParameterDoubleWithDefault("minB", 0.1);
+	double minB = params.getParameterDoubleWithDefault("minB", 0.0);
 	if(minB <= 0.0) throw "minB has to be > 0.0!";
 	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
 	if(maxB < minB) throw "minB has to be < maxB!";
@@ -331,15 +337,18 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	//prepare grid for b != 0
 	double sizeA = (maxA - minA) / (double)(steps - 1.0);
 	double sizeB = (maxB - minB) / (double)(steps - 1.0); //without b=0
-	double tmp;
+	double tmpA, tmpB;
 	for(int i=0; i<steps; ++i){
-		for(int j=0; j<steps; ++j){
-			//only one with b=0
-			tmp = minB + j*sizeB;
-			if(tmp > 0.0){
-				a.push_back(minA + i*sizeA);
-				b.push_back(minB + j*sizeB);
-				LL.push_back(0.0);
+		tmpA = minA + i*sizeB;
+		if(tmpA > 0.0){
+			for(int j=0; j<steps; ++j){
+				//only one with b=0
+				tmpB = minB + j*sizeB;
+				if(tmpB > 0.0){
+					a.push_back(minA + i*sizeA);
+					b.push_back(minB + j*sizeB);
+					LL.push_back(0.0);
+				}
 			}
 		}
 	}
@@ -361,7 +370,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 
 			//calc LL for all combinations of a and b
 			for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
-				windows.cur->recalculateEissionProbabilitiesWithScaledError(pmdObject, *aIt, *bIt);
+				windows.cur->calculateEissionProbabilitiesWithScaledError(pmdObject, *aIt, *bIt);
 				*LLIt += windows.cur->calcLogLikelihood();
 			}
 		}

@@ -22,9 +22,29 @@ EMParameters::EMParameters(){
 }
 
 //---------------------------------------------------------------
-//PostMortemDamage
+//Recalibration
 //---------------------------------------------------------------
-
+Recalibration::Recalibration(std::string recalString){
+	if(recalString==""){
+		doRecalibration = false;
+		a = 0.0;
+		b = 0.0;
+	} else {
+		doRecalibration= true;
+		std::string example = "Use '[a,b]'";
+		std::string::size_type pos = recalString.find_first_of('[');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format! " + example;
+		recalString = recalString.substr(pos+1, recalString.length() - pos - 1);
+		pos = recalString.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
+		a = stringToDoubleCheck(recalString.substr(0, pos));
+		if(a < 0.0) throw "Can not initialize recalibration with a < 0.0!";
+		if(a > 1.0) throw "Can not initialize recalibration with a > 1.0!";
+		b = stringToDoubleCheck(recalString.substr(pos+1));
+		if(b < 0.0) throw "Can not initialize recalibration with b < 0.0!";
+		if(b > 1.0) throw "Can not initialize recalibration with b > 1.0!";
+	}
+}
 
 //-------------------------------------------------------
 //Twindow
@@ -127,7 +147,6 @@ void TWindow::calculateEmissionProbabilities(TPMD & pmdObject){
 			sites[i].calcEmissionProbabilities(pmdObject);
 		}
 	}
-	baseFreq.normalize();
 }
 
 
@@ -167,9 +186,10 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
-void TWindow::recalculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b){
+void TWindow::calculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b){
 	for(int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilitiesScaledError(pmdObject, a, b);
+		if(sites[i].hasData)
+			sites[i].calcEmissionProbabilitiesScaledError(pmdObject, a, b);
 	}
 }
 
@@ -213,7 +233,7 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
-void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, std::ofstream & out, TLog* logfile){
+void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, Recalibration & recal, std::ofstream & out, TLog* logfile){
 	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
@@ -226,19 +246,23 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, st
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
 	logfile->listFlush("Calculating emission probabilities ...");
-	baseFreq.clear();
+	if(recal.doRecalibration) calculateEissionProbabilitiesWithScaledError(pmdObject, recal.a, recal.b);
+	else calculateEmissionProbabilities(pmdObject);
+	logfile->write(" done!");
+
+	//get num sites with data
 	int lengthWithData = 0;
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			sites[i].calcEmissionProbabilities(pmdObject);
-			sites[i].addToBaseFrequencies(baseFreq);
 			++lengthWithData;
 		}
 	}
-	baseFreq.normalize();
-	logfile->write(" done!");
+
+	//estimate starting parameters
 	logfile->startIndent("Estimating initial parameters:");
-	logfile->list("Estimating initial base frequencies ... done!");
+	logfile->listFlush("Estimating initial base frequencies ...");
+	estimateBaseFrequencies();
+	logfile->write(" done!");
 	logfile->conclude("Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
 
 	//set initial parameters
@@ -526,14 +550,12 @@ void TWindowDiploid::estimateConfidenceInterval(Theta & thetaContainer){
 
 
 
-void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, std::ofstream & out, int & steps){
+void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, Recalibration & recal, std::ofstream & out, int & steps){
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
-	for(int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilities(pmdObject);
-		sites[i].addToBaseFrequencies(baseFreq);
-	}
-	baseFreq.normalize();
+	if(recal.doRecalibration) calculateEissionProbabilitiesWithScaledError(pmdObject, recal.a, recal.b);
+	else calculateEmissionProbabilities(pmdObject);
+	estimateBaseFrequencies();
 
 	//write header
 	out << "log10(theta)\ttheta\tLL\n";
