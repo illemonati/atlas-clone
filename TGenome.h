@@ -30,7 +30,6 @@ private:
  	long chrLength;
  	long curStart, curEnd;
 	std::string filename;
-	std::string outname;
 	TLog* logfile;
  	long windowSize;
  	double maxMissing;

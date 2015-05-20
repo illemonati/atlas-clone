@@ -22,8 +22,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	initializePostMortemDamage(params, logfile);
 
 	//outputname
-	outname = params.getParameterStringWithDefault("out", "");
-	if(outname == ""){
+	outputName = params.getParameterStringWithDefault("out", "");
+	if(outputName == ""){
 		//guess from filename
 		outputName = filename;
 		outputName = extractBeforeLast(outputName, ".");
@@ -231,7 +231,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
 
 	//read params
-	int steps = params.getParameterIntWithDefault("steps", 1000);
+	int steps = params.getParameterIntWithDefault("steps", 100);
 	int numWindows = params.getParameterIntWithDefault("numWindows", 1);
 
 	//prepare windows
@@ -239,6 +239,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 	//iterate through windows
 	int windowsCalculated = 0;
+	std::string filename;
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
@@ -250,7 +251,9 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 			} else {
 				//open file
 				std::ofstream out;
-				out.open((outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt").c_str());
+				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
+				std::cout << "FILENAME = " << filename << std::endl;
+				out.open(filename.c_str());
 				if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 				//calc surface

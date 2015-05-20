@@ -539,8 +539,8 @@ void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, Recalibration & rec
 	double pGenotype[10];
 
 	//calculate likelihood surface
-	double minLogTheta = log10(0.000001);
-	double maxLogTheta = log10(100);
+	double minLogTheta = -5.0;
+	double maxLogTheta = 2.0;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
 	double theta;
 	double LL;
