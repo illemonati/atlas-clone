@@ -35,27 +35,6 @@ struct EMParameters{
 };
 
 //---------------------------------------------------------------
-//Recalibration
-//---------------------------------------------------------------
-struct Recalibration{
-	bool doRecalibration;
-	double a,b;
-
-	Recalibration(){
-		doRecalibration = false;
-		a = 0.0;
-		b = 0.0;
-	};
-	Recalibration(const double & paramA, const double & paramB){
-		doRecalibration = true;
-		a = paramA;
-		b = paramB;
-	};
-	Recalibration(std::string recalString);
-	~Recalibration(){};
-};
-
-//---------------------------------------------------------------
 //Theta
 //---------------------------------------------------------------
 struct Theta{
@@ -101,7 +80,7 @@ public:
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
-	void calculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b);
+	void calculateEissionProbabilities(TPMD & pmdObject, Recalibration & recal);
 };
 
 class TWindowDiploid:public TWindow{

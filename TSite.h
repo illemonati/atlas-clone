@@ -121,6 +121,34 @@ public:
 	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
 };
 
+
+//---------------------------------------------------------------
+//Recalibration
+//---------------------------------------------------------------
+struct Recalibration{
+	bool doRecalibration;
+	double a,b;
+
+	Recalibration(){
+		doRecalibration = false;
+		a = 0.0;
+		b = 0.0;
+	};
+	Recalibration(const double & paramA, const double & paramB){
+		doRecalibration = true;
+		a = paramA;
+		b = paramB;
+	};
+	Recalibration(std::string recalString);
+	~Recalibration(){};
+	void set(const double & paramA, const double & paramB){
+		a = paramA;
+		b = paramB;
+	};
+	double recalibrate(double & error);
+	std::string getFunctionString();
+};
+
 //---------------------------------------------------------------
 //TEmissionProbabilities
 //---------------------------------------------------------------
@@ -170,7 +198,7 @@ public:
 		fillEmissionProbabilities(pmdObject);
 	};
 	void fillEmissionProbabilities(TPMD & pmdObject);
-	void fillEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b);
+	void fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, Recalibration & recal);
 	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
 	};
@@ -296,7 +324,7 @@ public:
 	virtual void add(char & base, char & quality, int pos5, int pos3){throw "Function 'add' Not implemented for base class TSite!"; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
-	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, double & a, double & b);
+	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, Recalibration & recal);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();

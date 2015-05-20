@@ -175,6 +175,7 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 void TGenome::estimateTheta(TParameters & params){
 	//Error rate recalibration
 	Recalibration recal(params.getParameterString("recal", false));
+	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
 
 	//EM params
  	EMParameters EMParams;
@@ -227,6 +228,7 @@ void TGenome::estimateTheta(TParameters & params){
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	//Error rate recalibration
 	Recalibration recal(params.getParameterString("recal", false));
+	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
 
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 1000);
@@ -353,6 +355,9 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 		}
 	}
 
+	//create recalibration object
+	Recalibration recal(a[0], b[0]);
+
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
@@ -370,7 +375,8 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 
 			//calc LL for all combinations of a and b
 			for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
-				windows.cur->calculateEissionProbabilitiesWithScaledError(pmdObject, *aIt, *bIt);
+				recal.set(*aIt, *bIt);
+				windows.cur->calculateEissionProbabilities(pmdObject, recal);
 				*LLIt += windows.cur->calcLogLikelihood();
 			}
 		}

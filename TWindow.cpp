@@ -21,31 +21,6 @@ EMParameters::EMParameters(){
 	initThetaNumSearchIterations = -1;
 }
 
-//---------------------------------------------------------------
-//Recalibration
-//---------------------------------------------------------------
-Recalibration::Recalibration(std::string recalString){
-	if(recalString==""){
-		doRecalibration = false;
-		a = 0.0;
-		b = 0.0;
-	} else {
-		doRecalibration= true;
-		std::string example = "Use '[a,b]'";
-		std::string::size_type pos = recalString.find_first_of('[');
-		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format! " + example;
-		recalString = recalString.substr(pos+1, recalString.length() - pos - 2);
-		pos = recalString.find_first_of(',');
-		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
-		a = stringToDoubleCheck(recalString.substr(0, pos));
-		if(a < 0.0) throw "Can not initialize recalibration with a < 0.0!";
-		if(a > 1.0) throw "Can not initialize recalibration with a > 1.0!";
-		b = stringToDoubleCheck(recalString.substr(pos+1));
-		if(b < 0.0) throw "Can not initialize recalibration with b < 0.0!";
-		if(b > 1.0) throw "Can not initialize recalibration with b > 1.0!";
-	}
-}
-
 //-------------------------------------------------------
 //Twindow
 //-------------------------------------------------------
@@ -186,10 +161,10 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
-void TWindow::calculateEissionProbabilitiesWithScaledError(TPMD & pmdObject, double & a, double & b){
+void TWindow::calculateEissionProbabilities(TPMD & pmdObject, Recalibration & recal){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
-			sites[i].calcEmissionProbabilitiesScaledError(pmdObject, a, b);
+			sites[i].calcEmissionProbabilitiesScaledError(pmdObject, recal);
 	}
 }
 
@@ -246,7 +221,7 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, Re
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
 	logfile->listFlush("Calculating emission probabilities ...");
-	if(recal.doRecalibration) calculateEissionProbabilitiesWithScaledError(pmdObject, recal.a, recal.b);
+	if(recal.doRecalibration) calculateEissionProbabilities(pmdObject, recal);
 	else calculateEmissionProbabilities(pmdObject);
 	logfile->write(" done!");
 
@@ -553,7 +528,7 @@ void TWindowDiploid::estimateConfidenceInterval(Theta & thetaContainer){
 void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, Recalibration & recal, std::ofstream & out, int & steps){
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
-	if(recal.doRecalibration) calculateEissionProbabilitiesWithScaledError(pmdObject, recal.a, recal.b);
+	if(recal.doRecalibration) calculateEissionProbabilities(pmdObject, recal);
 	else calculateEmissionProbabilities(pmdObject);
 	estimateBaseFrequencies();
 
