@@ -81,7 +81,6 @@ public:
 	long start;
 	long end; //end NOT included in window!
 	long length;
-	long lengthWithData;
 	TSite* sites;
 	bool sitesInitialized;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;

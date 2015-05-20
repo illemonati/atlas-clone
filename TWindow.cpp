@@ -34,7 +34,7 @@ Recalibration::Recalibration(std::string recalString){
 		std::string example = "Use '[a,b]'";
 		std::string::size_type pos = recalString.find_first_of('[');
 		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format! " + example;
-		recalString = recalString.substr(pos+1, recalString.length() - pos - 1);
+		recalString = recalString.substr(pos+1, recalString.length() - pos - 2);
 		pos = recalString.find_first_of(',');
 		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
 		a = stringToDoubleCheck(recalString.substr(0, pos));
