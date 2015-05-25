@@ -23,6 +23,11 @@ struct GenotypeMap{
 	Genotype** genotypeMap; //mapping base numbering to genotype numbering
 
 	GenotypeMap();
+	~GenotypeMap(){
+		for(int i=0; i<4; ++i)
+			delete[] genotypeMap[i];
+		delete[] genotypeMap;
+	};
 	Genotype getGenotype(Base first, Base second){
 		return genotypeMap[first][second];
 	};
@@ -347,7 +352,11 @@ public:
 		numGenotypes = 10;
 		emissionProbabilities = new double[numGenotypes];
 		P_g = new double[numGenotypes];
-	}
+	};
+	~TSiteDiploid(){
+		delete[] emissionProbabilities;
+		delete[] P_g;
+	};
 	void add(char & base, char & quality, int pos5, int pos3);
 };
 
