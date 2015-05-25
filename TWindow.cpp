@@ -328,6 +328,8 @@ void TWindowDiploid::findGoodStartingTheta(Theta & thetaContainer, EMParameters 
 	//check if values make sense. If theta < 1/(10*windowsize), set it to 1/(10*windowsize)
 	if(thetaContainer.theta < 0.1/length){
 		thetaContainer.setTheta(0.1/length);
+	} else if(thetaContainer.theta > 1.0){
+		thetaContainer.setTheta(1.0);
 	}
 }
 

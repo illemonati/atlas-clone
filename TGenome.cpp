@@ -140,8 +140,8 @@ bool TGenome::readData(TWindowPair & windowPair){
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 	logfile->conclude("read data from " + toString(numReads) + " reads.");
 	logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
-	logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo) + " of all sites are covered at least twice");
-	logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData) + " of all sites have no data");
+	logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
+	logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
 
 	return true;
 };
@@ -252,7 +252,6 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				//open file
 				std::ofstream out;
 				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
-				std::cout << "FILENAME = " << filename << std::endl;
 				out.open(filename.c_str());
 				if(!out) throw "Failed to open output file '" + outputName + "'!";
 

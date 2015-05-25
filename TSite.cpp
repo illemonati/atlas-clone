@@ -82,8 +82,8 @@ void TBaseHaploidA::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseDiploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(AA , errorOneThird);
@@ -100,8 +100,8 @@ void TBaseDiploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseHaploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(A, errorOneThird);
@@ -112,8 +112,8 @@ void TBaseHaploidC::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseDiploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbGA(pos3);
 
 	emissionProbabilities.set(AA, errorOneThird);
@@ -131,8 +131,8 @@ void TBaseDiploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseHaploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbGA(pos3);
 
 	emissionProbabilities.set(A, errorOneThird);
@@ -143,8 +143,8 @@ void TBaseHaploidG::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseDiploidT::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(AA, errorOneThird);
@@ -161,8 +161,8 @@ void TBaseDiploidT::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double
 
 void TBaseHaploidT::fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = errorRate / 3.0;
-	double oneMinusError = 1.0 - errorRate;
+	double errorOneThird = thisErrorRate / 3.0;
+	double oneMinusError = 1.0 - thisErrorRate;
 	double pmd = pmdObject.getProbCT(pos5);
 
 	emissionProbabilities.set(A, errorOneThird);
