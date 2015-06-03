@@ -130,22 +130,23 @@ public:
 //---------------------------------------------------------------
 //Recalibration
 //---------------------------------------------------------------
-struct Recalibration{
+class TRecalibration{
+public:
 	bool doRecalibration;
 	double a,b;
 
-	Recalibration(){
+	TRecalibration(){
 		doRecalibration = false;
 		a = 0.0;
 		b = 0.0;
 	};
-	Recalibration(const double & paramA, const double & paramB){
+	TRecalibration(const double & paramA, const double & paramB){
 		doRecalibration = true;
 		a = paramA;
 		b = paramB;
 	};
-	Recalibration(std::string recalString);
-	~Recalibration(){};
+	TRecalibration(std::string recalString);
+	~TRecalibration(){};
 	void set(const double & paramA, const double & paramB){
 		a = paramA;
 		b = paramB;
@@ -153,6 +154,7 @@ struct Recalibration{
 	double recalibrate(double & error);
 	std::string getFunctionString();
 };
+
 
 //---------------------------------------------------------------
 //TEmissionProbabilities
@@ -210,7 +212,7 @@ public:
 		fillEmissionProbabilities(pmdObject);
 	};
 	void fillEmissionProbabilities(TPMD & pmdObject);
-	void fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, Recalibration & recal);
+	void fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, TRecalibration & recal);
 	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
 	};
@@ -336,7 +338,7 @@ public:
 	virtual void add(char & base, char & quality, int pos5, int pos3){throw "Function 'add' Not implemented for base class TSite!"; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
-	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, Recalibration & recal);
+	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();

@@ -80,7 +80,7 @@ public:
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
-	void calculateEissionProbabilities(TPMD & pmdObject, Recalibration & recal);
+	void calculateEissionProbabilities(TPMD & pmdObject, TRecalibration & recal);
 };
 
 class TWindowDiploid:public TWindow{
@@ -96,8 +96,8 @@ public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TPMD & pmd, Recalibration & recal, std::ofstream & out, TLog* logfile);
-	void calcLikelihoodSurface(TPMD & pmd, Recalibration & recal, std::ofstream & out, int & steps);
+	void estimateTheta(EMParameters & constants, TPMD & pmd, TRecalibration & recal, std::ofstream & out, TLog* logfile);
+	void calcLikelihoodSurface(TPMD & pmd, TRecalibration & recal, std::ofstream & out, int & steps);
 };
 
 class TWindowHaploid:public TWindow{

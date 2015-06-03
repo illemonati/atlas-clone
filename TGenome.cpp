@@ -174,7 +174,7 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 
 void TGenome::estimateTheta(TParameters & params){
 	//Error rate recalibration
-	Recalibration recal(params.getParameterString("recal", false));
+	TRecalibration recal(params.getParameterString("recal", false));
 	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
 
 	//EM params
@@ -227,7 +227,7 @@ void TGenome::estimateTheta(TParameters & params){
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	//Error rate recalibration
-	Recalibration recal(params.getParameterString("recal", false));
+	TRecalibration recal(params.getParameterString("recal", false));
 	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
 
 	//read params
@@ -358,7 +358,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	}
 
 	//create recalibration object
-	Recalibration recal(a[0], b[0]);
+	TRecalibration recal(a[0], b[0]);
 
 	//iterate through windows
 	while(iterateChromosome(windows)){

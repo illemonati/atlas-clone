@@ -47,7 +47,7 @@ void TBase::fillEmissionProbabilities(TPMD & pmdObject){
 	fillEmissionProbabilitiesCore(pmdObject, errorRate);
 }
 
-void TBase::fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, Recalibration & recal){
+void TBase::fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, TRecalibration & recal){
 	fillEmissionProbabilitiesCore(pmdObject, recal.recalibrate(errorRate));
 }
 
@@ -237,7 +237,8 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 //---------------------------------------------------------------
 //Recalibration
 //---------------------------------------------------------------
-Recalibration::Recalibration(std::string recalString){
+/*
+TRecalibration::TRecalibration(std::string recalString){
 	if(recalString==""){
 		doRecalibration = false;
 		a = 0.0;
@@ -259,14 +260,45 @@ Recalibration::Recalibration(std::string recalString){
 	}
 }
 
-double Recalibration::recalibrate(double & error){
+double TRecalibration::recalibrate(double & error){
 	if(!doRecalibration) return error;
 	double tmp = log10(error);
 	return pow10(b * (1.0 - exp(-a * tmp)) + (1.0 - b) * tmp);
 }
 
-std::string Recalibration::getFunctionString(){
+std::string TRecalibration::getFunctionString(){
 	return "log10(error recalibrated) = " + toString(b) + " * (1 - exp(-" + toString(a) + " * log10(error))) + (1 - " + toString(b) + ") * log10(error)";
+}
+*/
+
+TRecalibration::TRecalibration(std::string recalString){
+	if(recalString==""){
+		doRecalibration = false;
+		a = 1.0;
+		b = 0.0;
+	} else {
+		doRecalibration= true;
+		std::string example = "Use '[a,b]'";
+		std::string::size_type pos = recalString.find_first_of('[');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format! " + example;
+		recalString = recalString.substr(pos+1, recalString.length() - pos - 2);
+		pos = recalString.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
+		a = stringToDoubleCheck(recalString.substr(0, pos));
+		b = stringToDoubleCheck(recalString.substr(pos+1));
+	}
+}
+
+double TRecalibration::recalibrate(double & error){
+	if(!doRecalibration) return error;
+	double tmp = log10(error);
+	tmp = a * log10(error) + b;
+	if(tmp > 0) return 1.0;
+	else return pow10(tmp);
+}
+
+std::string TRecalibration::getFunctionString(){
+	return "log10(error recalibrated) = " + toString(a) + " * log10(error) + " + toString(b);
 }
 
 //-------------------------------------------------------
@@ -325,7 +357,7 @@ void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 	}
 }
 
-void TSite::calcEmissionProbabilitiesScaledError(TPMD & pmdObject, Recalibration & recal){
+void TSite::calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal){
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilities[i] = 1.0;
 		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
