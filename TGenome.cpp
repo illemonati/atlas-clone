@@ -53,6 +53,11 @@ void TRecalSearch::fillSearch(){
 		search[numRangeSteps - i - 1] = best - rangeSteps[i];
 	}
 	std::cout << std::endl;
+
+	//empty LL
+	for(int i=1; i<steps; ++i){
+		LL[i] = 0.0;
+	}
 	active = true;
 };
 
