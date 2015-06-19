@@ -8,6 +8,86 @@
 
 #include "TGenome.h"
 
+//---------------------------------------------------------------
+//TRecalSearch
+//---------------------------------------------------------------
+TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
+	initialMin = Min;
+	initialMax = Max;
+	min = initialMin;
+	max = initialMax;
+	range = max - min;
+	best = (max + min) / 2.0;
+	steps = Steps;
+	search = new double[steps];
+	LL = new double[steps];
+	numRangeSteps = (steps - 1) / 2;
+	rangeSteps = new double[numRangeSteps];
+	double tmp = pow(1.0 / 2.0, numRangeSteps);
+	std::cout << "RANGE STEPS:";
+	for(int i = 0; i<numRangeSteps; ++i){
+		rangeSteps[i] = tmp * range;
+		std::cout << " -> " << rangeSteps[i];
+		tmp = tmp * 2.0;
+	}
+	std::cout << std::endl;
+	active = false;
+	changed = false;
+
+};
+
+void TRecalSearch::fillSearch(){
+	/*
+	double diff = (max - min) / ((double) steps - 1.0);
+	for(int j=0; j<steps; ++j){
+		search[j] = min + j*diff;
+		LL[j] = 0.0;
+	}
+	*/
+
+	std::cout << "SEARCH WILL BE ";
+	search[numRangeSteps] = best;
+	for(int i=0; i<numRangeSteps; ++i){
+		search[numRangeSteps + i + 1] = best + rangeSteps[i];
+		std::cout << " -> " << best + rangeSteps[i];
+		search[numRangeSteps - i - 1] = best - rangeSteps[i];
+	}
+	std::cout << std::endl;
+	active = true;
+};
+
+bool TRecalSearch::optimizeNextSearch(){
+	//find best value
+	int bestIndex = 0;
+	double bestLL = LL[0];
+	for(int i=1; i<steps; ++i){
+		if(bestLL < LL[i]){
+			bestIndex = i;
+			bestLL = LL[i];
+		}
+	}
+	if(best != search[bestIndex]) changed = true;
+	else changed = false;
+	best = search[bestIndex];
+
+	//shrink next search to best +/- two steps
+	/*
+	double diff;
+	if(bestIndex > 1) diff = search[bestIndex] - search[bestIndex - 2];
+	else diff = search[bestIndex + 2] - search[bestIndex];
+
+	min = best - diff;
+	max = best + diff;
+	if(min < initialMin) min = initialMin;
+	if(max > initialMax) max = initialMax;
+	*/
+
+	//back to passive
+	active = false;
+
+	return changed;
+};
+
 //-------------------------------------------------------
 //TGenome
 //-------------------------------------------------------
@@ -54,7 +134,6 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 		chrIterator = bamHeader.Sequences.Begin();
 		chrNumber = 0;
 	} else {
-		logfile->endIndent();
 		logfile->endNumbering();
 		//move to next
 		++chrIterator;
@@ -63,6 +142,7 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 
 	//did we reach end?
 	if(chrIterator == bamHeader.Sequences.End()){
+		curEnd = 0;
 		return false;
 	}
 
@@ -88,7 +168,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	curStart = curEnd;
 	curEnd += windowSize;
 	if(curEnd > chrLength) curEnd = chrLength + 1;
-	if(curStart > chrLength) return false;
+	if(curStart >= chrLength) return false;
 
 	//swap windows and move next
 	windowPair.swap();
@@ -306,17 +386,24 @@ void TGenome::printPileup(){
 
 void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
+	logfile->startIndent("Parameters for grid search:");
+	int steps = params.getParameterIntWithDefault("steps", 10);
+	logfile->list("Will create a grid with " + toString(steps) + " points per dimension.");
+
 	double minA = params.getParameterDoubleWithDefault("minA", 0.0);
+	double maxA = params.getParameterDoubleWithDefault("maxA", 2);
+	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
 	if(minA < 0.0) throw "minA has to be > 0.0!";
-	double maxA = params.getParameterDoubleWithDefault("maxA", 0.2);
 	if(maxA < minA) throw "minA has to be < maxA!";
-	double minB = params.getParameterDoubleWithDefault("minB", 0.0);
-	if(minB <= 0.0) throw "minB has to be > 0.0!";
+
+	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
 	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
+	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
+	//if(minB <= 0.0) throw "minB has to be > 0.0!";
 	if(maxB < minB) throw "minB has to be < maxB!";
 	if(maxB > 1.0) throw "maxB has to be < 1.0!";
+	logfile->endIndent();
 
-	int steps = params.getParameterIntWithDefault("steps", 10);
 	int numIterations = params.getParameterIntWithDefault("iterations", 2);
 
 	//prepare windows
@@ -334,9 +421,9 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	std::vector<double>::iterator aIt, bIt, LLIt;
 
 	//add a=0, b=0
-	a.push_back(0.0);
-	b.push_back(0.0);
-	LL.push_back(0.0);
+	//a.push_back(0.0);
+	//b.push_back(0.0);
+	//LL.push_back(0.0);
 
 	//prepare grid for b != 0
 	double sizeA = (maxA - minA) / (double)(steps - 1.0);
@@ -344,23 +431,25 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	double tmpA, tmpB;
 	for(int i=0; i<steps; ++i){
 		tmpA = minA + i*sizeB;
-		if(tmpA > 0.0){
+		//if(tmpA > 0.0){
 			for(int j=0; j<steps; ++j){
 				//only one with b=0
 				tmpB = minB + j*sizeB;
-				if(tmpB > 0.0){
+				//if(tmpB > 0.0){
 					a.push_back(minA + i*sizeA);
 					b.push_back(minB + j*sizeB);
 					LL.push_back(0.0);
-				}
+				//}
 			}
-		}
+		//}
 	}
 
 	//create recalibration object
 	TRecalibration recal(a[0], b[0]);
 
 	//iterate through windows
+	int numGridPoints = a.size();
+	std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
@@ -376,11 +465,14 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 			++aIt; ++bIt; ++LLIt;
 
 			//calc LL for all combinations of a and b
-			for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
+			int counter = 1;
+			for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt, ++counter){
+				logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) counter / (double) numGridPoints)) + "%)");
 				recal.set(*aIt, *bIt);
 				windows.cur->calculateEissionProbabilities(pmdObject, recal);
 				*LLIt += windows.cur->calcLogLikelihood();
 			}
+			logfile->overList(reportMessage + " done!");
 		}
 	}
 
@@ -390,6 +482,113 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	LLIt = LL.begin();
 	for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
 		out << *aIt << "\t" << *bIt << "\t" << *LLIt << "\n";
+	}
+
+	out.close();
+
+}
+
+
+void TGenome::estimateErrorCalibrationNew(TParameters & params){
+	//read params
+	logfile->startIndent("Parameters for grid search:");
+	int steps = params.getParameterIntWithDefault("steps", 11);
+	if(steps % 2 == 0) steps += 1; //make sure steps ar odd
+	logfile->list("Will optimize each parameter using a grid of " + toString(steps) + " points.");
+
+	int numIterations = params.getParameterIntWithDefault("iterations", 2);
+	logfile->list("Will perform at max " + toString(numIterations) + " iterations.");
+
+	double minA = params.getParameterDoubleWithDefault("minA", 0.0);
+	double maxA = params.getParameterDoubleWithDefault("maxA", 1);
+	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
+	if(minA < 0.0) throw "minA has to be > 0.0!";
+	if(maxA < minA) throw "minA has to be < maxA!";
+
+	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
+	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
+	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
+	//if(minB <= 0.0) throw "minB has to be > 0.0!";
+	if(maxB < minB) throw "minB has to be < maxB!";
+	logfile->endIndent();
+
+	//prepare windows
+	TWindowPairHaploid windows;
+
+	//open output
+	std::ofstream out;
+	std::string filename = outputName + "_calibration.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	out << "a\tb\tLL\n";
+
+	//create recalibration object
+	TRecalibration recal(minA, minB); //values will be changed in for loop
+
+	//prepare search arrays
+	int numVariables = 2;
+	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
+	searchArrays[0] = new TRecalSearch(minA, maxA, steps);
+	searchArrays[1] = new TRecalSearch(minB, maxB, steps);
+
+	//run iterations
+	for(int i=0; i < numIterations; ++i){
+		logfile->startIndent("Iteration " + toString(i+1) + ":");
+
+		//in each iteration, first optimize A, then B
+		int changed = 0;
+		for(int v = 0; v < numVariables; ++v){
+			logfile->startIndent("Optimizing parameter " + toString(v+1) + ":");
+			//create search array
+			searchArrays[v]->fillSearch();
+
+			//calculate likelihood for this array
+			//iterate through windows
+			int numGridPoints = steps;
+			std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
+			while(iterateChromosome(windows)){
+				while(iterateWindow(windows)){
+					//read data for current window
+					readData(windows);
+
+					//calc LL for a=0 b=0
+					windows.cur->estimateBaseFrequencies();
+					windows.cur->calculateEmissionProbabilities(pmdObject);
+
+					//calc LL for all combinations of a and b
+					for(int s=0; s < steps; ++s){
+						logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) s / (double) numGridPoints)) + "%)");
+						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s));
+						windows.cur->calculateEissionProbabilities(pmdObject, recal);
+						searchArrays[v]->addLL(windows.cur->calcLogLikelihood(), s);
+					}
+					logfile->overList(reportMessage + " done!");
+				}
+			}
+
+			//Report to file
+			for(int s=0; s < steps; ++s){
+				out << searchArrays[0]->at(s) << "\t" << searchArrays[1]->at(s) << "\t" << searchArrays[v]->atLL(s) << "\n";
+			}
+			out << "-------------------" << std::endl;
+
+			//choose best and update min / max
+			changed += searchArrays[v]->optimizeNextSearch();
+			logfile->endIndent();
+		}
+		logfile->endIndent();
+
+		//report best params
+		std::string outString = "";
+		for(int v = 0; v < numVariables; ++v){
+			if(v>0) outString += ", ";
+			outString += toString(searchArrays[v]->best);
+		}
+		logfile->conclude("Best parameter combination so far: " + outString);
+
+
+		//check if all remained unchanged -> break
+		if(changed == 0) break;
 	}
 
 	out.close();

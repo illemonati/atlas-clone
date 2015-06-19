@@ -292,8 +292,8 @@ TRecalibration::TRecalibration(std::string recalString){
 double TRecalibration::recalibrate(double & error){
 	if(!doRecalibration) return error;
 	double tmp = log10(error);
-	tmp = a * log10(error) + b;
-	if(tmp > 0) return 1.0;
+	tmp = a * tmp + b;
+	if(tmp > 0.0) return 1.0;
 	else return pow10(tmp);
 }
 
