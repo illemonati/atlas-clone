@@ -19,6 +19,7 @@ public:
 	double min, max;
 	double initialMin, initialMax;
 	double range;
+	double reductionFactor;
 	double* rangeSteps;
 	int steps, numRangeSteps;
 	double* search;

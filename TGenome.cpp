@@ -17,6 +17,7 @@ TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
 	min = initialMin;
 	max = initialMax;
 	range = max - min;
+	reductionFactor = 1.0;
 	best = (max + min) / 2.0;
 	steps = Steps;
 	search = new double[steps];
@@ -24,13 +25,10 @@ TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
 	numRangeSteps = (steps - 1) / 2;
 	rangeSteps = new double[numRangeSteps];
 	double tmp = pow(1.0 / 2.0, numRangeSteps);
-	std::cout << "RANGE STEPS:";
 	for(int i = 0; i<numRangeSteps; ++i){
 		rangeSteps[i] = tmp * range;
-		std::cout << " -> " << rangeSteps[i];
 		tmp = tmp * 2.0;
 	}
-	std::cout << std::endl;
 	active = false;
 	changed = false;
 
@@ -45,15 +43,11 @@ void TRecalSearch::fillSearch(){
 	}
 	*/
 
-	std::cout << "SEARCH WILL BE ";
 	search[numRangeSteps] = best;
 	for(int i=0; i<numRangeSteps; ++i){
-		search[numRangeSteps + i + 1] = best + rangeSteps[i];
-		std::cout << " -> " << best + rangeSteps[i];
-		search[numRangeSteps - i - 1] = best - rangeSteps[i];
+		search[numRangeSteps + i + 1] = best + rangeSteps[i] * reductionFactor;
+		search[numRangeSteps - i - 1] = best - rangeSteps[i] * reductionFactor;
 	}
-	std::cout << std::endl;
-
 	//empty LL
 	for(int i=1; i<steps; ++i){
 		LL[i] = 0.0;
@@ -74,6 +68,7 @@ bool TRecalSearch::optimizeNextSearch(){
 	if(best != search[bestIndex]) changed = true;
 	else changed = false;
 	best = search[bestIndex];
+	reductionFactor = reductionFactor * 0.9;
 
 	//shrink next search to best +/- two steps
 	/*
