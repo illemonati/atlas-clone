@@ -54,7 +54,7 @@ int main(int argc, char* argv[]){
 			genome.printPileup();
 		} else if(task=="calibration"){
 			logfile.startIndent("Estimating eror calibration function:");
-			genome.estimateErrorCalibrationNew(myParameters);
+			genome.estimateErrorCalibration(myParameters);
 		} else throw "Unknown task '" + task + "'!";
 		logfile.endIndent();
 

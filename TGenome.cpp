@@ -384,6 +384,7 @@ void TGenome::printPileup(){
 	out.close();
 }
 
+/*
 void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
 	logfile->startIndent("Parameters for grid search:");
@@ -487,9 +488,10 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	out.close();
 
 }
+*/
 
 
-void TGenome::estimateErrorCalibrationNew(TParameters & params){
+void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
 	logfile->startIndent("Parameters for grid search:");
 	int steps = params.getParameterIntWithDefault("steps", 11);
