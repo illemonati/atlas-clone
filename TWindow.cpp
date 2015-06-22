@@ -587,7 +587,7 @@ void TWindowHaploid::fillPGenotype(double* pGenotype){
 }
 
 double TWindowHaploid::calcLogLikelihood(){
-	double* pGenotype = new double[4];
+	double pGenotype[4];
 	fillPGenotype(pGenotype);
 
 	double LL = 0.0;

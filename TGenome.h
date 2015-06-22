@@ -31,6 +31,7 @@ public:
 	~TRecalSearch(){
 		delete[] search;
 		delete[] LL;
+		delete[] rangeSteps;
 	};
 
 	void fillSearch();

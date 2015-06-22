@@ -135,6 +135,10 @@ public:
 	void addToNext(BamTools::BamAlignment & bamAlignement){
 		nextPointer->addFromRead(bamAlignement);
 	};
+	void clear(){
+		curPointer->clear();
+		nextPointer->clear();
+	}
 };
 
 class TWindowPairDiploid:public TWindowPair{

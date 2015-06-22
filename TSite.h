@@ -371,6 +371,10 @@ public:
 		emissionProbabilities = new double[numGenotypes];
 		P_g = new double[numGenotypes];
 	}
+	~TSiteHaploid(){
+		delete[] emissionProbabilities;
+		delete[] P_g;
+	};
 	void add(char & base, char & quality, int pos5, int pos3);
 };
 
