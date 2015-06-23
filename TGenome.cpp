@@ -501,10 +501,10 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	int numIterations = params.getParameterIntWithDefault("iterations", 2);
 	logfile->list("Will perform at max " + toString(numIterations) + " iterations.");
 
-	double minA = params.getParameterDoubleWithDefault("minA", 0.0);
-	double maxA = params.getParameterDoubleWithDefault("maxA", 1);
+	double minA = params.getParameterDoubleWithDefault("minA", -1.0);
+	double maxA = params.getParameterDoubleWithDefault("maxA", 1.0);
 	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
-	if(minA < 0.0) throw "minA has to be > 0.0!";
+	//if(minA < 0.0) throw "minA has to be > 0.0!";
 	if(maxA < minA) throw "minA has to be < maxA!";
 
 	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
@@ -512,6 +512,12 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
 	//if(minB <= 0.0) throw "minB has to be > 0.0!";
 	if(maxB < minB) throw "minB has to be < maxB!";
+
+	double minC = params.getParameterDoubleWithDefault("minC", -1.0);
+	double maxC = params.getParameterDoubleWithDefault("maxC", 1.0);
+	logfile->list("Parameter C will be tested within the range [" + toString(minC) + ", " + toString(maxC) + "]");
+	//if(minB <= 0.0) throw "minB has to be > 0.0!";
+	if(maxC < minC) throw "minC has to be < maxC!";
 	logfile->endIndent();
 
 	//prepare windows
@@ -522,16 +528,17 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	std::string filename = outputName + "_calibration.txt";
 	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "iteration\tparameter\ta\tb\tLL\n";
+	out << "iteration\tparameter\ta\tb\tc\tLL\n";
 
 	//create recalibration object
-	TRecalibration recal(minA, minB); //values will be changed in for loop
+	TRecalibration recal(minA, minB, minC); //values will be changed in for loop
 
 	//prepare search arrays
-	int numVariables = 2;
+	int numVariables = 3;
 	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
 	searchArrays[0] = new TRecalSearch(minA, maxA, steps);
 	searchArrays[1] = new TRecalSearch(minB, maxB, steps);
+	searchArrays[2] = new TRecalSearch(minC, maxC, steps);
 
 	//run iterations
 	for(int i=0; i < numIterations; ++i){
@@ -560,7 +567,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 					//calc LL for all combinations of a and b
 					for(int s=0; s < steps; ++s){
 						logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) s / (double) numGridPoints)) + "%)");
-						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s));
+						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s), searchArrays[2]->at(s));
 						windows.cur->calculateEissionProbabilities(pmdObject, recal);
 						searchArrays[v]->addLL(windows.cur->calcLogLikelihood(), s);
 					}

@@ -270,7 +270,7 @@ std::string TRecalibration::getFunctionString(){
 	return "log10(error recalibrated) = " + toString(b) + " * (1 - exp(-" + toString(a) + " * log10(error))) + (1 - " + toString(b) + ") * log10(error)";
 }
 */
-
+/*
 TRecalibration::TRecalibration(std::string recalString){
 	if(recalString==""){
 		doRecalibration = false;
@@ -299,6 +299,43 @@ double TRecalibration::recalibrate(double & error){
 
 std::string TRecalibration::getFunctionString(){
 	return "log10(error recalibrated) = " + toString(a) + " * log10(error) + " + toString(b);
+}
+*/
+
+
+TRecalibration::TRecalibration(std::string recalString){
+	if(recalString==""){
+		doRecalibration = false;
+		a = 1.0;
+		b = 0.0;
+	} else {
+		doRecalibration= true;
+		std::string example = "Use '[a,b,c]'";
+		std::string::size_type pos = recalString.find_first_of('[');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format! " + example;
+		recalString = recalString.substr(pos+1, recalString.length() - pos - 2);
+		pos = recalString.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
+		a = stringToDoubleCheck(recalString.substr(0, pos));
+		recalString = recalString.substr(pos+1, recalString.length() - pos - 1);
+		std::cout << "TEST = " << recalString << std::endl;
+		pos = recalString.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
+		b = stringToDoubleCheck(recalString.substr(0, pos));
+		c = stringToDoubleCheck(recalString.substr(pos+1));
+	}
+}
+
+double TRecalibration::recalibrate(double & error){
+	if(!doRecalibration) return error;
+	double tmp = log10(error);
+	tmp = b * (1.0 - exp(-a * tmp)) + c * tmp;
+	if(tmp > 0.0) return 1.0;
+	else return pow10(tmp);
+}
+
+std::string TRecalibration::getFunctionString(){
+	return "log10(error recalibrated) = " + toString(b) + " * (1 - exp(-" + toString(a) + " * log10(error))) + " + toString(c) + " * log10(error)";
 }
 
 //-------------------------------------------------------

@@ -133,23 +133,26 @@ public:
 class TRecalibration{
 public:
 	bool doRecalibration;
-	double a,b;
+	double a,b,c;
 
 	TRecalibration(){
 		doRecalibration = false;
 		a = 0.0;
 		b = 0.0;
+		c = 0.0;
 	};
-	TRecalibration(const double & paramA, const double & paramB){
+	TRecalibration(const double & paramA, const double & paramB, const double & paramC){
 		doRecalibration = true;
 		a = paramA;
 		b = paramB;
+		c = paramC;
 	};
 	TRecalibration(std::string recalString);
 	~TRecalibration(){};
-	void set(const double & paramA, const double & paramB){
+	void set(const double & paramA, const double & paramB, const double & paramC){
 		a = paramA;
 		b = paramB;
+		c = paramC;
 	};
 	double recalibrate(double & error);
 	std::string getFunctionString();
