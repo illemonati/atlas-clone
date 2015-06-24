@@ -308,6 +308,7 @@ TRecalibration::TRecalibration(std::string recalString){
 		doRecalibration = false;
 		a = 1.0;
 		b = 0.0;
+		c = 0.0;
 	} else {
 		doRecalibration= true;
 		std::string example = "Use '[a,b,c]'";
@@ -318,7 +319,6 @@ TRecalibration::TRecalibration(std::string recalString){
 		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
 		a = stringToDoubleCheck(recalString.substr(0, pos));
 		recalString = recalString.substr(pos+1, recalString.length() - pos - 1);
-		std::cout << "TEST = " << recalString << std::endl;
 		pos = recalString.find_first_of(',');
 		if(pos == std::string::npos) throw "Can not initialize recalibration: wrong format!\n" + example;
 		b = stringToDoubleCheck(recalString.substr(0, pos));

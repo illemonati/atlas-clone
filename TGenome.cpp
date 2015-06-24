@@ -576,8 +576,12 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 			}
 
 			//Report to file
-			for(int s=0; s < steps; ++s)
-				out << i+1 << "\t" << v+1 << "\t" << searchArrays[0]->at(s) << "\t" << searchArrays[1]->at(s) << "\t" << searchArrays[v]->atLL(s) << "\n";
+			for(int s=0; s < steps; ++s){
+				out << i+1 << "\t" << v+1;
+				for(int w = 0; w < numVariables; ++w)
+					out << "\t" << searchArrays[w]->at(s);
+				out << "\t" << searchArrays[v]->atLL(s) << "\n";
+			}
 
 			//out << "-------------------" << std::endl;
 
