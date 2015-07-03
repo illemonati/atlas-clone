@@ -206,10 +206,9 @@ bool TGenome::readData(TWindowPair & windowPair){
 				break;
 			} else {
 				++numReads;
-				if(windowPair.curPointer->addFromRead(bamAlignement))
+				if(windowPair.curPointer->addFromRead(bamAlignement)) int a = 0;
 					//add also to next window in case reads overhangs current window -> function returns true
-					windowPair.nextPointer->addFromRead(bamAlignement);
-
+					//windowPair.nextPointer->addFromRead(bamAlignement);
 			}
 		}
 	}
@@ -235,20 +234,27 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 		pmdObject.initializeFunction(pmdString, pmdGA);
 		logfile->conclude(pmdObject.getFunctionString(pmdCT));
 	} else {
-		//separate model for C->T and G->A
-		//first C->T
-		if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
-		pmdString = params.getParameterString("pmdCT");
-		logfile->list("Initializing post mortem C->T damage with function '" + pmdString +"'.");
-		pmdObject.initializeFunction(pmdString, pmdCT);
-		logfile->conclude(pmdObject.getFunctionString(pmdCT));
+		if(!params.parameterExists("pmdCT") && !params.parameterExists("pmdGA")){
+			//no post mortem damage
+			pmdString = "none";
+			pmdObject.initializeFunction(pmdString, pmdGA);
+			pmdObject.initializeFunction(pmdString, pmdCT);
+		} else {
+			//separate model for C->T and G->A
+			//first C->T
+			if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
+			pmdString = params.getParameterString("pmdCT");
+			logfile->list("Initializing post mortem C->T damage with function '" + pmdString +"'.");
+			pmdObject.initializeFunction(pmdString, pmdCT);
+			logfile->conclude(pmdObject.getFunctionString(pmdCT));
 
-		//second G->A
-		if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damaga: argument 'pmd' or 'pmdGA' has to be provided!";
-		pmdString = params.getParameterString("pmdGA");
-		logfile->list("Initializing post mortem G->A damage with function '" + pmdString +"'.");
-		pmdObject.initializeFunction(pmdString, pmdGA);
-		logfile->conclude(pmdObject.getFunctionString(pmdGA));
+			//second G->A
+			if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdGA' has to be provided!";
+			pmdString = params.getParameterString("pmdGA");
+			logfile->list("Initializing post mortem G->A damage with function '" + pmdString +"'.");
+			pmdObject.initializeFunction(pmdString, pmdGA);
+			logfile->conclude(pmdObject.getFunctionString(pmdGA));
+		}
 	}
 }
 
@@ -544,7 +550,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	for(int i=0; i < numIterations; ++i){
 		logfile->startIndent("Iteration " + toString(i+1) + ":");
 
-		//in each iteration, first optimize A, then B
+		//in each iteration, first optimize A, then B, then C, ...
 		int changed = 0;
 		for(int v = 0; v < numVariables; ++v){
 			logfile->startIndent("Optimizing parameter " + toString(v+1) + ":");

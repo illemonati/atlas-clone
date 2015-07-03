@@ -306,9 +306,9 @@ std::string TRecalibration::getFunctionString(){
 TRecalibration::TRecalibration(std::string recalString){
 	if(recalString==""){
 		doRecalibration = false;
-		a = 1.0;
+		a = 0.0;
 		b = 0.0;
-		c = 0.0;
+		c = 1.0;
 	} else {
 		doRecalibration= true;
 		std::string example = "Use '[a,b,c]'";
@@ -330,7 +330,7 @@ double TRecalibration::recalibrate(double & error){
 	if(!doRecalibration) return error;
 	double tmp = log10(error);
 	tmp = b * (1.0 - exp(-a * tmp)) + c * tmp;
-	if(tmp > 0.0) return 1.0;
+	if(tmp > -0.1) return 0.8;
 	else return pow10(tmp);
 }
 
@@ -387,8 +387,10 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilities[i] = 1.0;
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-			(*it)->fillEmissionProbabilities(pmdObject);
+	}
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		(*it)->fillEmissionProbabilities(pmdObject);
+		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
 		}
 	}
@@ -397,8 +399,10 @@ void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 void TSite::calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal){
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilities[i] = 1.0;
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-			(*it)->fillEmissionProbabilitiesRecalibratedError(pmdObject, recal);
+	}
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		(*it)->fillEmissionProbabilitiesRecalibratedError(pmdObject, recal);
+		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
 		}
 	}

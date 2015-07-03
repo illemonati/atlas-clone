@@ -139,7 +139,7 @@ public:
 		doRecalibration = false;
 		a = 0.0;
 		b = 0.0;
-		c = 0.0;
+		c = 1.0;
 	};
 	TRecalibration(const double & paramA, const double & paramB, const double & paramC){
 		doRecalibration = true;

@@ -155,8 +155,9 @@ void TWindow::calcCoverage(){
 double TWindow::calcLogLikelihood(double* pGenotype){
 	double LL = 0.0;
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData)
+		if(sites[i].hasData){
 			LL += sites[i].calculateLogLikelihood(pGenotype);
+		}
 	}
 	return LL;
 }
