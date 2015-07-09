@@ -12,13 +12,21 @@
 //TRecalSearch
 //---------------------------------------------------------------
 TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
+	initialize(Min, Max, Steps, (Max-Min)/2.0);
+};
+
+TRecalSearch::TRecalSearch(double Min, double Max, int Steps, double Init){
+	initialize(Min, Max, Steps, Init);
+}
+
+void TRecalSearch::initialize(double & Min, double & Max, int & Steps, double Init){
 	initialMin = Min;
 	initialMax = Max;
 	min = initialMin;
 	max = initialMax;
 	range = max - min;
 	reductionFactor = 1.0;
-	best = (max + min) / 2.0;
+	best = Init;
 	steps = Steps;
 	search = new double[steps];
 	LL = new double[steps];
@@ -31,8 +39,7 @@ TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
 	}
 	active = false;
 	changed = false;
-
-};
+}
 
 void TRecalSearch::fillSearch(){
 	/*
@@ -68,7 +75,7 @@ bool TRecalSearch::optimizeNextSearch(){
 	if(best != search[bestIndex]) changed = true;
 	else changed = false;
 	best = search[bestIndex];
-	reductionFactor = reductionFactor * 0.9;
+	reductionFactor = reductionFactor * 0.5;
 
 	//shrink next search to best +/- two steps
 	/*
@@ -206,9 +213,10 @@ bool TGenome::readData(TWindowPair & windowPair){
 				break;
 			} else {
 				++numReads;
-				if(windowPair.curPointer->addFromRead(bamAlignement)) int a = 0;
+				if(windowPair.curPointer->addFromRead(bamAlignement)){
 					//add also to next window in case reads overhangs current window -> function returns true
-					//windowPair.nextPointer->addFromRead(bamAlignement);
+					windowPair.nextPointer->addFromRead(bamAlignement);
+				}
 			}
 		}
 	}
@@ -512,18 +520,21 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
 	//if(minA < 0.0) throw "minA has to be > 0.0!";
 	if(maxA < minA) throw "minA has to be < maxA!";
+	double initialA = params.getParameterDoubleWithDefault("initA", (maxA + minA)/2.0);
 
 	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
 	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
 	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
 	//if(minB <= 0.0) throw "minB has to be > 0.0!";
 	if(maxB < minB) throw "minB has to be < maxB!";
+	double initialB = params.getParameterDoubleWithDefault("initB", (maxB + minB)/2.0);
 
 	double minC = params.getParameterDoubleWithDefault("minC", -1.0);
 	double maxC = params.getParameterDoubleWithDefault("maxC", 1.0);
 	logfile->list("Parameter C will be tested within the range [" + toString(minC) + ", " + toString(maxC) + "]");
 	//if(minB <= 0.0) throw "minB has to be > 0.0!";
 	if(maxC < minC) throw "minC has to be < maxC!";
+	double initialC = params.getParameterDoubleWithDefault("initC", (maxC + minC)/2.0);
 	logfile->endIndent();
 
 	//prepare windows
@@ -534,7 +545,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	std::string filename = outputName + "_calibration.txt";
 	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "iteration\tparameter\ta\tb\tc\tLL\n";
+	out << "iteration\tparameter\ta\tb\tc\tLL" << std::endl;
 
 	//create recalibration object
 	TRecalibration recal(minA, minB, minC); //values will be changed in for loop
@@ -542,9 +553,9 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	//prepare search arrays
 	int numVariables = 3;
 	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
-	searchArrays[0] = new TRecalSearch(minA, maxA, steps);
-	searchArrays[1] = new TRecalSearch(minB, maxB, steps);
-	searchArrays[2] = new TRecalSearch(minC, maxC, steps);
+	searchArrays[0] = new TRecalSearch(minA, maxA, steps, initialA);
+	searchArrays[1] = new TRecalSearch(minB, maxB, steps, initialB);
+	searchArrays[2] = new TRecalSearch(minC, maxC, steps, initialC);
 
 	//run iterations
 	for(int i=0; i < numIterations; ++i){
@@ -586,7 +597,7 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 				out << i+1 << "\t" << v+1;
 				for(int w = 0; w < numVariables; ++w)
 					out << "\t" << searchArrays[w]->at(s);
-				out << "\t" << searchArrays[v]->atLL(s) << "\n";
+				out << "\t" << searchArrays[v]->atLL(s) << std::endl;
 			}
 
 			//out << "-------------------" << std::endl;

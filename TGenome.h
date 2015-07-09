@@ -28,11 +28,13 @@ public:
 	bool changed;
 
 	TRecalSearch(double Min, double Max, int Steps);
+	TRecalSearch(double Min, double Max, int Steps, double init);
 	~TRecalSearch(){
 		delete[] search;
 		delete[] LL;
 		delete[] rangeSteps;
 	};
+	void initialize(double & Min, double & Max, int & Steps, double Init);
 
 	void fillSearch();
 	bool optimizeNextSearch();

@@ -329,7 +329,7 @@ TRecalibration::TRecalibration(std::string recalString){
 double TRecalibration::recalibrate(double & error){
 	if(!doRecalibration) return error;
 	double tmp = log10(error);
-	tmp = b * (1.0 - exp(-a * tmp)) + c * tmp;
+	tmp = a * (1.0 - exp(-b * tmp)) + c * tmp;
 	if(tmp > -0.1) return 0.8;
 	else return pow10(tmp);
 }
