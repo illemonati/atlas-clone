@@ -95,9 +95,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 		 */
 
 		if(bamAlignement.IsReverseStrand())
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), len - pos, pos + 1);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, pos + 1);
 		else
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, pos + 1, len - pos);
 	}
 
 	//return if part of the read maps to next window

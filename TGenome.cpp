@@ -390,113 +390,6 @@ void TGenome::printPileup(){
 	out.close();
 }
 
-/*
-void TGenome::estimateErrorCalibration(TParameters & params){
-	//read params
-	logfile->startIndent("Parameters for grid search:");
-	int steps = params.getParameterIntWithDefault("steps", 10);
-	logfile->list("Will create a grid with " + toString(steps) + " points per dimension.");
-
-	double minA = params.getParameterDoubleWithDefault("minA", 0.0);
-	double maxA = params.getParameterDoubleWithDefault("maxA", 2);
-	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
-	if(minA < 0.0) throw "minA has to be > 0.0!";
-	if(maxA < minA) throw "minA has to be < maxA!";
-
-	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
-	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
-	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
-	//if(minB <= 0.0) throw "minB has to be > 0.0!";
-	if(maxB < minB) throw "minB has to be < maxB!";
-	if(maxB > 1.0) throw "maxB has to be < 1.0!";
-	logfile->endIndent();
-
-	int numIterations = params.getParameterIntWithDefault("iterations", 2);
-
-	//prepare windows
-	TWindowPairHaploid windows;
-
-	//open output
-	std::ofstream out;
-	std::string filename = outputName + "_calibration.txt";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "a\tb\tLL\n";
-
-	//prepare storage for grid search
-	std::vector<double> a, b, LL;
-	std::vector<double>::iterator aIt, bIt, LLIt;
-
-	//add a=0, b=0
-	//a.push_back(0.0);
-	//b.push_back(0.0);
-	//LL.push_back(0.0);
-
-	//prepare grid for b != 0
-	double sizeA = (maxA - minA) / (double)(steps - 1.0);
-	double sizeB = (maxB - minB) / (double)(steps - 1.0); //without b=0
-	double tmpA, tmpB;
-	for(int i=0; i<steps; ++i){
-		tmpA = minA + i*sizeB;
-		//if(tmpA > 0.0){
-			for(int j=0; j<steps; ++j){
-				//only one with b=0
-				tmpB = minB + j*sizeB;
-				//if(tmpB > 0.0){
-					a.push_back(minA + i*sizeA);
-					b.push_back(minB + j*sizeB);
-					LL.push_back(0.0);
-				//}
-			}
-		//}
-	}
-
-	//create recalibration object
-	TRecalibration recal(a[0], b[0]);
-
-	//iterate through windows
-	int numGridPoints = a.size();
-	std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
-
-			//calc LL for a=0 b=0
-			aIt = a.begin();
-			bIt = b.begin();
-			LLIt = LL.begin();
-			windows.cur->estimateBaseFrequencies();
-			windows.cur->calculateEmissionProbabilities(pmdObject);
-			*LLIt += windows.cur->calcLogLikelihood();
-			++aIt; ++bIt; ++LLIt;
-
-			//calc LL for all combinations of a and b
-			int counter = 1;
-			for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt, ++counter){
-				logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) counter / (double) numGridPoints)) + "%)");
-				recal.set(*aIt, *bIt);
-				windows.cur->calculateEissionProbabilities(pmdObject, recal);
-				*LLIt += windows.cur->calcLogLikelihood();
-			}
-			logfile->overList(reportMessage + " done!");
-		}
-	}
-
-	//Report
-	aIt = a.begin();
-	bIt = b.begin();
-	LLIt = LL.begin();
-	for(; aIt != a.end(); ++aIt, ++bIt, ++LLIt){
-		out << *aIt << "\t" << *bIt << "\t" << *LLIt << "\n";
-	}
-
-	out.close();
-
-}
-*/
-
-
 void TGenome::estimateErrorCalibration(TParameters & params){
 	//read params
 	logfile->startIndent("Parameters for grid search:");
@@ -619,3 +512,154 @@ void TGenome::estimateErrorCalibration(TParameters & params){
 	delete[] searchArrays;
 }
 
+
+void TGenome::estimateErrorCalibrationEM(TParameters & params){
+	//Initialize calibration parameters.
+	//We assume a linear model log(error) = eta = beta_0 + beta_1 * quality + beta_2 * position in reads
+	//                                            + gamma_A * Ind(d = A) + gamma_C * Ind(d = C) + gamma_G * Ind(d = G) + gamma_T * Ind(d = T)
+
+	double beta[3]; //beta_0, beta_1, beta_2
+	double gamma[4]; //gamma_A, gamma_C, gamma_G, gamma_T
+	bool betaEstimated[3];
+	bool gammaEstimated[4];
+
+	//read EM parameters
+	int numEMIterations = params.getParameterIntWithDefault("iterations", 10);
+	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
+	double maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
+	double NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	logfile->list("Will conduct at max " + toString(NewtonRalphsonNumIterations) + " Newton-Ralphson iterations");
+	double NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	logfile->list("Will stop Newton-Ralphson when F < " + toString(NewtonRalphsonMaxF));
+
+	//set initial parameter values
+	logfile->startIndent("Model parameters:");
+	//beta 0
+	if(params.parameterExists("beta0")){
+		betaEstimated[0] = false;
+		beta[0] = params.getParameterDouble("beta0");
+		logfile->list("Will fix beta0 at " + toString(beta[0]));
+	} else {
+		betaEstimated[0] = true;
+		beta[0] = params.getParameterDoubleWithDefault("initBeta0", 0);
+		logfile->list("Will start EM with beta0 = " + toString(beta[0]));
+	}
+	//beta 1
+	if(params.parameterExists("beta1")){
+		betaEstimated[1] = false;
+		beta[1] = params.getParameterDouble("beta1");
+		logfile->list("Will fix beta1 at " + toString(beta[1]));
+	} else {
+		betaEstimated[1] = true;
+		beta[1] = params.getParameterDoubleWithDefault("initBeta1", 1);
+		logfile->list("Will start EM with beta1 = " + toString(beta[1]));
+	}
+	//beta 2
+	if(params.parameterExists("beta2")){
+		betaEstimated[2] = false;
+		beta[2] = params.getParameterDouble("beta2");
+		logfile->list("Will fix beta2 at " + toString(beta[2]));
+	} else {
+		betaEstimated[2] = true;
+		beta[2] = params.getParameterDoubleWithDefault("initBeta0", 0);
+		logfile->list("Will start EM with beta2 = " + toString(beta[2]));
+	}
+	logfile->endIndent();
+
+
+	//prepare windows
+	TWindowPairHaploid windows;
+
+	//open output
+	std::ofstream out;
+	std::string filename = outputName + "_calibration.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	out << "iteration\tparameter\ta\tb\tc\tLL\n";
+
+	/*
+	//create recalibration object
+	TRecalibration recal(minA, minB, minC); //values will be changed in for loop
+
+	//prepare search arrays
+	int numVariables = 3;
+	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
+	searchArrays[0] = new TRecalSearch(minA, maxA, steps);
+	searchArrays[1] = new TRecalSearch(minB, maxB, steps);
+	searchArrays[2] = new TRecalSearch(minC, maxC, steps);
+
+	//run iterations
+	for(int i=0; i < numIterations; ++i){
+		logfile->startIndent("Iteration " + toString(i+1) + ":");
+
+		//in each iteration, first optimize A, then B, then C, ...
+		int changed = 0;
+		for(int v = 0; v < numVariables; ++v){
+			logfile->startIndent("Optimizing parameter " + toString(v+1) + ":");
+			//create search array
+			searchArrays[v]->fillSearch();
+
+			//calculate likelihood for this array
+			//iterate through windows
+			int numGridPoints = steps;
+			std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
+			while(iterateChromosome(windows)){
+				while(iterateWindow(windows)){
+					//read data for current window
+					readData(windows);
+
+					//calc LL for a=0 b=0
+					windows.cur->estimateBaseFrequencies();
+					windows.cur->calculateEmissionProbabilities(pmdObject);
+
+					//calc LL for all combinations of a and b
+					for(int s=0; s < steps; ++s){
+						logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) s / (double) numGridPoints)) + "%)");
+						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s), searchArrays[2]->at(s));
+						windows.cur->calculateEissionProbabilities(pmdObject, recal);
+						searchArrays[v]->addLL(windows.cur->calcLogLikelihood(), s);
+					}
+					logfile->overList(reportMessage + " done!");
+				}
+			}
+
+			//Report to file
+			for(int s=0; s < steps; ++s){
+				out << i+1 << "\t" << v+1;
+				for(int w = 0; w < numVariables; ++w)
+					out << "\t" << searchArrays[w]->at(s);
+				out << "\t" << searchArrays[v]->atLL(s) << "\n";
+			}
+
+			//out << "-------------------" << std::endl;
+
+			//choose best and update min / max
+			changed += searchArrays[v]->optimizeNextSearch();
+			logfile->endIndent();
+		}
+		logfile->endIndent();
+
+		//report best params
+		std::string outString = "";
+		for(int v = 0; v < numVariables; ++v){
+			if(v>0) outString += ", ";
+			outString += toString(searchArrays[v]->best);
+		}
+		logfile->conclude("Best parameter combination so far: " + outString);
+
+		//clean up memory
+		windows.clear();
+
+		//check if all remained unchanged -> break
+		if(changed == 0) break;
+	}
+
+	//clean up
+	out.close();
+	for(int i=0; i<numVariables; ++i)
+		delete searchArrays[i];
+	delete[] searchArrays;
+
+	*/
+}

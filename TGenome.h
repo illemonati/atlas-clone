@@ -81,6 +81,7 @@ public:
 	void calcLikelihoodSurfaces(TParameters & params);
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);
+	void estimateErrorCalibrationEM(TParameters & params);
 };
 
 

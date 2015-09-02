@@ -197,19 +197,24 @@ public:
 //---------------------------------------------------------------
 class TBase{
 public:
+	double logError;
 	double errorRate;
-	int pos5, pos3;
+	int posInRead, pos5, pos3;
 
-	TBase(double & ErrorRate, int & Pos5, int & Pos3){
-		errorRate = ErrorRate;
+	TBase(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3){
+		logError = LogErrorRate;
+		errorRate = pow(10.0, logError);
+		posInRead = PosInRead;
 		pos5 = Pos5;
 		pos3 = Pos3;
 	};
 
 	virtual ~TBase(){};
 
-	void update(double & ErrorRate, int & Pos5, int & Pos3, TPMD & pmdObject){
-		errorRate = ErrorRate;
+	void update(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3, TPMD & pmdObject){
+		logError = LogErrorRate;
+		errorRate = pow(10.0, logError);
+		posInRead = PosInRead;
 		pos5 = Pos5;
 		pos3 = Pos3;
 		fillEmissionProbabilities(pmdObject);
@@ -230,7 +235,7 @@ class TBaseDiploid:public TBase{
 public:
 	TEmissionProbabilitiesDiploid emissionProbabilities;
 
-	TBaseDiploid(double & ErrorRate, int & Pos5, int & Pos3):TBase(ErrorRate, Pos5, Pos3){};
+	TBaseDiploid(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBase(LogErrorRate, PosInRead, Pos5, Pos3){};
 
 	virtual ~TBaseDiploid(){};
 
@@ -246,7 +251,7 @@ class TBaseHaploid:public TBase{
 public:
 	TEmissionProbabilitiesHaploid emissionProbabilities;
 
-	TBaseHaploid(double & ErrorRate, int & Pos5, int & Pos3):TBase(ErrorRate, Pos5, Pos3){};
+	TBaseHaploid(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBase(LogErrorRate, PosInRead, Pos5, Pos3){};
 	virtual ~TBaseHaploid(){};
 
 	double getEmissionProbability(Base genotype){
@@ -259,14 +264,14 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidA:public TBaseDiploid{
 public:
-	TBaseDiploidA(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
+	TBaseDiploidA(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseDiploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'A'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
 class TBaseHaploidA:public TBaseHaploid{
 public:
-	TBaseHaploidA(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	TBaseHaploidA(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseHaploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'A'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
@@ -274,14 +279,14 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidC:public TBaseDiploid{
 public:
-	TBaseDiploidC(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
+	TBaseDiploidC(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseDiploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'C'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
 class TBaseHaploidC:public TBaseHaploid{
 public:
-	TBaseHaploidC(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	TBaseHaploidC(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseHaploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'C'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
@@ -289,14 +294,14 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidG:public TBaseDiploid{
 public:
-	TBaseDiploidG(double & ErrorRate, int & Pos5, int Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
+	TBaseDiploidG(double & LogErrorRate, int & PosInRead, int & Pos5, int Pos3):TBaseDiploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'G'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
 class TBaseHaploidG:public TBaseHaploid{
 public:
-	TBaseHaploidG(double & ErrorRate, int & Pos5, int Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	TBaseHaploidG(double & LogErrorRate, int & PosInRead, int & Pos5, int Pos3):TBaseHaploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'G'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
@@ -304,14 +309,14 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidT:public TBaseDiploid{
 public:
-	TBaseDiploidT(double & ErrorRate, int & Pos5, int & Pos3):TBaseDiploid(ErrorRate, Pos5, Pos3){};
+	TBaseDiploidT(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseDiploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'T'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
 };
 class TBaseHaploidT:public TBaseHaploid{
 public:
-	TBaseHaploidT(double & ErrorRate, int & Pos5, int & Pos3):TBaseHaploid(ErrorRate, Pos5, Pos3){};
+	TBaseHaploidT(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3):TBaseHaploid(LogErrorRate, PosInRead, Pos5, Pos3){};
 	char getBase(){ return 'T'; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
 	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
@@ -337,8 +342,8 @@ public:
 
 	void clear();
 
-	double qualityToError(char & quality);
-	virtual void add(char & base, char & quality, int pos5, int pos3){throw "Function 'add' Not implemented for base class TSite!"; };
+	double qualityToLogError(char & quality);
+	virtual void add(char & base, char & quality, int PosInRead, int pos5, int pos3){throw "Function 'add' Not implemented for base class TSite!"; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
 	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal);
@@ -362,7 +367,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int pos5, int pos3);
+	void add(char & base, char & quality, int PosInRead, int pos5, int pos3);
 };
 
 class TSiteHaploid:public TSite{
@@ -378,7 +383,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int pos5, int pos3);
+	void add(char & base, char & quality, int PosInRead, int pos5, int pos3);
 };
 
 
