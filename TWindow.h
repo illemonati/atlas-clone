@@ -14,8 +14,7 @@
 #include "bamtools/api/SamSequenceDictionary.h"
 
 #include "TSite.h"
-#define ARMA_DONT_PRINT_ERRORS
-#include <armadillo>
+
 
 //---------------------------------------------------------------
 //EMParameters

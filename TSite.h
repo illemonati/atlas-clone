@@ -10,6 +10,8 @@
 
 #include "stringFunctions.h"
 #include <math.h>
+#define ARMA_DONT_PRINT_ERRORS
+#include <armadillo>
 
 enum Base {A, C, G, T};
 enum Genotype {AA, AC, AG, AT, CC, CG, CT, GG, GT, TT};
@@ -64,6 +66,41 @@ public:
 	double& operator[](int pos){
 		return freq[pos];
 	}
+};
+
+
+//---------------------------------------------------------------
+//TEmissionProbabilities
+//---------------------------------------------------------------
+class TEmissionProbabilitiesDiploid{
+public:
+	double emission[10];
+
+	TEmissionProbabilitiesDiploid(){
+		for(int i=0; i<10; ++i) emission[i]=0.0;
+	};
+	void set(Genotype geno, double val){ emission[geno] = val; }
+	double& get(Genotype geno){ return emission[geno]; };
+	double& get(int geno){ return emission[geno]; };
+	void print(){
+		std::cout << "Emissions:";
+		for(int i=0; i<10; ++i){
+			std::cout << " " << emission[i];
+		}
+		std::cout << std::endl;
+	};
+};
+
+class TEmissionProbabilitiesHaploid{
+public:
+	double emission[4];
+
+	TEmissionProbabilitiesHaploid(){
+		for(int i=0; i<4; ++i) emission[i]=0.0;
+	};
+	void set(Base geno, double val){ emission[geno] = val; }
+	double& get(Base geno){ return emission[geno]; };
+	double& get(int geno){ return emission[geno]; };
 };
 
 //---------------------------------------------------------------
@@ -158,40 +195,25 @@ public:
 	std::string getFunctionString();
 };
 
-
 //---------------------------------------------------------------
-//TEmissionProbabilities
+//RecalibrationEM
 //---------------------------------------------------------------
-class TEmissionProbabilitiesDiploid{
+class TBase;
+class TRecalibrationEM{
 public:
-	double emission[10];
+	int numParams;
+	double* params;
+	arma::mat Jacobian;
 
-	TEmissionProbabilitiesDiploid(){
-		for(int i=0; i<10; ++i) emission[i]=0.0;
+
+	TRecalibrationEM();
+	~TRecalibrationEM(){
+		delete params;
 	};
-	void set(Genotype geno, double val){ emission[geno] = val; }
-	double& get(Genotype geno){ return emission[geno]; };
-	double& get(int geno){ return emission[geno]; };
-	void print(){
-		std::cout << "Emissions:";
-		for(int i=0; i<10; ++i){
-			std::cout << " " << emission[i];
-		}
-		std::cout << std::endl;
-	};
+	void addSiteToJacobian(std::vector<TBase*> & bases);
+
 };
 
-class TEmissionProbabilitiesHaploid{
-public:
-	double emission[4];
-
-	TEmissionProbabilitiesHaploid(){
-		for(int i=0; i<4; ++i) emission[i]=0.0;
-	};
-	void set(Base geno, double val){ emission[geno] = val; }
-	double& get(Base geno){ return emission[geno]; };
-	double& get(int geno){ return emission[geno]; };
-};
 //---------------------------------------------------------------
 //TBase
 //---------------------------------------------------------------
