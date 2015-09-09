@@ -108,6 +108,7 @@ public:
 	TWindowHaploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
 	double calcLogLikelihood();
+	void addToJacobian(TRecalibrationEM* reclObject);
 };
 
 //---------------------------------------------------------------

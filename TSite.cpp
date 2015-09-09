@@ -279,23 +279,104 @@ TRecalibrationEM::TRecalibrationEM(){
 	numParams = 7; //3 beta and 4 gamma
 	params = new double[numParams];
 	Jacobian.resize(numParams,numParams);
+	Jacobian.zeros();
+
+	//initialize tmpSums
+	tmpSums = new double*[numParams];
+	for(int i=0; i<numParams; ++i){
+		tmpSums[i] = new double[numParams];
+	}
 };
 
-void TRecalibrationEM::addSiteToJacobian(std::vector<TBase*> & bases){
-	//adds terms to Jacobian for one site (hence a vector of bases that were read)
-	//assumes bases to be haploid! -> no error if they are not!
-	double P_d_given_g_theta = 0.0;
-	double P_g_given_d_theta_denominator = 0.0;
-	double P;
-	double eta;
-
-	for(int i=0; i<4; ++i){ //over all genotypes
-		//sum over all bases
-		for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-
+void TRecalibrationEM::resetTmpSums(){
+	//only j >= i is used!
+	for(int i=0; i<numParams; ++i){
+		for(int j=i; j<numParams; ++j){
+			tmpSums[i][j] = 0.0;
 		}
 	}
 }
+
+double TRecalibrationEM::calcEta(TBase* base){
+	//function transfrom log error
+	double eta = params[0] + params[1] * base->logError + params[2] * (double) base->posInRead;
+	return eta + params[base->getBaseAsEnum() + 3];
+}
+
+void TRecalibrationEM::addSiteToJacobian(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
+	//adds terms to Jacobian for one site (hence a vector of bases that were read)
+	//assumes bases to be haploid! -> no error if they are not!
+	double* expEta = new double[bases.size()];
+	double epsilon;
+
+	//initialize
+	double P_d_given_g_theta[4];
+	for(int g=0; g<4; ++g){ //over all genotypes A, C, G or T
+		P_d_given_g_theta[g] = 1.0;
+	}
+
+	//calc P(d|g, theta) for all g
+	int counter = 0;
+	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it, ++counter){
+		for(int g=0; g<4; ++g){ //over all genotypes
+			//get eta
+			expEta[counter] = exp(calcEta(*it));
+			epsilon = expEta[counter] / 3.0;
+
+			//add to P(d|g, theta)
+			if((*it)->getBaseAsEnum() == g)
+				P_d_given_g_theta[g] *= (1.0 - epsilon);
+			else
+				P_d_given_g_theta[g] *= epsilon;
+		}
+	}
+
+	//calculate P(g|d, theta)
+	double P_g_given_d_theta_denominator = 0.0;
+	for(int g=0; g<4; ++g){
+		P_d_given_g_theta[0] *= (*freqs)[g];
+		P_g_given_d_theta_denominator += P_d_given_g_theta[g];
+	}
+	double P_g_given_d_theta[4];
+	for(int g=0; g<4; ++g){
+		P_g_given_d_theta[0] = P_d_given_g_theta[0] / P_g_given_d_theta_denominator;
+	}
+
+	//create weighted sum over all reads for Jacobian
+	resetTmpSums();
+	int nucIndex;
+	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it, ++counter){
+		//first three parameters
+		tmpSums[0][0] -= expEta[counter];
+		tmpSums[0][1] -= expEta[counter] * (*it)->logError;
+		tmpSums[0][2] -= expEta[counter] * (double) (*it)->posInRead;
+		tmpSums[1][1] -= expEta[counter] * (*it)->logError * (*it)->logError;
+		tmpSums[1][2] -= expEta[counter] * (*it)->logError * (double) (*it)->posInRead;
+		tmpSums[2][2] -= expEta[counter] * (double) (*it)->posInRead * (double) (*it)->posInRead;
+
+		//now add to those with indicators on the base
+		//Note that the derivative is zero for all other bases
+		nucIndex = (*it)->getBaseAsEnum() + 3;
+		tmpSums[nucIndex][nucIndex] += expEta[counter];
+		tmpSums[0][nucIndex] -= expEta[counter];
+		tmpSums[1][nucIndex] -= expEta[counter] * (*it)->logError;
+		tmpSums[2][nucIndex] -= expEta[counter] * (*it)->posInRead;
+	}
+
+	//now add to Jacobian
+	//Note: Jacobian is symmetric! But we only add to top triangle -> will copy final numbers down later
+	for(int g=0; g<4; ++g){
+		for(int i=0; i<numParams; ++i){
+			Jacobian(i,i) += P_g_given_d_theta[g] * tmpSums[i][i];
+			for(int j=(i+1); j<numParams; ++j){
+				Jacobian(i,j) += P_g_given_d_theta[g] * tmpSums[i][j];
+			}
+	   }
+	}
+}
+
+//NOTE: need to copy numbers to other triangle in Jacobian!
+
 //-------------------------------------------------------
 //TSite
 //-------------------------------------------------------

@@ -599,3 +599,11 @@ double TWindowHaploid::calcLogLikelihood(){
 	}
 	return LL;
 }
+
+void TWindowHaploid::addToJacobian(TRecalibrationEM* reclObject){
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			reclObject->addSiteToJacobian(sites[i].bases, &baseFreq);
+		}
+	}
+}
