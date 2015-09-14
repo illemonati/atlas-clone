@@ -529,11 +529,6 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//We assume a linear model log(error) = eta = beta_0 + beta_1 * quality + beta_2 * position in reads
 	//                                            + gamma_A * Ind(d = A) + gamma_C * Ind(d = C) + gamma_G * Ind(d = G) + gamma_T * Ind(d = T)
 
-	double beta[3]; //beta_0, beta_1, beta_2
-	double gamma[4]; //gamma_A, gamma_C, gamma_G, gamma_T
-	bool betaEstimated[3];
-	bool gammaEstimated[4];
-
 	//read EM parameters
 	int numEMIterations = params.getParameterIntWithDefault("iterations", 10);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
@@ -544,40 +539,8 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	double NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
 	logfile->list("Will stop Newton-Ralphson when F < " + toString(NewtonRalphsonMaxF));
 
-	//set initial parameter values
-	logfile->startIndent("Model parameters:");
-	//beta 0
-	if(params.parameterExists("beta0")){
-		betaEstimated[0] = false;
-		beta[0] = params.getParameterDouble("beta0");
-		logfile->list("Will fix beta0 at " + toString(beta[0]));
-	} else {
-		betaEstimated[0] = true;
-		beta[0] = params.getParameterDoubleWithDefault("initBeta0", 0);
-		logfile->list("Will start EM with beta0 = " + toString(beta[0]));
-	}
-	//beta 1
-	if(params.parameterExists("beta1")){
-		betaEstimated[1] = false;
-		beta[1] = params.getParameterDouble("beta1");
-		logfile->list("Will fix beta1 at " + toString(beta[1]));
-	} else {
-		betaEstimated[1] = true;
-		beta[1] = params.getParameterDoubleWithDefault("initBeta1", 1);
-		logfile->list("Will start EM with beta1 = " + toString(beta[1]));
-	}
-	//beta 2
-	if(params.parameterExists("beta2")){
-		betaEstimated[2] = false;
-		beta[2] = params.getParameterDouble("beta2");
-		logfile->list("Will fix beta2 at " + toString(beta[2]));
-	} else {
-		betaEstimated[2] = true;
-		beta[2] = params.getParameterDoubleWithDefault("initBeta0", 0);
-		logfile->list("Will start EM with beta2 = " + toString(beta[2]));
-	}
-	logfile->endIndent();
-
+	//create recalibration object
+	TRecalibrationEM recalObject(&params, logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;
@@ -587,90 +550,58 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	std::string filename = outputName + "_calibration.txt";
 	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "iteration\tparameter\ta\tb\tc\tLL\n";
+	out << "iteration";
+	recalObject.writeHeader(out);
 
-	/*
-	//create recalibration object
-	TRecalibration recal(minA, minB, minC); //values will be changed in for loop
+	//run EM iterations
+	for(int i=0; i < numEMIterations; ++i){
+		logfile->startIndent("EM Iteration " + toString(i+1) + ":");
 
-	//prepare search arrays
-	int numVariables = 3;
-	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
-	searchArrays[0] = new TRecalSearch(minA, maxA, steps);
-	searchArrays[1] = new TRecalSearch(minB, maxB, steps);
-	searchArrays[2] = new TRecalSearch(minC, maxC, steps);
+		//prepare recal object for next iteration
+		recalObject.initEMStep();
 
-	//run iterations
-	for(int i=0; i < numIterations; ++i){
-		logfile->startIndent("Iteration " + toString(i+1) + ":");
+		//run Newton-Ralphosn iteration
+		for(int j=0; j<NewtonRalphsonNumIterations; ++j){
+			logfile->startIndent("Calculating Jacobian for Newton-Ralphson iteration " + toString(j+1) + ":");
+			recalObject.initNetwonRalphsonStep();
 
-		//in each iteration, first optimize A, then B, then C, ...
-		int changed = 0;
-		for(int v = 0; v < numVariables; ++v){
-			logfile->startIndent("Optimizing parameter " + toString(v+1) + ":");
-			//create search array
-			searchArrays[v]->fillSearch();
-
-			//calculate likelihood for this array
-			//iterate through windows
-			int numGridPoints = steps;
-			std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
 			while(iterateChromosome(windows)){
 				while(iterateWindow(windows)){
 					//read data for current window
 					readData(windows);
-
-					//calc LL for a=0 b=0
 					windows.cur->estimateBaseFrequencies();
-					windows.cur->calculateEmissionProbabilities(pmdObject);
-
-					//calc LL for all combinations of a and b
-					for(int s=0; s < steps; ++s){
-						logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) s / (double) numGridPoints)) + "%)");
-						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s), searchArrays[2]->at(s));
-						windows.cur->calculateEissionProbabilities(pmdObject, recal);
-						searchArrays[v]->addLL(windows.cur->calcLogLikelihood(), s);
-					}
-					logfile->overList(reportMessage + " done!");
+					windows.cur->addToJacobian(&recalObject);
 				}
 			}
 
-			//Report to file
-			for(int s=0; s < steps; ++s){
-				out << i+1 << "\t" << v+1;
-				for(int w = 0; w < numVariables; ++w)
-					out << "\t" << searchArrays[w]->at(s);
-				out << "\t" << searchArrays[v]->atLL(s) << "\n";
-			}
+			//clean up memory
+			windows.clear();
 
-			//out << "-------------------" << std::endl;
-
-			//choose best and update min / max
-			changed += searchArrays[v]->optimizeNextSearch();
+			//perform parameter update
 			logfile->endIndent();
+			logfile->listFlush("Updating parameters ...");
+			recalObject.runNewtonRalphson();
+			logfile->write(" done!");
+
+			//check if we break
+			if(recalObject.maxF < NewtonRalphsonMaxF){
+				logfile->list("Stopping Newton-Ralphson since maxF < " + toString(NewtonRalphsonMaxF));
+				break;
+			}
 		}
+
+		//save current parameters
+		recalObject.saveParams();
+
+		//Report to file
+		recalObject.writeParams(out);
 		logfile->endIndent();
 
-		//report best params
-		std::string outString = "";
-		for(int v = 0; v < numVariables; ++v){
-			if(v>0) outString += ", ";
-			outString += toString(searchArrays[v]->best);
-		}
-		logfile->conclude("Best parameter combination so far: " + outString);
+		//check if we break EM
 
-		//clean up memory
-		windows.clear();
-
-		//check if all remained unchanged -> break
-		if(changed == 0) break;
 	}
+	logfile->endIndent();
 
 	//clean up
 	out.close();
-	for(int i=0; i<numVariables; ++i)
-		delete searchArrays[i];
-	delete[] searchArrays;
-
-	*/
 }

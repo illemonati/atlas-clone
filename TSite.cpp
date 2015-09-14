@@ -275,38 +275,75 @@ std::string TRecalibration::getFunctionString(){
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
-TRecalibrationEM::TRecalibrationEM(){
+TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
 	numParams = 7; //3 beta and 4 gamma
 	params = new double[numParams];
+	newParams = new double[numParams];
 	Jacobian.resize(numParams,numParams);
 	Jacobian.zeros();
+	F.resize(numParams);
+	F.zeros();
+	JxF.resize(numParams, numParams);
+	JxF.zeros();
+	maxF = 0.0;
+	numSitesAdded = 0;
 
-	//initialize tmpSums
-	tmpSums = new double*[numParams];
-	for(int i=0; i<numParams; ++i){
-		tmpSums[i] = new double[numParams];
-	}
+	//set initial values
+	//betas
+	logfile->startIndent("Will start recalibration EM with:");
+	params[0] = arguments->getParameterDoubleWithDefault("initBeta0", 0);
+	logfile->list("beta0 = " + toString(params[0]));
+	params[1] = arguments->getParameterDoubleWithDefault("initBeta1", 1);
+	logfile->list("beta1 = " + toString(params[1]));
+	params[2] = arguments->getParameterDoubleWithDefault("initBeta2", 0);
+	logfile->list("beta2 = " + toString(params[2]));
+
+	//gammas -> start all at 0 by default
+	params[3] = arguments->getParameterDoubleWithDefault("initGammaA", 0);
+	logfile->list("gammaA = " + toString(params[3]));
+	params[4] = arguments->getParameterDoubleWithDefault("initGammaC", 0);
+	logfile->list("gammaC = " + toString(params[4]));
+	params[5] = arguments->getParameterDoubleWithDefault("initGammaG", 0);
+	logfile->list("gammaG = " + toString(params[5]));
+	params[6] = arguments->getParameterDoubleWithDefault("initGammaT", 0);
+	logfile->list("gammaT = " + toString(params[6]));
+	logfile->endIndent();
 };
 
-void TRecalibrationEM::resetTmpSums(){
-	//only j >= i is used!
+double TRecalibrationEM::calcEta(TBase* base){
+	return calcEta(base, params);
+}
+double TRecalibrationEM::calcEta(TBase* base, double* theseParams){
+	//function transfrom log error
+	double eta = theseParams[0] + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
+	eta += theseParams[base->getBaseAsEnum() + 3];
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}
+
+void TRecalibrationEM::initEMStep(){
+	//fill vector of new params by copying current values
 	for(int i=0; i<numParams; ++i){
-		for(int j=i; j<numParams; ++j){
-			tmpSums[i][j] = 0.0;
-		}
+		newParams[i] = params[i];
 	}
 }
 
-double TRecalibrationEM::calcEta(TBase* base){
-	//function transfrom log error
-	double eta = params[0] + params[1] * base->logError + params[2] * (double) base->posInRead;
-	return eta + params[base->getBaseAsEnum() + 3];
+void TRecalibrationEM::initNetwonRalphsonStep(){
+	Jacobian.zeros();
+	F.zeros();
+	numSitesAdded = 0;
 }
 
-void TRecalibrationEM::addSiteToJacobian(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
+void TRecalibrationEM::saveParams(){
+	for(int i=0; i<numParams; ++i){
+		params[i] = newParams[i];
+	}
+}
+
+void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
 	//adds terms to Jacobian for one site (hence a vector of bases that were read)
 	//assumes bases to be haploid! -> no error if they are not!
-	double* expEta = new double[bases.size()];
+	double expEta;
 	double epsilonThird;
 
 	//initialize
@@ -317,15 +354,15 @@ void TRecalibrationEM::addSiteToJacobian(std::vector<TBase*> & bases, TBaseFrequ
 
 	//calc P(d|g, theta) for all g
 	int counter = 0;
-	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it, ++counter){
+	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
 		//get eta
-		expEta[counter] = exp(calcEta(*it));
-		epsilonThird = expEta[counter] / 3.0;
+		expEta = exp(calcEta(*it)); //use current (= old) params for this step
+		epsilonThird = expEta / 3.0;
 
 		for(int g=0; g<4; ++g){ //over all genotypes
 			//add to P(d|g, theta)
 			if((*it)->getBaseAsEnum() == g)
-				P_d_given_g_theta[g] *= (1.0 - expEta[counter]);
+				P_d_given_g_theta[g] *= (1.0 - expEta);
 			else
 				P_d_given_g_theta[g] *= epsilonThird;
 		}
@@ -342,40 +379,95 @@ void TRecalibrationEM::addSiteToJacobian(std::vector<TBase*> & bases, TBaseFrequ
 		P_g_given_d_theta[g] = P_d_given_g_theta[g] / P_g_given_d_theta_denominator;
 	}
 
-	//create weighted sum over all reads for Jacobian
-	resetTmpSums();
-	int nucIndex;
+	//now add site to Jacobian and F
+	//Note: Jacobian is symmetric! But we only add to top triangle -> will copy final numbers down later
+	int g, nucIndex;
+	double eta, tmp, onePlusExpEta, weightFcorrect, weightFincorrect;
 	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it, ++counter){
-		//first three parameters
-		tmpSums[0][0] += expEta[counter];
-		tmpSums[0][1] += expEta[counter] * (*it)->logError;
-		tmpSums[0][2] += expEta[counter] * (double) (*it)->posInRead;
-		tmpSums[1][1] += expEta[counter] * (*it)->logError * (*it)->logError;
-		tmpSums[1][2] += expEta[counter] * (*it)->logError * (double) (*it)->posInRead;
-		tmpSums[2][2] += expEta[counter] * (double) (*it)->posInRead * (double) (*it)->posInRead;
+		eta = calcEta(*it, newParams); //use new params for this step!
+		expEta = exp(eta);
+		onePlusExpEta = 1.0 + expEta;
+		tmp = expEta / (onePlusExpEta * onePlusExpEta);
+
+		Jacobian(0,0) -= tmp;
+		Jacobian(0,1) -= tmp * (*it)->transformedLogError;
+		Jacobian(0,2) -= tmp * (double) (*it)->posInRead;
+		Jacobian(1,1) -= tmp * (*it)->transformedLogError * (*it)->transformedLogError;
+		Jacobian(1,2) -= tmp * (*it)->transformedLogError * (double) (*it)->posInRead;
+		Jacobian(2,2) -= tmp * (double) (*it)->posInRead * (double) (*it)->posInRead;
 
 		//now add to those with indicators on the base
 		//Note that the derivative is zero for all other bases
-		nucIndex = (*it)->getBaseAsEnum() + 3;
-		tmpSums[nucIndex][nucIndex] += expEta[counter];
-		tmpSums[0][nucIndex] += expEta[counter];
-		tmpSums[1][nucIndex] += expEta[counter] * (*it)->logError;
-		tmpSums[2][nucIndex] += expEta[counter] * (*it)->posInRead;
+		g = (*it)->getBaseAsEnum();
+		nucIndex = g + 3;
+		Jacobian(nucIndex, nucIndex) -= tmp;
+		Jacobian(0, nucIndex) -= tmp;
+		Jacobian(1, nucIndex) -= tmp * (*it)->transformedLogError;
+		Jacobian(2, nucIndex) -= tmp * (*it)->posInRead;
+
+		//now add to F -> need to add for all genotypes, but with different term
+		weightFcorrect = 1.0 / (1.0 + exp(-eta));
+		weightFincorrect = 1.0 / onePlusExpEta;
+		for(int geno = 0; geno < 4; ++geno){
+			//prepare weight
+			if(geno == g) tmp = weightFcorrect;
+			else tmp = weightFincorrect;
+			tmp = P_g_given_d_theta[geno] * tmp;
+
+			//fill for beta0, beta1 and beta2
+			F(0) += tmp; //beta0
+			F(1) += tmp * (*it)->transformedLogError;
+			F(2) += tmp * (double) (*it)->posInRead;
+		}
+		//derivation is only non-zero for beta3 to beta6 if g corresponds to index
+		F(nucIndex) += P_g_given_d_theta[g] * weightFcorrect;
 	}
 
-	//now add to Jacobian
-	//Note: Jacobian is symmetric! But we only add to top triangle -> will copy final numbers down later
-	for(int g=0; g<4; ++g){
-		for(int i=0; i<numParams; ++i){
-			Jacobian(i,i) -= P_g_given_d_theta[g] * tmpSums[i][i];
-			for(int j=(i+1); j<numParams; ++j){
-				Jacobian(i,j) -= P_g_given_d_theta[g] * tmpSums[i][j];
-			}
-	   }
-	}
+	++numSitesAdded;
 }
 
-//NOTE: need to copy numbers to other triangle in Jacobian!
+void TRecalibrationEM::runNewtonRalphson(){
+	//Need to copy numbers to other triangle in Jacobian, as only upper triangled is filled when parsing sites
+	for(int i=0; i<(numParams-1); ++i){
+		for(int j=i+1; j<numParams; ++j){
+			//copy from upper triangle to lower triangle
+			Jacobian(j,i) = Jacobian(i,j);
+		}
+	}
+
+	//scale F and J by 1/#sites
+	Jacobian = Jacobian / (double) numSitesAdded;
+	F = F / (double) numSitesAdded;
+
+	//get largest gradient (F) to check if we break
+	maxF = 0.0;
+	for(int i=0; i<(numParams-1); ++i){
+		if(F(i) > maxF) maxF = F(i);
+	}
+	std::cout << "MAX F = " << maxF << std::endl;
+
+	//now calculate J^-1 x F
+	std::cout << "New Params:";
+
+	if(solve(JxF, Jacobian, F)){
+		for(int i=0; i<(numParams-1); ++i){
+			newParams[i] -= JxF(i);
+			std::cout << "\t" << newParams[i];
+		}
+	} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
+	std::cout << std::endl;
+}
+
+void TRecalibrationEM::writeHeader(std::ofstream & out){
+	out << "" << std::endl;
+}
+
+void TRecalibrationEM::writeParams(std::ofstream & out){
+	for(int i=0; i<numParams; ++i){
+		out << "\t" << params[i];
+	}
+	out << std::endl;
+}
 
 //-------------------------------------------------------
 //TSite

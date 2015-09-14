@@ -12,6 +12,7 @@
 #include <math.h>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
+#include "TParameters.h"
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
@@ -203,22 +204,27 @@ class TRecalibrationEM{
 public:
 	int numParams;
 	double* params;
+	double* newParams; //used during EM
 	arma::mat Jacobian;
-	double** tmpSums;
+	arma::vec F;
+	arma::mat JxF;
+	double maxF; //largest change during Newton-Ralphson
+	long numSitesAdded;
 
-
-	TRecalibrationEM();
+	TRecalibrationEM(TParameters* arguments, TLog* logfile);
 	~TRecalibrationEM(){
-		delete params;
-		for(int i=0; i<numParams; ++i){
-			delete[] tmpSums[i];
-		}
-		delete[] tmpSums;
+		delete[] params;
+		delete[] newParams;
 	};
-	void resetTmpSums();
 	double calcEta(TBase* base);
-	void addSiteToJacobian(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
-
+	double calcEta(TBase* base, double* theseParams);
+	void initEMStep();
+	void initNetwonRalphsonStep();
+	void saveParams();
+	void addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
+	void runNewtonRalphson();
+	void writeHeader(std::ofstream & out);
+	void writeParams(std::ofstream & out);
 };
 
 //---------------------------------------------------------------
@@ -228,11 +234,13 @@ class TBase{
 public:
 	double logError;
 	double errorRate;
+	double transformedLogError;
 	int posInRead, pos5, pos3;
 
 	TBase(double & LogErrorRate, int & PosInRead, int & Pos5, int & Pos3){
 		logError = LogErrorRate;
 		errorRate = pow(10.0, logError);
+		transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
 		pos5 = Pos5;
 		pos3 = Pos3;

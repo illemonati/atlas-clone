@@ -52,9 +52,9 @@ int main(int argc, char* argv[]){
 		} else if(task=="pileup"){
 			logfile.startIndent("Printing pileup for each window:");
 			genome.printPileup();
-		} else if(task=="calibration"){
-			logfile.startIndent("Estimating eror calibration function:");
-			genome.estimateErrorCalibration(myParameters);
+		//} else if(task=="calibration"){
+		//	logfile.startIndent("Estimating eror calibration function:");
+		//	genome.estimateErrorCalibration(myParameters);
 		} else if(task=="calibration"){
 			logfile.startIndent("Estimating eror calibration function with EM:");
 			genome.estimateErrorCalibrationEM(myParameters);
