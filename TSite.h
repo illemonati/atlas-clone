@@ -218,6 +218,9 @@ public:
 	};
 	double calcEta(TBase* base);
 	double calcEta(TBase* base, double* theseParams);
+	double calcEpsilon(const double & eta);
+	double calcEpsilon(TBase* base);
+	double calcEpsilon(TBase* base, double* theseParams);
 	void initEMStep();
 	void initNetwonRalphsonStep();
 	void saveParams();
