@@ -109,6 +109,7 @@ public:
 	void initSites(long newLength);
 	double calcLogLikelihood();
 	void addToJacobian(TRecalibrationEM* reclObject);
+	void addToLikelihoodRecalibration(TRecalibrationEM* reclObject);
 };
 
 //---------------------------------------------------------------

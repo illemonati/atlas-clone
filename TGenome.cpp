@@ -605,3 +605,96 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//clean up
 	out.close();
 }
+
+void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
+	//it is either a number, or a sequence min-max:num steps
+	std::string::size_type posDash = str.find_first_of('-');
+	if(posDash != std::string::npos){
+		std::string::size_type posColon = str.find_first_of(':');
+		if(posColon != std::string::npos){
+			//fill sequence
+			double min = stringToDoubleCheck(str.substr(0, posDash));
+			double max = stringToDoubleCheck(str.substr(posDash+1, posColon-posDash-1));
+			int numSteps = stringToIntCheck(str.substr(posColon+1));
+			double step = (max - min) / (double) (numSteps - 1.0);
+			for(int i=0; i<numSteps; ++i) vec.push_back(min + (double) i * step);
+		} else throw "Unable to understand sequence '" + str + "'!";
+	} else {
+		//should be a number
+		vec.push_back(stringToDoubleCheck(str));
+	}
+}
+
+void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
+	//read vectors of betas to test
+	logfile->startIndent("Will calculate likelihood on a grid with these marginal ranges:");
+	logfile->startIndent("Will calculate LL for these parameter values:");
+
+	//beta0
+	std::vector<double> beta0;
+	std::string tmp = params.getParameterString("beta0");
+	fillSequence(beta0, tmp);
+	logfile->list("beta0 = " + concatenateString(beta0, ", "));
+
+	//beta1
+	std::vector<double> beta1;
+	tmp = params.getParameterString("beta1");
+	fillSequence(beta1, tmp);
+	logfile->list("beta1 = " + concatenateString(beta1, ", "));
+
+	//beta2
+	std::vector<double> beta2;
+	tmp = params.getParameterString("beta2");
+	fillSequence(beta2, tmp);
+	logfile->list("beta2 = " + concatenateString(beta2, ", "));
+	logfile->endIndent();
+
+	//create recalibration object
+	TRecalibrationEM recalObject(logfile);
+
+	//prepare windows
+	TWindowPairHaploid windows;
+
+	//open output
+	std::ofstream out;
+	std::string filename = outputName + "_calibration_LL_surface.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	recalObject.writeHeader(out);
+	out << "\tLL\n";
+
+	//run loop over all combinations
+	for(std::vector<double>::iterator itBeta0=beta0.begin(); itBeta0!=beta0.end(); ++itBeta0){
+		for(std::vector<double>::iterator itBeta1=beta1.begin(); itBeta1!=beta1.end(); ++itBeta1){
+			for(std::vector<double>::iterator itBeta2=beta2.begin(); itBeta2!=beta2.end(); ++itBeta2){
+				logfile->startIndent("Calculating LL for beta0 = " + toString(*itBeta0) + ", beta1 = " + toString(*itBeta1) + ", beta2 = " + toString(*itBeta2) + ":");
+
+				//reset
+				recalObject.resetLikelihood();
+
+				//loop over all windows
+				while(iterateChromosome(windows)){
+					while(iterateWindow(windows)){
+						//read data for current window
+						readData(windows);
+						//calc LL
+						windows.cur->estimateBaseFrequencies();
+						windows.cur->addToLikelihoodRecalibration(&recalObject);
+					}
+				}
+
+				//clean up memory
+				windows.clear();
+
+				//output
+				logfile->conclude("LL = " + toString(recalObject.logLikelihood));
+				recalObject.writeParams(out);
+				out << recalObject.logLikelihood << std::endl;
+				logfile->endIndent();
+			}
+		}
+	}
+
+	//clean up
+	out.close();
+}

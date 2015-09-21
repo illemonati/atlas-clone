@@ -210,12 +210,15 @@ public:
 	arma::mat JxF;
 	double maxF; //largest change during Newton-Ralphson
 	long numSitesAdded;
+	double logLikelihood;
 
 	TRecalibrationEM(TParameters* arguments, TLog* logfile);
 	~TRecalibrationEM(){
 		delete[] params;
 		delete[] newParams;
 	};
+	TRecalibrationEM(TLog* logfile);
+	void setParams(double* Params);
 	double calcEta(TBase* base);
 	double calcEta(TBase* base, double* theseParams);
 	double calcEpsilon(const double & eta);
@@ -228,6 +231,8 @@ public:
 	void runNewtonRalphson();
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out);
+	void resetLikelihood();
+	void addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
 };
 
 //---------------------------------------------------------------

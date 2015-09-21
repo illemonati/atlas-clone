@@ -287,6 +287,7 @@ TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
 	JxF.zeros();
 	maxF = 0.0;
 	numSitesAdded = 0;
+	logLikelihood = 0.0;
 
 	//set initial values
 	//betas
@@ -311,6 +312,33 @@ TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
 	*/
 	logfile->endIndent();
 };
+
+TRecalibrationEM::TRecalibrationEM(TLog* logfile){
+	numParams = 3; //3 beta and 4 gamma
+	params = new double[numParams];
+	newParams = new double[numParams];
+	Jacobian.resize(numParams,numParams);
+	Jacobian.zeros();
+	F.resize(numParams);
+	F.zeros();
+	JxF.resize(numParams, numParams);
+	JxF.zeros();
+	maxF = 0.0;
+	numSitesAdded = 0;
+	logLikelihood = 0.0;
+
+	//init params
+	for(int i=0; i<numParams; ++i){
+		params[i] = 0.0;
+		newParams[i] = 0.0;
+	}
+}
+
+void TRecalibrationEM::setParams(double* Params){
+	for(int i=0; i<numParams; ++i){
+		params[i] = Params[i];
+	}
+}
 
 double TRecalibrationEM::calcEta(TBase* base){
 	return calcEta(base, params);
@@ -358,7 +386,7 @@ void TRecalibrationEM::saveParams(){
 
 void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
 	//adds terms to Jacobian for one site (hence a vector of bases that were read)
-	//assumes bases to be haploid! -> no error if they are not!
+	//assumes bases to be haploid! -> program does not throw an error if they are not!
 	double epsilon;
 	double epsilonThird;
 
@@ -370,7 +398,7 @@ void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseF
 
 	//calc P(d|g, theta) for all g
 	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-		//get eta
+		//get epsilon
 		epsilon  = calcEpsilon(*it); //use current (= old) params for this step
 		epsilonThird = epsilon / 3.0;
 
@@ -488,14 +516,48 @@ void TRecalibrationEM::runNewtonRalphson(){
 }
 
 void TRecalibrationEM::writeHeader(std::ofstream & out){
-	out << "" << std::endl;
+	out << "beta0\tbeta1\tbeta2";
 }
 
 void TRecalibrationEM::writeParams(std::ofstream & out){
 	for(int i=0; i<numParams; ++i){
 		out << "\t" << params[i];
 	}
-	out << std::endl;
+}
+
+void TRecalibrationEM::resetLikelihood(){
+	logLikelihood = 0.0;
+}
+
+void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
+	//adds this site (hence a vector of bases that were read) to the log likelihood
+	//assumes bases to be haploid! -> program does not throw an error if they are not!
+	double epsilon;
+	double epsilonThird;
+	double* likelihood = new double[4]; //for each genotype
+	for(int i=0; i<4; ++i) likelihood[i] = 1.0;
+
+	//calc likelihood term
+	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
+		//get epsilon
+		epsilon  = calcEpsilon(*it); //use current params for this step
+		epsilonThird = epsilon / 3.0;
+
+		for(int g=0; g<4; ++g){ //over all genotypes
+			if((*it)->getBaseAsEnum() == g){
+				likelihood[g] *= (1.0 - epsilon);
+			} else {
+				likelihood[g] *= epsilonThird;
+			}
+		}
+	}
+
+	//build weighted sum across genotypes
+	double ll = 0.0;
+	for(int g=0; g<4; ++g){
+		ll += (*freqs)[g] * likelihood[g];
+	}
+	logLikelihood += log(ll);
 }
 
 //-------------------------------------------------------

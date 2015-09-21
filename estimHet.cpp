@@ -56,8 +56,11 @@ int main(int argc, char* argv[]){
 		//	logfile.startIndent("Estimating eror calibration function:");
 		//	genome.estimateErrorCalibration(myParameters);
 		} else if(task=="calibration"){
-			logfile.startIndent("Estimating eror calibration function with EM:");
+			logfile.startIndent("Estimating error calibration function with EM:");
 			genome.estimateErrorCalibrationEM(myParameters);
+		} else if(task=="calibrationLLsurface"){
+			logfile.startIndent("Estimating LL surface for error calibration function:");
+			genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
 		} else throw "Unknown task '" + task + "'!";
 		logfile.endIndent();
 

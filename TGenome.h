@@ -84,6 +84,8 @@ public:
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
+	void fillSequence(std::vector<double> & vec, std::string & str);
+	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
 };
 
 

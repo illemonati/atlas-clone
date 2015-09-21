@@ -601,9 +601,19 @@ double TWindowHaploid::calcLogLikelihood(){
 }
 
 void TWindowHaploid::addToJacobian(TRecalibrationEM* reclObject){
+	//assumes that frequencies have been calculated!
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			reclObject->addSiteToJacobianAndF(sites[i].bases, &baseFreq);
+		}
+	}
+}
+
+void TWindowHaploid::addToLikelihoodRecalibration(TRecalibrationEM* reclObject){
+	//assumes that frequencies have been calculated!
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			reclObject->addSiteToLikelihood(sites[i].bases, &baseFreq);
 		}
 	}
 }
