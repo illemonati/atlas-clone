@@ -61,6 +61,11 @@ int main(int argc, char* argv[]){
 		} else if(task=="calibrationLLsurface"){
 			logfile.startIndent("Estimating LL surface for error calibration function:");
 			genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
+		} else if(task=="BQSR"){
+			logfile.startIndent("Estimating recalibration parameters (BQSR):");
+			genome.BQSR(myParameters);
+		} else if(task=="call"){
+
 		} else throw "Unknown task '" + task + "'!";
 		logfile.endIndent();
 
