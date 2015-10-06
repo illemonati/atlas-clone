@@ -608,7 +608,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
-	std::string::size_type posDash = str.find_first_of('-');
+	std::string::size_type posDash = str.find_first_of('-', 1);
 	if(posDash != std::string::npos){
 		std::string::size_type posColon = str.find_first_of(':');
 		if(posColon != std::string::npos){
@@ -664,13 +664,20 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 	out << "\tLL\n";
 
 	//run loop over all combinations
+	double* recalParams = new double[3];
 	for(std::vector<double>::iterator itBeta0=beta0.begin(); itBeta0!=beta0.end(); ++itBeta0){
+		recalParams[0] = *itBeta0;
 		for(std::vector<double>::iterator itBeta1=beta1.begin(); itBeta1!=beta1.end(); ++itBeta1){
+			recalParams[1] = *itBeta1;
 			for(std::vector<double>::iterator itBeta2=beta2.begin(); itBeta2!=beta2.end(); ++itBeta2){
+				recalParams[2] = *itBeta2;
 				logfile->startIndent("Calculating LL for beta0 = " + toString(*itBeta0) + ", beta1 = " + toString(*itBeta1) + ", beta2 = " + toString(*itBeta2) + ":");
 
 				//reset
 				recalObject.resetLikelihood();
+
+				//set parameters
+				recalObject.setParams(recalParams);
 
 				//loop over all windows
 				while(iterateChromosome(windows)){
@@ -689,7 +696,7 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 				//output
 				logfile->conclude("LL = " + toString(recalObject.logLikelihood));
 				recalObject.writeParams(out);
-				out << recalObject.logLikelihood << std::endl;
+				out << "\t" << recalObject.logLikelihood << std::endl;
 				logfile->endIndent();
 			}
 		}

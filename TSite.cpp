@@ -520,7 +520,8 @@ void TRecalibrationEM::writeHeader(std::ofstream & out){
 }
 
 void TRecalibrationEM::writeParams(std::ofstream & out){
-	for(int i=0; i<numParams; ++i){
+	out << params[0];
+	for(int i=1; i<numParams; ++i){
 		out << "\t" << params[i];
 	}
 }
