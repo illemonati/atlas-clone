@@ -564,7 +564,7 @@ void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFre
 //---------------------------------------------------------------
 //Recalibration BQSR
 //---------------------------------------------------------------
-TRecalibrationBQSR::TRecalibrationBQSR(){
+TRecalibrationBQSR::TRecalibrationBQSR(TParameters* arguments, TLog* logfile){
 
 }
 

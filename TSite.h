@@ -244,8 +244,6 @@ public:
 class TRecalibrationBQSR{
 public:
 
-
-
 	TRecalibrationBQSR(TParameters* arguments, TLog* logfile);
 	~TRecalibrationBQSR(){};
 };
