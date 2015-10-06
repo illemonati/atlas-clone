@@ -50,6 +50,7 @@ public:
 	};
 };
 
+
 //---------------------------------------------------------------
 //TGenome
 //---------------------------------------------------------------
@@ -66,6 +67,7 @@ private:
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignement;
  	BamTools::SamSequenceIterator chrIterator;
+ 	TReadGroups readGroups;
  	int chrNumber;
  	long chrLength;
  	long curStart, curEnd;
@@ -86,6 +88,7 @@ public:
 	void estimateErrorCalibrationEM(TParameters & params);
 	void fillSequence(std::vector<double> & vec, std::string & str);
 	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
+	void BQSR(TParameters & params);
 };
 
 

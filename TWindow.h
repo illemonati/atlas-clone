@@ -51,6 +51,57 @@ struct Theta{
 		expTheta = exp(-theta);
 	}
 };
+
+
+//---------------------------------------------------------------
+//TReadGroups
+//---------------------------------------------------------------
+struct readGroup{
+public:
+	std::string name;
+	int id;
+	BamTools::SamReadGroup* object;
+};
+
+class TReadGroups{
+public:
+	readGroup* groups;
+	int numGroups;
+	bool initialized;
+
+	TReadGroups(){
+		initialized = false;
+		numGroups = 0;
+		groups = NULL;
+	};
+
+	~TReadGroups(){
+		if(initialized) delete[] groups;
+	};
+
+	void fill(BamTools::SamHeader & bamHeader){
+		//empty if filled before
+		if(initialized) delete[] groups;
+		//create and fill array
+		numGroups = bamHeader.ReadGroups.Size();
+		groups = new readGroup[numGroups];
+		int i = 0;
+		for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
+			groups[i].id = i;
+			groups[i].name = it->ID;
+			groups[i].object= &(*it);
+		}
+		initialized = true;
+	};
+
+	int find(std::string & name){
+		for(int i=0; i<numGroups; ++i){
+			if(groups[i].name == name) return i;
+		}
+		throw "Read Group '" + name + "' was not present in header of bam file!";
+	};
+};
+
 //---------------------------------------------------------------
 //TWindow
 //---------------------------------------------------------------
@@ -73,7 +124,7 @@ public:
 	virtual void initSites(long newLength){ throw "Function 'initSites' not implemented for base class TWindow!"; };
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject);
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
@@ -130,11 +181,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	void addToCur(BamTools::BamAlignment & bamAlignement){
-		curPointer->addFromRead(bamAlignement);
+	void addToCur(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups){
+		curPointer->addFromRead(bamAlignement, readGroups);
 	};
-	void addToNext(BamTools::BamAlignment & bamAlignement){
-		nextPointer->addFromRead(bamAlignement);
+	void addToNext(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups){
+		nextPointer->addFromRead(bamAlignement, readGroups);
 	};
 	void clear(){
 		curPointer->clear();

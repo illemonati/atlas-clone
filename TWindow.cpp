@@ -59,7 +59,7 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
+bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
@@ -76,6 +76,11 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 	if(firstPos < 0) firstPos = 0;
 	int lastPos = len;
 	if(bamAlignement.Position + lastPos > end) lastPos = end - bamAlignement.Position;
+
+	//Extract Read Group Info
+	std::string readGroup;
+	bamAlignement.GetTag("RG", readGroup);
+	int readGroupId = readGroups->find(readGroup);
 
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
@@ -95,9 +100,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement){
 		 */
 
 		if(bamAlignement.IsReverseStrand())
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, pos + 1);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, pos + 1, readGroupId);
 		else
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, pos + 1, len - pos);
+			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, pos + 1, len - pos, readGroupId);
 	}
 
 	//return if part of the read maps to next window

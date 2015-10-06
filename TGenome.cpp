@@ -133,6 +133,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//read header
 	bamHeader = bamReader.GetHeader();
+	readGroups.fill(bamHeader);
+
 	chrIterator = bamHeader.Sequences.End();
 };
 
@@ -213,9 +215,9 @@ bool TGenome::readData(TWindowPair & windowPair){
 				break;
 			} else {
 				++numReads;
-				if(windowPair.curPointer->addFromRead(bamAlignement)){
+				if(windowPair.curPointer->addFromRead(bamAlignement, &readGroups)){
 					//add also to next window in case reads overhangs current window -> function returns true
-					windowPair.nextPointer->addFromRead(bamAlignement);
+					windowPair.nextPointer->addFromRead(bamAlignement, &readGroups);
 				}
 			}
 		}
@@ -697,4 +699,30 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 
 	//clean up
 	out.close();
+}
+
+void TGenome::BQSR(TParameters & params){
+	//read vectors of betas to test
+	logfile->startIndent("Estimating recalibration parameters:");
+
+	//create recalibration object
+	TRecalibrationEM recalObject(logfile);
+
+	//prepare windows
+	TWindowPairHaploid windows;
+
+	//run loop over all combinations
+
+	//loop over all windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			//calc LL
+		}
+	}
+
+	//clean up memory
+	windows.clear();
+
 }

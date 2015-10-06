@@ -560,6 +560,15 @@ void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFre
 	logLikelihood += log(ll);
 }
 
+//---------------------------------------------------------------
+//Recalibration BQSR
+//---------------------------------------------------------------
+TRecalibrationBQSR::TRecalibrationBQSR(){
+
+}
+
+
+
 //-------------------------------------------------------
 //TSite
 //-------------------------------------------------------
@@ -574,26 +583,26 @@ double TSite::qualityToLogError(char & quality){
 	return -((double)quality - 33.0) / 10.0;
 }
 
-void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3){
+void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 		double logError = qualityToLogError(quality);
 		if(logError < 0.0){
-			if(base == 'A') bases.push_back(new TBaseDiploidA(logError, PosInRead, pos5, pos3));
-			else if(base == 'C') bases.push_back(new TBaseDiploidC(logError, PosInRead, pos5, pos3));
-			else if(base == 'G') bases.push_back(new TBaseDiploidG(logError, PosInRead, pos5, pos3));
-			else bases.push_back(new TBaseDiploidT(logError, PosInRead, pos5, pos3));
+			if(base == 'A') bases.push_back(new TBaseDiploidA(logError, PosInRead, pos5, pos3, ReadGroup));
+			else if(base == 'C') bases.push_back(new TBaseDiploidC(logError, PosInRead, pos5, pos3, ReadGroup));
+			else if(base == 'G') bases.push_back(new TBaseDiploidG(logError, PosInRead, pos5, pos3, ReadGroup));
+			else bases.push_back(new TBaseDiploidT(logError, PosInRead, pos5, pos3, ReadGroup));
 		}
 		hasData = true;
 	}
 };
-void TSiteHaploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3){
+void TSiteHaploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 		double logError = qualityToLogError(quality);
 		if(logError < 0.0){
-			if(base == 'A') bases.push_back(new TBaseHaploidA(logError, PosInRead, pos5, pos3));
-			else if(base == 'C') bases.push_back(new TBaseHaploidC(logError, PosInRead, pos5, pos3));
-			else if(base == 'G') bases.push_back(new TBaseHaploidG(logError, PosInRead, pos5, pos3));
-			else bases.push_back(new TBaseHaploidT(logError, PosInRead, pos5, pos3));
+			if(base == 'A') bases.push_back(new TBaseHaploidA(logError, PosInRead, pos5, pos3, ReadGroup));
+			else if(base == 'C') bases.push_back(new TBaseHaploidC(logError, PosInRead, pos5, pos3, ReadGroup));
+			else if(base == 'G') bases.push_back(new TBaseHaploidG(logError, PosInRead, pos5, pos3, ReadGroup));
+			else bases.push_back(new TBaseHaploidT(logError, PosInRead, pos5, pos3, ReadGroup));
 		}
 		hasData = true;
 	}
