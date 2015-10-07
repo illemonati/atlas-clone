@@ -12,6 +12,7 @@
 #include "TParameters.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/SamSequenceDictionary.h"
+#include "bamtools/utils/bamtools_fasta.h"
 
 #include "TSite.h"
 
@@ -125,6 +126,7 @@ public:
 	void clear();
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups);
+	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject);
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);

@@ -110,6 +110,17 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	else return true;
 }
 
+void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
+	int stop = end - 1; //note that end is last position + 1
+	std::string ref; //fasta object fills string
+	reference.GetSequence(refId, start, stop, ref);
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			sites[i].setRefBase(ref[i]);
+		}
+	}
+}
+
 void TWindow::estimateBaseFrequencies(){
 	//estimate initial base frequencies
 	baseFreq.clear();

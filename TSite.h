@@ -248,6 +248,9 @@ public:
 	~TRecalibrationBQSR(){};
 };
 
+//class bqsr-cell
+
+//derive from it for A, C, G and T
 //---------------------------------------------------------------
 //TBase
 //---------------------------------------------------------------
@@ -400,12 +403,14 @@ public:
 	int numGenotypes;
 	double* emissionProbabilities;
 	double* P_g; //P(g|d, theta, pi), see equation (3)
+	char referenceBase; //optional
 
 	TSite(){
 		hasData = false;
 		numGenotypes = 0;
 		emissionProbabilities = NULL;
 		P_g = NULL;
+		referenceBase = 'N';
 	};
 	virtual ~TSite(){ clear(); };
 
@@ -413,6 +418,7 @@ public:
 
 	double qualityToLogError(char & quality);
 	virtual void add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
+	void setRefBase(char & Base){referenceBase = Base; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
 	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal);

@@ -718,13 +718,21 @@ void TGenome::BQSR(TParameters & params){
 	//prepare windows
 	TWindowPairHaploid windows;
 
-	//run loop over all combinations
+	//open FASTA refernece
+	std::string fastaFile = params.getParameterString("fasta");
+	std::string fastaIndex = params.getParameterString("fai");
+	BamTools::Fasta reference;
+	reference.Open(fastaFile, fastaIndex);
 
 	//loop over all windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
+
+			//add reference data
+			windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
 			//calc LL
 		}
 	}
