@@ -165,153 +165,6 @@ public:
 };
 
 
-//---------------------------------------------------------------
-//Recalibration
-//---------------------------------------------------------------
-class TRecalibration{
-public:
-	bool doRecalibration;
-	double a,b,c;
-
-	TRecalibration(){
-		doRecalibration = false;
-		a = 0.0;
-		b = 0.0;
-		c = 1.0;
-	};
-	TRecalibration(const double & paramA, const double & paramB, const double & paramC){
-		doRecalibration = true;
-		a = paramA;
-		b = paramB;
-		c = paramC;
-	};
-	TRecalibration(std::string recalString);
-	~TRecalibration(){};
-	void set(const double & paramA, const double & paramB, const double & paramC){
-		a = paramA;
-		b = paramB;
-		c = paramC;
-	};
-	double recalibrate(double & error);
-	std::string getFunctionString();
-};
-
-//---------------------------------------------------------------
-//RecalibrationEM
-//---------------------------------------------------------------
-class TBase;
-class TRecalibrationEM{
-public:
-	int numParams;
-	double* params;
-	double* newParams; //used during EM
-	arma::mat Jacobian;
-	arma::vec F;
-	arma::mat JxF;
-	double maxF; //largest change during Newton-Ralphson
-	long numSitesAdded;
-	double logLikelihood;
-
-	TRecalibrationEM(TParameters* arguments, TLog* logfile);
-	~TRecalibrationEM(){
-		delete[] params;
-		delete[] newParams;
-	};
-	TRecalibrationEM(TLog* logfile);
-	void setParams(double* Params);
-	double calcEta(TBase* base);
-	double calcEta(TBase* base, double* theseParams);
-	double calcEpsilon(const double & eta);
-	double calcEpsilon(TBase* base);
-	double calcEpsilon(TBase* base, double* theseParams);
-	void initEMStep();
-	void initNetwonRalphsonStep();
-	void saveParams();
-	void addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
-	void runNewtonRalphson();
-	void writeHeader(std::ofstream & out);
-	void writeParams(std::ofstream & out);
-	void resetLikelihood();
-	void addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
-};
-
-//---------------------------------------------------------------
-//RecalibrationBQSR
-//---------------------------------------------------------------
-//covariates to take into account:
-// - read base (A, G, C, T)
-// -
-class TRecalibrationBQSR{
-public:
-	//Table -> list of all cells
-
-
-	TRecalibrationBQSR(TParameters* arguments, TLog* logfile);
-	~TRecalibrationBQSR(){};
-
-	//void addSites(TSite* site);
-
-};
-
-class TrecalibrationBQSR_cell{
-public:
-	double curEpsilon;
-	bool estimationConverged;
-
-	TrecalibrationBQSR_cell(double Error);
-	virtual ~TrecalibrationBQSR_cell();
-
-	virtual void addBase(TBase* base, char & RefBase){ throw "addBase not defined for base class 'TrecalibrationBQSR_cell'!"; };
-	virtual bool estimateEpsilon();
-};
-
-
-class TrecalibrationBQSR_cellC:public TrecalibrationBQSR_cell{
-public:
-	long N_1, N_2;
-	double D;
-	TrecalibrationBQSR_cellC(double Error, int pos, TPMD* PmdObject);
-	~TrecalibrationBQSR_cellC();
-
-	void addBase(TBase* base, char & RefBase);
-	virtual bool estimateEpsilon();
-};
-
-class TrecalibrationBQSR_cellT:public TrecalibrationBQSR_cellC{
-public:
-	long N_3;
-
-	TrecalibrationBQSR_cellT(double Error, int pos, TPMD* PmdObject);
-	~TrecalibrationBQSR_cellT();
-
-	void addBase(TBase* base, char & RefBase);
-	bool estimateEpsilon();
-};
-
-class TrecalibrationBQSR_cellA:public TrecalibrationBQSR_cell{
-public:
-	double firstDerivative, secondDerivative;
-	TPMD* pmdObject;
-	double convergenceThreshold;
-
-
-	TrecalibrationBQSR_cellA(double Error, TPMD* PmdObject, double ConvergenceThreshold);
-	~TrecalibrationBQSR_cellA();
-
-	virtual double getD(TBase* base, char & RefBase);
-	void addBase(TBase* base, char & RefBase);
-	virtual bool estimateEpsilon();
-};
-
-class TrecalibrationBQSR_cellG:public TrecalibrationBQSR_cellA{
-public:
-	TrecalibrationBQSR_cellG(double Error, TPMD* PmdObject, double ConvergenceThreshold);
-	~TrecalibrationBQSR_cellG();
-
-	double getD(TBase* base, char & RefBase);
-};
-
-
 
 //---------------------------------------------------------------
 //TBase
@@ -345,7 +198,6 @@ public:
 		fillEmissionProbabilities(pmdObject);
 	};
 	void fillEmissionProbabilities(TPMD & pmdObject);
-	void fillEmissionProbabilitiesRecalibratedError(TPMD & pmdObject, TRecalibration & recal);
 	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
 		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
 	};
@@ -483,7 +335,6 @@ public:
 	void setRefBase(char & Base){referenceBase = Base; };
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
-	void calcEmissionProbabilitiesScaledError(TPMD & pmdObject, TRecalibration & recal);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();

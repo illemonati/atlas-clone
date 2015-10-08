@@ -269,10 +269,6 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 }
 
 void TGenome::estimateTheta(TParameters & params){
-	//Error rate recalibration
-	TRecalibration recal(params.getParameterString("recal", false));
-	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
-
 	//EM params
  	EMParameters EMParams;
 	EMParams.numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
@@ -312,7 +308,7 @@ void TGenome::estimateTheta(TParameters & params){
 			} else {
 				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, pmdObject, recal, out, logfile);
+				windows.cur->estimateTheta(EMParams, pmdObject, out, logfile);
 			}
 		}
 	}
@@ -322,10 +318,6 @@ void TGenome::estimateTheta(TParameters & params){
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
-	//Error rate recalibration
-	TRecalibration recal(params.getParameterString("recal", false));
-	if(recal.doRecalibration) logfile->list("Error rates will be recalibrated with function " + recal.getFunctionString());
-
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
 	int numWindows = params.getParameterIntWithDefault("numWindows", 1);
@@ -353,7 +345,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 				//calc surface
 				logfile->listFlush("Calculating likelihood surface ...");
-				windows.cur->calcLikelihoodSurface(pmdObject, recal, out, steps);
+				windows.cur->calcLikelihoodSurface(pmdObject, out, steps);
 				logfile->write(" done!");
 
 				//close output
@@ -399,132 +391,6 @@ void TGenome::printPileup(){
 	//clean up
 	out.close();
 }
-
-void TGenome::estimateErrorCalibration(TParameters & params){
-	//read params
-	logfile->startIndent("Parameters for grid search:");
-	int steps = params.getParameterIntWithDefault("steps", 11);
-	if(steps % 2 == 0) steps += 1; //make sure steps ar odd
-	logfile->list("Will optimize each parameter using a grid of " + toString(steps) + " points.");
-
-	int numIterations = params.getParameterIntWithDefault("iterations", 2);
-	logfile->list("Will perform at max " + toString(numIterations) + " iterations.");
-
-	double minA = params.getParameterDoubleWithDefault("minA", -1.0);
-	double maxA = params.getParameterDoubleWithDefault("maxA", 1.0);
-	logfile->list("Parameter A will be tested within the range [" + toString(minA) + ", " + toString(maxA) + "]");
-	//if(minA < 0.0) throw "minA has to be > 0.0!";
-	if(maxA < minA) throw "minA has to be < maxA!";
-	double initialA = params.getParameterDoubleWithDefault("initA", (maxA + minA)/2.0);
-
-	double minB = params.getParameterDoubleWithDefault("minB", -1.0);
-	double maxB = params.getParameterDoubleWithDefault("maxB", 1.0);
-	logfile->list("Parameter B will be tested within the range [" + toString(minB) + ", " + toString(maxB) + "]");
-	//if(minB <= 0.0) throw "minB has to be > 0.0!";
-	if(maxB < minB) throw "minB has to be < maxB!";
-	double initialB = params.getParameterDoubleWithDefault("initB", (maxB + minB)/2.0);
-
-	double minC = params.getParameterDoubleWithDefault("minC", -1.0);
-	double maxC = params.getParameterDoubleWithDefault("maxC", 1.0);
-	logfile->list("Parameter C will be tested within the range [" + toString(minC) + ", " + toString(maxC) + "]");
-	//if(minB <= 0.0) throw "minB has to be > 0.0!";
-	if(maxC < minC) throw "minC has to be < maxC!";
-	double initialC = params.getParameterDoubleWithDefault("initC", (maxC + minC)/2.0);
-	logfile->endIndent();
-
-	//prepare windows
-	TWindowPairHaploid windows;
-
-	//open output
-	std::ofstream out;
-	std::string filename = outputName + "_calibration.txt";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "iteration\tparameter\ta\tb\tc\tLL" << std::endl;
-
-	//create recalibration object
-	TRecalibration recal(minA, minB, minC); //values will be changed in for loop
-
-	//prepare search arrays
-	int numVariables = 3;
-	TRecalSearch** searchArrays = new TRecalSearch*[numVariables];
-	searchArrays[0] = new TRecalSearch(minA, maxA, steps, initialA);
-	searchArrays[1] = new TRecalSearch(minB, maxB, steps, initialB);
-	searchArrays[2] = new TRecalSearch(minC, maxC, steps, initialC);
-
-	//run iterations
-	for(int i=0; i < numIterations; ++i){
-		logfile->startIndent("Iteration " + toString(i+1) + ":");
-
-		//in each iteration, first optimize A, then B, then C, ...
-		int changed = 0;
-		for(int v = 0; v < numVariables; ++v){
-			logfile->startIndent("Optimizing parameter " + toString(v+1) + ":");
-			//create search array
-			searchArrays[v]->fillSearch();
-
-			//calculate likelihood for this array
-			//iterate through windows
-			int numGridPoints = steps;
-			std::string reportMessage = "Calculating likelihood at " + toString(numGridPoints) + " grid points ... ";
-			while(iterateChromosome(windows)){
-				while(iterateWindow(windows)){
-					//read data for current window
-					readData(windows);
-
-					//calc LL for a=0 b=0
-					windows.cur->estimateBaseFrequencies();
-					windows.cur->calculateEmissionProbabilities(pmdObject);
-
-					//calc LL for all combinations of a and b
-					for(int s=0; s < steps; ++s){
-						logfile->listOverFlush(reportMessage + "(" + toString(floor(100.0 * (double) s / (double) numGridPoints)) + "%)");
-						recal.set(searchArrays[0]->at(s), searchArrays[1]->at(s), searchArrays[2]->at(s));
-						windows.cur->calculateEissionProbabilities(pmdObject, recal);
-						searchArrays[v]->addLL(windows.cur->calcLogLikelihood(), s);
-					}
-					logfile->overList(reportMessage + " done!");
-				}
-			}
-
-			//Report to file
-			for(int s=0; s < steps; ++s){
-				out << i+1 << "\t" << v+1;
-				for(int w = 0; w < numVariables; ++w)
-					out << "\t" << searchArrays[w]->at(s);
-				out << "\t" << searchArrays[v]->atLL(s) << std::endl;
-			}
-
-			//out << "-------------------" << std::endl;
-
-			//choose best and update min / max
-			changed += searchArrays[v]->optimizeNextSearch();
-			logfile->endIndent();
-		}
-		logfile->endIndent();
-
-		//report best params
-		std::string outString = "";
-		for(int v = 0; v < numVariables; ++v){
-			if(v>0) outString += ", ";
-			outString += toString(searchArrays[v]->best);
-		}
-		logfile->conclude("Best parameter combination so far: " + outString);
-
-		//clean up memory
-		windows.clear();
-
-		//check if all remained unchanged -> break
-		if(changed == 0) break;
-	}
-
-	//clean up
-	out.close();
-	for(int i=0; i<numVariables; ++i)
-		delete searchArrays[i];
-	delete[] searchArrays;
-}
-
 
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//Initialize calibration parameters.

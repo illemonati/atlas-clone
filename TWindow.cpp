@@ -178,13 +178,6 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
-void TWindow::calculateEissionProbabilities(TPMD & pmdObject, TRecalibration & recal){
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData)
-			sites[i].calcEmissionProbabilitiesScaledError(pmdObject, recal);
-	}
-}
-
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
@@ -225,7 +218,7 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
-void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, TRecalibration & recal, std::ofstream & out, TLog* logfile){
+void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, std::ofstream & out, TLog* logfile){
 	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
@@ -238,8 +231,7 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, TR
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
 	logfile->listFlush("Calculating emission probabilities ...");
-	if(recal.doRecalibration) calculateEissionProbabilities(pmdObject, recal);
-	else calculateEmissionProbabilities(pmdObject);
+	calculateEmissionProbabilities(pmdObject);
 	logfile->write(" done!");
 
 	//get num sites with data
@@ -544,11 +536,10 @@ void TWindowDiploid::estimateConfidenceInterval(Theta & thetaContainer){
 
 
 
-void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, TRecalibration & recal, std::ofstream & out, int & steps){
+void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, std::ofstream & out, int & steps){
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
-	if(recal.doRecalibration) calculateEissionProbabilities(pmdObject, recal);
-	else calculateEmissionProbabilities(pmdObject);
+	calculateEmissionProbabilities(pmdObject);
 	estimateBaseFrequencies();
 
 	//write header

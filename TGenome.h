@@ -9,6 +9,7 @@
 #define LOCI_H_
 
 #include "TWindow.h"
+#include "TRecalibration.h"
 
 //---------------------------------------------------------------
 //TRecalSearch
