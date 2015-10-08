@@ -238,19 +238,81 @@ public:
 //---------------------------------------------------------------
 //RecalibrationBQSR
 //---------------------------------------------------------------
-//covariates to take into accunt:
+//covariates to take into account:
 // - read base (A, G, C, T)
 // -
 class TRecalibrationBQSR{
 public:
+	//Table -> list of all cells
+
 
 	TRecalibrationBQSR(TParameters* arguments, TLog* logfile);
 	~TRecalibrationBQSR(){};
+
+	//void addSites(TSite* site);
+
 };
 
-//class bqsr-cell
+class TrecalibrationBQSR_cell{
+public:
+	double curEpsilon;
+	bool estimationConverged;
 
-//derive from it for A, C, G and T
+	TrecalibrationBQSR_cell(double Error);
+	virtual ~TrecalibrationBQSR_cell();
+
+	virtual void addBase(TBase* base, char & RefBase){ throw "addBase not defined for base class 'TrecalibrationBQSR_cell'!"; };
+	virtual bool estimateEpsilon();
+};
+
+
+class TrecalibrationBQSR_cellC:public TrecalibrationBQSR_cell{
+public:
+	long N_1, N_2;
+	double D;
+	TrecalibrationBQSR_cellC(double Error, int pos, TPMD* PmdObject);
+	~TrecalibrationBQSR_cellC();
+
+	void addBase(TBase* base, char & RefBase);
+	virtual bool estimateEpsilon();
+};
+
+class TrecalibrationBQSR_cellT:public TrecalibrationBQSR_cellC{
+public:
+	long N_3;
+
+	TrecalibrationBQSR_cellT(double Error, int pos, TPMD* PmdObject);
+	~TrecalibrationBQSR_cellT();
+
+	void addBase(TBase* base, char & RefBase);
+	bool estimateEpsilon();
+};
+
+class TrecalibrationBQSR_cellA:public TrecalibrationBQSR_cell{
+public:
+	double firstDerivative, secondDerivative;
+	TPMD* pmdObject;
+	double convergenceThreshold;
+
+
+	TrecalibrationBQSR_cellA(double Error, TPMD* PmdObject, double ConvergenceThreshold);
+	~TrecalibrationBQSR_cellA();
+
+	virtual double getD(TBase* base, char & RefBase);
+	void addBase(TBase* base, char & RefBase);
+	virtual bool estimateEpsilon();
+};
+
+class TrecalibrationBQSR_cellG:public TrecalibrationBQSR_cellA{
+public:
+	TrecalibrationBQSR_cellG(double Error, TPMD* PmdObject, double ConvergenceThreshold);
+	~TrecalibrationBQSR_cellG();
+
+	double getD(TBase* base, char & RefBase);
+};
+
+
+
 //---------------------------------------------------------------
 //TBase
 //---------------------------------------------------------------

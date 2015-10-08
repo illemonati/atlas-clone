@@ -568,6 +568,111 @@ TRecalibrationBQSR::TRecalibrationBQSR(TParameters* arguments, TLog* logfile){
 
 }
 
+/*
+void TRecalibrationBQSR::addSite(TSite* site){
+	if(site->referenceBase != 'N'){
+		for(std::vector<TBase*>::iterator it = site->bases.begin(); it != site->bases.end(); ++it){
+			if((*it)->getBaseAsEnum() == A){
+
+			} else if((*it)->getBaseAsEnum() == C){
+
+			}
+
+		}
+	}
+}
+*/
+
+//----------------------------------------
+TrecalibrationBQSR_cell::TrecalibrationBQSR_cell(double Error){
+	curEpsilon = Error;
+	estimationConverged = false;
+}
+TrecalibrationBQSR_cellC::TrecalibrationBQSR_cellC(double Error, int pos, TPMD* PmdObject):TrecalibrationBQSR_cell(Error){
+	N_2 = 0;
+	N_1 = 0;
+	D = PmdObject->getProbCT(pos);
+}
+TrecalibrationBQSR_cellT::TrecalibrationBQSR_cellT(double Error, int pos, TPMD* PmdObject):TrecalibrationBQSR_cellC(Error, pos, PmdObject){
+	N_3 = 0;
+}
+
+TrecalibrationBQSR_cellA::TrecalibrationBQSR_cellA(double Error, TPMD* PmdObject, double ConvergenceThreshold):TrecalibrationBQSR_cell(Error){
+	firstDerivative = 0;
+	secondDerivative = 0;
+	pmdObject = PmdObject;
+	convergenceThreshold = ConvergenceThreshold;
+}
+TrecalibrationBQSR_cellG::TrecalibrationBQSR_cellG(double Error, TPMD* PmdObject, double ConvergenceThreshold):TrecalibrationBQSR_cellA(Error, PmdObject, ConvergenceThreshold){}
+
+
+//----------------------------------------
+
+void TrecalibrationBQSR_cellC::addBase(TBase* base, char & RefBase){
+	//assumes base is either A, C, G or T
+	if(RefBase == 'C') ++N_2;
+	else ++N_1;
+}
+
+void TrecalibrationBQSR_cellT::addBase(TBase* base, char & RefBase){
+	//assumes base is either A, C, G or T
+	if(RefBase == 'C') ++N_2;
+	else if(RefBase == 'T') ++N_3;
+	else ++N_1;
+}
+
+
+double TrecalibrationBQSR_cellA::getD(TBase* base, char & RefBase){
+	if(RefBase == A) return 1.0;
+	if(RefBase == G) return pmdObject->getProbGA(base->pos3);
+	return 0.0;
+}
+double TrecalibrationBQSR_cellG::getD(TBase* base, char & RefBase){
+	if(RefBase == G) return 1.0 - pmdObject->getProbGA(base->pos3);
+	return 0.0;
+}
+void TrecalibrationBQSR_cellA::addBase(TBase* base, char & RefBase){
+	double D = getD(base, RefBase);
+
+	double oneMinus4D = 1.0 - 4.0 * D;
+	firstDerivative += oneMinus4D / (-4.0*D*curEpsilon + 3.0*D + curEpsilon);
+	double tmp = oneMinus4D / (D*(3.0-4.0*curEpsilon) + curEpsilon);
+	secondDerivative += tmp * tmp;
+}
+
+//----------------------------------------
+bool TrecalibrationBQSR_cellC::estimateEpsilon(){
+	double B = 4.0*D/3.0 - 1.0;
+	curEpsilon = N_1 * (1.0 - D) / (B*(N_1 + N_2));
+	estimationConverged = true;
+	return estimationConverged;
+}
+bool TrecalibrationBQSR_cellT::estimateEpsilon(){
+	double A = (1.0 - 4*D)/3.0 - 1.0;
+	double a = -A*(N_1 + N_2 + N_3);
+	double b = A*(N_1 + N_2) - D*(N_1 + N_3);
+	double c = D * N_1;
+
+	//there are two solutions to the quadratic function. Calc second if first does not fit in range.
+	curEpsilon = -b + sqrt(b*b - 4.0*a*c)/(2*a);
+	if(curEpsilon < 0.0 || curEpsilon > 1.0){
+		curEpsilon = -b - sqrt(b*b - 4.0*a*c)/(2*a);
+	}
+
+	//return that it converged
+	estimationConverged = true;
+	return estimationConverged;
+}
+
+bool TrecalibrationBQSR_cellA::estimateEpsilon(){
+	//Need Newton-Ralphson to estimate epsilon
+	//Make new estimate
+	curEpsilon = curEpsilon + firstDerivative / secondDerivative;
+
+	//decide on convergence
+	if(abs(firstDerivative) < convergenceThreshold) estimationConverged = true;
+	return estimationConverged;
+}
 
 
 //-------------------------------------------------------
