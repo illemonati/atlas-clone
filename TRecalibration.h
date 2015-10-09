@@ -8,7 +8,9 @@
 #ifndef TRecalIBRATION_H_
 #define TRecalIBRATION_H_
 
+#include "bamtools/api/BamReader.h"
 #include "TSite.h"
+//#include "TLog.h"
 
 //---------------------------------------------------------------
 //RecalibrationEM
@@ -55,28 +57,57 @@ public:
 //covariates to take into account:
 // - read base (A, G, C, T)
 // -
-class TRecalibrationBQSR{
-public:
-	//Table -> list of all cells
-
-
-	TRecalibrationBQSR(TParameters* arguments, TLog* logfile);
-	~TRecalibrationBQSR(){};
-
-	void addSite(TSite* site);
-
-};
 
 class TRecalibrationBQSR_cell{
 public:
 	double curEpsilon;
 	bool estimationConverged;
+	double firstDerivative, secondDerivative;
+	TPMD* pmdObject;
+	long numObservations;
 
-	TRecalibrationBQSR_cell(double Error);
-	virtual ~TRecalibrationBQSR_cell(){};
 
-	virtual void addBase(TBase* base, char & RefBase){ throw "addBase not defined for base class 'TRecalibrationBQSR_cell'!"; };
-	virtual bool estimateEpsilon(){ throw "estimateEpsilon not defined for base class 'TRecalibrationBQSR_cell'!"; };
+	TRecalibrationBQSR_cell();
+	~TRecalibrationBQSR_cell(){};
+	void init(double initialError, TPMD* PmdObject);
+	void addBase(TBase* base, Base & RefBase);
+	bool estimateEpsilon(double & convergenceThreshold);
+};
+
+class TRecalibrationBQSR{
+public:
+	TLog* logfile;
+	BamTools::SamHeader* bamHeader;
+	TPMD* pmdObject;
+	int numReadGroups;
+	int minQ, maxQ, numQ;
+	double initialError;
+	double convergenceThreshold;
+	bool estimationConverged;
+	TRecalibrationBQSR_cell** BQSR_cells; //read group x quality
+
+	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
+	~TRecalibrationBQSR(){};
+
+	void addSite(TSite & site);
+	bool estimateEpsilon();
+	void writeToFile(std::string filename);
+};
+
+
+/*
+class TRecalibrationBQSR_cellA:public TRecalibrationBQSR_cell{
+public:
+	TPMD* pmdObject;
+
+
+
+	TRecalibrationBQSR_cellA(double Error, TPMD* PmdObject, double ConvergenceThreshold);
+	~TRecalibrationBQSR_cellA(){};
+
+	double getD(TBase* base, char & RefBase);
+	void addBase(TBase* base, char & RefBase);
+	bool estimateEpsilon();
 };
 
 
@@ -102,20 +133,6 @@ public:
 	bool estimateEpsilon();
 };
 
-class TRecalibrationBQSR_cellA:public TRecalibrationBQSR_cell{
-public:
-	double firstDerivative, secondDerivative;
-	TPMD* pmdObject;
-	double convergenceThreshold;
-
-
-	TRecalibrationBQSR_cellA(double Error, TPMD* PmdObject, double ConvergenceThreshold);
-	~TRecalibrationBQSR_cellA(){};
-
-	double getD(TBase* base, char & RefBase);
-	void addBase(TBase* base, char & RefBase);
-	bool estimateEpsilon();
-};
 
 class TRecalibrationBQSR_cellG:public TRecalibrationBQSR_cellA{
 public:
@@ -125,7 +142,7 @@ public:
 	double getD(TBase* base, char & RefBase);
 };
 
-
+*/
 
 
 #endif /* TRecalIBRATION_H_ */

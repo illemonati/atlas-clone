@@ -296,34 +296,122 @@ void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFre
 	logLikelihood += log(ll);
 }
 
+
+//---------------------------------------------------------------
+//TRecalibrationBQSR_cell BQSR
+//---------------------------------------------------------------
+TRecalibrationBQSR_cell::TRecalibrationBQSR_cell(){
+	curEpsilon = 0.0;
+	estimationConverged = false;
+	firstDerivative = 0;
+	secondDerivative = 0;
+	pmdObject = NULL;
+	numObservations = 0;
+}
+
+void TRecalibrationBQSR_cell::init(double initialError, TPMD* PmdObject){
+	curEpsilon = initialError;
+	pmdObject = PmdObject;
+}
+
+void TRecalibrationBQSR_cell::addBase(TBase* base, Base & RefBase){
+	if(!estimationConverged){
+		double D = 0.0;
+
+		switch(base->getBaseAsEnum()){
+			case A: if(RefBase == A) D = 1.0; break;
+					if(RefBase == G) D = pmdObject->getProbGA(base->pos3); break;
+			case C: if(RefBase == C) D = pmdObject->getProbGA(base->pos5); break;
+			case G: if(RefBase == G) D = 1.0 - pmdObject->getProbGA(base->pos3); break;
+			case T: if(RefBase == C) D = pmdObject->getProbGA(base->pos5); break;
+					if(RefBase == T) D = 1.0; break;
+			case N: throw "Can not add base with unknown reference to BQSR cell!";
+		}
+
+		double oneMinus4D = 1.0 - 4.0 * D;
+		firstDerivative += oneMinus4D / (-4.0*D*curEpsilon + 3.0*D + curEpsilon);
+		double tmp = oneMinus4D / (D*(3.0-4.0*curEpsilon) + curEpsilon);
+		secondDerivative += tmp * tmp;
+
+		++numObservations;
+	}
+}
+
+bool TRecalibrationBQSR_cell::estimateEpsilon(double & convergenceThreshold){
+	if(estimationConverged) return estimationConverged;
+
+	//Need Newton-Ralphson to estimate epsilon
+	//Make new estimate
+	curEpsilon = curEpsilon + firstDerivative / secondDerivative;
+
+	//decide on convergence
+	if(abs(firstDerivative) < convergenceThreshold) estimationConverged = true;
+	return estimationConverged;
+}
+
 //---------------------------------------------------------------
 //Recalibration BQSR
 //---------------------------------------------------------------
-TRecalibrationBQSR::TRecalibrationBQSR(TParameters* arguments, TLog* logfile){
+TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile){
+	logfile = Logfile;
+	bamHeader = BamHeader;
+	pmdObject = PmdObject;
+	numReadGroups = bamHeader->ReadGroups.Size();
+	estimationConverged = false;
 
+	//read arguments from user
+	minQ = params.getParameterIntWithDefault("minQ", 1);
+	maxQ = params.getParameterIntWithDefault("maxQ", 100);
+	numQ = maxQ - minQ + 1;
+	initialError = params.getParameterDoubleWithDefault("initialError", 0.01);
+	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0001);
+
+
+	//initialize BQSR table
+	BQSR_cells = new TRecalibrationBQSR_cell*[numReadGroups];
+	for(int i=0; i<numReadGroups; ++i){
+		BQSR_cells[i] = new TRecalibrationBQSR_cell[numQ];
+		for(int j=0; j<numQ; ++j) BQSR_cells[i][j].init(initialError, pmdObject);
+	}
 }
 
-
-void TRecalibrationBQSR::addSite(TSite* site){
-	if(site->referenceBase != 'N'){
-		for(std::vector<TBase*>::iterator it = site->bases.begin(); it != site->bases.end(); ++it){
-			if((*it)->getBaseAsEnum() == A){
-
-			} else if((*it)->getBaseAsEnum() == C){
-
-			}
-
+void TRecalibrationBQSR::addSite(TSite & site){
+	if(site.referenceBase != 'N'){
+		Base refBase = site.getRefBaseAsEnum();
+		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+			BQSR_cells[(*it)->readGroup][(*it)->quality - minQ].addBase(*it, refBase);
 		}
 	}
 }
 
-
-//----------------------------------------
-TRecalibrationBQSR_cell::TRecalibrationBQSR_cell(double Error){
-	curEpsilon = Error;
-	estimationConverged = false;
+bool TRecalibrationBQSR::estimateEpsilon(){
+	estimationConverged = true;
+	for(int i=0; i<numReadGroups; ++i){
+		for(int j=0; j<numQ; ++j){
+			if(!BQSR_cells[i][j].estimateEpsilon(convergenceThreshold))
+				estimationConverged = false;
+		}
+	}
+	return estimationConverged;
 }
 
+void TRecalibrationBQSR::writeToFile(std::string filename){
+	std::ofstream out(filename.c_str());
+
+	//write header
+	out << "ReadGroup\tQualityScore\tEventType\tEmpiricalQuality\tObservations\n";
+
+	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+	for(int i=0; i<numReadGroups; ++i, ++it){
+		for(int j=0; j<numQ; ++j){
+			out << it->ID << "\t" << j + minQ << "\tM\t" << BQSR_cells[i][j].curEpsilon << "\t" << BQSR_cells[i][j].numObservations << "\n";
+		}
+	}
+	out.close();
+}
+
+
+/*
 TRecalibrationBQSR_cellC::TRecalibrationBQSR_cellC(double Error, int pos, TPMD* PmdObject):TRecalibrationBQSR_cell(Error){
 	N_2 = 0;
 	N_1 = 0;
@@ -412,4 +500,4 @@ bool TRecalibrationBQSR_cellA::estimateEpsilon(){
 	return estimationConverged;
 }
 
-
+*/

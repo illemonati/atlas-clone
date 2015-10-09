@@ -132,6 +132,7 @@ public:
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
+	void addSitesToBQSR(TRecalibrationBQSR & bqsr);
 };
 
 class TWindowDiploid:public TWindow{

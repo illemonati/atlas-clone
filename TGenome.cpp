@@ -584,26 +584,41 @@ void TGenome::BQSR(TParameters & params){
 	//prepare windows
 	TWindowPairHaploid windows;
 
-	//open FASTA refernece
+	//open FASTA reference
 	std::string fastaFile = params.getParameterString("fasta");
 	std::string fastaIndex = params.getParameterString("fai");
 	BamTools::Fasta reference;
 	reference.Open(fastaFile, fastaIndex);
 
-	//loop over all windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
+	//create BQSR object
+	TRecalibrationBQSR bqsr(&bamHeader, params, &pmdObject, logfile);
 
-			//add reference data
-			windows.cur->addReferenceBaseToSites(reference, chrNumber);
+	//loop over bam until BQSR converges
+	bool hasConverged = false;
+	while(!hasConverged){
+		//loop over all windows
+		while(iterateChromosome(windows)){
+			while(iterateWindow(windows)){
+				//read data for current window
+				readData(windows);
 
-			//calc LL
+				//add reference data
+				windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
+				//add the base to BQSR
+				windows.cur->addSitesToBQSR(bqsr);
+			}
 		}
+
+		//clean up memory
+		windows.clear();
+
+		//estimate epsilon
+		hasConverged = bqsr.estimateEpsilon();
 	}
 
-	//clean up memory
-	windows.clear();
+	//write results to file
+	std::string filename = outputName + "_BQSR_ReadGroup_Quality.txt";
+	bqsr.writeToFile(filename.c_str());
 
 }

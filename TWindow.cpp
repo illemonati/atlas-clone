@@ -178,6 +178,13 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
+void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr){
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			bqsr.addSite(sites[i]);
+		}
+	}
+}
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
