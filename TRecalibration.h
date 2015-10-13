@@ -60,18 +60,27 @@ public:
 
 class TRecalibrationBQSR_cell{
 public:
-	double curEpsilon;
+	double curEstimate;
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
 	TPMD* pmdObject;
 	long numObservations;
 
-
 	TRecalibrationBQSR_cell();
 	~TRecalibrationBQSR_cell(){};
 	void init(double initialError, TPMD* PmdObject);
+	void fillD();
 	void addBase(TBase* base, Base & RefBase);
-	bool estimateEpsilon(double & convergenceThreshold);
+	bool estimate(double & convergenceThreshold);
+};
+
+class TRecalibrationBQSR_cellCovariate:public TRecalibrationBQSR_cell{
+public:
+
+	TRecalibrationBQSR_cellCovariate(){};
+	~TRecalibrationBQSR_cellCovariate(){};
+
+	void init(TPMD* PmdObject){};
 };
 
 class TRecalibrationBQSR{
@@ -84,10 +93,27 @@ public:
 	double initialError;
 	double convergenceThreshold;
 	bool estimationConverged;
-	TRecalibrationBQSR_cell** BQSR_cells; //read group x quality
+	int maxPos;
+
+	//recal tables
+	bool qualityConverged;
+	TRecalibrationBQSR_cell** BQSR_cells_quality; //read group x quality
+	bool considerPosition, positionConverged;
+	TRecalibrationBQSR_cellCovariate** BQSR_cells_position; //read group x quality
 
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
-	~TRecalibrationBQSR(){};
+	~TRecalibrationBQSR(){
+		for(int i=0; i<numReadGroups; ++i){
+			delete[] BQSR_cells_quality[i];
+		}
+		delete[] BQSR_cells_quality;
+		if(considerPosition){
+			for(int i=0; i<numQ; ++i){
+				delete[] BQSR_cells_position[i];
+			}
+			delete[] BQSR_cells_position;
+		}
+	};
 
 	void addSite(TSite & site);
 	bool estimateEpsilon();
