@@ -115,7 +115,7 @@ public:
 	bool sitesInitialized;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
 	TBaseFrequencies baseFreq;
-
+	GenotypeMap genoMap;
 
 	TWindow();
 	TWindow(long Start, long End);
@@ -132,12 +132,11 @@ public:
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
-	void addSitesToBQSR(TRecalibrationBQSR & bqsr);
+	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 };
 
 class TWindowDiploid:public TWindow{
 private:
-	GenotypeMap genoMap;
 	void fillPGenotype(double* pGenotype, double & expTheta);
 	void fillP_G(double* P_g, double* pGenotype);
 	void findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams);

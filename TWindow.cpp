@@ -84,7 +84,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
-
+	char base; BaseContext context;
 	for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 		/* Note:
 		 * Reference is 5' -> 3'
@@ -99,10 +99,18 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 		 *                3) Function add needs first pos5, then pos3
 		 */
 
-		if(bamAlignement.IsReverseStrand())
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, len - pos, pos + 1, readGroupId);
-		else
-			sites[internalPos].add(bamAlignement.AlignedBases.at(pos), bamAlignement.AlignedQualities.at(pos), pos + 1, pos + 1, len - pos, readGroupId);
+		//figure out context (base + previous base)
+		base = bamAlignement.AlignedBases.at(pos);
+		if(bamAlignement.IsReverseStrand()){
+			if(pos >= bamAlignement.AlignedBases.length()) context = genoMap.getContext(base, 'N');
+			else context = genoMap.getContext(base, bamAlignement.AlignedBases.at(pos + 1));
+
+			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, len - pos, pos + 1, context, readGroupId);
+		} else {
+			if(pos == 0) context = genoMap.getContext(base, 'N');
+			else context = genoMap.getContext(base, bamAlignement.AlignedBases.at(pos - 1));
+			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, pos + 1, len - pos, context, readGroupId);
+		}
 	}
 
 	//return if part of the read maps to next window
@@ -178,12 +186,14 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr){
+void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
+	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			bqsr.addSite(sites[i]);
 		}
 	}
+	logfile->write(" done!");
 }
 //-------------------------------------------------------
 //TwindowDiploid

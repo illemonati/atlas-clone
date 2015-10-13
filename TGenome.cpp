@@ -595,7 +595,10 @@ void TGenome::BQSR(TParameters & params){
 
 	//loop over bam until BQSR converges
 	bool hasConverged = false;
+	int loopNumber = 0;
 	while(!hasConverged){
+		++loopNumber;
+		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
 		//loop over all windows
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
@@ -606,7 +609,7 @@ void TGenome::BQSR(TParameters & params){
 				windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 				//add the base to BQSR
-				windows.cur->addSitesToBQSR(bqsr);
+				windows.cur->addSitesToBQSR(bqsr, logfile);
 			}
 		}
 
@@ -615,10 +618,10 @@ void TGenome::BQSR(TParameters & params){
 
 		//estimate epsilon
 		hasConverged = bqsr.estimateEpsilon();
+		logfile->endIndent();
 	}
 
 	//write results to file
-	std::string filename = outputName + "_BQSR_ReadGroup_Quality.txt";
-	bqsr.writeToFile(filename.c_str());
+	bqsr.writeToFile(filename);
 
 }

@@ -17,19 +17,32 @@
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
 enum PMDType {pmdCT=0, pmdGA};
+enum BaseContext {cAA=0, cAC, cAG, cAT, cAN, cCA, cCC, cCG, cCT, cCN, cGA, cGC, cGG, cGT, cGN, cTA, cTC, cTG, cTT, cTN, cNA, cNC, cNG, cNT, cNN}; //N means "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap
 //---------------------------------------------------------------
 //genotype map for enum type
 struct GenotypeMap{
-	Genotype** genotypeMap; //mapping base numbering to genotype numbering
+	Genotype** genotypeMap; //mapping base numbering to genotype enum
+	BaseContext** contextMap; //mapping dinucleotide context to context enum
 
 	GenotypeMap();
 	~GenotypeMap(){
-		for(int i=0; i<4; ++i)
+		for(int i=0; i<4; ++i){
 			delete[] genotypeMap[i];
+			delete[] contextMap[i];
+		}
 		delete[] genotypeMap;
+		delete[] contextMap;
+	};
+
+	Base getBase(char & base){
+		if(base == 'A') return A;
+		if(base == 'C') return C;
+		if(base == 'G') return G;
+		if(base == 'T') return T;
+		return N;
 	};
 	Genotype getGenotype(Base first, Base second){
 		return genotypeMap[first][second];
@@ -38,6 +51,15 @@ struct GenotypeMap{
 		return genotypeMap[first][second];
 	};
 	std::string getGenotypeString(int num);
+	BaseContext getContext(Base first, Base second){
+		return contextMap[first][second];
+	};
+	BaseContext getContext(int first, int second){
+		return contextMap[first][second];
+	};
+	BaseContext getContext(char first, char second){
+		return contextMap[getBase(first)][getBase(second)];
+	};
 };
 
 //---------------------------------------------------------------
@@ -174,10 +196,12 @@ public:
 	int quality;
 	double errorRate;
 	double transformedLogError;
-	int posInRead, pos5, pos3;
+	int posInRead; //zero based!
+	int pos5, pos3; //is distance and starts at 1 for position = 0
 	int readGroup;
+	BaseContext context;
 
-	TBase(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup){
+	TBase(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup){
 		quality = (int) Quality - 33;
 		errorRate = pow(10.0, (double) quality / 10.0);
 		transformedLogError = -log(1.0 / errorRate - 1.0);
@@ -185,6 +209,7 @@ public:
 		pos5 = Pos5;
 		pos3 = Pos3;
 		readGroup = ReadGroup;
+		context = Context;
 	};
 
 	virtual ~TBase(){};
@@ -214,7 +239,7 @@ class TBaseDiploid:public TBase{
 public:
 	TEmissionProbabilitiesDiploid emissionProbabilities;
 
-	TBaseDiploid(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBase(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseDiploid(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 
 	virtual ~TBaseDiploid(){};
 
@@ -230,7 +255,7 @@ class TBaseHaploid:public TBase{
 public:
 	TEmissionProbabilitiesHaploid emissionProbabilities;
 
-	TBaseHaploid(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBase(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseHaploid(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	virtual ~TBaseHaploid(){};
 
 	double getEmissionProbability(Base genotype){
@@ -243,7 +268,7 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidA:public TBaseDiploid{
 public:
-	TBaseDiploidA(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseDiploidA(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'A'; };
 	Base getBaseAsEnum(){ return A;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
@@ -251,7 +276,7 @@ public:
 };
 class TBaseHaploidA:public TBaseHaploid{
 public:
-	TBaseHaploidA(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseHaploidA(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'A'; };
 	Base getBaseAsEnum(){ return A;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
@@ -260,7 +285,7 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidC:public TBaseDiploid{
 public:
-	TBaseDiploidC(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseDiploidC(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'C'; };
 	Base getBaseAsEnum(){ return C;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
@@ -268,7 +293,7 @@ public:
 };
 class TBaseHaploidC:public TBaseHaploid{
 public:
-	TBaseHaploidC(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseHaploidC(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'C'; };
 	Base getBaseAsEnum(){ return C;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
@@ -277,7 +302,7 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidG:public TBaseDiploid{
 public:
-	TBaseDiploidG(char & Quality, int & PosInRead, int & Pos5, int Pos3, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseDiploidG(char & Quality, int & PosInRead, int & Pos5, int Pos3, BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'G'; };
 	Base getBaseAsEnum(){ return G;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
@@ -285,7 +310,7 @@ public:
 };
 class TBaseHaploidG:public TBaseHaploid{
 public:
-	TBaseHaploidG(char & Quality, int & PosInRead, int & Pos5, int Pos3, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseHaploidG(char & Quality, int & PosInRead, int & Pos5, int Pos3, BaseContext & Context, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'G'; };
 	Base getBaseAsEnum(){ return G;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
@@ -294,7 +319,7 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidT:public TBaseDiploid{
 public:
-	TBaseDiploidT(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseDiploidT(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'T'; };
 	Base getBaseAsEnum(){ return T;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
@@ -302,7 +327,7 @@ public:
 };
 class TBaseHaploidT:public TBaseHaploid{
 public:
-	TBaseHaploidT(char & Quality, int & PosInRead, int & Pos5, int & Pos3, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, ReadGroup){};
+	TBaseHaploidT(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup):TBaseHaploid(Quality, PosInRead, Pos5, Pos3, Context, ReadGroup){};
 	char getBase(){ return 'T'; };
 	Base getBaseAsEnum(){ return T;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
@@ -331,7 +356,7 @@ public:
 
 	void clear();
 
-	virtual void add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
+	virtual void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){referenceBase = Base; };
 	char getRefBase(){return referenceBase;};
 	Base getRefBaseAsEnum(){
@@ -364,7 +389,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup);
+	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup);
 };
 
 class TSiteHaploid:public TSite{
@@ -380,7 +405,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup);
+	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup);
 };
 
 

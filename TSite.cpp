@@ -11,17 +11,32 @@
 //GenotypeMap
 //---------------------------------------------------------------
 GenotypeMap::GenotypeMap(){
-//set up genotype map
+	//create genotype map
 	genotypeMap = new Genotype*[4];
 	for(int i=0; i<4; ++i)
 		genotypeMap[i] = new Genotype[4];
 
+	//fill genotype map
 	int geno = 0;
 	for(int i=0; i<4; ++i){
 		for(int j=i; j<4; ++j){
 			genotypeMap[i][j] = static_cast<Genotype>(geno);
 			genotypeMap[j][i] = genotypeMap[i][j];
 			++geno;
+		}
+	}
+
+	//create context map
+	contextMap = new BaseContext*[5];
+	for(int i=0; i<5; ++i)
+		contextMap[i] = new BaseContext[5];
+
+	//fill context map
+	int context = 0;
+	for(int i=0; i<5; ++i){
+		for(int j=0; j<5; ++j){
+			contextMap[i][j] = static_cast<BaseContext>(context);
+			++context;
 		}
 	}
 }
@@ -240,24 +255,24 @@ void TSite::clear(){
 	hasData = false;
 };
 
-void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){
+void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 		if((int) quality > 33){
-			if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, pos5, pos3, ReadGroup));
-			else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, pos5, pos3, ReadGroup));
-			else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, pos5, pos3, ReadGroup));
-			else bases.push_back(new TBaseDiploidT(quality, PosInRead, pos5, pos3, ReadGroup));
+			if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else bases.push_back(new TBaseDiploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
 		}
 		hasData = true;
 	}
 };
-void TSiteHaploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, int & ReadGroup){
+void TSiteHaploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){
 	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 		if((int) quality > 33){
-			if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, pos5, pos3, ReadGroup));
-			else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, pos5, pos3, ReadGroup));
-			else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, pos5, pos3, ReadGroup));
-			else bases.push_back(new TBaseHaploidT(quality, PosInRead, pos5, pos3, ReadGroup));
+			if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+			else bases.push_back(new TBaseHaploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
 		}
 		hasData = true;
 	}
