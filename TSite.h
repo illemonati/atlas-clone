@@ -203,7 +203,7 @@ public:
 
 	TBase(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup){
 		quality = (int) Quality - 33;
-		errorRate = pow(10.0, (double) quality / 10.0);
+		errorRate = pow(10.0, (double) quality / -10.0);
 		transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
 		pos5 = Pos5;
