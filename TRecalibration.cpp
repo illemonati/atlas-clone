@@ -620,7 +620,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->maxQ + 1; ++q){
-			out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].curEstimate << "\t" << BQSR_cells_readGroup_quality[i][q].numObservations << "\n";
+			out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].curEstimate << "\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].numObservations << "\n";
 		}
 	}
 	out.close();
@@ -647,7 +647,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 		for(int q=0; q<qualityIndex->maxQ + 1; ++q){
 			for(int c=0; c<numContexts; ++c){
-				out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_quality_context[q][c].curEstimate << "\t" << BQSR_cells_quality_context[q][c].numObservations << "\n";
+				out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].curEstimate << "\t" << BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].numObservations << "\n";
 			}
 		}
 		out.close();
