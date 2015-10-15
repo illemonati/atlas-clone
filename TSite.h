@@ -360,12 +360,11 @@ public:
 	void setRefBase(char & Base){referenceBase = Base; };
 	char getRefBase(){return referenceBase;};
 	Base getRefBaseAsEnum(){
-		switch(referenceBase){
-			case 0: return A; break;
-			case 1: return C; break;
-			case 2: return G; break;
-			case 3: return T; break;
-		}
+		if(referenceBase == 'A') return A;
+		if(referenceBase == 'C') return C;
+		if(referenceBase == 'G') return G;
+		if(referenceBase == 'T') return T;
+		return N;
 	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
