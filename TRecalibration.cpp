@@ -307,6 +307,7 @@ TBQSR_cellQuality::TBQSR_cellQuality(){
 	secondDerivative = 0.0;
 	pmdObject = NULL;
 	numObservations = 0;
+	numMatches = 0;
 	F = 0.0;
 }
 
@@ -318,6 +319,7 @@ void TBQSR_cellQuality::init(double initialError, TPMD* PmdObject){
 void TBQSR_cellQuality::empty(){
 	if(!estimationConverged){
 		numObservations = 0;
+		numMatches = 0;
 		firstDerivative = 0.0;
 		secondDerivative = 0.0;
 	}
@@ -351,6 +353,7 @@ void TBQSR_cellQuality::addToDerivatives(TBase* base, Base & RefBase, double & e
 	secondDerivative += tmp * tmp;
 
 	++numObservations;
+	if(base->getBaseAsEnum() == RefBase) ++numMatches;
 }
 
 
@@ -363,9 +366,19 @@ void TBQSR_cellQuality::addBase(TBase* base, Base & RefBase){
 bool TBQSR_cellQuality::estimate(double & convergenceThreshold){
 	if(estimationConverged) return estimationConverged;
 
-	//Need Newton-Ralphson to estimate epsilon
-	//Make new estimate
+	//check if we only made errors or no errors, in which case epsilon is easily estimated
+	if(numMatches == numObservations){
+		curEstimate = 0.0;
+		estimationConverged = true;
+		return estimationConverged;
+	}
+	if(numMatches == 0){
+		curEstimate = 1.0;
+		estimationConverged = true;
+		return estimationConverged;
+	}
 
+	//Else, need Newton-Ralphson to estimate epsilon
 	std::cout << "ESTIMATE: " << curEstimate << " + " << firstDerivative / secondDerivative << " (" << firstDerivative << " / " <<  secondDerivative << ") = ";
 
 	curEstimate = curEstimate + firstDerivative / secondDerivative;

@@ -90,6 +90,7 @@ public:
 	double firstDerivative, secondDerivative;
 	TPMD* pmdObject;
 	long numObservations;
+	long numMatches;
 	double F;
 
 	TBQSR_cellQuality();
