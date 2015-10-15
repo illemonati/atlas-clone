@@ -326,12 +326,22 @@ void TBQSR_cellQuality::empty(){
 void TBQSR_cellQuality::addToDerivatives(TBase* base, Base & RefBase, double & epsilon){
 	double D = 0.0;
 	switch(base->getBaseAsEnum()){
-		case A: if(RefBase == A) D = 1.0; break;
-				if(RefBase == G) D = pmdObject->getProbGA(base->pos3); break;
-		case C: if(RefBase == C) D = pmdObject->getProbGA(base->pos5); break;
-		case G: if(RefBase == G) D = 1.0 - pmdObject->getProbGA(base->pos3); break;
-		case T: if(RefBase == C) D = pmdObject->getProbGA(base->pos5); break;
-				if(RefBase == T) D = 1.0; break;
+		case A: if(RefBase == A){
+					D = 1.0;
+					break;
+				}
+				if(RefBase == G) D = pmdObject->getProbGA(base->pos3);
+				break;
+		case C: if(RefBase == C) D = pmdObject->getProbGA(base->pos5);
+				break;
+		case G: if(RefBase == G) D = 1.0 - pmdObject->getProbGA(base->pos3);
+				break;
+		case T: if(RefBase == C){
+					D = pmdObject->getProbGA(base->pos5);
+					break;
+				}
+				if(RefBase == T) D = 1.0;
+				break;
 		case N: throw "Can not add base with unknown reference to BQSR cell!";
 	}
 
@@ -363,7 +373,7 @@ bool TBQSR_cellQuality::estimate(double & convergenceThreshold){
 	std::cout << curEstimate << std::endl;
 
 	//decide on convergence
-	F = abs(firstDerivative);
+	F = fabs(firstDerivative);
 	if(F < convergenceThreshold) estimationConverged = true;
 	return estimationConverged;
 }
