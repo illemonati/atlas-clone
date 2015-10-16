@@ -309,6 +309,7 @@ TBQSR_cellQuality::TBQSR_cellQuality(){
 	numObservations = 0;
 	numMatches = 0;
 	F = 0.0;
+	//LL = 0.0;
 }
 
 void TBQSR_cellQuality::init(double initialError, TPMD* PmdObject){
@@ -322,6 +323,7 @@ void TBQSR_cellQuality::empty(){
 		numMatches = 0;
 		firstDerivative = 0.0;
 		secondDerivative = 0.0;
+		//LL = 0.0;
 	}
 }
 
@@ -350,10 +352,12 @@ void TBQSR_cellQuality::addToDerivatives(TBase* base, Base & RefBase, double & e
 	double oneMinus4D = 1.0 - 4.0 * D;
 	firstDerivative += oneMinus4D / (-4.0*D*epsilon + 3.0*D + epsilon);
 	double tmp = oneMinus4D / (D*(3.0-4.0*epsilon) + epsilon);
-	secondDerivative += tmp * tmp;
+	secondDerivative -= tmp * tmp;
 
 	++numObservations;
 	if(base->getBaseAsEnum() == RefBase) ++numMatches;
+
+	//LL += log((1.0-D) * curEstimate / 3.0 + D * (1.0 - curEstimate));
 }
 
 
@@ -379,12 +383,9 @@ bool TBQSR_cellQuality::estimate(double & convergenceThreshold){
 	}
 
 	//Else, need Newton-Ralphson to estimate epsilon
-	std::cout << "ESTIMATE: " << curEstimate << " + " << firstDerivative / secondDerivative << " (" << firstDerivative << " / " <<  secondDerivative << ") = ";
-
-	curEstimate = curEstimate + firstDerivative / secondDerivative;
-
-	std::cout << curEstimate << std::endl;
-
+	curEstimate = curEstimate - firstDerivative / secondDerivative;
+	if(curEstimate < 0.0) curEstimate = 0.00000001;
+	else if(curEstimate > 1.0) curEstimate = 0.99999999;
 	//decide on convergence
 	F = fabs(firstDerivative);
 	if(F < convergenceThreshold) estimationConverged = true;
@@ -495,11 +496,27 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 			}
 		}
 	} else BQSR_cells_quality_context = NULL;
+
+	//---------------------------
+	//LLSurface = new TBQSR_cellQuality[200];
+	//double delta = 1.0 / 1000.0;
+	//for(int i=1; i<200; ++i) LLSurface[i].init(i*delta, pmdObject);
+	//---------------------------
 }
 
 void TRecalibrationBQSR::addSite(TSite & site){
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
+
+		//---------------------------
+		//for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+		//	for(int i=1; i<200; ++i){
+		//		LLSurface[i].addBase(*it, refBase);
+		//	}
+		//}
+		//---------------------------
+
+
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				BQSR_cells_readGroup_quality[(*it)->readGroup][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
@@ -525,6 +542,19 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 	int totCells;
 	double maxF = 0.0;
 
+
+	//---------------------------
+	//LL surface
+	//---------------------------
+	/*
+	double delta = 1.0 / 1000.0;
+	std::ofstream llFile("llsurface.txt");
+	for(int i=1; i<200; ++i){
+		llFile << i*delta << "\t" << LLSurface[i].LL << std::endl;
+	}
+	llFile.close();
+	//--------------------------- */
+
 	//readGroup x quality
 	if(!qualityConverged){
 		logfile->listFlush("Estimating epsilon for readGroup x quality table ...");
@@ -541,6 +571,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 			}
 		}
 		logfile->write(" done!");
+
 		if(!qualityConverged){
 			//empty all cells of BQSR table
 			for(int i=0; i<numReadGroups; ++i){
@@ -561,6 +592,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 			return estimationConverged;
 		} else {
 			logfile->list("Estimation converged in all cells!");
+			logfile->conclude("Largest F = " + toString(maxF));
 		}
 	}
 

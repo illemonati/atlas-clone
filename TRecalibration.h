@@ -92,6 +92,7 @@ public:
 	long numObservations;
 	long numMatches;
 	double F;
+	//double LL;
 
 	TBQSR_cellQuality();
 	virtual ~TBQSR_cellQuality(){};
@@ -149,6 +150,10 @@ public:
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
 	bool considerContext, contextConverged;
 	TBQSR_cellContext** BQSR_cells_quality_context; //quality x context
+
+	//-------------------------
+	//TBQSR_cellQuality* LLSurface; //read group x quality to calc LL surface
+	//-------------------------
 
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
 	~TRecalibrationBQSR(){
