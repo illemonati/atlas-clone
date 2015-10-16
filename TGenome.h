@@ -88,6 +88,7 @@ public:
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
+	void callMLEGenotypes();
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);

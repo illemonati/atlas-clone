@@ -289,6 +289,7 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 	}
 }
 
+
 void TGenome::estimateTheta(TParameters & params){
 	//EM params
  	EMParameters EMParams;
@@ -379,6 +380,37 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 		}
 		if(windowsCalculated >= numWindows) break;
 	}
+}
+
+void TGenome::callMLEGenotypes(){
+	//open output
+	std::ofstream out;
+	out.open((outputName + "_MLEGenotypes.txt").c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+
+	//write header
+	out << std::setprecision(5);
+	out << "chr\tpos\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+
+			//call genotypes
+			windows.cur->callMLEGenotype(pmdObject, out, chrIterator->Name);
+
+		}
+	}
+
+	//clean up
+	out.close();
+
+
 }
 
 void TGenome::printPileup(){

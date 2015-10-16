@@ -251,6 +251,7 @@ public:
 	double getEmissionProbability(int genotype){
 		return emissionProbabilities.get(genotype);
 	};
+
 };
 
 class TBaseHaploid:public TBase{
@@ -370,6 +371,7 @@ public:
 	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
+	void callMLEGenotype(TPMD & pmdObject, GenotypeMap & genoMap, std::ofstream & out);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();

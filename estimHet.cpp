@@ -65,7 +65,8 @@ int main(int argc, char* argv[]){
 			logfile.startIndent("Estimating recalibration parameters (BQSR):");
 			genome.BQSR(myParameters);
 		} else if(task=="call"){
-
+			logfile.startIndent("Calling MLE Genotypes:");
+			genome.callMLEGenotypes();
 		} else throw "Unknown task '" + task + "'!";
 		logfile.endIndent();
 

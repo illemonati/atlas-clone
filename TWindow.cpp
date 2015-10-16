@@ -162,6 +162,14 @@ void TWindow::calculateEmissionProbabilities(TPMD & pmdObject){
 	}
 }
 
+void TWindow::callMLEGenotype(TPMD & pmdObject, std::ofstream & out, std::string & chr){
+	for(int i=0; i<length; ++i){
+		out << chr << "\t" << start + i;
+		sites[i].callMLEGenotype(pmdObject, genoMap, out);
+		out << "\n";
+	}
+
+}
 
 void TWindow::printPileup(TPMD & pmdObject, std::ofstream & out, std::string & chr){
 	//calc emission probs
@@ -170,7 +178,7 @@ void TWindow::printPileup(TPMD & pmdObject, std::ofstream & out, std::string & c
 	}
 	//print pileup
 	for(int i=0; i<length; ++i){
-		out << chr << "\t" << start + i << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
+		out << chr << "\t" << start + i + 1 << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
 	}
 }
 

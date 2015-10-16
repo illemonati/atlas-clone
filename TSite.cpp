@@ -297,6 +297,28 @@ void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 	}
 }
 
+void TSite::callMLEGenotype(TPMD & pmdObject, GenotypeMap & genoMap, std::ofstream & out){
+	if(hasData){
+		calcEmissionProbabilities(pmdObject);
+		double maxGenotypeProb = 0.0;
+		double quality;
+		int MLGenotype;
+		out << "\t" << bases.size();
+		for(int i=0; i<numGenotypes; ++i){
+			out << "\t" << emissionProbabilities[i];
+			if(emissionProbabilities[i] > maxGenotypeProb){
+				MLGenotype = i;
+				maxGenotypeProb = emissionProbabilities[i];
+			}
+		}
+		out << "\t" << genoMap.getGenotypeString(MLGenotype);
+		out << "\t" << quality;
+	} else {
+		out << "\t0\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-";
+	}
+
+}
+
 std::string TSite::getBases(){
 	if(bases.size()==0) return "-";
 	std::string b = "";
