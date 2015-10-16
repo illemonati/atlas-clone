@@ -240,9 +240,11 @@ bool TGenome::readData(TWindowPair & windowPair){
 		}
 	}
 
-	windowPair.curPointer->calcCoverage();
-
+	//apply mask
 	if(doMasking) windowPair.curPointer->applyMask(mask);
+
+	//calc coverage
+	windowPair.curPointer->calcCoverage();
 
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
