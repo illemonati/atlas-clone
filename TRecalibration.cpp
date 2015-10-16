@@ -451,28 +451,21 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	positionConverged = false;
 	contextConverged = false;
 	numContexts = 25;
-
-	//read arguments from user
-	int minQ = params.getParameterIntWithDefault("minQ", 1);
-	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
-	logfile->list("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
-	qualityIndex = new TQualityIndex(minQ, maxQ);
 	initialError = params.getParameterDoubleWithDefault("initialError", 0.01);
 	logfile->list("Using an initial error of " + toString(initialError));
-	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0001);
-	logfile->list("Stopping Newton-Ralphson if F < " + toString(convergenceThreshold));
 
-	//read which covariates to consider
-	considerPosition = params.parameterExists("considerPosition");
+	bool estimatetionRequired = false;
 
-	//initialize BQSR table
-	BQSR_cells_readGroup_quality = new TBQSR_cellQuality*[numReadGroups];
-	for(int i=0; i<numReadGroups; ++i){
-		BQSR_cells_readGroup_quality[i] = new TBQSR_cellQuality[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(initialError, pmdObject);
+	//check if BQSR table readGroup x Quality is given, or has to be estimated
+	if(params.parameterExists("BQSRReadGroupQuality")){
+		initializeBQSRReadGroupQualityTable(params.getParameterString("BQSRReadGroupQuality"));
+		qualityConverged = true;
+	} else {
+		initializeBQSRReadGroupQualityTable(params);
+		estimatetionRequired = true;
 	}
 
-	//Do we also consider the effect of the positon in read (cycle)?
+	//Do we also consider the effect of the position in read (cycle)?
 	considerPosition = params.parameterExists("considerPosition");
 	if(considerPosition){
 		maxPos = params.getParameterInt("maxPos");
@@ -497,11 +490,106 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 		}
 	} else BQSR_cells_quality_context = NULL;
 
+	//read Newton-Ralphson arguments from user
+	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0001);
+	if(estimatetionRequired) logfile->list("Stopping Newton-Ralphson if F < " + toString(convergenceThreshold));
+
 	//---------------------------
 	//LLSurface = new TBQSR_cellQuality[200];
 	//double delta = 1.0 / 1000.0;
 	//for(int i=1; i<200; ++i) LLSurface[i].init(i*delta, pmdObject);
 	//---------------------------
+}
+
+int TRecalibrationBQSR::findReadGroupIndex(std::string & name){
+	int i = 0;
+	for(std::vector<BamTools::SamReadGroup>::iterator it = bamHeader->ReadGroups.Begin(); it !=  bamHeader->ReadGroups.End(); ++it, ++i){
+		if(name == it->ID) return i;
+	}
+	return -1;
+}
+
+void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(std::string filename){
+	logfile->listFlush("Constructing BQSR readGrpup x quality table from file '" + filename + "' ...");
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open BQSR readGroup x quality table from file '" + filename + "'!";
+
+	//construct for each read group in bam file
+	BQSR_cells_readGroup_quality = new TBQSR_cellQuality*[numReadGroups];
+
+	//read file and construct table -> first read into vector
+	long lineNum = 0;
+	std::vector<std::string> vec;
+
+	//tmp variables
+	int minQ = 100;
+	int maxQ = 0;
+	int q;
+	std::string tmp;
+	std::getline(file, tmp); //skip header
+
+	//parse file to get min and max quality
+	while(file.good() && !file.eof()){
+		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() != 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+			//get quality
+			q = stringToInt(vec[1]);
+			if(q > maxQ) maxQ = q;
+			if(q < minQ) minQ = q;
+		}
+	}
+
+	//initialize quality index
+	qualityIndex = new TQualityIndex(minQ, maxQ);
+
+	//create corresponding objects
+	for(int i=0; i<numReadGroups; ++i){
+		BQSR_cells_readGroup_quality[i] = new TBQSR_cellQuality[qualityIndex->numQ];
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(initialError, pmdObject);
+	}
+
+	//rewind file to beginning
+	file.clear();
+	file.seekg(0, file.beg); //rewind file to beginning
+	std::getline(file, tmp); //skip header
+	double error;
+	int readGroup;
+
+	//now parse file again and set empirical quality
+	while(file.good() && !file.eof()){
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		//skip empty lines
+		if(vec.size() > 0){
+			//set quality and empirical error rate
+			readGroup = findReadGroupIndex(vec[0]);
+			if(readGroup >= 0){ //returns -1 if read group does not exist
+				q = stringToInt(vec[1]);
+				error = stringToDouble(vec[3]);
+				BQSR_cells_readGroup_quality[readGroup][q].set(error);
+			}
+		}
+	}
+
+	//done!
+	logfile->write(" done!");
+	logfile->conclude("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
+}
+
+void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & params){
+	int minQ = params.getParameterIntWithDefault("minQ", 1);
+	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
+	logfile->list("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
+	qualityIndex = new TQualityIndex(minQ, maxQ);
+
+	//initialize BQSR table
+	BQSR_cells_readGroup_quality = new TBQSR_cellQuality*[numReadGroups];
+	for(int i=0; i<numReadGroups; ++i){
+		BQSR_cells_readGroup_quality[i] = new TBQSR_cellQuality[qualityIndex->numQ];
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(initialError, pmdObject);
+	}
 }
 
 void TRecalibrationBQSR::addSite(TSite & site){
@@ -630,7 +718,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 	}
 
 	//estimate epsilon for context
-	if(considerPosition && !positionConverged){
+	if(considerContext && !contextConverged){
 		logfile->listFlush("Estimating epsilon for quality x context table ...");
 		contextConverged = true;
 		numCellsNotConverged = 0;
@@ -707,6 +795,13 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		}
 		out.close();
 	}
+}
+
+bool TRecalibrationBQSR::allConverged(){
+	if(!qualityConverged) return false;
+	if(considerPosition && !positionConverged) return false;
+	if(considerContext && !contextConverged) return false;
+	return true;
 }
 
 

@@ -143,7 +143,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("mask");
 		logfile->list("Will mask all sites listed in BED file '" + maskFile + "'");
 		mask = new TBedReader(maskFile, windowSize);
-		mask->print();
+		//mask->print();
 	} else doMasking = false;
 };
 
@@ -613,6 +613,10 @@ void TGenome::BQSR(TParameters & params){
 
 	//create BQSR object
 	TRecalibrationBQSR bqsr(&bamHeader, params, &pmdObject, logfile);
+	if(bqsr.allConverged()){
+		logfile->list("No need to estimate any BQSR cells. Aborting Program.");
+		return;
+	}
 
 	//loop over bam until BQSR converges
 	bool hasConverged = false;
@@ -643,6 +647,6 @@ void TGenome::BQSR(TParameters & params){
 	}
 
 	//write results to file
-	bqsr.writeToFile(filename);
+	bqsr.writeToFile(outputName);
 
 }

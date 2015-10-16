@@ -102,6 +102,7 @@ public:
 	virtual ~TBQSR_cellQuality(){};
 	void empty();
 	void init(double initialError, TPMD* PmdObject);
+	void set(double error){curEstimate = error;};
 	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
 	virtual void addBase(TBase* base, Base & RefBase);
 	bool estimate(double & convergenceThreshold);
@@ -135,12 +136,12 @@ public:
 
 
 class TRecalibrationBQSR{
-public:
-	TLog* logfile;
+private:
+	TQualityIndex* qualityIndex;
 	BamTools::SamHeader* bamHeader;
+	TLog* logfile;
 	TPMD* pmdObject;
 	int numReadGroups;
-	TQualityIndex* qualityIndex;
 	double initialError;
 	double convergenceThreshold;
 	bool estimationConverged;
@@ -159,6 +160,11 @@ public:
 	//TBQSR_cellQuality* LLSurface; //read group x quality to calc LL surface
 	//-------------------------
 
+	int findReadGroupIndex(std::string & name);
+	void initializeBQSRReadGroupQualityTable(std::string filename);
+	void initializeBQSRReadGroupQualityTable(TParameters & params);
+
+public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
 	~TRecalibrationBQSR(){
 		for(int i=0; i<numReadGroups; ++i){
@@ -185,6 +191,7 @@ public:
 	void addSite(TSite & site);
 	bool estimateEpsilon();
 	void writeToFile(std::string filenameTag);
+	bool allConverged();
 };
 
 
