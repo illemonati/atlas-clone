@@ -74,14 +74,18 @@ private:
  	long curStart, curEnd;
 	std::string filename;
 	TLog* logfile;
- 	long windowSize;
+ 	int windowSize;
  	double maxMissing;
  	long oldPos;
  	std::string outputName;
+ 	TBedReader* mask;
+ 	bool doMasking;
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
-	~TGenome(){};
+	~TGenome(){
+		if(doMasking) delete mask;
+	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
 	void printPileup();

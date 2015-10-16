@@ -15,7 +15,7 @@
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TRecalibration.h"
 #include "TSite.h"
-
+#include "TBedReader.h"
 
 //---------------------------------------------------------------
 //EMParameters
@@ -127,6 +127,7 @@ public:
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
+	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject);
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);

@@ -77,6 +77,10 @@ public:
 		}
 	};
 
+	~TQualityIndex(){
+		delete[] index;
+	};
+
 	int& getIndex(int & quality){
 		if(quality > maxQ) return last;
 		return index[quality];
@@ -161,6 +165,7 @@ public:
 			delete[] BQSR_cells_readGroup_quality[i];
 		}
 		delete[] BQSR_cells_readGroup_quality;
+		delete qualityIndex;
 
 		if(considerPosition){
 			for(int i=0; i<numReadGroups; ++i){

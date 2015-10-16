@@ -136,6 +136,15 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	readGroups.fill(bamHeader);
 
 	chrIterator = bamHeader.Sequences.End();
+
+	//check if we mask sites
+	if(params.parameterExists("mask")){
+		doMasking = true;
+		std::string maskFile = params.getParameterString("mask");
+		logfile->list("Will mask all sites listed in BED file '" + maskFile + "'");
+		mask = new TBedReader(maskFile, windowSize);
+		mask->print();
+	} else doMasking = false;
 };
 
 bool TGenome::iterateChromosome(TWindowPair & windowPair){
@@ -164,6 +173,9 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	curEnd = 0;
 	oldPos = -1;
 	windowPair.nextPointer->move(0, windowSize);
+
+	//advance mask
+	if(doMasking) mask->setChr(chrIterator->Name);
 
 	//write progress
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
@@ -229,6 +241,8 @@ bool TGenome::readData(TWindowPair & windowPair){
 	}
 
 	windowPair.curPointer->calcCoverage();
+
+	if(doMasking) windowPair.curPointer->applyMask(mask);
 
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");

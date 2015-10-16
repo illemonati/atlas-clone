@@ -10,94 +10,186 @@
 
 #include <fstream>
 #include <vector>
+#include <map>
 
 //read sorted bed files window by window
-//Note: it will never restart from the beginning
+//store all data in chr / window combinations using vectors
+
+class TBedWindow{
+public:
+	bool hasData;
+	long start, end;
+	std::vector<long> positions;
+
+	TBedWindow(long Start, long End){
+		hasData = false;
+		start = Start;
+		end = End;
+	};
+	~TBedWindow(){};
+	void addPosition(long & pos){
+		positions.push_back(pos);
+	};
+
+	void print(){
+		std::cout << "[" << start << ", " << end << "]:";
+		for(std::vector<long>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it;
+		std::cout << std::endl;
+	};
+};
+
+class TBedChromosome{
+public:
+	std::string name;
+	std::map<int, TBedWindow*> windows;
+	std::map<int, TBedWindow*>::iterator windowIt;
+	int windowSize;
+
+
+	TBedChromosome(std::string & Name, int & WindowSize){
+		name = Name;
+		windowSize = WindowSize;
+	};
+
+	~TBedChromosome(){
+		//delete all windows
+		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt){
+			delete windowIt->second;
+		}
+		windows.clear();
+	};
+
+	void findWindow(const long & pos){
+		int w = (double) pos / (double) windowSize;
+		windowIt = windows.find(w);
+	}
+
+	void findOrCreateWindow(const long & pos){
+		findWindow(pos);
+		if(windowIt == windows.end()){
+			//insert window
+			int w = (double) pos / (double) windowSize;
+			windows.insert(std::pair<int, TBedWindow*>(w, new TBedWindow(w*windowSize, (w+1)*windowSize - 1)));
+			findWindow(pos);
+		}
+	}
+
+	void addPosition(std::vector<std::string> & tmp){
+		long start = stringToLong(tmp[1]);
+		long end = stringToLong(tmp[2]);
+
+		//identify window
+		findOrCreateWindow(start);
+
+		//add position to that window
+		//Note BED is 0 indexed -> plus 1 to pos!
+		for(long i=start+1; i<(end+1); ++i){
+			if(i>windowIt->second->end) findOrCreateWindow(i);
+			windowIt->second->addPosition(i);
+		}
+	};
+
+	void print(){
+		std::cout << "Chromosome '" << name << "':" << std::endl;
+		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
+	};
+
+	bool hasPositionsInWindow(const long & windowStart){
+		findWindow(windowStart);
+		if(windowIt == windows.end()) return false;
+		return true;
+	};
+
+	std::vector<long>& getPositionInWindow(const long & windowStart){
+		findWindow(windowStart);
+		if(windowIt == windows.end()) throw "TBedReader Error: window '" + toString(windowStart) + "' does not exist!";
+		return windowIt->second->positions;
+	};
+};
 
 class TBedReader{
 private:
-	std::ifstream bedFile;
-	bool fileOpen;
-	std::vector<std::string> tmpVec;
-	std::vector<long> positions;
-	//storage for first base on next chromosome
-	bool nextOnNewChr;
-	bool storageUsed;
-	std::string chr, nextChr;
-	long nextPos, lastPos;
+	std::map<std::string, TBedChromosome*> chromosomes;
+	std::map<std::string, TBedChromosome*>::iterator chrIt;
+	int windowSize;
+	std::string curChr;
 
-	void readLine(){
-		++lineNum;
-		fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, tmpVec);
-		if(tmpVec.size() < 4) throw "Less than four columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
-		nextChr = tmpVec[0];
-		lastPos = nextPos;
-		nextPos = stringToLong(tmpVec[2]); //use third column because BED is 0 indexed!
-		if(nextChr == chr && nextPos <= lastPos) throw "BED file '" + filename + "' seems not to be sorted!";
+	void readFile(){
+		//open file
+		std::ifstream bedFile(filename.c_str());
+		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
+
+		//tmp variables
+		long lineNum = 0;
+		std::vector<std::string> vec;
+		curChr = "";
+
+		//read file
+		while(bedFile.good() && !bedFile.eof()){
+			++lineNum;
+			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
+			//skip empty lines
+			if(vec.size() > 0){
+				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
+
+				//get chromosome
+				if(vec[0] != curChr){
+					chrIt = chromosomes.find(vec[0]);
+					if(chrIt == chromosomes.end()){
+						chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0], windowSize)));
+						chrIt = chromosomes.find(vec[0]);
+					}
+					curChr = vec[0];
+				}
+
+				//add positions
+				chrIt->second->addPosition(vec);
+			}
+		}
+
+		//close file
+		bedFile.close();
 	};
 
 public:
 	std::string filename;
-	long start, end;
-	long lineNum;
 
-
-	TBedReader(std::string Filename){
+	TBedReader(std::string Filename, int & WindowSize){
 		filename = Filename;
-		bedFile.open(filename.c_str());
-		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
-		fileOpen = true;
-		start = 0;
-		end = 0;
-		lineNum = 0;
-		chr = ""; nextChr = "";
-		nextOnNewChr = true;
-		storageUsed = false;
-		nextPos = 0; lastPos = 0;
+		windowSize = WindowSize;
+		readFile();
+		curChr = "";
 	};
 
 	~TBedReader(){
-		if(fileOpen) bedFile.close();
+		//delete all chromosomes
+		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
+			delete chrIt->second;
+		}
+		chromosomes.clear();
 	};
 
-
-
-	void read(long Size){
-		//read up to size bases. Stop at end of chromosome.
-		std::vector<std::string> vec;
-		long pos;
-		long readBases = 0;
-
-		//check if we will be on a new chromosome
-		if(nextOnNewChr){
-			positions.clear();
-			if(!storageUsed) readLine();
-			else storageUsed = false;
-			chr = nextChr;
-			positions.push_back(nextPos);
-			nextOnNewChr = false;
-			++readBases;
-		}
-
-		//parse line by line
-		while(readBases < Size && bedFile.good() && !bedFile.eof()){
-			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
-			if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
-
-			//check if we jump to a new chromosome
-			if(vec[0] != chr){
-				storageUsed = true;
-				break;
-			}
-			positions.push_back(nextPos);
-		}
-
-		//set start and end
-		start = *positions.begin();
-		end = *positions.rbegin();
+	void setChr(const std::string & chr){
+		curChr = chr;
 	};
 
+	void print(){
+		std::cout << "Bed File '" << filename << "':" << std::endl;
+		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
+	};
+
+	bool hasPositionsInWindow(const long & windowStart){
+		chrIt = chromosomes.find(curChr);
+		if(chrIt == chromosomes.end()) return false;
+		else return chrIt->second->hasPositionsInWindow(windowStart);
+	}
+
+	std::vector<long>& getPositionInWindow(long & windowStart){
+		//find chromosome
+		chrIt = chromosomes.find(curChr);
+		if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
+		return chrIt->second->getPositionInWindow(windowStart);
+	};
 
 };
 

@@ -336,7 +336,7 @@ void TBQSR_cellQuality::addToDerivatives(TBase* base, Base & RefBase, double & e
 				}
 				if(RefBase == G) D = pmdObject->getProbGA(base->pos3);
 				break;
-		case C: if(RefBase == C) D = pmdObject->getProbGA(base->pos5);
+		case C: if(RefBase == C) D = 1.0 - pmdObject->getProbGA(base->pos5);
 				break;
 		case G: if(RefBase == G) D = 1.0 - pmdObject->getProbGA(base->pos3);
 				break;

@@ -31,6 +31,8 @@ struct GenotypeMap{
 	~GenotypeMap(){
 		for(int i=0; i<4; ++i){
 			delete[] genotypeMap[i];
+		}
+		for(int i=0; i<5; ++i){
 			delete[] contextMap[i];
 		}
 		delete[] genotypeMap;
