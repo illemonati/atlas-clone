@@ -413,11 +413,36 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         // retrieve reference index data
         const FastaIndexData& referenceData = Index.at(refId);
         
-        // validate stop position 
+        // validate stop position
+        //--------------------------------------------------------------------
+        //Modified by Dan Wegmann to return N is start / stop is outside fasta
+        //---------------------------------------------------------------------
+        /*
         if ( (start < 0) || (start > stop) || (stop > referenceData.Length) ) {
             cerr << "FASTA error: invalid start/stop positions specified: " << start << ", " << stop << endl;
             return false;
+        }*/
+        std::string addBefore = "";
+        std::string addAfter = "";
+        int thisStart = start;
+        int thisStop = stop;
+
+        if (start > stop) {
+			cerr << "FASTA error: invalid start/stop positions specified: " << start << ", " << stop << endl;
+			return false;
+		}
+
+        if(start < 0){
+        	for(int i=start; i<0; ++i) addBefore += 'N';
+        	thisStart = 0;
         }
+
+        if(stop > referenceData.Length){
+        	for(int i=referenceData.Length; i<stop; ++i) addAfter += 'N';
+        	thisStop = referenceData.Length;
+        }
+
+        //--------------------------------------------------------------------
         
         // seek to beginning of sequence data
         if ( fseeko(Stream, referenceData.Offset, SEEK_SET) != 0 ) {
@@ -433,8 +458,8 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         }
         
         // set sub-sequence & return success
-        const int seqLength = (stop - start) + 1;
-        sequence = fullSequence.substr(start, seqLength);
+        const int seqLength = (thisStop - thisStart) + 1;
+        sequence = addBefore + fullSequence.substr(thisStart, seqLength) + addAfter;
         return true;
     }
     

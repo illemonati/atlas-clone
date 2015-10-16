@@ -104,7 +104,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//read parameters
 	filename = params.getParameterString("bam");
 	windowSize = params.getParameterDouble("window");
-	if(windowSize < 1000) throw "Window size should be at least 1Kb!";
+	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
 	initializePostMortemDamage(params, logfile);
 
@@ -173,14 +173,19 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 bool TGenome::iterateWindow(TWindowPair & windowPair){
 	if(curEnd > 0) logfile->endIndent();
 
+	//swap window pairs
+	windowPair.swap();
+
 	//move to next region
 	curStart = curEnd;
 	curEnd += windowSize;
-	if(curEnd > chrLength) curEnd = chrLength + 1;
+	if(curEnd > chrLength){
+		curEnd = chrLength + 1;
+		windowPair.curPointer->end = curEnd;
+	}
 	if(curStart >= chrLength) return false;
 
-	//swap windows and move next
-	windowPair.swap();
+	//move next
 	windowPair.nextPointer->move(curEnd, curEnd + windowSize);
 
 	//report
