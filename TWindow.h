@@ -115,7 +115,7 @@ public:
 	bool sitesInitialized;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
 	TBaseFrequencies baseFreq;
-	GenotypeMap genoMap;
+	TGenotypeMap genoMap;
 
 	TWindow();
 	TWindow(long Start, long End);

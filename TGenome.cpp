@@ -340,7 +340,7 @@ void TGenome::printPileup(){
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
-	GenotypeMap genoMap;
+	TGenotypeMap genoMap;
 	out << "Chr\tposition\tcoverage\tbases";
 	for(int i=0; i<10; ++i)
 		out << "\tPem(" << genoMap.getGenotypeString(i) << ")";
