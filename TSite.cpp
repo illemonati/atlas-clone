@@ -299,22 +299,35 @@ void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 
 void TSite::callMLEGenotype(TPMD & pmdObject, GenotypeMap & genoMap, std::ofstream & out){
 	if(hasData){
+		//print coverage and read bases
+		out << "\t" << bases.size() << "\t" << getBases();
+
+		//calculate phred-scaled likelihoods and find max
 		calcEmissionProbabilities(pmdObject);
-		double maxGenotypeProb = 0.0;
-		double quality;
+		double maxGenotypeProb = 100000.0;
 		int MLGenotype;
-		out << "\t" << bases.size();
+		double quality = 100000.0;
 		for(int i=0; i<numGenotypes; ++i){
-			out << "\t" << emissionProbabilities[i];
-			if(emissionProbabilities[i] > maxGenotypeProb){
+			emissionProbabilities[i] = -10.0 * log10(emissionProbabilities[i]);
+			if(emissionProbabilities[i] < maxGenotypeProb){
 				MLGenotype = i;
+				quality = maxGenotypeProb;
 				maxGenotypeProb = emissionProbabilities[i];
+			} else if(emissionProbabilities[i] < quality){
+				quality = emissionProbabilities[i];
 			}
 		}
+
+		//now print normalized (max = 0)
+		for(int i=0; i<numGenotypes; ++i){
+			out << "\t" << round(emissionProbabilities[i] - maxGenotypeProb);
+		}
+
+		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
-		out << "\t" << quality;
+		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
-		out << "\t0\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-";
+		out << "\t0\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t0";
 	}
 
 }

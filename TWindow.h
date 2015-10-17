@@ -131,6 +131,7 @@ public:
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject);
 	void callMLEGenotype(TPMD & pmdObject, std::ofstream & out, std::string & chr);
+	void callMLEGenotypePrintAll(TPMD & pmdObject, std::ofstream & out, std::string & chr);
 	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);

@@ -371,6 +371,10 @@ bool TBQSR_cellQuality::estimate(double & convergenceThreshold){
 	if(estimationConverged) return estimationConverged;
 
 	//check if we only made errors or no errors, in which case epsilon is easily estimated
+	if(numObservations == 0){ //keep current estimate
+		estimationConverged = true;
+		return estimationConverged;
+	}
 	if(numMatches == numObservations){
 		curEstimate = 0.0;
 		estimationConverged = true;
@@ -451,14 +455,12 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	positionConverged = false;
 	contextConverged = false;
 	numContexts = 25;
-	initialError = params.getParameterDoubleWithDefault("initialError", 0.01);
-	logfile->list("Using an initial error of " + toString(initialError));
 
 	bool estimatetionRequired = false;
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
-	if(params.parameterExists("BQSRReadGroupQuality")){
-		initializeBQSRReadGroupQualityTable(params.getParameterString("BQSRReadGroupQuality"));
+	if(params.parameterExists("BQSRQuality")){
+		initializeBQSRReadGroupQualityTable(params.getParameterString("BQSRQuality"));
 		qualityConverged = true;
 	} else {
 		initializeBQSRReadGroupQualityTable(params);
@@ -510,7 +512,7 @@ int TRecalibrationBQSR::findReadGroupIndex(std::string & name){
 }
 
 void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(std::string filename){
-	logfile->listFlush("Constructing BQSR readGrpup x quality table from file '" + filename + "' ...");
+	logfile->listFlush("Constructing BQSR readGroup x quality table from file '" + filename + "' ...");
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open BQSR readGroup x quality table from file '" + filename + "'!";
 
@@ -548,14 +550,14 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(std::string filenam
 	//create corresponding objects
 	for(int i=0; i<numReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cellQuality[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(initialError, pmdObject);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(0.01, pmdObject);
 	}
 
 	//rewind file to beginning
 	file.clear();
 	file.seekg(0, file.beg); //rewind file to beginning
 	std::getline(file, tmp); //skip header
-	double error;
+	double quality;
 	int readGroup;
 
 	//now parse file again and set empirical quality
@@ -567,8 +569,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(std::string filenam
 			readGroup = findReadGroupIndex(vec[0]);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
-				error = stringToDouble(vec[3]);
-				BQSR_cells_readGroup_quality[readGroup][q].set(error);
+				quality = stringToDouble(vec[3]);
+				BQSR_cells_readGroup_quality[readGroup][q].set(dePhred(quality));
 			}
 		}
 	}
@@ -588,7 +590,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 	BQSR_cells_readGroup_quality = new TBQSR_cellQuality*[numReadGroups];
 	for(int i=0; i<numReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cellQuality[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(initialError, pmdObject);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), pmdObject);
 	}
 }
 
@@ -763,7 +765,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->maxQ + 1; ++q){
-			out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].curEstimate << "\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].numObservations << "\n";
+			out << it->ID << "\t" << q << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][qualityIndex->getIndex(q)].numObservations << "\n";
 		}
 	}
 	out.close();
@@ -776,7 +778,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 		for(int i=0; i<numReadGroups; ++i, ++it){
 			for(int p=0; p<maxPos; ++p){
-				out << it->ID << "\t" << p << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].numObservations << "\n";
+				out << it->ID << "\t" << p << "\tM\t" << makePhred(BQSR_cells_readGroup_position[i][p].curEstimate) << "\t" << BQSR_cells_readGroup_position[i][p].numObservations << "\n";
 			}
 		}
 		out.close();
@@ -790,7 +792,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 		for(int q=0; q<qualityIndex->maxQ + 1; ++q){
 			for(int c=0; c<numContexts; ++c){
-				out << it->ID << "\t" << q << "\tM\t" << BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].curEstimate << "\t" << BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].numObservations << "\n";
+				out << it->ID << "\t" << q << "\tM\t" << makePhred(BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].curEstimate) << "\t" << BQSR_cells_quality_context[qualityIndex->getIndex(q)][c].numObservations << "\n";
 			}
 		}
 		out.close();
@@ -804,4 +806,10 @@ bool TRecalibrationBQSR::allConverged(){
 	return true;
 }
 
+double TRecalibrationBQSR::getErrorRate(TBase* base){
+	double q = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	if(considerPosition) q *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
+	if(considerContext) q *= BQSR_cells_quality_context[qualityIndex->getIndex(base->quality)][base->context].curEstimate;
+	return q;
+}
 

@@ -8,93 +8,6 @@
 
 #include "TGenome.h"
 
-//---------------------------------------------------------------
-//TRecalSearch
-//---------------------------------------------------------------
-TRecalSearch::TRecalSearch(double Min, double Max, int Steps){
-	initialize(Min, Max, Steps, (Max-Min)/2.0);
-};
-
-TRecalSearch::TRecalSearch(double Min, double Max, int Steps, double Init){
-	initialize(Min, Max, Steps, Init);
-}
-
-void TRecalSearch::initialize(double & Min, double & Max, int & Steps, double Init){
-	initialMin = Min;
-	initialMax = Max;
-	min = initialMin;
-	max = initialMax;
-	range = max - min;
-	reductionFactor = 1.0;
-	best = Init;
-	steps = Steps;
-	search = new double[steps];
-	LL = new double[steps];
-	numRangeSteps = (steps - 1) / 2;
-	rangeSteps = new double[numRangeSteps];
-	double tmp = pow(1.0 / 2.0, numRangeSteps);
-	for(int i = 0; i<numRangeSteps; ++i){
-		rangeSteps[i] = tmp * range;
-		tmp = tmp * 2.0;
-	}
-	active = false;
-	changed = false;
-}
-
-void TRecalSearch::fillSearch(){
-	/*
-	double diff = (max - min) / ((double) steps - 1.0);
-	for(int j=0; j<steps; ++j){
-		search[j] = min + j*diff;
-		LL[j] = 0.0;
-	}
-	*/
-
-	search[numRangeSteps] = best;
-	for(int i=0; i<numRangeSteps; ++i){
-		search[numRangeSteps + i + 1] = best + rangeSteps[i] * reductionFactor;
-		search[numRangeSteps - i - 1] = best - rangeSteps[i] * reductionFactor;
-	}
-	//empty LL
-	for(int i=0; i<steps; ++i){
-		LL[i] = 0.0;
-	}
-	active = true;
-};
-
-bool TRecalSearch::optimizeNextSearch(){
-	//find best value
-	int bestIndex = 0;
-	double bestLL = LL[0];
-	for(int i=1; i<steps; ++i){
-		if(bestLL < LL[i]){
-			bestIndex = i;
-			bestLL = LL[i];
-		}
-	}
-	if(best != search[bestIndex]) changed = true;
-	else changed = false;
-	best = search[bestIndex];
-	reductionFactor = reductionFactor * 0.5;
-
-	//shrink next search to best +/- two steps
-	/*
-	double diff;
-	if(bestIndex > 1) diff = search[bestIndex] - search[bestIndex - 2];
-	else diff = search[bestIndex + 2] - search[bestIndex];
-
-	min = best - diff;
-	max = best + diff;
-	if(min < initialMin) min = initialMin;
-	if(max > initialMax) max = initialMax;
-	*/
-
-	//back to passive
-	active = false;
-
-	return changed;
-};
-
 //-------------------------------------------------------
 //TGenome
 //-------------------------------------------------------
@@ -382,11 +295,14 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	}
 }
 
-void TGenome::callMLEGenotypes(){
+void TGenome::callMLEGenotypes(TParameters & params){
 	//open output
 	std::ofstream out;
 	out.open((outputName + "_MLEGenotypes.txt").c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
+
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
 
 	//write header
 	out << std::setprecision(5);
@@ -402,8 +318,8 @@ void TGenome::callMLEGenotypes(){
 			readData(windows);
 
 			//call genotypes
-			windows.cur->callMLEGenotype(pmdObject, out, chrIterator->Name);
-
+			if(printIfNoData) windows.cur->callMLEGenotypePrintAll(pmdObject, out, chrIterator->Name);
+			else windows.cur->callMLEGenotype(pmdObject, out, chrIterator->Name);
 		}
 	}
 
@@ -639,7 +555,7 @@ void TGenome::BQSR(TParameters & params){
 
 	//open FASTA reference
 	std::string fastaFile = params.getParameterString("fasta");
-	std::string fastaIndex = params.getParameterString("fai");
+	std::string fastaIndex = fastaFile + ".fai";
 	BamTools::Fasta reference;
 	reference.Open(fastaFile, fastaIndex);
 

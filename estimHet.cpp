@@ -66,7 +66,7 @@ int main(int argc, char* argv[]){
 			genome.BQSR(myParameters);
 		} else if(task=="call"){
 			logfile.startIndent("Calling MLE Genotypes:");
-			genome.callMLEGenotypes();
+			genome.callMLEGenotypes(myParameters);
 		} else throw "Unknown task '" + task + "'!";
 		logfile.endIndent();
 

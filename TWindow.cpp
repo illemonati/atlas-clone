@@ -164,11 +164,20 @@ void TWindow::calculateEmissionProbabilities(TPMD & pmdObject){
 
 void TWindow::callMLEGenotype(TPMD & pmdObject, std::ofstream & out, std::string & chr){
 	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			out << chr << "\t" << start + i;
+			sites[i].callMLEGenotype(pmdObject, genoMap, out);
+			out << "\n";
+		}
+	}
+}
+
+void TWindow::callMLEGenotypePrintAll(TPMD & pmdObject, std::ofstream & out, std::string & chr){
+	for(int i=0; i<length; ++i){
 		out << chr << "\t" << start + i;
 		sites[i].callMLEGenotype(pmdObject, genoMap, out);
 		out << "\n";
 	}
-
 }
 
 void TWindow::printPileup(TPMD & pmdObject, std::ofstream & out, std::string & chr){

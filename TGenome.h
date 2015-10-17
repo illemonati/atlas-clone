@@ -12,47 +12,6 @@
 #include "TRecalibration.h"
 
 //---------------------------------------------------------------
-//TRecalSearch
-//---------------------------------------------------------------
-class TRecalSearch{
-public:
-	double best;
-	double min, max;
-	double initialMin, initialMax;
-	double range;
-	double reductionFactor;
-	double* rangeSteps;
-	int steps, numRangeSteps;
-	double* search;
-	double* LL;
-	bool active;
-	bool changed;
-
-	TRecalSearch(double Min, double Max, int Steps);
-	TRecalSearch(double Min, double Max, int Steps, double init);
-	~TRecalSearch(){
-		delete[] search;
-		delete[] LL;
-		delete[] rangeSteps;
-	};
-	void initialize(double & Min, double & Max, int & Steps, double Init);
-
-	void fillSearch();
-	bool optimizeNextSearch();
-	double& at(int index){
-		if(active) return search[index];
-		else return best;
-	};
-	void addLL(double value, int index){
-		LL[index] += value;
-	};
-	double& atLL(int index){
-		return LL[index];
-	};
-};
-
-
-//---------------------------------------------------------------
 //TGenome
 //---------------------------------------------------------------
 class TGenome{
@@ -88,7 +47,7 @@ public:
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
-	void callMLEGenotypes();
+	void callMLEGenotypes(TParameters & params);
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);

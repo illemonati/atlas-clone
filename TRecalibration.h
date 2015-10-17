@@ -10,12 +10,74 @@
 
 #include "bamtools/api/BamReader.h"
 #include "TSite.h"
-//#include "TLog.h"
+
+
+//---------------------------------------------------------------
+//TQualityIndex
+//---------------------------------------------------------------
+class TQualityIndex{
+public:
+	int minQ, maxQ, numQ, last;
+	int* index;
+
+	TQualityIndex(int MinQ, int MaxQ){
+		minQ= MinQ;
+		maxQ = MaxQ;
+		numQ = maxQ - minQ + 1;
+		last = numQ - 1;
+
+		//fill index
+		index = new int[maxQ + 1];
+		for(int i=0; i < maxQ + 1; ++i){
+			if(i < minQ) index[i] = 0;
+			else index[i] = i - minQ;
+		}
+	};
+
+	~TQualityIndex(){
+		delete[] index;
+	};
+
+	int& getIndex(int & quality){
+		if(quality > maxQ) return last;
+		return index[quality];
+	};
+
+	int getQuality(int & index){
+		if(index > numQ) return maxQ;
+		return minQ + index;
+	};
+};
+
+
+//---------------------------------------------------------------
+//TRecalibration: default = no recalibration
+//---------------------------------------------------------------
+class TRecalibration{
+public:
+
+	TRecalibration(){};
+	virtual ~TRecalibration(){};
+
+	int makePhredInt(double & epsilon){
+		return round(-10.0 * log10(epsilon));
+	};
+
+	double makePhred(double & epsilon){
+		if(epsilon < 0.0000000001) return 100.0;
+		return -10.0 * log10(epsilon);
+	};
+
+	double dePhred(double quality){
+		return pow(10.0, (double) quality / -10.0);
+	};
+	virtual double getErrorRate(TBase* base){ return dePhred(base->quality); };
+};
 
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
-class TBase;
+
 class TRecalibrationEM{
 public:
 	int numParams;
@@ -57,35 +119,6 @@ public:
 //covariates to take into account:
 // - read base (A, G, C, T)
 // -
-
-class TQualityIndex{
-public:
-	int minQ, maxQ, numQ, last;
-	int* index;
-
-	TQualityIndex(int MinQ, int MaxQ){
-		minQ= MinQ;
-		maxQ = MaxQ;
-		numQ = maxQ - minQ + 1;
-		last = numQ - 1;
-
-		//fill index
-		index = new int[maxQ + 1];
-		for(int i=0; i < maxQ + 1; ++i){
-			if(i < minQ) index[i] = 0;
-			else index[i] = i - minQ;
-		}
-	};
-
-	~TQualityIndex(){
-		delete[] index;
-	};
-
-	int& getIndex(int & quality){
-		if(quality > maxQ) return last;
-		return index[quality];
-	};
-};
 
 class TBQSR_cellQuality{
 public:
@@ -135,14 +168,13 @@ public:
 };
 
 
-class TRecalibrationBQSR{
+class TRecalibrationBQSR:public TRecalibration{
 private:
 	TQualityIndex* qualityIndex;
 	BamTools::SamHeader* bamHeader;
 	TLog* logfile;
 	TPMD* pmdObject;
 	int numReadGroups;
-	double initialError;
 	double convergenceThreshold;
 	bool estimationConverged;
 	int maxPos;
@@ -192,6 +224,7 @@ public:
 	bool estimateEpsilon();
 	void writeToFile(std::string filenameTag);
 	bool allConverged();
+	double getErrorRate(TBase* base);
 };
 
 
