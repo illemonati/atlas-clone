@@ -10,6 +10,7 @@
 
 #include "TWindow.h"
 #include "TRecalibration.h"
+#include "gzstream.h"
 
 //---------------------------------------------------------------
 //TGenome

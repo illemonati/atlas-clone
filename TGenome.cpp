@@ -297,8 +297,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 void TGenome::callMLEGenotypes(TParameters & params){
 	//open output
-	std::ofstream out;
-	out.open((outputName + "_MLEGenotypes.txt").c_str());
+	gz::ogzstream out((outputName + "_MLEGenotypes.txt.gz").c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//do we print sites with no data?
@@ -325,8 +324,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 	//clean up
 	out.close();
-
-
 }
 
 void TGenome::printPileup(){

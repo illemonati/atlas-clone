@@ -59,10 +59,11 @@ void TSite::calcEmissionProbabilities(TPMD & pmdObject){
 	}
 }
 
-void TSite::callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, std::ofstream & out){
+void TSite::callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, gz::ogzstream & out){
 	if(hasData){
 		//print coverage and read bases
-		out << "\t" << bases.size() << "\t" << getBases();
+		out << "\t" << bases.size();
+		//out << "\t" << getBases(); //printing data for debugging
 
 		//calculate phred-scaled likelihoods and find max
 		calcEmissionProbabilities(pmdObject);

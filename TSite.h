@@ -15,6 +15,7 @@
 #include "TParameters.h"
 #include "TGenotypeMap.h"
 #include "TBase.h"
+#include "gzstream.h"
 
 //---------------------------------------------------------------
 //TSite
@@ -51,7 +52,7 @@ public:
 	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities(TPMD & pmdObject);
-	void callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, std::ofstream & out);
+	void callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, gz::ogzstream & out);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
