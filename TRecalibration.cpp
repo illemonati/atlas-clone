@@ -35,7 +35,6 @@ TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
 	logfile->list("beta2 = " + toString(params[2]));
 
 	//gammas -> start all at 0 by default
-	/*
 	params[3] = arguments->getParameterDoubleWithDefault("initGammaA", 0);
 	logfile->list("gammaA = " + toString(params[3]));
 	params[4] = arguments->getParameterDoubleWithDefault("initGammaC", 0);
@@ -44,7 +43,6 @@ TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
 	logfile->list("gammaG = " + toString(params[5]));
 	params[6] = arguments->getParameterDoubleWithDefault("initGammaT", 0);
 	logfile->list("gammaT = " + toString(params[6]));
-	*/
 	logfile->endIndent();
 };
 
@@ -81,7 +79,11 @@ double TRecalibrationEM::calcEta(TBase* base){
 
 double TRecalibrationEM::calcEta(TBase* base, double* theseParams){
 	//function transform log error
-	double eta = theseParams[0] + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
+
+	throw "ERROR in TRecalibrationEM::calcEta!";
+	//TODO: find other way to calculate transformedLogError and add back what is commented out below
+
+	double eta = theseParams[0]; // + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
 	//eta += theseParams[base->getBaseAsEnum() + 3];
 	return eta;
 }
@@ -122,6 +124,10 @@ void TRecalibrationEM::saveParams(){
 void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
 	//adds terms to Jacobian for one site (hence a vector of bases that were read)
 	//assumes bases to be haploid! -> program does not throw an error if they are not!
+
+	//TODO: find different way to get a log transformed error.
+
+	/*
 	double epsilon;
 	double epsilonThird;
 
@@ -178,12 +184,10 @@ void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseF
 		//Note that the derivative is zero for all other bases
 		g = (*it)->getBaseAsEnum();
 		nucIndex = g + 3;
-		/*
 		Jacobian(nucIndex, nucIndex) -= tmp;
 		Jacobian(0, nucIndex) -= tmp;
 		Jacobian(1, nucIndex) -= tmp * (*it)->transformedLogError;
 		Jacobian(2, nucIndex) -= tmp * (*it)->posInRead;
-		 */
 
 		//now add to F -> need to add for all genotypes, but with different term
 		weightFcorrect = -1.0 / (1.0 + exp(-eta));
@@ -204,6 +208,7 @@ void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseF
 	}
 
 	++numSitesAdded;
+	*/
 }
 
 void TRecalibrationEM::runNewtonRalphson(){
@@ -295,7 +300,6 @@ void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFre
 	}
 	logLikelihood += log(ll);
 }
-
 
 //---------------------------------------------------------------
 //TRecalibrationBQSR_cell BQSR
@@ -818,18 +822,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTable(TParameters & param
 void TRecalibrationBQSR::addSite(TSite & site){
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
-
-		//---------------------------
-		/*
-		if(!surfaceCalculated){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				for(int i=0; i<numLLSurfacePoints; ++i){
-					LLSurface[i].addBase(*it, refBase);
-				}
-			}
-		}
-		*/
-		//---------------------------
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				BQSR_cells_readGroup_quality[(*it)->readGroup][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
@@ -853,21 +845,6 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 	estimationConverged = true;
 	int numCellsNotConverged = 0;
 	double maxF = 0.0;
-
-	//---------------------------
-	//LL surface
-	//---------------------------
-	/*
-	if(!surfaceCalculated){
-		double delta = 5.0 / (numLLSurfacePoints - 1.0);
-		std::ofstream llFile("llsurface.txt");
-		for(int i=0; i<numLLSurfacePoints; ++i){
-			llFile << std::setprecision(10) << 0.1 + i*delta << "\t" << LLSurface[i].LL << "\t" << LLSurface[i].firstDerivative << "\t" << LLSurface[i].secondDerivative << std::endl;
-		}
-		llFile.close();
-	}
-	*/
-	//---------------------------
 
 	//readGroup x quality
 	//-------------------------------------------------------

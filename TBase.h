@@ -51,8 +51,8 @@ public:
 class TBase{
 public:
 	int quality;
-	double errorRate;
-	double transformedLogError;
+	//double errorRate;
+	//double transformedLogError;
 	int posInRead; //zero based!
 	int pos5, pos3; //is distance and starts at 1 for position = 0
 	int readGroup;
@@ -60,8 +60,8 @@ public:
 
 	TBase(char & Quality, int & PosInRead, int & Pos5, int & Pos3, BaseContext & Context, int & ReadGroup){
 		quality = (int) Quality - 33;
-		errorRate = pow(10.0, (double) quality / -10.0);
-		transformedLogError = -log(1.0 / errorRate - 1.0);
+		//errorRate = pow(10.0, (double) quality / -10.0);
+		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
 		pos5 = Pos5;
 		pos3 = Pos3;
@@ -71,17 +71,8 @@ public:
 
 	virtual ~TBase(){};
 
-	void update(char & Quality, int & PosInRead, int & Pos5, int & Pos3, TPMD & pmdObject){
-		quality = (int) Quality - 33;
-		errorRate = pow(10.0, (double) quality / -10.0);
-		posInRead = PosInRead;
-		pos5 = Pos5;
-		pos3 = Pos3;
-		fillEmissionProbabilities(pmdObject);
-	};
-
-	void fillEmissionProbabilities(TPMD & pmdObject);
-	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate){
+	//void fillEmissionProbabilities(TPMD & pmdObject);
+	virtual void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate){
 		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
 	};
 	virtual char getBase(){ return '?'; };
@@ -130,7 +121,7 @@ public:
 	char getBase(){ return 'A'; };
 	Base getBaseAsEnum(){ return A;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 class TBaseHaploidA:public TBaseHaploid{
 public:
@@ -138,7 +129,7 @@ public:
 	char getBase(){ return 'A'; };
 	Base getBaseAsEnum(){ return A;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 //---------------------------------------------------------------
 class TBaseDiploidC:public TBaseDiploid{
@@ -147,7 +138,7 @@ public:
 	char getBase(){ return 'C'; };
 	Base getBaseAsEnum(){ return C;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 class TBaseHaploidC:public TBaseHaploid{
 public:
@@ -155,7 +146,7 @@ public:
 	char getBase(){ return 'C'; };
 	Base getBaseAsEnum(){ return C;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 //---------------------------------------------------------------
 class TBaseDiploidG:public TBaseDiploid{
@@ -164,7 +155,7 @@ public:
 	char getBase(){ return 'G'; };
 	Base getBaseAsEnum(){ return G;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 class TBaseHaploidG:public TBaseHaploid{
 public:
@@ -172,7 +163,7 @@ public:
 	char getBase(){ return 'G'; };
 	Base getBaseAsEnum(){ return G;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 //---------------------------------------------------------------
 class TBaseDiploidT:public TBaseDiploid{
@@ -181,7 +172,7 @@ public:
 	char getBase(){ return 'T'; };
 	Base getBaseAsEnum(){ return T;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 class TBaseHaploidT:public TBaseHaploid{
 public:
@@ -189,7 +180,7 @@ public:
 	char getBase(){ return 'T'; };
 	Base getBaseAsEnum(){ return T;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
-	void fillEmissionProbabilitiesCore(TPMD & pmdObject, const double & thisErrorRate);
+	void fillEmissionProbabilitiesCore(TPMD & pmdObject, double thisErrorRate);
 };
 
 

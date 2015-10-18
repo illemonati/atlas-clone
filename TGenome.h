@@ -20,9 +20,11 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);
-	void initializePostMortemDamage(TParameters & params, TLog* logfile);
+	void initializePostMortemDamage(TParameters & params);
+	void initializeRecalibration(TParameters & params);
 
 	TPMD pmdObject;
+	TRecalibration* recalObject;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
@@ -45,6 +47,7 @@ public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
 		if(doMasking) delete mask;
+		delete recalObject;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);

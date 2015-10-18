@@ -47,26 +47,25 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	}
 }
 
-void TSite::calcEmissionProbabilities(TPMD & pmdObject){
+void TSite::calcEmissionProbabilities(){
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilities[i] = 1.0;
 	}
 	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->fillEmissionProbabilities(pmdObject);
 		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
 		}
 	}
 }
 
-void TSite::callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, gz::ogzstream & out){
+void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
 	if(hasData){
 		//print coverage and read bases
 		out << "\t" << bases.size();
 		//out << "\t" << getBases(); //printing data for debugging
 
 		//calculate phred-scaled likelihoods and find max
-		calcEmissionProbabilities(pmdObject);
+		//calcEmissionProbabilities(pmdObject);
 		double maxGenotypeProb = 100000.0;
 		int MLGenotype;
 		double quality = 100000.0;

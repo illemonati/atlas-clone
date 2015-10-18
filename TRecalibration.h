@@ -11,7 +11,6 @@
 #include "bamtools/api/BamReader.h"
 #include "TSite.h"
 
-
 //---------------------------------------------------------------
 //TQualityIndex
 //---------------------------------------------------------------
@@ -50,13 +49,11 @@ public:
 	};
 };
 
-
 //---------------------------------------------------------------
 //TRecalibration: default = no recalibration
 //---------------------------------------------------------------
 class TRecalibration{
 public:
-
 	TRecalibration(){};
 	virtual ~TRecalibration(){};
 
@@ -69,16 +66,23 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 
-	double dePhred(double quality){
+	double dePhred(int quality){
 		return pow(10.0, (double) quality / -10.0);
 	};
-	virtual double getErrorRate(TBase* base){ return dePhred(base->quality); };
+	virtual double getErrorRate(TBase* base){
+		return dePhred(base->quality);
+	};
+	void calcEmissionProbabilities(TSite & site, TPMD & pmdObject){
+		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+			(*it)->fillEmissionProbabilitiesCore(pmdObject, getErrorRate(*it));
+		}
+		site.calcEmissionProbabilities();
+	};
 };
 
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
-
 class TRecalibrationEM{
 public:
 	int numParams;

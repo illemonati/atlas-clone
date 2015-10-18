@@ -19,7 +19,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	windowSize = params.getParameterDouble("window");
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
-	initializePostMortemDamage(params, logfile);
+	initializePostMortemDamage(params);
+	initializeRecalibration(params);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -169,7 +170,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 	return true;
 };
 
-void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
+void TGenome::initializePostMortemDamage(TParameters & params){
 	std::string pmdString;
 	if(params.parameterExists("pmd")){
 		pmdString = params.getParameterString("pmd");
@@ -202,6 +203,13 @@ void TGenome::initializePostMortemDamage(TParameters & params, TLog* logfile){
 	}
 }
 
+void TGenome::initializeRecalibration(TParameters & params){
+	if(params.parameterExists("BQSRQuality")){
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, &pmdObject, logfile);
+	} else {
+		recalObject = new TRecalibration();
+	}
+}
 
 void TGenome::estimateTheta(TParameters & params){
 	//EM params
@@ -243,7 +251,7 @@ void TGenome::estimateTheta(TParameters & params){
 			} else {
 				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, pmdObject, out, logfile);
+				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
 			}
 		}
 	}
@@ -280,7 +288,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 				//calc surface
 				logfile->listFlush("Calculating likelihood surface ...");
-				windows.cur->calcLikelihoodSurface(pmdObject, out, steps);
+				windows.cur->calcLikelihoodSurface(pmdObject, recalObject, out, steps);
 				logfile->write(" done!");
 
 				//close output
@@ -297,8 +305,10 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 void TGenome::callMLEGenotypes(TParameters & params){
 	//open output
-	gz::ogzstream out((outputName + "_MLEGenotypes.txt.gz").c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	std::string filename = outputName + "_MLEGenotypes.txt.gz";
+	logfile->list("Writing MLE genotypes to '" + filename + "'");
+	gz::ogzstream out(filename.c_str());
+	if(!out) throw "Failed to open output file '" + filename + "'!";
 
 	//do we print sites with no data?
 	bool printIfNoData = params.parameterExists("printAll");
@@ -317,8 +327,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			readData(windows);
 
 			//call genotypes
-			if(printIfNoData) windows.cur->callMLEGenotypePrintAll(pmdObject, out, chrIterator->Name);
-			else windows.cur->callMLEGenotype(pmdObject, out, chrIterator->Name);
+			if(printIfNoData) windows.cur->callMLEGenotypePrintAll(pmdObject, recalObject, out, chrIterator->Name);
+			else windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name);
 		}
 	}
 
@@ -350,7 +360,7 @@ void TGenome::printPileup(){
 			readData(windows);
 
 			//print pileup
-			windows.cur->printPileup(pmdObject, out, chrIterator->Name);
+			windows.cur->printPileup(pmdObject, recalObject, out, chrIterator->Name);
 		}
 	}
 
@@ -358,10 +368,13 @@ void TGenome::printPileup(){
 	out.close();
 }
 
+
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//Initialize calibration parameters.
 	//We assume a linear model log(error) = eta = beta_0 + beta_1 * quality + beta_2 * position in reads
 	//                                            + gamma_A * Ind(d = A) + gamma_C * Ind(d = C) + gamma_G * Ind(d = G) + gamma_T * Ind(d = T)
+
+	/*
 
 	//read EM parameters
 	int numEMIterations = params.getParameterIntWithDefault("iterations", 10);
@@ -438,6 +451,8 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 
 	//clean up
 	out.close();
+
+	*/
 }
 
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
@@ -460,6 +475,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 }
 
 void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
+	/*
 	//read vectors of betas to test
 	logfile->startIndent("Will calculate likelihood on a grid with these marginal ranges:");
 	logfile->startIndent("Will calculate LL for these parameter values:");
@@ -538,14 +554,12 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 
 	//clean up
 	out.close();
+	*/
 }
 
 void TGenome::BQSR(TParameters & params){
 	//read vectors of betas to test
 	logfile->startIndent("Estimating recalibration parameters:");
-
-	//create recalibration object
-	TRecalibrationEM recalObject(logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;

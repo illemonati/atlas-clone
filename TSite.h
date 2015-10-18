@@ -51,8 +51,8 @@ public:
 		return N;
 	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
-	void calcEmissionProbabilities(TPMD & pmdObject);
-	void callMLEGenotype(TPMD & pmdObject, TGenotypeMap & genoMap, gz::ogzstream & out);
+	void calcEmissionProbabilities();
+	void callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out);
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();

@@ -129,10 +129,10 @@ public:
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
-	void calculateEmissionProbabilities(TPMD & pmdObject);
-	void callMLEGenotype(TPMD & pmdObject, gz::ogzstream & out, std::string & chr);
-	void callMLEGenotypePrintAll(TPMD & pmdObject, gz::ogzstream & out, std::string & chr);
-	void printPileup(TPMD & pmd, std::ofstream & out, std::string & chr);
+	void calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* recalObject);
+	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
+	void callMLEGenotypePrintAll(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
+	void printPileup(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
@@ -150,8 +150,8 @@ public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TPMD & pmd, std::ofstream & out, TLog* logfile);
-	void calcLikelihoodSurface(TPMD & pmd, std::ofstream & out, int & steps);
+	void estimateTheta(EMParameters & constants, TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
+	void calcLikelihoodSurface(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, int & steps);
 };
 
 class TWindowHaploid:public TWindow{
