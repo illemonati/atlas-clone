@@ -183,6 +183,7 @@ private:
 	BamTools::SamHeader* bamHeader;
 	TLog* logfile;
 	TPMD* pmdObject;
+	TGenotypeMap genoMap;
 	int numReadGroups;
 	bool estimatetionRequired;
 	double convergenceThreshold;
@@ -196,7 +197,7 @@ private:
 	bool considerPosition, positionConverged;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
 	bool considerContext, contextConverged;
-	TBQSR_cellContext** BQSR_cells_quality_context; //quality x context
+	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
 
 	//-------------------------
 	/*
@@ -211,8 +212,8 @@ private:
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
 	void initializeBQSRReadGroupPositionTable(std::string filename);
 	void initializeBQSRReadGroupPositionTable(TParameters & params);
-	bool estimateInAllCells(TBQSR_cell** cells, const int & lengthFirstDimension, const int & lengthSecondDimension);
-	void emptyAllCells(TBQSR_cell** cells, const int & lengthFirstDimension, const int & lengthSecondDimension);
+	void initializeBQSRReadGroupContextTable(std::string filename);
+	void initializeBQSRReadGroupContextTable(TParameters & params);
 
 public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
@@ -231,10 +232,10 @@ public:
 		}
 
 		if(considerContext){
-			for(int i=0; i<qualityIndex->numQ; ++i){
-				delete[] BQSR_cells_quality_context[i];
+			for(int i=0; i<numReadGroups; ++i){
+				delete[] BQSR_cells_readGroup_context[i];
 			}
-			delete[] BQSR_cells_quality_context;
+			delete[] BQSR_cells_readGroup_context;
 		}
 	};
 

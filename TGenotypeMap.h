@@ -12,7 +12,7 @@
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
-enum BaseContext {cAA=0, cAC, cAG, cAT, cAN, cCA, cCC, cCG, cCT, cCN, cGA, cGC, cGG, cGT, cGN, cTA, cTC, cTG, cTT, cTN, cNA, cNC, cNG, cNT, cNN}; //N means "nothing", i.e. end of read or del
+enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT,cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT}; //N means "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap
@@ -42,12 +42,12 @@ public:
 		//create context map
 		contextMap = new BaseContext*[5];
 		for(int i=0; i<5; ++i)
-			contextMap[i] = new BaseContext[5];
+			contextMap[i] = new BaseContext[4];
 
 		//fill context map
 		int context = 0;
 		for(int i=0; i<5; ++i){
-			for(int j=0; j<5; ++j){
+			for(int j=0; j<4; ++j){
 				contextMap[i][j] = static_cast<BaseContext>(context);
 				++context;
 			}
@@ -92,7 +92,7 @@ public:
 		if(num==7) return "GG";
 		if(num==8) return "GT";
 		if(num==9) return "TT";
-		throw "GenotypeMap: Unknwon genotype with number " + toString(num) + "!";
+		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
 	BaseContext getContext(Base first, Base second){
@@ -105,6 +105,30 @@ public:
 
 	BaseContext getContext(char first, char second){
 		return contextMap[getBase(first)][getBase(second)];
+	};
+
+	std::string getContextString(int num){
+		if(num==0) return "AA";
+		if(num==1) return "AC";
+		if(num==2) return "AG";
+		if(num==3) return "AT";
+		if(num==4) return "CA";
+		if(num==5) return "CC";
+		if(num==6) return "CG";
+		if(num==7) return "CT";
+		if(num==8) return "GA";
+		if(num==9) return "GC";
+		if(num==10) return "GG";
+		if(num==11) return "GT";
+		if(num==12) return "TA";
+		if(num==13) return "TC";
+		if(num==14) return "TG";
+		if(num==15) return "TT";
+		if(num==16) return "-A";
+		if(num==17) return "-C";
+		if(num==18) return "-G";
+		if(num==19) return "-T";
+		throw "GenotypeMap: Unknown text with number " + toString(num) + "!";
 	};
 };
 

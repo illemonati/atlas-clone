@@ -102,13 +102,13 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 		//figure out context (base + previous base)
 		base = bamAlignement.AlignedBases.at(pos);
 		if(bamAlignement.IsReverseStrand()){
-			if(pos >= bamAlignement.AlignedBases.length()) context = genoMap.getContext(base, 'N');
-			else context = genoMap.getContext(base, bamAlignement.AlignedBases.at(pos + 1));
+			if(pos >= bamAlignement.AlignedBases.length()) context = genoMap.getContext('N', base);
+			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
 
 			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, len - pos, pos + 1, context, readGroupId);
 		} else {
-			if(pos == 0) context = genoMap.getContext(base, 'N');
-			else context = genoMap.getContext(base, bamAlignement.AlignedBases.at(pos - 1));
+			if(pos == 0) context = genoMap.getContext('N', base);
+			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
 			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, pos + 1, len - pos, context, readGroupId);
 		}
 	}
