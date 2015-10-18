@@ -68,11 +68,14 @@ int main(int argc, char* argv[]){
 			logfile.startIndent("Calling MLE Genotypes:");
 			genome.callMLEGenotypes(myParameters);
 		} else throw "Unknown task '" + task + "'!";
-		logfile.endIndent();
+		logfile.clearIndent();
 
 		//write unsused parameters
 		std::string unusedParams=myParameters.getListOfUnusedParameters();
-		if(unusedParams!="") logfile.warning("The following parameters were not used: " + unusedParams + "!");
+		if(unusedParams!=""){
+			logfile.newLine();
+			logfile.warning("The following parameters were not used: " + unusedParams + "!");
+		}
     }
 	catch (std::string & error){
 		logfile.error(error);

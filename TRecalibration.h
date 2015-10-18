@@ -17,7 +17,7 @@
 //---------------------------------------------------------------
 class TQualityIndex{
 public:
-	int minQ, maxQ, numQ, last;
+	int minQ, maxQ, numQ, last, first;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
@@ -25,6 +25,7 @@ public:
 		maxQ = MaxQ;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
+		first = 0;
 
 		//fill index
 		index = new int[maxQ + 1];
@@ -120,37 +121,45 @@ public:
 // - read base (A, G, C, T)
 // -
 
-class TBQSR_cellQuality{
+class TBQSR_cell{
+private:
+	long numMatches;
+	void addToDerivatives(TBase* base, Base & RefBase);
+
 public:
 	double curEstimate;
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
 	TPMD* pmdObject;
 	long numObservations;
-	long numMatches;
-	double F;
-	//double LL;
 
-	TBQSR_cellQuality();
-	virtual ~TBQSR_cellQuality(){};
+	double F;
+	double LL;
+
+	TBQSR_cell();
+	virtual ~TBQSR_cell(){};
 	void empty();
 	void init(double initialError, TPMD* PmdObject);
 	void set(double error){curEstimate = error;};
-	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
+	void set(double error, long NumObservations){curEstimate = error; numObservations=NumObservations;};
+	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
-	bool estimate(double & convergenceThreshold);
+	void runNewtonRalphson(double & convergenceThreshold);
+	virtual bool estimate(double & convergenceThreshold);
 };
 
-class TBQSR_cellPosition:public TBQSR_cellQuality{
+class TBQSR_cellPosition:public TBQSR_cell{
 public:
-	TBQSR_cellQuality** BQSR_cells_readGroup_quality; //read group x quality
+	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	TQualityIndex* qualityIndex;
 
 	TBQSR_cellPosition();
 	~TBQSR_cellPosition(){};
 
-	void init(TBQSR_cellQuality** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
 	void addBase(TBase* base, Base & RefBase);
+	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
+	bool estimate(double & convergenceThreshold);
 };
 
 
@@ -162,8 +171,8 @@ public:
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
-	void init(TBQSR_cellQuality** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, TPMD* PmdObject);
-	void init(TBQSR_cellQuality** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, TPMD* PmdObject);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
 	void addBase(TBase* base, Base & RefBase);
 };
 
@@ -175,6 +184,7 @@ private:
 	TLog* logfile;
 	TPMD* pmdObject;
 	int numReadGroups;
+	bool estimatetionRequired;
 	double convergenceThreshold;
 	bool estimationConverged;
 	int maxPos;
@@ -182,19 +192,27 @@ private:
 
 	//recal tables
 	bool qualityConverged;
-	TBQSR_cellQuality** BQSR_cells_readGroup_quality; //read group x quality
+	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	bool considerPosition, positionConverged;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
 	bool considerContext, contextConverged;
 	TBQSR_cellContext** BQSR_cells_quality_context; //quality x context
 
 	//-------------------------
-	//TBQSR_cellQuality* LLSurface; //read group x quality to calc LL surface
+	/*
+	TBQSR_cellPosition* LLSurface;
+	int numLLSurfacePoints;
+	bool surfaceCalculated;
+	*/
 	//-------------------------
 
 	int findReadGroupIndex(std::string & name);
 	void initializeBQSRReadGroupQualityTable(std::string filename);
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
+	void initializeBQSRReadGroupPositionTable(std::string filename);
+	void initializeBQSRReadGroupPositionTable(TParameters & params);
+	bool estimateInAllCells(TBQSR_cell** cells, const int & lengthFirstDimension, const int & lengthSecondDimension);
+	void emptyAllCells(TBQSR_cell** cells, const int & lengthFirstDimension, const int & lengthSecondDimension);
 
 public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
