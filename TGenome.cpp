@@ -315,7 +315,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool printIfNoData = params.parameterExists("printAll");
 
 	//write header
-	out << std::setprecision(5);
+	out << std::setprecision(3);
 	out << "chr\tpos\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 
 	//prepare windows
@@ -331,7 +331,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			logfile->listFlush("Calling MLE genotypes ...");
 			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData);
 			logfile->write(" done!");
-
 		}
 	}
 

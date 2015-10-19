@@ -60,7 +60,7 @@ void TSite::calcEmissionProbabilities(){
 
 void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
 	if(hasData){
-		//print coverage and read bases
+		//print coverage (and read bases)
 		out << "\t" << bases.size();
 		//out << "\t" << getBases(); //printing data for debugging
 
@@ -89,7 +89,58 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
 		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
-		out << "\t0\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t-\t0";
+		out << "\t0";
+		for(int i=0; i<numGenotypes; ++i) out << "\t-";
+		out << "\t-\t0";
+	}
+}
+
+void TSiteDiploid::callMLEAllelePresence(TGenotypeMap & genoMap, gz::ogzstream & out){
+
+	//TODO: not correct this way. Need Weighted sum, but where to get the weights from?
+
+	if(hasData){
+		//print coverage (and read bases)
+		out << "\t" << bases.size();
+		out << "\t" << getBases(); //printing data for debugging
+
+		//calculate likelihoods for allele presence
+		double likelihoods[4];
+		likelihoods[0] = emissionProbabilities[0] + emissionProbabilities[1] + emissionProbabilities[2] + emissionProbabilities[3]; //A
+		likelihoods[1] = emissionProbabilities[1] + emissionProbabilities[4] + emissionProbabilities[5] + emissionProbabilities[6]; //C
+		likelihoods[2] = emissionProbabilities[2] + emissionProbabilities[5] + emissionProbabilities[7] + emissionProbabilities[8]; //G
+		likelihoods[3] = emissionProbabilities[3] + emissionProbabilities[6] + emissionProbabilities[8] + emissionProbabilities[9]; //T
+
+		//calculate phred-scaled likelihoods and find max
+		//calcEmissionProbabilities(pmdObject);
+		double maxGenotypeProb = 0.0;
+		int MLAllele;
+		for(int i=0; i<4; ++i){
+			if(likelihoods[i] > maxGenotypeProb){
+				MLAllele = i;
+				maxGenotypeProb = likelihoods[i];
+			}
+		}
+
+		//quality = 1 - prob
+		double quality = 1.0 - likelihoods[MLAllele];
+
+		//phred scale and normalize
+		for(int i=0; i<4; ++i){
+			likelihoods[i] = -10.0 * log10(likelihoods[i]);
+		}
+
+		//now print normalized (max = 0)
+		for(int i=0; i<4; ++i){
+			out << "\t" << round(likelihoods[i] - likelihoods[MLAllele]);
+		}
+
+		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
+		out << "\t" << genoMap.getGenotypeString(MLAllele);
+		//out << "\t" << round(-10.0 * log10(quality));
+		out << "\t" << quality;
+	} else {
+		out << "\t0\t-\t-\t-\t-\t-\t0";
 	}
 
 }

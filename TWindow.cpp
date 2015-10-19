@@ -268,6 +268,26 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
+void TWindow::callMLEAllelePresence(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll){
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			out << chr << "\t" << start + i;
+			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i], pmdObject);
+			sites[i].callMLEAllelePresence(genoMap, out);
+			out << "\n";
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i;
+				recalObject->calcEmissionProbabilities(sites[i], pmdObject);
+				sites[i].callMLEAllelePresence(genoMap, out);
+				out << "\n";
+			}
+		}
+	}
+}
+
 void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, TRecalibration* recalObject, std::ofstream & out, TLog* logfile){
 	logfile->startIndent("Estimating Theta:");
 
