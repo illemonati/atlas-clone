@@ -162,23 +162,23 @@ void TWindow::calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* r
 	}
 }
 
-void TWindow::callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr){
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
+void TWindow::callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll){
+	if(printAll){
+		for(int i=0; i<length; ++i){
 			out << chr << "\t" << start + i;
-			recalObject->calcEmissionProbabilities(sites[i], pmdObject);
+			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i], pmdObject);
 			sites[i].callMLEGenotype(genoMap, out);
 			out << "\n";
 		}
-	}
-}
-
-void TWindow::callMLEGenotypePrintAll(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr){
-	for(int i=0; i<length; ++i){
-		out << chr << "\t" << start + i;
-		if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i], pmdObject);
-		sites[i].callMLEGenotype(genoMap, out);
-		out << "\n";
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i;
+				recalObject->calcEmissionProbabilities(sites[i], pmdObject);
+				sites[i].callMLEGenotype(genoMap, out);
+				out << "\n";
+			}
+		}
 	}
 }
 

@@ -130,8 +130,7 @@ public:
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* recalObject);
-	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
-	void callMLEGenotypePrintAll(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
+	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll=false);
 	void printPileup(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);

@@ -20,7 +20,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
 	initializePostMortemDamage(params);
-	initializeRecalibration(params);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -48,8 +47,10 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//read header
 	bamHeader = bamReader.GetHeader();
 	readGroups.fill(bamHeader);
-
 	chrIterator = bamHeader.Sequences.End();
+
+	//initialize recalibration
+	initializeRecalibration(params);
 
 	//check if we mask sites
 	if(params.parameterExists("mask")){
@@ -327,8 +328,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			readData(windows);
 
 			//call genotypes
-			if(printIfNoData) windows.cur->callMLEGenotypePrintAll(pmdObject, recalObject, out, chrIterator->Name);
-			else windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name);
+			logfile->listFlush("Calling MLE genotypes ...");
+			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData);
+			logfile->write(" done!");
+
 		}
 	}
 
