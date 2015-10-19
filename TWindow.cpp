@@ -81,9 +81,11 @@ void TWindow::move(long Start, long End){
 	start = Start;
 	end = End;
 	if(sitesInitialized){
-		if((start - end) != length)
+		if((end - start) != length){
 			initSites(end - start);
-		else  clear();
+		} else {
+			clear();
+		}
 	} else initSites(end - start);
 };
 
@@ -112,6 +114,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
 	char base; BaseContext context;
+	char quality;
 	int secondLastPos = lastPos - 1;
 	for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 		/* Note:
@@ -129,15 +132,19 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 
 		//figure out context (base + previous base)
 		base = bamAlignement.AlignedBases.at(pos);
-
-		if(bamAlignement.IsReverseStrand()){
-			if(pos == secondLastPos) context = genoMap.getContext('N', base);
-			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
-			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, len - pos, pos + 1, context, readGroupId);
-		} else {
-			if(pos == 0) context = genoMap.getContext('N', base);
-			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
-			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, pos + 1, len - pos, context, readGroupId);
+		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+			quality = bamAlignement.AlignedQualities.at(pos);
+			if((int) quality > 33){
+				if(bamAlignement.IsReverseStrand()){
+					if(pos == secondLastPos) context = genoMap.getContext('N', base);
+					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
+					sites[internalPos].add(base, quality, len - pos - 1, len - pos, pos + 1, context, readGroupId);
+				} else {
+					if(pos == 0) context = genoMap.getContext('N', base);
+					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+					sites[internalPos].add(base, quality, pos, pos + 1, len - pos, context, readGroupId);
+				}
+			}
 		}
 	}
 

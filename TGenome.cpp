@@ -17,6 +17,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//read parameters
 	filename = params.getParameterString("bam");
 	windowSize = params.getParameterDouble("window");
+	numWindowsOnChr = 0;
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
 	initializePostMortemDamage(params);
@@ -56,8 +57,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	if(params.parameterExists("mask")){
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
-		logfile->list("Will mask all sites listed in BED file '" + maskFile + "'");
+		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+		logfile->listFlush("Reading file ...");
 		mask = new TBedReader(maskFile, windowSize);
+		logfile->write(" done!");
+		logfile->endIndent();
 		//mask->print();
 	} else doMasking = false;
 };
@@ -84,10 +88,14 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 
 	//restart windows
 	chrLength = stringToLong(chrIterator->Length);
+	numWindowsOnChr = ceil(chrLength / (double) windowSize);
+
 	curStart = 0;
 	curEnd = 0;
 	oldPos = -1;
-	windowPair.nextPointer->move(0, windowSize);
+	int nextEnd = windowSize;
+	if(nextEnd > chrLength) nextEnd = chrLength;
+	windowPair.nextPointer->move(0, nextEnd);
 
 	//advance mask
 	if(doMasking) mask->setChr(chrIterator->Name);
@@ -105,18 +113,16 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 
 	//move to next region
 	curStart = curEnd;
-	curEnd += windowSize;
-	if(curEnd > chrLength){
-		curEnd = chrLength + 1;
-		windowPair.curPointer->end = curEnd;
-	}
+	curEnd = windowPair.curPointer->end;
 	if(curStart >= chrLength) return false;
 
 	//move next
-	windowPair.nextPointer->move(curEnd, curEnd + windowSize);
+	long nextEnd = curEnd + windowSize;
+	if(nextEnd > chrLength) nextEnd = chrLength + 1;
+	windowPair.nextPointer->move(curEnd, nextEnd);
 
 	//report
-	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") on '" + chrIterator->Name + "':");
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 
 	return true;
@@ -639,6 +645,8 @@ void TGenome::BQSR(TParameters & params){
 
 				//add the base to BQSR
 				windows.cur->addSitesToBQSR(bqsr, logfile);
+
+				logfile->list("window finished!");
 			}
 		}
 
@@ -647,6 +655,7 @@ void TGenome::BQSR(TParameters & params){
 
 		//estimate epsilon
 		hasConverged = bqsr.estimateEpsilon();
+
 		logfile->endIndent();
 	}
 

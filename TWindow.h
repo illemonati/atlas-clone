@@ -125,7 +125,9 @@ public:
 	virtual ~TWindow(){
 		if(sitesInitialized) delete[] sites;
 	};
-	virtual void initSites(long newLength){ throw "Function 'initSites' not implemented for base class TWindow!"; };
+	virtual void initSites(long newLength){
+		throw "Function 'initSites' not implemented for base class TWindow!";
+	};
 	void clear();
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups);

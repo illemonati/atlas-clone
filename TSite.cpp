@@ -18,26 +18,18 @@ void TSite::clear(){
 };
 
 void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){
-	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-		if((int) quality > 33){
-			if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else bases.push_back(new TBaseDiploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-		}
-		hasData = true;
-	}
+	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else bases.push_back(new TBaseDiploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	hasData = true;
 };
 void TSiteHaploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){
-	if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-		if((int) quality > 33){
-			if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-			else bases.push_back(new TBaseHaploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
-		}
-		hasData = true;
-	}
+	if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	else bases.push_back(new TBaseHaploidT(quality, PosInRead, pos5, pos3, Context, ReadGroup));
+	hasData = true;
 };
 
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
@@ -101,8 +93,19 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		out << "\t" << bases.size();
 		out << "\t" << getBases(); //printing data for debugging
 
-		//calculate likelihoods for allele presence and find max "posterior prob"
-		double postProb[4];
+		//calculate posterior probability for each genotype
+		double postProb[numGenotypes];
+		double tot = 0.0;
+		for(int i=0; i<numGenotypes; ++i){
+			postProb[i] += emissionProbabilities[i] * pGenotype[i];
+			tot += postProb[i];
+		}
+		for(int i=0; i<numGenotypes; ++i){
+			postProb[i] /= tot;
+		}
+
+		//make sums for different bases
+		double postProbAllele[4];
 		Genotype g;
 		double maxProb = 0.0;
 		int maxAllele = 0;
@@ -110,7 +113,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 			postProb[i] = 0.0;
 			for(int j=0; j<4; ++j){
 				g = genoMap.getGenotype(i, j);
-				postProb[i] += emissionProbabilities[g] * pGenotype[g];
+				postProbAllele[i] += postProb[g];
 			}
 			if(postProb[i] > maxProb){
 				maxAllele = i;

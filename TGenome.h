@@ -34,10 +34,12 @@ private:
  	TReadGroups readGroups;
  	int chrNumber;
  	long chrLength;
- 	long curStart, curEnd;
+ 	long curStart;
+ 	long curEnd;
 	std::string filename;
 	TLog* logfile;
  	int windowSize;
+ 	int numWindowsOnChr;
  	double maxMissing;
  	long oldPos;
  	std::string outputName;
