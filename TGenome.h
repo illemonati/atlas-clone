@@ -22,6 +22,7 @@ private:
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
+	void openThetaOutputFile(std::ofstream & out);
 
 	TPMD pmdObject;
 	TRecalibration* recalObject;
@@ -52,6 +53,7 @@ public:
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
 	void callMLEGenotypes(TParameters & params);
+	void callAllelePresence(TParameters & params);
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);

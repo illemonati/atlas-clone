@@ -21,6 +21,34 @@ EMParameters::EMParameters(){
 	initThetaNumSearchIterations = -1;
 }
 
+EMParameters::EMParameters(TParameters & params, TLog* logfile){
+	logfile->startIndent("Parameters of EM algorithm:");
+	numIterations = params.getParameterIntWithDefault("iterations", 100);
+	logfile->list("Will run up to " + toString(numIterations) + " iterations.");
+	numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
+	logfile->list("In each iteration, theta will be updated " + toString(numThetaOnlyUpdates) + " times.");
+
+	maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	logfile->list("Will run EM until deltaLL < " + toString(maxEpsilon) + ".");
+	NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	logfile->list("Will run Newton-Ralphson algorithm up to " + toString(NewtonRalphsonNumIterations) + " times.");
+	NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	logfile->list("Will run Newton-Ralphsin algorithm until max(F) < " + toString(NewtonRalphsonMaxF) + ".");
+
+	//params regarding initial search
+	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	logfile->list("Will start with an initial theta of " + toString(initalTheta) + ".");
+	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
+	if(initThetaNumSearchIterations > 0){
+		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
+		initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
+		logfile->list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
+	} else {
+		initThetaSearchFactor = 0;
+	}
+	logfile->endIndent();
+}
+
 //-------------------------------------------------------
 //Twindow
 //-------------------------------------------------------
@@ -64,7 +92,6 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
 	 */
-
 	if(bamAlignement.Position >= end) return true;
 
 	//find first position to be within window
@@ -85,6 +112,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
 	char base; BaseContext context;
+	int secondLastPos = lastPos - 1;
 	for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 		/* Note:
 		 * Reference is 5' -> 3'
@@ -101,10 +129,10 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 
 		//figure out context (base + previous base)
 		base = bamAlignement.AlignedBases.at(pos);
-		if(bamAlignement.IsReverseStrand()){
-			if(pos >= bamAlignement.AlignedBases.length()) context = genoMap.getContext('N', base);
-			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
 
+		if(bamAlignement.IsReverseStrand()){
+			if(pos == secondLastPos) context = genoMap.getContext('N', base);
+			else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
 			sites[internalPos].add(base, bamAlignement.AlignedQualities.at(pos), pos, len - pos, pos + 1, context, readGroupId);
 		} else {
 			if(pos == 0) context = genoMap.getContext('N', base);
@@ -268,35 +296,12 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
-void TWindow::callMLEAllelePresence(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll){
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i;
-			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i], pmdObject);
-			sites[i].callMLEAllelePresence(genoMap, out);
-			out << "\n";
-		}
-	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
-				out << chr << "\t" << start + i;
-				recalObject->calcEmissionProbabilities(sites[i], pmdObject);
-				sites[i].callMLEAllelePresence(genoMap, out);
-				out << "\n";
-			}
-		}
-	}
-}
-
 void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, TRecalibration* recalObject, std::ofstream & out, TLog* logfile){
 	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
 	struct timeval startTime, endTime;
 	gettimeofday(&startTime, NULL);
-
-	//Theta container
-	Theta thetaContainer;
 
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
@@ -545,7 +550,7 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 		if(iter > 0 && iter % EMParams.numThetaOnlyUpdates == 0){
 			oldLL = thetaContainer.LL;
 			thetaContainer.LL = calcLogLikelihood(pGenotype);
-			if(thetaContainer.LL > -9e100 && (thetaContainer. LL - oldLL) < EMParams.maxEpsilon) break;
+			if(thetaContainer.LL > -9e100 && (thetaContainer.LL - oldLL) < EMParams.maxEpsilon) break;
 
 			//maybe theta = 0?
 			if(thetaContainer.theta < 0.1/length){
@@ -642,6 +647,28 @@ void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, TRecalibration* rec
 	}
 }
 
+void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll){
+	//calc prior probabilities on Genotypes
+	double pGenotype[10];
+	fillPGenotype(pGenotype, thetaContainer.expTheta);
+
+	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			out << chr << "\t" << start + i;
+			sites[i].callAllelePresence(pGenotype, genoMap, out);
+			out << "\n";
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i;
+				sites[i].callAllelePresence(pGenotype, genoMap, out);
+				out << "\n";
+			}
+		}
+	}
+}
 
 //-------------------------------------------------------
 //TWindowHaploid

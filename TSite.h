@@ -53,7 +53,7 @@ public:
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities();
 	void callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out);
-	virtual void callMLEAllelePresence(TGenotypeMap & genoMap, gz::ogzstream & out){ throw "callMLEAllelePresence not implemented for TSite base class!";};
+	virtual void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out){ throw "callMLEAllelePresence not implemented for TSite base class!";};
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
@@ -75,7 +75,7 @@ public:
 		delete[] P_g;
 	};
 	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup);
-	void callMLEAllelePresence(TGenotypeMap & genoMap, gz::ogzstream & out);
+	void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out);
 };
 
 class TSiteHaploid:public TSite{

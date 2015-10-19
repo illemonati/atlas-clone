@@ -212,30 +212,24 @@ void TGenome::initializeRecalibration(TParameters & params){
 	}
 }
 
-void TGenome::estimateTheta(TParameters & params){
-	//EM params
- 	EMParameters EMParams;
-	EMParams.numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
-	EMParams.numIterations = params.getParameterIntWithDefault("iterations", 100);
-
-	EMParams.maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
-	EMParams.NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
-	EMParams.NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
-
-	//params regarding initial search
-	EMParams.initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
-	EMParams.initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
-	EMParams.initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
-
-	//open output
-	std::ofstream out;
-	out.open((outputName + "_theta_estimates.txt").c_str());
+void TGenome::openThetaOutputFile(std::ofstream & out){
+	std::string filename = outputName + "_theta_estimates.txt";
+	logfile->list("Writing theta estimates to '" + filename + "'");
+	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 	//write header
 	out << std::setprecision(9) << "Chr\t";
 	out << "start\tend\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
 	out << "\n";
+}
+
+void TGenome::estimateTheta(TParameters & params){
+	//EM params
+	EMParameters EMParams(params, logfile);
+
+	//open output
+	std::ofstream out; openThetaOutputFile(out);
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -331,6 +325,55 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			logfile->listFlush("Calling MLE genotypes ...");
 			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData);
 			logfile->write(" done!");
+		}
+	}
+
+	//clean up
+	out.close();
+}
+
+void TGenome::callAllelePresence(TParameters & params){
+	//EM params
+	EMParameters EMParams(params, logfile);
+
+	//open output for theta
+	std::ofstream out; openThetaOutputFile(out);
+
+	//open output for allele presence
+	filename = outputName + "_AllelePresence.txt.gz";
+	logfile->list("Writing estimates of allele presence to '" + filename + "'");
+	gz::ogzstream outAllelePresence(filename.c_str());
+	if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+
+	//write header
+	outAllelePresence << std::setprecision(3);
+	outAllelePresence << "chr\tpos\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+
+			//check if we have data -> can be extended to ensure
+			if(windows.cur->fractionSitesNoData > maxMissing){
+				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			} else {
+				//estimate Theta
+				out << chrIterator->Name << "\t";
+				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
+
+				//call allele presence
+				logfile->listFlush("Calling allele presence ...");
+				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData);
+				logfile->write(" done!");
+			}
 		}
 	}
 
