@@ -138,6 +138,7 @@ public:
 	double firstDerivative, secondDerivative;
 	TPMD* pmdObject;
 	double numObservations;
+	double numObservationsTmp;
 
 	double F;
 	double LL;
@@ -214,12 +215,12 @@ private:
 	//-------------------------
 
 	int findReadGroupIndex(std::string & name);
-	void initializeBQSRReadGroupQualityTable(std::string filename);
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
-	void initializeBQSRReadGroupPositionTable(std::string filename);
+	void initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupPositionTable(TParameters & params);
-	void initializeBQSRReadGroupContextTable(std::string filename);
+	void initializeBQSRReadGroupPositionTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupContextTable(TParameters & params);
+	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
 
 public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);

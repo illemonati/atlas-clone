@@ -62,7 +62,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		mask = new TBedReader(maskFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
-		mask->print();
+		//mask->print();
 	} else doMasking = false;
 };
 
