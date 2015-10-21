@@ -135,7 +135,7 @@ public:
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* recalObject);
-	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll=false);
+	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 	void printPileup(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
@@ -158,7 +158,7 @@ public:
 	void initSites(long newLength);
 	void estimateTheta(EMParameters & constants, TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
 	void calcLikelihoodSurface(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll);
+	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 };
 
 class TWindowHaploid:public TWindow{

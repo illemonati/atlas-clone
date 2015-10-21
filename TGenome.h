@@ -47,6 +47,7 @@ private:
  	std::string outputName;
  	TBedReader* mask;
  	bool doMasking;
+ 	bool oneWindow;
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);

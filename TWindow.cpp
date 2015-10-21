@@ -199,12 +199,12 @@ void TWindow::calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* r
 	}
 }
 
-void TWindow::callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll){
+void TWindow::callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
 	if(printAll){
 		for(int i=0; i<length; ++i){
 			out << chr << "\t" << start + i;
 			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i], pmdObject);
-			sites[i].callMLEGenotype(genoMap, out);
+			sites[i].callMLEGenotype(genoMap, out, printRef);
 			out << "\n";
 		}
 	} else {
@@ -212,7 +212,7 @@ void TWindow::callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz:
 			if(sites[i].hasData){
 				out << chr << "\t" << start + i;
 				recalObject->calcEmissionProbabilities(sites[i], pmdObject);
-				sites[i].callMLEGenotype(genoMap, out);
+				sites[i].callMLEGenotype(genoMap, out, printRef);
 				out << "\n";
 			}
 		}
@@ -656,7 +656,7 @@ void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, TRecalibration* rec
 	}
 }
 
-void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll){
+void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
 	//calc prior probabilities on Genotypes
 	double pGenotype[10];
 	fillPGenotype(pGenotype, thetaContainer.expTheta);
@@ -665,14 +665,14 @@ void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, 
 	if(printAll){
 		for(int i=0; i<length; ++i){
 			out << chr << "\t" << start + i;
-			sites[i].callAllelePresence(pGenotype, genoMap, out);
+			sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
 			out << "\n";
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
 				out << chr << "\t" << start + i;
-				sites[i].callAllelePresence(pGenotype, genoMap, out);
+				sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
 				out << "\n";
 			}
 		}

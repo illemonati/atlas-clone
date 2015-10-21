@@ -64,6 +64,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->endIndent();
 		//mask->print();
 	} else doMasking = false;
+
+	//for debugging: work on one window only
+	oneWindow = params.parameterExists("oneWindow");
 };
 
 
@@ -268,7 +271,9 @@ void TGenome::estimateTheta(TParameters & params){
 				out << chrIterator->Name << "\t";
 				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
 			}
+			if(oneWindow) break;
 		}
+		if(oneWindow) break;
 	}
 
 	//clean up
@@ -319,18 +324,33 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 }
 
 void TGenome::callMLEGenotypes(TParameters & params){
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//open FASTA reference
+	BamTools::Fasta reference;
+	bool printRefBase = false;
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		printRefBase = true;
+	}
+
 	//open output
 	std::string filename = outputName + "_MLEGenotypes.txt.gz";
 	logfile->list("Writing MLE genotypes to '" + filename + "'");
 	gz::ogzstream out(filename.c_str());
 	if(!out) throw "Failed to open output file '" + filename + "'!";
 
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
 
 	//write header
 	out << std::setprecision(3);
-	out << "chr\tpos\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+	out << "chr\tpos";
+	if(printRefBase) out << "\tRef";
+	out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -341,11 +361,16 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			//read data for current window
 			readData(windows);
 
+			//add reference data
+			if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData);
+			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData, printRefBase);
 			logfile->write(" done!");
+			if(oneWindow) break;
 		}
+		if(oneWindow) break;
 	}
 
 	//clean up
@@ -356,8 +381,20 @@ void TGenome::callAllelePresence(TParameters & params){
 	//EM params
 	EMParameters EMParams(params, logfile);
 
-	//open output for theta
-	std::ofstream out; openThetaOutputFile(out);
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//open FASTA reference
+	BamTools::Fasta reference;
+	bool printRefBase = false;
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		printRefBase = true;
+	}
 
 	//open output for allele presence
 	filename = outputName + "_AllelePresence.txt.gz";
@@ -367,10 +404,13 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//write header
 	outAllelePresence << std::setprecision(3);
-	outAllelePresence << "chr\tpos\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+	outAllelePresence << "chr\tpos";
+	if(printRefBase) outAllelePresence << "\tRef";
+	outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
 
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
+	//open output for theta
+	std::ofstream out; openThetaOutputFile(out);
+
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -389,12 +429,17 @@ void TGenome::callAllelePresence(TParameters & params){
 				out << chrIterator->Name << "\t";
 				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
 
+				//add reference data
+				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
 				//call allele presence
 				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData);
+				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase);
 				logfile->write(" done!");
 			}
+			if(oneWindow) break;
 		}
+		if(oneWindow) break;
 	}
 
 	//clean up
@@ -426,7 +471,9 @@ void TGenome::printPileup(){
 
 			//print pileup
 			windows.cur->printPileup(pmdObject, recalObject, out, chrIterator->Name);
+			if(oneWindow) break;
 		}
+		if(oneWindow) break;
 	}
 
 	//clean up

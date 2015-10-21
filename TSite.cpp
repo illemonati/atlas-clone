@@ -52,8 +52,11 @@ void TSite::calcEmissionProbabilities(){
 	}
 }
 
-void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
+void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){
 	if(hasData){
+		//print reference allele
+		if(printRef) out << "\t" << referenceBase;
+
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
 		//out << "\t" << getBases(); //printing data for debugging
@@ -64,7 +67,8 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
 		int MLGenotype = 0;
 		double quality = 100000.0;
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = -10.0 * log10(emissionProbabilities[i]);
+			if(emissionProbabilities[i] < maxQualToPrintNaturalScale) emissionProbabilities[i] = maxQualToPrint;
+			else emissionProbabilities[i] = -10.0 * log10(emissionProbabilities[i]);
 			if(emissionProbabilities[i] < maxGenotypeProb){
 				MLGenotype = i;
 				quality = maxGenotypeProb;
@@ -89,11 +93,12 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out){
 	}
 }
 
-void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out){
+void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){
 	if(hasData){
-		//print coverage (and read bases)
+		//print ref base, coverage (and read bases)
+		if(printRef) out << "\t" << referenceBase;
 		out << "\t" << bases.size();
-		out << "\t" << getBases(); //printing data for debugging
+		//out << "\t" << getBases(); //printing data for debugging
 
 		//calculate posterior probability for each genotype
 		double postProb[numGenotypes];
@@ -120,11 +125,14 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 				maxProb = postProbAllele[i];
 			}
 			//phred scale
-			postProbAllele[i] = -10.0 * log10(postProbAllele[i]);
+			if(postProbAllele[i] < maxQualToPrintNaturalScale) postProbAllele[i] = maxQualToPrint;
+			else postProbAllele[i] = -10.0 * log10(postProbAllele[i]);
 		}
 
 		//quality = phred(1 - prob)
-		double quality = round(-10.0 * log10(1.0 - maxProb));
+		double quality =  1.0 - maxProb;
+		if(quality < maxQualToPrintNaturalScale) quality = maxQualToPrint;
+		else quality = round(-10.0 * log10(quality));
 
 		//now print
 		for(int i=0; i<4; ++i){
