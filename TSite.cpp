@@ -99,11 +99,8 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		double postProb[numGenotypes];
 		double tot = 0.0;
 		for(int i=0; i<numGenotypes; ++i){
-			postProb[i] += emissionProbabilities[i] * pGenotype[i];
+			postProb[i] = emissionProbabilities[i] * pGenotype[i];
 			tot += postProb[i];
-		}
-		for(int i=0; i<numGenotypes; ++i){
-			postProb[i] /= tot;
 		}
 
 		//make sums for different bases
@@ -112,17 +109,18 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		double maxProb = 0.0;
 		int maxAllele = 0;
 		for(int i=0; i<4; ++i){
-			postProb[i] = 0.0;
+			postProbAllele[i] = 0.0;
 			for(int j=0; j<4; ++j){
 				g = genoMap.getGenotype(i, j);
 				postProbAllele[i] += postProb[g];
 			}
-			if(postProb[i] > maxProb){
+			postProbAllele[i] /= tot;
+			if(postProbAllele[i] > maxProb){
 				maxAllele = i;
-				maxProb = postProb[i];
+				maxProb = postProbAllele[i];
 			}
 			//phred scale
-			postProb[i] = -10.0 * log10(postProb[i]);
+			postProbAllele[i] = -10.0 * log10(postProbAllele[i]);
 		}
 
 		//quality = phred(1 - prob)
@@ -130,17 +128,16 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 
 		//now print
 		for(int i=0; i<4; ++i){
-			out << "\t" << round(postProb[i]);
+			out << "\t" << round(postProbAllele[i]);
 		}
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
 		out << "\t" << genoMap.getBaseAsChar(maxAllele);
-		//out << "\t" << round(-10.0 * log10(quality));
-		out << "\t" << quality << " -> " << maxProb;
+		out << "\t" << round(quality);
+		//out << "\t" << quality << " -> " << maxProb;
 	} else {
 		out << "\t0\t-\t-\t-\t-\t-\t0";
 	}
-
 }
 
 std::string TSite::getBases(){

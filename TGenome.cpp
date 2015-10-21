@@ -69,7 +69,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 
 void TGenome::restartChromosome(TWindowPair & windowPair){
-	logfile->endIndent();
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
 
@@ -654,13 +653,13 @@ void TGenome::BQSR(TParameters & params){
 		//run until it converges
 		while(!hasConverged){
 			++loopNumber;
+			logfile->startIndent("Running pre recalibration loop " + toString(loopNumber) + ":");
 
 			//jump to first chromosome
 			if(loopNumber == 1)	iterateChromosome(windows);
 			else restartChromosome(windows);
 
 			//iterate over all windows
-			logfile->startIndent("Running pre recalibration loop " + toString(loopNumber) + ":");
 			while(iterateWindow(windows)){
 				//read data for current window
 				readData(windows);
@@ -673,6 +672,7 @@ void TGenome::BQSR(TParameters & params){
 
 				logfile->list("All done for this window!!");
 			}
+			logfile->endIndent();
 
 			//clean up memory and restart from chr 1
 			windows.clear();
