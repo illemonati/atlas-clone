@@ -12,7 +12,7 @@
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
-enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT,cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT}; //N means "nothing", i.e. end of read or del
+enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT}; //N means "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap
@@ -39,14 +39,11 @@ public:
 			}
 		}
 
-		//create context map
+		//create and fill context map
 		contextMap = new BaseContext*[5];
-		for(int i=0; i<5; ++i)
-			contextMap[i] = new BaseContext[4];
-
-		//fill context map
 		int context = 0;
 		for(int i=0; i<5; ++i){
+			contextMap[i] = new BaseContext[4];
 			for(int j=0; j<4; ++j){
 				contextMap[i][j] = static_cast<BaseContext>(context);
 				++context;
@@ -114,15 +111,17 @@ public:
 	};
 
 	BaseContext getContext(Base first, Base second){
+		if(second == N) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
 	BaseContext getContext(int first, int second){
+		if(second > 3) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
 	BaseContext getContext(char first, char second){
-		return contextMap[getBase(first)][getBase(second)];
+		return getContext(getBase(first), getBase(second));
 	};
 
 	std::string getContextString(int num){

@@ -11,10 +11,12 @@
 //TSite
 //-------------------------------------------------------
 void TSite::clear(){
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
-		delete *it;
-	bases.clear();
-	hasData = false;
+	if(hasData){
+		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+			delete *it;
+		bases.clear();
+		hasData = false;
+	}
 };
 
 void TSiteDiploid::add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){

@@ -310,8 +310,8 @@ TBQSR_cell::TBQSR_cell(){
 	firstDerivative = 0.0;
 	secondDerivative = 0.0;
 	pmdObject = NULL;
-	numObservations = 0;
-	numMatches = 0;
+	numObservations = 0.0;
+	numMatches = 0.0;
 	F = 0.0;
 	LL = 0.0;
 }
@@ -497,6 +497,7 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	estimatetionRequired = false;
 	estimationConverged = false;
 	numContexts = 20;
+	qualityIndex = NULL;
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
 	if(params.parameterExists("BQSRQuality")) initializeBQSRReadGroupQualityTable(params.getParameterString("BQSRQuality"));

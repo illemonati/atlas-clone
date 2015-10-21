@@ -170,8 +170,10 @@ void TWindow::applyMask(TBedReader* mask){
 	if(mask->hasPositionsInWindow(start)){
 		//skip sites listed in mask by setting their hasData = false
 		std::vector<long> thesePos = mask->getPositionInWindow(start);
+		int pos;
 		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			sites[*it - start + 1].hasData = false;
+			pos = *it - start + 1;
+			if(pos < length) sites[pos].clear();
 		}
 	}
 

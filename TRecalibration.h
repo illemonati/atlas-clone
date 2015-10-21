@@ -39,11 +39,13 @@ public:
 	};
 
 	int& getIndex(int & quality){
+		if(quality < 0) throw "Quality is negative!";
 		if(quality > maxQ) return last;
 		return index[quality];
 	};
 
 	int getQuality(int & index){
+		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
 	};
@@ -127,7 +129,7 @@ public:
 
 class TBQSR_cell{
 private:
-	long numMatches;
+	double numMatches;
 	void addToDerivatives(TBase* base, Base & RefBase);
 
 public:
@@ -135,7 +137,7 @@ public:
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
 	TPMD* pmdObject;
-	long numObservations;
+	double numObservations;
 
 	double F;
 	double LL;

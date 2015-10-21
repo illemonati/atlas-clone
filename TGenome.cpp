@@ -62,7 +62,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		mask = new TBedReader(maskFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
-		//mask->print();
+		mask->print();
 	} else doMasking = false;
 };
 
@@ -655,6 +655,9 @@ void TGenome::BQSR(TParameters & params){
 
 		//estimate epsilon
 		hasConverged = bqsr.estimateEpsilon();
+
+		//write results to file
+		bqsr.writeToFile(outputName + "_Loop" + toString(loopNumber));
 
 		logfile->endIndent();
 	}
