@@ -406,11 +406,19 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 			estimationConverged = true;
 		} else {
 			//need Newton-Ralphson to estimate epsilon
+			double oldEstimate = curEstimate;
 			runNewtonRalphson(convergenceThreshold);
 
 			//check boundaries
-			if(curEstimate < 0.0) curEstimate = 0.00000001;
-			else if(curEstimate > 1.0) curEstimate = 0.99999999;
+			if(curEstimate < 0.0){
+				curEstimate = 0.000000001;
+				if(oldEstimate == 0.00000001)
+					estimationConverged = true; //if estimate is repeatedly below, accept
+			} else if(curEstimate > 1.0){
+				curEstimate = 0.999999999;
+				if(oldEstimate == 0.999999999)
+					estimationConverged = true; //if estimate is repeatedly above, accept
+			}
 		}
 	}
 	return estimationConverged;

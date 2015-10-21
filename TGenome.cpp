@@ -66,14 +66,20 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else doMasking = false;
 };
 
-void TGenome::restartChromosomes(){
+
+
+void TGenome::restartChromosome(TWindowPair & windowPair){
+	logfile->endIndent();
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
+
+	moveChromosome(windowPair);
 }
 
 bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	if(chrIterator == bamHeader.Sequences.End()){
-		restartChromosomes();
+		chrIterator = bamHeader.Sequences.Begin();
+		chrNumber = 0;
 	} else {
 		logfile->endNumbering();
 		//move to next
@@ -87,6 +93,11 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 		return false;
 	}
 
+	moveChromosome(windowPair);
+	return true;
+}
+
+void TGenome::moveChromosome(TWindowPair & windowPair){
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
 
@@ -106,7 +117,6 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 
 	//write progress
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
-	return true;
 }
 
 bool TGenome::iterateWindow(TWindowPair & windowPair){
@@ -118,6 +128,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	//move to next region
 	curStart = curEnd;
 	curEnd = windowPair.curPointer->end;
+	//if(curStart >= 20000000) return false;
 	if(curStart >= chrLength) return false;
 
 	//move next
@@ -639,14 +650,17 @@ void TGenome::BQSR(TParameters & params){
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
 		logfile->startIndent("Only using first chromosome to get initial estimates:");
-		//jump to first chromosome
-		iterateChromosome(windows);
 
 		//run until it converges
 		while(!hasConverged){
 			++loopNumber;
-			logfile->startIndent("Running (pre) recalibration loop " + toString(loopNumber) + ":");
+
+			//jump to first chromosome
+			if(loopNumber == 1)	iterateChromosome(windows);
+			else restartChromosome(windows);
+
 			//iterate over all windows
+			logfile->startIndent("Running pre recalibration loop " + toString(loopNumber) + ":");
 			while(iterateWindow(windows)){
 				//read data for current window
 				readData(windows);
@@ -660,7 +674,7 @@ void TGenome::BQSR(TParameters & params){
 				logfile->list("All done for this window!!");
 			}
 
-			//clean up memory
+			//clean up memory and restart from chr 1
 			windows.clear();
 
 			//estimate epsilon
@@ -668,13 +682,14 @@ void TGenome::BQSR(TParameters & params){
 
 			//write results to file
 			bqsr.writeToFile(outputName + "_preConvergence_Loop" + toString(loopNumber));
+			logfile->endIndent();
 		}
 
 		//reset counters and such
 		hasConverged = false;
 		loopNumber = 0;
-		restartChromosomes();
 		logfile->endIndent();
+		restartChromosome(windows);
 	}
 
 	//loop over bam until BQSR converges

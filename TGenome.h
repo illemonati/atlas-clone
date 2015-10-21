@@ -17,8 +17,9 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
-	void restartChromosomes();
+	void restartChromosome(TWindowPair & windowPair);
 	bool iterateChromosome(TWindowPair & windowPair);
+	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
