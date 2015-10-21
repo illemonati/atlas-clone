@@ -136,6 +136,9 @@ public:
 	double curEstimate;
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
+
+	double firstDerivativeSave, secondDerivativeSave;
+
 	TPMD* pmdObject;
 	double numObservations;
 	double numObservationsTmp;
@@ -146,13 +149,14 @@ public:
 	TBQSR_cell();
 	virtual ~TBQSR_cell(){};
 	void empty();
+	void reopenEstimation();
 	void init(double initialError, TPMD* PmdObject);
 	void set(double error){curEstimate = error;};
 	void set(double error, long NumObservations){curEstimate = error; numObservations=NumObservations;};
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
 	void runNewtonRalphson(double & convergenceThreshold);
-	virtual bool estimate(double & convergenceThreshold);
+	virtual bool estimate(double & convergenceThreshold, long & minObservations);
 };
 
 class TBQSR_cellPosition:public TBQSR_cell{
@@ -166,7 +170,7 @@ public:
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
-	bool estimate(double & convergenceThreshold);
+	bool estimate(double & convergenceThreshold, long & minObservations);
 };
 
 
@@ -197,6 +201,7 @@ private:
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;
+	long minObservations;
 
 	//recal tables
 	bool qualityConverged;
@@ -250,6 +255,7 @@ public:
 	bool estimateEpsilon();
 	void writeToFile(std::string filenameTag);
 	bool allConverged();
+	void reopenEstimation();
 	double getErrorRate(TBase* base);
 };
 

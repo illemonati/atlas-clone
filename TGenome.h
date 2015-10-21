@@ -17,6 +17,7 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
+	void restartChromosomes();
 	bool iterateChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);

@@ -66,10 +66,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else doMasking = false;
 };
 
+void TGenome::restartChromosomes(){
+	chrIterator = bamHeader.Sequences.Begin();
+	chrNumber = 0;
+}
+
 bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	if(chrIterator == bamHeader.Sequences.End()){
-		chrIterator = bamHeader.Sequences.Begin();
-		chrNumber = 0;
+		restartChromosomes();
 	} else {
 		logfile->endNumbering();
 		//move to next
@@ -628,9 +632,52 @@ void TGenome::BQSR(TParameters & params){
 		return;
 	}
 
-	//loop over bam until BQSR converges
+	//tmp variables
 	bool hasConverged = false;
 	int loopNumber = 0;
+
+	//check if we use first chromosome for initial convergence
+	if(params.parameterExists("preConverge")){
+		logfile->startIndent("Only using first chromosome to get initial estimates:");
+		//jump to first chromosome
+		iterateChromosome(windows);
+
+		//run until it converges
+		while(!hasConverged){
+			++loopNumber;
+			logfile->startIndent("Running (pre) recalibration loop " + toString(loopNumber) + ":");
+			//iterate over all windows
+			while(iterateWindow(windows)){
+				//read data for current window
+				readData(windows);
+
+				//add reference data
+				windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
+				//add the base to BQSR
+				windows.cur->addSitesToBQSR(bqsr, logfile);
+
+				logfile->list("All done for this window!!");
+			}
+
+			//clean up memory
+			windows.clear();
+
+			//estimate epsilon
+			hasConverged = bqsr.estimateEpsilon();
+
+			//write results to file
+			bqsr.writeToFile(outputName + "_preConvergence_Loop" + toString(loopNumber));
+		}
+
+		//reset counters and such
+		hasConverged = false;
+		loopNumber = 0;
+		restartChromosomes();
+		logfile->endIndent();
+	}
+
+	//loop over bam until BQSR converges
 	while(!hasConverged){
 		++loopNumber;
 		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
@@ -646,7 +693,7 @@ void TGenome::BQSR(TParameters & params){
 				//add the base to BQSR
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
-				logfile->list("window finished!");
+				logfile->list("All done for this window!!");
 			}
 		}
 
