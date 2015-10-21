@@ -1030,7 +1030,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		for(int q=0; q<qualityIndex->numQ; ++q){
 			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].numObservations;
 			//for debugging: also print derivatives, F and whether is has converged
-			out << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << BQSR_cells_readGroup_quality[i][q].estimationConverged;
+			out << "\t" << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << "\t" << BQSR_cells_readGroup_quality[i][q].estimationConverged;
 			out << "\n";
 		}
 	}

@@ -96,6 +96,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	 */
 	if(bamAlignement.Position >= end) return true;
 
+	//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
+	if(bamAlignement.IsPaired() && bamAlignement.MateRefID != bamAlignement.RefID) return false;
+
 	//find first position to be within window
 	double len = bamAlignement.AlignedBases.length();
 	if(bamAlignement.Position + len < start) return false;
@@ -110,6 +113,18 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* r
 	std::string readGroup;
 	bamAlignement.GetTag("RG", readGroup);
 	int readGroupId = readGroups->find(readGroup);
+
+	//decide on end point of fragment to calculate post mortem damage
+	/*
+	int start3Prime; int start5Prime;
+	if(bamAlignement.IsPaired()){
+		if(bamAlignement.IsFirstMate()){
+			start3Prime
+		}
+	} else {
+
+	}
+	*/
 
 	//add sites
 	int internalPos = bamAlignement.Position + firstPos - start;
