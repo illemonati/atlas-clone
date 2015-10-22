@@ -67,9 +67,12 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//for debugging: work on one window only
 	oneWindow = params.parameterExists("oneWindow");
+	oneChr = params.parameterExists("oneChr");
 };
 
-
+void TGenome::jumpToEnd(){
+	chrIterator = bamHeader.Sequences.End();
+}
 
 void TGenome::restartChromosome(TWindowPair & windowPair){
 	chrIterator = bamHeader.Sequences.Begin();
@@ -273,7 +276,7 @@ void TGenome::estimateTheta(TParameters & params){
 			}
 			if(oneWindow) break;
 		}
-		if(oneWindow) break;
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -317,9 +320,11 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				//check if we break
 				++windowsCalculated;
 				if(windowsCalculated >= numWindows) break;
+				if(oneWindow) break;
 			}
 		}
 		if(windowsCalculated >= numWindows) break;
+		if(oneChr) break;
 	}
 }
 
@@ -370,7 +375,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			logfile->write(" done!");
 			if(oneWindow) break;
 		}
-		if(oneWindow) break;
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -439,7 +444,7 @@ void TGenome::callAllelePresence(TParameters & params){
 			}
 			if(oneWindow) break;
 		}
-		if(oneWindow) break;
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -473,7 +478,7 @@ void TGenome::printPileup(){
 			windows.cur->printPileup(pmdObject, recalObject, out, chrIterator->Name);
 			if(oneWindow) break;
 		}
-		if(oneWindow) break;
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -695,12 +700,13 @@ void TGenome::BQSR(TParameters & params){
 
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
-		logfile->startIndent("Only using first chromosome to get initial estimates:");
+		int numPreConvLoops = params.getParameterInt("preConverge");
+		logfile->startIndent("Only using first chromosome to get initial estimates for " + toString(numPreConvLoops) + " loops :");
 
 		//run until it converges
-		while(!hasConverged){
+		while(!hasConverged && loopNumber < numPreConvLoops){
 			++loopNumber;
-			logfile->startIndent("Running pre recalibration loop " + toString(loopNumber) + ":");
+			logfile->startIndent("Running pre-recalibration loop " + toString(loopNumber) + ":");
 
 			//jump to first chromosome
 			if(loopNumber == 1)	iterateChromosome(windows);
@@ -736,7 +742,7 @@ void TGenome::BQSR(TParameters & params){
 		hasConverged = false;
 		loopNumber = 0;
 		logfile->endIndent();
-		restartChromosome(windows);
+		jumpToEnd();
 	}
 
 	//loop over bam until BQSR converges
@@ -756,8 +762,15 @@ void TGenome::BQSR(TParameters & params){
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
 				logfile->list("All done for this window!!");
+
+				if(oneWindow) break;
+			}
+			if(oneChr){
+				restartChromosome(windows);
+				break;
 			}
 		}
+
 
 		//clean up memory
 		windows.clear();
