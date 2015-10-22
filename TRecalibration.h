@@ -68,8 +68,8 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 
-	double dePhred(int quality){
-		return pow(10.0, (double) quality / -10.0);
+	double dePhred(double quality){
+		return pow(10.0, quality / -10.0);
 	};
 	virtual double getErrorRate(TBase* base){
 		return dePhred(base->quality);
@@ -152,7 +152,7 @@ public:
 	void reopenEstimation();
 	void init(double initialError, TPMD* PmdObject);
 	void set(double error){curEstimate = error;};
-	void set(double error, long NumObservations){curEstimate = error; numObservations=NumObservations;};
+	void set(double error, double NumObservations){curEstimate = error; numObservations=pow(10.0, NumObservations);};
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
 	void runNewtonRalphson(double & convergenceThreshold);

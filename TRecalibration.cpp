@@ -627,7 +627,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	std::getline(file, tmp); //skip header
 	double quality;
 	int readGroup;
-	long numObs;
+	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -639,7 +639,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
-				numObs = stringToLong(vec[4]);
+				numObs = stringToDouble(vec[4]);
 				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), numObs);
 			}
 		}
@@ -724,7 +724,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	std::getline(file, tmp); //skip header
 	double alpha;
 	int readGroup;
-	long numObs;
+	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -736,7 +736,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				p = stringToInt(vec[1]);
 				alpha = stringToDouble(vec[3]);
-				numObs = stringToLong(vec[4]);
+				numObs = stringToDouble(vec[4]);
 				BQSR_cells_readGroup_position[readGroup][p-1].set(alpha, numObs);
 				isListed[readGroup][p-1] = true;
 			}
@@ -818,7 +818,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	int context;
 	double alpha;
 	int readGroup;
-	long numObs;
+	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -832,7 +832,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				context = genoMap.getContext(vec[1][0], vec[1][1]);
 				alpha = stringToDouble(vec[3]);
-				numObs = stringToLong(vec[4]);
+				numObs = stringToDouble(vec[4]);
 				BQSR_cells_readGroup_context[readGroup][context].set(alpha, numObs);
 				isListed[readGroup][context] = true;
 			}
@@ -1028,7 +1028,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
-			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].numObservations;
+			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << log10(BQSR_cells_readGroup_quality[i][q].numObservations);
 			//for debugging: also print derivatives, F and whether is has converged
 			out << "\t" << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << "\t" << BQSR_cells_readGroup_quality[i][q].estimationConverged;
 			out << "\n";
@@ -1047,7 +1047,10 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 		for(int i=0; i<numReadGroups; ++i, ++it){
 			for(int p=0; p<maxPos; ++p){
-				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].numObservations << "\n";
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << log10(BQSR_cells_readGroup_position[i][p].numObservations);
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].F << "\t" << BQSR_cells_readGroup_position[i][p].estimationConverged;
+				out << "\n";
 			}
 		}
 		out.close();
@@ -1064,7 +1067,10 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		it = bamHeader->ReadGroups.Begin();
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
-				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].numObservations << "\n";
+				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << log10(BQSR_cells_readGroup_context[r][c].numObservations);
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_context[r][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].F << "\t" << BQSR_cells_readGroup_context[r][c].estimationConverged;
+				out << "\n";
 			}
 		}
 		out.close();
