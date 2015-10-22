@@ -324,6 +324,12 @@ void TBQSR_cell::init(double initialError, TPMD* PmdObject){
 	pmdObject = PmdObject;
 }
 
+void TBQSR_cell::set(double error, std::string & NumObservations){
+	curEstimate = error;
+	if(NumObservations == "-") numObservations = 0;
+	else numObservations = pow(10.0, stringToDouble(NumObservations));
+};
+
 void TBQSR_cell::empty(){
 	if(!estimationConverged){
 		numObservationsTmp = 0;
@@ -424,6 +430,10 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 	return estimationConverged;
 }
 
+std::string TBQSR_cell::getNumObsForPrinting(){
+	if(numObservations == 0) return "-";
+	else return toString(log10(numObservations));
+}
 //---------------------------------------------------------------
 TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell(){
 	BQSR_cells_readGroup_quality = NULL;
@@ -604,7 +614,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 		//skip empty lines
 		if(vec.size() > 0){
-			if(vec.size() != 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+			if(vec.size() < 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//get quality
 			q = stringToInt(vec[1]);
 			if(q > maxQ) maxQ = q;
@@ -627,7 +637,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	std::getline(file, tmp); //skip header
 	double quality;
 	int readGroup;
-	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -639,8 +648,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
-				numObs = stringToDouble(vec[4]);
-				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), numObs);
+				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), vec[4]);
 			}
 		}
 	}
@@ -700,7 +708,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 		//skip empty lines
 		if(vec.size() > 0){
-			if(vec.size() != 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+			if(vec.size() < 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//get quality
 			p = stringToInt(vec[1]);
 			if(p > maxPos) maxPos = p;
@@ -724,7 +732,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	std::getline(file, tmp); //skip header
 	double alpha;
 	int readGroup;
-	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -736,8 +743,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				p = stringToInt(vec[1]);
 				alpha = stringToDouble(vec[3]);
-				numObs = stringToDouble(vec[4]);
-				BQSR_cells_readGroup_position[readGroup][p-1].set(alpha, numObs);
+				BQSR_cells_readGroup_position[readGroup][p-1].set(alpha, vec[4]);
 				isListed[readGroup][p-1] = true;
 			}
 		}
@@ -818,7 +824,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	int context;
 	double alpha;
 	int readGroup;
-	double numObs;
 
 	//now parse file again and set empirical quality
 	while(file.good() && !file.eof()){
@@ -826,14 +831,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 		//skip empty lines
 		if(vec.size() > 0){
-			if(vec.size() != 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+			if(vec.size() < 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//set quality and empirical error rate
 			readGroup = findReadGroupIndex(vec[0]);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				context = genoMap.getContext(vec[1][0], vec[1][1]);
 				alpha = stringToDouble(vec[3]);
-				numObs = stringToDouble(vec[4]);
-				BQSR_cells_readGroup_context[readGroup][context].set(alpha, numObs);
+				BQSR_cells_readGroup_context[readGroup][context].set(alpha, vec[4]);
 				isListed[readGroup][context] = true;
 			}
 		}
@@ -1028,7 +1032,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
-			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << log10(BQSR_cells_readGroup_quality[i][q].numObservations);
+			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
 			out << "\t" << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << "\t" << BQSR_cells_readGroup_quality[i][q].estimationConverged;
 			out << "\n";
@@ -1047,7 +1051,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 		for(int i=0; i<numReadGroups; ++i, ++it){
 			for(int p=0; p<maxPos; ++p){
-				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << log10(BQSR_cells_readGroup_position[i][p].numObservations);
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
 				out << "\t" << BQSR_cells_readGroup_position[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].F << "\t" << BQSR_cells_readGroup_position[i][p].estimationConverged;
 				out << "\n";
@@ -1067,7 +1071,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		it = bamHeader->ReadGroups.Begin();
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
-				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << log10(BQSR_cells_readGroup_context[r][c].numObservations);
+				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
 				out << "\t" << BQSR_cells_readGroup_context[r][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].F << "\t" << BQSR_cells_readGroup_context[r][c].estimationConverged;
 				out << "\n";

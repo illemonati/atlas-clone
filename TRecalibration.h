@@ -152,11 +152,12 @@ public:
 	void reopenEstimation();
 	void init(double initialError, TPMD* PmdObject);
 	void set(double error){curEstimate = error;};
-	void set(double error, double NumObservations){curEstimate = error; numObservations=pow(10.0, NumObservations);};
+	void set(double error, std::string & NumObservations);
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
 	void runNewtonRalphson(double & convergenceThreshold);
 	virtual bool estimate(double & convergenceThreshold, long & minObservations);
+	std::string getNumObsForPrinting();
 };
 
 class TBQSR_cellPosition:public TBQSR_cell{
