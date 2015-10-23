@@ -338,17 +338,14 @@ double TBQSR_cell::getD(TBase* base, Base & RefBase){
 					D = 1.0;
 					break;
 				}
-				if(RefBase == G) D = pmdObject->getProbGA(base->pos3);
+				if(RefBase == G) D = base->PMD_GA;
 				break;
-		case C: if(RefBase == C) D = 1.0 - pmdObject->getProbGA(base->pos5);
+		case C: if(RefBase == C) D = 1.0 - base->PMD_CT;
 				break;
-		case G: if(RefBase == G) D = 1.0 - pmdObject->getProbGA(base->pos3);
+		case G: if(RefBase == G) D = 1.0 - base->PMD_GA;
 				break;
-		case T: if(RefBase == C){
-					D = pmdObject->getProbGA(base->pos5);
-					break;
-				}
-				if(RefBase == T) D = 1.0;
+		case T: if(RefBase == C) D = base->PMD_CT;
+		        else if(RefBase == T) D = 1.0;
 				break;
 		case N: throw "Can not add base with unknown reference to BQSR cell!";
 	}

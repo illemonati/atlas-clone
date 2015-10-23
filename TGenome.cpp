@@ -20,7 +20,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	numWindowsOnChr = 0;
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
-	initializePostMortemDamage(params);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -49,6 +48,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	bamHeader = bamReader.GetHeader();
 	readGroups.fill(bamHeader);
 	chrIterator = bamHeader.Sequences.End();
+
+	//initialize post mortem damage
+	initializePostMortemDamage(params);
 
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -153,9 +155,9 @@ bool TGenome::readData(TWindowPair & windowPair){
 				break;
 			} else {
 				++numReads;
-				if(windowPair.curPointer->addFromRead(bamAlignement, &readGroups)){
+				if(windowPair.curPointer->addFromRead(bamAlignement, pmdObject, &readGroups)){
 					//add also to next window in case reads overhangs current window -> function returns true
-					windowPair.nextPointer->addFromRead(bamAlignement, &readGroups);
+					windowPair.nextPointer->addFromRead(bamAlignement, pmdObject, &readGroups);
 				}
 			}
 		}
@@ -329,7 +331,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(pmdObject, recalObject, out, chrIterator->Name, printIfNoData);
+			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData);
 			logfile->write(" done!");
 		}
 	}
@@ -411,7 +413,7 @@ void TGenome::printPileup(){
 			readData(windows);
 
 			//print pileup
-			windows.cur->printPileup(pmdObject, recalObject, out, chrIterator->Name);
+			windows.cur->printPileup(recalObject, out, chrIterator->Name);
 		}
 	}
 

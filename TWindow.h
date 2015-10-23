@@ -130,13 +130,13 @@ public:
 	};
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
-	void calculateEmissionProbabilities(TPMD & pmdObject, TRecalibration* recalObject);
-	void callMLEGenotype(TPMD & pmdObject, TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll=false);
-	void printPileup(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, std::string & chr);
+	void calculateEmissionProbabilities(TRecalibration* recalObject);
+	void callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll=false);
+	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
@@ -192,11 +192,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	void addToCur(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups){
-		curPointer->addFromRead(bamAlignement, readGroups);
+	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups){
+		curPointer->addFromRead(bamAlignement, pmdObject, readGroups);
 	};
-	void addToNext(BamTools::BamAlignment & bamAlignement, TReadGroups* readGroups){
-		nextPointer->addFromRead(bamAlignement, readGroups);
+	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups){
+		nextPointer->addFromRead(bamAlignement, pmdObject, readGroups);
 	};
 	void clear(){
 		curPointer->clear();

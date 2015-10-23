@@ -74,10 +74,12 @@ public:
 	virtual double getErrorRate(TBase* base){
 		return dePhred(base->quality);
 	};
-	void calcEmissionProbabilities(TSite & site, TPMD & pmdObject){
+	void calcEmissionProbabilities(TSite & site){
+		//first calculate for each base
 		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-			(*it)->fillEmissionProbabilitiesCore(pmdObject, getErrorRate(*it));
+			(*it)->fillEmissionProbabilitiesCore(getErrorRate(*it));
 		}
+		//then for the site
 		site.calcEmissionProbabilities();
 	};
 };

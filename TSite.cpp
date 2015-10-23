@@ -42,6 +42,7 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 }
 
 void TSite::calcEmissionProbabilities(){
+	//assumes that emission probabilities were calculated for TBase!
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilities[i] = 1.0;
 	}
