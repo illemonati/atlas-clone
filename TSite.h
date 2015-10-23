@@ -46,7 +46,7 @@ public:
 
 	void clear();
 
-	virtual void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
+	virtual void add(char & base, char & quality, int PosInRead, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){referenceBase = Base; };
 	char getRefBase(){return referenceBase;};
 	Base getRefBaseAsEnum(){
@@ -80,7 +80,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup);
+	void add(char & base, char & quality, int PosInRead, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
 };
 
@@ -97,7 +97,7 @@ public:
 		delete[] emissionProbabilities;
 		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int pos5, int pos3, BaseContext & Context, int & ReadGroup);
+	void add(char & base, char & quality, int PosInRead, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 };
 
 
