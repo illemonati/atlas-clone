@@ -158,7 +158,7 @@ public:
 	void initSites(long newLength);
 	void estimateTheta(EMParameters & constants, TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
 	void calcLikelihoodSurface(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll);
+	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 };
 
 class TWindowHaploid:public TWindow{

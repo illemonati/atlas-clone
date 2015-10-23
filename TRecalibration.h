@@ -68,8 +68,8 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 
-	double dePhred(int quality){
-		return pow(10.0, (double) quality / -10.0);
+	double dePhred(double quality){
+		return pow(10.0, quality / -10.0);
 	};
 	virtual double getErrorRate(TBase* base){
 		return dePhred(base->quality);
@@ -138,8 +138,12 @@ public:
 	double curEstimate;
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
+
+	double firstDerivativeSave, secondDerivativeSave;
+
 	TPMD* pmdObject;
 	double numObservations;
+	double numObservationsTmp;
 
 	double F;
 	double LL;
@@ -147,13 +151,15 @@ public:
 	TBQSR_cell();
 	virtual ~TBQSR_cell(){};
 	void empty();
+	void reopenEstimation();
 	void init(double initialError, TPMD* PmdObject);
 	void set(double error){curEstimate = error;};
-	void set(double error, long NumObservations){curEstimate = error; numObservations=NumObservations;};
+	void set(double error, std::string & NumObservations);
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
 	void runNewtonRalphson(double & convergenceThreshold);
-	virtual bool estimate(double & convergenceThreshold);
+	virtual bool estimate(double & convergenceThreshold, long & minObservations);
+	std::string getNumObsForPrinting();
 };
 
 class TBQSR_cellPosition:public TBQSR_cell{
@@ -167,7 +173,7 @@ public:
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
-	bool estimate(double & convergenceThreshold);
+	bool estimate(double & convergenceThreshold, long & minObservations);
 };
 
 
@@ -198,6 +204,7 @@ private:
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;
+	long minObservations;
 
 	//recal tables
 	bool qualityConverged;
@@ -216,12 +223,12 @@ private:
 	//-------------------------
 
 	int findReadGroupIndex(std::string & name);
-	void initializeBQSRReadGroupQualityTable(std::string filename);
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
-	void initializeBQSRReadGroupPositionTable(std::string filename);
+	void initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupPositionTable(TParameters & params);
-	void initializeBQSRReadGroupContextTable(std::string filename);
+	void initializeBQSRReadGroupPositionTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupContextTable(TParameters & params);
+	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
 
 public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
@@ -251,6 +258,7 @@ public:
 	bool estimateEpsilon();
 	void writeToFile(std::string filenameTag);
 	bool allConverged();
+	void reopenEstimation();
 	double getErrorRate(TBase* base);
 };
 

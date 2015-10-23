@@ -96,6 +96,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD & pmdObje
 	 */
 	if(bamAlignement.Position >= end) return true;
 
+	//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
+	if(bamAlignement.IsPaired() && bamAlignement.MateRefID != bamAlignement.RefID) return false;
+
 	//find first position to be within window
 	double len = bamAlignement.AlignedBases.length();
 	if(bamAlignement.Position + len < start) return false;

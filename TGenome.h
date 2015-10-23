@@ -17,7 +17,10 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
+	void jumpToEnd();
+	void restartChromosome(TWindowPair & windowPair);
 	bool iterateChromosome(TWindowPair & windowPair);
+	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
@@ -45,6 +48,7 @@ private:
  	std::string outputName;
  	TBedReader* mask;
  	bool doMasking;
+ 	bool oneWindow, oneChr; //for debugging
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);

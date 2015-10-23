@@ -64,9 +64,24 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		mask = new TBedReader(maskFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
-		mask->print();
+		//mask->print();
 	} else doMasking = false;
+
+	//for debugging: work on one window only
+	oneWindow = params.parameterExists("oneWindow");
+	oneChr = params.parameterExists("oneChr");
 };
+
+void TGenome::jumpToEnd(){
+	chrIterator = bamHeader.Sequences.End();
+}
+
+void TGenome::restartChromosome(TWindowPair & windowPair){
+	chrIterator = bamHeader.Sequences.Begin();
+	chrNumber = 0;
+
+	moveChromosome(windowPair);
+}
 
 bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	if(chrIterator == bamHeader.Sequences.End()){
@@ -85,6 +100,11 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 		return false;
 	}
 
+	moveChromosome(windowPair);
+	return true;
+}
+
+void TGenome::moveChromosome(TWindowPair & windowPair){
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
 
@@ -104,7 +124,6 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 
 	//write progress
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
-	return true;
 }
 
 bool TGenome::iterateWindow(TWindowPair & windowPair){
@@ -256,7 +275,9 @@ void TGenome::estimateTheta(TParameters & params){
 				out << chrIterator->Name << "\t";
 				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
 			}
+			if(oneWindow) break;
 		}
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -300,25 +321,42 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				//check if we break
 				++windowsCalculated;
 				if(windowsCalculated >= numWindows) break;
+				if(oneWindow) break;
 			}
 		}
 		if(windowsCalculated >= numWindows) break;
+		if(oneChr) break;
 	}
 }
 
 void TGenome::callMLEGenotypes(TParameters & params){
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//open FASTA reference
+	BamTools::Fasta reference;
+	bool printRefBase = false;
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		printRefBase = true;
+	}
+
 	//open output
 	std::string filename = outputName + "_MLEGenotypes.txt.gz";
 	logfile->list("Writing MLE genotypes to '" + filename + "'");
 	gz::ogzstream out(filename.c_str());
 	if(!out) throw "Failed to open output file '" + filename + "'!";
 
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
 
 	//write header
 	out << std::setprecision(3);
-	out << "chr\tpos\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+	out << "chr\tpos";
+	if(printRefBase) out << "\tRef";
+	out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -329,11 +367,16 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			//read data for current window
 			readData(windows);
 
+			//add reference data
+			if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
 			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData);
 			logfile->write(" done!");
+			if(oneWindow) break;
 		}
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -344,8 +387,20 @@ void TGenome::callAllelePresence(TParameters & params){
 	//EM params
 	EMParameters EMParams(params, logfile);
 
-	//open output for theta
-	std::ofstream out; openThetaOutputFile(out);
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//open FASTA reference
+	BamTools::Fasta reference;
+	bool printRefBase = false;
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		printRefBase = true;
+	}
 
 	//open output for allele presence
 	filename = outputName + "_AllelePresence.txt.gz";
@@ -355,10 +410,13 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//write header
 	outAllelePresence << std::setprecision(3);
-	outAllelePresence << "chr\tpos\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+	outAllelePresence << "chr\tpos";
+	if(printRefBase) outAllelePresence << "\tRef";
+	outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
 
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
+	//open output for theta
+	std::ofstream out; openThetaOutputFile(out);
+
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -377,12 +435,17 @@ void TGenome::callAllelePresence(TParameters & params){
 				out << chrIterator->Name << "\t";
 				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
 
+				//add reference data
+				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
 				//call allele presence
 				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData);
+				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase);
 				logfile->write(" done!");
 			}
+			if(oneWindow) break;
 		}
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -414,7 +477,9 @@ void TGenome::printPileup(){
 
 			//print pileup
 			windows.cur->printPileup(recalObject, out, chrIterator->Name);
+			if(oneWindow) break;
 		}
+		if(oneChr) break;
 	}
 
 	//clean up
@@ -630,13 +695,63 @@ void TGenome::BQSR(TParameters & params){
 		return;
 	}
 
-	//loop over bam until BQSR converges
+	//tmp variables
 	bool hasConverged = false;
 	int loopNumber = 0;
+
+	//check if we use first chromosome for initial convergence
+	if(params.parameterExists("preConverge")){
+		int numPreConvLoops = params.getParameterInt("preConverge");
+		logfile->startIndent("Only using first chromosome to get initial estimates for " + toString(numPreConvLoops) + " loops :");
+
+		//run until it converges
+		while(!hasConverged && loopNumber < numPreConvLoops){
+			++loopNumber;
+			logfile->startIndent("Running pre-recalibration loop " + toString(loopNumber) + ":");
+
+			//jump to first chromosome
+			if(loopNumber == 1)	iterateChromosome(windows);
+			else restartChromosome(windows);
+
+			//iterate over all windows
+			while(iterateWindow(windows)){
+				//read data for current window
+				readData(windows);
+
+				//add reference data
+				windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
+				//add the base to BQSR
+				windows.cur->addSitesToBQSR(bqsr, logfile);
+
+				logfile->list("All done for this window!!");
+			}
+			logfile->endIndent();
+
+			//clean up memory and restart from chr 1
+			windows.clear();
+
+			//estimate epsilon
+			hasConverged = bqsr.estimateEpsilon();
+
+			//write results to file
+			bqsr.writeToFile(outputName + "_preConvergence_Loop" + toString(loopNumber));
+			logfile->endIndent();
+		}
+
+		//reset counters and such
+		hasConverged = false;
+		loopNumber = 0;
+		logfile->endIndent();
+		jumpToEnd();
+	}
+
+	//loop over bam until BQSR converges
 	while(!hasConverged){
 		++loopNumber;
 		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
 		//loop over all windows
+
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
 				//read data for current window
@@ -648,9 +763,16 @@ void TGenome::BQSR(TParameters & params){
 				//add the base to BQSR
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
-				logfile->list("window finished!");
+				logfile->list("All done for this window!!");
+
+				if(oneWindow) break;
+			}
+			if(oneChr){
+				restartChromosome(windows);
+				break;
 			}
 		}
+
 
 		//clean up memory
 		windows.clear();
@@ -666,5 +788,4 @@ void TGenome::BQSR(TParameters & params){
 
 	//write results to file
 	bqsr.writeToFile(outputName);
-
 }
