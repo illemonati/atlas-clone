@@ -372,7 +372,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData);
+			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData, printRefBase);
 			logfile->write(" done!");
 			if(oneWindow) break;
 		}
