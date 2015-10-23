@@ -141,7 +141,7 @@ public:
 
 	double firstDerivativeSave, secondDerivativeSave;
 
-	TPMD* pmdObject;
+	//TPMD* pmdObject;
 	double numObservations;
 	double numObservationsTmp;
 
@@ -152,7 +152,7 @@ public:
 	virtual ~TBQSR_cell(){};
 	void empty();
 	void reopenEstimation();
-	void init(double initialError, TPMD* PmdObject);
+	void init(double initialError);
 	void set(double error){curEstimate = error;};
 	void set(double error, std::string & NumObservations);
 	double getD(TBase* base, Base & RefBase);
@@ -170,7 +170,7 @@ public:
 	TBQSR_cellPosition();
 	~TBQSR_cellPosition(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
 	bool estimate(double & convergenceThreshold, long & minObservations);
@@ -185,8 +185,8 @@ public:
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, TPMD* PmdObject);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
 	void addBase(TBase* base, Base & RefBase);
 };
 
@@ -196,7 +196,6 @@ private:
 	TQualityIndex* qualityIndex;
 	BamTools::SamHeader* bamHeader;
 	TLog* logfile;
-	TPMD* pmdObject;
 	TGenotypeMap genoMap;
 	int numReadGroups;
 	bool estimatetionRequired;
@@ -231,7 +230,7 @@ private:
 	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
 
 public:
-	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile);
+	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile);
 	~TRecalibrationBQSR(){
 		for(int i=0; i<numReadGroups; ++i){
 			delete[] BQSR_cells_readGroup_quality[i];

@@ -128,6 +128,9 @@ public:
 	double getProbCT(double pos){ return myFunctions[pmdCT]->getProb(pos); };
 	double getProbGA(double pos){ return myFunctions[pmdGA]->getProb(pos); };
 	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
+	bool functionInitialized(PMDType type){
+		return functionsInitialized[type];
+	};
 };
 
 

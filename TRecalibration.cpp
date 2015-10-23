@@ -311,7 +311,6 @@ TBQSR_cell::TBQSR_cell(){
 	firstDerivativeSave = 0.0;
 	secondDerivative = 0.0;
 	secondDerivativeSave = 0.0;
-	pmdObject = NULL;
 	numObservations = 0.0;
 	numObservationsTmp = 0.0;
 	numMatches = 0.0;
@@ -319,9 +318,8 @@ TBQSR_cell::TBQSR_cell(){
 	LL = 0.0;
 }
 
-void TBQSR_cell::init(double initialError, TPMD* PmdObject){
+void TBQSR_cell::init(double initialError){
 	curEstimate = initialError;
-	pmdObject = PmdObject;
 }
 
 void TBQSR_cell::set(double error, std::string & NumObservations){
@@ -438,10 +436,9 @@ TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell(){
 	curEstimate = 1.0;
 }
 
-void TBQSR_cellPosition::init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject){
+void TBQSR_cellPosition::init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex){
 	BQSR_cells_readGroup_quality = gotBQSR_cells_quality_readGroup;
 	qualityIndex = QualityIndex;
-	pmdObject = PmdObject;
 }
 
 void TBQSR_cellPosition::addToDerivatives(TBase* base, Base & RefBase, double & epsilon){
@@ -497,14 +494,14 @@ TBQSR_cellContext::TBQSR_cellContext():TBQSR_cellPosition(){
 	considerPosition = false;
 }
 
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex, TPMD* PmdObject){
-	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex, PmdObject);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex){
+	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex);
 	BQSR_quality_position = gotBQSR_quality_position;
 	considerPosition = true;
 }
 
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, TPMD* PmdObject){
-	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex, PmdObject);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex){
+	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex);
 	BQSR_quality_position = NULL;
 }
 
@@ -520,10 +517,9 @@ void TBQSR_cellContext::addBase(TBase* base, Base & RefBase){
 //---------------------------------------------------------------
 //Recalibration BQSR
 //---------------------------------------------------------------
-TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TPMD* PmdObject, TLog* Logfile){
+TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 	bamHeader = BamHeader;
-	pmdObject = PmdObject;
 	numReadGroups = bamHeader->ReadGroups.Size();
 	estimatetionRequired = false;
 	estimationConverged = false;
@@ -582,7 +578,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 		BQSR_cells_readGroup_quality = new TBQSR_cell*[numReadGroups];
 		for(int i=0; i<numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-			for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), pmdObject);
+			for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)));
 		}
 	}
 }
@@ -625,7 +621,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//create corresponding objects
 	for(int i=0; i<numReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(0.01, pmdObject);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(0.01);
 	}
 
 	//rewind file to beginning
@@ -673,7 +669,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTable(TParameters & para
 			BQSR_cells_readGroup_position = new TBQSR_cellPosition*[numReadGroups];
 			for(int i=0; i<numReadGroups; ++i){
 				BQSR_cells_readGroup_position[i] = new TBQSR_cellPosition[maxPos];
-				for(int p=0; p<maxPos; ++p) BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex, pmdObject);
+				for(int p=0; p<maxPos; ++p) BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
 			}
 		} else {
 			BQSR_cells_readGroup_position = NULL;
@@ -718,7 +714,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 		BQSR_cells_readGroup_position[i] = new TBQSR_cellPosition[maxPos];
 		isListed[i] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
-			BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex, pmdObject);
+			BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
 			isListed[i][p] = false;
 		}
 	}
@@ -778,8 +774,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTable(TParameters & param
 			for(int r=0; r<numReadGroups; ++r){
 				BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 				for(int c=0; c<numContexts; ++c){
-					if(considerPosition) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, pmdObject);
-					else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex, pmdObject);
+					if(considerPosition) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
+					else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex);
 				}
 			}
 		} else {
@@ -799,8 +795,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	for(int r=0; r<numReadGroups; ++r){
 		BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 		for(int c=0; c<numContexts; ++c){
-			if(considerPosition) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, pmdObject);
-			else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex, pmdObject);
+			if(considerPosition) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
+			else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex);
 		}
 	}
 

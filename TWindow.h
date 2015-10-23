@@ -104,6 +104,18 @@ public:
 		}
 		throw "Read Group '" + name + "' was not present in header of bam file!";
 	};
+
+	bool readGroupExists(std::string & name){
+		for(int i=0; i<numGroups; ++i){
+			if(groups[i].name == name) return true;
+		}
+		return false;
+	};
+
+	std::string getName(int num){
+		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
+		return groups[num].name;
+	};
 };
 
 //---------------------------------------------------------------
@@ -130,7 +142,7 @@ public:
 	};
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
@@ -156,8 +168,8 @@ public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
-	void calcLikelihoodSurface(TPMD & pmd, TRecalibration* recalObject, std::ofstream & out, int & steps);
+	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
+	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
 	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 };
 
@@ -192,11 +204,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups){
-		curPointer->addFromRead(bamAlignement, pmdObject, readGroups);
+	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups){
+		curPointer->addFromRead(bamAlignement, pmdObjects, readGroups);
 	};
-	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups){
-		nextPointer->addFromRead(bamAlignement, pmdObject, readGroups);
+	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups){
+		nextPointer->addFromRead(bamAlignement, pmdObjects, readGroups);
 	};
 	void clear(){
 		curPointer->clear();

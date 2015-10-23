@@ -89,7 +89,7 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD & pmdObject, TReadGroups* readGroups){
+bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
@@ -141,11 +141,11 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD & pmdObje
 				if(bamAlignement.IsReverseStrand()){
 					if(pos == secondLastPos) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
-					sites[internalPos].add(base, quality, len - pos - 1, pmdObject.getProbCT(len - pos), pmdObject.getProbGA(pos + 1), context, readGroupId);
+					sites[internalPos].add(base, quality, len - pos - 1, pmdObjects[readGroupId].getProbCT(len - pos), pmdObjects[readGroupId].getProbGA(pos + 1), context, readGroupId);
 				} else {
 					if(pos == 0) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
-					sites[internalPos].add(base, quality, pos, pmdObject.getProbCT(pos + 1), pmdObject.getProbGA(len - pos), context, readGroupId);
+					sites[internalPos].add(base, quality, pos, pmdObjects[readGroupId].getProbCT(pos + 1), pmdObjects[readGroupId].getProbGA(len - pos), context, readGroupId);
 				}
 			}
 		}
@@ -308,7 +308,7 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
-void TWindowDiploid::estimateTheta(EMParameters & EMParams, TPMD & pmdObject, TRecalibration* recalObject, std::ofstream & out, TLog* logfile){
+void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile){
 	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
@@ -623,7 +623,7 @@ void TWindowDiploid::estimateConfidenceInterval(Theta & thetaContainer){
 
 
 
-void TWindowDiploid::calcLikelihoodSurface(TPMD & pmdObject, TRecalibration* recalObject, std::ofstream & out, int & steps){
+void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps){
 	//estimate initial base frequencies
 	//calculate per site emission probabilities
 	calculateEmissionProbabilities(recalObject);

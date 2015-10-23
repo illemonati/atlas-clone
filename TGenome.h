@@ -27,7 +27,7 @@ private:
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out);
 
-	TPMD pmdObject;
+	TPMD* pmdObjects;
 	TRecalibration* recalObject;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
@@ -55,6 +55,7 @@ public:
 	~TGenome(){
 		if(doMasking) delete mask;
 		delete recalObject;
+		delete[] pmdObjects;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);

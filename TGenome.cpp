@@ -174,9 +174,9 @@ bool TGenome::readData(TWindowPair & windowPair){
 				break;
 			} else {
 				++numReads;
-				if(windowPair.curPointer->addFromRead(bamAlignement, pmdObject, &readGroups)){
+				if(windowPair.curPointer->addFromRead(bamAlignement, pmdObjects, &readGroups)){
 					//add also to next window in case reads overhangs current window -> function returns true
-					windowPair.nextPointer->addFromRead(bamAlignement, pmdObject, &readGroups);
+					windowPair.nextPointer->addFromRead(bamAlignement, pmdObjects, &readGroups);
 				}
 			}
 		}
@@ -199,41 +199,96 @@ bool TGenome::readData(TWindowPair & windowPair){
 };
 
 void TGenome::initializePostMortemDamage(TParameters & params){
-	std::string pmdString;
-	if(params.parameterExists("pmd")){
-		pmdString = params.getParameterString("pmd");
-		logfile->list("Initializing post mortem damage for both C->T and G->A with function '" + pmdString +"'.");
-		pmdObject.initializeFunction(pmdString, pmdCT);
-		pmdObject.initializeFunction(pmdString, pmdGA);
-		logfile->conclude(pmdObject.getFunctionString(pmdCT));
-	} else {
-		if(!params.parameterExists("pmdCT") && !params.parameterExists("pmdGA")){
-			//no post mortem damage
-			pmdString = "none";
-			pmdObject.initializeFunction(pmdString, pmdGA);
-			pmdObject.initializeFunction(pmdString, pmdCT);
+	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
+	//create an array of TPMD objects for each read group
+	pmdObjects = new TPMD[readGroups.numGroups];
+
+	//now fill them!
+	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
+		logfile->list("Initializing one PMD function for all read groups.");
+		//all read groups have the same pmd
+		if(params.parameterExists("pmd")){
+			std::string pmdString = params.getParameterString("pmd");
+			logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
+			for(int i=0; i<readGroups.numGroups; ++i){
+				pmdObjects[i].initializeFunction(pmdString, pmdGA);
+				pmdObjects[i].initializeFunction(pmdString, pmdCT);
+			}
+			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
 		} else {
-			//separate model for C->T and G->A
-			//first C->T
 			if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
-			pmdString = params.getParameterString("pmdCT");
-			logfile->list("Initializing post mortem C->T damage with function '" + pmdString +"'.");
-			pmdObject.initializeFunction(pmdString, pmdCT);
-			logfile->conclude(pmdObject.getFunctionString(pmdCT));
+			std::string pmdStringCT = params.getParameterString("pmdCT");
+			logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
+			for(int i=0; i<readGroups.numGroups; ++i){
+				pmdObjects[i].initializeFunction(pmdStringCT, pmdCT);
+			}
+			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
 
 			//second G->A
 			if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdGA' has to be provided!";
-			pmdString = params.getParameterString("pmdGA");
-			logfile->list("Initializing post mortem G->A damage with function '" + pmdString +"'.");
-			pmdObject.initializeFunction(pmdString, pmdGA);
-			logfile->conclude(pmdObject.getFunctionString(pmdGA));
+			std::string pmdStringGA = params.getParameterString("pmdGA");
+			logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
+			for(int i=0; i<readGroups.numGroups; ++i){
+				pmdObjects[i].initializeFunction(pmdStringGA, pmdGA);
+			}
+			logfile->conclude(pmdObjects[0].getFunctionString(pmdGA));
+		}
+	} else if(params.parameterExists("pmdFile")){
+		//read from file for each read group
+		std::string filename = params.getParameterString("pmdFile");
+		logfile->list("Reading PMD from  from file '" + filename + "'.");
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open PMD file '" + filename + "'!";
+
+		//parse file that has structure: readGroup PMD(CT) PMD(GA)
+		int lineNum = 0;
+		std::string line;
+		std::vector<std::string> vec;
+		int readGroupId;
+		while(file.good() && !file.eof()){
+			++lineNum;
+			//skip empty lines or those that start with //
+			std::getline(file, line);
+			line = extractBefore(line, "//");
+			trimString(line);
+			if(!line.empty()){
+				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+				//get read group
+				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
+					readGroupId = readGroups.find(vec[0]);
+					//initialize functions
+					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
+					logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
+					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
+					logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
+				}
+			}
+		}
+
+		//close file
+		file.close();
+
+		//test if we have a function for all read groups
+		for(int i=0; i<readGroups.numGroups; ++i){
+			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+		}
+	} else {
+		//no post mortem damage
+		logfile->list("Assuming there is no PMD in the data.");
+		std::string pmdString = "none";
+		for(int i=0; i<readGroups.numGroups; ++i){
+			pmdObjects[i].initializeFunction(pmdString, pmdGA);
+			pmdObjects[i].initializeFunction(pmdString, pmdCT);
 		}
 	}
+	logfile->endIndent();
 }
 
 void TGenome::initializeRecalibration(TParameters & params){
 	if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(&bamHeader, params, &pmdObject, logfile);
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
 	} else {
 		recalObject = new TRecalibration();
 	}
@@ -273,7 +328,7 @@ void TGenome::estimateTheta(TParameters & params){
 			} else {
 				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
+				windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
 			}
 			if(oneWindow) break;
 		}
@@ -312,7 +367,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 				//calc surface
 				logfile->listFlush("Calculating likelihood surface ...");
-				windows.cur->calcLikelihoodSurface(pmdObject, recalObject, out, steps);
+				windows.cur->calcLikelihoodSurface(recalObject, out, steps);
 				logfile->write(" done!");
 
 				//close output
@@ -433,7 +488,7 @@ void TGenome::callAllelePresence(TParameters & params){
 			} else {
 				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, pmdObject, recalObject, out, logfile);
+				windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
 
 				//add reference data
 				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
@@ -689,7 +744,7 @@ void TGenome::BQSR(TParameters & params){
 	reference.Open(fastaFile, fastaIndex);
 
 	//create BQSR object
-	TRecalibrationBQSR bqsr(&bamHeader, params, &pmdObject, logfile);
+	TRecalibrationBQSR bqsr(&bamHeader, params, logfile);
 	if(bqsr.allConverged()){
 		logfile->list("No need to estimate any BQSR cells. Aborting Program.");
 		return;
