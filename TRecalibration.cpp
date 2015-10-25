@@ -507,9 +507,8 @@ void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityInd
 
 void TBQSR_cellContext::addBase(TBase* base, Base & RefBase){
 	if(!estimationConverged){
-		int qIndex = qualityIndex->getIndex(base->quality);
-		double epsilonAlpha = BQSR_cells_readGroup_quality[base->readGroup][qIndex].curEstimate;
-		if(considerPosition) epsilonAlpha *= BQSR_quality_position[qIndex][base->posInRead].curEstimate;
+		double epsilonAlpha = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+		if(considerPosition) epsilonAlpha *= BQSR_quality_position[base->readGroup][base->posInRead].curEstimate;
 		addToDerivatives(base, RefBase, epsilonAlpha);
 	}
 }
@@ -872,7 +871,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_context[qualityIndex->getIndex((*it)->quality)][(*it)->context].addBase(*it, refBase);
+				BQSR_cells_readGroup_context[(*it)->readGroup][(*it)->context].addBase(*it, refBase);
 			}
 		}
 	}
