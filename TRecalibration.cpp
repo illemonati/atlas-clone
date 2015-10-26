@@ -475,12 +475,12 @@ bool TBQSR_cellPosition::estimate(double & convergenceThreshold, long & minObser
 
 			//check boundaries
 			if(curEstimate < 0.0){
-				curEstimate = 0.00000001;
-				if(oldEstimate == 0.00000001)
+				curEstimate = 0.01;
+				if(oldEstimate == 0.01)
 					estimationConverged = true; //if estimate is repeatedly below, accept
 			} else if(curEstimate > 10000.0){
-				curEstimate = 10000.0;
-				if(oldEstimate == 10000.0)
+				curEstimate = 100.0;
+				if(oldEstimate == 100.0)
 					estimationConverged = true; //if estimate is repeatedly above, accept
 			}
 		}
@@ -1061,7 +1061,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		if(!out) throw "Failed to open file '" + filename + "' for writing!";
 		out << "ReadGroup\tContext\tEventType\tScaling\tObservations\n";
 		it = bamHeader->ReadGroups.Begin();
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<numReadGroups; ++r, ++it){
 			for(int c=0; c<numContexts; ++c){
 				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
