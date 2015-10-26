@@ -848,7 +848,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	//set that no estimation is not required, unless requested
 	if(params.parameterExists("estimateBQSRContext")) contextConverged = false;
 	else contextConverged = true;
-	contextConverged = true;
 	considerContext = true;
 
 	//done!
