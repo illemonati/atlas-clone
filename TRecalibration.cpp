@@ -1110,7 +1110,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 double TRecalibrationBQSR::getErrorRate(TBase* base){
 	double q = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 	if(considerPosition) q *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
-	if(considerContext) q *= BQSR_cells_readGroup_context[qualityIndex->getIndex(base->quality)][base->context].curEstimate;
+	if(considerContext) q *= BQSR_cells_readGroup_context[base->readGroup][base->context].curEstimate;
 	return q;
 }
 
