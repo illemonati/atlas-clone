@@ -116,7 +116,7 @@ public:
 				if(c < 0.0) throw "Can not initialize Veeramah function with c < 0!";
 
 				//test if it can be > 1
-				if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
+				//if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
 
 				//initialze
 				myFunctions[type] = new TPMDVeeramah(first, b, c);
