@@ -169,6 +169,7 @@ public:
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
 	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
+	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
 	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 };

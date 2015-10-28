@@ -439,8 +439,18 @@ void TGenome::callMLEGenotypes(TParameters & params){
 }
 
 void TGenome::callAllelePresence(TParameters & params){
-	//EM params
-	EMParameters EMParams(params, logfile);
+	//do we estimate theta or is it given?
+	double theta;
+	bool estimateTheta;
+	EMParameters* EMParams;
+	if(params.parameterExists("theta")){
+		estimateTheta = false;
+		theta = params.getParameterDouble("theta");
+	} else {
+		estimateTheta = true;
+		//read EM params
+		EMParams = new EMParameters(params, logfile);
+	}
 
 	//do we print sites with no data?
 	bool printIfNoData = params.parameterExists("printAll");
@@ -486,9 +496,15 @@ void TGenome::callAllelePresence(TParameters & params){
 			if(windows.cur->fractionSitesNoData > maxMissing){
 				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			} else {
-				//estimate Theta
 				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+
+				//set Theta
+				if(estimateTheta){
+					windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+				} else {
+					windows.cur->estimateBaseFrequencies();
+					windows.cur->setTheta(theta);
+				}
 
 				//add reference data
 				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
@@ -505,6 +521,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//clean up
 	out.close();
+	if(estimateTheta) delete EMParams;
 }
 
 void TGenome::printPileup(){
