@@ -538,16 +538,24 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 					for(int i=0; i<6; ++i){
 						if(F(i) > maxF) maxF = F(i);
 					}
-					if(maxF < EMParams.NewtonRalphsonMaxF){
+
+					std::cout << n << ") F = " << maxF << std::endl;
+
+					if(maxF < EMParams.NewtonRalphsonMaxF || n == (EMParams.NewtonRalphsonNumIterations-1)){
 						thetaContainer.setTheta(-log(rho / (1.0 + rho)));
+
+						std::cout << "NEW THETA = " << thetaContainer.theta << std::endl;
+
 						break;
 					}
 				} else {
 					++failedAttempts;
+
 					//solve did not work -> start with higher theta!
 					thetaContainer.setTheta(EMParams.initalTheta);
 					for(int i=0; i<failedAttempts; ++i)
 						thetaContainer.theta *= 10.0;
+
 					//reset others
 					mu = lengthWithData;
 					thetaContainer.LL = -9e100;

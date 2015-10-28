@@ -1111,6 +1111,7 @@ double TRecalibrationBQSR::getErrorRate(TBase* base){
 	double q = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 	if(considerPosition) q *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
 	if(considerContext) q *= BQSR_cells_readGroup_context[base->readGroup][base->context].curEstimate;
+	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
 }
 
