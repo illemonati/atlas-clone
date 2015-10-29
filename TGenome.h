@@ -43,6 +43,7 @@ private:
 	TLog* logfile;
  	int windowSize;
  	int numWindowsOnChr;
+ 	int windowNumber;
  	double maxMissing;
  	long oldPos;
  	std::string outputName;

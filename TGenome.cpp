@@ -115,6 +115,7 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	curStart = 0;
 	curEnd = 0;
 	oldPos = -1;
+	windowNumber = 0;
 	int nextEnd = windowSize;
 	if(nextEnd > chrLength) nextEnd = chrLength;
 	windowPair.nextPointer->move(0, nextEnd);
@@ -141,6 +142,8 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	long nextEnd = curEnd + windowSize;
 	if(nextEnd > chrLength) nextEnd = chrLength + 1;
 	windowPair.nextPointer->move(curEnd, nextEnd);
+
+	++windowNumber;
 
 	//report
 	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
@@ -776,6 +779,12 @@ void TGenome::BQSR(TParameters & params){
 		int numPreConvLoops = params.getParameterInt("preConverge");
 		logfile->startIndent("Only using first chromosome to get initial estimates for " + toString(numPreConvLoops) + " loops :");
 
+		//do we limit number of windows?
+		bool limitWindows = params.parameterExists("limitWindows");
+		int maxNumWindows = 0;
+		if(limitWindows)
+			maxNumWindows = params.getParameterInt("limitWindows");
+
 		//run until it converges
 		while(!hasConverged && loopNumber < numPreConvLoops){
 			++loopNumber;
@@ -796,7 +805,10 @@ void TGenome::BQSR(TParameters & params){
 				//add the base to BQSR
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
-				logfile->list("All done for this window!!");
+				logfile->list("All done for this window!");
+
+				//check if we break
+				if(limitWindows && windowNumber == maxNumWindows) break;
 			}
 			logfile->endIndent();
 
