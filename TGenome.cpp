@@ -505,6 +505,7 @@ void TGenome::callAllelePresence(TParameters & params){
 				if(estimateTheta){
 					windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
 				} else {
+					windows.cur->calculateEmissionProbabilities(recalObject);
 					windows.cur->estimateBaseFrequencies();
 					windows.cur->setTheta(theta);
 				}

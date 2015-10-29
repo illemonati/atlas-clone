@@ -205,7 +205,7 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 void TWindow::callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
 	if(printAll){
 		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i;
+			out << chr << "\t" << start + i + 1;
 			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
 			sites[i].callMLEGenotype(genoMap, out, printRef);
 			out << "\n";
@@ -213,7 +213,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, 
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				out << chr << "\t" << start + i;
+				out << chr << "\t" << start + i + 1;
 				recalObject->calcEmissionProbabilities(sites[i]);
 				sites[i].callMLEGenotype(genoMap, out, printRef);
 				out << "\n";
@@ -539,13 +539,8 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 						if(F(i) > maxF) maxF = F(i);
 					}
 
-					std::cout << n << ") F = " << maxF << std::endl;
-
 					if(maxF < EMParams.NewtonRalphsonMaxF || n == (EMParams.NewtonRalphsonNumIterations-1)){
 						thetaContainer.setTheta(-log(rho / (1.0 + rho)));
-
-						std::cout << "NEW THETA = " << thetaContainer.theta << std::endl;
-
 						break;
 					}
 				} else {
@@ -675,14 +670,14 @@ void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, 
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(printAll){
 		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i;
+			out << chr << "\t" << start + i + 1;
 			sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
 			out << "\n";
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				out << chr << "\t" << start + i;
+				out << chr << "\t" << start + i + 1;
 				sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
 				out << "\n";
 			}

@@ -165,7 +165,8 @@ public:
 	void normalize(){
 		double sum = 0.0;
 		for(int i = 0; i < 4; ++i) sum += freq[i];
-		for(int i = 0; i < 4; ++i) freq[i] /= sum;
+		sum += 4.0;
+		for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
 	};
 	void clear(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;

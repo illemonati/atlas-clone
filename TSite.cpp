@@ -104,6 +104,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		//calculate posterior probability for each genotype
 		double postProb[numGenotypes];
 		double tot = 0.0;
+
 		for(int i=0; i<numGenotypes; ++i){
 			postProb[i] = emissionProbabilities[i] * pGenotype[i];
 			tot += postProb[i];
