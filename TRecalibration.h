@@ -176,20 +176,37 @@ public:
 	bool estimate(double & convergenceThreshold, long & minObservations);
 };
 
-
-class TBQSR_cellContext:public TBQSR_cellPosition{
+class TBQSR_cellPositionRev:public TBQSR_cellPosition{
 public:
-	TBQSR_cellPosition** BQSR_quality_position; //read group x quality
+	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
+	TBQSR_cellPosition ** BQSR_cells_readGroup_position; //read group x position
+	TQualityIndex* qualityIndex;
 	bool considerPosition;
+
+	TBQSR_cellPositionRev();
+	~TBQSR_cellPositionRev(){};
+
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex);
+	void addBase(TBase* base, Base & RefBase);
+};
+
+class TBQSR_cellContext:public TBQSR_cellPositionRev{
+public:
+	TBQSR_cellPositionRev** BQSR_cells_readGroup_position_rev; //read group x quality
+	bool considerPositionRev;
 
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex);
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex);
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
 	void addBase(TBase* base, Base & RefBase);
 };
 
+//TODO: make class TBQSR_table!
 
 class TRecalibrationBQSR:public TRecalibration{
 private:
@@ -210,6 +227,8 @@ private:
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	bool considerPosition, positionConverged;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
+	bool considerPositionReverse, positionReverseConverged;
+	TBQSR_cellPositionRev** BQSR_cells_readGroup_position_reverse; //read group x position
 	bool considerContext, contextConverged;
 	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
 
@@ -226,6 +245,10 @@ private:
 	void initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupPositionTable(TParameters & params);
 	void initializeBQSRReadGroupPositionTableFromFile(TParameters & params);
+
+	void initializeBQSRReadGroupPositionReverseTable(TParameters & params);
+	void initializeBQSRReadGroupPositionReverseTableFromFile(TParameters & params);
+
 	void initializeBQSRReadGroupContextTable(TParameters & params);
 	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
 
@@ -243,6 +266,13 @@ public:
 				delete[] BQSR_cells_readGroup_position[i];
 			}
 			delete[] BQSR_cells_readGroup_position;
+		}
+
+		if(considerPositionReverse){
+			for(int i=0; i<numReadGroups; ++i){
+				delete[] BQSR_cells_readGroup_position_reverse[i];
+			}
+			delete[] BQSR_cells_readGroup_position_reverse;
 		}
 
 		if(considerContext){

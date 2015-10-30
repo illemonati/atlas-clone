@@ -19,18 +19,18 @@ void TSite::clear(){
 	}
 };
 
-void TSiteDiploid::add(char & base, char & quality, int PosInRead, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else bases.push_back(new TBaseDiploidT(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+void TSiteDiploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else bases.push_back(new TBaseDiploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
-void TSiteHaploid::add(char & base, char & quality, int PosInRead, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else bases.push_back(new TBaseHaploidT(quality, PosInRead, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+void TSiteHaploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else bases.push_back(new TBaseHaploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
 

@@ -141,11 +141,11 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 				if(bamAlignement.IsReverseStrand()){
 					if(pos == secondLastPos) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
-					sites[internalPos].add(base, quality, len - pos - 1, pmdObjects[readGroupId].getProbCT(len - pos), pmdObjects[readGroupId].getProbGA(pos + 1), context, readGroupId);
+					sites[internalPos].add(base, quality, len - pos - 1, pos, pmdObjects[readGroupId].getProbCT(len - pos), pmdObjects[readGroupId].getProbGA(pos + 1), context, readGroupId);
 				} else {
 					if(pos == 0) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
-					sites[internalPos].add(base, quality, pos, pmdObjects[readGroupId].getProbCT(pos + 1), pmdObjects[readGroupId].getProbGA(len - pos), context, readGroupId);
+					sites[internalPos].add(base, quality, pos, len - pos - 1, pmdObjects[readGroupId].getProbCT(pos + 1), pmdObjects[readGroupId].getProbGA(len - pos), context, readGroupId);
 				}
 			}
 		}
