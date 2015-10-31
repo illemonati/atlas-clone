@@ -565,6 +565,7 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	estimationConverged = false;
 	numContexts = 20;
 	qualityIndex = NULL;
+	maxPos = 0;
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
 	initializeBQSRReadGroupQualityTable(params);
@@ -714,7 +715,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTable(TParameters & para
 			}
 		} else {
 			BQSR_cells_readGroup_position = NULL;
-			maxPos = 0;
 		}
 	}
 }
@@ -825,7 +825,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTable(TParameters
 			}
 		} else {
 			BQSR_cells_readGroup_position_reverse = NULL;
-			maxPos = 0;
 		}
 	}
 }
@@ -1023,6 +1022,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+				std::cout << " -> " << (*it)->posInRead << " (" << maxPos << ")" << std::flush;
 				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
 				BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
 			}
