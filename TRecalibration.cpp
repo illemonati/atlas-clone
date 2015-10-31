@@ -1030,7 +1030,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		else if(considerPositionReverse && !positionReverseConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInReadRev].addBase(*it, refBase);
+				BQSR_cells_readGroup_position_reverse[(*it)->readGroup][(*it)->posInReadRev].addBase(*it, refBase);
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
@@ -1257,6 +1257,27 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		out.close();
 		logfile->write(" done!");
 	}
+
+	//write readGroup x position table
+	if(considerPositionReverse){
+		filename = filenameTag + "_BQSR_ReadGroup_Position_Reverse_Table.txt";
+		logfile->listFlush("Writing BQSR readGroup x position reverse table to '" + filename + "' ...");
+		std::ofstream out(filename.c_str());
+		if(!out) throw "Failed to open file '" + filename + "' for writing!";
+		out << "ReadGroup\tPosition\tEventType\tScaling\tObservations\n";
+		BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+		for(int i=0; i<numReadGroups; ++i, ++it){
+			for(int p=0; p<maxPos; ++p){
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[i][p].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position_reverse[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].F << "\t" << BQSR_cells_readGroup_position_reverse[i][p].estimationConverged;
+				out << "\n";
+			}
+		}
+		out.close();
+		logfile->write(" done!");
+	}
+
 
 	//write readGroup x context table
 	if(considerContext){

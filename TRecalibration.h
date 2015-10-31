@@ -178,9 +178,7 @@ public:
 
 class TBQSR_cellPositionRev:public TBQSR_cellPosition{
 public:
-	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	TBQSR_cellPosition ** BQSR_cells_readGroup_position; //read group x position
-	TQualityIndex* qualityIndex;
 	bool considerPosition;
 
 	TBQSR_cellPositionRev();
