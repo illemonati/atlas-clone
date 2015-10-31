@@ -814,7 +814,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTable(TParameters
 			estimatetionRequired = true;
 			maxPos = params.getParameterInt("maxPos");
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
-			logfile->list("Considering positions up to " + toString(maxPos));
+			logfile->list("Considering positions reverse up to " + toString(maxPos));
 			BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[numReadGroups];
 			for(int i=0; i<numReadGroups; ++i){
 				BQSR_cells_readGroup_position_reverse[i] = new TBQSR_cellPositionRev[maxPos];
@@ -1282,6 +1282,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 bool TRecalibrationBQSR::allConverged(){
 	if(!qualityConverged) return false;
 	if(considerPosition && !positionConverged) return false;
+	if(considerPositionReverse && !positionReverseConverged) return false;
 	if(considerContext && !contextConverged) return false;
 	return true;
 }
