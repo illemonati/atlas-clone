@@ -571,6 +571,7 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 
 	//Do we also consider the effect of the position in read (cycle)?
 	initializeBQSRReadGroupPositionTable(params);
+	initializeBQSRReadGroupPositionReverseTable(params);
 
 	//Do we also consider the context (dinucleotide)?
 	initializeBQSRReadGroupContextTable(params);
