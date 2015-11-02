@@ -202,21 +202,41 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	}
 }
 
-void TWindow::callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i + 1;
-			if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
-			sites[i].callMLEGenotype(genoMap, out, printRef);
-			out << "\n";
+void TWindow::callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+	if(isVCF){
+		if(printAll){
+			for(int i=0; i<length; ++i){
+				out << chr << "\t" << start + i + 1;
+				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
+				sites[i].callMLEGenotypeVCF(genoMap, out, printRef);
+				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					recalObject->calcEmissionProbabilities(sites[i]);
+					sites[i].callMLEGenotypeVCF(genoMap, out, printRef);
+					out << "\n";
+				}
+			}
 		}
 	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
+		if(printAll){
+			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				recalObject->calcEmissionProbabilities(sites[i]);
+				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
 				sites[i].callMLEGenotype(genoMap, out, printRef);
 				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					recalObject->calcEmissionProbabilities(sites[i]);
+					sites[i].callMLEGenotype(genoMap, out, printRef);
+					out << "\n";
+				}
 			}
 		}
 	}
@@ -662,47 +682,83 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 	}
 }
 
-void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
+void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
 	//calc prior probabilities on Genotypes
 	double pGenotype[10];
 	fillPGenotype(pGenotype, thetaContainer.expTheta);
 
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i + 1;
-			sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
-			out << "\n";
+	if(isVCF){
+		if(printAll){
+			for(int i=0; i<length; ++i){
+				out << chr << "\t" << start + i + 1;
+				sites[i].callAllelePresenceVCF(pGenotype, genoMap, out, printRef);
+				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					sites[i].callAllelePresenceVCF(pGenotype, genoMap, out, printRef);
+					out << "\n";
+				}
+			}
 		}
 	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
+		if(printAll){
+			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
 				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					sites[i].callAllelePresence(pGenotype, genoMap, out, printRef);
+					out << "\n";
+				}
 			}
 		}
 	}
 }
 
-void TWindowDiploid::callBayesianGenotype(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
+void TWindowDiploid::callBayesianGenotype(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
 	//calc prior probabilities on Genotypes
 	double pGenotype[10];
 	fillPGenotype(pGenotype, thetaContainer.expTheta);
 
 	//now call genotypes. Note: emission probabilities have already been calculated when estimating theta!
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i + 1;
-			sites[i].callBayesianGenotype(pGenotype, genoMap, out, printRef);
-			out << "\n";
+	if(isVCF){
+		if(printAll){
+			for(int i=0; i<length; ++i){
+				out << chr << "\t" << start + i + 1;
+				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, out, printRef);
+				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, out, printRef);
+					out << "\n";
+				}
+			}
 		}
 	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
+		if(printAll){
+			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				sites[i].callBayesianGenotype(pGenotype, genoMap, out, printRef);
 				out << "\n";
+			}
+		} else {
+			for(int i=0; i<length; ++i){
+				if(sites[i].hasData){
+					out << chr << "\t" << start + i + 1;
+					sites[i].callBayesianGenotype(pGenotype, genoMap, out, printRef);
+					out << "\n";
+				}
 			}
 		}
 	}

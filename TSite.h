@@ -57,10 +57,22 @@ public:
 		return N;
 	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
+	double makePhred(double epsilon){
+		return makePhredByRef(epsilon);
+	};
+	double makePhredByRef(double & epsilon){
+		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
+		return -10.0 * log10(epsilon);
+	};
 	void calcEmissionProbabilities();
+	void calculateNormalizedGenotypeLikelihoods(double & quality, double & maxGenotypeProb, int & MLGenotype);
 	void callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
-	virtual void callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
+	void callMLEGenotypeVCF(TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
+	void calculateGenotypePosteriorProbabilities(double* pGenotype, double* postProb, int & MAP);
+	void callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
+	void callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
 	virtual void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){ throw "callMLEAllelePresence not implemented for TSite base class!";};
+	virtual void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){ throw "callMLEAllelePresenceVCF not implemented for TSite base class!";};
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
@@ -82,7 +94,9 @@ public:
 		delete[] P_g;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void calculatePosteriorOnAllelePresence(double* pGenotype, TGenotypeMap & genoMap, double* postProbAllele, int & MAP);
 	void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
+	void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
 };
 
 class TSiteHaploid:public TSite{

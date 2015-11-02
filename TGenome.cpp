@@ -403,12 +403,39 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		printRefBase = true;
 	}
 
-	//open output
-	std::string filename = outputName + "_MLEGenotypes.txt.gz";
-	logfile->list("Writing MLE genotypes to '" + filename + "'");
-	gz::ogzstream out(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
+	//open output: vcf or flat file?
+	bool writeVCF = false;
+	gz::ogzstream out;
+	if(params.parameterExists("vcf")){
+		if(!printRefBase) throw "Can not print VCF file without reference!";
+		writeVCF = true;
 
+		//open file
+		filename = outputName + "_MLEGenotypes.vcf.gz";
+		logfile->list("Writing estimates of allele presence in VCF format to '" + filename + "'");
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		out << "##fileformat=VCFv4.2\n";
+		out << "##source=estimHet\n";
+		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled genotype likelihoods for all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+		out << "##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
+		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+	} else {
+		//open file
+		filename = outputName + "_MLEGenotypes.txt.gz";
+		logfile->list("Writing estimates of allele presence to '" + filename + "'");
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		out << "chr\tpos";
+		if(printRefBase) out << "\tRef";
+		out << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+	}
 
 	//write header
 	out << std::setprecision(3);
@@ -430,7 +457,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData, printRefBase);
+			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 			logfile->write(" done!");
 			if(oneWindow) break;
 		}
@@ -473,17 +500,39 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		printRefBase = true;
 	}
 
-	//open output for allele presence
-	filename = outputName + "_BayesianGenotypes.txt.gz";
-	logfile->list("Writing Bayesian genotypes to '" + filename + "'");
-	gz::ogzstream outAllelePresence(filename.c_str());
-	if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+	//open output: vcf or flat file?
+	bool writeVCF = false;
+	gz::ogzstream output;
+	if(params.parameterExists("vcf")){
+		if(!printRefBase) throw "Can not print VCF file without reference!";
+		writeVCF = true;
 
-	//write header
-	outAllelePresence << std::setprecision(3);
-	outAllelePresence << "chr\tpos";
-	if(printRefBase) outAllelePresence << "\tRef";
-	outAllelePresence << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
+		//open file
+		filename = outputName + "_BayesianGenotypes.vcf.gz";
+		logfile->list("Writing Bayesian genotypes in VCF format to '" + filename + "'");
+		output.open(filename.c_str());
+		if(!output) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		output << "##fileformat=VCFv4.2\n";
+		output << "##source=estimHet\n";
+		output << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		output << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+		output << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+		output << "##FORMAT=<ID=GP,Number=1,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
+		output << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+	} else {
+		//open file
+		filename = outputName + "_BayesianGenotypes.txt.gz";
+		logfile->list("Writing Bayesian genotypes to '" + filename + "'");
+		output.open(filename.c_str());
+		if(!output) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		output << "chr\tpos";
+		if(printRefBase) output << "\tRef";
+		output << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
+	}
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -514,7 +563,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 				//call allele presence
 				logfile->listFlush("Calling Bayesian Genotypes ...");
-				windows.cur->callBayesianGenotype(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase);
+				windows.cur->callBayesianGenotype(output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
 			if(oneWindow) break;
@@ -556,21 +605,41 @@ void TGenome::callAllelePresence(TParameters & params){
 		printRefBase = true;
 	}
 
-	//open output for allele presence
-	filename = outputName + "_AllelePresence.txt.gz";
-	logfile->list("Writing estimates of allele presence to '" + filename + "'");
-	gz::ogzstream outAllelePresence(filename.c_str());
-	if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+	//open output: vcf or flat file?
+	bool writeVCF = false;
+	gz::ogzstream outAllelePresence;
+	if(params.parameterExists("vcf")){
+		if(!printRefBase) throw "Can not print VCF file without reference!";
+		writeVCF = true;
 
-	//write header
-	outAllelePresence << std::setprecision(3);
-	outAllelePresence << "chr\tpos";
-	if(printRefBase) outAllelePresence << "\tRef";
-	outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+		//open file
+		filename = outputName + "_AllelePresence.vcf.gz";
+		logfile->list("Writing estimates of allele presence in VCF format to '" + filename + "'");
+		outAllelePresence.open(filename.c_str());
+		if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		outAllelePresence << "##fileformat=VCFv4.2\n";
+		outAllelePresence << "##source=estimHet\n";
+		outAllelePresence << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		outAllelePresence << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of allele presence in the order A, C, G and T\">\n";
+		outAllelePresence << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+		outAllelePresence << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+	} else {
+		//open file
+		filename = outputName + "_AllelePresence.txt.gz";
+		logfile->list("Writing estimates of allele presence to '" + filename + "'");
+		outAllelePresence.open(filename.c_str());
+		if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+
+		//write header
+		outAllelePresence << "chr\tpos";
+		if(printRefBase) outAllelePresence << "\tRef";
+		outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+	}
 
 	//open output for theta
 	std::ofstream out; openThetaOutputFile(out);
-
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -601,7 +670,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 				//call allele presence
 				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase);
+				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
 			if(oneWindow) break;

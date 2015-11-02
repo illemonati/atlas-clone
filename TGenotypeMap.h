@@ -96,6 +96,13 @@ public:
 		else return genotypeMap[second][first];
 	};
 
+	Genotype getGenotype(char first, char second){
+		Base Bfirst = getBase(first);
+		Base Bsecond = getBase(second);
+		if(Bfirst < Bsecond) return genotypeMap[Bfirst][Bsecond];
+		else return genotypeMap[Bsecond][Bfirst];
+	};
+
 	std::string getGenotypeString(int num){
 		if(num==0) return "AA";
 		if(num==1) return "AC";
@@ -109,6 +116,20 @@ public:
 		if(num==9) return "TT";
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
+
+	std::pair<Base,Base> getBasesOfGenotype(int num){
+		if(num==0) return std::pair<Base,Base>(A,A);
+		if(num==1) return std::pair<Base,Base>(A,C);
+		if(num==2) return std::pair<Base,Base>(A,G);
+		if(num==3) return std::pair<Base,Base>(A,T);
+		if(num==4) return std::pair<Base,Base>(C,C);
+		if(num==5) return std::pair<Base,Base>(C,G);
+		if(num==6) return std::pair<Base,Base>(C,T);
+		if(num==7) return std::pair<Base,Base>(G,G);
+		if(num==8) return std::pair<Base,Base>(G,T);
+		if(num==9) return std::pair<Base,Base>(T,T);
+		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
+	}
 
 	BaseContext getContext(Base first, Base second){
 		if(second == N) throw "Context not defined with second base = N!";
