@@ -478,6 +478,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
 		theta = params.getParameterDouble("theta");
+		logfile->list("Using theta = " + toString(theta));
 	} else {
 		estimateTheta = true;
 		//read EM params
@@ -584,6 +585,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
 		theta = params.getParameterDouble("theta");
+		logfile->list("Using theta = " + toString(theta));
 	} else {
 		estimateTheta = true;
 		//read EM params
