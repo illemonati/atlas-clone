@@ -16,7 +16,7 @@
 #include "TGenotypeMap.h"
 #include "TBase.h"
 #include "gzstream.h"
-
+#include <algorithm>
 
 
 //---------------------------------------------------------------
