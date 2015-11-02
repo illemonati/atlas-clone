@@ -685,6 +685,29 @@ void TWindowDiploid::callAllelePresence(gz::ogzstream & out, std::string & chr, 
 	}
 }
 
+void TWindowDiploid::callBayesianGenotype(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef){
+	//calc prior probabilities on Genotypes
+	double pGenotype[10];
+	fillPGenotype(pGenotype, thetaContainer.expTheta);
+
+	//now call genotypes. Note: emission probabilities have already been calculated when estimating theta!
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			out << chr << "\t" << start + i + 1;
+			sites[i].callBayesianGenotype(pGenotype, genoMap, out, printRef);
+			out << "\n";
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i + 1;
+				sites[i].callBayesianGenotype(pGenotype, genoMap, out, printRef);
+				out << "\n";
+			}
+		}
+	}
+}
+
 //-------------------------------------------------------
 //TWindowHaploid
 //-------------------------------------------------------

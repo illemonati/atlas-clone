@@ -59,6 +59,7 @@ public:
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calcEmissionProbabilities();
 	void callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
+	virtual void callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef);
 	virtual void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){ throw "callMLEAllelePresence not implemented for TSite base class!";};
 	void calculateP_g(double* genotypeProbabilities);
 	double calculateWeightedSumOfEmissionProbs(double* weights);

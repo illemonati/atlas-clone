@@ -67,6 +67,9 @@ int main(int argc, char* argv[]){
 		} else if(task=="callMLE"){
 			logfile.startIndent("Calling MLE Genotypes:");
 			genome.callMLEGenotypes(myParameters);
+		} else if(task=="callBayes"){
+			logfile.startIndent("Calling Bayesian Genotypes:");
+			genome.callBayesianGenotypes(myParameters);
 		} else if(task=="allelePresence"){
 			logfile.startIndent("Calling Allele Presence:");
 			genome.callAllelePresence(myParameters);

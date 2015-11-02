@@ -172,6 +172,7 @@ public:
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
 	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
+	void callBayesianGenotype(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef);
 };
 
 class TWindowHaploid:public TWindow{

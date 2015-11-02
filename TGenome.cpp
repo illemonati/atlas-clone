@@ -441,6 +441,92 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	out.close();
 }
 
+
+void TGenome::callBayesianGenotypes(TParameters & params){
+	//do we estimate theta or is it given?
+	double theta;
+	bool estimateTheta;
+	EMParameters* EMParams;
+	std::ofstream out;
+	if(params.parameterExists("theta")){
+		estimateTheta = false;
+		theta = params.getParameterDouble("theta");
+	} else {
+		estimateTheta = true;
+		//read EM params
+		EMParams = new EMParameters(params, logfile);
+		openThetaOutputFile(out);
+	}
+
+	//do we print sites with no data?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//open FASTA reference
+	BamTools::Fasta reference;
+	bool printRefBase = false;
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		printRefBase = true;
+	}
+
+	//open output for allele presence
+	filename = outputName + "_BayesianGenotypes.txt.gz";
+	logfile->list("Writing Bayesian genotypes to '" + filename + "'");
+	gz::ogzstream outAllelePresence(filename.c_str());
+	if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+
+	//write header
+	outAllelePresence << std::setprecision(3);
+	outAllelePresence << "chr\tpos";
+	if(printRefBase) outAllelePresence << "\tRef";
+	outAllelePresence << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+
+			//check if we have data -> can be extended to ensure
+			if(windows.cur->fractionSitesNoData > maxMissing){
+				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			} else {
+				out << chrIterator->Name << "\t";
+
+				//set Theta
+				if(estimateTheta){
+					windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+				} else {
+					windows.cur->calculateEmissionProbabilities(recalObject);
+					windows.cur->estimateBaseFrequencies();
+					windows.cur->setTheta(theta);
+				}
+
+				//add reference data
+				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
+				//call allele presence
+				logfile->listFlush("Calling Bayesian Genotypes ...");
+				windows.cur->callBayesianGenotype(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase);
+				logfile->write(" done!");
+			}
+			if(oneWindow) break;
+		}
+		if(oneChr) break;
+	}
+
+	//clean up
+	out.close();
+	if(estimateTheta) delete EMParams;
+}
+
 void TGenome::callAllelePresence(TParameters & params){
 	//do we estimate theta or is it given?
 	double theta;

@@ -61,6 +61,7 @@ public:
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
 	void callMLEGenotypes(TParameters & params);
+	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
 	void printPileup();
 	void estimateErrorCalibration(TParameters & params);

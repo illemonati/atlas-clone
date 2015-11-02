@@ -94,6 +94,52 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, gz::ogzstream & out, bool pr
 	}
 }
 
+void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){
+	if(hasData){
+		//print reference allele
+		if(printRef) out << "\t" << referenceBase;
+
+		//print coverage (and read bases)
+		out << "\t" << bases.size();
+		out << "\t" << getBases(); //printing data for debugging
+
+		//calculate genotype posterior
+		//calculate posterior probability for each genotype
+		double postProb[numGenotypes];
+		double tot = 0.0;
+
+		for(int i=0; i<numGenotypes; ++i){
+			postProb[i] = emissionProbabilities[i] * pGenotype[i];
+			tot += postProb[i];
+		}
+
+		//normalize posterior probability and find max
+		double maxPostProb = 0.0;
+		int MAPGenotype = 0;
+		for(int i=0; i<numGenotypes; ++i){
+			postProb[i] /= tot;
+			if(postProb[i] > maxPostProb){
+				maxPostProb = postProb[i];
+				MAPGenotype = i;
+			}
+		}
+
+		//print out phred-scaled posteriors
+		for(int i=0; i<numGenotypes; ++i){
+			out << "\t" << round(-10.0 * log10(postProb[i]));
+			//out << "\t" << postProb[i];
+		}
+
+		//add MAP genotype and quality
+		out << "\t" << genoMap.getGenotypeString(MAPGenotype);
+		out << "\t" << round(-10.0 * log10(1.0 - postProb[MAPGenotype]));
+	} else {
+		out << "\t0";
+		for(int i=0; i<numGenotypes; ++i) out << "\t-";
+		out << "\t-\t0";
+	}
+}
+
 void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, gz::ogzstream & out, bool printRef){
 	if(hasData){
 		//print ref base, coverage (and read bases)
