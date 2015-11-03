@@ -13,6 +13,7 @@
 //-------------------------------------------------------
 TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
+	randomGeneratorInitialized = false;
 
 	//read parameters
 	filename = params.getParameterString("bam");
@@ -309,6 +310,18 @@ void TGenome::openThetaOutputFile(std::ofstream & out){
 	out << "\n";
 }
 
+void TGenome::initializeRandomGenerator(TParameters & params){
+	logfile->listFlush("Initializing random generator ...");
+
+	if(params.parameterExists("fixedSeed")){
+		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
+	} else if(params.parameterExists("addToSeed")){
+		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
+	} else randomGenerator=new TRandomGenerator();
+	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
+	randomGeneratorInitialized = true;
+}
+
 void TGenome::estimateTheta(TParameters & params){
 	//EM params
 	EMParameters EMParams(params, logfile);
@@ -388,6 +401,9 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 }
 
 void TGenome::callMLEGenotypes(TParameters & params){
+	//initialize random generator
+	initializeRandomGenerator(params);
+
 	//do we print sites with no data?
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData) logfile->list("Will print all sites, even those without data");
@@ -457,7 +473,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(recalObject, out, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+			windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 			logfile->write(" done!");
 			if(oneWindow) break;
 		}
@@ -470,6 +486,9 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 
 void TGenome::callBayesianGenotypes(TParameters & params){
+	//initialize random generator
+	initializeRandomGenerator(params);
+
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -564,7 +583,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 				//call allele presence
 				logfile->listFlush("Calling Bayesian Genotypes ...");
-				windows.cur->callBayesianGenotype(output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+				windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
 			if(oneWindow) break;
@@ -578,6 +597,9 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 }
 
 void TGenome::callAllelePresence(TParameters & params){
+	//initialize random generator
+	initializeRandomGenerator(params);
+
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -672,9 +694,12 @@ void TGenome::callAllelePresence(TParameters & params){
 
 				//call allele presence
 				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
+
+			throw "DONE!";
+
 			if(oneWindow) break;
 		}
 		if(oneChr) break;

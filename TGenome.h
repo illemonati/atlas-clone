@@ -26,6 +26,7 @@ private:
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out);
+	void initializeRandomGenerator(TParameters & params);
 
 	TPMD* pmdObjects;
 	TRecalibration* recalObject;
@@ -35,6 +36,8 @@ private:
  	BamTools::BamAlignment bamAlignement;
  	BamTools::SamSequenceIterator chrIterator;
  	TReadGroups readGroups;
+ 	TRandomGenerator* randomGenerator;
+ 	bool randomGeneratorInitialized;
  	int chrNumber;
  	long chrLength;
  	long curStart;
@@ -57,6 +60,7 @@ public:
 		if(doMasking) delete mask;
 		delete recalObject;
 		delete[] pmdObjects;
+		if(randomGeneratorInitialized) delete randomGenerator;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);

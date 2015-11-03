@@ -147,7 +147,7 @@ public:
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
-	void callMLEGenotype(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
+	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
@@ -171,8 +171,8 @@ public:
 	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callAllelePresence(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
-	void callBayesianGenotype(gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
+	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
+	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 };
 
 class TWindowHaploid:public TWindow{

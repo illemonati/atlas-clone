@@ -38,6 +38,7 @@ public:
 	double getRand(){ return ran3(); };
 	double getRand(double min, double max);
 	int getRand(int min, int maxPlusOne);
+	int pickOne(int numElements);
 	long getRand(long min, long maxPlusOne);
 
 	//normal
