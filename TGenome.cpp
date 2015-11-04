@@ -69,8 +69,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else doMasking = false;
 
 	//for debugging: work on one window only
-	oneWindow = params.parameterExists("oneWindow");
-	oneChr = params.parameterExists("oneChr");
+	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
+	limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
 };
 
 void TGenome::jumpToEnd(){
@@ -96,8 +96,9 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	}
 
 	//did we reach end?
-	if(chrIterator == bamHeader.Sequences.End()){
+	if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
 		curEnd = 0;
+		chrIterator = bamHeader.Sequences.End();
 		return false;
 	}
 
@@ -137,7 +138,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	//move to next region
 	curStart = curEnd;
 	curEnd = windowPair.curPointer->end;
-	if(curStart >= chrLength) return false;
+	if(curStart >= chrLength || windowNumber>= limitWindows) return false;
 
 	//move next
 	long nextEnd = curEnd + windowSize;
@@ -346,9 +347,7 @@ void TGenome::estimateTheta(TParameters & params){
 				out << chrIterator->Name << "\t";
 				windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
 			}
-			if(oneWindow) break;
 		}
-		if(oneChr) break;
 	}
 
 	//clean up
@@ -392,11 +391,8 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				//check if we break
 				++windowsCalculated;
 				if(windowsCalculated >= numWindows) break;
-				if(oneWindow) break;
 			}
 		}
-		if(windowsCalculated >= numWindows) break;
-		if(oneChr) break;
 	}
 }
 
@@ -475,9 +471,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			logfile->listFlush("Calling MLE genotypes ...");
 			windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 			logfile->write(" done!");
-			if(oneWindow) break;
 		}
-		if(oneChr) break;
 	}
 
 	//clean up
@@ -586,9 +580,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 				windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
-			if(oneWindow) break;
 		}
-		if(oneChr) break;
 	}
 
 	//clean up
@@ -697,9 +689,7 @@ void TGenome::callAllelePresence(TParameters & params){
 				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
-			if(oneWindow) break;
 		}
-		if(oneChr) break;
 	}
 
 	//clean up
@@ -732,9 +722,7 @@ void TGenome::printPileup(){
 
 			//print pileup
 			windows.cur->printPileup(recalObject, out, chrIterator->Name);
-			if(oneWindow) break;
 		}
-		if(oneChr) break;
 	}
 
 	//clean up
@@ -931,9 +919,6 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 }
 
 void TGenome::BQSR(TParameters & params){
-	//read vectors of betas to test
-	logfile->startIndent("Estimating recalibration parameters:");
-
 	//prepare windows
 	TWindowPairHaploid windows;
 
@@ -1028,12 +1013,6 @@ void TGenome::BQSR(TParameters & params){
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
 				logfile->list("All done for this window!!");
-
-				if(oneWindow) break;
-			}
-			if(oneChr){
-				restartChromosome(windows);
-				break;
 			}
 		}
 
@@ -1052,4 +1031,45 @@ void TGenome::BQSR(TParameters & params){
 
 	//write results to file
 	bqsr.writeToFile(outputName);
+}
+
+
+void TGenome::printQualityTransformation(TParameters & params){
+	//prepare windows
+	TWindowPairHaploid windows;
+
+	//create table to store counts
+	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
+	TQualityTransformTable QT(maxQ);
+
+	//preapre output
+	std::ofstream out;
+	std::string filename;
+
+	//loop over windows and add to table
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+
+			//add the base to BQSR
+			windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
+		}
+		//print out after each chr
+		filename = outputName + "_qualityTransformation_upToChr_" + toString(chrNumber) + ".txt";
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open output file '" + outputName + "'!";
+		QT.printTable(out);
+		out.close();
+	}
+
+	//print final table
+	filename = outputName + "_qualityTransformation.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	QT.printTable(out);
+	out.close();
+
+	//clean up memory
+	windows.clear();
 }

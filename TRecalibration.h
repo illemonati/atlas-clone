@@ -52,6 +52,68 @@ public:
 };
 
 //---------------------------------------------------------------
+//TQualityTransformTable
+//---------------------------------------------------------------
+class TQualityTransformTable{
+public:
+	int maxQ;
+	double** table; //old qual / new qual
+
+	TQualityTransformTable(int MaxQ){
+		maxQ = MaxQ;
+		table = new double*[maxQ];
+		for(int i=0; i<maxQ; ++i){
+			table[i] = new double[maxQ];
+			for(int j=0; j<maxQ; ++j){
+				table[i][j] = 0;
+			}
+		}
+	};
+
+	~TQualityTransformTable(){
+		for(int i=0; i<maxQ; ++i){
+			delete[] table[i];
+		}
+		delete[] table;
+	};
+
+	void add(int oldQ, int newQ){
+		if(oldQ < maxQ && newQ < maxQ){
+			table[oldQ][newQ] += 1.0;
+		}
+	};
+
+	double size(){
+		double size = 0;
+		for(int i=0; i<maxQ; ++i){
+			for(int j=0; j<maxQ; ++j){
+				size += table[i][j];
+			}
+		}
+		return size;
+	};
+
+	void printTable(std::ofstream & out){
+		//print header
+		out << "oldQ/newQ";
+		for(int i=0; i<maxQ; ++i) out << "\t" << i;
+		out << "\n";
+
+		//get total
+		double sum = size();
+
+		//print rows
+		for(int i=0; i<maxQ; ++i){
+			out << i;
+			for(int j=0; j<maxQ; ++j){
+				out << "\t" << table[i][j] / sum;
+			}
+			out << "\n";
+		}
+	};
+};
+
+//---------------------------------------------------------------
 //TRecalibration: default = no recalibration
 //---------------------------------------------------------------
 class TRecalibration{
@@ -71,9 +133,15 @@ public:
 	double dePhred(double quality){
 		return pow(10.0, quality / -10.0);
 	};
+
 	virtual double getErrorRate(TBase* base){
 		return dePhred(base->quality);
 	};
+
+	virtual int getQuality(TBase* base){
+		return base->quality;
+	};
+
 	void calcEmissionProbabilities(TSite & site){
 		//first calculate for each base
 		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
@@ -81,6 +149,11 @@ public:
 		}
 		//then for the site
 		site.calcEmissionProbabilities();
+	};
+	void addSiteToQualityTransformTable(TSite & site, TQualityTransformTable & QT){
+		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+			QT.add((*it)->quality, getErrorRate(*it));
+		}
 	};
 };
 
@@ -287,6 +360,7 @@ public:
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(TBase* base);
+	int getQuality(TBase* base);
 };
 
 

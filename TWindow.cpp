@@ -288,6 +288,16 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
 	}
 	logfile->write(" done!");
 }
+
+void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile){
+	logfile->listFlush("Adding sites to quality transformation table ...");
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			recalObject->addSiteToQualityTransformTable(sites[i], QT);
+		}
+	}
+	logfile->write(" done!");
+}
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------

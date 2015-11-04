@@ -52,7 +52,8 @@ private:
  	std::string outputName;
  	TBedReader* mask;
  	bool doMasking;
- 	bool oneWindow, oneChr; //for debugging
+ 	long limitWindows;
+ 	int limitChr; //for debugging
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -73,6 +74,7 @@ public:
 	void fillSequence(std::vector<double> & vec, std::string & str);
 	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
+	void printQualityTransformation(TParameters & params);
 };
 
 

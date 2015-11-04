@@ -1343,3 +1343,9 @@ double TRecalibrationBQSR::getErrorRate(TBase* base){
 	return q;
 }
 
+int TRecalibrationBQSR::getQuality(TBase* base){
+	double q = getErrorRate(base);
+	//transform to quality
+	return makePhredInt(q);
+}
+

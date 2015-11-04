@@ -56,7 +56,6 @@ struct Theta{
 	}
 };
 
-
 //---------------------------------------------------------------
 //TReadGroups
 //---------------------------------------------------------------
@@ -152,6 +151,7 @@ public:
 	void calcCoverage();
 	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
+	void addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile);
 };
 
 class TWindowDiploid:public TWindow{

@@ -73,7 +73,10 @@ int main(int argc, char* argv[]){
 		} else if(task=="allelePresence"){
 			logfile.startIndent("Calling Allele Presence:");
 			genome.callAllelePresence(myParameters);
-		} else throw "Unknown task '" + task + "'!";
+		} else if(task=="qualityTransformation"){
+			logfile.startIndent("Printing Quality Transformation:");
+			genome.printQualityTransformation(myParameters);
+    	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 
 		//write unsused parameters
