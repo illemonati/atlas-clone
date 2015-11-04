@@ -697,9 +697,6 @@ void TGenome::callAllelePresence(TParameters & params){
 				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
 				logfile->write(" done!");
 			}
-
-			throw "DONE!";
-
 			if(oneWindow) break;
 		}
 		if(oneChr) break;

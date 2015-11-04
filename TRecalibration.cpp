@@ -1022,7 +1022,6 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				std::cout << " -> " << (*it)->posInRead << " (" << maxPos << ")" << std::flush;
 				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
 				BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
 			}
