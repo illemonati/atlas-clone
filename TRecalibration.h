@@ -152,7 +152,7 @@ public:
 	};
 	void addSiteToQualityTransformTable(TSite & site, TQualityTransformTable & QT){
 		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-			QT.add((*it)->quality, getErrorRate(*it));
+			QT.add((*it)->quality, getQuality(*it));
 		}
 	};
 };
