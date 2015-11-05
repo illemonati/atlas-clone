@@ -120,37 +120,46 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//find alternative alleles
 		std::string genoVCF;
-		std::string PL = toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
+		std::string PL;
+		if(referenceBase != 'N') PL = toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
 		if(geno[0] != referenceBase){
 			if(geno[1] != referenceBase){
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+				if(referenceBase != 'N'){
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+				}
 				if(geno[0] == geno[1]){
 					out << "\t" << geno[0];
 					genoVCF = "1/1";
 				} else {
 					out << "\t" << geno;
 					genoVCF = "1/2";
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[1])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+					if(referenceBase != 'N'){
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+					}
 				}
 			} else {
 				out << "\t" << geno[0];
 				genoVCF = "0/1";
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+				if(referenceBase != 'N'){
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+				}
 			}
 		} else if(geno[1] != referenceBase){
 			out << "\t" << geno[1];
 			genoVCF = "0/1";
-			PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
-			PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+			if(referenceBase != 'N'){
+				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
+				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+			}
 		} else {
 			//both are ref -> let's find the second most likely genotype
-			double maxPostProb = 0.0;
+			double maxPostProb = -1.0;
 			std::vector<int> secondMostLikely;
 			for(int i=0; i<numGenotypes; ++i){
 				if(i != MLGenotype){
@@ -169,12 +178,16 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			//now use this one to decide on alternative allele
 			if(genoSecond[0] != referenceBase){
 				out << "\t" << genoSecond[0];
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
+				if(referenceBase != 'N'){
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
+				}
 			} else {
 				out << "\t" << genoSecond[1];
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
+				if(referenceBase != 'N'){
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
+				}
 			}
 			genoVCF = "0/0";
 		}
@@ -193,7 +206,8 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 
 		//print format and genotype field
-		out << "\tGT:PL\t" << genoVCF << ":" << PL;
+		if(referenceBase != 'N') out << "\tGT:PL\t" << genoVCF << ":" << PL;
+		else out << "\tGT\t" << genoVCF;
 	} else {
 		out << "\t0";
 		for(int i=0; i<numGenotypes; ++i) out << "\t-";
@@ -209,7 +223,7 @@ void TSite::calculateGenotypePosteriorProbabilities(double* pGenotype, TRandomGe
 		tot += postProb[i];
 	}
 
-	double maxPostProb = 0.0;
+	double maxPostProb = -1.0;
 	std::vector<int> MAPs;
 	for(int i=0; i<numGenotypes; ++i){
 		postProb[i] /= tot;
@@ -270,36 +284,45 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		//find alternative allele
 		//if MAP genotype contains non ref allele, these are the alternatives
 		std::string genoVCF;
-		std::string GP = toString(round(postProb[genoMap.getGenotype(referenceBase, referenceBase)])); //for GP field in VCF
+		std::string GP;
+		if(referenceBase != 'N') GP = toString(round(postProb[genoMap.getGenotype(referenceBase, referenceBase)])); //for GP field in VCF
 		std::string geno = genoMap.getGenotypeString(MAPGenotype);
 		if(geno[0] != referenceBase){
 			if(geno[1] != referenceBase){
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				if(referenceBase != 'N'){
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				}
 				if(geno[0] == geno[1]){
 					out << "\t" << geno[0];
 					genoVCF = "1/1";
 				} else {
 					out << "\t" << geno;
 					genoVCF = "1/2";
-					GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
-					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[1])]));
-					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+					if(referenceBase != 'N'){
+						GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
+						GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[1])]));
+						GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+					}
 				}
 			} else {
 				out << "\t" << geno[0];
 				genoVCF = "0/1";
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				if(referenceBase != 'N'){
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				}
 			}
 		} else if(geno[1] != referenceBase){
 			out << "\t" << geno[1];
 			genoVCF = "0/1";
-			GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
-			GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+			if(referenceBase != 'N'){
+				GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
+				GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+			}
 		} else {
 			//both are ref -> let's find the second most likely genotype
-			double maxPostProb = 0.0;
+			double maxPostProb = -1.0;
 			std::vector<int> secondMostLikely;
 			for(int i=0; i<numGenotypes; ++i){
 				if(i != MAPGenotype){
@@ -318,12 +341,16 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 			//now use this one to decide on alternativ allele
 			if(genoSecond[0] != referenceBase){
 				out << "\t" << genoSecond[0];
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				if(referenceBase != 'N'){
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[0])]));
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[0], geno[0])]));
+				}
 			} else {
 				out << "\t" << genoSecond[1];
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
-				GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+				if(referenceBase != 'N'){
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
+					GP +=  "," + toString(round(postProb[genoMap.getGenotype(geno[1], geno[1])]));
+				}
 			}
 			genoVCF = "0/0";
 		}
@@ -341,7 +368,8 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		}
 
 		//print format and genotype field
-		out << "\tGT:GP\t" << genoVCF << ":" << GP;
+		if(referenceBase != 'N') out << "\tGT:GP\t" << genoVCF << ":" << GP;
+		else out << "\tGT\t" << genoVCF;
 	} else {
 		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
 	}
@@ -359,7 +387,7 @@ void TSiteDiploid::calculatePosteriorOnAllelePresence(double* pGenotype, TGenoty
 
 	//make sums for different bases
 	Genotype g;
-	double maxProb = 0.0;
+	double maxProb = -1.0;
 	std::vector<int> MAPs;
 	for(int i=0; i<4; ++i){
 		postProbAllele[i] = 0.0;
@@ -425,7 +453,7 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 		if(base == referenceBase){
 			//find second most likely base
 			std::vector<int> secondBase;
-			double maxProb = 0.0;
+			double maxProb = -1.0;
 			for(int i=0; i<4; ++i){
 				if(i != MAPAllele){
 					if(postProbAllele[i] > maxProb){
