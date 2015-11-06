@@ -446,7 +446,7 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         
         // seek to beginning of sequence data
         if ( fseeko(Stream, referenceData.Offset, SEEK_SET) != 0 ) {
-            cerr << "FASTA error : could not sek in file" << endl;
+            cerr << "FASTA error : could not seek in file" << endl;
             return false;
         }
       
