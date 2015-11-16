@@ -16,7 +16,8 @@ class TSiteSubsetWindow{
 public:
 	bool hasData;
 	long start, end;
-	std::map<long,std::pair<char,char> > positions; //stores reference and alternative allele
+	std::map< long, std::pair<char,char> > positions; //stores reference and alternative allele
+	std::map< int, char > positions2; //stores reference and alternative allele
 
 	TSiteSubsetWindow(long Start, long End){
 		hasData = false;
@@ -25,11 +26,19 @@ public:
 	};
 	~TSiteSubsetWindow(){};
 
-	void addPosition(long & pos, char & ref, char & alt, std::string & chr){
-		if(ref != 'A' || ref != 'C' || ref != 'G' || ref != 'T') throw "Unknown reference allele '" + ref + "' on chr " + chr + " at " + toString(pos) + "!";
-		if(alt != 'A' || alt != 'C' || alt != 'G' || alt != 'T') throw "Unknown alternative allele '" + ref + "' on chr " + chr + " at " + toString(pos) + "!";
+	void addPosition(long pos, char & ref, char & alt, const std::string & chr){
+		if(ref != 'A' || ref != 'C' || ref != 'G' || ref != 'T'){
+			std::string error = "Unknown reference allele '" + ref;
+			error += "' on chr " + chr;
+			throw error + " at " + toString(pos) + "!";
+		}
+		if(alt != 'A' || alt != 'C' || alt != 'G' || alt != 'T'){
+			std::string error = "Unknown alternative allele '" + alt;
+			error += "' on chr " + chr;
+			throw error + " at " + toString(pos) + "!";
+		}
 		if(ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos) + "!";
-		positions.insert(pos, std::pair<char,char>(ref, alt));
+		positions.insert(std::pair<long, std::pair<char,char> >(pos, std::pair<char,char>(ref, alt)));
 	};
 
 	void print(){
@@ -74,14 +83,14 @@ public:
 		}
 	}
 
-	void addPosition(std::vector<std::string> & tmp){
+	void addPosition(std::vector<std::string> & tmp, const std::string & chr){
 		long pos = stringToLong(tmp[1]);
-		char ref = tmp[2];
-		char alt = tmp[3];
+		char ref = tmp[2][0];
+		char alt = tmp[3][0];
 
 		//identify window
 		findOrCreateWindow(pos);
-		windowIt->second->addPosition(pos, ref, alt);
+		windowIt->second->addPosition(pos, ref, alt, chr);
 	};
 
 	void print(){
@@ -139,7 +148,7 @@ private:
 				}
 
 				//add positions
-				chrIt->second->addPosition(vec);
+				chrIt->second->addPosition(vec, chrIt->first);
 			}
 		}
 
@@ -179,7 +188,7 @@ public:
 		else return chrIt->second->hasPositionsInWindow(windowStart);
 	}
 
-	std::vector<long>& getPositionInWindow(long & windowStart){
+	std::map<long,std::pair<char,char> >& getPositionInWindow(long & windowStart){
 		//find chromosome
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()) throw "TSiteSubset Error: chromosome '" + curChr + "' does not exist!";

@@ -83,9 +83,10 @@ double TRecalibrationEM::calcEta(TBase* base, double* theseParams){
 	throw "ERROR in TRecalibrationEM::calcEta!";
 	//TODO: find other way to calculate transformedLogError and add back what is commented out below
 
-	double eta = theseParams[0]; // + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
+	//order of params is: quality, position, context
+	//double eta = theseParams[0] + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
 	//eta += theseParams[base->getBaseAsEnum() + 3];
-	return eta;
+	//return eta;
 }
 
 double TRecalibrationEM::calcEpsilon(const double & eta){
@@ -127,7 +128,7 @@ void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseF
 
 	//TODO: find different way to get a log transformed error.
 
-	/*
+/*
 	double epsilon;
 	double epsilonThird;
 
@@ -165,6 +166,16 @@ void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseF
 
 	//now add site to Jacobian and F
 	//Note: Jacobian is symmetric! But we only add to top triangle -> will copy final numbers down later
+
+	for(int geno = 0; geno < 4; ++geno){
+		for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
+			//precalculate things
+
+
+
+		}
+	}
+
 	int g, nucIndex;
 	double eta, expEta, tmp, onePlusExpEta, weightFcorrect, weightFincorrect;
 	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){

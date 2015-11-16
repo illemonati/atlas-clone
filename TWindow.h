@@ -16,6 +16,7 @@
 #include "TRecalibration.h"
 #include "TSite.h"
 #include "TBedReader.h"
+#include "TSiteSubset.h"
 
 //---------------------------------------------------------------
 //EMParameters
