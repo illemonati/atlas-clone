@@ -179,8 +179,6 @@ void TWindow::applyMask(TBedReader* mask){
 			if(pos < length) sites[pos].clear();
 		}
 	}
-
-	//also update counters!
 }
 
 void TWindow::estimateBaseFrequencies(){
@@ -702,14 +700,14 @@ void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, printRef);
+				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, printRef);
+					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out);
 					out << "\n";
 				}
 			}
@@ -743,14 +741,14 @@ void TWindowDiploid::callBayesianGenotype(TRandomGenerator & randomGenerator, gz
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, printRef);
+				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, printRef);
+					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out);
 					out << "\n";
 				}
 			}
@@ -773,6 +771,27 @@ void TWindowDiploid::callBayesianGenotype(TRandomGenerator & randomGenerator, gz
 		}
 	}
 }
+
+void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printRef, bool isVCF){
+	//calc prior probabilities on Genotypes
+	double pGenotype[10];
+	fillPGenotype(pGenotype, thetaContainer.expTheta);
+
+	//check if we need to process this window
+	if(subset->hasPositionsInWindow(start)){
+		//now only run over sites listed in that window
+		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+		int pos;
+		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+			pos = it->first - start + 1;
+			if(isVCF)
+				sites[pos].callBayesianGenotypeVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
+			else
+				sites[pos].callBayesianGenotypeKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, printRef);
+		}
+	}
+}
+
 
 //-------------------------------------------------------
 //TWindowHaploid
