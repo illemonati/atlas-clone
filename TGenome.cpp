@@ -500,8 +500,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	}
 
 	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
-	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
 
 	//open FASTA reference
 	BamTools::Fasta reference;
@@ -512,6 +511,19 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		std::string fastaIndex = fastaFile + ".fai";
 		reference.Open(fastaFile, fastaIndex);
 		printRefBase = true;
+	}
+
+	//limit to a set of sites?
+	bool limitToSitesWithKnownAlleles;
+	bool printIfNoData;
+	TSiteSubset* subset;
+	if(params.parameterExists("sites")){
+		subset = new TSiteSubset(params.getParameterString("sites"), windowSize);
+		limitToSitesWithKnownAlleles = true;
+		printIfNoData = true;
+	} else {
+		printIfNoData = params.parameterExists("printAll");
+		if(printIfNoData) logfile->list("Will print all sites, even those without data");
 	}
 
 	//open output: vcf or flat file?
@@ -572,12 +584,14 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					windows.cur->setTheta(theta);
 				}
 
-				//add reference data
-				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
 				//call allele presence
 				logfile->listFlush("Calling Bayesian Genotypes ...");
-				windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+				if(limitToSitesWithKnownAlleles){
+					windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
+				} else {
+					if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+					windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+				}
 				logfile->write(" done!");
 			}
 		}
