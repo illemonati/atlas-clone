@@ -65,6 +65,7 @@ public:
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
+	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);

@@ -13,7 +13,7 @@
 //-------------------------------------------------------
 TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
-	randomGeneratorInitialized = false;
+	initializeRandomGenerator(params);
 
 	//read parameters
 	filename = params.getParameterString("bam");
@@ -396,24 +396,24 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	}
 }
 
-void TGenome::callMLEGenotypes(TParameters & params){
-	//initialize random generator
-	initializeRandomGenerator(params);
+bool TGenome::openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference){
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		logfile->list("Adding reference base from '" + fastaFile + "'.");
+		std::string fastaIndex = fastaFile + ".fai";
+		reference.Open(fastaFile, fastaIndex);
+		return true;
+	} else return false;
+}
 
+void TGenome::callMLEGenotypes(TParameters & params){
 	//do we print sites with no data?
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData) logfile->list("Will print all sites, even those without data");
 
 	//open FASTA reference
 	BamTools::Fasta reference;
-	bool printRefBase = false;
-	if(params.parameterExists("fasta")){
-		std::string fastaFile = params.getParameterString("fasta");
-		logfile->list("Adding reference base from '" + fastaFile + "'.");
-		std::string fastaIndex = fastaFile + ".fai";
-		reference.Open(fastaFile, fastaIndex);
-		printRefBase = true;
-	}
+	bool printRefBase = openFastaReferenceForCaller(params, reference);
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
@@ -424,7 +424,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//open file
 		filename = outputName + "_MLEGenotypes.vcf.gz";
-		logfile->list("Writing estimates of allele presence in VCF format to '" + filename + "'");
+		logfile->list("Writing MLE genotypes in VCF format to '" + filename + "'");
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open output file '" + filename + "'!";
 
@@ -439,21 +439,15 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	} else {
 		//open file
 		filename = outputName + "_MLEGenotypes.txt.gz";
-		logfile->list("Writing estimates of allele presence to '" + filename + "'");
+		logfile->list("Writing MLE genotypes to '" + filename + "'");
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open output file '" + filename + "'!";
 
 		//write header
 		out << "chr\tpos";
 		if(printRefBase) out << "\tRef";
-		out << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+		out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 	}
-
-	//write header
-	out << std::setprecision(3);
-	out << "chr\tpos";
-	if(printRefBase) out << "\tRef";
-	out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -480,9 +474,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 
 void TGenome::callBayesianGenotypes(TParameters & params){
-	//initialize random generator
-	initializeRandomGenerator(params);
-
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -499,21 +490,11 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		openThetaOutputFile(out);
 	}
 
-	//do we print sites with no data?
-
-
 	//open FASTA reference
 	BamTools::Fasta reference;
-	bool printRefBase = false;
-	if(params.parameterExists("fasta")){
-		std::string fastaFile = params.getParameterString("fasta");
-		logfile->list("Adding reference base from '" + fastaFile + "'.");
-		std::string fastaIndex = fastaFile + ".fai";
-		reference.Open(fastaFile, fastaIndex);
-		printRefBase = true;
-	}
+	bool printRefBase = openFastaReferenceForCaller(params, reference);
 
-	//limit to a set of sites?
+	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles;
 	bool printIfNoData;
 	TSiteSubset* subset;
@@ -603,9 +584,6 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 }
 
 void TGenome::callAllelePresence(TParameters & params){
-	//initialize random generator
-	initializeRandomGenerator(params);
-
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -626,14 +604,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//open FASTA reference
 	BamTools::Fasta reference;
-	bool printRefBase = false;
-	if(params.parameterExists("fasta")){
-		std::string fastaFile = params.getParameterString("fasta");
-		logfile->list("Adding reference base from '" + fastaFile + "'.");
-		std::string fastaIndex = fastaFile + ".fai";
-		reference.Open(fastaFile, fastaIndex);
-		printRefBase = true;
-	}
+	bool printRefBase = openFastaReferenceForCaller(params, reference);
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
