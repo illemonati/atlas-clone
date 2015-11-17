@@ -144,6 +144,7 @@ public:
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
+	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);

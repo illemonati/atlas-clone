@@ -424,7 +424,7 @@ void TSite::calculateGenotypePosteriorProbabilitiesKnownAlleles(double* pGenotyp
 void TSite::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool printRef){
 	if(hasData){
 		//print reference allele
-		if(printRef) out << "\t" << referenceBase;
+		if(printRef) out << "\t" << referenceBase << "\t" << alt;
 
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
@@ -445,7 +445,9 @@ void TSite::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & g
 		}
 
 		//add MAP genotype and quality
-		out << "\t" << genoMap.getGenotypeString(MAPGenotype);
+		if(MAPGenotype == 0) out << "\t" << referenceBase << referenceBase;
+		else if(MAPGenotype == 1) out << "\t" << referenceBase << alt;
+		else out << "\t" << alt << alt;
 		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
 		out << "\t0";
@@ -458,7 +460,7 @@ void TSite::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap 
 	//just consider known alleles: ref and alt
 	if(hasData){
 		//print reference allele
-		out << "\t.\t" << referenceBase;
+		out << "\t.\t" << referenceBase << "\t" << alt;
 		//out << "\t(" << getBases() << ")"; //printing data for debugging
 
 		//calculate posterior probability for the genotypes RR, AR and AA (R = ref, A = alt)
@@ -474,7 +476,7 @@ void TSite::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap 
 		std::string genoVCF;
 		if(MAPGenotype == 0) genoVCF = "0/0";
 		else if(MAPGenotype == 1) genoVCF = "0/1";
-		else genoVCF = "0/0";
+		else genoVCF = "1/1";
 		std::string GP =  toString(round(postProb[0])) + "," + toString(round(postProb[1])) + "," + toString(round(postProb[2]));
 
 		//print quality
@@ -484,10 +486,7 @@ void TSite::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap 
 		out << "\t.";
 
 		//print info fields: coverage and all posterior probabilities
-		out << "\tDP=" << bases.size() << ";PP=" << round(makePhred(postProb[0]));
-		for(int i=1; i<numGenotypes; ++i){
-			out << "," << round(makePhred(postProb[i]));
-		}
+		out << "\tDP=" << bases.size();
 
 		//print format and genotype field
 		if(referenceBase != 'N') out << "\tGT:GP\t" << genoVCF << ":" << GP;

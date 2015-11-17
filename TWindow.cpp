@@ -168,6 +168,18 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	}
 }
 
+void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
+	if(subset->hasPositionsInWindow(start)){
+		//now only run over sites listed in that window
+		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+		int pos;
+		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+			pos = it->first - start - 1;
+			sites[pos].setRefBase(it->second.first);
+		}
+	}
+}
+
 void TWindow::applyMask(TBedReader* mask){
 	//test if mask is required
 	if(mask->hasPositionsInWindow(start)){
@@ -175,7 +187,7 @@ void TWindow::applyMask(TBedReader* mask){
 		std::vector<long> thesePos = mask->getPositionInWindow(start);
 		int pos;
 		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = *it - start + 1;
+			pos = *it - start - 1;
 			if(pos < length) sites[pos].clear();
 		}
 	}
@@ -783,11 +795,13 @@ void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRand
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
 		int pos;
 		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start + 1;
+			pos = it->first - start - 1;
+			out << chr << "\t" << it->first;
 			if(isVCF)
 				sites[pos].callBayesianGenotypeVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
 			else
 				sites[pos].callBayesianGenotypeKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, printRef);
+			out << "\n";
 		}
 	}
 }

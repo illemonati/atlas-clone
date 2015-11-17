@@ -27,13 +27,15 @@ public:
 	~TSiteSubsetWindow(){};
 
 	void addPosition(long pos, char & ref, char & alt, const std::string & chr){
-		if(ref != 'A' || ref != 'C' || ref != 'G' || ref != 'T'){
-			std::string error = "Unknown reference allele '" + ref;
+		if(ref != 'A' && ref != 'C' && ref != 'G' && ref != 'T'){
+			std::string error = "Unknown reference allele '";
+			error += ref;
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
-		if(alt != 'A' || alt != 'C' || alt != 'G' || alt != 'T'){
-			std::string error = "Unknown alternative allele '" + alt;
+		if(alt != 'A' && alt != 'C' && alt != 'G' && alt != 'T'){
+			std::string error = "Unknown alternative allele '";
+			error += alt;
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
@@ -122,7 +124,7 @@ private:
 	void readFile(){
 		//open file
 		std::ifstream sitesFile(filename.c_str());
-		if(!sitesFile) throw "Failed to open BED file '" + filename + "'!";
+		if(!sitesFile) throw "Failed to open sites file '" + filename + "'!";
 
 		//tmp variables
 		long lineNum = 0;

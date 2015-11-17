@@ -20,7 +20,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	windowSize = params.getParameterDouble("window");
 	numWindowsOnChr = 0;
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
-	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 0.95);
+	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -492,17 +492,17 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//open FASTA reference
 	BamTools::Fasta reference;
-	bool printRefBase = openFastaReferenceForCaller(params, reference);
 
 	//limit to a set of sites? Print all sites, even those without data?
-	bool limitToSitesWithKnownAlleles;
-	bool printIfNoData;
+	bool limitToSitesWithKnownAlleles = false;
+	bool printIfNoData = true;
+	bool printRefBase = true;
 	TSiteSubset* subset;
 	if(params.parameterExists("sites")){
 		subset = new TSiteSubset(params.getParameterString("sites"), windowSize);
 		limitToSitesWithKnownAlleles = true;
-		printIfNoData = true;
 	} else {
+		printRefBase = openFastaReferenceForCaller(params, reference);
 		printIfNoData = params.parameterExists("printAll");
 		if(printIfNoData) logfile->list("Will print all sites, even those without data");
 	}
@@ -524,7 +524,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		output << "##fileformat=VCFv4.2\n";
 		output << "##source=estimHet\n";
 		output << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		output << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+		if(!limitToSitesWithKnownAlleles) output << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		output << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		output << "##FORMAT=<ID=GP,Number=1,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
 		output << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
@@ -538,7 +538,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		//write header
 		output << "chr\tpos";
 		if(printRefBase) output << "\tRef";
-		output << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
+		if(limitToSitesWithKnownAlleles) output << "\talt\tcoverage\tP(RR|D)\tP(RA|D)\tP(AA|D)\tMAP\tQ\n";
+		else output << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
 	}
 
 	//prepare windows
@@ -546,6 +547,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
+		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
@@ -565,9 +567,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					windows.cur->setTheta(theta);
 				}
 
-				//call allele presence
+				//call Bayesian genotypes
 				logfile->listFlush("Calling Bayesian Genotypes ...");
 				if(limitToSitesWithKnownAlleles){
+					windows.cur->addReferenceBaseToSites(subset);
 					windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
 				} else {
 					if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
@@ -581,6 +584,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//clean up
 	out.close();
 	if(estimateTheta) delete EMParams;
+	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
 void TGenome::callAllelePresence(TParameters & params){
