@@ -34,6 +34,8 @@ private:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignement;
+	BamTools::Fasta reference;
+	bool fastaReference;
  	BamTools::SamSequenceIterator chrIterator;
  	TReadGroups readGroups;
  	TRandomGenerator* randomGenerator;
@@ -52,6 +54,7 @@ private:
  	std::string outputName;
  	TBedReader* mask;
  	bool doMasking;
+ 	bool doCpGMasking;
  	long limitWindows;
  	int limitChr; //for debugging
 

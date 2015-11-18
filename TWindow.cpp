@@ -193,6 +193,15 @@ void TWindow::applyMask(TBedReader* mask){
 	}
 }
 
+void TWindow::maskCpG(BamTools::Fasta & reference, int & refId){
+	std::string ref; //fasta object fills string
+	//note that end is last position + 1
+	for(int i=0; i<length; ++i){
+		if(ref[i+1] == 'C' && ref[i+2] == 'G') sites[i].clear();
+		else if(ref[i] == 'C' && ref[i+1] == 'G') sites[i].clear();
+	}
+}
+
 void TWindow::estimateBaseFrequencies(){
 	//estimate initial base frequencies
 	baseFreq.clear();

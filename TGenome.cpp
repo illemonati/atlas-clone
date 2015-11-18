@@ -50,6 +50,15 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	readGroups.fill(bamHeader);
 	chrIterator = bamHeader.Sequences.End();
 
+	//open FASTA reference
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		std::string fastaIndex = fastaFile + ".fai";
+		logfile->list("Reading reference sequence from '" + fastaFile + "'");
+		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+		fastaReference = true;
+	} else fastaReference = false;
+
 	//initialize post mortem damage
 	initializePostMortemDamage(params);
 
@@ -67,6 +76,12 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->endIndent();
 		//mask->print();
 	} else doMasking = false;
+
+	if(params.parameterExists("maskCpG")){
+		if(!fastaReference) throw "Cannot mask CpG sites without reference!";
+		doCpGMasking = true;
+		std::string maskFile = params.getParameterString("maskCpG");
+	} else doCpGMasking = false;
 
 	//for debugging: work on one window only
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
@@ -147,6 +162,9 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 
 	++windowNumber;
 
+	//jump reader
+	//bamReader.Jump(chrNumber, curStart);
+
 	//report
 	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
@@ -187,14 +205,25 @@ bool TGenome::readData(TWindowPair & windowPair){
 		}
 	}
 
-	//apply mask
-	if(doMasking) windowPair.curPointer->applyMask(mask);
+	gettimeofday(&end, NULL);
+	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+
+	//apply masks
+	if(doMasking){
+		logfile->listFlush("Masking sites ...");
+		windowPair.curPointer->applyMask(mask);
+		logfile->write(" done!");
+	}
+	if(doCpGMasking){
+		logfile->listFlush("Masking CpG sites ...");
+		windowPair.curPointer->maskCpG(reference, chrNumber);
+		logfile->write(" done!");
+	}
 
 	//calc coverage
 	windowPair.curPointer->calcCoverage();
 
-	gettimeofday(&end, NULL);
-	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+	//report
 	logfile->conclude("read data from " + toString(numReads) + " reads.");
 	logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
 	logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
@@ -396,7 +425,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	}
 }
 
-bool TGenome::openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference){
+/*bool TGenome::openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference){
 	if(params.parameterExists("fasta")){
 		std::string fastaFile = params.getParameterString("fasta");
 		logfile->list("Adding reference base from '" + fastaFile + "'.");
@@ -405,21 +434,18 @@ bool TGenome::openFastaReferenceForCaller(TParameters & params, BamTools::Fasta 
 		return true;
 	} else return false;
 }
+*/
 
 void TGenome::callMLEGenotypes(TParameters & params){
 	//do we print sites with no data?
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData) logfile->list("Will print all sites, even those without data");
 
-	//open FASTA reference
-	BamTools::Fasta reference;
-	bool printRefBase = openFastaReferenceForCaller(params, reference);
-
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream out;
 	if(params.parameterExists("vcf")){
-		if(!printRefBase) throw "Can not print VCF file without reference!";
+		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
@@ -445,7 +471,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//write header
 		out << "chr\tpos";
-		if(printRefBase) out << "\tRef";
+		if(fastaReference) out << "\tRef";
 		out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 	}
 
@@ -459,11 +485,11 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			readData(windows);
 
 			//add reference data
-			if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+			if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 			//call genotypes
 			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+			windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
 			logfile->write(" done!");
 		}
 	}
@@ -490,19 +516,14 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		openThetaOutputFile(out);
 	}
 
-	//open FASTA reference
-	BamTools::Fasta reference;
-
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
-	bool printRefBase = true;
 	TSiteSubset* subset;
 	if(params.parameterExists("sites")){
 		subset = new TSiteSubset(params.getParameterString("sites"), windowSize);
 		limitToSitesWithKnownAlleles = true;
 	} else {
-		printRefBase = openFastaReferenceForCaller(params, reference);
 		printIfNoData = params.parameterExists("printAll");
 		if(printIfNoData) logfile->list("Will print all sites, even those without data");
 	}
@@ -511,7 +532,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool writeVCF = false;
 	gz::ogzstream output;
 	if(params.parameterExists("vcf")){
-		if(!printRefBase) throw "Can not print VCF file without reference!";
+		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
@@ -537,7 +558,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 		//write header
 		output << "chr\tpos";
-		if(printRefBase) output << "\tRef";
+		if(fastaReference) output << "\tRef";
 		if(limitToSitesWithKnownAlleles) output << "\talt\tcoverage\tP(RR|D)\tP(RA|D)\tP(AA|D)\tMAP\tQ\n";
 		else output << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
 	}
@@ -573,8 +594,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					windows.cur->addReferenceBaseToSites(subset);
 					windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
 				} else {
-					if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-					windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+					if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+					windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
 				}
 				logfile->write(" done!");
 			}
@@ -606,15 +627,11 @@ void TGenome::callAllelePresence(TParameters & params){
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData) logfile->list("Will print all sites, even those without data");
 
-	//open FASTA reference
-	BamTools::Fasta reference;
-	bool printRefBase = openFastaReferenceForCaller(params, reference);
-
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream outAllelePresence;
 	if(params.parameterExists("vcf")){
-		if(!printRefBase) throw "Can not print VCF file without reference!";
+		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
@@ -639,7 +656,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 		//write header
 		outAllelePresence << "chr\tpos";
-		if(printRefBase) outAllelePresence << "\tRef";
+		if(fastaReference) outAllelePresence << "\tRef";
 		outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
 	}
 
@@ -671,11 +688,11 @@ void TGenome::callAllelePresence(TParameters & params){
 				}
 
 				//add reference data
-				if(printRefBase) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 				//call allele presence
 				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, printRefBase, writeVCF);
+				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
 				logfile->write(" done!");
 			}
 		}
@@ -912,10 +929,10 @@ void TGenome::BQSR(TParameters & params){
 	TWindowPairHaploid windows;
 
 	//open FASTA reference
-	std::string fastaFile = params.getParameterString("fasta");
-	std::string fastaIndex = fastaFile + ".fai";
-	BamTools::Fasta reference;
-	reference.Open(fastaFile, fastaIndex);
+//	std::string fastaFile = params.getParameterString("fasta");
+//	std::string fastaIndex = fastaFile + ".fai";
+//	BamTools::Fasta reference;
+//	reference.Open(fastaFile, fastaIndex);
 
 	//create BQSR object
 	TRecalibrationBQSR bqsr(&bamHeader, params, logfile);
