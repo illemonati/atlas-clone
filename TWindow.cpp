@@ -61,6 +61,7 @@ TWindow::TWindow(){
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numReadsInWindow = 0;
 };
 
 TWindow::TWindow(long Start, long End){
@@ -75,6 +76,7 @@ void TWindow::clear(){
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numReadsInWindow = 0;
 };
 
 void TWindow::move(long Start, long End){
@@ -104,6 +106,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 	if(bamAlignement.Position + len < start) return false;
 
 	//find which position to consider first
+	++numReadsInWindow;
 	int firstPos = start - bamAlignement.Position;
 	if(firstPos < 0) firstPos = 0;
 	int lastPos = len;
@@ -174,7 +177,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
 		int pos;
 		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start - 1;
+			pos = it->first - start;
 			sites[pos].setRefBase(it->second.first);
 		}
 	}
@@ -329,6 +332,7 @@ void TWindowDiploid::initSites(long newLength){
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numReadsInWindow = 0;
 }
 
 void TWindowDiploid::fillPGenotype(double* pGenotype, double & expTheta){
@@ -804,8 +808,8 @@ void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRand
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
 		int pos;
 		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start - 1;
-			out << chr << "\t" << it->first;
+			pos = it->first - start;
+			out << chr << "\t" << it->first + 1;
 			if(isVCF)
 				sites[pos].callBayesianGenotypeVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
 			else
@@ -829,6 +833,7 @@ void TWindowHaploid::initSites(long newLength){
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numReadsInWindow = 0;
 }
 
 void TWindowHaploid::fillPGenotype(double* pGenotype){

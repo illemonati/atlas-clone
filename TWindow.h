@@ -128,6 +128,7 @@ public:
 	long length;
 	TSite* sites;
 	bool sitesInitialized;
+	int numReadsInWindow;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;

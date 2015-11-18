@@ -22,7 +22,8 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
-	bool readData(TWindowPair & windowPair);
+	void addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+	void readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out);
@@ -34,6 +35,8 @@ private:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignement;
+	bool oldAlignementMustBeConsidered;
+
 	BamTools::Fasta reference;
 	bool fastaReference;
  	BamTools::SamSequenceIterator chrIterator;
@@ -62,6 +65,7 @@ public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
 		if(doMasking) delete mask;
+		if(fastaReference) reference.Close();
 		delete recalObject;
 		delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
