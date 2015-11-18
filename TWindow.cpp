@@ -133,7 +133,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 		 *                3) Function add needs first pos5, then pos3
 		 */
 
-		//add to site: figur eout context and PMD on the way
+		//add to site: figure out context and PMD on the way
 		base = bamAlignement.AlignedBases.at(pos);
 		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 			quality = bamAlignement.AlignedQualities.at(pos);
@@ -187,7 +187,7 @@ void TWindow::applyMask(TBedReader* mask){
 		std::vector<long> thesePos = mask->getPositionInWindow(start);
 		int pos;
 		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = *it - start - 1;
+			pos = *it - start;
 			if(pos < length) sites[pos].clear();
 		}
 	}
@@ -845,7 +845,7 @@ void TWindowHaploid::addToJacobian(TRecalibrationEM* reclObject){
 	//assumes that frequencies have been calculated!
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			reclObject->addSiteToJacobianAndF(sites[i].bases, &baseFreq);
+			reclObject->addSite(sites[i]);
 		}
 	}
 }

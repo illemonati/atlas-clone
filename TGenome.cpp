@@ -1001,7 +1001,7 @@ void TGenome::BQSR(TParameters & params){
 				//add the base to BQSR
 				windows.cur->addSitesToBQSR(bqsr, logfile);
 
-				logfile->list("All done for this window!!");
+				logfile->list("All done for this window!");
 			}
 		}
 

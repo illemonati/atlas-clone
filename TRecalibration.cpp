@@ -8,46 +8,94 @@
 #include "TRecalibration.h"
 
 //---------------------------------------------------------------
-//RecalibrationEM
+//RecalibrationEMSite
 //---------------------------------------------------------------
-TRecalibrationEM::TRecalibrationEM(TParameters* arguments, TLog* logfile){
-	numParams = 3; //3 beta and 4 gamma
-	params = new double[numParams];
-	newParams = new double[numParams];
-	Jacobian.resize(numParams,numParams);
-	Jacobian.zeros();
-	F.resize(numParams);
-	F.zeros();
-	JxF.resize(numParams, numParams);
-	JxF.zeros();
-	maxF = 0.0;
-	numSitesAdded = 0;
-	logLikelihood = 0.0;
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site){
+	numReads = site.bases.size();
+	q = new double*[numReads];
+	D = new double*[numReads];
+	int i=0;
+	double epsilon;
+	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++i){
+		q[i] = new double[24];
 
-	//set initial values
-	//betas
-	logfile->startIndent("Will start recalibration EM with:");
-	params[0] = arguments->getParameterDoubleWithDefault("initBeta0", 0);
-	logfile->list("beta0 = " + toString(params[0]));
-	params[1] = arguments->getParameterDoubleWithDefault("initBeta1", 1);
-	logfile->list("beta1 = " + toString(params[1]));
-	params[2] = arguments->getParameterDoubleWithDefault("initBeta2", 0);
-	logfile->list("beta2 = " + toString(params[2]));
+		//we will work with the following q_ikl:
+		// - transformed quality
+		// - square of transformed quality
+		epsilon = dePhred((*it)->quality);
+		q[i][0] = log(epsilon / (1.0 + epsilon));
+		q[i][1] = q[i][0] * q[i][0];
 
-	//gammas -> start all at 0 by default
-	params[3] = arguments->getParameterDoubleWithDefault("initGammaA", 0);
-	logfile->list("gammaA = " + toString(params[3]));
-	params[4] = arguments->getParameterDoubleWithDefault("initGammaC", 0);
-	logfile->list("gammaC = " + toString(params[4]));
-	params[5] = arguments->getParameterDoubleWithDefault("initGammaG", 0);
-	logfile->list("gammaG = " + toString(params[5]));
-	params[6] = arguments->getParameterDoubleWithDefault("initGammaT", 0);
-	logfile->list("gammaT = " + toString(params[6]));
-	logfile->endIndent();
+		// - position
+		// - square of position
+		q[i][2] = (*it)->posInRead;
+		q[i][3] = q[i][2] * q[i][2];
+
+		// - 20 context indicators (either 0.0 or 1.0)
+		for(int j = 0; j < 20; ++j){
+			if((*it)->context == j) q[i][j+4] = 1.0;
+			else q[i][j+4] = 0.0;
+		}
+
+		//now also store D
+		D[i] = new double[4]; //for genotypes AA, CC, GG and TT
+		switch((*it)->getBaseAsEnum()){
+			case A: D[i][0] = 0.0; //geno = AA
+					D[i][1] = 1.0; //geno = CC
+					D[i][2] = 1.0 - (*it)->PMD_GA; //geno = GG
+					D[i][3] = 1.0; //geno = TT
+					break;
+			case C: D[i][0] = 1.0; //geno = AA
+					D[i][1] = (*it)->PMD_CT; //geno = CC
+					D[i][2] = 1.0; //geno = GG
+					D[i][3] = 1.0; //geno = TT
+					break;
+			case G: D[i][0] = 1.0; //geno = AA
+					D[i][1] = 1.0; //geno = CC
+					D[i][2] = (*it)->PMD_GA; //geno = GG
+					D[i][3] = 1.0; //geno = TT
+					break;
+			case T: D[i][0] = 1.0; //geno = AA
+					D[i][1] = 1.0 - (*it)->PMD_CT; //geno = CC
+					D[i][2] = 1.0; //geno = GG
+					D[i][3] = 0.0; //geno = TT
+					break;
+			case N:
+					D[i][0] = 0.0;
+					D[i][1] = 0.0;
+					D[i][2] = 0.0;
+					D[i][3] = 0.0;
+					break;
+		}
+	}
 };
 
+TRecalibrationEMSite::~TRecalibrationEMSite(){
+	for(int i=0; i<numReads; ++i){
+		delete[] q[i];
+		delete[] D[i];
+	}
+	delete[] q;
+	delete[] D;
+}
+
+//---------------------------------------------------------------
+//RecalibrationEM
+//---------------------------------------------------------------
 TRecalibrationEM::TRecalibrationEM(TLog* logfile){
-	numParams = 3; //3 beta and 4 gamma
+	//create data structure to store q_ikl for each observation
+	//we will work with the following q_ikl:
+	// - transformed quality
+	// - square of transformed quality
+	// - position
+	// - square of position
+	// - 20 context indicators (either 0.0 or 1.0)
+	// -> in total, 25 variables to estimate (incl. intercept at last position)
+	//if these are changed, TRecalibrationEMSite needs to be changed!
+
+	numParams = 25;
+
+	//initialize vriables for EM
 	params = new double[numParams];
 	newParams = new double[numParams];
 	Jacobian.resize(numParams,numParams);
@@ -60,11 +108,18 @@ TRecalibrationEM::TRecalibrationEM(TLog* logfile){
 	numSitesAdded = 0;
 	logLikelihood = 0.0;
 
-	//init params
-	for(int i=0; i<numParams; ++i){
+	//set initial values: all to 0 except first (quality)
+	for(int i=1; i<25; ++i){
 		params[i] = 0.0;
 		newParams[i] = 0.0;
 	}
+	params[0] = 1.0;
+	newParams[0] = 1.0;
+};
+
+
+void TRecalibrationEM::addSite(TSite & site){
+	sites.emplace_back(site);
 }
 
 void TRecalibrationEM::setParams(double* Params){
@@ -122,21 +177,43 @@ void TRecalibrationEM::saveParams(){
 	}
 }
 
-void TRecalibrationEM::addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
+void TRecalibrationEM::calculateJacobian(TBaseFrequencies* freqs){
 	//adds terms to Jacobian for one site (hence a vector of bases that were read)
 	//assumes bases to be haploid! -> program does not throw an error if they are not!
 
-	//TODO: find different way to get a log transformed error.
-
-/*
-	double epsilon;
-	double epsilonThird;
-
-	//initialize
+	//variables
 	double P_d_given_g_theta[4];
-	for(int g=0; g<4; ++g){ //over all genotypes A, C, G or T
-		P_d_given_g_theta[g] = 1.0;
+	double epsilon;
+	double B;
+
+	/*
+	//loop over all sites
+	for(std::vector<TRecalibrationEMSite>::iterator site = sites.begin(); site != sites.end(); ++site){
+		//--------------------------------------------------------------
+		// 1) calculate P(d|g,beta) for this site -> use old parameters
+		//--------------------------------------------------------------
+		//initialize
+		for(int g=0; g<4; ++g){ //over all genotypes A, C, G or T
+			P_d_given_g_theta[g] = 1.0;
+		}
+		for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
+			//get epsilon
+			epsilon  = calcEpsilon(*it); //use current (= old) params for this step
+			epsilonThird = epsilon / 3.0;
+
+			for(int g=0; g<4; ++g){ //over all genotypes
+				//add to P(d|g, theta)
+				if((*it)->getBaseAsEnum() == g)
+					P_d_given_g_theta[g] *= (1.0 - epsilon);
+				else
+					P_d_given_g_theta[g] *= epsilonThird;
+			}
+		}
+
 	}
+
+
+
 
 	//calc P(d|g, theta) for all g
 	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){

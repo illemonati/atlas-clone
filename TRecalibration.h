@@ -160,9 +160,23 @@ public:
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
+class TRecalibrationEMSite{
+public:
+	double** q; //covariates such as quality, position etc.
+	double** D; //D for the emission probabilities: depends on genotype and base!
+	int numReads;
+
+	TRecalibrationEMSite(TSite & site);
+	double dePhred(double quality){
+		return pow(10.0, quality / -10.0);
+	};
+	~TRecalibrationEMSite();
+};
+
 class TRecalibrationEM{
 public:
 	int numParams;
+	std::vector<TRecalibrationEMSite> sites;
 	double* params;
 	double* newParams; //used during EM
 	arma::mat Jacobian;
@@ -172,12 +186,12 @@ public:
 	long numSitesAdded;
 	double logLikelihood;
 
-	TRecalibrationEM(TParameters* arguments, TLog* logfile);
+	TRecalibrationEM(TLog* logfile);
 	~TRecalibrationEM(){
 		delete[] params;
 		delete[] newParams;
 	};
-	TRecalibrationEM(TLog* logfile);
+	void addSite(TSite & site);
 	void setParams(double* Params);
 	double calcEta(TBase* base);
 	double calcEta(TBase* base, double* theseParams);
@@ -187,7 +201,7 @@ public:
 	void initEMStep();
 	void initNetwonRalphsonStep();
 	void saveParams();
-	void addSiteToJacobianAndF(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
+	void calculateJacobian(TBaseFrequencies* freqs);
 	void runNewtonRalphson();
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out);

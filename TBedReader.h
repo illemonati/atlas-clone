@@ -14,6 +14,7 @@
 
 //read sorted bed files window by window
 //store all data in chr / window combinations using vectors
+//Store all positions 0-based, as in TWindow
 
 class TBedWindow{
 public:
@@ -32,8 +33,8 @@ public:
 	};
 
 	void print(){
-		std::cout << "[" << start << ", " << end << "]:";
-		for(std::vector<long>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it;
+		std::cout << "[" << start+1 << ", " << end+1 << "]:";
+		for(std::vector<long>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it + 1;
 		std::cout << std::endl;
 	};
 };
@@ -82,8 +83,8 @@ public:
 		findOrCreateWindow(start);
 
 		//add position to that window
-		//Note BED is 0 indexed -> plus 1 to pos!
-		for(long i=start+1; i<(end+1); ++i){
+		//Note BED is already 0 indexed
+		for(long i=start; i<end; ++i){
 			if(i>windowIt->second->end) findOrCreateWindow(i);
 			windowIt->second->addPosition(i);
 		}
@@ -100,7 +101,7 @@ public:
 		return true;
 	};
 
-	std::vector<long>& getPositionInWindow(const long & windowStart){
+	std::vector<long>& getPositionInWindow(long windowStart){
 		findWindow(windowStart);
 		if(windowIt == windows.end()) throw "TBedReader Error: window '" + toString(windowStart) + "' does not exist!";
 		return windowIt->second->positions;

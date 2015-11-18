@@ -22,6 +22,7 @@ class TGenotypeMap{
 public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
+	int numContexts;
 
 	TGenotypeMap(){
 		//create genotype map
@@ -40,6 +41,7 @@ public:
 		}
 
 		//create and fill context map
+		numContexts = 20;
 		contextMap = new BaseContext*[5];
 		int context = 0;
 		for(int i=0; i<5; ++i){
