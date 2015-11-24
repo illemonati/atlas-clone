@@ -174,7 +174,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	return true;
 };
 
-void TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair){
+bool TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair){
 	//std::cout << "REF ID = " << bamAlignement.RefID << "\tpos = " << bamAlignement.Position << std::endl;
 	//only take those reads that pass QC
 	if(!alignement.IsFailedQC() && !alignement.IsDuplicate() && alignement.Position >= curStart){
@@ -185,19 +185,18 @@ void TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindo
 		oldPos = alignement.Position;
 
 		//check if still within current window and add to window
-		if(alignement.Position >= curEnd){
-			//read should be read again
-			oldAlignementMustBeConsidered = true;
-		} else {
+		if(alignement.Position >= curEnd) return false;
+		else {
 			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups)){
 				//add also to next window in case reads overhangs current window -> function returns true
 				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups);
 			}
 		}
 	}
+	return true; //continue
 }
 
-void TGenome::readData(TWindowPair & windowPair){
+bool TGenome::readData(TWindowPair & windowPair){
 	logfile->listFlush("Reading data ...");
 
 	//measure runtime
@@ -207,36 +206,53 @@ void TGenome::readData(TWindowPair & windowPair){
 	//parse through reads
 	if(oldAlignementMustBeConsidered){
 		oldAlignementMustBeConsidered = false;
-		addAlignementToWindows(bamAlignement, windowPair);
-		if(oldAlignementMustBeConsidered) return; //still only in next window
+		if(!addAlignementToWindows(bamAlignement, windowPair)){
+			//next read is for a later window
+			oldAlignementMustBeConsidered = true;
+			gettimeofday(&end, NULL);
+			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+			logfile->conclude("No data in this window.");
+			return false; //still only in next window
+		}
 	}
+
 	while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
-		addAlignementToWindows(bamAlignement, windowPair);
+		if(!addAlignementToWindows(bamAlignement, windowPair)){
+			//read is beyond window and should be reconsidered
+			oldAlignementMustBeConsidered = true;
+			break;
+		}
 	}
 
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
-	//apply masks
-	if(doMasking){
-		logfile->listFlush("Masking sites ...");
-		windowPair.curPointer->applyMask(mask);
-		logfile->write(" done!");
-	}
-	if(doCpGMasking){
-		logfile->listFlush("Masking CpG sites ...");
-		windowPair.curPointer->maskCpG(reference, chrNumber);
-		logfile->write(" done!");
-	}
+	if(windowPair.curPointer->numReadsInWindow > 0){
+		//apply masks
+		if(doMasking){
+			logfile->listFlush("Masking sites ...");
+			windowPair.curPointer->applyMask(mask);
+			logfile->write(" done!");
+		}
+		if(doCpGMasking){
+			logfile->listFlush("Masking CpG sites ...");
+			windowPair.curPointer->maskCpG(reference, chrNumber);
+			logfile->write(" done!");
+		}
 
-	//calc coverage
-	windowPair.curPointer->calcCoverage();
+		//calc coverage
+		windowPair.curPointer->calcCoverage();
 
-	//report
-	logfile->conclude("read data from " + toString(windowPair.curPointer->numReadsInWindow) + " reads.");
-	logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
-	logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
-	logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
+		//report
+		logfile->conclude("read data from " + toString(windowPair.curPointer->numReadsInWindow) + " reads.");
+		logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
+		logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
+		return true;
+	} else {
+		logfile->conclude("No data in this window.");
+		return false;
+	}
 };
 
 void TGenome::initializePostMortemDamage(TParameters & params){
@@ -373,15 +389,15 @@ void TGenome::estimateTheta(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
-
-			//check if we have data -> can be extended to ensure
-			if(windows.cur->fractionSitesNoData > maxMissing){
-				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			} else {
-				//estimate Theta
-				out << chrIterator->Name << "\t";
-				windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+			if(readData(windows)){
+				//check if we have data -> can be extended to ensure
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} else {
+					//estimate Theta
+					out << chrIterator->Name << "\t";
+					windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+				}
 			}
 		}
 	}
@@ -404,29 +420,29 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
+			if(readData(windows)){
+				//check if we have data -> can be extended to ensure
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} else {
+					//open file
+					std::ofstream out;
+					filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
+					out.open(filename.c_str());
+					if(!out) throw "Failed to open output file '" + outputName + "'!";
 
-			//check if we have data -> can be extended to ensure
-			if(windows.cur->fractionSitesNoData > maxMissing){
-				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			} else {
-				//open file
-				std::ofstream out;
-				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
-				out.open(filename.c_str());
-				if(!out) throw "Failed to open output file '" + outputName + "'!";
+					//calc surface
+					logfile->listFlush("Calculating likelihood surface ...");
+					windows.cur->calcLikelihoodSurface(recalObject, out, steps);
+					logfile->write(" done!");
 
-				//calc surface
-				logfile->listFlush("Calculating likelihood surface ...");
-				windows.cur->calcLikelihoodSurface(recalObject, out, steps);
-				logfile->write(" done!");
+					//close output
+					out.close();
 
-				//close output
-				out.close();
-
-				//check if we break
-				++windowsCalculated;
-				if(windowsCalculated >= numWindows) break;
+					//check if we break
+					++windowsCalculated;
+					if(windowsCalculated >= numWindows) break;
+				}
 			}
 		}
 	}
@@ -489,15 +505,15 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
+			if(readData(windows)){
+				//add reference data
+				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-			//add reference data
-			if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-			//call genotypes
-			logfile->listFlush("Calling MLE genotypes ...");
-			windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
-			logfile->write(" done!");
+				//call genotypes
+				logfile->listFlush("Calling MLE genotypes ...");
+				windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+				logfile->write(" done!");
+			}
 		}
 	}
 
@@ -579,33 +595,33 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
-				readData(windows);
-
-				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} else {
-					out << chrIterator->Name << "\t";
-
-					//set Theta
-					if(estimateTheta){
-						windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+				if(readData(windows)){
+					//check if we have data -> can be extended to ensure
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 					} else {
-						windows.cur->calculateEmissionProbabilities(recalObject);
-						windows.cur->estimateBaseFrequencies();
-						windows.cur->setTheta(theta);
-					}
+						out << chrIterator->Name << "\t";
 
-					//call Bayesian genotypes
-					logfile->listFlush("Calling Bayesian Genotypes ...");
-					if(limitToSitesWithKnownAlleles){
-						windows.cur->addReferenceBaseToSites(subset);
-						windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
-					} else {
-						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+						//set Theta
+						if(estimateTheta){
+							windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+						} else {
+							windows.cur->calculateEmissionProbabilities(recalObject);
+							windows.cur->estimateBaseFrequencies();
+							windows.cur->setTheta(theta);
+						}
+
+						//call Bayesian genotypes
+						logfile->listFlush("Calling Bayesian Genotypes ...");
+						if(limitToSitesWithKnownAlleles){
+							windows.cur->addReferenceBaseToSites(subset);
+							windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
+						} else {
+							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+							windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+						}
+						logfile->write(" done!");
 					}
-					logfile->write(" done!");
 				}
 			}
 		}
@@ -679,30 +695,30 @@ void TGenome::callAllelePresence(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
-
-			//check if we have data -> can be extended to ensure
-			if(windows.cur->fractionSitesNoData > maxMissing){
-				logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			} else {
-				out << chrIterator->Name << "\t";
-
-				//set Theta
-				if(estimateTheta){
-					windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+			if(readData(windows)){
+				//check if we have data -> can be extended to ensure
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 				} else {
-					windows.cur->calculateEmissionProbabilities(recalObject);
-					windows.cur->estimateBaseFrequencies();
-					windows.cur->setTheta(theta);
+					out << chrIterator->Name << "\t";
+
+					//set Theta
+					if(estimateTheta){
+						windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+					} else {
+						windows.cur->calculateEmissionProbabilities(recalObject);
+						windows.cur->estimateBaseFrequencies();
+						windows.cur->setTheta(theta);
+					}
+
+					//add reference data
+					if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+
+					//call allele presence
+					logfile->listFlush("Calling allele presence ...");
+					windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+					logfile->write(" done!");
 				}
-
-				//add reference data
-				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-				//call allele presence
-				logfile->listFlush("Calling allele presence ...");
-				windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
-				logfile->write(" done!");
 			}
 		}
 	}
@@ -733,10 +749,10 @@ void TGenome::printPileup(){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
-
-			//print pileup
-			windows.cur->printPileup(recalObject, out, chrIterator->Name);
+			if(readData(windows)){
+				//print pileup
+				windows.cur->printPileup(recalObject, out, chrIterator->Name);
+			}
 		}
 	}
 
@@ -956,12 +972,6 @@ void TGenome::BQSR(TParameters & params){
 		int numPreConvLoops = params.getParameterInt("preConverge");
 		logfile->startIndent("Only using first chromosome to get initial estimates for " + toString(numPreConvLoops) + " loops :");
 
-		//do we limit number of windows?
-		bool limitWindows = params.parameterExists("limitWindows");
-		int maxNumWindows = 0;
-		if(limitWindows)
-			maxNumWindows = params.getParameterInt("limitWindows");
-
 		//run until it converges
 		while(!hasConverged && loopNumber < numPreConvLoops){
 			++loopNumber;
@@ -974,18 +984,13 @@ void TGenome::BQSR(TParameters & params){
 			//iterate over all windows
 			while(iterateWindow(windows)){
 				//read data for current window
-				readData(windows);
+				if(readData(windows)){
+					//add reference data
+					windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-				//add reference data
-				windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-				//add the base to BQSR
-				windows.cur->addSitesToBQSR(bqsr, logfile);
-
-				logfile->list("All done for this window!");
-
-				//check if we break
-				if(limitWindows && windowNumber == maxNumWindows) break;
+					//add the base to BQSR
+					windows.cur->addSitesToBQSR(bqsr, logfile);
+				}
 			}
 			logfile->endIndent();
 
@@ -1016,15 +1021,13 @@ void TGenome::BQSR(TParameters & params){
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
 				//read data for current window
-				readData(windows);
+				if(readData(windows)){
+					//add reference data
+					windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-				//add reference data
-				windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-				//add the base to BQSR
-				windows.cur->addSitesToBQSR(bqsr, logfile);
-
-				logfile->list("All done for this window!");
+					//add the base to BQSR
+					windows.cur->addSitesToBQSR(bqsr, logfile);
+				}
 			}
 		}
 
@@ -1064,10 +1067,9 @@ void TGenome::printQualityTransformation(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
-
-			//add the base to BQSR
-			windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
+			if(readData(windows)){
+				windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
+			}
 		}
 		//print out after each chr
 		filename = outputName + "_qualityTransformation_upToChr_" + toString(chrNumber) + ".txt";

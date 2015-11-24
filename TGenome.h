@@ -22,8 +22,8 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
-	void addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
-	void readData(TWindowPair & windowPair);
+	bool addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out);
