@@ -460,9 +460,18 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 */
 
 void TGenome::callMLEGenotypes(TParameters & params){
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
-	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+	//limit to a set of sites? Print all sites, even those without data?
+	bool limitToSitesWithKnownAlleles = false;
+	bool printIfNoData = true;
+	TSiteSubset* subset;
+	if(params.parameterExists("sites")){
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		limitToSitesWithKnownAlleles = true;
+	} else {
+		printIfNoData = params.parameterExists("printAll");
+		if(printIfNoData) logfile->list("Will print all sites, even those without data");
+	}
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
@@ -481,7 +490,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##fileformat=VCFv4.2\n";
 		out << "##source=estimHet\n";
 		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled genotype likelihoods for all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		out << "##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
 		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
@@ -494,8 +503,12 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//write header
 		out << "chr\tpos";
-		if(fastaReference) out << "\tRef";
-		out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+		if(limitToSitesWithKnownAlleles){
+			out << "\tRef\tAlt\tcoverage\tL(RR)\TL(RA)\tL(AA)\tMLE\tQ\n";
+		} else {
+			if(fastaReference) out << "\tRef";
+			out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+		}
 	}
 
 	//prepare windows
@@ -503,16 +516,25 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
+		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//add reference data
-				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
+				//read data for current window
+				if(readData(windows)){
+					//add reference data
 
-				//call genotypes
-				logfile->listFlush("Calling MLE genotypes ...");
-				windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
-				logfile->write(" done!");
+
+					//call genotypes
+					logfile->listFlush("Calling MLE genotypes ...");
+					if(limitToSitesWithKnownAlleles){
+						windows.cur->addReferenceBaseToSites(subset);
+						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF);
+					} else {
+						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+					}
+					logfile->write(" done!");
+				}
 			}
 		}
 	}
@@ -527,7 +549,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	double theta;
 	bool estimateTheta;
 	EMParameters* EMParams;
-	std::ofstream out;
+	std::ofstream outTheta;
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
 		theta = params.getParameterDouble("theta");
@@ -536,7 +558,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		estimateTheta = true;
 		//read EM params
 		EMParams = new EMParameters(params, logfile);
-		openThetaOutputFile(out);
+		openThetaOutputFile(outTheta);
 	}
 
 	//limit to a set of sites? Print all sites, even those without data?
@@ -544,7 +566,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool printIfNoData = true;
 	TSiteSubset* subset;
 	if(params.parameterExists("sites")){
-		subset = new TSiteSubset(params.getParameterString("sites"), windowSize);
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
 	} else {
 		printIfNoData = params.parameterExists("printAll");
@@ -600,11 +623,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					if(windows.cur->fractionSitesNoData > maxMissing){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 					} else {
-						out << chrIterator->Name << "\t";
-
 						//set Theta
 						if(estimateTheta){
-							windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+							outTheta << chrIterator->Name << "\t";
+							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile);
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
@@ -615,7 +637,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 						logfile->listFlush("Calling Bayesian Genotypes ...");
 						if(limitToSitesWithKnownAlleles){
 							windows.cur->addReferenceBaseToSites(subset);
-							windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, printIfNoData, writeVCF);
+							windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, writeVCF);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 							windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
@@ -628,8 +650,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	}
 
 	//clean up
-	out.close();
-	if(estimateTheta) delete EMParams;
+	if(estimateTheta){
+		outTheta.close();
+		delete EMParams;
+	}
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
@@ -638,19 +662,32 @@ void TGenome::callAllelePresence(TParameters & params){
 	double theta;
 	bool estimateTheta;
 	EMParameters* EMParams;
+	std::ofstream outTheta;
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
 		theta = params.getParameterDouble("theta");
 		logfile->list("Using theta = " + toString(theta));
 	} else {
 		estimateTheta = true;
+		openThetaOutputFile(outTheta);
 		//read EM params
 		EMParams = new EMParameters(params, logfile);
 	}
 
-	//do we print sites with no data?
-	bool printIfNoData = params.parameterExists("printAll");
-	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
+	//limit to a set of sites? Print all sites, even those without data?
+	bool limitToSitesWithKnownAlleles = false;
+	bool printIfNoData = true;
+	TSiteSubset* subset;
+	if(params.parameterExists("sites")){
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		limitToSitesWithKnownAlleles = true;
+	} else {
+		printIfNoData = params.parameterExists("printAll");
+		if(printIfNoData) logfile->list("Will print all sites, even those without data");
+	}
+
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
@@ -681,51 +718,59 @@ void TGenome::callAllelePresence(TParameters & params){
 
 		//write header
 		outAllelePresence << "chr\tpos";
-		if(fastaReference) outAllelePresence << "\tRef";
-		outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+		if(limitToSitesWithKnownAlleles) outAllelePresence << "\tRef\tAlt\tcoverage\tP(Ref|D)\tP(Alt|D)\tMAP\tQ\n";
+		else {
+			if(fastaReference) outAllelePresence << "\tRef";
+			outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+		}
 	}
-
-	//open output for theta
-	std::ofstream out; openThetaOutputFile(out);
 
 	//prepare windows
 	TWindowPairDiploid windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
+		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} else {
-					out << chrIterator->Name << "\t";
-
-					//set Theta
-					if(estimateTheta){
-						windows.cur->estimateTheta((*EMParams), recalObject, out, logfile);
+			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
+				//read data for current window
+				if(readData(windows)){
+					//check if we have data -> can be extended to ensure
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 					} else {
-						windows.cur->calculateEmissionProbabilities(recalObject);
-						windows.cur->estimateBaseFrequencies();
-						windows.cur->setTheta(theta);
+						//set Theta
+						if(estimateTheta){
+							outTheta << chrIterator->Name << "\t";
+							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile);
+						} else {
+							windows.cur->calculateEmissionProbabilities(recalObject);
+							windows.cur->estimateBaseFrequencies();
+							windows.cur->setTheta(theta);
+						}
+
+						//call allele presence
+						logfile->listFlush("Calling allele presence ...");
+						if(limitToSitesWithKnownAlleles){
+							windows.cur->addReferenceBaseToSites(subset);
+							windows.cur->callAllelePresenceKnwonAlleles(subset, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF);
+						} else {
+							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+							windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+						}
+						logfile->write(" done!");
 					}
-
-					//add reference data
-					if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-					//call allele presence
-					logfile->listFlush("Calling allele presence ...");
-					windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
-					logfile->write(" done!");
 				}
-			}
+			} else logfile->list("No positions in this window.");
 		}
 	}
 
 	//clean up
-	out.close();
-	if(estimateTheta) delete EMParams;
+	if(estimateTheta){
+		outTheta.close();
+		delete EMParams;
+	}
+	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
 void TGenome::printPileup(){
