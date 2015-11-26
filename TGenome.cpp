@@ -1146,11 +1146,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//create array of TBase
-	int readLength = 100;
-	int len;
-	TBase** bases = new TBase*[100];
-
-	TBase* basePointer; //TODO: we do not need an array, but can do it on the fly with only one pointer!
+	TBase* basePointer;
 
 	//other temp variables
 	char base, quality;
@@ -1158,15 +1154,13 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	TGenotypeMap genoMap;
 	int posInRead, revPosInRead;
 	double pmdCT, pmdGA;
+	int len;
+	std::string qual;
 
 	//now parse through bam file and write alignments
 	while (bamReader.GetNextAlignmentCore(bamAlignement)){
 		len = bamAlignement.Length;
-		if(len > readLength){
-			//resize array
-			delete[] bases;
-			bases = new TBase*[len];
-		}
+		qual.clear();
 
 		//get readgroup info
 		std::string readGroup;
@@ -1194,23 +1188,24 @@ void TGenome::recalibrateBamFile(TParameters & params){
 						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
 						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
 					}
-					//switch by base
-					if(base == 'A') bases[pos] = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'C') bases[pos] = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'G') bases[pos] = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else bases[pos] = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-				}
-			}
+					//create base object
+					if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+
+					//get new quality
+					qual += recalObject->getQuality(basePointer);
+
+					//delete base
+					delete basePointer;
+				} else qual += quality;
+			} else qual += quality;
 		}
 
-		//get recalibrated qualities
-		//recalObject->getQuality()
-
-		//write
+		//update and write
+		bamAlignement.AlignedQualities = qual;
 		bamWriter.SaveAlignment(bamAlignement);
-
-		//clear bases
-		for(int i=0; i<len; ++i) delete bases[i];
 	}
 
 	//close bam wirter

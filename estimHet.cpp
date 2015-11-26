@@ -43,39 +43,42 @@ int main(int argc, char* argv[]){
 
 		//what to do?
 		std::string task = myParameters.getParameterStringWithDefault("task", "estimate");
-		if(task=="estimate"){
+		if(task == "estimate"){
 			logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
 			genome.estimateTheta(myParameters);
-		} else if(task=="LLsurface"){
+		} else if(task == "LLsurface"){
 			logfile.startIndent("Calculating the LL surface for each window:");
 			genome.calcLikelihoodSurfaces(myParameters);
-		} else if(task=="pileup"){
+		} else if(task == "pileup"){
 			logfile.startIndent("Printing pileup for each window:");
 			genome.printPileup();
 		//} else if(task=="calibration"){
 		//	logfile.startIndent("Estimating eror calibration function:");
 		//	genome.estimateErrorCalibration(myParameters);
-		} else if(task=="calibration"){
+		} else if(task == "calibration"){
 			logfile.startIndent("Estimating error calibration function with EM:");
 			genome.estimateErrorCalibrationEM(myParameters);
-		} else if(task=="calibrationLLsurface"){
+		} else if(task == "calibrationLLsurface"){
 			logfile.startIndent("Estimating LL surface for error calibration function:");
 			genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
-		} else if(task=="BQSR"){
+		} else if(task == "BQSR"){
 			logfile.startIndent("Estimating recalibration parameters (BQSR):");
 			genome.BQSR(myParameters);
-		} else if(task=="callMLE"){
+		} else if(task == "callMLE"){
 			logfile.startIndent("Calling MLE Genotypes:");
 			genome.callMLEGenotypes(myParameters);
-		} else if(task=="callBayes"){
+		} else if(task == "callBayes"){
 			logfile.startIndent("Calling Bayesian Genotypes:");
 			genome.callBayesianGenotypes(myParameters);
-		} else if(task=="allelePresence"){
+		} else if(task == "allelePresence"){
 			logfile.startIndent("Calling Allele Presence:");
 			genome.callAllelePresence(myParameters);
-		} else if(task=="qualityTransformation"){
+		} else if(task == "qualityTransformation"){
 			logfile.startIndent("Printing Quality Transformation:");
 			genome.printQualityTransformation(myParameters);
+		} else if(task == "recalBAM"){
+			logfile.startIndent("Recalibrating a BAM file:");
+			genome.recalibrateBamFile(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 
