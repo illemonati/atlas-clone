@@ -17,9 +17,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//read parameters
 	filename = params.getParameterString("bam");
-	windowSize = params.getParameterDouble("window");
+	windowSize = params.getParameterDoubleWithDefault("window", 100000);
 	numWindowsOnChr = 0;
-	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
+	if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 
 	//outputname
@@ -504,7 +504,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		//write header
 		out << "chr\tpos";
 		if(limitToSitesWithKnownAlleles){
-			out << "\tRef\tAlt\tcoverage\tL(RR)\TL(RA)\tL(AA)\tMLE\tQ\n";
+			out << "\tRef\tAlt\tcoverage\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
 		} else {
 			if(fastaReference) out << "\tRef";
 			out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
@@ -1051,6 +1051,7 @@ void TGenome::BQSR(TParameters & params){
 		}
 
 		//reset counters and such
+		bqsr.reopenEstimation();
 		hasConverged = false;
 		loopNumber = 0;
 		logfile->endIndent();
@@ -1104,7 +1105,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 	TQualityTransformTable QT(maxQ);
 
-	//preapre output
+	//prepare output
 	std::ofstream out;
 	std::string filename;
 
@@ -1133,4 +1134,85 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//clean up memory
 	windows.clear();
+}
+
+void TGenome::recalibrateBamFile(TParameters & params){
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_recalibrated.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//create array of TBase
+	int readLength = 100;
+	int len;
+	TBase** bases = new TBase*[100];
+
+	TBase* basePointer; //TODO: we do not need an array, but can do it on the fly with only one pointer!
+
+	//other temp variables
+	char base, quality;
+	BaseContext context;
+	TGenotypeMap genoMap;
+	int posInRead, revPosInRead;
+	double pmdCT, pmdGA;
+
+	//now parse through bam file and write alignments
+	while (bamReader.GetNextAlignmentCore(bamAlignement)){
+		len = bamAlignement.Length;
+		if(len > readLength){
+			//resize array
+			delete[] bases;
+			bases = new TBase*[len];
+		}
+
+		//get readgroup info
+		std::string readGroup;
+		bamAlignement.GetTag("RG", readGroup);
+		int readGroupId = readGroups.find(readGroup);
+
+		//parse into bases
+		for(int pos = 0; pos < len; ++pos){
+			base = bamAlignement.AlignedBases.at(pos);
+			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+				quality = bamAlignement.AlignedQualities.at(pos);
+				if((int) quality > 33){
+					if(bamAlignement.IsReverseStrand()){
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
+						posInRead = len - pos - 1;
+						revPosInRead = pos;
+						pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
+						pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
+					} else {
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						posInRead = pos;
+						revPosInRead = len - pos - 1;
+						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
+						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
+					}
+					//switch by base
+					if(base == 'A') bases[pos] = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'C') bases[pos] = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'G') bases[pos] = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else bases[pos] = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+				}
+			}
+		}
+
+		//get recalibrated qualities
+		//recalObject->getQuality()
+
+		//write
+		bamWriter.SaveAlignment(bamAlignement);
+
+		//clear bases
+		for(int i=0; i<len; ++i) delete bases[i];
+	}
+
+	//close bam wirter
+	bamWriter.Close();
 }

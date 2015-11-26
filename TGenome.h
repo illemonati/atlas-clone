@@ -11,6 +11,7 @@
 #include "TWindow.h"
 #include "TRecalibration.h"
 #include "gzstream.h"
+#include "bamtools/api/BamWriter.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -83,6 +84,7 @@ public:
 	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
+	void recalibrateBamFile(TParameters & params);
 };
 
 
