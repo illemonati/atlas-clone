@@ -1345,7 +1345,7 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		logfile->write(" done!");
 	}
 
-	//write readGroup x position table
+	//write readGroup x position_rev table
 	if(considerPositionReverse){
 		filename = filenameTag + "_BQSR_ReadGroup_Position_Reverse_Table.txt";
 		logfile->listFlush("Writing BQSR readGroup x position reverse table to '" + filename + "' ...");
@@ -1364,7 +1364,6 @@ void TRecalibrationBQSR::writeToFile(std::string filenameTag){
 		out.close();
 		logfile->write(" done!");
 	}
-
 
 	//write readGroup x context table
 	if(considerContext){
@@ -1402,6 +1401,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 			BQSR_cells_readGroup_quality[i][q].reopenEstimation();
 		}
 	}
+	qualityConverged = false;
 
 	//also for position
 	if(considerPosition){
@@ -1411,6 +1411,17 @@ void TRecalibrationBQSR::reopenEstimation(){
 			}
 		}
 	}
+	positionConverged = false;
+
+	//reverse position
+	if(considerPositionReverse){
+		for(int i=0; i<numReadGroups; ++i){
+			for(int p=0; p<maxPos; ++p){
+				BQSR_cells_readGroup_position_reverse[i][p].reopenEstimation();
+			}
+		}
+	}
+	positionReverseConverged = false;
 
 	//and context
 	if(considerContext){
@@ -1420,6 +1431,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 			}
 		}
 	}
+	contextConverged = false;
 }
 
 double TRecalibrationBQSR::getErrorRate(TBase* base){

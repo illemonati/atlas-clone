@@ -93,6 +93,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 void TGenome::jumpToEnd(){
 	chrIterator = bamHeader.Sequences.End();
+	chrNumber = -1;
 }
 
 void TGenome::restartChromosome(TWindowPair & windowPair){
@@ -1014,7 +1015,11 @@ void TGenome::BQSR(TParameters & params){
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
 		int numPreConvLoops = params.getParameterInt("preConverge");
-		logfile->startIndent("Only using first chromosome to get initial estimates for " + toString(numPreConvLoops) + " loops :");
+		int numChrPreConv = params.getParameterIntWithDefault("limitChrPreConv", 1) - 1;
+		int numWindowsPreConv = params.getParameterIntWithDefault("limitWindowsPreConv", 100);
+		logfile->startIndent("Running initial BQSR (pre-convergence):");
+		logfile->list("Limiting pre-convergence to the first " + toString(numChrPreConv) + " chromosomes.");
+		logfile->list("Limiting pre-convergence to the first " + toString(numWindowsPreConv) + " windows on each chromosome.");
 
 		//run until it converges
 		while(!hasConverged && loopNumber < numPreConvLoops){
@@ -1022,24 +1027,25 @@ void TGenome::BQSR(TParameters & params){
 			logfile->startIndent("Running pre-recalibration loop " + toString(loopNumber) + ":");
 
 			//jump to first chromosome
-			if(loopNumber == 1)	iterateChromosome(windows);
-			else restartChromosome(windows);
+			while(chrNumber < numChrPreConv && iterateChromosome(windows)){
+				//iterate over all windows
+				while(windowNumber < numWindowsPreConv && iterateWindow(windows)){
+					//read data for current window
+					if(readData(windows)){
+						//add reference data
+						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-			//iterate over all windows
-			while(iterateWindow(windows)){
-				//read data for current window
-				if(readData(windows)){
-					//add reference data
-					windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-					//add the base to BQSR
-					windows.cur->addSitesToBQSR(bqsr, logfile);
+						//add the base to BQSR
+						windows.cur->addSitesToBQSR(bqsr, logfile);
+					}
 				}
+				logfile->endIndent();
 			}
 			logfile->endIndent();
 
 			//clean up memory and restart from chr 1
 			windows.clear();
+			jumpToEnd();
 
 			//estimate epsilon
 			hasConverged = bqsr.estimateEpsilon();
