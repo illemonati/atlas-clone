@@ -110,12 +110,12 @@ std::string TPMDTable::getPMDStringCT(){
 		if(p>0) s += ",";
 		if(sums[p][T] < 1 || sums[p][C] < 1) s += "0.0";
 		else {
-			tmpCT = (double) counts[p][T][C] / (double) sums[p][T];
-			tmpTC = (double) counts[p][C][T] / (double) sums[p][C];
+			tmpCT = (double) counts[p][C][T] / (double) sums[p][C];
+			tmpTC = (double) counts[p][T][C] / (double) sums[p][T];
 			s += toString(std::max(0.0, (tmpCT - tmpTC)/(1.0 - tmpTC)));
 		}
 	}
-	return s;
+	return s + "]";
 };
 
 std::string TPMDTable::getPMDStringGA(){
@@ -126,12 +126,12 @@ std::string TPMDTable::getPMDStringGA(){
 		if(p>0) s += ",";
 		if(sums[p][A] < 1 || sums[p][G] < 1) s += "0.0";
 		else {
-			tmpGA = (double) counts[p][A][G] / (double) sums[p][A];
-			tmpAG = (double) counts[p][G][A] / (double) sums[p][G];
+			tmpGA = (double) counts[p][G][A] / (double) sums[p][G];
+			tmpAG = (double) counts[p][A][G] / (double) sums[p][A];
 			s += toString(std::max(0.0, (tmpGA - tmpAG)/(1.0 - tmpAG)));
 		}
 	}
-	return s;
+	return s + "]";
 };
 
 //---------------------------------------------------------------
