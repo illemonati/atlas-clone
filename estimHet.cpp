@@ -79,6 +79,9 @@ int main(int argc, char* argv[]){
 		} else if(task == "recalBAM"){
 			logfile.startIndent("Recalibrating a BAM file:");
 			genome.recalibrateBamFile(myParameters);
+    	} else if(task == "splitRGbyLength"){
+			logfile.startIndent("Splitting single end read groups in a BAM file:");
+			genome.splitSingleEndReadGroups(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 

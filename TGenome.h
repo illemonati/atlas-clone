@@ -14,6 +14,22 @@
 #include "bamtools/api/BamWriter.h"
 
 //---------------------------------------------------------------
+//Read Group
+//---------------------------------------------------------------
+struct TReadGroupLength{
+public:
+	int maxLen;
+	int truncatedReadGroupID;
+	std::string truncatedReadGroup;
+
+	TReadGroupLength(int MaxLen, int TruncatedReadGroupID, std::string & TruncatedReadGroup){
+		maxLen = MaxLen;
+		truncatedReadGroupID = TruncatedReadGroupID;
+		truncatedReadGroup = TruncatedReadGroup;
+	};
+};
+
+//---------------------------------------------------------------
 //TGenome
 //---------------------------------------------------------------
 class TGenome{

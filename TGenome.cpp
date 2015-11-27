@@ -1237,29 +1237,51 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	logfile->removeIndent();
 }
 
-/*
 void TGenome::splitSingleEndReadGroups(TParameters & params){
+	//read read groups and their expected lengths
+	std::string filename = params.getParameterString("readGroups");
+	logfile->listFlush("Reading single end read groups from file '" + filename + "' ...");
+	std::map<int, TReadGroupLength> singleEndRG;
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open file '" + filename + "!";
+
+	//parse file
+	int lineNum = 0;
+	std::vector<std::string> vec;
+	int len;
+	int readGroupId;
+	int truncatedReadGroupId;
+	std::string readGroup;
+	while(file.good() && !file.eof()){
+		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		if(!vec.empty()){
+			if(vec.size() != 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
+			readGroupId = readGroups.find(vec[0]);
+			len = stringToInt(vec[1]);
+			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
+			//add a new readgroup for the truncated reads to the header
+			readGroup = vec[0] + "_truncated";
+			bamHeader.ReadGroups.Add(readGroup);
+			readGroups.fill(bamHeader);
+			truncatedReadGroupId = readGroups.find(readGroup);
+
+			//ad to map
+			singleEndRG.emplace(readGroupId, TReadGroupLength(len, truncatedReadGroupId, readGroup));
+		}
+	}
+	logfile->write(" done!");
+	logfile->conclude("read " + toString(singleEndRG.size()) + " read groups to be splitted.");
+
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
-	std::string filename = outputName + "_recalibrated.bam";
+	filename = outputName + "_splitRG.bam";
 	BamTools::RefVector references = bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	//create array of TBase
-	TBase* basePointer;
-
 	//other temp variables
-	char base, quality;
-	BaseContext context;
-	TGenotypeMap genoMap;
-	int posInRead, revPosInRead;
-	double pmdCT, pmdGA;
-	int len;
-	std::string qual;
-	std::string readGroup;
-	int readGroupId;
 	long counter = 0;
 
 	//prepare reporting
@@ -1267,56 +1289,26 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	struct timeval start, end;
     gettimeofday(&start, NULL);
 	float runtime;
+	std::map<int, TReadGroupLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignement)){
 		++counter;
-		len = bamAlignement.Length;
-		qual.clear();
 
-		//get readgroup info
+		//get read group info
 		bamAlignement.GetTag("RG", readGroup);
 		readGroupId = readGroups.find(readGroup);
 
-		//parse into bases
-		for(int pos = 0; pos < len; ++pos){
-			base = bamAlignement.QueryBases.at(pos);
-			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-				quality = bamAlignement.Qualities.at(pos);
-				if((int) quality > 33){
-					if(bamAlignement.IsReverseStrand()){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos + 1), base);
-						posInRead = len - pos - 1;
-						revPosInRead = pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
-						pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
-					} else {
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos - 1), base);
-						posInRead = pos;
-						revPosInRead = len - pos - 1;
-						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
-						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
-					}
-
-					//create base object
-					if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-
-					//get new quality
-					qual += recalObject->getQualityAsChar(basePointer);
-
-					//delete base
-					delete basePointer;
-				} else qual += quality;
-			} else qual += quality;
+		//check if this RG needs to be parse
+		singleEndRGIT = singleEndRG.find(readGroupId);
+		if(singleEndRGIT != singleEndRG.end()){
+			//check length
+			if(bamAlignement.Length < singleEndRGIT->second.maxLen)
+				bamAlignement.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
+			else if(bamAlignement.Length > singleEndRGIT->second.maxLen) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
 		}
 
-		//update and write
-		bamAlignement.Qualities = qual;
+		//write
 		bamWriter.SaveAlignment(bamAlignement);
 
 		//report
@@ -1336,5 +1328,12 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	logfile->list("Reached end of BAm file!");
 	logfile->removeIndent();
+}
+
+/*
+void TGenome::estimatePMD(TParameters & params){
+	//make sure FASTA is open
+	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
+
 }
 */
