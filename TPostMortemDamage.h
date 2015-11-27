@@ -9,17 +9,58 @@
 #define TPOSTMORTEMDAMAGE_H_
 
 #include <math.h>
+#include "TReadGroups.h"
+#include "TGenotypeMap.h"
+#include "TSite.h"
+#include <algorithm>
 
 enum PMDType {pmdCT=0, pmdGA};
 //---------------------------------------------------------------
-//TPMD
+//TPMDTable
+//---------------------------------------------------------------
+class TPMDTable{
+private:
+	long*** counts;
+	long** sums;
+	bool sumsCalculated;
+	int maxLength;
+	TGenotypeMap genoMap;
+
+	void calculateSums();
+	void deleteSums();
+
+public:
+	TPMDTable(int MaxLength);
+	~TPMDTable();
+	void empty();
+	void add(int pos, Base ref, Base read);
+	void writeTable(std::ofstream & out, std::string prefix);
+	std::string getPMDStringCT();
+	std::string getPMDStringGA();
+};
+
+class TPMDTables{
+public:
+	TReadGroups* readGroups;
+	TPMDTable** forward;
+	TPMDTable** backward;
+
+	TPMDTables(TReadGroups* ReadGroups, int maxLength);
+	void add(TSite & site);
+	void writePMDFile(std::string filename);
+	void writeTable(std::string filename);
+};
+
+
+//---------------------------------------------------------------
+//TPMDFunction
 //---------------------------------------------------------------
 //Note: Base class is to be used when there is no PMD!
 class TPMDFunction{
 public:
 	TPMDFunction(){};
 	virtual ~TPMDFunction(){};
-	virtual double getProb(double & pos){
+	virtual double getProb(int pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
@@ -30,14 +71,10 @@ private:
 	double lambda, c;
 
 public:
-	TPMDSkoglund(double & Lambda, double & C){
-		lambda = Lambda; c = C;
-	};
+	TPMDSkoglund(double & Lambda, double & C);
 	~TPMDSkoglund(){};
-	double getProb(double & pos){
-		return c + pow(1.0 - lambda, (double) pos - 1.0) * lambda;
-	};
-	std::string getString(){ return "P(pmd|pos) = p * (1 - p)^pos + c = " + toString(lambda) + " * (1 - " + toString(lambda) + ")^pos + " + toString(c); };
+	double getProb(double pos);
+	std::string getString();
 };
 
 class TPMDVeeramah:public TPMDFunction{
@@ -45,15 +82,26 @@ private:
 	double a,b,c;
 
 public:
-	TPMDVeeramah(double & A, double & B, double & C){
-		a = A; b = B; c = C;
-	}
-	double getProb(double & pos){
-		return a * exp(-pos * b) + c;
-	};
-	std::string getString(){ return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c); };
+	TPMDVeeramah(double & A, double & B, double & C);
+	double getProb(double pos);
+	std::string getString();
 };
 
+class TPMDEmpiric:public TPMDFunction{
+private:
+	int length;
+	double* probs;
+	double last;
+
+public:
+	TPMDEmpiric(std::string & values, std::string & example);
+	double getProb(int & pos);
+	std::string getString();
+};
+
+//------------------------------------------------------
+//TPMD
+//------------------------------------------------------
 class TPMD{
 private:
 	TPMDFunction* myFunctions[2];
@@ -71,62 +119,10 @@ public:
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
-	void initializeFunction(std::string & pmdString, PMDType type){
-		//parse string to get model.  options are
-		// none
-		// Skoglund[lambda,c]
-		// Veeramah[a,b,c]
-		std::string example = "Use either Skoglund[p,c] or Veeramah[a,b,c]";
-
-		//check if it is none
-		if(pmdString == "none"){
-			myFunctions[type] = new TPMDFunction();
-		} else {
-			std::string::size_type pos = pmdString.find_first_of('[');
-			if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-			std::string name = pmdString.substr(0,pos);
-
-			//prepare first value
-			std::string tmp = pmdString.substr(pos+1, pmdString.length() - pos - 1);
-			pos = tmp.find_first_of(',');
-			if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-			double first = atof(tmp.substr(0, pos).c_str());
-
-			//switch between functions
-			if(name == "Skoglund"){
-				//get lambda and
-				if(first < 0.0) throw "Can not initialize Skoglund function with lambda < 0!";
-				if(first > 1.0) throw "Can not initialize Skoglund function with lambda > 1!";
-				double c = atof(tmp.substr(pos+1).c_str());
-				if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
-				myFunctions[type] = new TPMDSkoglund(first, c);
-			} else if(name == "Veeramah"){
-				//get a, b and c
-				if(first < 0.0) throw "Can not initialize Veeramah function with a < 0!";
-
-				//get b
-				tmp = tmp.substr(pos+1);
-				pos = tmp.find_first_of(',');
-				if(pos == std::string::npos) throw "Can not initialize post mortem damage function: wrong format!\n" + example;
-				double b = atof(tmp.substr(0, pos).c_str());
-				if(b < 0.0) throw "Can not initialize Veeramah function with b < 0!";
-
-				//get c
-				double c = atof(tmp.substr(pos+1).c_str());
-				if(c < 0.0) throw "Can not initialize Veeramah function with c < 0!";
-
-				//test if it can be > 1
-				//if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
-
-				//initialze
-				myFunctions[type] = new TPMDVeeramah(first, b, c);
-			} else throw "Can not initialize post mortem damage function: wrong name!\n" + example;
-		}
-		functionsInitialized[type] = true;
-	};
-	double getProb(double pos, PMDType type){ return myFunctions[type]->getProb(pos); };
-	double getProbCT(double pos){ return myFunctions[pmdCT]->getProb(pos); };
-	double getProbGA(double pos){ return myFunctions[pmdGA]->getProb(pos); };
+	void initializeFunction(std::string & pmdString, PMDType type);
+	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
+	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };
+	double getProbGA(int pos){ return myFunctions[pmdGA]->getProb(pos); };
 	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];

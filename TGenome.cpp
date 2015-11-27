@@ -29,6 +29,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		outputName = filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
+	logfile->list("Writing output files with prefix '" + outputName + "'.");
 
 	//initialize iterators
 	chrNumber = -1;
@@ -522,9 +523,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
 				if(readData(windows)){
-					//add reference data
-
-
 					//call genotypes
 					logfile->listFlush("Calling MLE genotypes ...");
 					if(limitToSitesWithKnownAlleles){
@@ -1241,7 +1239,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");
 	logfile->listFlush("Reading single end read groups from file '" + filename + "' ...");
-	std::map<int, TReadGroupLength> singleEndRG;
+	std::map<int, TReadGroupMaxLength> singleEndRG;
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "!";
 
@@ -1267,7 +1265,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			truncatedReadGroupId = readGroups.find(readGroup);
 
 			//ad to map
-			singleEndRG.emplace(readGroupId, TReadGroupLength(len, truncatedReadGroupId, readGroup));
+			singleEndRG.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup));
 		}
 	}
 	logfile->write(" done!");
@@ -1289,7 +1287,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	struct timeval start, end;
     gettimeofday(&start, NULL);
 	float runtime;
-	std::map<int, TReadGroupLength>::iterator singleEndRGIT;
+	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignement)){
@@ -1330,10 +1328,66 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->removeIndent();
 }
 
-/*
 void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
 
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//prepare PMD table
+	int maxLength = params.getParameterIntWithDefault("length", 100);
+	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
+	TPMDTables pmdTables(&readGroups, maxLength);
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			readData(windows);
+			windows.cur->addReferenceBaseToSites(reference, chrNumber);
+			windows.cur->addSitesToPMDTable(pmdTables, logfile);
+		}
+	}
+
+	//print tables and data
+	std::string filename = outputName + "_PMD_Table.txt";
+	logfile->listFlush("Writing PMD table to '" + filename + "' ...");
+	pmdTables.writeTable(filename);
+	logfile->write(" done!");
+	filename = outputName + ".pmd";
+	logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
+	pmdTables.writePMDFile(filename);
+	logfile->write(" done!");
 }
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

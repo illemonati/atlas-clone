@@ -10,13 +10,13 @@
 
 #include "TLog.h"
 #include "TParameters.h"
-#include "bamtools/api/BamReader.h"
-#include "bamtools/api/SamSequenceDictionary.h"
+#include "TReadGroups.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TRecalibration.h"
 #include "TSite.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
+#include "TPostMortemDamage.h"
 
 //---------------------------------------------------------------
 //EMParameters
@@ -57,66 +57,6 @@ struct Theta{
 	}
 };
 
-//---------------------------------------------------------------
-//TReadGroups
-//---------------------------------------------------------------
-struct readGroup{
-public:
-	std::string name;
-	int id;
-	BamTools::SamReadGroup* object;
-};
-
-class TReadGroups{
-public:
-	readGroup* groups;
-	int numGroups;
-	bool initialized;
-
-	TReadGroups(){
-		initialized = false;
-		numGroups = 0;
-		groups = NULL;
-	};
-
-	~TReadGroups(){
-		if(initialized) delete[] groups;
-	};
-
-	void fill(BamTools::SamHeader & bamHeader){
-		//empty if filled before
-		if(initialized) delete[] groups;
-		//create and fill array
-		numGroups = bamHeader.ReadGroups.Size();
-		groups = new readGroup[numGroups];
-		int i = 0;
-		for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
-			groups[i].id = i;
-			groups[i].name = it->ID;
-			groups[i].object= &(*it);
-		}
-		initialized = true;
-	};
-
-	int find(std::string & name){
-		for(int i=0; i<numGroups; ++i){
-			if(groups[i].name == name) return i;
-		}
-		throw "Read Group '" + name + "' was not present in header of bam file!";
-	};
-
-	bool readGroupExists(std::string & name){
-		for(int i=0; i<numGroups; ++i){
-			if(groups[i].name == name) return true;
-		}
-		return false;
-	};
-
-	std::string getName(int num){
-		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
-		return groups[num].name;
-	};
-};
 
 //---------------------------------------------------------------
 //TWindow
@@ -156,6 +96,7 @@ public:
 	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile);
+	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
 };
 
 class TWindowDiploid:public TWindow{

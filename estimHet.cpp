@@ -82,6 +82,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "splitRGbyLength"){
 			logfile.startIndent("Splitting single end read groups in a BAM file:");
 			genome.splitSingleEndReadGroups(myParameters);
+    	} else if(task == "estimatePMD"){
+    		logfile.startIndent("Estimating Post-Mortem Damage (PMD) patterns:");
+    		genome.estimatePMD(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 

@@ -320,6 +320,17 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TQual
 	}
 	logfile->write(" done!");
 }
+
+void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
+	logfile->listFlush("Adding sites to PMD tables ...");
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			pmdTables.add(sites[i]);
+		}
+	}
+	logfile->write(" done!");
+}
+
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------

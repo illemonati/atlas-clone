@@ -8,8 +8,8 @@
 #ifndef TSITE_H_
 #define TSITE_H_
 
-#include "stringFunctions.h"
 #include <math.h>
+#include <vector>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 #include "TParameters.h"
@@ -18,7 +18,6 @@
 #include "gzstream.h"
 #include <algorithm>
 #include "TRandomGenerator.h"
-
 
 //---------------------------------------------------------------
 //TSite

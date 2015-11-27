@@ -9,7 +9,6 @@
 #define TBASE_H_
 
 #include "TGenotypeMap.h"
-#include "TPostMortemDamage.h"
 
 //---------------------------------------------------------------
 //TEmissionProbabilities
