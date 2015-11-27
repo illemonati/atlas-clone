@@ -39,6 +39,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	oldAlignementMustBeConsidered = false;
 
 	//open BAM file
+	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
 
@@ -1141,7 +1142,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_recalibrated.bam";
 	BamTools::RefVector references = bamReader.GetReferenceData();
-
+	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
@@ -1156,38 +1157,48 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	double pmdCT, pmdGA;
 	int len;
 	std::string qual;
+	std::string readGroup;
+	int readGroupId;
+	long counter = 0;
 
-	//now parse through bam file and write alignments
-	while (bamReader.GetNextAlignmentCore(bamAlignement)){
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
 		len = bamAlignement.Length;
 		qual.clear();
 
 		//get readgroup info
-		std::string readGroup;
 		bamAlignement.GetTag("RG", readGroup);
-		int readGroupId = readGroups.find(readGroup);
+		readGroupId = readGroups.find(readGroup);
 
 		//parse into bases
 		for(int pos = 0; pos < len; ++pos){
-			base = bamAlignement.AlignedBases.at(pos);
+			base = bamAlignement.QueryBases.at(pos);
 			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-				quality = bamAlignement.AlignedQualities.at(pos);
+				quality = bamAlignement.Qualities.at(pos);
 				if((int) quality > 33){
 					if(bamAlignement.IsReverseStrand()){
 						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
+						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos + 1), base);
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
 						pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
 						pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
 					} else {
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos - 1), base);
 						posInRead = pos;
 						revPosInRead = len - pos - 1;
 						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
 						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
 					}
+
 					//create base object
 					if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 					else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
@@ -1195,7 +1206,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 					else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 
 					//get new quality
-					qual += recalObject->getQuality(basePointer);
+					qual += recalObject->getQualityAsChar(basePointer);
 
 					//delete base
 					delete basePointer;
@@ -1204,10 +1215,126 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		}
 
 		//update and write
-		bamAlignement.AlignedQualities = qual;
+		bamAlignement.Qualities = qual;
 		bamWriter.SaveAlignment(bamAlignement);
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
 	}
 
-	//close bam wirter
+	//close bam writer
 	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAm file!");
+	logfile->removeIndent();
 }
+
+/*
+void TGenome::splitSingleEndReadGroups(TParameters & params){
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_recalibrated.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//create array of TBase
+	TBase* basePointer;
+
+	//other temp variables
+	char base, quality;
+	BaseContext context;
+	TGenotypeMap genoMap;
+	int posInRead, revPosInRead;
+	double pmdCT, pmdGA;
+	int len;
+	std::string qual;
+	std::string readGroup;
+	int readGroupId;
+	long counter = 0;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
+		len = bamAlignement.Length;
+		qual.clear();
+
+		//get readgroup info
+		bamAlignement.GetTag("RG", readGroup);
+		readGroupId = readGroups.find(readGroup);
+
+		//parse into bases
+		for(int pos = 0; pos < len; ++pos){
+			base = bamAlignement.QueryBases.at(pos);
+			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+				quality = bamAlignement.Qualities.at(pos);
+				if((int) quality > 33){
+					if(bamAlignement.IsReverseStrand()){
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos + 1), base);
+						posInRead = len - pos - 1;
+						revPosInRead = pos;
+						pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
+						pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
+					} else {
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.QueryBases.at(pos - 1), base);
+						posInRead = pos;
+						revPosInRead = len - pos - 1;
+						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
+						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
+					}
+
+					//create base object
+					if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+					else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+
+					//get new quality
+					qual += recalObject->getQualityAsChar(basePointer);
+
+					//delete base
+					delete basePointer;
+				} else qual += quality;
+			} else qual += quality;
+		}
+
+		//update and write
+		bamAlignement.Qualities = qual;
+		bamWriter.SaveAlignment(bamAlignement);
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAm file!");
+	logfile->removeIndent();
+}
+*/

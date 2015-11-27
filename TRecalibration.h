@@ -142,6 +142,10 @@ public:
 		return base->quality;
 	};
 
+	char getQualityAsChar(TBase* base){
+		return getQuality(base) + 33;
+	};
+
 	void calcEmissionProbabilities(TSite & site){
 		//first calculate for each base
 		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){

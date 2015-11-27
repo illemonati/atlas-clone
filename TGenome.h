@@ -85,6 +85,7 @@ public:
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
 	void recalibrateBamFile(TParameters & params);
+	void splitSingleEndReadGroups(TParameters & params);
 };
 
 
