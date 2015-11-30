@@ -14,58 +14,66 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site){
 	numReads = site.bases.size();
 	q = new double*[numReads];
 	D = new double*[numReads];
-	int i=0;
+	B = new double*[numReads];
+	epsilon = new double[numReads];
+	int k=0;
 	double epsilon;
-	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++i){
-		q[i] = new double[24];
+	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++k){
+		q[k] = new double[24];
 
 		//we will work with the following q_ikl:
 		// - transformed quality
 		// - square of transformed quality
 		epsilon = dePhred((*it)->quality);
-		q[i][0] = log(epsilon / (1.0 + epsilon));
-		q[i][1] = q[i][0] * q[i][0];
+		q[k][0] = log(epsilon / (1.0 + epsilon));
+		q[k][1] = q[k][0] * q[k][0];
 
 		// - position
 		// - square of position
-		q[i][2] = (*it)->posInRead;
-		q[i][3] = q[i][2] * q[i][2];
+		q[k][2] = (*it)->posInRead;
+		q[k][3] = q[k][2] * q[k][2];
 
 		// - 20 context indicators (either 0.0 or 1.0)
 		for(int j = 0; j < 20; ++j){
-			if((*it)->context == j) q[i][j+4] = 1.0;
-			else q[i][j+4] = 0.0;
+			if((*it)->context == j) q[k][j+4] = 1.0;
+			else q[k][j+4] = 0.0;
 		}
 
 		//now also store D
-		D[i] = new double[4]; //for genotypes AA, CC, GG and TT
+		D[k] = new double[4]; //for genotypes AA, CC, GG and TT
 		switch((*it)->getBaseAsEnum()){
-			case A: D[i][0] = 0.0; //geno = AA
-					D[i][1] = 1.0; //geno = CC
-					D[i][2] = 1.0 - (*it)->PMD_GA; //geno = GG
-					D[i][3] = 1.0; //geno = TT
+			case A: D[k][0] = 0.0; //geno = AA
+					D[k][1] = 1.0; //geno = CC
+					D[k][2] = 1.0 - (*it)->PMD_GA; //geno = GG
+					D[k][3] = 1.0; //geno = TT
 					break;
-			case C: D[i][0] = 1.0; //geno = AA
-					D[i][1] = (*it)->PMD_CT; //geno = CC
-					D[i][2] = 1.0; //geno = GG
-					D[i][3] = 1.0; //geno = TT
+			case C: D[k][0] = 1.0; //geno = AA
+					D[k][1] = (*it)->PMD_CT; //geno = CC
+					D[k][2] = 1.0; //geno = GG
+					D[k][3] = 1.0; //geno = TT
 					break;
-			case G: D[i][0] = 1.0; //geno = AA
-					D[i][1] = 1.0; //geno = CC
-					D[i][2] = (*it)->PMD_GA; //geno = GG
-					D[i][3] = 1.0; //geno = TT
+			case G: D[k][0] = 1.0; //geno = AA
+					D[k][1] = 1.0; //geno = CC
+					D[k][2] = (*it)->PMD_GA; //geno = GG
+					D[k][3] = 1.0; //geno = TT
 					break;
-			case T: D[i][0] = 1.0; //geno = AA
-					D[i][1] = 1.0 - (*it)->PMD_CT; //geno = CC
-					D[i][2] = 1.0; //geno = GG
-					D[i][3] = 0.0; //geno = TT
+			case T: D[k][0] = 1.0; //geno = AA
+					D[k][1] = 1.0 - (*it)->PMD_CT; //geno = CC
+					D[k][2] = 1.0; //geno = GG
+					D[k][3] = 0.0; //geno = TT
 					break;
 			case N:
-					D[i][0] = 0.0;
-					D[i][1] = 0.0;
-					D[i][2] = 0.0;
-					D[i][3] = 0.0;
+					D[k][0] = 0.0;
+					D[k][1] = 0.0;
+					D[k][2] = 0.0;
+					D[k][3] = 0.0;
 					break;
+		}
+
+		//now store B
+		B[k] = new double[4];
+		for(int g=0; g<4; ++g){
+			B[k][g] = 4.0 / 3.0 * D[k][g] - 1.0;
 		}
 	}
 };
@@ -74,11 +82,145 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 	for(int i=0; i<numReads; ++i){
 		delete[] q[i];
 		delete[] D[i];
+		delete[] B[i];
 	}
 	delete[] q;
 	delete[] D;
+	delete[] B;
 }
 
+void TRecalibrationEMSite::calcEpsilon(double* params){
+	//calc epsilon using parameter estimates provided
+	double eta;
+	for(int k=0; k<numReads; ++k){
+		eta = params[0];
+		for(int i=0; i<24; ++i) eta += params[i] * q[i];
+		eta = exp(eta);
+		epsilon[k] = eta / (1 + eta);
+	}
+}
+
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double* oldParams, double* freqs){
+	calcEpsilon(oldParams);
+
+	//over all genotypes
+	double P_g_given_d_theta_denominator = 0.0;
+	for(int g=0; g<4; ++g){
+		P_g_given_d_oldBeta[g] = 1.0;
+		//loop over all reads
+		for(int k=0; k<numReads; ++k){
+			P_g_given_d_oldBeta[g] *= ((1.0 - D[k][g])*(1.0 - epsilon[k]) + D[k][g] * (epsilon[k]/3.0));
+		}
+		P_g_given_d_oldBeta[g] *= freqs[g];
+		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
+
+	}
+
+	//calculate P(g|d, theta)
+	for(int g=0; g<4; ++g){
+		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
+	}
+
+	//return LL = P_g_given_d_theta_denominator
+	return log(P_g_given_d_theta_denominator);
+}
+
+void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params){
+	//calculate epsilon with current parameters
+	calcEpsilon(params);
+
+	//tmp variables
+	double* weights = new double[numReads];
+	double* eps1MinusEps = new double[numReads];
+	double* OneMinus2Eps = new double[numReads];
+	for(int k=0; k<numReads; ++k){
+		eps1MinusEps[k] = epsilon[k] * (1.0 - epsilon[k]);
+		OneMinus2Eps[k] = 1.0 - 2.0 * epsilon[k];
+	}
+
+	//fill F and Jacobian
+	double tmp;
+	for(int g=0; g<4; ++g){
+		//calc weights
+		//------------
+		for(int k=0; k<numReads; ++k){
+			//weights * eps(1-eps)
+			weights[k] = B[k][g] / (1.0 - D[k][g] + B[k][g] * epsilon[k]) * eps1MinusEps[k];
+		}
+
+		//add to F
+		//--------
+		//beta 0
+		tmp = 0.0;
+		for(int k=0; k<numReads; ++k){
+			tmp += weights[k];
+		}
+		F(0) += P_g_given_d_oldBeta[g] * tmp;
+
+		//now all covariates. Derivatives are given by the q's
+		for(int p=0; p<24; ++p){ //loop over all parameters except beta0
+			tmp = 0.0;
+			for(int k=0; k<numReads; ++k){
+				tmp += weights[k] * q[p];
+			}
+			F(p+1) += P_g_given_d_oldBeta[g] * tmp;
+		}
+
+		//add to Jacobian
+		//---------------
+		//beta 0
+		tmp = 0.0;
+		for(int k=0; k<numReads; ++k){
+			tmp += weights[k] * OneMinus2Eps[k] - weights[k] * weights[k];
+		}
+		Jacobian(0,0) += P_g_given_d_oldBeta[g] * tmp;
+
+		//first row
+		for(int p=0; p<24; ++p){ //loop over all parameters except beta0
+			tmp = 0.0;
+			for(int k=0; k<numReads; ++k){
+				tmp += q[p] * (weights[k] * OneMinus2Eps[k] - weights[k] * weights[k]);
+			}
+			Jacobian(0,p+1) += P_g_given_d_oldBeta[g] * tmp;
+		}
+
+		//all other rows
+		for(int row=0; row<24; ++row){ //loop over all parameters except beta0
+			for(int col=row; col<24; ++col){ //loop over all parameters except beta0
+				tmp = 0.0;
+				for(int k=0; k<numReads; ++k){
+					tmp += q[col] * q[row] * (weights[k] * OneMinus2Eps[k] - weights[k] * weights[k]);
+				}
+				Jacobian(row+1, col+1) += P_g_given_d_oldBeta[g] * tmp;
+			}
+		}
+	} //end loop over genotypes
+}
+
+//---------------------------------------------------------------
+//TRecalibrationEMWindow
+//---------------------------------------------------------------
+TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs){
+	freqs = new double[4];
+	for(int i=0; i<4; ++i) freqs[i] = (*baseFreqs)[i];
+}
+
+void TRecalibrationEMWindow::addSite(TSite & site){
+	sites.emplace_back(site);
+}
+
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(double* oldParams){
+	double LL = 0.0;
+	for(std::vector<TRecalibrationEMSite>::iterator site = sites.begin(); site != sites.end(); ++site){
+		LL += site->fill_P_g_given_d_beta_AND_calcLL(oldParams, freqs);
+	}
+	return LL;
+}
+void TRecalibrationEMWindow::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params){
+	for(std::vector<TRecalibrationEMSite>::iterator site = sites.begin(); site != sites.end(); ++site){
+		site->addToJacobianAndF(Jacobian, F, params);
+	}
+}
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
@@ -104,9 +246,7 @@ TRecalibrationEM::TRecalibrationEM(TLog* logfile){
 	F.zeros();
 	JxF.resize(numParams, numParams);
 	JxF.zeros();
-	maxF = 0.0;
 	numSitesAdded = 0;
-	logLikelihood = 0.0;
 
 	//set initial values: all to 0 except first (quality)
 	for(int i=1; i<25; ++i){
@@ -117,9 +257,15 @@ TRecalibrationEM::TRecalibrationEM(TLog* logfile){
 	newParams[0] = 1.0;
 };
 
+void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
+	windows.emplace_back(freqs);
+	//set iterator
+	curWindow = windows.end(); --curWindow;
+}
 
 void TRecalibrationEM::addSite(TSite & site){
-	sites.emplace_back(site);
+	curWindow->addSite(site);
+	++numSitesAdded;
 }
 
 void TRecalibrationEM::setParams(double* Params){
@@ -128,223 +274,140 @@ void TRecalibrationEM::setParams(double* Params){
 	}
 }
 
-double TRecalibrationEM::calcEta(TBase* base){
-	return calcEta(base, params);
+double TRecalibrationEM::getErrorRate(TBase* base, double* theseParams){
+	//eta = beta0 + SUM_i beta[i] * q[i]
+	double eta = theseParams[0];
+
+	// q[1] is transformed quality
+	double tmp = dePhred(base->quality);
+	tmp = log(tmp / (1.0 + tmp));
+	eta += theseParams[1] * tmp;
+
+	//q[2] is square of transformed quality
+	eta += theseParams[2] * tmp * tmp;
+
+	//q[3] is position
+	eta += theseParams[3] * base->posInRead;
+
+	//q[4] is square of position
+	eta += theseParams[4] * base->posInRead * base->posInRead;
+
+	//q[5] until q[24] are indicators for the context. Just pick the matching one!
+	eta += theseParams[base->context];
+
+	//now calculate epsilon from eta
+	eta = exp(eta);
+	return eta / (1.0 + eta);
 }
 
-double TRecalibrationEM::calcEta(TBase* base, double* theseParams){
-	//function transform log error
-
-	throw "ERROR in TRecalibrationEM::calcEta!";
-	//TODO: find other way to calculate transformedLogError and add back what is commented out below
-
-	//order of params is: quality, position, context
-	//double eta = theseParams[0] + theseParams[1] * base->transformedLogError + theseParams[2] * (double) base->posInRead;
-	//eta += theseParams[base->getBaseAsEnum() + 3];
-	//return eta;
+double TRecalibrationEM::getErrorRate(TBase* base){
+	return getErrorRate(base, params);
 }
 
-double TRecalibrationEM::calcEpsilon(const double & eta){
-	double tmp = exp(eta);
-	return tmp / (1.0 + tmp);
-}
 
-double TRecalibrationEM::calcEpsilon(TBase* base){
-	return calcEpsilon(base, params);
-}
-
-double TRecalibrationEM::calcEpsilon(TBase* base, double* theseParams){
-	double tmp = calcEta(base, theseParams);
-	return calcEpsilon(tmp);
-}
-
-void TRecalibrationEM::initEMStep(){
-	//fill vector of new params by copying current values
-	for(int i=0; i<numParams; ++i){
-		newParams[i] = params[i];
-	}
-}
-
-void TRecalibrationEM::initNetwonRalphsonStep(){
-	Jacobian.zeros();
-	F.zeros();
-	numSitesAdded = 0;
-}
-
-void TRecalibrationEM::saveParams(){
-	for(int i=0; i<numParams; ++i){
-		params[i] = newParams[i];
-	}
-}
-
-void TRecalibrationEM::calculateJacobian(TBaseFrequencies* freqs){
-	//adds terms to Jacobian for one site (hence a vector of bases that were read)
-	//assumes bases to be haploid! -> program does not throw an error if they are not!
-
+void TRecalibrationEM::runNewtonRalphson(double* theseParams, int & maxNewtonRalphsonIteratios, double & maxFThreshold, TLog* logfile){
 	//variables
-	double P_d_given_g_theta[4];
-	double epsilon;
-	double B;
+	double maxF;
 
-	/*
-	//loop over all sites
-	for(std::vector<TRecalibrationEMSite>::iterator site = sites.begin(); site != sites.end(); ++site){
-		//--------------------------------------------------------------
-		// 1) calculate P(d|g,beta) for this site -> use old parameters
-		//--------------------------------------------------------------
-		//initialize
-		for(int g=0; g<4; ++g){ //over all genotypes A, C, G or T
-			P_d_given_g_theta[g] = 1.0;
+	//run up to maxNewtonRalphsonIteratios iterations, but stop if max(F) < maxFThreshold
+	for(int i=0; i<maxNewtonRalphsonIteratios; ++i){
+		logfile->listFlush("Running Newton-Ralphson ...");
+
+		//set to zero
+		Jacobian.zeros();
+		F.zeros();
+
+		//fill Jacobin and F: loop over all sites
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+			curWindow->addToJacobianAndF(Jacobian, F, theseParams);
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-			//get epsilon
-			epsilon  = calcEpsilon(*it); //use current (= old) params for this step
-			epsilonThird = epsilon / 3.0;
 
-			for(int g=0; g<4; ++g){ //over all genotypes
-				//add to P(d|g, theta)
-				if((*it)->getBaseAsEnum() == g)
-					P_d_given_g_theta[g] *= (1.0 - epsilon);
-				else
-					P_d_given_g_theta[g] *= epsilonThird;
+		//Need to copy numbers to other triangle in Jacobian, as only upper triangled is filled when parsing sites
+		for(int i=0; i<(numParams-1); ++i){
+			for(int j=i+1; j<numParams; ++j){
+				//copy from upper triangle to lower triangle
+				Jacobian(j,i) = Jacobian(i,j);
 			}
 		}
 
-	}
+		//scale F and J by 1/#sites
+		Jacobian = Jacobian / (double) numSitesAdded;
+		F = F / (double) numSitesAdded;
 
+		//now calculate J^-1 x F
+		if(solve(JxF, Jacobian, F)){
+			for(int i=0; i<numParams; ++i){
+				theseParams[i] -= JxF(i);
+			}
+		} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
 
-
-
-	//calc P(d|g, theta) for all g
-	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-		//get epsilon
-		epsilon  = calcEpsilon(*it); //use current (= old) params for this step
-		epsilonThird = epsilon / 3.0;
-
-		for(int g=0; g<4; ++g){ //over all genotypes
-			//add to P(d|g, theta)
-			if((*it)->getBaseAsEnum() == g)
-				P_d_given_g_theta[g] *= (1.0 - epsilon);
-			else
-				P_d_given_g_theta[g] *= epsilonThird;
+		//get largest gradient (F) to check if we break
+		maxF = 0.0;
+		for(int i=0; i<(numParams-1); ++i){
+			if(F(i) > maxF) maxF = F(i);
 		}
+		logfile->write(" done!");
+		logfile->conclude("max(F) = " + toString(maxF));
+		if(maxF < maxFThreshold) break;
 	}
-
-	//calculate P(g|d, theta)
-	double P_g_given_d_theta_denominator = 0.0;
-	for(int g=0; g<4; ++g){
-		P_d_given_g_theta[g] *= (*freqs)[g];
-		P_g_given_d_theta_denominator += P_d_given_g_theta[g];
-	}
-	double P_g_given_d_theta[4];
-	for(int g=0; g<4; ++g){
-		P_g_given_d_theta[g] = P_d_given_g_theta[g] / P_g_given_d_theta_denominator;
-	}
-
-	//now add site to Jacobian and F
-	//Note: Jacobian is symmetric! But we only add to top triangle -> will copy final numbers down later
-
-	for(int geno = 0; geno < 4; ++geno){
-		for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-			//precalculate things
-
-
-
-		}
-	}
-
-	int g, nucIndex;
-	double eta, expEta, tmp, onePlusExpEta, weightFcorrect, weightFincorrect;
-	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-		eta = calcEta(*it, newParams); //use new params for this step!
-		expEta = exp(eta);
-		onePlusExpEta = 1.0 + expEta;
-		tmp = expEta / (onePlusExpEta * onePlusExpEta);
-
-		Jacobian(0,0) -= tmp;
-		Jacobian(0,1) -= tmp * (*it)->transformedLogError;
-		Jacobian(0,2) -= tmp * (double) (*it)->posInRead;
-		Jacobian(1,1) -= tmp * (*it)->transformedLogError * (*it)->transformedLogError;
-		Jacobian(1,2) -= tmp * (*it)->transformedLogError * (double) (*it)->posInRead;
-		Jacobian(2,2) -= tmp * (double) (*it)->posInRead * (double) (*it)->posInRead;
-
-		//now add to those with indicators on the base
-		//Note that the derivative is zero for all other bases
-		g = (*it)->getBaseAsEnum();
-		nucIndex = g + 3;
-		Jacobian(nucIndex, nucIndex) -= tmp;
-		Jacobian(0, nucIndex) -= tmp;
-		Jacobian(1, nucIndex) -= tmp * (*it)->transformedLogError;
-		Jacobian(2, nucIndex) -= tmp * (*it)->posInRead;
-
-		//now add to F -> need to add for all genotypes, but with different term
-		weightFcorrect = -1.0 / (1.0 + exp(-eta));
-		weightFincorrect = 1.0 / onePlusExpEta;
-		for(int geno = 0; geno < 4; ++geno){
-			//prepare weight
-			if(geno == g) tmp = weightFcorrect;
-			else tmp = weightFincorrect;
-			tmp = P_g_given_d_theta[geno] * tmp;
-
-			//fill for beta0, beta1 and beta2
-			F(0) += tmp; //beta0
-			F(1) += tmp * (*it)->transformedLogError;
-			F(2) += tmp * (double) (*it)->posInRead;
-		}
-		//derivation is only non-zero for beta3 to beta6 if g corresponds to index
-		//F(nucIndex) += P_g_given_d_theta[g] * weightFcorrect;
-	}
-
-	++numSitesAdded;
-	*/
 }
 
-void TRecalibrationEM::runNewtonRalphson(){
-	//Need to copy numbers to other triangle in Jacobian, as only upper triangled is filled when parsing sites
-	for(int i=0; i<(numParams-1); ++i){
-		for(int j=i+1; j<numParams; ++j){
-			//copy from upper triangle to lower triangle
-			Jacobian(j,i) = Jacobian(i,j);
-		}
-	}
+void TRecalibrationEM::runEM(int maxEMIterations, double maxEps, int maxNewtonRalphsonIteratios, double maxFThreshold, std::ofstream out, TLog* logfile){
+	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
+	writeHeader(out);
+	double LL, deltaLL, oldLL = 0.0;
 
-	//scale F and J by 1/#sites
-	Jacobian = Jacobian / (double) numSitesAdded;
-	F = F / (double) numSitesAdded;
+	//running iterations
+	for(int iter = 0; iter < maxEMIterations; ++iter){
+		logfile->number("EM Iteration:"); logfile->addIndent();
 
-	std::cout << "JACOBIAN = " << std::endl;
-	std::cout << Jacobian << std::endl;
-
-	std::cout << std::endl << "DET = " << det(Jacobian) << std::endl;
-
-	std::cout << "F = " << std::endl;
-		std::cout << F << std::endl;
-
-	//get largest gradient (F) to check if we break
-	maxF = 0.0;
-	for(int i=0; i<(numParams-1); ++i){
-		if(F(i) > maxF) maxF = F(i);
-	}
-	std::cout << "MAX F = " << maxF << std::endl;
-
-	//now calculate J^-1 x F
-	std::cout << "New Params:";
-
-	if(solve(JxF, Jacobian, F)){
-
-		std::cout << "JxF = " << std::endl;
-		std::cout << JxF << std::endl;
-
+		//fill vector of new params by copying current values
 		for(int i=0; i<numParams; ++i){
-			newParams[i] -= JxF(i);
-			std::cout << "\t" << newParams[i];
+			newParams[i] = params[i];
 		}
-	} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
-	std::cout << std::endl;
+
+		//now calculate P(g|d, oldbeta) for all sites and calcukate LL
+		LL = 0.0;
+		logfile->listFlush("Calculating P(g|d, beta) ...");
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(params);
+		}
+		logfile->write(" done!");
+		logfile->conclude("Current Log Likelihood = " + toString(LL));
+		deltaLL = LL - oldLL;
+		logfile->conclude("Epsilon = " + toString(deltaLL));
+
+		//check if we break based on LL
+		if(iter > 0 && deltaLL < maxEps){
+			logfile->conclude("EM has converged (epsilon < " + toString(maxEps));
+			break;
+		}
+		else oldLL = LL;
+
+		//run NewtonRalphson until convergence
+		runNewtonRalphson(newParams, maxNewtonRalphsonIteratios, maxFThreshold, logfile);
+
+		//save parameters
+		for(int i=0; i<numParams; ++i){
+			params[i] = newParams[i];
+		}
+		writeParams(out);
+
+		//report
+		logfile->list("Written current parameters to output file.");
+		logfile->endIndent();
+	}
+
+	//finalize
+	logfile->endNumbering();
+
 }
 
 void TRecalibrationEM::writeHeader(std::ofstream & out){
-	out << "beta0\tbeta1\tbeta2";
+	out << "beta0";
+	for(int i=1; i<numParams; ++i)
+		out << "\tbeta" << i;
+	out << std::endl;
 }
 
 void TRecalibrationEM::writeParams(std::ofstream & out){
@@ -352,42 +415,9 @@ void TRecalibrationEM::writeParams(std::ofstream & out){
 	for(int i=1; i<numParams; ++i){
 		out << "\t" << params[i];
 	}
+	out << std::endl;
 }
 
-void TRecalibrationEM::resetLikelihood(){
-	logLikelihood = 0.0;
-}
-
-void TRecalibrationEM::addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFrequencies* freqs){
-	//adds this site (hence a vector of bases that were read) to the log likelihood
-	//assumes bases to be haploid! -> program does not throw an error if they are not!
-	double epsilon;
-	double epsilonThird;
-	double* likelihood = new double[4]; //for each genotype
-	for(int i=0; i<4; ++i) likelihood[i] = 1.0;
-
-	//calc likelihood term
-	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-		//get epsilon
-		epsilon  = calcEpsilon(*it); //use current params for this step
-		epsilonThird = epsilon / 3.0;
-
-		for(int g=0; g<4; ++g){ //over all genotypes
-			if((*it)->getBaseAsEnum() == g){
-				likelihood[g] *= (1.0 - epsilon);
-			} else {
-				likelihood[g] *= epsilonThird;
-			}
-		}
-	}
-
-	//build weighted sum across genotypes
-	double ll = 0.0;
-	for(int g=0; g<4; ++g){
-		ll += (*freqs)[g] * likelihood[g];
-	}
-	logLikelihood += log(ll);
-}
 
 //---------------------------------------------------------------
 //TRecalibrationBQSR_cell BQSR
@@ -459,8 +489,8 @@ void TBQSR_cell::addToDerivatives(TBase* base, Base & RefBase){
 
 	double oneMinus4D = 1.0 - 4.0 * D;
 	firstDerivative += oneMinus4D / (-4.0*D*curEstimate + 3.0*D + curEstimate);
-	double tmp = oneMinus4D / (D*(3.0-4.0*curEstimate) + curEstimate);
-	secondDerivative -= tmp * tmp;
+	double tmpF = oneMinus4D / (D*(3.0-4.0*curEstimate) + curEstimate);
+	secondDerivative -= tmpF * tmpF;
 
 	++numObservationsTmp;
 }
@@ -534,8 +564,8 @@ void TBQSR_cellPosition::addToDerivatives(TBase* base, Base & RefBase, double & 
 
 	double epsMinus4Deps = epsilon - 4.0 * D * epsilon;
 	firstDerivative += epsMinus4Deps / (-4.0*D*epsilon*curEstimate + 3.0*D + epsilon*curEstimate);
-	double tmp = epsMinus4Deps / (D*(3.0-4.0*epsilon*curEstimate) + epsilon*curEstimate);
-	secondDerivative -= tmp * tmp;
+	double tmpF = epsMinus4Deps / (D*(3.0-4.0*epsilon*curEstimate) + epsilon*curEstimate);
+	secondDerivative -= tmpF * tmpF;
 
 	++numObservationsTmp;
 
@@ -728,8 +758,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	int minQ = 100;
 	int maxQ = 0;
 	int q;
-	std::string tmp;
-	std::getline(file, tmp); //skip header
+	std::string tmpF;
+	std::getline(file, tmpF); //skip header
 
 	//parse file to get min and max quality
 	while(file.good() && !file.eof()){
@@ -757,7 +787,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//rewind file to beginning
 	file.clear();
 	file.seekg(0, file.beg); //rewind file to beginning
-	std::getline(file, tmp); //skip header
+	std::getline(file, tmpF); //skip header
 	double quality;
 	int readGroup;
 
@@ -821,8 +851,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	std::vector<std::string> vec;
 	maxPos = 0;
 	int p;
-	std::string tmp;
-	std::getline(file, tmp); //skip header
+	std::string tmpF;
+	std::getline(file, tmpF); //skip header
 
 	//parse file to get max position
 	while(file.good() && !file.eof()){
@@ -851,7 +881,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	//rewind file to beginning
 	file.clear();
 	file.seekg(0, file.beg); //rewind file to beginning
-	std::getline(file, tmp); //skip header
+	std::getline(file, tmpF); //skip header
 	double alpha;
 	int readGroup;
 
@@ -931,8 +961,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	std::vector<std::string> vec;
 	maxPos = 0;
 	int p;
-	std::string tmp;
-	std::getline(file, tmp); //skip header
+	std::string tmpF;
+	std::getline(file, tmpF); //skip header
 
 	//parse file to get max position
 	while(file.good() && !file.eof()){
@@ -962,7 +992,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	//rewind file to beginning
 	file.clear();
 	file.seekg(0, file.beg); //rewind file to beginning
-	std::getline(file, tmp); //skip header
+	std::getline(file, tmpF); //skip header
 	double alpha;
 	int readGroup;
 
@@ -1056,8 +1086,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	//tmp variables
 	long lineNum = 0;
 	std::vector<std::string> vec;
-	std::string tmp;
-	std::getline(file, tmp); //skip header
+	std::string tmpF;
+	std::getline(file, tmpF); //skip header
 	int context;
 	double alpha;
 	int readGroup;

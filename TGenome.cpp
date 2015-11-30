@@ -807,12 +807,6 @@ void TGenome::printPileup(){
 
 
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
-	//Initialize calibration parameters.
-	//We assume a linear model log(error) = eta = beta_0 + beta_1 * quality + beta_2 * position in reads
-	//                                            + gamma_A * Ind(d = A) + gamma_C * Ind(d = C) + gamma_G * Ind(d = G) + gamma_T * Ind(d = T)
-
-	/*
-
 	//read EM parameters
 	int numEMIterations = params.getParameterIntWithDefault("iterations", 10);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
@@ -824,18 +818,31 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	logfile->list("Will stop Newton-Ralphson when F < " + toString(NewtonRalphsonMaxF));
 
 	//create recalibration object
-	TRecalibrationEM recalObject(&params, logfile);
+	TRecalibrationEM recalObject(logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;
 
 	//open output
 	std::ofstream out;
-	std::string filename = outputName + "_calibration.txt";
+	std::string filename = outputName + "_recalibrationEM.txt";
+	logfile->list("Will write EM estimates to file '" + filename + "'.");
 	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 	out << "iteration";
 	recalObject.writeHeader(out);
+
+	/*
+	//add sites to EM object
+	logfile->startIndent("Reading data from windows:");
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows)){
+				windows.cur->a
+			}
+		}
+	}
 
 	//run EM iterations
 	for(int i=0; i < numEMIterations; ++i){
@@ -849,14 +856,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 			logfile->startIndent("Calculating Jacobian for Newton-Ralphson iteration " + toString(j+1) + ":");
 			recalObject.initNetwonRalphsonStep();
 
-			while(iterateChromosome(windows)){
-				while(iterateWindow(windows)){
-					//read data for current window
-					readData(windows);
-					windows.cur->estimateBaseFrequencies();
-					windows.cur->addToJacobian(&recalObject);
-				}
-			}
+
 
 			//clean up memory
 			windows.clear();

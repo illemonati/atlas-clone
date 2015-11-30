@@ -168,6 +168,9 @@ class TRecalibrationEMSite{
 public:
 	double** q; //covariates such as quality, position etc.
 	double** D; //D for the emission probabilities: depends on genotype and base!
+	double** B; //B = 4/3 D - 1
+	double* epsilon;
+	double* P_g_given_d_oldBeta;
 	int numReads;
 
 	TRecalibrationEMSite(TSite & site);
@@ -175,18 +178,35 @@ public:
 		return pow(10.0, quality / -10.0);
 	};
 	~TRecalibrationEMSite();
+	void calcEpsilon(double* params);
+	double fill_P_g_given_d_beta_AND_calcLL(double* oldParams, double* freqs);
+	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params);
 };
 
-class TRecalibrationEM{
+class TRecalibrationEMWindow{
+public:
+	std::vector<TRecalibrationEMSite> sites;
+	double* freqs; //base frequencies
+
+	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs);
+	~TRecalibrationEMWindow(){
+		delete[] freqs;
+	};
+	void addSite(TSite & site);
+	double fill_P_g_given_d_beta_AND_calcLL(double* oldParams);
+	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params);
+};
+
+class TRecalibrationEM:public TRecalibration{
 public:
 	int numParams;
-	std::vector<TRecalibrationEMSite> sites;
+	std::vector<TRecalibrationEMWindow> windows;
+	std::vector<TRecalibrationEMWindow>::iterator curWindow;
 	double* params;
 	double* newParams; //used during EM
 	arma::mat Jacobian;
 	arma::vec F;
 	arma::mat JxF;
-	double maxF; //largest change during Newton-Ralphson
 	long numSitesAdded;
 	double logLikelihood;
 
@@ -195,22 +215,16 @@ public:
 		delete[] params;
 		delete[] newParams;
 	};
+	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
 	void setParams(double* Params);
-	double calcEta(TBase* base);
-	double calcEta(TBase* base, double* theseParams);
-	double calcEpsilon(const double & eta);
-	double calcEpsilon(TBase* base);
-	double calcEpsilon(TBase* base, double* theseParams);
-	void initEMStep();
-	void initNetwonRalphsonStep();
-	void saveParams();
-	void calculateJacobian(TBaseFrequencies* freqs);
-	void runNewtonRalphson();
+	double getErrorRate(TBase* base, double* theseParams);
+	double getErrorRate(TBase* base);
+
+	void runNewtonRalphson(double* theseParams, int & maxNewtonralphsonIteratios, double & maxFThreshold, TLog* logfile);
+	void runEM(int maxEMIterations, double minLLDiff, int maxNewtonRalphsonIteratios, double maxFThreshold, std::ofstream out, TLog* logfile);
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out);
-	void resetLikelihood();
-	void addSiteToLikelihood(std::vector<TBase*> & bases, TBaseFrequencies* freqs);
 };
 
 //---------------------------------------------------------------
