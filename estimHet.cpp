@@ -51,16 +51,13 @@ int main(int argc, char* argv[]){
 			genome.calcLikelihoodSurfaces(myParameters);
 		} else if(task == "pileup"){
 			logfile.startIndent("Printing pileup for each window:");
-			genome.printPileup();
-		//} else if(task=="calibration"){
-		//	logfile.startIndent("Estimating eror calibration function:");
-		//	genome.estimateErrorCalibration(myParameters);
-		} else if(task == "calibration"){
+			genome.printPileup(myParameters);
+		} else if(task == "recal"){
 			logfile.startIndent("Estimating error calibration function with EM:");
 			genome.estimateErrorCalibrationEM(myParameters);
-		} else if(task == "calibrationLLsurface"){
-			logfile.startIndent("Estimating LL surface for error calibration function:");
-			genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
+		//} else if(task == "recal"){
+		//	logfile.startIndent("Estimating LL surface for error calibration function:");
+		//	genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
 		} else if(task == "BQSR"){
 			logfile.startIndent("Estimating recalibration parameters (BQSR):");
 			genome.BQSR(myParameters);

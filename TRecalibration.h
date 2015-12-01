@@ -159,6 +159,8 @@ public:
 			QT.add((*it)->quality, getQuality(*it));
 		}
 	};
+
+	virtual bool requiresEstimation(){ return false;};
 };
 
 //---------------------------------------------------------------
@@ -169,60 +171,89 @@ public:
 	double** q; //covariates such as quality, position etc.
 	double** D; //D for the emission probabilities: depends on genotype and base!
 	double** B; //B = 4/3 D - 1
+	int* context;
+	int* readGroup;
+	int* readGroupShifts;
 	double* epsilon;
 	double* P_g_given_d_oldBeta;
 	int numReads;
+	bool initialized;
 
+	TRecalibrationEMSite();
 	TRecalibrationEMSite(TSite & site);
 	double dePhred(double quality){
 		return pow(10.0, quality / -10.0);
 	};
 	~TRecalibrationEMSite();
-	void calcEpsilon(double* params);
-	double fill_P_g_given_d_beta_AND_calcLL(double* oldParams, double* freqs);
-	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params);
+	void calcEpsilon(double** params);
+	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs);
+	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
 class TRecalibrationEMWindow{
 public:
-	std::vector<TRecalibrationEMSite> sites;
+	std::vector<TRecalibrationEMSite*> sites;
 	double* freqs; //base frequencies
 
 	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs);
 	~TRecalibrationEMWindow(){
 		delete[] freqs;
+		for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
+			delete *site;
+		}
+		sites.clear();
 	};
 	void addSite(TSite & site);
-	double fill_P_g_given_d_beta_AND_calcLL(double* oldParams);
-	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double* params);
+	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
+	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
 class TRecalibrationEM:public TRecalibration{
 public:
+	TLog* logfile;
+	BamTools::SamHeader* bamHeader;
+	int numReadGroups;
+	std::string* readGroupNames;
 	int numParams;
-	std::vector<TRecalibrationEMWindow> windows;
-	std::vector<TRecalibrationEMWindow>::iterator curWindow;
-	double* params;
-	double* newParams; //used during EM
+	int totNumParams;
+	double** params;
+	std::vector<TRecalibrationEMWindow*> windows;
+	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
+
+	//variables for EM
+	bool estimatetionRequired;
+	int numEMIterations;
+	double maxEpsilon;
+	int NewtonRalphsonNumIterations;
+	double NewtonRalphsonMaxF;
+	double** newParams; //used during EM
 	arma::mat Jacobian;
 	arma::vec F;
 	arma::mat JxF;
 	long numSitesAdded;
-	double logLikelihood;
 
-	TRecalibrationEM(TLog* logfile);
+	TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile);
 	~TRecalibrationEM(){
+		for(int i=0; i<numReadGroups; ++i){
+			delete[] params[i];
+			delete[] newParams[i];
+		}
 		delete[] params;
 		delete[] newParams;
+		delete[] readGroupNames;
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+			delete *curWindow;
+		}
+		windows.clear();
 	};
+	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
-	void setParams(double* Params);
-	double getErrorRate(TBase* base, double* theseParams);
+	double getErrorRate(TBase* base, double** theseParams);
 	double getErrorRate(TBase* base);
-
-	void runNewtonRalphson(double* theseParams, int & maxNewtonralphsonIteratios, double & maxFThreshold, TLog* logfile);
-	void runEM(int maxEMIterations, double minLLDiff, int maxNewtonRalphsonIteratios, double maxFThreshold, std::ofstream out, TLog* logfile);
+	void runNewtonRalphson(double** theseParams, int & maxNewtonralphsonIteratios, double & maxFThreshold, TLog* logfile);
+	void runEM(std::string outputName);
+	void writeCurrentEstimates(std::string filename);
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out);
 };
@@ -354,6 +385,8 @@ private:
 
 	void initializeBQSRReadGroupContextTable(TParameters & params);
 	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
+
+	bool requiresEstimation(){ return estimatetionRequired;};
 
 public:
 	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile);

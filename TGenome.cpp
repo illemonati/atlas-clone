@@ -19,7 +19,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	filename = params.getParameterString("bam");
 	windowSize = params.getParameterDoubleWithDefault("window", 100000);
 	numWindowsOnChr = 0;
-	if(windowSize < 1000) throw "Window size should be at least 1Kb!";
+	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 
 	//outputname
@@ -64,9 +64,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//initialize post mortem damage
 	initializePostMortemDamage(params);
-
-	//initialize recalibration
-	initializeRecalibration(params);
+	doRecalibration = false;
 
 	//check if we mask sites
 	if(params.parameterExists("mask")){
@@ -347,11 +345,20 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 }
 
 void TGenome::initializeRecalibration(TParameters & params){
-	if(params.parameterExists("BQSRQuality")){
+	if(params.parameterExists("recal")){
+		recalObject = new TRecalibrationEM(&bamHeader, params, logfile);
+		doRecalibration = true;
+	} else if(params.parameterExists("BQSRQuality")){
 		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
+		doRecalibration = true;
 	} else {
+		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+		doRecalibration = false;
 		recalObject = new TRecalibration();
 	}
+
+	//check if estimation is required, in which case throw an error!
+	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
 
 void TGenome::openThetaOutputFile(std::ofstream & out){
@@ -379,6 +386,9 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 }
 
 void TGenome::estimateTheta(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//EM params
 	EMParameters EMParams(params, logfile);
 
@@ -410,6 +420,9 @@ void TGenome::estimateTheta(TParameters & params){
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
 	int numWindows = params.getParameterIntWithDefault("numWindows", 1);
@@ -451,18 +464,10 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	}
 }
 
-/*bool TGenome::openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference){
-	if(params.parameterExists("fasta")){
-		std::string fastaFile = params.getParameterString("fasta");
-		logfile->list("Adding reference base from '" + fastaFile + "'.");
-		std::string fastaIndex = fastaFile + ".fai";
-		reference.Open(fastaFile, fastaIndex);
-		return true;
-	} else return false;
-}
-*/
-
 void TGenome::callMLEGenotypes(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
@@ -479,15 +484,16 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream out;
+	std::string outputFileName;
 	if(params.parameterExists("vcf")){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
-		filename = outputName + "_MLEGenotypes.vcf.gz";
-		logfile->list("Writing MLE genotypes in VCF format to '" + filename + "'");
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_MLEGenotypes.vcf.gz";
+		logfile->list("Writing MLE genotypes in VCF format to '" + outputFileName + "'");
+		out.open(outputFileName.c_str());
+		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		out << "##fileformat=VCFv4.2\n";
@@ -499,10 +505,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 	} else {
 		//open file
-		filename = outputName + "_MLEGenotypes.txt.gz";
-		logfile->list("Writing MLE genotypes to '" + filename + "'");
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_MLEGenotypes.txt.gz";
+		logfile->list("Writing MLE genotypes to '" + outputFileName + "'");
+		out.open(outputFileName.c_str());
+		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		out << "chr\tpos";
@@ -543,8 +549,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	out.close();
 }
 
-
 void TGenome::callBayesianGenotypes(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -577,15 +585,15 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream output;
+	std::string outputFileName;
 	if(params.parameterExists("vcf")){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
-
 		//open file
-		filename = outputName + "_BayesianGenotypes.vcf.gz";
-		logfile->list("Writing Bayesian genotypes in VCF format to '" + filename + "'");
-		output.open(filename.c_str());
-		if(!output) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_BayesianGenotypes.vcf.gz";
+		logfile->list("Writing Bayesian genotypes in VCF format to '" + outputFileName + "'");
+		output.open(outputFileName.c_str());
+		if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		output << "##fileformat=VCFv4.2\n";
@@ -597,10 +605,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		output << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 	} else {
 		//open file
-		filename = outputName + "_BayesianGenotypes.txt.gz";
-		logfile->list("Writing Bayesian genotypes to '" + filename + "'");
-		output.open(filename.c_str());
-		if(!output) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_BayesianGenotypes.txt.gz";
+		logfile->list("Writing Bayesian genotypes to '" + outputFileName + "'");
+		output.open(outputFileName.c_str());
+		if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		output << "chr\tpos";
@@ -658,6 +666,9 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 }
 
 void TGenome::callAllelePresence(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
@@ -692,15 +703,16 @@ void TGenome::callAllelePresence(TParameters & params){
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream outAllelePresence;
+	std::string outputFileName;
 	if(params.parameterExists("vcf")){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
-		filename = outputName + "_AllelePresence.vcf.gz";
-		logfile->list("Writing estimates of allele presence in VCF format to '" + filename + "'");
-		outAllelePresence.open(filename.c_str());
-		if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_AllelePresence.vcf.gz";
+		logfile->list("Writing estimates of allele presence in VCF format to '" + outputFileName + "'");
+		outAllelePresence.open(outputFileName.c_str());
+		if(!outAllelePresence) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		outAllelePresence << "##fileformat=VCFv4.2\n";
@@ -711,10 +723,10 @@ void TGenome::callAllelePresence(TParameters & params){
 		outAllelePresence << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 	} else {
 		//open file
-		filename = outputName + "_AllelePresence.txt.gz";
-		logfile->list("Writing estimates of allele presence to '" + filename + "'");
-		outAllelePresence.open(filename.c_str());
-		if(!outAllelePresence) throw "Failed to open output file '" + filename + "'!";
+		outputFileName = outputName + "_AllelePresence.txt.gz";
+		logfile->list("Writing estimates of allele presence to '" + outputFileName + "'");
+		outAllelePresence.open(outputFileName.c_str());
+		if(!outAllelePresence) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
 		outAllelePresence << "chr\tpos";
@@ -773,7 +785,10 @@ void TGenome::callAllelePresence(TParameters & params){
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
-void TGenome::printPileup(){
+void TGenome::printPileup(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//prepare windows
 	TWindowPairDiploid windows;
 
@@ -807,89 +822,28 @@ void TGenome::printPileup(){
 
 
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
-	//read EM parameters
-	int numEMIterations = params.getParameterIntWithDefault("iterations", 10);
-	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
-	double maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
-	logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
-	double NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
-	logfile->list("Will conduct at max " + toString(NewtonRalphsonNumIterations) + " Newton-Ralphson iterations");
-	double NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
-	logfile->list("Will stop Newton-Ralphson when F < " + toString(NewtonRalphsonMaxF));
-
 	//create recalibration object
-	TRecalibrationEM recalObject(logfile);
+	TRecalibrationEM recalObjectEM(&bamHeader, params, logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;
 
-	//open output
-	std::ofstream out;
-	std::string filename = outputName + "_recalibrationEM.txt";
-	logfile->list("Will write EM estimates to file '" + filename + "'.");
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	out << "iteration";
-	recalObject.writeHeader(out);
-
-	/*
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
-				windows.cur->a
+				windows.cur->addToRecalibrationEM(recalObjectEM);
 			}
 		}
 	}
-
-	//run EM iterations
-	for(int i=0; i < numEMIterations; ++i){
-		logfile->startIndent("EM Iteration " + toString(i+1) + ":");
-
-		//prepare recal object for next iteration
-		recalObject.initEMStep();
-
-		//run Newton-Ralphosn iteration
-		for(int j=0; j<NewtonRalphsonNumIterations; ++j){
-			logfile->startIndent("Calculating Jacobian for Newton-Ralphson iteration " + toString(j+1) + ":");
-			recalObject.initNetwonRalphsonStep();
-
-
-
-			//clean up memory
-			windows.clear();
-
-			//perform parameter update
-			logfile->endIndent();
-			logfile->listFlush("Updating parameters ...");
-			recalObject.runNewtonRalphson();
-			logfile->write(" done!");
-
-			//check if we break
-			if(recalObject.maxF < NewtonRalphsonMaxF){
-				logfile->list("Stopping Newton-Ralphson since maxF < " + toString(NewtonRalphsonMaxF));
-				break;
-			}
-		}
-
-		//save current parameters
-		recalObject.saveParams();
-
-		//Report to file
-		recalObject.writeParams(out);
-		logfile->endIndent();
-
-		//check if we break EM
-
-	}
+	//clean up memory
+	windows.clear();
 	logfile->endIndent();
 
-	//clean up
-	out.close();
-
-	*/
+	//run EM iterations
+	recalObjectEM.runEM(outputName);
 }
 
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
@@ -1103,6 +1057,9 @@ void TGenome::BQSR(TParameters & params){
 
 
 void TGenome::printQualityTransformation(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//prepare windows
 	TWindowPairHaploid windows;
 
@@ -1142,6 +1099,9 @@ void TGenome::printQualityTransformation(TParameters & params){
 }
 
 void TGenome::recalibrateBamFile(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_recalibrated.bam";

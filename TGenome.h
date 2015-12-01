@@ -32,6 +32,7 @@ private:
 
 	TPMD* pmdObjects;
 	TRecalibration* recalObject;
+	bool doRecalibration;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
@@ -67,7 +68,7 @@ public:
 	~TGenome(){
 		if(doMasking) delete mask;
 		if(fastaReference) reference.Close();
-		delete recalObject;
+		if(doRecalibration) delete recalObject;
 		delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 	};
@@ -77,7 +78,7 @@ public:
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
-	void printPileup();
+	void printPileup(TParameters & params);
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
 	void fillSequence(std::vector<double> & vec, std::string & str);

@@ -909,12 +909,12 @@ double TWindowHaploid::calcLogLikelihood(){
 	return LL;
 }
 
-void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM* recalObject){
+void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	estimateBaseFrequencies();
-	recalObject->addNewWindow(&baseFreq);
+	recalObject.addNewWindow(&baseFreq);
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			recalObject->addSite(sites[i]);
+			recalObject.addSite(sites[i]);
 		}
 	}
 }

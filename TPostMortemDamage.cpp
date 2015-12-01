@@ -185,7 +185,7 @@ void TPMDTables::writeTable(std::string filename){
 TPMDSkoglund::TPMDSkoglund(double & Lambda, double & C){
 	lambda = Lambda; c = C;
 };
-double TPMDSkoglund::getProb(double pos){
+double TPMDSkoglund::getProb(int & pos){
 	return c + pow(1.0 - lambda, (double) pos - 1.0) * lambda;
 };
 std::string TPMDSkoglund::getString(){
@@ -196,8 +196,8 @@ std::string TPMDSkoglund::getString(){
 TPMDVeeramah::TPMDVeeramah(double & A, double & B, double & C){
 	a = A; b = B; c = C;
 }
-double TPMDVeeramah::getProb(double pos){
-	return a * exp(-pos * b) + c;
+double TPMDVeeramah::getProb(int & pos){
+	return a * exp(- (double) pos * b) + c;
 };
 std::string TPMDVeeramah::getString(){
 	return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c);
@@ -236,6 +236,9 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 	// Skoglund[lambda,c]
 	// Veeramah[a,b,c]
 	std::string example = "Use either Skoglund[p,c], Veeramah[a,b,c] or Empiric[0.2,0.3,...]";
+
+	//check if function was initialized abefore
+	if(functionsInitialized[type]) throw "PMD function has been initialized previously!";
 
 	//check if it is none
 	if(pmdString == "none"){

@@ -60,7 +60,7 @@ class TPMDFunction{
 public:
 	TPMDFunction(){};
 	virtual ~TPMDFunction(){};
-	virtual double getProb(int pos){
+	virtual double getProb(int & pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
@@ -73,7 +73,7 @@ private:
 public:
 	TPMDSkoglund(double & Lambda, double & C);
 	~TPMDSkoglund(){};
-	double getProb(double pos);
+	double getProb(int & pos);
 	std::string getString();
 };
 
@@ -83,7 +83,7 @@ private:
 
 public:
 	TPMDVeeramah(double & A, double & B, double & C);
-	double getProb(double pos);
+	double getProb(int & pos);
 	std::string getString();
 };
 
