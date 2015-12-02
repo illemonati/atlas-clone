@@ -20,7 +20,7 @@ enum PMDType {pmdCT=0, pmdGA};
 //---------------------------------------------------------------
 class TPMDTable{
 private:
-	long*** counts;
+	long*** counts; //they are [read group][reference][read]
 	long** sums;
 	bool sumsCalculated;
 	int maxLength;
