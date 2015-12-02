@@ -105,16 +105,14 @@ void TPMDTable::writeTable(std::ofstream & out, std::string prefix){
 std::string TPMDTable::getPMDStringCT(){
 	calculateSums();
 	std::string s = "Empiric[";
-	double tmpCT, tmpTC, tmpCA, tmpCG;  //tmpRefRead
+	double tmpCT, tmpTC;  //tmpRefRead
 	for(int p=0; p<maxLength; ++p){
 		if(p>0) s += ",";
 		if(sums[p][T] < 1 || sums[p][C] < 1) s += "0.0";
 		else {
 			tmpCT = (double) counts[p][C][T] / (double) sums[p][C];
 			tmpTC = (double) counts[p][T][C] / (double) sums[p][T];
-			tmpCA = (double) counts[p][C][A] / (double) sums[p][C];
-			tmpCG = (double) counts[p][C][G] / (double) sums[p][C];
-			s += toString(std::max(0.0, (tmpCT - tmpTC)/(1.0 - tmpTC - tmpCA - tmpCG)));
+			s += toString(std::max(0.0, (tmpCT - tmpTC)));
 		}
 	}
 	return s + "]";
@@ -123,16 +121,14 @@ std::string TPMDTable::getPMDStringCT(){
 std::string TPMDTable::getPMDStringGA(){
 	calculateSums();
 	std::string s = "Empiric[";
-	double tmpGA, tmpAG, tmpGC, tmpGT;  //tmpRefRead
+	double tmpGA, tmpAG;  //tmpRefRead
 	for(int p=0; p<maxLength; ++p){
 		if(p>0) s += ",";
 		if(sums[p][A] < 1 || sums[p][G] < 1) s += "0.0";
 		else {
 			tmpGA = (double) counts[p][G][A] / (double) sums[p][G];
 			tmpAG = (double) counts[p][A][G] / (double) sums[p][A];
-			tmpGC = (double) counts[p][G][C] / (double) sums[p][G];
-			tmpGT = (double) counts[p][G][T] / (double) sums[p][G];
-			s += toString(std::max(0.0, (tmpGA - tmpAG)/(1.0 - tmpAG - tmpGC - tmpGT)));
+			s += toString(std::max(0.0, (tmpGA - tmpAG)));
 		}
 	}
 	return s + "]";
