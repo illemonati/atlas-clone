@@ -904,6 +904,13 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 				if(oldEstimate == 0.999999999)
 					estimationConverged = true; //if estimate is repeatedly above, accept
 			}
+
+			//do not allow big jump in quality -> max +/- 10!
+			if(curEstimate - oldEstimate > 10.0){
+				curEstimate = oldEstimate + 10.0;
+			} else if(oldEstimate - curEstimate > 10.0){
+				curEstimate = oldEstimate - 10.0;
+			}
 		}
 	}
 	return estimationConverged;
