@@ -88,6 +88,7 @@ public:
 	void recalibrateBamFile(TParameters & params);
 	void splitSingleEndReadGroups(TParameters & params);
 	void estimatePMD(TParameters & params);
+	void mergePairedEndReads(TParameters & params);
 };
 
 

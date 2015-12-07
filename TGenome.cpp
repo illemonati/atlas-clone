@@ -471,7 +471,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
-	TSiteSubset* subset;
+	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
@@ -556,7 +556,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
-	EMParameters* EMParams;
+	EMParameters* EMParams = NULL;
 	std::ofstream outTheta;
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
@@ -572,7 +572,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
-	TSiteSubset* subset;
+	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
@@ -689,7 +689,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
-	TSiteSubset* subset;
+	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
@@ -866,86 +866,29 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 }
 
 void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
-	/*
-	//read vectors of betas to test
-	logfile->startIndent("Will calculate likelihood on a grid with these marginal ranges:");
-	logfile->startIndent("Will calculate LL for these parameter values:");
-
-	//beta0
-	std::vector<double> beta0;
-	std::string tmp = params.getParameterString("beta0");
-	fillSequence(beta0, tmp);
-	logfile->list("beta0 = " + concatenateString(beta0, ", "));
-
-	//beta1
-	std::vector<double> beta1;
-	tmp = params.getParameterString("beta1");
-	fillSequence(beta1, tmp);
-	logfile->list("beta1 = " + concatenateString(beta1, ", "));
-
-	//beta2
-	std::vector<double> beta2;
-	tmp = params.getParameterString("beta2");
-	fillSequence(beta2, tmp);
-	logfile->list("beta2 = " + concatenateString(beta2, ", "));
-	logfile->endIndent();
-
 	//create recalibration object
-	TRecalibrationEM recalObject(logfile);
+	TRecalibrationEM recalObjectEM(&bamHeader, params, logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;
 
-	//open output
-	std::ofstream out;
-	std::string filename = outputName + "_calibration_LL_surface.txt";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	recalObject.writeHeader(out);
-	out << "\tLL\n";
-
-	//run loop over all combinations
-	double* recalParams = new double[3];
-	for(std::vector<double>::iterator itBeta0=beta0.begin(); itBeta0!=beta0.end(); ++itBeta0){
-		recalParams[0] = *itBeta0;
-		for(std::vector<double>::iterator itBeta1=beta1.begin(); itBeta1!=beta1.end(); ++itBeta1){
-			recalParams[1] = *itBeta1;
-			for(std::vector<double>::iterator itBeta2=beta2.begin(); itBeta2!=beta2.end(); ++itBeta2){
-				recalParams[2] = *itBeta2;
-				logfile->startIndent("Calculating LL for beta0 = " + toString(*itBeta0) + ", beta1 = " + toString(*itBeta1) + ", beta2 = " + toString(*itBeta2) + ":");
-
-				//reset
-				recalObject.resetLikelihood();
-
-				//set parameters
-				recalObject.setParams(recalParams);
-
-				//loop over all windows
-				while(iterateChromosome(windows)){
-					while(iterateWindow(windows)){
-						//read data for current window
-						readData(windows);
-						//calc LL
-						windows.cur->estimateBaseFrequencies();
-						windows.cur->addToLikelihoodRecalibration(&recalObject);
-					}
-				}
-
-				//clean up memory
-				windows.clear();
-
-				//output
-				logfile->conclude("LL = " + toString(recalObject.logLikelihood));
-				recalObject.writeParams(out);
-				out << "\t" << recalObject.logLikelihood << std::endl;
-				logfile->endIndent();
+	//add sites to EM object
+	logfile->startIndent("Reading data from windows:");
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows)){
+				windows.cur->addToRecalibrationEM(recalObjectEM);
 			}
 		}
 	}
+	//clean up memory
+	windows.clear();
+	logfile->endIndent();
 
-	//clean up
-	out.close();
-	*/
+	//calc likelihood surface
+	int numMarginalGridPoint = params.getParameterIntWithDefault("numGridPoints", 51);
+	recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
 }
 
 void TGenome::BQSR(TParameters & params){
@@ -1290,7 +1233,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	gettimeofday(&end, NULL);
 	runtime = (end.tv_sec  - start.tv_sec)/60.0;
 	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-	logfile->list("Reached end of BAm file!");
+	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
 
@@ -1326,7 +1269,158 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->write(" done!");
 }
 
+void TGenome::mergePairedEndReads(TParameters & params){
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	filename = outputName + "_mergedReads.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
 
+	//other temp variables
+	long counter = 0;
+
+	//create storage for reads until their mate was found
+	std::vector< std::pair<BamTools::BamAlignment*, bool> > alignmentStorage;
+	std::vector< std::pair<BamTools::BamAlignment*, bool> >::iterator it;
+	BamTools::BamAlignment* alignmentPointer;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+	int curChr = -1;
+
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
+
+		//if on new chromosome, empty storage
+		if(curChr != bamAlignement.RefID){
+			for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
+				bamWriter.SaveAlignment(*(it->first));
+				delete it->first;
+			}
+			alignmentStorage.clear();
+			curChr = bamAlignement.RefID;
+		}
+
+		//add alignment to storage
+		if(bamAlignement.IsPaired()){
+			if(bamAlignement.IsFirstMate()) alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignement), false));
+			else if(bamAlignement.IsSecondMate()){
+				//find first mate -> should be in storage
+				for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
+					if(it->first->Name == bamAlignement.Name){
+						//check if this read accepts mate
+						if(it->second) throw "First read of '" + bamAlignement.Name + "' is not paired or has already been merged!";
+
+						//merge reads
+						alignmentPointer = it->first;
+						if(bamAlignement.Position > alignmentPointer->Position + alignmentPointer->Length){
+							//reads do not overlap -> add Ns in between
+							int numN = bamAlignement.Position - alignmentPointer->Position + alignmentPointer->AlignedBases.size() - 1;
+							for(int i=0; i<numN; ++i){
+								alignmentPointer->AlignedBases += 'N';
+								alignmentPointer->AlignedQualities += '!';
+							}
+							alignmentPointer->AlignedBases += bamAlignement.AlignedBases;
+							alignmentPointer->AlignedQualities += bamAlignement.AlignedQualities;
+
+						} else if(bamAlignement.Position < alignmentPointer->Position) throw "Second ate of read '" + bamAlignement.Name + "' ha spos < pos of first mate!";
+						else {
+							//reads do overlap
+							std::string alignment;
+							std::string quality;
+							int firstOverlap = bamAlignement.Position - alignmentPointer->Position;
+							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size() + 1;
+
+							//first copy from first mate
+							alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
+							quality = alignmentPointer->AlignedQualities.substr(0, firstOverlap);
+
+							//decide which alignment has higher quality in overlap
+							for(int i=firstOverlap; i<lastOverlapPlusOne; ++i){
+								//decide which quality is higher
+								if(alignmentPointer->AlignedQualities.at(i) > bamAlignement.AlignedQualities.at(i - firstOverlap)){
+									alignment += alignmentPointer->AlignedBases.at(i);
+									quality += alignmentPointer->AlignedQualities.at(i);
+								} else {
+									alignment += bamAlignement.AlignedBases.at(i - firstOverlap);
+									quality += bamAlignement.AlignedQualities.at(i - firstOverlap);
+								}
+							}
+
+							//add rest from second
+							if(alignmentPointer->Position + alignmentPointer->AlignedBases.size() < bamAlignement.Position + bamAlignement.AlignedBases.size()){
+								alignment += bamAlignement.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
+								quality += bamAlignement.AlignedQualities.at(lastOverlapPlusOne - firstOverlap);
+							}
+
+							//set
+							alignmentPointer->AlignedBases += alignment;
+							alignmentPointer->AlignedQualities += quality;
+						}
+
+						//update
+						alignmentPointer->QueryBases = alignmentPointer->AlignedBases;
+						alignmentPointer->Qualities = alignmentPointer->AlignedQualities;
+						alignmentPointer->Length = alignmentPointer->AlignedBases.size();
+						alignmentPointer->CigarData.clear();
+						alignmentPointer->CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, alignmentPointer->Length));
+						alignmentPointer->SetIsFirstMate(false);
+						alignmentPointer->SetIsPaired(false);
+						alignmentPointer->SetIsProperPair(false);
+						alignmentPointer->SetIsSecondMate(false);
+						it->second = true;
+
+						//write if is first in vector
+						if(it == alignmentStorage.begin()){
+							//write all that are OK
+							for(; it != alignmentStorage.end(); ++it){
+								if(it->second){
+									bamWriter.SaveAlignment(*(it->first));
+									delete it->first;
+								} else {
+									//first that can not be written -> earese all previous ones!
+									alignmentStorage.erase(alignmentStorage.begin(), it);
+									break;
+								}
+							}
+
+						}
+						break;
+					}
+				}
+				if(it == alignmentStorage.end()) throw "One read of '" + bamAlignement.Name + "' is second mate, but first one has not been read!";
+			} else throw "One read of '" + bamAlignement.Name + "' is paired, but neither first nor second mate!";
+		} else {
+			//read is not paired: add to storage or write
+			if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignement);
+			else alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignement), true));
+		}
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
 
 
 

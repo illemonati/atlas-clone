@@ -55,9 +55,9 @@ int main(int argc, char* argv[]){
 		} else if(task == "recal"){
 			logfile.startIndent("Estimating error calibration function with EM:");
 			genome.estimateErrorCalibrationEM(myParameters);
-		//} else if(task == "recal"){
-		//	logfile.startIndent("Estimating LL surface for error calibration function:");
-		//	genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
+		} else if(task == "recalLLsurface"){
+			logfile.startIndent("Estimating LL surface for error calibration function:");
+			genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
 		} else if(task == "BQSR"){
 			logfile.startIndent("Estimating recalibration parameters (BQSR):");
 			genome.BQSR(myParameters);
@@ -82,6 +82,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "estimatePMD"){
     		logfile.startIndent("Estimating Post-Mortem Damage (PMD) patterns:");
     		genome.estimatePMD(myParameters);
+    	} else if(task == "mergeReads"){
+    		logfile.startIndent("Merging paired-end reads:");
+    		genome.mergePairedEndReads(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 

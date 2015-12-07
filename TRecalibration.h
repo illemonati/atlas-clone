@@ -187,6 +187,7 @@ public:
 	~TRecalibrationEMSite();
 	void calcEpsilon(double** params);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs);
+	double calcQ(double** newParams, double** oldParams, double* freqs);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
@@ -205,6 +206,7 @@ public:
 	};
 	void addSite(TSite & site);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
+	double calcQ(double** newParams, double** oldParams);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
@@ -256,6 +258,8 @@ public:
 	void writeCurrentEstimates(std::string filename);
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out);
+	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
+	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
 
 //---------------------------------------------------------------
