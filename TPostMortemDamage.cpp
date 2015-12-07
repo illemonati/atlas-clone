@@ -186,7 +186,8 @@ TPMDSkoglund::TPMDSkoglund(double & Lambda, double & C){
 	lambda = Lambda; c = C;
 };
 double TPMDSkoglund::getProb(int & pos){
-	return c + pow(1.0 - lambda, (double) pos - 1.0) * lambda;
+	//Note: distance is zero based!
+	return c + pow(1.0 - lambda, (double) pos) * lambda;
 };
 std::string TPMDSkoglund::getString(){
 	return "P(pmd|pos) = p * (1 - p)^pos + c = " + toString(lambda) + " * (1 - " + toString(lambda) + ")^pos + " + toString(c);
@@ -197,6 +198,7 @@ TPMDVeeramah::TPMDVeeramah(double & A, double & B, double & C){
 	a = A; b = B; c = C;
 }
 double TPMDVeeramah::getProb(int & pos){
+	//Note: distance is zero based!
 	return a * exp(- (double) pos * b) + c;
 };
 std::string TPMDVeeramah::getString(){

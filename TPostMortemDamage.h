@@ -120,6 +120,7 @@ public:
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
 	void initializeFunction(std::string & pmdString, PMDType type);
+	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
 	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };
 	double getProbGA(int pos){ return myFunctions[pmdGA]->getProb(pos); };

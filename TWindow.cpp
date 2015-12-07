@@ -112,6 +112,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 	int lastPos = len;
 	if(bamAlignement.Position + lastPos > end) lastPos = end - bamAlignement.Position;
 
+	//find relevant 3' end
+	int distFrom5prime, distFrom3Prime;
+
 	//Extract Read Group Info
 	std::string readGroup;
 	bamAlignement.GetTag("RG", readGroup);
@@ -141,15 +144,46 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 			quality = bamAlignement.AlignedQualities.at(pos);
 			if((int) quality > 33){
+				//figure out relevant distances
 				if(bamAlignement.IsReverseStrand()){
+
+					if(bamAlignement.IsProperPair()){
+						if(bamAlignement.IsFirstMate()){
+							distFrom5prime = bamAlignement.InsertSize - pos - 1;
+							distFrom3Prime = pos;
+						} else {
+							distFrom5prime = bamAlignement.InsertSize - (len - pos);
+							distFrom3Prime = len - pos - 1;
+						}
+					} else {
+						distFrom5prime = len - pos - 1;
+						distFrom3Prime = pos;
+					}
+
+
 					if(pos == secondLastPos) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
-					sites[internalPos].add(base, quality, len - pos - 1, pos, pmdObjects[readGroupId].getProbCT(len - pos), pmdObjects[readGroupId].getProbGA(pos + 1), context, readGroupId);
 				} else {
+
+					distFrom5prime = pos;
+					if(bamAlignement.IsProperPair()){
+						if(bamAlignement.IsFirstMate()){
+							distFrom5prime = pos;
+							distFrom3Prime = bamAlignement.InsertSize - pos - 1;
+						} else {
+							distFrom5prime = len - pos - 1;
+							distFrom3Prime = bamAlignement.InsertSize - (len - pos);
+						}
+					} else {
+						distFrom5prime = pos;
+						distFrom3Prime = len - pos - 1;
+					}
 					if(pos == 0) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
-					sites[internalPos].add(base, quality, pos, len - pos - 1, pmdObjects[readGroupId].getProbCT(pos + 1), pmdObjects[readGroupId].getProbGA(len - pos), context, readGroupId);
 				}
+
+				//now add base
+				sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
 			}
 		}
 	}
