@@ -25,8 +25,8 @@ struct EMParameters{
 	int numIterations;
 	int numThetaOnlyUpdates;
 	double maxEpsilon;
-	int NewtonRalphsonNumIterations;
-	double NewtonRalphsonMaxF;
+	int NewtonRaphsonNumIterations;
+	double NewtonRaphsonMaxF;
 	double initalTheta;
 	double initThetaSearchFactor;
 	int initThetaNumSearchIterations;

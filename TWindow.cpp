@@ -14,8 +14,8 @@ EMParameters::EMParameters(){
 	numIterations = -1;
 	numThetaOnlyUpdates = -1;
 	maxEpsilon = 0.0;
-	NewtonRalphsonNumIterations = -1;
-	NewtonRalphsonMaxF = 0.0;
+	NewtonRaphsonNumIterations = -1;
+	NewtonRaphsonMaxF = 0.0;
 	initalTheta = 0.0;
 	initThetaSearchFactor = -1;
 	initThetaNumSearchIterations = -1;
@@ -30,10 +30,10 @@ EMParameters::EMParameters(TParameters & params, TLog* logfile){
 
 	maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
 	logfile->list("Will run EM until deltaLL < " + toString(maxEpsilon) + ".");
-	NewtonRalphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
-	logfile->list("Will run Newton-Ralphson algorithm up to " + toString(NewtonRalphsonNumIterations) + " times.");
-	NewtonRalphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
-	logfile->list("Will run Newton-Ralphsin algorithm until max(F) < " + toString(NewtonRalphsonMaxF) + ".");
+	NewtonRaphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	logfile->list("Will run Newton-Raphson algorithm up to " + toString(NewtonRaphsonNumIterations) + " times.");
+	NewtonRaphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	logfile->list("Will run Newton-Raphson algorithm until max(F) < " + toString(NewtonRaphsonMaxF) + ".");
 
 	//params regarding initial search
 	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
@@ -557,10 +557,10 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 		//c) Calculate all genotype probabilities for all sites
 		fillP_G(P_G, pGenotype);
 
-		//d) Find new parameter estimates using Newton-Ralphson
+		//d) Find new parameter estimates using Newton-Raphson
 		if(numThetaOnlyUpdatesDone < EMParams.numThetaOnlyUpdates){
 			//update only theta: most difficult parameter and it is much faster to update only this one alone.
-			for(int n=0; n<EMParams.NewtonRalphsonNumIterations; ++n){
+			for(int n=0; n<EMParams.NewtonRaphsonNumIterations; ++n){
 				//i) calculate F() (Note: index is zero based!)
 				F(4) = lengthWithData;
 				for(int k=0; k<4; ++k){
@@ -578,7 +578,7 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 				rho = rho - F(4) / Jacobian(4,4);
 
 				//check if we break
-				if(F(4) < EMParams.NewtonRalphsonMaxF){
+				if(F(4) < EMParams.NewtonRaphsonMaxF){
 					thetaContainer.setTheta(-log(rho / (1.0 + rho)));
 					break;
 				}
@@ -588,7 +588,7 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 		} else {
 			numThetaOnlyUpdatesDone = 0;
 			//update all parameters in EM
-			for(int n=0; n<EMParams.NewtonRalphsonNumIterations; ++n){
+			for(int n=0; n<EMParams.NewtonRaphsonNumIterations; ++n){
 				//i) calculate F (Note: index is zero based!)
 				F(4) = lengthWithData;
 				F(5) = 0.0;
@@ -637,7 +637,7 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 						if(F(i) > maxF) maxF = F(i);
 					}
 
-					if(maxF < EMParams.NewtonRalphsonMaxF || n == (EMParams.NewtonRalphsonNumIterations-1)){
+					if(maxF < EMParams.NewtonRaphsonMaxF || n == (EMParams.NewtonRaphsonNumIterations-1)){
 						thetaContainer.setTheta(-log(rho / (1.0 + rho)));
 						break;
 					}

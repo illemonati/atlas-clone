@@ -226,8 +226,8 @@ public:
 	bool estimatetionRequired;
 	int numEMIterations;
 	double maxEpsilon;
-	int NewtonRalphsonNumIterations;
-	double NewtonRalphsonMaxF;
+	int NewtonRaphsonNumIterations;
+	double NewtonRaphsonMaxF;
 	double** newParams; //used during EM
 	arma::mat Jacobian;
 	arma::vec F;
@@ -253,7 +253,7 @@ public:
 	void addSite(TSite & site);
 	double getErrorRate(TBase* base, double** theseParams);
 	double getErrorRate(TBase* base);
-	void runNewtonRalphson(double** theseParams, int & maxNewtonralphsonIteratios, double & maxFThreshold, TLog* logfile);
+	void runNewtonRaphson(double** theseParams, int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, std::string debugFilename);
 	void runEM(std::string outputName);
 	void writeCurrentEstimates(std::string filename);
 	void writeHeader(std::ofstream & out);
@@ -297,7 +297,7 @@ public:
 	void set(double error, std::string & NumObservations);
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
-	void runNewtonRalphson(double & convergenceThreshold);
+	void runNewtonRaphson(double & convergenceThreshold);
 	virtual bool estimate(double & convergenceThreshold, long & minObservations);
 	std::string getNumObsForPrinting();
 };

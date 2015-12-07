@@ -267,6 +267,7 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 				}
 			}
 
+
 			/*
 			//context column: first five rows
 			tmpIndex = readGroupShifts[k] + context[k] + 5;
@@ -376,12 +377,16 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 				params[r][i] = 0.0;
 				newParams[r][i] = 0.0;
 			}
-			params[r][1] = 4.5;
-			newParams[r][1] = 4.5;
 
-			//debug: set other values
-			params[r][0] = 0.55;
-			newParams[r][0] = 0.55;
+			//debug: no need to set [0]!
+			params[r][0] = 4.5;
+			newParams[r][0] = 4.5;
+
+			params[r][1] = 0.6;
+			newParams[r][1] = 0.6;
+
+
+
 		}
 		numSitesAdded = 0;
 	}
@@ -393,10 +398,10 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
 		maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
 		logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
-		NewtonRalphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
-		logfile->list("Will conduct at max " + toString(NewtonRalphsonNumIterations) + " Newton-Ralphson iterations");
-		NewtonRalphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.00001);
-		logfile->list("Will stop Newton-Ralphson when F < " + toString(NewtonRalphsonMaxF));
+		NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
+		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
+		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.00001);
+		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
 		logfile->endIndent();
 
 		//initialize vriables for EM
@@ -409,8 +414,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	} else {
 		numEMIterations = -1;
 		maxEpsilon = 0.0;
-		NewtonRalphsonNumIterations = -1;
-		NewtonRalphsonMaxF = 0.0;
+		NewtonRaphsonNumIterations = -1;
+		NewtonRaphsonMaxF = 0.0;
 	}
 }
 
@@ -461,17 +466,26 @@ double TRecalibrationEM::getErrorRate(TBase* base){
 	return getErrorRate(base, params);
 }
 
-void TRecalibrationEM::runNewtonRalphson(double** theseParams, int & maxNewtonRalphsonIteratios, double & maxFThreshold, TLog* logfile){
+void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, std::string debugFilename){
 	//variables
 	double maxF;
 	int index;
 
-	//run up to maxNewtonRalphsonIteratios iterations, but stop if max(F) < maxFThreshold
-	logfile->startIndent("Running Newton-Ralphson optimization:");
-	for(int i=0; i<maxNewtonRalphsonIteratios; ++i){
-		logfile->listFlush("Running iteration " + toString(i) + " ...");
+	//open debug file
+	std::ofstream out(debugFilename.c_str());
+	if(!out) throw "Failed to open output file '" + debugFilename + "'!";
+	//add header
+	out << "iteration";
+	for(int i=0; i<numParams; ++i) out << "\tbeta'" << i;
+	for(int i=0; i<numParams; ++i) out << "\tF" << i;
+	for(int i=0; i<numParams; ++i) out << "\tbeta" << i;
+	out << std::endl;
 
-		std::cout << "CALC F PARAMS: " << params[0][0] << ", " << params[0][1] << std::endl;
+	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
+	logfile->startIndent("Running Newton-Raphson optimization:");
+	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
+		logfile->listFlush("Running iteration " + toString(i) + " ...");
+		out << i;
 
 		//set to zero
 		Jacobian.zeros();
@@ -482,7 +496,7 @@ void TRecalibrationEM::runNewtonRalphson(double** theseParams, int & maxNewtonRa
 			(*curWindow)->addToJacobianAndF(Jacobian, F, theseParams);
 		}
 
-		//Need to copy numbers to other triangle in Jacobian, as only upper triangled is filled when parsing sites
+		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 		for(int i=0; i<(totNumParams-1); ++i){
 			for(int j=i+1; j<totNumParams; ++j){
 				//copy from upper triangle to lower triangle
@@ -503,11 +517,18 @@ void TRecalibrationEM::runNewtonRalphson(double** theseParams, int & maxNewtonRa
 		std::cout << "----------------------------------------------" << std::endl;
 		std::cout << "det(J) = " << det(Jacobian) << std::endl;
 
-		std::cout << "Beta':";
-					for(int i=0; i<numParams; ++i)
-						std::cout << " [" << i << "]=" << theseParams[0][i];
-				std::cout << std::endl;
-				std::cout << "----------------------------------------------" << std::endl;
+		//print beta'
+		for(int i=0; i<numParams; ++i){
+			out << "\t" << theseParams[0][i];
+		}
+
+		//print F
+		for(int i=0; i<numParams; ++i){
+			out << "\t" << F[i];
+		}
+
+		std::cout << std::endl;
+		std::cout << "----------------------------------------------" << std::endl;
 
 
 		if(solve(JxF, Jacobian, F)){
@@ -527,12 +548,11 @@ void TRecalibrationEM::runNewtonRalphson(double** theseParams, int & maxNewtonRa
 			}
 		} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
 
-		std::cout << "----------------------------------------------" << std::endl;
-		std::cout << "Beta:";
-			for(int i=0; i<numParams; ++i)
-				std::cout << " [" << i << "]=" << theseParams[0][i];
-		std::cout << std::endl;
-		std::cout << "----------------------------------------------" << std::endl;
+		//print beta
+		for(int i=0; i<numParams; ++i){
+			out << "\t" << theseParams[0][i];
+		}
+		out << std::endl;
 
 		//get largest gradient (F) to check if we break
 		maxF = 0.0;
@@ -543,12 +563,24 @@ void TRecalibrationEM::runNewtonRalphson(double** theseParams, int & maxNewtonRa
 		logfile->conclude("max(F) = " + toString(maxF));
 		if(maxF < maxFThreshold) break;
 
-
-		throw "Done!";
-
-
 	}
+	out.close();
 	logfile->endIndent();
+
+
+	//calc F at maximum
+	F.zeros();
+	double** tmpParams = new double*[1];
+	tmpParams[0] = new double[2];
+	tmpParams[0][0] = 3.28;
+	tmpParams[0][1] = 1;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		(*curWindow)->addToJacobianAndF(Jacobian, F, tmpParams);
+	}
+
+	std::cout << "----------------------------------------------" << std::endl;
+	std::cout << "F: " << F << std::endl;
+	std::cout << "----------------------------------------------" << std::endl;
 }
 
 void TRecalibrationEM::runEM(std::string outputName){
@@ -575,7 +607,7 @@ void TRecalibrationEM::runEM(std::string outputName){
 
 		//DEBUG--------------------------------------------------------
 		//calc Q surface for current old params
-		calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 101);
+		calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 1001);
 
 		//DEBUG--------------------------------------------------------
 
@@ -594,8 +626,8 @@ void TRecalibrationEM::runEM(std::string outputName){
 		}
 		else oldLL = LL;
 
-		//run NewtonRalphson until convergence
-		runNewtonRalphson(newParams, NewtonRalphsonNumIterations, NewtonRalphsonMaxF, logfile);
+		//run NewtonRaphson until convergence
+		runNewtonRaphson(newParams, NewtonRaphsonNumIterations, NewtonRaphsonMaxF, logfile, outputName + "_NewtonRaphson_" + toString(iter) + ".txt");
 
 		//save parameters
 		for(int r=0; r<numReadGroups; ++r){
@@ -612,6 +644,9 @@ void TRecalibrationEM::runEM(std::string outputName){
 
 		//end loop
 		logfile->endIndent();
+
+		throw "DONE!";
+
 	}
 
 	//finalize
@@ -659,13 +694,13 @@ void TRecalibrationEM::calcLikelihoodSurface(std::string filename, int numMargin
 
 	//set min, max and step for each parameter
 	double min[2];
-	min[0] = -2.0;
-	min[1] = -1.0;
+	min[0] = -5.0;
+	min[1] = -5.0;
 
 
 	double max[2];
 	max[0] = 10.0;
-	max[1] = 2.0;
+	max[1] = 10.0;
 
 	double step[2];
 	for(int i=0; i<2; ++i){
@@ -727,22 +762,16 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 	out << "beta0\tbeta1\tQ" << std::endl;
 
 	//set min, max and step for each parameter
-	double min[5];
+	double min[2];
 	min[0] = -5.0;
-	min[1] = -2.0;
-	min[2] = -2.0;
-	min[3] = -2.0;
-	min[4] = -2.0;
+	min[1] = -5.0;
 
-	double max[5];
+	double max[2];
 	max[0] = 10.0;
-	max[1] = 2.0;
-	max[2] = 2.0;
-	max[3] = 2.0;
-	max[4] = 2.0;
+	max[1] = 10.0;
 
-	double step[5];
-	for(int i=0; i<5; ++i){
+	double step[2];
+	for(int i=0; i<2; ++i){
 		step[i] = (max[i] - min[i]) / (numMarginalGridPoints - 1.0);
 	}
 
@@ -869,7 +898,7 @@ void TBQSR_cell::addBase(TBase* base, Base & RefBase){
 	}
 }
 
-void TBQSR_cell::runNewtonRalphson(double & convergenceThreshold){
+void TBQSR_cell::runNewtonRaphson(double & convergenceThreshold){
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
@@ -890,9 +919,9 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 			curEstimate = 1.0;
 			estimationConverged = true;
 		} else {
-			//need Newton-Ralphson to estimate epsilon
+			//need Newton-Raphson to estimate epsilon
 			double oldEstimate = curEstimate;
-			runNewtonRalphson(convergenceThreshold);
+			runNewtonRaphson(convergenceThreshold);
 
 			//check boundaries
 			if(curEstimate < 0.0){
@@ -960,9 +989,9 @@ bool TBQSR_cellPosition::estimate(double & convergenceThreshold, long & minObser
 			estimationConverged = true;
 			return estimationConverged;
 		} else {
-			//need Newton-Ralphson to estimate epsilon
+			//need Newton-Raphson to estimate epsilon
 			double oldEstimate = curEstimate;
-			runNewtonRalphson(convergenceThreshold);
+			runNewtonRaphson(convergenceThreshold);
 
 			//check boundaries
 			if(curEstimate < 0.0){
@@ -1068,9 +1097,9 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	//Do we also consider the context (dinucleotide)?
 	initializeBQSRReadGroupContextTable(params);
 
-	//read Newton-Ralphson arguments from user
+	//read Newton-Raphson arguments from user
 	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0000001);
-	if(estimatetionRequired) logfile->list("Stopping Newton-Ralphson if F < " + toString(convergenceThreshold));
+	if(estimatetionRequired) logfile->list("Stopping Newton-Raphson if F < " + toString(convergenceThreshold));
 
 	//get minimal number of observations to conduct estimation
 	minObservations = params.getParameterLongWithDefault("minObservations", 1000);
