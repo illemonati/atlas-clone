@@ -872,7 +872,7 @@ void TBQSR_cell::addBase(TBase* base, Base & RefBase){
 void TBQSR_cell::runNewtonRalphson(double & convergenceThreshold){
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
-	F = fabs(firstDerivative);
+	F = fabs(firstDerivative / numObservations);
 	if(F < convergenceThreshold) estimationConverged = true;
 }
 
@@ -1069,7 +1069,7 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	initializeBQSRReadGroupContextTable(params);
 
 	//read Newton-Ralphson arguments from user
-	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0001);
+	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0000001);
 	if(estimatetionRequired) logfile->list("Stopping Newton-Ralphson if F < " + toString(convergenceThreshold));
 
 	//get minimal number of observations to conduct estimation
