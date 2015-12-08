@@ -187,7 +187,7 @@ public:
 	~TRecalibrationEMSite();
 	void calcEpsilon(double** params);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs);
-	double calcQ(double** newParams, double** oldParams, double* freqs);
+	double calcQ(double** newParams);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
@@ -206,7 +206,7 @@ public:
 	};
 	void addSite(TSite & site);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
-	double calcQ(double** newParams, double** oldParams);
+	double calcQ(double** newParams);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
 
@@ -229,6 +229,7 @@ public:
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
 	double** newParams; //used during EM
+	double** tmpParams; //used during NR
 	arma::mat Jacobian;
 	arma::vec F;
 	arma::mat JxF;
@@ -239,9 +240,11 @@ public:
 		for(int i=0; i<numReadGroups; ++i){
 			delete[] params[i];
 			delete[] newParams[i];
+			delete[] tmpParams[i];
 		}
 		delete[] params;
 		delete[] newParams;
+		delete[] tmpParams;
 		delete[] readGroupNames;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;

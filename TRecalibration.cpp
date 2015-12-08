@@ -178,7 +178,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams
 	return log(P_g_given_d_theta_denominator);
 }
 
-double TRecalibrationEMSite::calcQ(double** newParams, double** oldParams, double* freqs){
+double TRecalibrationEMSite::calcQ(double** newParams){
 	calcEpsilon(newParams);
 
 	//now calculate P(d, g, new params)
@@ -309,10 +309,10 @@ double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(double** oldPara
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcQ(double** newParams, double** oldParams){
+double TRecalibrationEMWindow::calcQ(double** newParams){
 	double Q = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		Q += (*site)->calcQ(newParams, oldParams, freqs);
+		Q += (*site)->calcQ(newParams);
 	}
 	return Q;
 }
@@ -352,9 +352,11 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	//create parameter arrays
 	params = new double*[numReadGroups];
 	newParams = new double*[numReadGroups];
+	tmpParams = new double*[numReadGroups];
 	for(int r=0; r<numReadGroups; ++r){
 		params[r] = new double[numParams];
 		newParams[r] = new double[numParams];
+		tmpParams[r] = new double[numParams];
 	}
 
 	//Are the values provided?
@@ -470,6 +472,15 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	//variables
 	double maxF;
 	int index;
+	double lambda; //used in backtracking
+	bool acceptMove;
+
+	//calculate Q at current location
+	double Q;
+	double curQ = 0.0;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		curQ += (*curWindow)->calcQ(theseParams);
+	}
 
 	//open debug file
 	std::ofstream out(debugFilename.c_str());
@@ -484,7 +495,8 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
-		logfile->listFlush("Running iteration " + toString(i) + " ...");
+		logfile->startIndent("Running iteration " + toString(i) + ":");
+		logfile->listFlush("Calculating Jacobian and graident ...");
 		out << i;
 
 		//set to zero
@@ -530,20 +542,47 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		std::cout << std::endl;
 		std::cout << "----------------------------------------------" << std::endl;
 
-
 		if(solve(JxF, Jacobian, F)){
+			logfile->write(" done!");
 
 			std::cout << "----------------------------------------------" << std::endl;
 			std::cout << "JxF " << JxF << std::endl;
 			std::cout << "----------------------------------------------" << std::endl;
 
+			//update params for each read group using backtracking
+			lambda = 1.0;
+			acceptMove = false;
+			while(!acceptMove){
+				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
+				//estimate new params
+				for(int r=0; r<numReadGroups; ++r){
+					for(int i=0; i<numParams; ++i){
+						tmpParams[r][i] = theseParams[r][i] - lambda * JxF(index + i);
+					}
+				}
+
+				//calculate Q at new location
+				Q = 0.0;
+				for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+					Q += (*curWindow)->calcQ(tmpParams);
+				}
+
+				//check if we accept or backtrack
+				if(Q > curQ){
+					acceptMove = true; //accept
+					logfile->write(" accepting move!");
+					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
+				}
+				else{
+					lambda = lambda / 2.0; //backtrack;
+					logfile->write(" rejecting move!");
+				}
+			}
+
+			//store new params
 			for(int r=0; r<numReadGroups; ++r){
 				for(int i=0; i<numParams; ++i){
-					index = r*numParams + i;
-					//if(JxF(index) > maxMove) theseParams[r][i] -= maxMove;
-					//else if(JxF(index) < -maxMove) theseParams[r][i] += maxMove;
-					//else
-					theseParams[r][i] -= JxF(index);
+					theseParams[r][i] = tmpParams[r][i];
 				}
 			}
 		} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
@@ -559,28 +598,12 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		for(int i=0; i<numParams; ++i){
 			if(fabs(F(i)) > maxF) maxF = fabs(F(i));
 		}
-		logfile->write(" done!");
 		logfile->conclude("max(F) = " + toString(maxF));
 		if(maxF < maxFThreshold) break;
-
+		logfile->endIndent();
 	}
 	out.close();
 	logfile->endIndent();
-
-
-	//calc F at maximum
-	F.zeros();
-	double** tmpParams = new double*[1];
-	tmpParams[0] = new double[2];
-	tmpParams[0][0] = 3.28;
-	tmpParams[0][1] = 1;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		(*curWindow)->addToJacobianAndF(Jacobian, F, tmpParams);
-	}
-
-	std::cout << "----------------------------------------------" << std::endl;
-	std::cout << "F: " << F << std::endl;
-	std::cout << "----------------------------------------------" << std::endl;
 }
 
 void TRecalibrationEM::runEM(std::string outputName){
@@ -776,8 +799,6 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 	}
 
 	//print old params
-	std::cout << "CALC Q PARAMS: " << params[0][0] << ", " << params[0][1] << std::endl;
-
 
 	//Loop over parameters
 	for(int p1=0; p1<numMarginalGridPoints; ++p1){
@@ -796,7 +817,7 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 						Q = 0.0;
 						//logfile->listFlush("Calculating Q at {" + toString(params[0][0]) + ", " + toString(params[0][1]) + "} ...");
 						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-							Q += (*curWindow)->calcQ(newParams, params);
+							Q += (*curWindow)->calcQ(newParams);
 						}
 						//logfile->write(" done!");
 						//logfile->conclude("Current Q = " + toString(Q));
