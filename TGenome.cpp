@@ -1304,7 +1304,7 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->listFlush("Writing PMD table to '" + filename + "' ...");
 	pmdTables.writeTable(filename);
 	logfile->write(" done!");
-	std::string filename = outputName + "_PMD_Table_counts.txt";
+	filename = outputName + "_PMD_Table_counts.txt";
 	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
 	pmdTables.writeTableWithCounts(filename);
 	logfile->write(" done!");
