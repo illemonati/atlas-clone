@@ -91,7 +91,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 		//set all chromosomes to false
 		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
-				useChromosome[i] = true;
+				useChromosome[i] = false;
 
 		//parse chromosome names
 		std::vector<std::string> vec;
