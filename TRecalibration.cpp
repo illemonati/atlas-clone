@@ -127,12 +127,7 @@ void TRecalibrationEMSite::calcEpsilon(double** params){
 	double eta;
 	for(int k=0; k<numReads; ++k){
 		eta = params[readGroup[k]][0];
-		//for(int p=0; p<4; ++p){ //loop over all parameters except beta0
-
-		//DEBUG-------------------------------------------------------------------
-			for(int p=0; p<1; ++p){ //loop over all parameters except beta0
-		//DEBUG-------------------------------------------------------------------
-
+		for(int p=0; p<4; ++p){ //loop over all parameters except beta0
 			eta += params[readGroup[k]][p+1] * q[k][p];
 		}
 		//eta += params[readGroup[k]][context[k]];
@@ -149,17 +144,16 @@ void TRecalibrationEMSite::calcEpsilon(double** params){
 double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs){
 	calcEpsilon(oldParams);
 
-	std::cout << "-> ";
-
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
+	double tmp;
 	for(int g=0; g<4; ++g){
-		P_g_given_d_oldBeta[g] = 1.0;
+		tmp = 1.0;
 		//loop over all reads
 		for(int k=0; k<numReads; ++k){
-			P_g_given_d_oldBeta[g] *= ((1.0 - D[g][k])*(1.0 - epsilon[k]) + D[g][k] * (epsilon[k]/3.0));
+			tmp *= B[g][k] * epsilon[k] - D[g][k] + 1;
 		}
-		P_g_given_d_oldBeta[g] *= freqs[g];
+		P_g_given_d_oldBeta[g] = tmp * freqs[g];
 		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
 
 	}
@@ -167,12 +161,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams
 	//calculate P(g|d, theta)
 	for(int g=0; g<4; ++g){
 		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
-
-		std::cout << " " << P_g_given_d_oldBeta[g] << std::flush;
-
 	}
-
-	std::cout << std::endl;
 
 	//return LL = P_g_given_d_theta_denominator
 	return log(P_g_given_d_theta_denominator);
@@ -189,8 +178,10 @@ double TRecalibrationEMSite::calcQ(double** newParams){
 		P_d_given_g_beta = 1.0;
 		//loop over all reads
 		for(int k=0; k<numReads; ++k){
-			P_d_given_g_beta *= ((1.0 - D[g][k])*(1.0 - epsilon[k]) + D[g][k] * (epsilon[k]/3.0));
+			P_d_given_g_beta *= B[g][k] * epsilon[k] - D[g][k] + 1;
 		}
+
+		if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
 		Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
 	}
 
@@ -239,7 +230,7 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 			tmp = P_g_given_d_oldBeta[g] * weights[k];
 			//now all 4 covariates except context. Derivatives are given by the q's
 			tmpIndex = 1 + readGroupShifts[k];
-			for(int m=0; m<1; ++m){ //loop over all parameters except beta0 //DEBUG -> HERE!
+			for(int m=0; m<4; ++m){ //loop over all parameters except beta0
 				F(m + tmpIndex) += tmp * q[k][m];
 			}
 			//now context: start at position 5 in F!
@@ -255,14 +246,14 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 			Jacobian(readGroupShifts[k],readGroupShifts[k]) += tmp;
 
 			//first row
-			for(int m=0; m<1; ++m){ //loop over all parameters except beta0 and context //DEBUG -> HERE!
+			for(int m=0; m<4; ++m){ //loop over all parameters except beta0 and context
 				Jacobian(readGroupShifts[k],m + 1 + readGroupShifts[k]) += tmp * q[k][m];
 			}
 
 			//all other rows except context
 			tmpIndex = readGroupShifts[k] + 1;
-			for(int row=0; row<1; ++row){ //loop over all parameters except beta0 //DEBUG -> HERE!
-				for(int col=row; col<1; ++col){ //loop over all parameters except beta0 //DEBUG -> HERE!
+			for(int row=0; row<4; ++row){ //loop over all parameters except beta0
+				for(int col=row; col<4; ++col){ //loop over all parameters except beta0
 					Jacobian(tmpIndex + row, tmpIndex + col) +=  tmp * q[k][col] * q[k][row];
 				}
 			}
@@ -335,7 +326,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 25 variables to estimate (incl. intercept at last position)
 	//if these are changed, TRecalibrationEMSite needs to be changed!
-	numParams = 2;
+	numParams = 5;
 
 	//rad groups and log file
 	bamHeader = BamHeader;
@@ -381,13 +372,11 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 			}
 
 			//debug: no need to set [0]!
-			params[r][0] = 4.5;
-			newParams[r][0] = 4.5;
+			params[r][0] = 0.0;
+			newParams[r][0] = 0.0;
 
-			params[r][1] = 0.6;
-			newParams[r][1] = 0.6;
-
-
+			params[r][1] = 1.0;
+			newParams[r][1] = 1.0;
 
 		}
 		numSitesAdded = 0;
@@ -402,7 +391,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
 		NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
 		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
-		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.00001);
+		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
 		logfile->endIndent();
 
@@ -474,6 +463,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	int index;
 	double lambda; //used in backtracking
 	bool acceptMove;
+	bool NRconverged = false;
 
 	//calculate Q at current location
 	double Q;
@@ -495,7 +485,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
-		logfile->startIndent("Running iteration " + toString(i) + ":");
+		logfile->startIndent("Running iteration " + toString(i+1) + ":");
 		logfile->listFlush("Calculating Jacobian and graident ...");
 		out << i;
 
@@ -522,13 +512,17 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 
 		//now calculate J^-1 x F
 
+		/*
 		std::cout << std::endl << "-------JACOBIAN-------------------------------" << std::endl;
 		std::cout << Jacobian << std::endl;
 		std::cout << "----------------------------------------------" << std::endl;
 		std::cout << "F: " << F << std::endl;
 		std::cout << "----------------------------------------------" << std::endl;
 		std::cout << "det(J) = " << det(Jacobian) << std::endl;
+		std::cout << std::endl;
+		std::cout << "----------------------------------------------" << std::endl;
 
+*/
 		//print beta'
 		for(int i=0; i<numParams; ++i){
 			out << "\t" << theseParams[0][i];
@@ -539,16 +533,15 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 			out << "\t" << F[i];
 		}
 
-		std::cout << std::endl;
-		std::cout << "----------------------------------------------" << std::endl;
 
 		if(solve(JxF, Jacobian, F)){
 			logfile->write(" done!");
 
+			/*
 			std::cout << "----------------------------------------------" << std::endl;
 			std::cout << "JxF " << JxF << std::endl;
 			std::cout << "----------------------------------------------" << std::endl;
-
+*/
 			//update params for each read group using backtracking
 			lambda = 1.0;
 			acceptMove = false;
@@ -556,6 +549,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
 				//estimate new params
 				for(int r=0; r<numReadGroups; ++r){
+					index = r*numParams;
 					for(int i=0; i<numParams; ++i){
 						tmpParams[r][i] = theseParams[r][i] - lambda * JxF(index + i);
 					}
@@ -572,17 +566,22 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 					acceptMove = true; //accept
 					logfile->write(" accepting move!");
 					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
+					curQ = Q;
+					//store new params
+					for(int r=0; r<numReadGroups; ++r){
+						for(int i=0; i<numParams; ++i){
+							theseParams[r][i] = tmpParams[r][i];
+						}
+					}
 				}
 				else{
 					lambda = lambda / 2.0; //backtrack;
 					logfile->write(" rejecting move!");
-				}
-			}
-
-			//store new params
-			for(int r=0; r<numReadGroups; ++r){
-				for(int i=0; i<numParams; ++i){
-					theseParams[r][i] = tmpParams[r][i];
+					if(lambda < 0.000000001){
+						acceptMove = true; //accept
+						NRconverged = true;
+						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
+					}
 				}
 			}
 		} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
@@ -599,8 +598,8 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 			if(fabs(F(i)) > maxF) maxF = fabs(F(i));
 		}
 		logfile->conclude("max(F) = " + toString(maxF));
-		if(maxF < maxFThreshold) break;
 		logfile->endIndent();
+		if(maxF < maxFThreshold || NRconverged) break;
 	}
 	out.close();
 	logfile->endIndent();
@@ -630,8 +629,7 @@ void TRecalibrationEM::runEM(std::string outputName){
 
 		//DEBUG--------------------------------------------------------
 		//calc Q surface for current old params
-		calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 1001);
-
+		//calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 21);
 		//DEBUG--------------------------------------------------------
 
 		//fill vector of new params by copying current values
@@ -641,10 +639,9 @@ void TRecalibrationEM::runEM(std::string outputName){
 			}
 		}
 
-
 		//check if we break based on LL
 		if(iter > 0 && deltaLL < maxEpsilon){
-			logfile->conclude("EM has converged (epsilon < " + toString(maxEpsilon));
+			logfile->conclude("EM has converged (epsilon < " + toString(maxEpsilon) + ")");
 			break;
 		}
 		else oldLL = LL;
@@ -662,14 +659,11 @@ void TRecalibrationEM::runEM(std::string outputName){
 		//write current estimates to file
 		filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
 		logfile->listFlush("Writing current estimates to file '" + filename + "' ...");
-		writeCurrentEstimates(filename);
+		writeCurrentEstimates(filename, LL);
 		logfile->write(" done!");
 
 		//end loop
 		logfile->endIndent();
-
-		throw "DONE!";
-
 	}
 
 	//finalize
@@ -678,15 +672,18 @@ void TRecalibrationEM::runEM(std::string outputName){
 	//writing final estimates
 	filename = outputName + "_recalibrationEM.txt";
 	logfile->list("Writing final estimates to file '" + filename + "' ...");
-	writeCurrentEstimates(filename);
+	writeCurrentEstimates(filename, LL);
 	logfile->write(" done!");
+
+	//calc LL surface
+	//calcLikelihoodSurface(outputName + "_LLsurface.txt", 21);
 }
 
-void TRecalibrationEM::writeCurrentEstimates(std::string filename){
+void TRecalibrationEM::writeCurrentEstimates(std::string filename, double & LL){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open output file '" + filename + "'!";
 	writeHeader(out);
-	writeParams(out);
+	writeParams(out, LL);
 	out.close();
 }
 
@@ -694,15 +691,16 @@ void TRecalibrationEM::writeHeader(std::ofstream & out){
 	out << "readGroup";
 	for(int i=0; i<numParams; ++i)
 		out << "\tbeta" << i;
-	out << std::endl;
+	out << "\tLL" << std::endl;
 }
 
-void TRecalibrationEM::writeParams(std::ofstream & out){
+void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 	for(int r=0; r<numReadGroups; ++r){
 		out << readGroupNames[r];
 		for(int i=0; i<numParams; ++i){
 			out << "\t" << params[r][i];
 		}
+		out << "\t" << LL;
 		out << std::endl;
 	}
 }
@@ -716,36 +714,39 @@ void TRecalibrationEM::calcLikelihoodSurface(std::string filename, int numMargin
 	out << "beta0\tbeta1\tLL" << std::endl;
 
 	//set min, max and step for each parameter
-	double min[2];
+	double min[5];
 	min[0] = -5.0;
 	min[1] = -5.0;
+	min[2] = -1.0;
+	min[3] = -1.0;
+	min[4] = -1.0;
 
 
-	double max[2];
+	double max[5];
 	max[0] = 10.0;
 	max[1] = 10.0;
+	max[2] = 1.0;
+	max[3] = 1.0;
+	max[4] = 1.0;
 
-	double step[2];
-	for(int i=0; i<2; ++i){
+	double step[5];
+	for(int i=0; i<5; ++i){
 		step[i] = (max[i] - min[i]) / (numMarginalGridPoints - 1.0);
 	}
 
-	//not last two
-	/*
+	//without last two
 	for(int r=0; r<numReadGroups; ++r){
-		params[r][2] = 0.0;
 		params[r][3] = 0.0;
 		params[r][4] = 0.0;
 	}
-	*/
 
 	//Loop over parameters
 	for(int p1=0; p1<numMarginalGridPoints; ++p1){
 		for(int r=0; r<numReadGroups; ++r) params[r][0] = min[0] + p1 * step[0];
 		for(int p2=0; p2<numMarginalGridPoints; ++p2){
 			for(int r=0; r<numReadGroups; ++r) params[r][1] = min[1] + p2 * step[1];
-			//for(int p3=0; p3<numMarginalGridPoints; ++p3){
-				//for(int r=0; r<numReadGroups; ++r) params[r][2] = min[2] + p3 * step[2];
+			for(int p3=0; p3<numMarginalGridPoints; ++p3){
+				for(int r=0; r<numReadGroups; ++r) params[r][2] = min[2] + p3 * step[2];
 				//for(int p4=0; p4<numMarginalGridPoints; ++p4){
 					//for(int r=0; r<numReadGroups; ++r) params[r][3] = min[3] + p4 * step[3];
 					//for(int p5=0; p5<numMarginalGridPoints; ++p5){
@@ -754,20 +755,16 @@ void TRecalibrationEM::calcLikelihoodSurface(std::string filename, int numMargin
 
 						//calculate LL
 						LL = 0.0;
-						//logfile->listFlush("Calculating LL at {" + toString(params[0][0]) + ", " + toString(params[0][1]) + ", " + toString(params[0][2]) + ", " + toString(params[0][3]) + ", " + toString(params[0][4]) + "} ...");
-						logfile->listFlush("Calculating LL at {" + toString(params[0][0]) + ", " + toString(params[0][1]) + "} ...");
 						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 							LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(params);
 						}
-						logfile->write(" done!");
-						logfile->conclude("Current Log Likelihood = " + toString(LL));
 
 						//write to file
-						for(int i=0; i<2; ++i) out << params[0][i] << "\t";
+						for(int i=0; i<5; ++i) out << params[0][i] << "\t";
 						out << LL << std::endl;
 					//}
 				//}
-			//}
+			}
 		}
 	}
 
