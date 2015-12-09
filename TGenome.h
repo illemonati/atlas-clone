@@ -61,7 +61,8 @@ private:
  	bool doMasking;
  	bool doCpGMasking;
  	long limitWindows;
- 	int limitChr; //for debugging
+ 	int limitChr;
+ 	bool* useChromosome;
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -71,6 +72,7 @@ public:
 		if(doRecalibration) delete recalObject;
 		delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
+		delete[] useChromosome;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);

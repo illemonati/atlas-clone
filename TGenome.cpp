@@ -84,9 +84,44 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("maskCpG");
 	} else doCpGMasking = false;
 
-	//for debugging: work on one window only
+	//limit chrs and / or windows
+	useChromosome = new bool[bamHeader.Sequences.Size()];
+	if(params.parameterExists("chr")){
+		logfile->startIndent("Will limit analysis to the following chromosomes:");
+
+		//set all chromosomes to false
+		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
+				useChromosome[i] = true;
+
+		//parse chromosome names
+		std::vector<std::string> vec;
+		fillVectorFromString(params.getParameterString("chr"), vec, ',');
+		int num;
+		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
+			//find chromosome
+			num = 0;
+			for(chrIterator = bamHeader.Sequences.Begin(); chrIterator != bamHeader.Sequences.End(); ++chrIterator, ++num){
+				if(chrIterator->Name == *it){
+					useChromosome[num] = true;
+					logfile->list(*it);
+					break;
+				}
+
+			}
+			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
+		}
+		chrIterator = bamHeader.Sequences.End();
+		limitChr = 1000000;
+		logfile->endIndent();
+	} else {
+		limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
+		if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
+		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
+			useChromosome[i] = true;
+	}
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
-	limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
+	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+
 };
 
 void TGenome::jumpToEnd(){
@@ -108,6 +143,12 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	} else {
 		logfile->endNumbering();
 		//move to next
+		++chrIterator;
+		++chrNumber;
+	}
+
+	//do we use this chromosome? if not, move on!
+	while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
 		++chrIterator;
 		++chrNumber;
 	}

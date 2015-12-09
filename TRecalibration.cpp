@@ -385,7 +385,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	//read estimation parameters, if required
 	if(estimatetionRequired){
 		logfile->startIndent("Will run EM to estimate recalibration parameters:");
-		numEMIterations = args.getParameterIntWithDefault("iterations", 10);
+		numEMIterations = args.getParameterIntWithDefault("iterations", 100);
 		logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
 		maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
 		logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
