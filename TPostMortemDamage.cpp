@@ -102,6 +102,18 @@ void TPMDTable::writeTable(std::ofstream & out, std::string prefix){
 	}
 };
 
+void TPMDTable::writeTableWithCounts(std::ofstream & out, std::string prefix){
+	for(int i=0; i<4; ++i){
+		for(int j=0; j<4; ++j){
+			out <<	prefix << genoMap.getBaseAsChar(i) << "->" << genoMap.getBaseAsChar(j);
+			for(int p=0; p<maxLength; ++p){
+				out << "\t" << (double) counts[p][i][j];
+			}
+			out << "\n";
+		}
+	}
+};
+
 std::string TPMDTable::getPMDStringCT(){
 	calculateSums();
 	std::string s = "Empiric[";
@@ -179,6 +191,17 @@ void TPMDTables::writeTable(std::string filename){
 	out.close();
 };
 
+void TPMDTables::writeTableWithCounts(std::string filename){
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "'!";
+
+	//loop over all read groups
+	for(int i=0; i<readGroups->numGroups; ++i){
+		forward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
+		backward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tbackward\t");
+	}
+	out.close();
+};
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------

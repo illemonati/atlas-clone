@@ -35,6 +35,7 @@ public:
 	void empty();
 	void add(int pos, Base ref, Base read);
 	void writeTable(std::ofstream & out, std::string prefix);
+	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
 };
@@ -49,6 +50,7 @@ public:
 	void add(TSite & site);
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
+	void writeTableWithCounts(std::string filename);
 };
 
 
