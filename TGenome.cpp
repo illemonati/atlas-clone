@@ -1308,6 +1308,7 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
 	pmdTables.writeTableWithCounts(filename);
 	logfile->write(" done!");
+	filename = outputName + "_PMD_input_Table.txt";
 	logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
 	pmdTables.writePMDFile(filename);
 	logfile->write(" done!");
