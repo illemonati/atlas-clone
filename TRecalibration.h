@@ -10,6 +10,7 @@
 
 #include "bamtools/api/BamReader.h"
 #include "TSite.h"
+#include <omp.h>
 
 //---------------------------------------------------------------
 //TQualityIndex
@@ -187,6 +188,7 @@ public:
 	~TRecalibrationEMSite();
 	void calcEpsilon(double** params);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs);
+	double calcLL(double** oldParams, double* freqs);
 	double calcQ(double** newParams);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
@@ -206,6 +208,7 @@ public:
 	};
 	void addSite(TSite & site);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
+	double calcLL(double** oldParams);
 	double calcQ(double** newParams);
 	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
 };
