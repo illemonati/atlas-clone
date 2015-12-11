@@ -160,7 +160,6 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 						distFrom3Prime = pos;
 					}
 
-
 					if(pos == secondLastPos) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
 				} else {

@@ -8,12 +8,20 @@
 #include "TRecalibration.h"
 
 //---------------------------------------------------------------
+//TRecalibration
+//---------------------------------------------------------------
+int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups){
+	int i = 0;
+	for(std::vector<BamTools::SamReadGroup>::iterator it = readGroups.Begin(); it !=  readGroups.End(); ++it, ++i){
+		if(name == it->ID) return i;
+	}
+	return -1;
+}
+
+//---------------------------------------------------------------
 //RecalibrationEMSite
 //---------------------------------------------------------------
 TRecalibrationEMSite::TRecalibrationEMSite(){
-
-	std::cout << "CONST SIMPLE -----------------" << std::endl;
-
 	initialized = false;
 	q = NULL;
 	context = NULL;
@@ -357,7 +365,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		readGroupNames[r] = it->ID;
 	}
 	totNumParams = numParams * numReadGroups;
-
+	numSitesAdded = 0;
 	logfile = Logfile;
 
 	//create parameter arrays
@@ -374,11 +382,51 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	estimatetionRequired = false;
 	if(args.parameterExists("recal")){
 		//read parameters from file
+		std::string filename = args.getParameterString("recal");
+		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open file '" + filename + "' for reading!";
 
-		//TODO!
+		//tmp variables for reading
+		std::string tmp;
+		int lineNum = 0;
+		std::vector<std::string> vec;
+		std::vector<std::string>::iterator it;
+		int rg;
+		bool* rgFound = new bool[numReadGroups];
+		for(int r=0; r<numReadGroups; ++r) rgFound[r] = false;
 
+		//skip header
+		std::getline(file, tmp);
 
-		numSitesAdded = 0; //SET TO WHAT IT WILL BE!
+		//parse file to read details for each read group
+		while(file.good() && !file.eof()){
+			++lineNum;
+			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			//skip empty lines
+			if(vec.size() > 0){
+				if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+				//find read group
+				it = vec.begin();
+				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
+				rg = findReadGroupIndex(*it, bamHeader->ReadGroups);
+				++it;
+				rgFound[rg] = true;
+
+				//read parameters
+				for(int i=0; i<numParams; ++i, ++it){
+					params[rg][i] = stringToDouble(*it);
+					newParams[rg][i] = params[rg][i];
+				}
+			}
+		}
+
+		//check if we miss some read groups
+		for(int r=0; r<numReadGroups; ++r){
+			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
+		}
+
+		logfile->write(" done!");
 
 		//check if we anyway estimate things
 		if(args.parameterExists("estimateRecal")) estimatetionRequired = true;
@@ -393,7 +441,6 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 				newParams[r][i] = 0.0;
 			}
 		}
-		numSitesAdded = 0;
 	}
 
 	//read estimation parameters, if required
@@ -701,9 +748,10 @@ void TRecalibrationEM::writeCurrentEstimates(std::string filename, double & LL){
 }
 
 void TRecalibrationEM::writeHeader(std::ofstream & out){
-	out << "readGroup";
-	for(int i=0; i<numParams; ++i)
-		out << "\tbeta" << i;
+	out << "readGroup\tquality\tquality^2\tposition\tposition^2";
+	TGenotypeMap genoMap;
+	for(int i=0; i<genoMap.getNumContext(); ++i)
+		out << "\t" << genoMap.getContextString(i);
 	out << "\tLL" << std::endl;
 }
 
@@ -1139,14 +1187,6 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	minObservations = params.getParameterLongWithDefault("minObservations", 1000);
 }
 
-int TRecalibrationBQSR::findReadGroupIndex(std::string & name){
-	int i = 0;
-	for(std::vector<BamTools::SamReadGroup>::iterator it = bamHeader->ReadGroups.Begin(); it !=  bamHeader->ReadGroups.End(); ++it, ++i){
-		if(name == it->ID) return i;
-	}
-	return -1;
-}
-
 void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & params){
 	if(params.parameterExists("BQSRQuality")) initializeBQSRReadGroupQualityTableFromFile(params);
 	else {
@@ -1220,7 +1260,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 		//skip empty lines
 		if(vec.size() > 0){
 			//set quality and empirical error rate
-			readGroup = findReadGroupIndex(vec[0]);
+			readGroup = findReadGroupIndex(vec[0], bamHeader->ReadGroups);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
@@ -1314,7 +1354,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 		//skip empty lines
 		if(vec.size() > 0){
 			//set quality and empirical error rate
-			readGroup = findReadGroupIndex(vec[0]);
+			readGroup = findReadGroupIndex(vec[0], bamHeader->ReadGroups);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				p = stringToInt(vec[1]);
 				alpha = stringToDouble(vec[3]);
@@ -1425,7 +1465,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 		//skip empty lines
 		if(vec.size() > 0){
 			//set quality and empirical error rate
-			readGroup = findReadGroupIndex(vec[0]);
+			readGroup = findReadGroupIndex(vec[0], bamHeader->ReadGroups);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				p = stringToInt(vec[1]);
 				alpha = stringToDouble(vec[3]);
@@ -1523,7 +1563,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 		if(vec.size() > 0){
 			if(vec.size() < 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//set quality and empirical error rate
-			readGroup = findReadGroupIndex(vec[0]);
+			readGroup = findReadGroupIndex(vec[0], bamHeader->ReadGroups);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				context = genoMap.getContext(vec[1][0], vec[1][1]);
 				alpha = stringToDouble(vec[3]);

@@ -162,6 +162,7 @@ public:
 	};
 
 	virtual bool requiresEstimation(){ return false;};
+	int findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups);
 };
 
 //---------------------------------------------------------------
@@ -376,15 +377,6 @@ private:
 	bool considerContext, contextConverged;
 	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
 
-	//-------------------------
-	/*
-	TBQSR_cellPosition* LLSurface;
-	int numLLSurfacePoints;
-	bool surfaceCalculated;
-	*/
-	//-------------------------
-
-	int findReadGroupIndex(std::string & name);
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
 	void initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
 	void initializeBQSRReadGroupPositionTable(TParameters & params);

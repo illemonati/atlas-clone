@@ -133,6 +133,10 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	}
 
+	int getNumContext(){
+		return 20;
+	};
+
 	BaseContext getContext(Base first, Base second){
 		if(second == N) throw "Context not defined with second base = N!";
 		return contextMap[first][second];

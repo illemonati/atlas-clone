@@ -713,7 +713,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
-	EMParameters* EMParams;
+	EMParameters* EMParams = NULL;
 	std::ofstream outTheta;
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
@@ -865,6 +865,10 @@ void TGenome::printPileup(TParameters & params){
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TRecalibrationEM recalObjectEM(&bamHeader, params, logfile);
+	if(!recalObjectEM.estimatetionRequired){
+		logfile->list("No need to estimate anything. Aborting Program.");
+		return;
+	}
 
 	//prepare windows
 	TWindowPairHaploid windows;
@@ -887,6 +891,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	recalObjectEM.runEM(outputName);
 }
 
+/*
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
 	std::string::size_type posDash = str.find_first_of('-', 1);
@@ -904,7 +909,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 		//should be a number
 		vec.push_back(stringToDoubleCheck(str));
 	}
-}
+}*/
 
 void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
 	//create recalibration object
