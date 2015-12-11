@@ -143,7 +143,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 		base = bamAlignement.AlignedBases.at(pos);
 		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 			quality = bamAlignement.AlignedQualities.at(pos);
-			if((int) quality > 33){
+			if((int) quality > 32){
 				//figure out relevant distances
 				if(bamAlignement.IsReverseStrand()){
 
