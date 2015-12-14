@@ -1299,6 +1299,7 @@ void TGenome::estimatePMD(TParameters & params){
 	struct timeval start, end;
 
 	//tmp variables
+	int internalPos;
 	char base;
 	Base readBase, refBase;
 	int quality;
@@ -1308,25 +1309,31 @@ void TGenome::estimatePMD(TParameters & params){
 	int fastaEnd;
 	std::string ref;
 	TGenotypeMap genoMap;
-
+	long numreadsAdded;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			gettimeofday(&start, NULL);
 			logfile->listFlush("Adding reads to PMD tables ...");
+			numreadsAdded = 0;
+
+			//get fasta reference
+			fastaEnd = windows.cur->end + 500; //note that end is last position + 1
+			reference.GetSequence(chrNumber, windows.cur->start, fastaEnd, ref);
 
 			//parse through reads
 			while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
+				++numreadsAdded;
+
 				//Extract Read Group Info
 				bamAlignement.GetTag("RG", readGroup);
 				readGroupId = readGroups.find(readGroup);
 				length = bamAlignement.AlignedBases.size();
-				fastaEnd = bamAlignement.Position + length; //note that end is last position + 1
-				reference.GetSequence(chrNumber, bamAlignement.Position, fastaEnd, ref);
 
 				//add to PMD
 				//distinguish between cases
+				internalPos = bamAlignement.Position - windows.cur->start;
 				if(bamAlignement.IsProperPair()){
 					throw "Not yet done for paired end!";
 				} else {
@@ -1336,13 +1343,13 @@ void TGenome::estimatePMD(TParameters & params){
 						//forward position = len - pos - 1
 						//reverse position = pos
 						//FLIP BASES!
-						for(int pos = 0; pos < length; ++pos){
+						for(int pos = 0; pos < length; ++pos, ++internalPos){
 							base = bamAlignement.AlignedBases.at(pos);
 							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 								quality = bamAlignement.AlignedQualities.at(pos);
 								if((int) quality > 32){ //skip if quality dies not make sense
 									readBase = genoMap.getFlippedBase(base);
-									refBase = genoMap.getFlippedBase(ref[pos]);
+									refBase = genoMap.getFlippedBase(ref[internalPos]);
 									pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
 									pmdTables.addReverse(readGroupId, pos, refBase, readBase);
 								}
@@ -1352,13 +1359,13 @@ void TGenome::estimatePMD(TParameters & params){
 						//single end & forward
 						//forward position = pos
 						//reverse position = len - pos -1
-						for(int pos = 0; pos < length; ++pos){
+						for(int pos = 0; pos < length; ++pos, ++internalPos){
 							base = bamAlignement.AlignedBases.at(pos);
 							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 								quality = bamAlignement.AlignedQualities.at(pos);
 								if((int) quality > 32){ //skip if quality dies not make sense
 									readBase = genoMap.getBase(base);
-									refBase = genoMap.getBase(ref[pos]);
+									refBase = genoMap.getBase(ref[internalPos]);
 									pmdTables.addForward(readGroupId, pos, refBase, readBase);
 									pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 								}
@@ -1372,7 +1379,7 @@ void TGenome::estimatePMD(TParameters & params){
 
 			//report
 			gettimeofday(&end, NULL);
-			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+			logfile->write(" done (added " + toString(numreadsAdded) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
 		}
 	}
 
