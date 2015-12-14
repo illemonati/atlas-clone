@@ -1295,14 +1295,87 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
 	TPMDTables pmdTables(&readGroups, maxLength);
 
+	//measure runtime
+	struct timeval start, end;
+
+	//tmp variables
+	char base;
+	Base readBase, refBase;
+	int quality;
+	std::string readGroup;
+	int readGroupId;
+	int length;
+	int fastaEnd;
+	std::string ref;
+	TGenotypeMap genoMap;
+
+
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
-			readData(windows);
-			windows.cur->addReferenceBaseToSites(reference, chrNumber);
-			windows.cur->addSitesToPMDTable(pmdTables, logfile);
+			gettimeofday(&start, NULL);
+			logfile->listFlush("Adding reads to PMD tables ...");
+
+			//parse through reads
+			while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
+				//Extract Read Group Info
+				bamAlignement.GetTag("RG", readGroup);
+				readGroupId = readGroups.find(readGroup);
+				length = bamAlignement.AlignedBases.size();
+				fastaEnd = bamAlignement.Position + length; //note that end is last position + 1
+				reference.GetSequence(chrNumber, bamAlignement.Position, fastaEnd, ref);
+
+				//add to PMD
+				//distinguish between cases
+				if(bamAlignement.IsProperPair()){
+					throw "Not yet done for paired end!";
+				} else {
+					//single end
+					if(bamAlignement.IsReverseStrand()){
+						//single end & reverse
+						//forward position = len - pos - 1
+						//reverse position = pos
+						//FLIP BASES!
+						for(int pos = 0; pos < length; ++pos){
+							base = bamAlignement.AlignedBases.at(pos);
+							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+								quality = bamAlignement.AlignedQualities.at(pos);
+								if((int) quality > 32){ //skip if quality dies not make sense
+									readBase = genoMap.getFlippedBase(base);
+									refBase = genoMap.getFlippedBase(ref[pos]);
+									pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+									pmdTables.addReverse(readGroupId, pos, refBase, readBase);
+								}
+							}
+						}
+					} else {
+						//single end & forward
+						//forward position = pos
+						//reverse position = len - pos -1
+						for(int pos = 0; pos < length; ++pos){
+							base = bamAlignement.AlignedBases.at(pos);
+							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+								quality = bamAlignement.AlignedQualities.at(pos);
+								if((int) quality > 32){ //skip if quality dies not make sense
+									readBase = genoMap.getBase(base);
+									refBase = genoMap.getBase(ref[pos]);
+									pmdTables.addForward(readGroupId, pos, refBase, readBase);
+									pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
+								}
+							}
+						}
+					}
+				}
+				//check if we move to next window
+				if(bamAlignement.Position >= windows.cur->end) break;
+			}
+
+			//report
+			gettimeofday(&end, NULL);
+			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 		}
 	}
+
 
 	//print tables and data
 	std::string filename = outputName + "_PMD_Table.txt";

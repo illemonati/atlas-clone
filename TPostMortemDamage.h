@@ -33,7 +33,7 @@ public:
 	TPMDTable(int MaxLength);
 	~TPMDTable();
 	void empty();
-	void add(int pos, Base ref, Base read);
+	void add(int & pos, Base & ref, Base & read);
 	void writeTable(std::ofstream & out, std::string prefix);
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
@@ -44,10 +44,11 @@ class TPMDTables{
 public:
 	TReadGroups* readGroups;
 	TPMDTable** forward;
-	TPMDTable** backward;
+	TPMDTable** reverse;
 
 	TPMDTables(TReadGroups* ReadGroups, int maxLength);
-	void add(TSite & site);
+	void addForward(int readGroup, int pos, Base & ref, Base & read);
+	void addReverse(int readGroup, int pos, Base & ref, Base & read);
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
