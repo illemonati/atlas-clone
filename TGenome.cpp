@@ -1283,6 +1283,67 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->removeIndent();
 }
 
+
+void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables){
+	//Extract Read Group Info
+	std::string readGroup;
+	bamAlignement.GetTag("RG", readGroup);
+	int readGroupId = readGroups.find(readGroup);
+	int length = bamAlignement.AlignedBases.size();
+	char base;
+	int quality;
+	Base readBase, refBase;
+
+	//add to PMD
+	//distinguish between cases
+	int internalPos = bamAlignement.Position - window->start;
+	if(bamAlignement.IsProperPair()){
+		throw "Not yet done for paired end!";
+	} else {
+		//single end
+		if(bamAlignement.IsReverseStrand()){
+			//single end & reverse
+			//forward position = len - pos - 1
+			//reverse position = pos
+			//FLIP BASES!
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.flipBase(base);
+						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+						refBase = genoMap.flipBase(ref[internalPos]);
+
+						if(refBase == N){
+							std::cout << "ISSUE WITH REF at pos = " << internalPos << " = " << internalPos + window->start << std::endl;
+						}
+
+						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+						pmdTables.addReverse(readGroupId, pos, refBase, readBase);
+					}
+				}
+			}
+		} else {
+			//single end & forward
+			//forward position = pos
+			//reverse position = len - pos -1
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.getBase(base);
+						refBase = genoMap.getBase(ref[internalPos]);
+						pmdTables.addForward(readGroupId, pos, refBase, readBase);
+						pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
+					}
+				}
+			}
+		}
+	}
+}
+
 void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
@@ -1299,13 +1360,6 @@ void TGenome::estimatePMD(TParameters & params){
 	struct timeval start, end;
 
 	//tmp variables
-	int internalPos;
-	char base;
-	Base readBase, refBase;
-	int quality;
-	std::string readGroup;
-	int readGroupId;
-	int length;
 	int fastaEnd;
 	std::string ref;
 	TGenotypeMap genoMap;
@@ -1322,67 +1376,34 @@ void TGenome::estimatePMD(TParameters & params){
 			fastaEnd = windows.cur->end + 500; //note that end is last position + 1
 			reference.GetSequence(chrNumber, windows.cur->start, fastaEnd, ref);
 
-			//parse through reads
-			while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
-				++numreadsAdded;
-
-				//Extract Read Group Info
-				bamAlignement.GetTag("RG", readGroup);
-				readGroupId = readGroups.find(readGroup);
-				length = bamAlignement.AlignedBases.size();
-
-				//add to PMD
-				//distinguish between cases
-				internalPos = bamAlignement.Position - windows.cur->start;
-				if(bamAlignement.IsProperPair()){
-					throw "Not yet done for paired end!";
-				} else {
-					//single end
-					if(bamAlignement.IsReverseStrand()){
-						//single end & reverse
-						//forward position = len - pos - 1
-						//reverse position = pos
-						//FLIP BASES!
-						for(int pos = 0; pos < length; ++pos, ++internalPos){
-							base = bamAlignement.AlignedBases.at(pos);
-							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-								quality = bamAlignement.AlignedQualities.at(pos);
-								if((int) quality > 32){ //skip if quality dies not make sense
-									readBase = genoMap.getFlippedBase(base);
-									refBase = genoMap.getFlippedBase(ref[internalPos]);
-									pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-									pmdTables.addReverse(readGroupId, pos, refBase, readBase);
-								}
-							}
-						}
-					} else {
-						//single end & forward
-						//forward position = pos
-						//reverse position = len - pos -1
-						for(int pos = 0; pos < length; ++pos, ++internalPos){
-							base = bamAlignement.AlignedBases.at(pos);
-							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-								quality = bamAlignement.AlignedQualities.at(pos);
-								if((int) quality > 32){ //skip if quality dies not make sense
-									readBase = genoMap.getBase(base);
-									refBase = genoMap.getBase(ref[internalPos]);
-									pmdTables.addForward(readGroupId, pos, refBase, readBase);
-									pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
-								}
-							}
-						}
-					}
+			//still have old alignment to condider?
+			if(oldAlignementMustBeConsidered && bamAlignement.Position >= windows.cur->end){
+					logfile->write(" done!");
+					logfile->conclude("No data in this window.");
+			} else {
+				if(oldAlignementMustBeConsidered){
+					//add this read to window
+					oldAlignementMustBeConsidered = false;
+					++numreadsAdded;
+					addReadToPMD(windows.cur, genoMap, ref, pmdTables);
 				}
-				//check if we move to next window
-				if(bamAlignement.Position >= windows.cur->end) break;
-			}
 
-			//report
-			gettimeofday(&end, NULL);
-			logfile->write(" done (added " + toString(numreadsAdded) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
+				//parse additional reads
+				while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
+					//check if this read is beyond window
+					if(bamAlignement.Position >= windows.cur->end){
+						oldAlignementMustBeConsidered = true;
+						break;
+					}
+					addReadToPMD(windows.cur, genoMap, ref, pmdTables);
+				}
+
+				//report
+				gettimeofday(&end, NULL);
+				logfile->write(" done (added " + toString(numreadsAdded) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
+			}
 		}
 	}
-
 
 	//print tables and data
 	std::string filename = outputName + "_PMD_Table.txt";
