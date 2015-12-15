@@ -1192,7 +1192,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 	else {
 		qualityConverged = false;
 		estimatetionRequired = true;
-		int minQ = params.getParameterIntWithDefault("minQ", 1);
+		int minQ = params.getParameterIntWithDefault("minQ", 0);
 		int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 		logfile->list("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
 		qualityIndex = new TQualityIndex(minQ, maxQ);
