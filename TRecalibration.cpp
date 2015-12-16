@@ -900,7 +900,7 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 //TRecalibrationBQSR_cell BQSR
 //---------------------------------------------------------------
 TBQSR_cell::TBQSR_cell(){
-	curEstimate = 0.0;
+	curEstimate = 0.01;
 	estimationConverged = false;
 	firstDerivative = 0.0;
 	firstDerivativeSave = 0.0;
@@ -915,10 +915,14 @@ TBQSR_cell::TBQSR_cell(){
 
 void TBQSR_cell::init(double initialError){
 	curEstimate = initialError;
+	if(curEstimate <= 0.0) curEstimate = 0.000000001;
+	if(curEstimate >= 1.0) curEstimate = 0.9;
 }
 
 void TBQSR_cell::set(double error, std::string & NumObservations){
 	curEstimate = error;
+	if(curEstimate <= 0.0) curEstimate = 0.000000001;
+	if(curEstimate >= 1.0) curEstimate = 0.9;
 	if(NumObservations == "-") numObservations = 0;
 	else numObservations = pow(10.0, stringToDouble(NumObservations));
 };
@@ -1006,11 +1010,11 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 			runNewtonRaphson(convergenceThreshold);
 
 			//check boundaries
-			if(curEstimate < 0.0){
+			if(curEstimate <= 0.0){
 				curEstimate = 0.000000001;
 				if(oldEstimate == 0.00000001)
 					estimationConverged = true; //if estimate is repeatedly below, accept
-			} else if(curEstimate > 1.0){
+			} else if(curEstimate >= 1.0){
 				curEstimate = 0.999999999;
 				if(oldEstimate == 0.999999999)
 					estimationConverged = true; //if estimate is repeatedly above, accept
