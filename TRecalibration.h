@@ -408,13 +408,13 @@ private:
 	bool storeDinMemory;
 
 	//recal tables
-	bool qualityConverged;
+	bool qualityConverged, estimateQuality;
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
-	bool considerPosition, positionConverged;
+	bool considerPosition, positionConverged, estimatePosition;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
-	bool considerPositionReverse, positionReverseConverged;
+	bool considerPositionReverse, positionReverseConverged, estimatePositionReverse;
 	TBQSR_cellPositionRev** BQSR_cells_readGroup_position_reverse; //read group x position
-	bool considerContext, contextConverged;
+	bool considerContext, contextConverged, estimateContext;
 	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
 
 	void initializeBQSRReadGroupQualityTable(TParameters & params);

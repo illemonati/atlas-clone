@@ -1359,6 +1359,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 	if(params.parameterExists("BQSRQuality")) initializeBQSRReadGroupQualityTableFromFile(params);
 	else {
 		qualityConverged = false;
+		estimateQuality = true;
 		estimatetionRequired = true;
 		int minQ = params.getParameterIntWithDefault("minQ", 0);
 		int maxQ = params.getParameterIntWithDefault("maxQ", 100);
@@ -1440,8 +1441,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	}
 
 	//set that no estimation is not required, unless asked for
-	if(params.parameterExists("estimateBQSRQuality")) qualityConverged = false;
-	else qualityConverged = true;
+	if(params.parameterExists("estimateBQSRQuality")){
+		qualityConverged = false;
+		estimateQuality = true;
+	} else {
+		qualityConverged = true;
+		estimateQuality = false;
+	}
 
 	//done!
 	logfile->write(" done!");
@@ -1456,6 +1462,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTable(TParameters & para
 		considerPosition = params.parameterExists("estimateBQSRPosition");
 		if(considerPosition){
 			estimatetionRequired = true;
+			estimatePosition = true;
 			maxPos = params.getParameterInt("maxPos");
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
 			logfile->list("Considering positions up to " + toString(maxPos));
@@ -1545,8 +1552,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	delete[] isListed;
 
 	//set that no estimation is not required, unless requested
-	if(params.parameterExists("estimateBQSRPosition")) positionConverged = false;
-	else positionConverged = true;
+	if(params.parameterExists("estimateBQSRPosition")){
+		positionConverged = false;
+		estimatePosition = true;
+	} else {
+		positionConverged = true;
+		estimatePosition = false;
+	}
 	considerPosition = true;
 
 	//done!
@@ -1562,6 +1574,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTable(TParameters
 		positionReverseConverged = false;
 		considerPositionReverse = params.parameterExists("estimateBQSRPositionReverse");
 		if(considerPositionReverse){
+			estimatePositionReverse = true;
 			estimatetionRequired = true;
 			maxPos = params.getParameterInt("maxPos");
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
@@ -1656,8 +1669,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	delete[] isListed;
 
 	//set that no estimation is not required, unless requested
-	if(params.parameterExists("estimateBQSRPositionReverse")) positionReverseConverged = false;
-	else positionReverseConverged = true;
+	if(params.parameterExists("estimateBQSRPositionReverse")){
+		positionReverseConverged = false;
+		estimatePositionReverse = true;
+	} else {
+		positionReverseConverged = true;
+		estimatePositionReverse = false;
+	}
 	considerPositionReverse = true;
 
 	//done!
@@ -1671,6 +1689,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTable(TParameters & param
 		contextConverged = false;
 		considerContext = params.parameterExists("estimateBQSRContext");
 		if(considerContext){
+			estimateContext = true;
 			estimatetionRequired = true;
 			logfile->list("Considering context");
 			BQSR_cells_readGroup_context = new TBQSR_cellContext*[numReadGroups];
@@ -1754,8 +1773,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	delete[] isListed;
 
 	//set that no estimation is not required, unless requested
-	if(params.parameterExists("estimateBQSRContext")) contextConverged = false;
-	else contextConverged = true;
+	if(params.parameterExists("estimateBQSRContext")){
+		contextConverged = false;
+		estimateContext = true;
+	} else {
+		contextConverged = true;
+		estimateContext = false;
+	}
 	considerContext = true;
 
 	//done!
@@ -1856,7 +1880,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 		logfile->write(" done!");
 		if(numCellsNotConverged == 0){
 			positionConverged = true;
-			logfile->list("Estimation converged in all cells!");
+			logfile->list("Estimation converged in all cells xxxxxx!");
 		} else {
 			positionConverged = false;
 			int percent = 100.0 * ((double) numCellsNotConverged / (double) (numReadGroups * maxPos));
@@ -2059,42 +2083,45 @@ bool TRecalibrationBQSR::allConverged(){
 
 void TRecalibrationBQSR::reopenEstimation(){
 	//resets all cells not to have converged
-	for(int i=0; i<numReadGroups; ++i){
-		for(int q=0; q<qualityIndex->numQ; ++q){
-			BQSR_cells_readGroup_quality[i][q].reopenEstimation();
+	if(estimateQuality){
+		for(int i=0; i<numReadGroups; ++i){
+			for(int q=0; q<qualityIndex->numQ; ++q){
+				BQSR_cells_readGroup_quality[i][q].reopenEstimation();
+			}
 		}
+		qualityConverged = false;
 	}
-	qualityConverged = false;
 
 	//also for position
-	if(considerPosition){
+	if(considerPosition && estimatePosition){
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position[i][p].reopenEstimation();
 			}
 		}
+		positionConverged = false;
 	}
-	positionConverged = false;
 
 	//reverse position
-	if(considerPositionReverse){
+	if(considerPositionReverse && estimatePositionReverse){
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position_reverse[i][p].reopenEstimation();
 			}
 		}
+		positionReverseConverged = false;
 	}
-	positionReverseConverged = false;
 
 	//and context
-	if(considerContext){
+	if(considerContext && estimateContext){
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
 				BQSR_cells_readGroup_context[r][c].reopenEstimation();
 			}
 		}
+		contextConverged = false;
 	}
-	contextConverged = false;
+
 }
 
 double TRecalibrationBQSR::getErrorRate(TBase* base){
