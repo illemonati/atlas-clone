@@ -131,6 +131,11 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 
+	double makePhred(float & epsilon){
+		if(epsilon < 0.0000000001) return 100.0;
+		return -10.0 * log10(epsilon);
+	};
+
 	double dePhred(double quality){
 		return pow(10.0, quality / -10.0);
 	};
@@ -277,39 +282,42 @@ public:
 // -
 class TBQSR_cell_base{
 public:
-	double curEstimate;
+	float curEstimate;
 	bool estimationConverged;
-	double firstDerivative, secondDerivative;
-	double firstDerivativeSave, secondDerivativeSave;
-	double numObservations;
-	double numObservationsTmp;
-	double F;
-	double LL;
+	float firstDerivative, secondDerivative;
+	float firstDerivativeSave, secondDerivativeSave;
+	float numObservations;
+	float numObservationsTmp;
+	float F;
+	float LL;
+	int myReadGroup;
+	//for storage
+	bool store;
+	int batchSize;
+	int next;
 
 	TBQSR_cell_base();
 	virtual ~TBQSR_cell_base(){};
 	virtual void empty();
+	virtual void init(bool Store, int ReadGroup);
 	void reopenEstimation();
-	void set(double error){curEstimate = error;};
-	void set(double error, std::string & NumObservations);
+	void set(float error){curEstimate = error;};
+	void set(float error, std::string & NumObservations);
 	float getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
-	virtual bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
-	void runNewtonRaphson(double & convergenceThreshold);
+	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
+	void runNewtonRaphson(float & convergenceThreshold);
 	std::string getNumObsForPrinting();
 };
 
 
 class TBQSR_cell:public TBQSR_cell_base{
 public:
-	double numMatches;
+	float numMatches;
 	//for storage
 	std::vector<float*> D_storage;
 	std::vector<float*>::reverse_iterator batchIt;
 	float* pointerToBatch;
-	int batchSize;
-	int next;
-	bool store;
 
 	TBQSR_cell();
 	virtual ~TBQSR_cell(){
@@ -317,46 +325,40 @@ public:
 	};
 	void empty();
 	void clearStorage();
-	void init(double initialError, bool Store);
+	void init(float initialError, bool Store, int ReadGroup);
 	void addBase(TBase* base, Base & RefBase);
-	void addBaseToDerivatives(TBase* base, Base & RefBase);
 	void addToDerivatives(float & D);
-	void runNewtonRaphsonAndCheck(double & convergenceThreshold, double & minEpsilon);
-	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
-	double makePhred(double & epsilon){
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
+	float makePhred(float & epsilon){
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
 	};
 };
 
-class TBQSR_cellStorage:public TBQSR_cell{
-public:
-	std::vector<float*> D_storage;
-	std::vector<float*>::reverse_iterator batchIt;
-	float* pointerToBatch;
-	int batchSize;
-	int next;
-
-	TBQSR_cellStorage();
-	~TBQSR_cellStorage();
-
-	void empty();
-	void addBaseToDerivatives(TBase* base, Base & RefBase);
-	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
+struct BQSRFactorStorage{
+	float D;
+	float epsilon;
 };
 
 class TBQSR_cellPosition:public TBQSR_cell_base{
 public:
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	TQualityIndex* qualityIndex;
+	//for storage
+	std::vector<BQSRFactorStorage*> D_storage;
+	std::vector<BQSRFactorStorage*>::reverse_iterator batchIt;
+	BQSRFactorStorage* pointerToBatch;
 
 	TBQSR_cellPosition();
 	~TBQSR_cellPosition(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	virtual float getEpsilon(TBase* base);
 	void addBase(TBase* base, Base & RefBase);
-	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
-	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
+	void addToDerivatives(float & D, float & epsilon);
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
 };
 
 class TBQSR_cellPositionRev:public TBQSR_cellPosition{
@@ -367,9 +369,9 @@ public:
 	TBQSR_cellPositionRev();
 	~TBQSR_cellPositionRev(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex);
-	void addBase(TBase* base, Base & RefBase);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	float getEpsilon(TBase* base);
 };
 
 class TBQSR_cellContext:public TBQSR_cellPositionRev{
@@ -380,11 +382,11 @@ public:
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
-	void addBase(TBase* base, Base & RefBase);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	float getEpsilon(TBase* base);
 };
 
 //TODO: make class TBQSR_table!
@@ -397,8 +399,8 @@ private:
 	TGenotypeMap genoMap;
 	int numReadGroups;
 	bool estimatetionRequired;
-	double convergenceThreshold_F;
-	double minEpsilonQuality, minEpsilonFactors;
+	float convergenceThreshold_F;
+	float minEpsilonQuality, minEpsilonFactors;
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;

@@ -910,6 +910,10 @@ TBQSR_cell_base::TBQSR_cell_base(){
 	numObservationsTmp = 0.0;
 	F = 0.0;
 	LL = 0.0;
+	myReadGroup = -1;
+	store = false;
+	batchSize = 100000;
+	next = 0;
 }
 
 void TBQSR_cell_base::empty(){
@@ -923,12 +927,17 @@ void TBQSR_cell_base::empty(){
 	}
 }
 
+void TBQSR_cell_base::init(bool Store, int ReadGroup){
+	store = Store;
+	myReadGroup = ReadGroup;
+}
+
 void TBQSR_cell_base::reopenEstimation(){
 	estimationConverged = false;
 	empty();
 }
 
-void TBQSR_cell_base::set(double error, std::string & NumObservations){
+void TBQSR_cell_base::set(float error, std::string & NumObservations){
 	curEstimate = error;
 	if(curEstimate <= 0.0) curEstimate = 0.000000001;
 	if(curEstimate >= 1.0) curEstimate = 0.9;
@@ -957,7 +966,7 @@ float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
 	return D;
 }
 
-void TBQSR_cell_base::runNewtonRaphson(double & convergenceThreshold){
+void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold){
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
@@ -975,20 +984,17 @@ std::string TBQSR_cell_base::getNumObsForPrinting(){
 //---------------------------------------------------------------
 TBQSR_cell::TBQSR_cell():TBQSR_cell_base(){
 	numMatches = 0;
-	store = false;
-	batchSize = 100000;
-	next = 0;
 	pointerToBatch = NULL;
-	curEstimate = 0.0;
 }
 
-void TBQSR_cell::init(double initialError, bool Store){
+void TBQSR_cell::init(float initialError, bool Store, int ReadGroup){
+	TBQSR_cell_base::init(Store, ReadGroup);
+
 	curEstimate = initialError;
 	if(curEstimate <= 0.0) curEstimate = 0.000000001;
 	if(curEstimate >= 1.0) curEstimate = 0.9;
 
 	//storage
-	store = Store;
 	if(store){
 		D_storage.push_back(new float[batchSize]);
 		batchIt = D_storage.rbegin();
@@ -1013,25 +1019,28 @@ void TBQSR_cell::clearStorage(){
 	}
 }
 
-void TBQSR_cell::addBaseToDerivatives(TBase* base, Base & RefBase){
-	if(store){
-		if(next == batchSize){
-			//add new batch
-			D_storage.push_back(new float[batchSize]);
-			batchIt = D_storage.rbegin();
-			pointerToBatch = *batchIt;
-			next = 0;
-		}
+void TBQSR_cell::addBase(TBase* base, Base & RefBase){
+	if(!estimationConverged){
+		if(store){
+			if(next == batchSize){
+				//add new batch
+				D_storage.push_back(new float[batchSize]);
+				batchIt = D_storage.rbegin();
+				pointerToBatch = *batchIt;
+				next = 0;
+			}
 
-		//add D to batch
-		pointerToBatch[next] = getD(base, RefBase);
-		addToDerivatives(pointerToBatch[next]);
-		++next;
-	} else {
-		float D = getD(base, RefBase);
-		addToDerivatives(D);
+			//add D to batch
+			pointerToBatch[next] = getD(base, RefBase);
+			addToDerivatives(pointerToBatch[next]);
+			++next;
+		} else {
+			float D = getD(base, RefBase);
+			addToDerivatives(D);
+		}
+		++numObservationsTmp;
+		if(base->getBaseAsEnum() == RefBase) ++numMatches;
 	}
-	++numObservationsTmp;
 }
 
 void TBQSR_cell::addToDerivatives(float & D){
@@ -1041,16 +1050,9 @@ void TBQSR_cell::addToDerivatives(float & D){
 	secondDerivative -= tmpF * tmpF;
 }
 
-void TBQSR_cell::addBase(TBase* base, Base & RefBase){
-	if(!estimationConverged){
-		addBaseToDerivatives(base, RefBase);
-		if(base->getBaseAsEnum() == RefBase) ++numMatches;
-	}
-}
-
-void TBQSR_cell::runNewtonRaphsonAndCheck(double & convergenceThreshold, double & minEpsilon){
+void TBQSR_cell::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
 	//need Newton-Raphson to estimate epsilon
-	double oldEstimate = curEstimate;
+	float oldEstimate = curEstimate;
 	runNewtonRaphson(convergenceThreshold);
 
 	//check boundaries
@@ -1075,7 +1077,7 @@ void TBQSR_cell::runNewtonRaphsonAndCheck(double & convergenceThreshold, double 
 	if(abs(makePhred(oldEstimate) - makePhred(curEstimate)) < minEpsilon) estimationConverged = true;
 }
 
-bool TBQSR_cell::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){
+bool TBQSR_cell::estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		numObservations = numObservationsTmp;
@@ -1132,60 +1134,121 @@ TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell_base(){
 	BQSR_cells_readGroup_quality = NULL;
 	qualityIndex = NULL;
 	curEstimate = 1.0;
+	pointerToBatch = NULL;
 }
 
-void TBQSR_cellPosition::init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex){
+void TBQSR_cellPosition::init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cell_base::init(Store, ReadGroup);
 	BQSR_cells_readGroup_quality = gotBQSR_cells_quality_readGroup;
 	qualityIndex = QualityIndex;
+
+	//storage
+	if(store){
+		D_storage.push_back(new BQSRFactorStorage[batchSize]);
+		batchIt = D_storage.rbegin();
+		pointerToBatch = *batchIt;
+	}
 }
 
-void TBQSR_cellPosition::addToDerivatives(TBase* base, Base & RefBase, double & epsilon){
-	double D = getD(base, RefBase);
-
+void TBQSR_cellPosition::addToDerivatives(float & D, float & epsilon){
 	double epsMinus4Deps = epsilon - 4.0 * D * epsilon;
 	firstDerivative += epsMinus4Deps / (-4.0*D*epsilon*curEstimate + 3.0*D + epsilon*curEstimate);
 	double tmpF = epsMinus4Deps / (D*(3.0-4.0*epsilon*curEstimate) + epsilon*curEstimate);
 	secondDerivative -= tmpF * tmpF;
+}
 
-	++numObservationsTmp;
-
-	//LL += log((1.0-D) * epsilon*curEstimate / 3.0 + D * (1.0 - epsilon*curEstimate));
+float TBQSR_cellPosition::getEpsilon(TBase* base){
+	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 }
 
 void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
 	if(!estimationConverged){
-		addToDerivatives(base, RefBase, BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate);
+		if(store){
+			if(next == batchSize){
+				//add new batch
+				D_storage.push_back(new BQSRFactorStorage[batchSize]);
+				batchIt = D_storage.rbegin();
+				pointerToBatch = *batchIt;
+				next = 0;
+			}
+
+			//add D to batch
+			pointerToBatch[next].D = getD(base, RefBase);
+			pointerToBatch[next].epsilon = getEpsilon(base);
+			addToDerivatives(pointerToBatch[next].D, pointerToBatch[next].epsilon);
+			++next;
+		} else {
+			float D = getD(base, RefBase);
+			float eps = getEpsilon(base);
+			addToDerivatives(D, eps);
+		}
+		++numObservationsTmp;
 	}
 }
 
-bool TBQSR_cellPosition::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){
+
+void TBQSR_cellPosition::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
+	//need Newton-Raphson to estimate epsilon
+	float oldEstimate = curEstimate;
+	runNewtonRaphson(convergenceThreshold);
+
+	//check boundaries
+	if(curEstimate < 0.0){
+		curEstimate = 0.01;
+		if(oldEstimate == 0.01)
+			estimationConverged = true; //if estimate is repeatedly below, accept
+	} else if(curEstimate > 10000.0){
+		curEstimate = 100.0;
+		if(oldEstimate == 100.0)
+			estimationConverged = true; //if estimate is repeatedly above, accept
+	}
+
+	//check if quality did not change
+	if(abs(oldEstimate - curEstimate) < minEpsilon) estimationConverged = true;
+}
+
+
+bool TBQSR_cellPosition::estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		numObservations = numObservationsTmp;
 
 		if(numObservations < minObservations){ //keep current estimate
 			estimationConverged = true;
-			return estimationConverged;
 		} else {
 			//need Newton-Raphson to estimate epsilon
-			double oldEstimate = curEstimate;
-			runNewtonRaphson(convergenceThreshold);
+			runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
 
-			//check boundaries
-			if(curEstimate < 0.0){
-				curEstimate = 0.01;
-				if(oldEstimate == 0.01)
-					estimationConverged = true; //if estimate is repeatedly below, accept
-			} else if(curEstimate > 10000.0){
-				curEstimate = 100.0;
-				if(oldEstimate == 100.0)
-					estimationConverged = true; //if estimate is repeatedly above, accept
+			//if all necessary data is stored, let's iterate through Newton-Ralphson until it converges
+			if(store){
+				while(!estimationConverged){
+					//recalculate derivatives
+					//set to zero
+					empty();
+
+					//first the last batch, which is not filled to the end
+					batchIt = D_storage.rbegin();
+					pointerToBatch = *batchIt;
+					for(int i=0; i<next; ++i){
+						addToDerivatives(pointerToBatch[i].D, pointerToBatch[i].epsilon);
+					}
+
+					//and now the other batches
+					++batchIt;
+					for(;batchIt != D_storage.rend(); ++batchIt){
+						pointerToBatch = *batchIt;
+						for(int i=0; i<batchSize; ++i){
+							addToDerivatives(pointerToBatch[i].D, pointerToBatch[i].epsilon);
+						}
+					}
+
+					//and run Newton-Raphson again
+					runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
+				}
 			}
-
-			//check if quality did not change
-			if(abs(oldEstimate - curEstimate) < minEpsilon) estimationConverged = true;
 		}
 	}
+
 	return estimationConverged;
 }
 
@@ -1198,23 +1261,21 @@ TBQSR_cellPositionRev::TBQSR_cellPositionRev():TBQSR_cellPosition(){
 	considerPosition = false;
 }
 
-void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex){
-	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex);
+void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position = gotBQSR_quality_position;
 	considerPosition = true;
 }
 
-void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex){
-	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex);
+void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPosition::init(gotBQSR_quality_readGroup, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position = NULL;
 }
 
-void TBQSR_cellPositionRev::addBase(TBase* base, Base & RefBase){
-	if(!estimationConverged){
-		double epsilonAlpha = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
-		if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
-		addToDerivatives(base, RefBase, epsilonAlpha);
-	}
+float TBQSR_cellPositionRev::getEpsilon(TBase* base){
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
+	return  epsilonAlpha;
 }
 
 //---------------------------------------------------------------
@@ -1223,36 +1284,33 @@ TBQSR_cellContext::TBQSR_cellContext():TBQSR_cellPositionRev(){
 	considerPositionRev = false;
 }
 
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex){
-	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, gotBQSR_quality_position, QualityIndex);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, gotBQSR_quality_position, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position_rev = gotBQSR_quality_position_rev;
 	considerPositionRev = true;
 }
 
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex){
-	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, gotBQSR_quality_position, QualityIndex);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPosition** gotBQSR_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, gotBQSR_quality_position, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position_rev = NULL;
 }
 
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex){
-	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, QualityIndex);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position_rev = gotBQSR_quality_position_rev;
 	considerPositionRev = true;
 }
 
-
-void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex){
-	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, QualityIndex);
+void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup){
+	TBQSR_cellPositionRev::init(gotBQSR_quality_readGroup, QualityIndex, Store, ReadGroup);
 	BQSR_cells_readGroup_position_rev = NULL;
 }
 
-void TBQSR_cellContext::addBase(TBase* base, Base & RefBase){
-	if(!estimationConverged){
-		double epsilonAlpha = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
-		if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
-		if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[base->readGroup][base->posInReadRev].curEstimate;
-		addToDerivatives(base, RefBase, epsilonAlpha);
-	}
+float TBQSR_cellContext::getEpsilon(TBase* base){
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
+	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->posInReadRev].curEstimate;
+	return  epsilonAlpha;
 }
 
 //---------------------------------------------------------------
@@ -1312,7 +1370,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 		for(int i=0; i<numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 			for(int q=0; q<qualityIndex->numQ; ++q){
-				BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory);
+				BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory, i);
 			}
 		}
 	}
@@ -1356,7 +1414,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//create corresponding objects
 	for(int i=0; i<numReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory, i);
 	}
 
 	//rewind file to beginning
@@ -1402,9 +1460,9 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTable(TParameters & para
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
 			logfile->list("Considering positions up to " + toString(maxPos));
 			BQSR_cells_readGroup_position = new TBQSR_cellPosition*[numReadGroups];
-			for(int i=0; i<numReadGroups; ++i){
-				BQSR_cells_readGroup_position[i] = new TBQSR_cellPosition[maxPos];
-				for(int p=0; p<maxPos; ++p) BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
+			for(int r=0; r<numReadGroups; ++r){
+				BQSR_cells_readGroup_position[r] = new TBQSR_cellPosition[maxPos];
+				for(int p=0; p<maxPos; ++p) BQSR_cells_readGroup_position[r][p].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
 			}
 		} else {
 			BQSR_cells_readGroup_position = NULL;
@@ -1444,12 +1502,12 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 
 	//create corresponding objects and object to check if we will initialize all positions!
 	bool** isListed = new bool*[numReadGroups];
-	for(int i=0; i<numReadGroups; ++i){
-		BQSR_cells_readGroup_position[i] = new TBQSR_cellPosition[maxPos];
-		isListed[i] = new bool[maxPos];
+	for(int r=0; r<numReadGroups; ++r){
+		BQSR_cells_readGroup_position[r] = new TBQSR_cellPosition[maxPos];
+		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
-			BQSR_cells_readGroup_position[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
-			isListed[i][p] = false;
+			BQSR_cells_readGroup_position[r][p].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
+			isListed[r][p] = false;
 		}
 	}
 
@@ -1509,11 +1567,11 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTable(TParameters
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
 			logfile->list("Considering positions reverse up to " + toString(maxPos));
 			BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[numReadGroups];
-			for(int i=0; i<numReadGroups; ++i){
-				BQSR_cells_readGroup_position_reverse[i] = new TBQSR_cellPositionRev[maxPos];
+			for(int r=0; r<numReadGroups; ++r){
+				BQSR_cells_readGroup_position_reverse[r] = new TBQSR_cellPositionRev[maxPos];
 				for(int p=0; p<maxPos; ++p){
-					if(considerPosition) BQSR_cells_readGroup_position_reverse[i][p].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
-					else BQSR_cells_readGroup_position_reverse[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
+					if(considerPosition) BQSR_cells_readGroup_position_reverse[r][p].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, storeDinMemory, r);
+					else BQSR_cells_readGroup_position_reverse[r][p].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
 				}
 			}
 		} else {
@@ -1554,13 +1612,13 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 
 	//create corresponding objects and object to check if we will initialize all positions!
 	bool** isListed = new bool*[numReadGroups];
-	for(int i=0; i<numReadGroups; ++i){
-		BQSR_cells_readGroup_position_reverse[i] = new TBQSR_cellPositionRev[maxPos];
-		isListed[i] = new bool[maxPos];
+	for(int r=0; r<numReadGroups; ++r){
+		BQSR_cells_readGroup_position_reverse[r] = new TBQSR_cellPositionRev[maxPos];
+		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
-			if(considerPosition) BQSR_cells_readGroup_position_reverse[i][p].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
-			else BQSR_cells_readGroup_position_reverse[i][p].init(BQSR_cells_readGroup_quality, qualityIndex);
-			isListed[i][p] = false;
+			if(considerPosition) BQSR_cells_readGroup_position_reverse[r][p].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, storeDinMemory, r);
+			else BQSR_cells_readGroup_position_reverse[r][p].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
+			isListed[r][p] = false;
 		}
 	}
 
@@ -1619,10 +1677,10 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTable(TParameters & param
 			for(int r=0; r<numReadGroups; ++r){
 				BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 				for(int c=0; c<numContexts; ++c){
-					if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex);
-					else if(considerPosition && !considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
-					else if(!considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position_reverse, qualityIndex);
-					else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex);
+					if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDinMemory, r);
+					else if(considerPosition && !considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, storeDinMemory, r);
+					else if(!considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDinMemory, r);
+					else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
 				}
 			}
 		} else {
@@ -1642,10 +1700,10 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	for(int r=0; r<numReadGroups; ++r){
 		BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 		for(int c=0; c<numContexts; ++c){
-			if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex);
-			else if(considerPosition && !considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex);
-			else if(!considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position_reverse, qualityIndex);
-			else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex);
+			if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDinMemory, r);
+			else if(considerPosition && !considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, storeDinMemory, r);
+			else if(!considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDinMemory, r);
+			else BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, qualityIndex, storeDinMemory, r);
 		}
 	}
 
