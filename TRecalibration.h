@@ -275,45 +275,77 @@ public:
 //covariates to take into account:
 // - read base (A, G, C, T)
 // -
-
-class TBQSR_cell{
-private:
-	double numMatches;
-	void addToDerivatives(TBase* base, Base & RefBase);
-
+class TBQSR_cell_base{
 public:
 	double curEstimate;
 	bool estimationConverged;
 	double firstDerivative, secondDerivative;
-
 	double firstDerivativeSave, secondDerivativeSave;
-
-	//TPMD* pmdObject;
 	double numObservations;
 	double numObservationsTmp;
-
 	double F;
 	double LL;
 
-	TBQSR_cell();
-	virtual ~TBQSR_cell(){};
-	void empty();
+	TBQSR_cell_base();
+	virtual ~TBQSR_cell_base(){};
+	virtual void empty();
 	void reopenEstimation();
-	void init(double initialError);
 	void set(double error){curEstimate = error;};
 	void set(double error, std::string & NumObservations);
-	double getD(TBase* base, Base & RefBase);
-	virtual void addBase(TBase* base, Base & RefBase);
+	float getD(TBase* base, Base & RefBase);
+	virtual void addBase(TBase* base, Base & RefBase){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
+	virtual bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
 	void runNewtonRaphson(double & convergenceThreshold);
-	virtual bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
 	std::string getNumObsForPrinting();
+};
+
+
+class TBQSR_cell:public TBQSR_cell_base{
+public:
+	double numMatches;
+	//for storage
+	std::vector<float*> D_storage;
+	std::vector<float*>::reverse_iterator batchIt;
+	float* pointerToBatch;
+	int batchSize;
+	int next;
+	bool store;
+
+	TBQSR_cell();
+	virtual ~TBQSR_cell(){
+		clearStorage();
+	};
+	void empty();
+	void clearStorage();
+	void init(double initialError, bool Store);
+	void addBase(TBase* base, Base & RefBase);
+	void addBaseToDerivatives(TBase* base, Base & RefBase);
+	void addToDerivatives(float & D);
+	void runNewtonRaphsonAndCheck(double & convergenceThreshold, double & minEpsilon);
+	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
 	double makePhred(double & epsilon){
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
 	};
 };
 
-class TBQSR_cellPosition:public TBQSR_cell{
+class TBQSR_cellStorage:public TBQSR_cell{
+public:
+	std::vector<float*> D_storage;
+	std::vector<float*>::reverse_iterator batchIt;
+	float* pointerToBatch;
+	int batchSize;
+	int next;
+
+	TBQSR_cellStorage();
+	~TBQSR_cellStorage();
+
+	void empty();
+	void addBaseToDerivatives(TBase* base, Base & RefBase);
+	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
+};
+
+class TBQSR_cellPosition:public TBQSR_cell_base{
 public:
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	TQualityIndex* qualityIndex;
@@ -371,6 +403,7 @@ private:
 	int maxPos;
 	int numContexts;
 	long minObservations;
+	bool storeDinMemory;
 
 	//recal tables
 	bool qualityConverged;

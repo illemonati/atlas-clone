@@ -897,9 +897,9 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 }
 
 //---------------------------------------------------------------
-//TRecalibrationBQSR_cell BQSR
+//TBQSR_cell_base BQSR
 //---------------------------------------------------------------
-TBQSR_cell::TBQSR_cell(){
+TBQSR_cell_base::TBQSR_cell_base(){
 	curEstimate = 0.01;
 	estimationConverged = false;
 	firstDerivative = 0.0;
@@ -908,29 +908,13 @@ TBQSR_cell::TBQSR_cell(){
 	secondDerivativeSave = 0.0;
 	numObservations = 0.0;
 	numObservationsTmp = 0.0;
-	numMatches = 0.0;
 	F = 0.0;
 	LL = 0.0;
 }
 
-void TBQSR_cell::init(double initialError){
-	curEstimate = initialError;
-	if(curEstimate <= 0.0) curEstimate = 0.000000001;
-	if(curEstimate >= 1.0) curEstimate = 0.9;
-}
-
-void TBQSR_cell::set(double error, std::string & NumObservations){
-	curEstimate = error;
-	if(curEstimate <= 0.0) curEstimate = 0.000000001;
-	if(curEstimate >= 1.0) curEstimate = 0.9;
-	if(NumObservations == "-") numObservations = 0;
-	else numObservations = pow(10.0, stringToDouble(NumObservations));
-};
-
-void TBQSR_cell::empty(){
+void TBQSR_cell_base::empty(){
 	if(!estimationConverged){
 		numObservationsTmp = 0;
-		numMatches = 0;
 		firstDerivativeSave = firstDerivative;
 		secondDerivativeSave = secondDerivative;
 		firstDerivative = 0.0;
@@ -939,13 +923,21 @@ void TBQSR_cell::empty(){
 	}
 }
 
-void TBQSR_cell::reopenEstimation(){
+void TBQSR_cell_base::reopenEstimation(){
 	estimationConverged = false;
 	empty();
 }
 
-double TBQSR_cell::getD(TBase* base, Base & RefBase){
-	double D = 0.0;
+void TBQSR_cell_base::set(double error, std::string & NumObservations){
+	curEstimate = error;
+	if(curEstimate <= 0.0) curEstimate = 0.000000001;
+	if(curEstimate >= 1.0) curEstimate = 0.9;
+	if(NumObservations == "-") numObservations = 0;
+	else numObservations = pow(10.0, stringToDouble(NumObservations));
+};
+
+float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
+	float D = 0.0;
 	switch(base->getBaseAsEnum()){
 		case A: if(RefBase == A){
 					D = 1.0;
@@ -965,30 +957,122 @@ double TBQSR_cell::getD(TBase* base, Base & RefBase){
 	return D;
 }
 
-void TBQSR_cell::addToDerivatives(TBase* base, Base & RefBase){
-	double D = getD(base, RefBase);
-
-	double oneMinus4D = 1.0 - 4.0 * D;
-	firstDerivative += oneMinus4D / (-4.0*D*curEstimate + 3.0*D + curEstimate);
-	double tmpF = oneMinus4D / (D*(3.0-4.0*curEstimate) + curEstimate);
-	secondDerivative -= tmpF * tmpF;
-
-	++numObservationsTmp;
-}
-
-
-void TBQSR_cell::addBase(TBase* base, Base & RefBase){
-	if(!estimationConverged){
-		addToDerivatives(base, RefBase);
-		if(base->getBaseAsEnum() == RefBase) ++numMatches;
-	}
-}
-
-void TBQSR_cell::runNewtonRaphson(double & convergenceThreshold){
+void TBQSR_cell_base::runNewtonRaphson(double & convergenceThreshold){
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
 	if(F < convergenceThreshold) estimationConverged = true;
+}
+
+
+std::string TBQSR_cell_base::getNumObsForPrinting(){
+	if(numObservations == 0) return "-";
+	else return toString(log10(numObservations));
+}
+
+//---------------------------------------------------------------
+//TBQSR_cell BQSR
+//---------------------------------------------------------------
+TBQSR_cell::TBQSR_cell():TBQSR_cell_base(){
+	numMatches = 0;
+	store = false;
+	batchSize = 100000;
+	next = 0;
+	pointerToBatch = NULL;
+	curEstimate = 0.0;
+}
+
+void TBQSR_cell::init(double initialError, bool Store){
+	curEstimate = initialError;
+	if(curEstimate <= 0.0) curEstimate = 0.000000001;
+	if(curEstimate >= 1.0) curEstimate = 0.9;
+
+	//storage
+	store = Store;
+	if(store){
+		D_storage.push_back(new float[batchSize]);
+		batchIt = D_storage.rbegin();
+		pointerToBatch = *batchIt;
+	}
+}
+
+void TBQSR_cell::empty(){
+	if(!estimationConverged){
+		TBQSR_cell_base::empty();
+		numMatches = 0;
+	} else {
+		clearStorage();
+	}
+}
+
+void TBQSR_cell::clearStorage(){
+	if(store){
+		for(batchIt = D_storage.rbegin(); batchIt != D_storage.rend(); ++batchIt)
+			delete[] *batchIt;
+		D_storage.clear();
+	}
+}
+
+void TBQSR_cell::addBaseToDerivatives(TBase* base, Base & RefBase){
+	if(store){
+		if(next == batchSize){
+			//add new batch
+			D_storage.push_back(new float[batchSize]);
+			batchIt = D_storage.rbegin();
+			pointerToBatch = *batchIt;
+			next = 0;
+		}
+
+		//add D to batch
+		pointerToBatch[next] = getD(base, RefBase);
+		addToDerivatives(pointerToBatch[next]);
+		++next;
+	} else {
+		float D = getD(base, RefBase);
+		addToDerivatives(D);
+	}
+	++numObservationsTmp;
+}
+
+void TBQSR_cell::addToDerivatives(float & D){
+	float oneMinus4D = 1.0 - 4.0 * D;
+	firstDerivative += oneMinus4D / (-4.0*D*curEstimate + 3.0*D + curEstimate);
+	float tmpF = oneMinus4D / (D*(3.0-4.0*curEstimate) + curEstimate);
+	secondDerivative -= tmpF * tmpF;
+}
+
+void TBQSR_cell::addBase(TBase* base, Base & RefBase){
+	if(!estimationConverged){
+		addBaseToDerivatives(base, RefBase);
+		if(base->getBaseAsEnum() == RefBase) ++numMatches;
+	}
+}
+
+void TBQSR_cell::runNewtonRaphsonAndCheck(double & convergenceThreshold, double & minEpsilon){
+	//need Newton-Raphson to estimate epsilon
+	double oldEstimate = curEstimate;
+	runNewtonRaphson(convergenceThreshold);
+
+	//check boundaries
+	if(curEstimate <= 0.0){
+		curEstimate = 0.000000001;
+		if(oldEstimate == 0.00000001)
+			estimationConverged = true; //if estimate is repeatedly below, accept
+	} else if(curEstimate >= 1.0){
+		curEstimate = 0.999999999;
+		if(oldEstimate == 0.999999999)
+			estimationConverged = true; //if estimate is repeatedly above, accept
+	}
+
+	//do not allow big jump in quality -> max +/- 10!
+	if(curEstimate / oldEstimate > 10.0){
+		curEstimate = oldEstimate * 10.0;
+	} else if(oldEstimate / curEstimate > 10.0){
+		curEstimate = oldEstimate / 10.0;
+	}
+
+	//check if quality did not change
+	if(abs(makePhred(oldEstimate) - makePhred(curEstimate)) < minEpsilon) estimationConverged = true;
 }
 
 bool TBQSR_cell::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){
@@ -1006,40 +1090,45 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, double & minEpsilon, lo
 			estimationConverged = true;
 		} else {
 			//need Newton-Raphson to estimate epsilon
-			double oldEstimate = curEstimate;
-			runNewtonRaphson(convergenceThreshold);
+			runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
 
-			//check boundaries
-			if(curEstimate <= 0.0){
-				curEstimate = 0.000000001;
-				if(oldEstimate == 0.00000001)
-					estimationConverged = true; //if estimate is repeatedly below, accept
-			} else if(curEstimate >= 1.0){
-				curEstimate = 0.999999999;
-				if(oldEstimate == 0.999999999)
-					estimationConverged = true; //if estimate is repeatedly above, accept
+			//if all necessary data is stored, let's iterate through Newton-Ralphson until it converges
+			if(store){
+				while(!estimationConverged){
+					//recalculate derivatives
+					//set to zero
+					empty();
+
+					//first the last batch, which is not filled to the end
+					batchIt = D_storage.rbegin();
+					pointerToBatch = *batchIt;
+					for(int i=0; i<next; ++i){
+						addToDerivatives(pointerToBatch[i]);
+					}
+
+					//and now the other batches
+					++batchIt;
+					for(;batchIt != D_storage.rend(); ++batchIt){
+						pointerToBatch = *batchIt;
+						for(int i=0; i<batchSize; ++i){
+							addToDerivatives(pointerToBatch[i]);
+						}
+					}
+
+					//and run Newton-Raphson again
+					runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
+				}
 			}
-
-			//do not allow big jump in quality -> max +/- 10!
-			if(curEstimate / oldEstimate > 10.0){
-				curEstimate = oldEstimate * 10.0;
-			} else if(oldEstimate / curEstimate > 10.0){
-				curEstimate = oldEstimate / 10.0;
-			}
-
-			//check if quality did not change
-			if(abs(makePhred(oldEstimate) - makePhred(curEstimate)) < minEpsilon) estimationConverged = true;
 		}
 	}
+
 	return estimationConverged;
 }
 
-std::string TBQSR_cell::getNumObsForPrinting(){
-	if(numObservations == 0) return "-";
-	else return toString(log10(numObservations));
-}
 //---------------------------------------------------------------
-TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell(){
+//TBQSR_cellPosition BQSR
+//---------------------------------------------------------------
+TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell_base(){
 	BQSR_cells_readGroup_quality = NULL;
 	qualityIndex = NULL;
 	curEstimate = 1.0;
@@ -1179,6 +1268,9 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	qualityIndex = NULL;
 	maxPos = 0;
 
+	storeDinMemory = params.parameterExists("storeInMemory");
+	if(storeDinMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
+
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
 	initializeBQSRReadGroupQualityTable(params);
 
@@ -1219,7 +1311,9 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 		BQSR_cells_readGroup_quality = new TBQSR_cell*[numReadGroups];
 		for(int i=0; i<numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-			for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)));
+			for(int q=0; q<qualityIndex->numQ; ++q){
+				BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory);
+			}
 		}
 	}
 }
@@ -1262,7 +1356,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//create corresponding objects
 	for(int i=0; i<numReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)));
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDinMemory);
 	}
 
 	//rewind file to beginning
