@@ -991,7 +991,7 @@ void TBQSR_cell::runNewtonRaphson(double & convergenceThreshold){
 	if(F < convergenceThreshold) estimationConverged = true;
 }
 
-bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations){
+bool TBQSR_cell::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		numObservations = numObservationsTmp;
@@ -1026,6 +1026,9 @@ bool TBQSR_cell::estimate(double & convergenceThreshold, long & minObservations)
 			} else if(oldEstimate / curEstimate > 10.0){
 				curEstimate = oldEstimate / 10.0;
 			}
+
+			//check if quality did not change
+			if(abs(makePhred(oldEstimate) - makePhred(curEstimate)) < minEpsilon) estimationConverged = true;
 		}
 	}
 	return estimationConverged;
@@ -1066,7 +1069,7 @@ void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
 	}
 }
 
-bool TBQSR_cellPosition::estimate(double & convergenceThreshold, long & minObservations){
+bool TBQSR_cellPosition::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		numObservations = numObservationsTmp;
@@ -1089,6 +1092,9 @@ bool TBQSR_cellPosition::estimate(double & convergenceThreshold, long & minObser
 				if(oldEstimate == 100.0)
 					estimationConverged = true; //if estimate is repeatedly above, accept
 			}
+
+			//check if quality did not change
+			if(abs(oldEstimate - curEstimate) < minEpsilon) estimationConverged = true;
 		}
 	}
 	return estimationConverged;
@@ -1184,8 +1190,16 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	initializeBQSRReadGroupContextTable(params);
 
 	//read Newton-Raphson arguments from user
-	convergenceThreshold = params.getParameterDoubleWithDefault("maxF", 0.0000001);
-	if(estimatetionRequired) logfile->list("Stopping Newton-Raphson if F < " + toString(convergenceThreshold));
+	convergenceThreshold_F = params.getParameterDoubleWithDefault("maxF", 0.0000001);
+	minEpsilonQuality = params.getParameterDoubleWithDefault("minEpsQuality", 0.000001);
+	minEpsilonFactors = params.getParameterDoubleWithDefault("minEpsFactors", 0.0001);
+	if(estimatetionRequired){
+		logfile->startIndent("Conditions to stop Newton-Raphson algorithm:");
+		logfile->list("Stopping Newton-Raphson if F < " + toString(convergenceThreshold_F));
+		logfile->list("Stopping Newton-Raphson if the change in quality is < " + toString(minEpsilonQuality));
+		logfile->list("Stopping Newton-Raphson if the change in a factor (e.g. position) is < " + toString(minEpsilonFactors));
+		logfile->endIndent();
+	}
 
 	//get minimal number of observations to conduct estimation
 	minObservations = params.getParameterLongWithDefault("minObservations", 1000);
@@ -1636,7 +1650,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 		logfile->listFlush("Estimating epsilon for readGroup x quality table ...");
 		for(int i=0; i<numReadGroups; ++i){
 			for(int j=0; j<qualityIndex->numQ; ++j){
-				if(!BQSR_cells_readGroup_quality[i][j].estimate(convergenceThreshold, minObservations)){
+				if(!BQSR_cells_readGroup_quality[i][j].estimate(convergenceThreshold_F, minEpsilonQuality, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_quality[i][j].F > maxF) maxF = BQSR_cells_readGroup_quality[i][j].F;
 				}
@@ -1679,7 +1693,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
-				if(!BQSR_cells_readGroup_position[i][p].estimate(convergenceThreshold, minObservations)){
+				if(!BQSR_cells_readGroup_position[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_position[i][p].F > maxF) maxF = BQSR_cells_readGroup_position[i][p].F;
 				}
@@ -1722,7 +1736,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
-				if(!BQSR_cells_readGroup_position_reverse[i][p].estimate(convergenceThreshold, minObservations)){
+				if(!BQSR_cells_readGroup_position_reverse[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_position_reverse[i][p].F > maxF) maxF = BQSR_cells_readGroup_position_reverse[i][p].F;
 				}
@@ -1763,7 +1777,7 @@ bool TRecalibrationBQSR::estimateEpsilon(){
 		logfile->listFlush("Estimating epsilon for quality x context table ...");
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
-				if(!BQSR_cells_readGroup_context[r][c].estimate(convergenceThreshold, minObservations)){
+				if(!BQSR_cells_readGroup_context[r][c].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_context[r][c].F > maxF) maxF = BQSR_cells_readGroup_context[r][c].F;
 				}

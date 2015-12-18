@@ -305,8 +305,12 @@ public:
 	double getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase);
 	void runNewtonRaphson(double & convergenceThreshold);
-	virtual bool estimate(double & convergenceThreshold, long & minObservations);
+	virtual bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
 	std::string getNumObsForPrinting();
+	double makePhred(double & epsilon){
+		if(epsilon < 0.0000000001) return 100.0;
+		return -10.0 * log10(epsilon);
+	};
 };
 
 class TBQSR_cellPosition:public TBQSR_cell{
@@ -320,7 +324,7 @@ public:
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
-	bool estimate(double & convergenceThreshold, long & minObservations);
+	bool estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations);
 };
 
 class TBQSR_cellPositionRev:public TBQSR_cellPosition{
@@ -361,7 +365,8 @@ private:
 	TGenotypeMap genoMap;
 	int numReadGroups;
 	bool estimatetionRequired;
-	double convergenceThreshold;
+	double convergenceThreshold_F;
+	double minEpsilonQuality, minEpsilonFactors;
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;
