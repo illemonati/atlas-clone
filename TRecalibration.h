@@ -328,6 +328,7 @@ public:
 	void init(float initialError, bool Store, int ReadGroup);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(float & D);
+	void recalculateDerivativesFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
 	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
 	float makePhred(float & epsilon){
@@ -351,12 +352,16 @@ public:
 	BQSRFactorStorage* pointerToBatch;
 
 	TBQSR_cellPosition();
-	~TBQSR_cellPosition(){};
+	~TBQSR_cellPosition(){
+		clearStorage();
+	};
 
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void clearStorage();
 	virtual float getEpsilon(TBase* base);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(float & D, float & epsilon);
+	void recalculateDerivativesFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
 	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
 };
@@ -405,7 +410,8 @@ private:
 	int maxPos;
 	int numContexts;
 	long minObservations;
-	bool storeDinMemory;
+	bool storeDataInMemory;
+	bool dataStored;
 
 	//recal tables
 	bool qualityConverged, estimateQuality;
@@ -461,9 +467,16 @@ public:
 		}
 	};
 
+	bool dataHasBeenStored(){ return dataStored; };
 	void addSite(TSite & site);
-	bool estimateEpsilon();
-	void writeToFile(std::string filenameTag);
+	void recalculateDerivativesFromDataInMemory();
+	bool estimateEpsilon(std::string filenameTag);
+	void writeAllToFile(std::string filenameTag);
+	void writeCurrentTmpTable(std::string filenameTag);
+	void writeQualityToFile(std::string & filenameTag);
+	void writePositionToFile(std::string & filenameTag);
+	void writePositionReverseToFile(std::string & filenameTag);
+	void writeContextToFile(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(TBase* base);

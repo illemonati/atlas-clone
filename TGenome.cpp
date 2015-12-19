@@ -955,6 +955,11 @@ void TGenome::BQSR(TParameters & params){
 	bool hasConverged = false;
 	int loopNumber = 0;
 
+	//do we print temporary tables?
+	bool printTmpTables = params.parameterExists("writeTmpTables");
+	if(printTmpTables) logfile->list("Temporary BQSR tables will be written to disk.");
+
+	/*
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
 		int numPreConvLoops = params.getParameterInt("preConverge");
@@ -1004,7 +1009,7 @@ void TGenome::BQSR(TParameters & params){
 		loopNumber = 0;
 		logfile->endIndent();
 		jumpToEnd();
-	}
+	} */
 
 	//loop over bam until BQSR converges
 	while(!hasConverged){
@@ -1012,36 +1017,33 @@ void TGenome::BQSR(TParameters & params){
 		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
 		//loop over all windows
 
-		while(iterateChromosome(windows)){
-			while(iterateWindow(windows)){
-				//read data for current window
-				if(readData(windows)){
-					//add reference data
-					windows.cur->addReferenceBaseToSites(reference, chrNumber);
+		if(!bqsr.dataHasBeenStored()){
+			logfile->startIndent("Reading data from BAM file:");
+			while(iterateChromosome(windows)){
+				while(iterateWindow(windows)){
+					//read data for current window
+					if(readData(windows)){
+						//add reference data
+						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-					//add the base to BQSR
-					windows.cur->addSitesToBQSR(bqsr, logfile);
+						//add the base to BQSR
+						windows.cur->addSitesToBQSR(bqsr, logfile);
+					}
 				}
 			}
+			//clean up memory
+			windows.clear();
+			logfile->endIndent();
 		}
 
-		//clean up memory
-		windows.clear();
-
 		//estimate epsilon
-		hasConverged = bqsr.estimateEpsilon();
+		hasConverged = bqsr.estimateEpsilon(outputName);
 
 		//write results to file
-		bqsr.writeToFile(outputName + "_Loop" + toString(loopNumber));
+		if(printTmpTables) bqsr.writeCurrentTmpTable(outputName + "_Loop" + toString(loopNumber));
 
 		logfile->endIndent();
 	}
-
-	//clean up memory
-	windows.clear();
-
-	//write results to file
-	bqsr.writeToFile(outputName);
 }
 
 
