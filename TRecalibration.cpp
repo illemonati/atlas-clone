@@ -1204,7 +1204,7 @@ void TBQSR_cellPosition::runNewtonRaphsonAndCheck(float & convergenceThreshold, 
 	}
 
 	//check if quality did not change
-	if(abs(oldEstimate - curEstimate) < minEpsilon) estimationConverged = true;
+	if(fabs(oldEstimate - curEstimate) < minEpsilon) estimationConverged = true;
 }
 
 
