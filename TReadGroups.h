@@ -91,6 +91,10 @@ public:
 		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
 		return groups[num].name;
 	};
+
+	int size(){
+		return numGroups;
+	};
 };
 
 #endif /* TREADGROUPS_H_ */

@@ -125,64 +125,99 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 	char base; BaseContext context;
 	char quality;
 	int secondLastPos = lastPos - 1;
-	for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-		/* Note:
-		 * Reference is 5' -> 3'
-		 * Hence for any read mapping "forward":
-		 * 		- distance from 5' = pos + 1
-		 * 		- distance from 3' = len - pos
-		 * For any read mapping "reverse":
-		 * 		- distance from 5' = len - pos
-		 * 		- distance from 3' = pos + 1
-		 * In both cases: 1) distance is 1-based!
-		 *                2) Ignoring indels when calculating distances
-		 *                3) Function add needs first pos5, then pos3
-		 */
 
-		//add to site: figure out context and PMD on the way
-		base = bamAlignement.AlignedBases.at(pos);
-		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-			quality = bamAlignement.AlignedQualities.at(pos);
-			if((int) quality > 32){
-				//figure out relevant distances
-				if(bamAlignement.IsReverseStrand()){
+	/* Note:
+	 *  1) Reference is 5' -> 3'
+	 *  2) distance is 1-based!
+	 *  3) Ignoring indels when calculating distances
+	 *  4) Function add needs first P(C->T), then P(G->A)
+	 */
 
-					if(bamAlignement.IsProperPair()){
-						if(bamAlignement.IsFirstMate()){
-							distFrom5prime = bamAlignement.InsertSize - pos - 1;
-							distFrom3Prime = pos;
-						} else {
-							distFrom5prime = bamAlignement.InsertSize - (len - pos);
-							distFrom3Prime = len - pos - 1;
-						}
-					} else {
+	if(bamAlignement.IsProperPair()){
+		if(bamAlignement.IsFirstMate()){
+			//first mate & reverse
+			//Hence P(C->T) is given as a function of pos
+			//And P(G->A) is given by (length of fragment) - pos -1
+			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						//get context
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						//set distances
+						distFrom5prime = pos;
+						distFrom3Prime = bamAlignement.InsertSize - pos - 1;
+						//add base
+						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
+					}
+				}
+			}
+		} else {
+			//second mate & reverse
+			//hence P(C->T) is given by f(dist since beginning of fragment) = f(insert - len + pos)
+			//and P(G->A) is given as f(end of fragment) = f(len - pos - 1)
+			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						//get context
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						//set distances
+						distFrom5prime = bamAlignement.InsertSize - len + pos;
+						distFrom3Prime = len - pos - 1;
+						//add base
+						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
+					}
+				}
+			}
+
+		}
+	} else {
+		//treat as single end
+		if(bamAlignement.IsReverseStrand()){
+			//not in pair & reverse
+			//Hence P(C->T) from 5' is just as P(G->A) from 3' in forward: f(pos)
+			//And P(G->A) from 3' is just as P(C->T) from 5' in forward: f(len - pos - 1)
+			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						//get context: flip bases!
+						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
+						else context = genoMap.getContextReverseRead(bamAlignement.AlignedBases.at(pos + 1), base);
+
+						//set distances
 						distFrom5prime = len - pos - 1;
 						distFrom3Prime = pos;
+						//add base
+						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbGA(distFrom3Prime), pmdObjects[readGroupId].getProbCT(distFrom5prime), context, readGroupId);
 					}
-
-					if(pos == secondLastPos) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos + 1), base);
-				} else {
-
-					distFrom5prime = pos;
-					if(bamAlignement.IsProperPair()){
-						if(bamAlignement.IsFirstMate()){
-							distFrom5prime = pos;
-							distFrom3Prime = bamAlignement.InsertSize - pos - 1;
-						} else {
-							distFrom5prime = len - pos - 1;
-							distFrom3Prime = bamAlignement.InsertSize - (len - pos);
-						}
-					} else {
+				}
+			}
+		} else {
+			//not in pair & forward
+			//Hence P(C->T) is given as a function of pos
+			//And P(G->A) is given by len - pos -1
+			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						//get context
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						//set distances
 						distFrom5prime = pos;
 						distFrom3Prime = len - pos - 1;
+						//add base
+						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
 					}
-					if(pos == 0) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
 				}
-
-				//now add base
-				sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
 			}
 		}
 	}
@@ -196,7 +231,6 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	int stop = end - 1; //note that end is last position + 1
 	std::string ref; //fasta object fills string
 	reference.GetSequence(refId, start, stop, ref);
-
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			sites[i].setRefBase(ref[i]);
@@ -358,7 +392,7 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			pmdTables.add(sites[i]);
+			//pmdTables.add(sites[i]);
 		}
 	}
 	logfile->write(" done!");

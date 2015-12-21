@@ -955,6 +955,11 @@ void TGenome::BQSR(TParameters & params){
 	bool hasConverged = false;
 	int loopNumber = 0;
 
+	//do we print temporary tables?
+	bool printTmpTables = params.parameterExists("writeTmpTables");
+	if(printTmpTables) logfile->list("Temporary BQSR tables will be written to disk.");
+
+	/*
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
 		int numPreConvLoops = params.getParameterInt("preConverge");
@@ -1004,7 +1009,7 @@ void TGenome::BQSR(TParameters & params){
 		loopNumber = 0;
 		logfile->endIndent();
 		jumpToEnd();
-	}
+	} */
 
 	//loop over bam until BQSR converges
 	while(!hasConverged){
@@ -1012,36 +1017,33 @@ void TGenome::BQSR(TParameters & params){
 		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
 		//loop over all windows
 
-		while(iterateChromosome(windows)){
-			while(iterateWindow(windows)){
-				//read data for current window
-				if(readData(windows)){
-					//add reference data
-					windows.cur->addReferenceBaseToSites(reference, chrNumber);
+		if(!bqsr.dataHasBeenStored()){
+			logfile->startIndent("Reading data from BAM file:");
+			while(iterateChromosome(windows)){
+				while(iterateWindow(windows)){
+					//read data for current window
+					if(readData(windows)){
+						//add reference data
+						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-					//add the base to BQSR
-					windows.cur->addSitesToBQSR(bqsr, logfile);
+						//add the base to BQSR
+						windows.cur->addSitesToBQSR(bqsr, logfile);
+					}
 				}
 			}
+			//clean up memory
+			windows.clear();
+			logfile->endIndent();
 		}
 
-		//clean up memory
-		windows.clear();
-
 		//estimate epsilon
-		hasConverged = bqsr.estimateEpsilon();
+		hasConverged = bqsr.estimateEpsilon(outputName);
 
 		//write results to file
-		bqsr.writeToFile(outputName + "_Loop" + toString(loopNumber));
+		if(printTmpTables) bqsr.writeCurrentTmpTable(outputName + "_Loop" + toString(loopNumber));
 
 		logfile->endIndent();
 	}
-
-	//clean up memory
-	windows.clear();
-
-	//write results to file
-	bqsr.writeToFile(outputName);
 }
 
 
@@ -1283,6 +1285,190 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->removeIndent();
 }
 
+
+void TGenome::mergeReadGroups(TParameters & params){
+	//read read groups and their expected lengths
+	std::string filename = params.getParameterString("readGroups");
+	logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
+	std::vector< std::vector<std::string> > readGroupsToMerge;
+	std::vector< std::vector<std::string> >::reverse_iterator rIt;
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open file '" + filename + "!";
+
+	//construct new read groups in new header object
+	BamTools::SamHeader newHeader(bamHeader);
+	newHeader.ReadGroups.Clear();
+
+	//parse file and construct new read groups in new header object
+	int lineNum = 0;
+	std::vector<std::string> vec;
+	std::string readGroup;
+	while(file.good() && !file.eof()){
+		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		if(!vec.empty()){
+			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
+			//add to new header
+			newHeader.ReadGroups.Add(vec[0]);
+			//others are those to be merged: find read group in header and store int
+			readGroupsToMerge.push_back(std::vector<std::string>());
+			rIt = readGroupsToMerge.rbegin();
+			for(unsigned int i=1; i<vec.size(); ++i){
+				rIt->push_back(vec[i]);
+			}
+		}
+	}
+	TReadGroups newReadGroupObject;
+	newReadGroupObject.fill(newHeader);
+	logfile->write(" done!");
+
+	//report and construct map
+	int* readGroupMap = new int[bamHeader.ReadGroups.Size()];
+	for(int i=0; i<bamHeader.ReadGroups.Size(); ++i) readGroupMap[i] = -1;
+	logfile->startIndent("The following read groups will be merged:");
+	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
+	int oldId;
+	for(int rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
+		logfile->startIndent("New read group '" + newReadGroupObject.getName(rg) + "' will contain read groups:");
+		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
+			logfile->list(*it);
+			oldId = readGroups.find(*it);
+			if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multipel times in file '" + filename + "'!";
+			readGroupMap[oldId] = rg;
+		}
+		logfile->endIndent();
+	}
+	logfile->endIndent();
+
+	//now add read groups that will not be merged
+	bool printed = false;
+	std::string name;
+	for(int i = 0; i < readGroups.size(); ++i){
+		//check if it is mapped, otherwise add
+		if(readGroupMap[i] < 0){
+			if(!printed){
+				logfile->startIndent("The following read groups will be kept as is:");
+				printed = true;
+			}
+			name = readGroups.getName(i);
+			logfile->list(name);
+			newHeader.ReadGroups.Add(name);
+			newReadGroupObject.fill(newHeader);
+			readGroupMap[i] = newReadGroupObject.find(name);
+		}
+	}
+	if(printed) logfile->endIndent();
+	else logfile->list("All existing read groups will be merged into a new read group.");
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	filename = outputName + "_mergedRG.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, newHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//other temp variables
+	long counter = 0;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
+
+		//get read group info
+		bamAlignement.GetTag("RG", readGroup);
+		oldId = readGroups.find(readGroup);
+
+		//save as new RG
+		bamAlignement.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
+		bamWriter.SaveAlignment(bamAlignement);
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
+
+void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables){
+	//Extract Read Group Info
+	std::string readGroup;
+	bamAlignement.GetTag("RG", readGroup);
+	int readGroupId = readGroups.find(readGroup);
+	int length = bamAlignement.AlignedBases.size();
+	char base;
+	int quality;
+	Base readBase, refBase;
+
+	//add to PMD
+	//distinguish between cases
+	int internalPos = bamAlignement.Position - window->start;
+	if(bamAlignement.IsProperPair()){
+		throw "Not yet done for paired end!";
+	} else {
+		//single end
+		if(bamAlignement.IsReverseStrand()){
+			//single end & reverse
+			//forward position = len - pos - 1
+			//reverse position = pos
+			//FLIP BASES!
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.flipBase(base);
+						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+						refBase = genoMap.flipBase(ref[internalPos]);
+
+						if(refBase == N){
+							std::cout << "ISSUE WITH REF at pos = " << internalPos << " = " << internalPos + window->start << std::endl;
+						}
+
+						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+						pmdTables.addReverse(readGroupId, pos, refBase, readBase);
+					}
+				}
+			}
+		} else {
+			//single end & forward
+			//forward position = pos
+			//reverse position = len - pos -1
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignement.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+					quality = bamAlignement.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.getBase(base);
+						refBase = genoMap.getBase(ref[internalPos]);
+						pmdTables.addForward(readGroupId, pos, refBase, readBase);
+						pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
+					}
+				}
+			}
+		}
+	}
+}
+
 void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
@@ -1295,12 +1481,52 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
 	TPMDTables pmdTables(&readGroups, maxLength);
 
+	//measure runtime
+	struct timeval start, end;
+
+	//tmp variables
+	int fastaEnd;
+	std::string ref;
+	TGenotypeMap genoMap;
+	long numreadsAdded;
+
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
-			readData(windows);
-			windows.cur->addReferenceBaseToSites(reference, chrNumber);
-			windows.cur->addSitesToPMDTable(pmdTables, logfile);
+			gettimeofday(&start, NULL);
+			logfile->listFlush("Adding reads to PMD tables ...");
+			numreadsAdded = 0;
+
+			//get fasta reference
+			fastaEnd = windows.cur->end + 500; //note that end is last position + 1
+			reference.GetSequence(chrNumber, windows.cur->start, fastaEnd, ref);
+
+			//still have old alignment to condider?
+			if(oldAlignementMustBeConsidered && bamAlignement.Position >= windows.cur->end){
+					logfile->write(" done!");
+					logfile->conclude("No data in this window.");
+			} else {
+				if(oldAlignementMustBeConsidered){
+					//add this read to window
+					oldAlignementMustBeConsidered = false;
+					++numreadsAdded;
+					addReadToPMD(windows.cur, genoMap, ref, pmdTables);
+				}
+
+				//parse additional reads
+				while(bamReader.GetNextAlignment(bamAlignement) && bamAlignement.RefID==chrNumber){
+					//check if this read is beyond window
+					if(bamAlignement.Position >= windows.cur->end){
+						oldAlignementMustBeConsidered = true;
+						break;
+					}
+					addReadToPMD(windows.cur, genoMap, ref, pmdTables);
+				}
+
+				//report
+				gettimeofday(&end, NULL);
+				logfile->write(" done (added " + toString(numreadsAdded) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
+			}
 		}
 	}
 

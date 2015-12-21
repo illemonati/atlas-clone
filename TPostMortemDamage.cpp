@@ -81,7 +81,7 @@ void TPMDTable::empty(){
 	}
 };
 
-void TPMDTable::add(int pos, Base ref, Base read){
+void TPMDTable::add(int & pos, Base & ref, Base & read){
 	if(pos < maxLength)
 		++counts[pos][ref][read];
 };
@@ -152,21 +152,29 @@ std::string TPMDTable::getPMDStringGA(){
 TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength){
 	readGroups = ReadGroups;
 	forward = new TPMDTable*[readGroups->numGroups];
-	backward = new TPMDTable*[readGroups->numGroups];
+	reverse = new TPMDTable*[readGroups->numGroups];
 	for(int i=0; i<readGroups->numGroups; ++i){
 		forward[i] = new TPMDTable(maxLength);
-		backward[i] = new TPMDTable(maxLength);
+		reverse[i] = new TPMDTable(maxLength);
 	}
 };
 
-
-void TPMDTables::add(TSite & site){
-	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-		forward[(*it)->readGroup]->add((*it)->posInRead, site.getRefBaseAsEnum(), (*it)->getBaseAsEnum());
-		backward[(*it)->readGroup]->add((*it)->posInReadRev, site.getRefBaseAsEnum(), (*it)->getBaseAsEnum());
+TPMDTables::~TPMDTables(){
+	for(int i=0; i<readGroups->numGroups; ++i){
+		delete forward[i];
+		delete reverse[i];
 	}
+	delete[] forward;
+	delete[] reverse;
 };
 
+void TPMDTables::addForward(int readGroup, int pos, Base & ref, Base & read){
+	forward[readGroup]->add(pos, ref, read);
+};
+
+void TPMDTables::addReverse(int readGroup, int pos, Base & ref, Base & read){
+	reverse[readGroup]->add(pos, ref, read);
+};
 
 void TPMDTables::writePMDFile(std::string filename){
 	std::ofstream out(filename.c_str());
@@ -174,7 +182,7 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
-		out << readGroups->getName(i) << "\t" << forward[i]->getPMDStringCT() << "\t" << backward[i]->getPMDStringGA() << "\n";
+		out << readGroups->getName(i) << "\t" << forward[i]->getPMDStringCT() << "\t" << reverse[i]->getPMDStringGA() << "\n";
 	}
 	out.close();
 }
@@ -186,7 +194,7 @@ void TPMDTables::writeTable(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
 		forward[i]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-		backward[i]->writeTable(out, readGroups->getName(i) + "\tbackward\t");
+		reverse[i]->writeTable(out, readGroups->getName(i) + "\treverse\t");
 	}
 	out.close();
 };
@@ -198,7 +206,7 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
 		forward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-		backward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tbackward\t");
+		reverse[i]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
 	}
 	out.close();
 };

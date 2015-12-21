@@ -69,6 +69,10 @@ public:
 		if(base == 'C') return C;
 		if(base == 'G') return G;
 		if(base == 'T') return T;
+		if(base == 'a') return A;
+		if(base == 'c') return C;
+		if(base == 'g') return G;
+		if(base == 't') return T;
 		return N;
 	};
 
@@ -77,6 +81,10 @@ public:
 		if(base == C) return 'C';
 		if(base == G) return 'G';
 		if(base == T) return 'T';
+		if(base == 'a') return A;
+		if(base == 'c') return C;
+		if(base == 'g') return G;
+		if(base == 't') return T;
 		return 'N';
 	};
 
@@ -87,6 +95,19 @@ public:
 		if(base == T) return 'T';
 		return 'N';
 	};
+
+	Base flipBase(char & base){
+		if(base == 'A') return T;
+		if(base == 'C') return G;
+		if(base == 'G') return C;
+		if(base == 'T') return A;
+		if(base == 'a') return T;
+		if(base == 'c') return G;
+		if(base == 'g') return C;
+		if(base == 't') return A;
+		return N;
+	};
+
 
 	Genotype getGenotype(Base first, Base second){
 		if(first < second) return genotypeMap[first][second];
@@ -149,6 +170,10 @@ public:
 
 	BaseContext getContext(char first, char second){
 		return getContext(getBase(first), getBase(second));
+	};
+
+	BaseContext getContextReverseRead(char first, char second){
+		return getContext(flipBase(first), flipBase(second));
 	};
 
 	std::string getContextString(int num){

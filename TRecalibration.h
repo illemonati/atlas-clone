@@ -131,6 +131,11 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 
+	double makePhred(float & epsilon){
+		if(epsilon < 0.0000000001) return 100.0;
+		return -10.0 * log10(epsilon);
+	};
+
 	double dePhred(double quality){
 		return pow(10.0, quality / -10.0);
 	};
@@ -275,52 +280,90 @@ public:
 //covariates to take into account:
 // - read base (A, G, C, T)
 // -
-
-class TBQSR_cell{
-private:
-	double numMatches;
-	void addToDerivatives(TBase* base, Base & RefBase);
-
+class TBQSR_cell_base{
 public:
-	double curEstimate;
+	float curEstimate;
 	bool estimationConverged;
-	double firstDerivative, secondDerivative;
+	float firstDerivative, secondDerivative;
+	float firstDerivativeSave, secondDerivativeSave;
+	float numObservations;
+	float numObservationsTmp;
+	float F;
+	float LL;
+	int myReadGroup;
+	//for storage
+	bool store;
+	int batchSize;
+	int next;
 
-	double firstDerivativeSave, secondDerivativeSave;
-
-	//TPMD* pmdObject;
-	double numObservations;
-	double numObservationsTmp;
-
-	double F;
-	double LL;
-
-	TBQSR_cell();
-	virtual ~TBQSR_cell(){};
-	void empty();
+	TBQSR_cell_base();
+	virtual ~TBQSR_cell_base(){};
+	virtual void empty();
+	virtual void init(bool Store, int ReadGroup);
 	void reopenEstimation();
-	void init(double initialError);
-	void set(double error){curEstimate = error;};
-	void set(double error, std::string & NumObservations);
-	double getD(TBase* base, Base & RefBase);
-	virtual void addBase(TBase* base, Base & RefBase);
-	void runNewtonRaphson(double & convergenceThreshold);
-	virtual bool estimate(double & convergenceThreshold, long & minObservations);
+	void set(float error){curEstimate = error;};
+	void set(float error, std::string & NumObservations);
+	float getD(TBase* base, Base & RefBase);
+	virtual void addBase(TBase* base, Base & RefBase){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
+	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
+	void runNewtonRaphson(float & convergenceThreshold);
 	std::string getNumObsForPrinting();
 };
 
-class TBQSR_cellPosition:public TBQSR_cell{
+
+class TBQSR_cell:public TBQSR_cell_base{
+public:
+	float numMatches;
+	//for storage
+	std::vector<float*> D_storage;
+	std::vector<float*>::reverse_iterator batchIt;
+	float* pointerToBatch;
+
+	TBQSR_cell();
+	virtual ~TBQSR_cell(){
+		clearStorage();
+	};
+	void empty();
+	void clearStorage();
+	void init(float initialError, bool Store, int ReadGroup);
+	void addBase(TBase* base, Base & RefBase);
+	void addToDerivatives(float & D);
+	void recalculateDerivativesFromDataInMemory();
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
+	float makePhred(float & epsilon){
+		if(epsilon < 0.0000000001) return 100.0;
+		return -10.0 * log10(epsilon);
+	};
+};
+
+struct BQSRFactorStorage{
+	float D;
+	float epsilon;
+};
+
+class TBQSR_cellPosition:public TBQSR_cell_base{
 public:
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
 	TQualityIndex* qualityIndex;
+	//for storage
+	std::vector<BQSRFactorStorage*> D_storage;
+	std::vector<BQSRFactorStorage*>::reverse_iterator batchIt;
+	BQSRFactorStorage* pointerToBatch;
 
 	TBQSR_cellPosition();
-	~TBQSR_cellPosition(){};
+	~TBQSR_cellPosition(){
+		clearStorage();
+	};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void clearStorage();
+	virtual float getEpsilon(TBase* base);
 	void addBase(TBase* base, Base & RefBase);
-	void addToDerivatives(TBase* base, Base & RefBase, double & epsilon);
-	bool estimate(double & convergenceThreshold, long & minObservations);
+	void addToDerivatives(float & D, float & epsilon);
+	void recalculateDerivativesFromDataInMemory();
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
 };
 
 class TBQSR_cellPositionRev:public TBQSR_cellPosition{
@@ -331,9 +374,9 @@ public:
 	TBQSR_cellPositionRev();
 	~TBQSR_cellPositionRev(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex);
-	void addBase(TBase* base, Base & RefBase);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	float getEpsilon(TBase* base);
 };
 
 class TBQSR_cellContext:public TBQSR_cellPositionRev{
@@ -344,11 +387,11 @@ public:
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex);
-	void addBase(TBase* base, Base & RefBase);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	float getEpsilon(TBase* base);
 };
 
 //TODO: make class TBQSR_table!
@@ -361,20 +404,23 @@ private:
 	TGenotypeMap genoMap;
 	int numReadGroups;
 	bool estimatetionRequired;
-	double convergenceThreshold;
+	float convergenceThreshold_F;
+	float minEpsilonQuality, minEpsilonFactors;
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;
 	long minObservations;
+	bool storeDataInMemory;
+	bool dataStored;
 
 	//recal tables
-	bool qualityConverged;
+	bool qualityConverged, estimateQuality;
 	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
-	bool considerPosition, positionConverged;
+	bool considerPosition, positionConverged, estimatePosition;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
-	bool considerPositionReverse, positionReverseConverged;
+	bool considerPositionReverse, positionReverseConverged, estimatePositionReverse;
 	TBQSR_cellPositionRev** BQSR_cells_readGroup_position_reverse; //read group x position
-	bool considerContext, contextConverged;
+	bool considerContext, contextConverged, estimateContext;
 	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
 
 	void initializeBQSRReadGroupQualityTable(TParameters & params);
@@ -421,9 +467,16 @@ public:
 		}
 	};
 
+	bool dataHasBeenStored(){ return dataStored; };
 	void addSite(TSite & site);
-	bool estimateEpsilon();
-	void writeToFile(std::string filenameTag);
+	void recalculateDerivativesFromDataInMemory();
+	bool estimateEpsilon(std::string filenameTag);
+	void writeAllToFile(std::string filenameTag);
+	void writeCurrentTmpTable(std::string filenameTag);
+	void writeQualityToFile(std::string & filenameTag);
+	void writePositionToFile(std::string & filenameTag);
+	void writePositionReverseToFile(std::string & filenameTag);
+	void writeContextToFile(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(TBase* base);
