@@ -1302,9 +1302,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 	//parse file and construct new read groups in new header object
 	int lineNum = 0;
 	std::vector<std::string> vec;
-	int len;
-	int readGroupId;
-	int truncatedReadGroupId;
 	std::string readGroup;
 	while(file.good() && !file.eof()){
 		++lineNum;
@@ -1316,7 +1313,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 			//others are those to be merged: find read group in header and store int
 			readGroupsToMerge.push_back(std::vector<std::string>());
 			rIt = readGroupsToMerge.rbegin();
-			for(int i=1; i<vec.size(); ++i){
+			for(unsigned int i=1; i<vec.size(); ++i){
 				rIt->push_back(vec[i]);
 			}
 		}
@@ -1324,18 +1321,20 @@ void TGenome::mergeReadGroups(TParameters & params){
 	TReadGroups newReadGroupObject;
 	newReadGroupObject.fill(newHeader);
 	logfile->write(" done!");
-/*
+
 	//report and construct map
-	int* reagGroupMap = new int[bamHeader.ReadGroups.Size()];
-	for(int i=0; i<bamHeader.ReadGroups.Size(); ++i) reagGroupMap[i] = -1;
+	int* readGroupMap = new int[bamHeader.ReadGroups.Size()];
+	for(int i=0; i<bamHeader.ReadGroups.Size(); ++i) readGroupMap[i] = -1;
 	logfile->startIndent("The following read groups will be merged:");
-	int newId, oldId;
-	std::vector< std::vector<int> >::iterator mergeIt = readGroupsToMerge.begin();
+	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
+	int oldId;
 	for(int rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
 		logfile->startIndent("New read group '" + newReadGroupObject.getName(rg) + "' will contain read groups:");
 		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 			logfile->list(*it);
-			reagGroupMap[readGroups.find(*it)] = rg;
+			oldId = readGroups.find(*it);
+			if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multipel times in file '" + filename + "'!";
+			readGroupMap[oldId] = rg;
 		}
 		logfile->endIndent();
 	}
@@ -1346,7 +1345,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	std::string name;
 	for(int i = 0; i < readGroups.size(); ++i){
 		//check if it is mapped, otherwise add
-		if(reagGroupMap[i] < 0){
+		if(readGroupMap[i] < 0){
 			if(!printed){
 				logfile->startIndent("The following read groups will be kept as is:");
 				printed = true;
@@ -1355,20 +1354,18 @@ void TGenome::mergeReadGroups(TParameters & params){
 			logfile->list(name);
 			newHeader.ReadGroups.Add(name);
 			newReadGroupObject.fill(newHeader);
-			reagGroupMap[i] = newReadGroupObject.find(name);
+			readGroupMap[i] = newReadGroupObject.find(name);
 		}
 	}
 	if(printed) logfile->endIndent();
 	else logfile->list("All existing read groups will be merged into a new read group.");
-*/
-/*
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
-	filename = outputName + "_splitRG.bam";
+	filename = outputName + "_mergedRG.bam";
 	BamTools::RefVector references = bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, bamHeader, references))
+	if (!bamWriter.Open(filename, newHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
@@ -1387,18 +1384,10 @@ void TGenome::mergeReadGroups(TParameters & params){
 
 		//get read group info
 		bamAlignement.GetTag("RG", readGroup);
-		readGroupId = readGroups.find(readGroup);
+		oldId = readGroups.find(readGroup);
 
-		//check if this RG needs to be parse
-		singleEndRGIT = singleEndRG.find(readGroupId);
-		if(singleEndRGIT != singleEndRG.end()){
-			//check length
-			if(bamAlignement.Length < singleEndRGIT->second.maxLen)
-				bamAlignement.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(bamAlignement.Length > singleEndRGIT->second.maxLen) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
-		}
-
-		//write
+		//save as new RG
+		bamAlignement.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
 		bamWriter.SaveAlignment(bamAlignement);
 
 		//report
@@ -1418,8 +1407,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
-
-	*/
 }
 
 void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables){
