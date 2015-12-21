@@ -144,18 +144,18 @@ public:
 
 		//check
 		if(ref != 'A' && ref != 'C' && ref != 'G' && ref != 'T'){
-			std::string error = "Unknown reference allele '";
-			error += ref;
-			error += "' on chr " + chr;
-			throw error + " at " + toString(pos) + "!";
+			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
+			return false;
 		}
 		if(alt != 'A' && alt != 'C' && alt != 'G' && alt != 'T'){
-			std::string error = "Unknown alternative allele '";
-			error += alt;
-			error += "' on chr " + chr;
-			throw error + " at " + toString(pos) + "!";
+			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
+			return false;
 		}
-		if(ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(ref == alt){
+			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
+			return false;
+			//throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		}
 
 		//identify window
 		findOrCreateWindow(pos);
