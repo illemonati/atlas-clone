@@ -47,6 +47,7 @@ public:
 	TPMDTable** reverse;
 
 	TPMDTables(TReadGroups* ReadGroups, int maxLength);
+	~TPMDTables();
 	void addForward(int readGroup, int pos, Base & ref, Base & read);
 	void addReverse(int readGroup, int pos, Base & ref, Base & read);
 	void writePMDFile(std::string filename);

@@ -159,6 +159,15 @@ TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength){
 	}
 };
 
+TPMDTables::~TPMDTables(){
+	for(int i=0; i<readGroups->numGroups; ++i){
+		delete forward[i];
+		delete reverse[i];
+	}
+	delete[] forward;
+	delete[] reverse;
+};
+
 void TPMDTables::addForward(int readGroup, int pos, Base & ref, Base & read){
 	forward[readGroup]->add(pos, ref, read);
 };

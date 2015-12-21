@@ -2157,7 +2157,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x position table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations\n";
+	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
@@ -2177,7 +2177,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x position reverse table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations\n";
+	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
@@ -2197,7 +2197,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x text table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tContext\tEventType\tScaling\tObservations\n";
+	out << "ReadGroup\tContext\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<numReadGroups; ++r, ++it){
