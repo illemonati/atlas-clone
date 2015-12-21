@@ -2159,6 +2159,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
@@ -2179,6 +2180,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
@@ -2199,6 +2201,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tContext\tEventType\tScaling\tObservations";
 	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<numReadGroups; ++r, ++it){
 		for(int c=0; c<numContexts; ++c){
