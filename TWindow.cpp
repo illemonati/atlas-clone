@@ -941,6 +941,41 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 	}
 }
 
+
+void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
+	//calc prior probabilities on Genotypes
+	double pGenotype[10];
+	fillPGenotype(pGenotype, thetaContainer.expTheta);
+
+	//now call heterozygosity in blocks
+	int nBlocks = length / blockSize;
+	int start;
+	double logPHomo;
+	double logConfidence = log(confidence);
+	double logConfidenceHet = log(1.0 - confidence);
+
+	//loop over blocks
+	for(int b=0; b<nBlocks; ++b){
+		start = b*blockSize;
+		logPHomo = 0.0;
+		for(int i=0; i<blockSize; ++i){
+			logPHomo += log(sites[start + i].calculatePHomozygous(pGenotype));
+		}
+
+		//check if we are heterozygous
+		if(logPHomo > logConfidence) out << 'T';
+		else if(logPHomo < logConfidenceHet) out << 'K';
+		else out << 'N';
+
+		//do we add a new line?
+		if(nCharOnLine == 59){
+			nCharOnLine = 0;
+			out << '\n';
+		} else ++nCharOnLine;
+	}
+
+}
+
 //-------------------------------------------------------
 //TWindowHaploid
 //-------------------------------------------------------

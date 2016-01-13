@@ -846,3 +846,18 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 		out << "\t.\t" << referenceBase << "\t" << alt << "\t.\t.\tDP=0\tGT\t.";
 	}
 }
+
+
+double TSiteDiploid::calculatePHomozygous(double* pGenotype){
+	//calculate posterior probability for each genotype
+	double postProb[numGenotypes];
+	double tot = 0.0;
+
+	for(int i=0; i<numGenotypes; ++i){
+		postProb[i] = emissionProbabilities[i] * pGenotype[i];
+		tot += postProb[i];
+	}
+
+	//make sum for all homozygous genotypes
+	return (postProb[AA] + postProb[CC] + postProb[GG] + postProb[TT]) / tot;
+}

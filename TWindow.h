@@ -121,6 +121,7 @@ public:
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
 	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF);
+	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 };
 
 class TWindowHaploid:public TWindow{

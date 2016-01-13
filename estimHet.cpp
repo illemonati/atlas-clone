@@ -88,6 +88,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "mergeReads"){
     		logfile.startIndent("Merging paired-end reads:");
     		genome.mergePairedEndReads(myParameters);
+    	} else if(task == "psmc"){
+    	    logfile.startIndent("Generating a PSMC Input file probabilistically:");
+    	    genome.generatePSMCInput(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 

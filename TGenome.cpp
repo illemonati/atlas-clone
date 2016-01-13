@@ -1333,7 +1333,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 			logfile->list(*it);
 			oldId = readGroups.find(*it);
-			if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multipel times in file '" + filename + "'!";
+			if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
 			readGroupMap[oldId] = rg;
 		}
 		logfile->endIndent();
@@ -1661,7 +1661,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									bamWriter.SaveAlignment(*(it->first));
 									delete it->first;
 								} else {
-									//first that can not be written -> earese all previous ones!
+									//first that can not be written -> erease all previous ones!
 									alignmentStorage.erase(alignmentStorage.begin(), it);
 									break;
 								}
@@ -1699,6 +1699,56 @@ void TGenome::mergePairedEndReads(TParameters & params){
 }
 
 
+
+void TGenome::generatePSMCInput(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//read in parameters required
+	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
+	logfile->list("Using theta = " + toString(theta));
+	double confidence = params.getParameterDoubleWithDefault("confidence", 0.99);
+	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence));
+	int blockSize = params.getParameterIntWithDefault("block", 100);
+	//make sure window size is a multiple of block length!
+	if(windowSize % blockSize != 0) throw "Window size is not a multiple of block size!";
+
+	//open output file
+	std::ofstream output;
+	std::string outputFileName = outputName + ".psmcfa";
+	logfile->list("Writing PSMC input file to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	int nCharOnLine = 0;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		if(nCharOnLine > 0) output << '\n';
+		output << '>' << chrIterator->Name << '\n';
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			//set Theta
+			windows.cur->calculateEmissionProbabilities(recalObject);
+			windows.cur->estimateBaseFrequencies();
+			windows.cur->setTheta(theta);
+
+			//create PSMC input
+			logfile->listFlush("Estimating heterozygosity status ...");
+			if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+			windows.cur->generatePSMCInput(blockSize, confidence, output, nCharOnLine);
+			logfile->write(" done!");
+		}
+	}
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
+}
 
 
 
