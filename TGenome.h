@@ -33,6 +33,7 @@ private:
 	TPMD* pmdObjects;
 	TRecalibration* recalObject;
 	bool doRecalibration;
+	bool recalObjectInitialized;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
@@ -69,7 +70,7 @@ public:
 	~TGenome(){
 		if(doMasking) delete mask;
 		if(fastaReference) reference.Close();
-		if(doRecalibration) delete recalObject;
+		if(recalObjectInitialized) delete recalObject;
 		delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 		delete[] useChromosome;

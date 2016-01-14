@@ -65,6 +65,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//initialize post mortem damage
 	initializePostMortemDamage(params);
 	doRecalibration = false;
+	recalObjectInitialized = false;
 
 	//check if we mask sites
 	if(params.parameterExists("mask")){
@@ -397,6 +398,7 @@ void TGenome::initializeRecalibration(TParameters & params){
 		doRecalibration = false;
 		recalObject = new TRecalibration();
 	}
+	recalObjectInitialized = true;
 
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";

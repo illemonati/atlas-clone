@@ -959,7 +959,8 @@ void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std
 		start = b*blockSize;
 		logPHomo = 0.0;
 		for(int i=0; i<blockSize; ++i){
-			logPHomo += log(sites[start + i].calculatePHomozygous(pGenotype));
+			if(sites[start + i].hasData)
+				logPHomo += log(sites[start + i].calculatePHomozygous(pGenotype));
 		}
 
 		//check if we are heterozygous
