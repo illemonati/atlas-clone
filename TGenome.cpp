@@ -1763,9 +1763,6 @@ void TGenome::generatePSMCInput(TParameters & params){
 	output.close();
 }
 
-
-
-
 void TGenome::downSampleBamFile(TParameters & params){
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");
@@ -1849,8 +1846,46 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->removeIndent();
 }
 
+void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome length
+	double totLength = 0.0;
+	for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
+		totLength += stringToLong(chrIterator->Length);
 
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
 
+	//other temp variables
+	long counter = 0;
+	double toNumAlignedBases = 0.0;
+
+    //now parse through bam file and sum number of aligned bases
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
+
+		//accept read or not?
+		toNumAlignedBases += bamAlignement.AlignedBases.length();
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+
+	//report approximate coverage
+	logfile->list("Approximate coverage was estimated at " + toString(toNumAlignedBases/totLength));
+}
 
 
 
