@@ -91,6 +91,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "psmc"){
     	    logfile.startIndent("Generating a PSMC Input file probabilistically:");
     	    genome.generatePSMCInput(myParameters);
+    	} else if(task == "downsample"){
+    		logfile.startIndent("Downsampling a bam file:");
+    	    genome.downSampleBamFile(myParameters);
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 

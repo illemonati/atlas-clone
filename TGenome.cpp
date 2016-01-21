@@ -1766,6 +1766,55 @@ void TGenome::generatePSMCInput(TParameters & params){
 
 
 
+void TGenome::downSampleBamFile(TParameters & params){
+	//read downsampling rate
+	double downSampleProb = params.getParameterDouble("prob");
+	logfile->write("Will accept reads with probability " + toString(downSampleProb));
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	filename = outputName + "_downsampled" + toString(downSampleProb) + ".bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//other temp variables
+	long counter = 0;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignement)){
+		++counter;
+
+		//accept read or not?
+		if(randomGenerator->getRand() < downSampleProb){
+			bamWriter.SaveAlignment(bamAlignement);
+		}
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
 
 
 
