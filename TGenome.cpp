@@ -953,6 +953,9 @@ void TGenome::BQSR(TParameters & params){
 		return;
 	}
 
+	//read in max number of loops allowed
+	int maxNumLoops = params.getParameterIntWithDefault("maxNumLoops", 500);
+
 	//tmp variables
 	bool hasConverged = false;
 	int loopNumber = 0;
@@ -1045,6 +1048,12 @@ void TGenome::BQSR(TParameters & params){
 		if(printTmpTables) bqsr.writeCurrentTmpTable(outputName + "_Loop" + toString(loopNumber));
 
 		logfile->endIndent();
+
+		//check if max num loops is reached
+		if(loopNumber >= maxNumLoops){
+			logfile->write("Reached maximum number of loops (" + toString(maxNumLoops) + "), but BQSR has not yet converged!");
+			break;
+		}
 	}
 }
 
@@ -1735,9 +1744,11 @@ void TGenome::generatePSMCInput(TParameters & params){
 			//read data for current window
 			readData(windows);
 			//set Theta
+			logfile->listFlush("Calculating emission probabilities ...");
 			windows.cur->calculateEmissionProbabilities(recalObject);
 			windows.cur->estimateBaseFrequencies();
 			windows.cur->setTheta(theta);
+			logfile->write(" done!");
 
 			//create PSMC input
 			logfile->listFlush("Estimating heterozygosity status ...");
