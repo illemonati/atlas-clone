@@ -1768,19 +1768,45 @@ void TGenome::generatePSMCInput(TParameters & params){
 
 void TGenome::downSampleBamFile(TParameters & params){
 	//read downsampling rate
-	double downSampleProb = params.getParameterDouble("prob");
-	logfile->write("Will accept reads with probability " + toString(downSampleProb));
+	std::string prob = params.getParameterString("prob");
+	//check if prob is a vector of multiple probabilities
+	std::vector<double> downSampleProbVector;
+	if(!stringContainsOnly(prob, "-0123456789.,")) throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
+	fillVectorFromString(prob, downSampleProbVector, ',');
 
-	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
-	filename = outputName + "_downsampled" + toString(downSampleProb) + ".bam";
+	//check if probs are between 0 and 1, save in array and print them
+	std::vector<double>::iterator it;
+	int numProbs = downSampleProbVector.size();
+	double* downSampleProb = new double[numProbs];
+	logfile->listFlush("Will accept reads with probabilities");
+	bool first = true;
+	int i=0;
+	for(it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
+		if(first) first = false;
+		else logfile->flush(",");
+		logfile->flush(" " + toString(*it));
+		if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between >0 and <1!";
+		downSampleProb[i] = *it;
+	}
+
+	//open bam files for writing
+	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
 	BamTools::RefVector references = bamReader.GetReferenceData();
-	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
+	logfile->startIndent("Writing results to the following files:");
+	for(i=0; i<numProbs; ++i){
+		//construct and print filename
+		filename = outputName + "_downsampled" + toString(downSampleProb[i]) + ".bam";
+		logfile->list(filename);
+
+		//open file
+		if(!bamWriter[i].Open(filename, bamHeader, references))
+				throw "Failed to open BAM file '" + filename + "'!";
+	}
+	logfile->endIndent();
 
 	//other temp variables
 	long counter = 0;
+	double r;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1793,8 +1819,11 @@ void TGenome::downSampleBamFile(TParameters & params){
 		++counter;
 
 		//accept read or not?
-		if(randomGenerator->getRand() < downSampleProb){
-			bamWriter.SaveAlignment(bamAlignement);
+		r = randomGenerator->getRand();
+		for(i=0; i<numProbs; ++i){
+			if(r < downSampleProb[i]){
+				bamWriter[i].SaveAlignment(bamAlignement);
+			}
 		}
 
 		//report
@@ -1805,8 +1834,12 @@ void TGenome::downSampleBamFile(TParameters & params){
 		}
 	}
 
-	//close bam writer
-	bamWriter.Close();
+	//close bam writer and clean up memory
+	for(i=0; i<numProbs; ++i){
+		bamWriter[i].Close();
+	}
+	delete[] downSampleProb;
+	delete[] bamWriter;
 
 	//report
 	gettimeofday(&end, NULL);
