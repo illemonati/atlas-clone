@@ -97,6 +97,8 @@ public:
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
 	void estimateApproximateCoverage(TParameters & params);
+	void outputCoverage(TParameters & params);
+
 };
 
 

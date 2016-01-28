@@ -97,6 +97,10 @@ int main(int argc, char* argv[]){
     	} else if(task == "coverage"){
     		logfile.startIndent("Estimating approximate coverage:");
     	    genome.estimateApproximateCoverage(myParameters);
+    	} else if(task == "coveragePerWindow"){
+    		logfile.startIndent("Estimating coverage per window:");
+    	    genome.outputCoverage(myParameters);
+
     	} else throw "Unknown task '" + task + "'!";
 		logfile.clearIndent();
 
