@@ -1762,6 +1762,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	output.close();
 }
 
+
 void TGenome::downSampleBamFile(TParameters & params){
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");
@@ -1884,6 +1885,39 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 
 	//report approximate coverage
 	logfile->list("Approximate coverage was estimated at " + toString(toNumAlignedBases/totLength));
+}
+
+
+void TGenome::outputCoverage(TParameters & params){
+
+	//open output file
+	std::ofstream output;
+	std::string outputFileName = outputName + "_coverage.txt";
+	logfile->list("Writing coverage to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	int nCharOnLine = 0;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+
+			//set Theta
+			logfile->listFlush("Writing coverage to output...");
+			output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
+			logfile->write(" done!");
+		}
+	}
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
 }
 
 
