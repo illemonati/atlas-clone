@@ -34,7 +34,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 	numReads = 0;
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site){
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, bool printDebug){
 	numReads = site.bases.size();
 	q = new double*[numReads];
 	D = new double*[4];
@@ -61,7 +61,12 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site){
 		// - transformed quality
 		// - square of transformed quality
 		epsilon = dePhred((*it)->quality);
+
+
 		q[k][0] = log(epsilon / (1.0 - epsilon));
+
+		if(printDebug) std::cout << "DEBUG CONSTRUCTOR site " << k << ": quality = " << (*it)->quality << " -> eps = " << epsilon << "q0 = " << q[k][0] << std::endl;
+
 		q[k][1] = q[k][0] * q[k][0];
 
 		// - position
@@ -309,7 +314,7 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs){
 }
 
 void TRecalibrationEMWindow::addSite(TSite & site){
-	sites.push_back(new TRecalibrationEMSite(site));
+	sites.push_back(new TRecalibrationEMSite(site, false));
 }
 
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(double** oldParams){
@@ -546,7 +551,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
 		logfile->startIndent("Running iteration " + toString(i+1) + ":");
-		logfile->listFlush("Calculating Jacobian and graident ...");
+		logfile->listFlush("Calculating Jacobian and gradient ...");
 		out << i;
 
 		//set to zero
@@ -644,7 +649,10 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 					}
 				}
 			}
-		} else throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
+		} else {
+			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
+			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
+		}
 
 		//print beta
 		for(int i=0; i<numParams; ++i){
@@ -979,6 +987,22 @@ std::string TBQSR_cell_base::getNumObsForPrinting(){
 	else return toString(log10(numObservations));
 }
 
+void TBQSR_cell_base::calcLikelihoodSurfaceAt(int numPositions, double* positions, std::string & tag, std::ofstream & out){
+	bool estimationConvergedTmp = estimationConverged;
+	estimationConverged = false;
+	float curEstimateTmp = curEstimate;
+
+	for(int i=0; i<numPositions; ++i){
+		curEstimate = positions[i];
+		recalculateDerivativesFromDataInMemory();
+		recalculateLLFromDataInMemory();
+		out << tag << "\t" << positions[i] << "\t" << LL << " \t" << firstDerivative << "\t" << secondDerivative << std::endl;
+	}
+
+	curEstimate = curEstimateTmp;
+	estimationConverged = estimationConvergedTmp;
+}
+
 //---------------------------------------------------------------
 //TBQSR_cell BQSR
 //---------------------------------------------------------------
@@ -1051,6 +1075,10 @@ void TBQSR_cell::addToDerivatives(float & D){
 	secondDerivative -= tmpF * tmpF;
 }
 
+void TBQSR_cell::addToLL(float & D){
+	LL += log((1.0-D)*curEstimate/3.0 + D*(1.0-curEstimate));
+}
+
 void TBQSR_cell::recalculateDerivativesFromDataInMemory(){
 	if(!estimationConverged){
 		//set to zero
@@ -1070,6 +1098,26 @@ void TBQSR_cell::recalculateDerivativesFromDataInMemory(){
 			for(int i=0; i<batchSize; ++i){
 				addToDerivatives(pointerToBatch[i]);
 			}
+		}
+	}
+}
+
+void TBQSR_cell::recalculateLLFromDataInMemory(){
+	LL = 0.0;
+
+	//first the last batch, which is not filled to the end
+	batchIt = D_storage.rbegin();
+	pointerToBatch = *batchIt;
+	for(int i=0; i<next; ++i){ //next is set when adding sites
+		addToLL(pointerToBatch[i]);
+	}
+
+	//and now the other batches
+	++batchIt;
+	for(;batchIt != D_storage.rend(); ++batchIt){
+		pointerToBatch = *batchIt;
+		for(int i=0; i<batchSize; ++i){
+			addToLL(pointerToBatch[i]);
 		}
 	}
 }
@@ -1125,6 +1173,18 @@ bool TBQSR_cell::estimate(float & convergenceThreshold, float & minEpsilon, long
 	return estimationConverged;
 }
 
+void TBQSR_cell::calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out){
+	double* positions = new double[numPositions];
+	//now fill between 0.000000001 and 0.999999999
+	double delta = (0.999999999 - 0.000000001) / (numPositions - 1.0);
+	for(int i=0; i<numPositions; ++i){
+		positions[i] = 0.000000001 + delta * (double) i;
+	}
+
+	//calc surface!
+	calcLikelihoodSurfaceAt(numPositions, positions, tag, out);
+}
+
 //---------------------------------------------------------------
 //TBQSR_cellPosition BQSR
 //---------------------------------------------------------------
@@ -1162,6 +1222,10 @@ void TBQSR_cellPosition::addToDerivatives(float & D, float & epsilon){
 	firstDerivative += epsMinus4Deps / (-4.0*D*epsilon*curEstimate + 3.0*D + epsilon*curEstimate);
 	double tmpF = epsMinus4Deps / (D*(3.0-4.0*epsilon*curEstimate) + epsilon*curEstimate);
 	secondDerivative -= tmpF * tmpF;
+}
+
+void TBQSR_cellPosition::addToLL(float & D, float & epsilon){
+	LL += log((1.0-D)*epsilon*curEstimate/3.0 + D*(1.0-epsilon*curEstimate));
 }
 
 float TBQSR_cellPosition::getEpsilon(TBase* base){
@@ -1216,6 +1280,26 @@ void TBQSR_cellPosition::recalculateDerivativesFromDataInMemory(){
 	}
 }
 
+void TBQSR_cellPosition::recalculateLLFromDataInMemory(){
+	LL = 0.0;
+
+	//first the last batch, which is not filled to the end
+	batchIt = D_storage.rbegin();
+	pointerToBatch = *batchIt;
+	for(int i=0; i<next; ++i){
+		addToLL(pointerToBatch[i].D, pointerToBatch[i].epsilon);
+	}
+
+	//and now the other batches
+	++batchIt;
+	for(;batchIt != D_storage.rend(); ++batchIt){
+		pointerToBatch = *batchIt;
+		for(int i=0; i<batchSize; ++i){
+			addToLL(pointerToBatch[i].D, pointerToBatch[i].epsilon);
+		}
+	}
+}
+
 void TBQSR_cellPosition::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
 	//need Newton-Raphson to estimate epsilon
 	float oldEstimate = curEstimate;
@@ -1253,6 +1337,18 @@ bool TBQSR_cellPosition::estimate(float & convergenceThreshold, float & minEpsil
 	}
 
 	return estimationConverged;
+}
+
+void TBQSR_cellPosition::calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out){
+	double* positions = new double[numPositions];
+	//now fill between 0.01 and 100 -> use log10
+	double delta = 4.0 / (numPositions - 1.0);
+	for(int i=0; i<numPositions; ++i){
+		positions[i] = pow(10.0, -2.0 + delta * (double) i);
+	}
+
+	//calc surface!
+	calcLikelihoodSurfaceAt(numPositions, positions, tag, out);
 }
 
 //---------------------------------------------------------------
@@ -1357,6 +1453,12 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 
 	//get minimal number of observations to conduct estimation
 	minObservations = params.getParameterLongWithDefault("minObservations", 1000);
+
+	//do we print LL surfaces?
+	numPosLLsurface = params.getParameterIntWithDefault("LLSurface", 0);
+	if(numPosLLsurface > 0) printLLSurface = true;
+	LLSurfacePrinted = false;
+
 }
 
 void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & params){
@@ -1801,8 +1903,13 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
+
+				//DEBUG!
+				if((*it)->posInRead < maxPos) BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
+
+				//ORIGINAL
+				//if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
+				//BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
@@ -1860,6 +1967,12 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 	//readGroup x quality
 	//-------------------------------------------------------
 	if(!qualityConverged){
+		//do we print LL surface? Only print once!
+		if(printLLSurface && !LLSurfacePrinted){
+			calculateAndPrintLLSurfaceQuality(filenameTag);
+			LLSurfacePrinted = true;
+		}
+		//now do estimation
 		logfile->listFlush("Estimating epsilon for readGroup x quality table ...");
 		for(int i=0; i<numReadGroups; ++i){
 			for(int j=0; j<qualityIndex->numQ; ++j){
@@ -1910,6 +2023,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			//what's next?
 			if(!considerPosition && !considerPositionReverse && !considerContext) estimationConverged = true;
 			else estimationConverged = false;
+			LLSurfacePrinted = false;
 		}
 		return estimationConverged;
 	}
@@ -1917,6 +2031,13 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 	//estimate epsilon for position, if not yet done
 	//-------------------------------------------------------
 	if(considerPosition && !positionConverged){
+		//do we print LL surface? Only print once!
+		if(printLLSurface && !LLSurfacePrinted){
+			calculateAndPrintLLSurfacePosition(filenameTag);
+			LLSurfacePrinted = true;
+		}
+
+		//now do estimation
 		logfile->listFlush("Estimating epsilon for readGroup x position table ...");
 		numCellsNotConverged = 0;
 
@@ -1969,6 +2090,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			//what's next?
 			if(!considerPositionReverse && !considerContext) estimationConverged = true;
 			else estimationConverged = false;
+			LLSurfacePrinted = false;
 		}
 		return estimationConverged;
 	}
@@ -1976,6 +2098,13 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 	//estimate epsilon for position reverse, if not yet done
 	//-------------------------------------------------------
 	if(considerPositionReverse && !positionReverseConverged){
+		//do we print LL surface? Only print once!
+		if(printLLSurface && !LLSurfacePrinted){
+			calculateAndPrintLLSurfaceReversePosition(filenameTag);
+			LLSurfacePrinted = true;
+		}
+
+		//now do estimation
 		logfile->listFlush("Estimating epsilon for readGroup x position reverse table ...");
 		numCellsNotConverged = 0;
 
@@ -2028,6 +2157,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			//what's next?
 			if(!considerContext) estimationConverged = true;
 			else estimationConverged = false;
+			LLSurfacePrinted = false;
 		}
 		return estimationConverged;
 	}
@@ -2035,6 +2165,13 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 	//estimate epsilon for context
 	//-------------------------------------------------------
 	if(considerContext && !contextConverged){
+		//do we print LL surface? Only print once!
+		if(printLLSurface && !LLSurfacePrinted){
+			calculateAndPrintLLSurfaceContext(filenameTag);
+			LLSurfacePrinted = true;
+		}
+
+		//now do estimation
 		logfile->listFlush("Estimating epsilon for quality x context table ...");
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
@@ -2082,7 +2219,6 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			}
 			dataStored = false;
 
-
 			estimationConverged = true;
 		}
 		return estimationConverged;
@@ -2116,17 +2252,17 @@ void TRecalibrationBQSR::writeCurrentTmpTable(std::string filenameTag){
 	if(!qualityConverged) writeQualityToFile(filenameTag);
 
 	//write readGroup x position table
-	else if(considerPosition){
+	else if(considerPosition && !positionConverged){
 		writePositionToFile(filenameTag);
 	}
 
 	//write readGroup x position_rev table
-	else if(considerPositionReverse){
+	else if(considerPositionReverse && !positionReverseConverged){
 		writePositionReverseToFile(filenameTag);
 	}
 
 	//write readGroup x context table
-	else if(considerContext){
+	else if(considerContext && !contextConverged){
 		writeContextToFile(filenameTag);
 	}
 }
@@ -2137,7 +2273,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tQualityScore\tEventType\tEmpiricalQuality\tObservations";
-	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
@@ -2158,7 +2294,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
-	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
@@ -2179,7 +2315,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
-	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
@@ -2196,11 +2332,11 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 
 void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	std::string filename = filenameTag + "_BQSR_ReadGroup_Context_Table.txt";
-	logfile->listFlush("Writing BQSR readGroup x text table to '" + filename + "' ...");
+	logfile->listFlush("Writing BQSR readGroup x context table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 	out << "ReadGroup\tContext\tEventType\tScaling\tObservations";
-	out << "\tfirstDerivative\tSecondDerivative\tF\thasConverged";
+	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<numReadGroups; ++r, ++it){
@@ -2209,6 +2345,79 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 			//for debugging: also print derivatives, F and whether is has converged
 			out << "\t" << BQSR_cells_readGroup_context[r][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].F << "\t" << BQSR_cells_readGroup_context[r][c].estimationConverged;
 			out << "\n";
+		}
+	}
+	out.close();
+	logfile->write(" done!");
+}
+
+
+void TRecalibrationBQSR::calculateAndPrintLLSurfaceQuality(std::string & filenameTag){
+	std::string filename = filenameTag + "_BQSR_ReadGroup_Quality_LLSurface.txt";
+	logfile->listFlush("Calculating LL surface for readGroup x quality and writing to '" + filename + "' ...");
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "' for writing!";
+
+	//write header
+	out << "ReadGroup\tQuality\terrorRate\tLL\tFirstDerivative\tSecondDerivative\n";
+	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+	for(int r=0; r<numReadGroups; ++r, ++it){
+		for(int q=0; q<qualityIndex->numQ; ++q){
+			BQSR_cells_readGroup_quality[r][q].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(qualityIndex->getQuality(q)), out);
+		}
+	}
+	out.close();
+		logfile->write(" done!");
+}
+
+void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filenameTag){
+	std::string filename = filenameTag + "_BQSR_ReadGroup_Position_LLSurface.txt";
+	logfile->listFlush("Calculating LL surface for readGroup x position and writing to '" + filename + "' ...");
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "' for writing!";
+
+	//write header
+	out << "ReadGroup\tPosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
+	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+	for(int r=0; r<numReadGroups; ++r, ++it){
+		for(int p=0; p<maxPos; ++p){
+			BQSR_cells_readGroup_position[r][p].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(p+1), out);
+		}
+	}
+	out.close();
+	logfile->write(" done!");
+}
+
+void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string & filenameTag){
+	std::string filename = filenameTag + "_BQSR_ReadGroup_ReversePosition_LLSurface.txt";
+	logfile->listFlush("Calculating LL surface for readGroup x reverse position and writing to '" + filename + "' ...");
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "' for writing!";
+
+	//write header
+	out << "ReadGroup\tReversePosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
+	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+	for(int r=0; r<numReadGroups; ++r, ++it){
+		for(int p=0; p<maxPos; ++p){
+			BQSR_cells_readGroup_position_reverse[r][p].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(p+1), out);
+		}
+	}
+	out.close();
+	logfile->write(" done!");
+}
+
+void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenameTag){
+	std::string filename = filenameTag + "_BQSR_ReadGroup_Context_LLSurface.txt";
+	logfile->listFlush("Calculating LL surface for readGroup x context and writing to '" + filename + "' ...");
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "' for writing!";
+
+	//write header
+	out << "ReadGroup\tContext\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
+	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
+	for(int r=0; r<numReadGroups; ++r, ++it){
+		for(int c=0; c<numContexts; ++c){
+			BQSR_cells_readGroup_context[r][c].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + genoMap.getContextString(c), out);
 		}
 	}
 	out.close();

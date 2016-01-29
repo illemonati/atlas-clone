@@ -187,9 +187,12 @@ public:
 	bool initialized;
 
 	TRecalibrationEMSite();
-	TRecalibrationEMSite(TSite & site);
+	TRecalibrationEMSite(TSite & site, bool printDebug);
 	double dePhred(double quality){
-		return pow(10.0, quality / -10.0);
+		double tmp = pow(10.0, quality / -10.0);
+		if(tmp < 0.0000000001) return 0.0000000001;
+		if(tmp > 0.9999999999) return 0.9999999999;
+		return tmp;
 	};
 	~TRecalibrationEMSite();
 	void calcEpsilon(double** params);
@@ -305,9 +308,13 @@ public:
 	void set(float error, std::string & NumObservations);
 	float getD(TBase* base, Base & RefBase);
 	virtual void addBase(TBase* base, Base & RefBase){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
+	virtual void recalculateDerivativesFromDataInMemory(){throw "TBQSR_cell_base::recalculateDerivativesFromDataInMemory() not defined for base class!";};
+	virtual void recalculateLLFromDataInMemory(){throw "TBQSR_cell_base::recalculateLLFromDataInMemory() not defined for base class!";};
 	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
 	void runNewtonRaphson(float & convergenceThreshold);
 	std::string getNumObsForPrinting();
+	void calcLikelihoodSurfaceAt(int numPositions, double* positions, std::string & tag, std::ofstream & out);
+	virtual void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out){throw "TBQSR_cell_base::calcLikelihoodSurface(int numPositions, std::ofstream & out) not defined for base class!";};;
 };
 
 
@@ -328,13 +335,17 @@ public:
 	void init(float initialError, bool Store, int ReadGroup);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(float & D);
+	void addToLL(float & D);
 	void recalculateDerivativesFromDataInMemory();
+	void recalculateLLFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
 	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
 	float makePhred(float & epsilon){
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
 	};
+
+	void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out);
 };
 
 struct BQSRFactorStorage{
@@ -361,9 +372,12 @@ public:
 	virtual float getEpsilon(TBase* base);
 	void addBase(TBase* base, Base & RefBase);
 	void addToDerivatives(float & D, float & epsilon);
+	void addToLL(float & D, float & epsilon);
 	void recalculateDerivativesFromDataInMemory();
+	void recalculateLLFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
 	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
+	void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out);
 };
 
 class TBQSR_cellPositionRev:public TBQSR_cellPosition{
@@ -412,6 +426,9 @@ private:
 	long minObservations;
 	bool storeDataInMemory;
 	bool dataStored;
+	bool printLLSurface;
+	bool LLSurfacePrinted;
+	int numPosLLsurface;
 
 	//recal tables
 	bool qualityConverged, estimateQuality;
@@ -477,6 +494,10 @@ public:
 	void writePositionToFile(std::string & filenameTag);
 	void writePositionReverseToFile(std::string & filenameTag);
 	void writeContextToFile(std::string & filenameTag);
+	void calculateAndPrintLLSurfaceQuality(std::string & filenameTag);
+	void calculateAndPrintLLSurfacePosition(std::string & filenameTag);
+	void calculateAndPrintLLSurfaceReversePosition(std::string & filenameTag);
+	void calculateAndPrintLLSurfaceContext(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(TBase* base);

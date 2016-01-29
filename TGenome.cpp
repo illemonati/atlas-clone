@@ -1057,7 +1057,6 @@ void TGenome::BQSR(TParameters & params){
 	}
 }
 
-
 void TGenome::printQualityTransformation(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -1233,7 +1232,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			truncatedReadGroupId = readGroups.find(readGroup);
 
 			//ad to map
-			singleEndRG.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup));
+			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
 		}
 	}
 	logfile->write(" done!");
