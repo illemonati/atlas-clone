@@ -1888,15 +1888,17 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 }
 
 
-void TGenome::outputCoverage(TParameters & params){
-
+void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 	//open output file
 	std::ofstream output;
 	std::string outputFileName = outputName + "_coverage.txt";
-	logfile->list("Writing coverage to '" + outputFileName + "'");
+	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	int nCharOnLine = 0;
+
+	//write header
+	output << "chr\tstart\tend\tcoverage" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -1908,8 +1910,8 @@ void TGenome::outputCoverage(TParameters & params){
 			//read data for current window
 			readData(windows);
 
-			//set Theta
-			logfile->listFlush("Writing coverage to output...");
+			//write to file
+			logfile->listFlush("Writing coverage to file ...");
 			output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
 			logfile->write(" done!");
 		}
