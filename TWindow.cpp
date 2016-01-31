@@ -307,6 +307,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 					recalObject->calcEmissionProbabilities(sites[i]);
 					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef);
 					out << "\n";
+
 				}
 			}
 		}

@@ -230,11 +230,11 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			}
 		} else {
 			//both are ref -> let's find the second most likely genotype
-			double maxPostProb = -1.0;
+			double maxPostProb = 1000.0;
 			std::vector<int> secondMostLikely;
 			for(int i=0; i<numGenotypes; ++i){
 				if(i != MLGenotype){
-					if(emissionProbabilities[i] > maxPostProb){
+					if(emissionProbabilities[i] < maxPostProb){
 						maxPostProb = emissionProbabilities[i];
 						secondMostLikely.clear();
 						secondMostLikely.push_back(i);
