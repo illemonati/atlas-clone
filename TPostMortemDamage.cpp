@@ -124,7 +124,7 @@ std::string TPMDTable::getPMDStringCT(){
 		else {
 			tmpCT = (double) counts[p][C][T] / (double) sums[p][C];
 			tmpTC = (double) counts[p][T][C] / (double) sums[p][T];
-			s += toString(std::max(0.0, (tmpCT - tmpTC)));
+			s += toString(std::max(0.0, (tmpCT - tmpTC)/(1.0 - tmpTC)));
 		}
 	}
 	return s + "]";
@@ -140,7 +140,7 @@ std::string TPMDTable::getPMDStringGA(){
 		else {
 			tmpGA = (double) counts[p][G][A] / (double) sums[p][G];
 			tmpAG = (double) counts[p][A][G] / (double) sums[p][A];
-			s += toString(std::max(0.0, (tmpGA - tmpAG)));
+			s += toString(std::max(0.0, (tmpGA - tmpAG)/(1.0 - tmpAG)));
 		}
 	}
 	return s + "]";
