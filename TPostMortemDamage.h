@@ -28,6 +28,9 @@ private:
 
 	void calculateSums();
 	void deleteSums();
+	void fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams);
+	void fillF(arma::vec & F, double* oldParams);
+	double calcLL(double* oldParams);
 
 public:
 	TPMDTable(int MaxLength);
@@ -38,6 +41,7 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
+	void fitExponentialModel(int & numNRIterations, double & eps, TLog* logfile);
 };
 
 class TPMDTables{
@@ -53,6 +57,7 @@ public:
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
+	void fitExponentialModel(int numNRIterations, double eps, TLog* logfile);
 };
 
 

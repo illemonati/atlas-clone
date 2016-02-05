@@ -146,6 +146,237 @@ std::string TPMDTable::getPMDStringGA(){
 	return s + "]";
 };
 
+//function to fit an exponential model
+void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams){
+	F.zeros();
+	J.zeros();
+
+	double weight, weightJ, tmp;
+	double expMinusAlphaP;
+	double dExpMinusAlphaP;
+	for(int p=0; p<maxLength; ++p){
+		//exp
+		expMinusAlphaP = exp(-oldParams[2] * p);
+		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
+
+		//first term
+		//----------
+		tmp = oldParams[0] + dExpMinusAlphaP;
+		weight = counts[p][C][T] / tmp;
+		weightJ = weight / tmp;
+
+		//add to F
+		F(0) += weight;
+		F(1) += weight * expMinusAlphaP;
+		F(2) -= weight * p * dExpMinusAlphaP;
+
+		//add to J -> only upper triangle, as it is symmetric
+		J(0,0) -= weightJ;
+		J(0,1) -= weightJ * expMinusAlphaP;
+		J(0,2) += weightJ * p * dExpMinusAlphaP;
+		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
+		J(1,2) -= weightJ * p * oldParams[0] * expMinusAlphaP;
+		J(2,2) += weightJ * p * p * oldParams[0] * dExpMinusAlphaP;
+
+		//second term
+		//-----------
+		tmp = (1.0 - oldParams[0] - dExpMinusAlphaP);
+		weight = (sums[p][C] - counts[p][C][T]) / tmp;
+		weightJ = weight / tmp;
+
+		//add to F
+		F(0) -= weight;
+		F(1) -= weight * expMinusAlphaP;
+		F(2) += weight * p * dExpMinusAlphaP;
+
+		//add to J -> only upper triangle, as it is symmetric
+		J(0,0) -= weightJ;
+		J(0,1) -= weightJ * expMinusAlphaP;
+		J(0,2) += weightJ * p * dExpMinusAlphaP;
+		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
+		J(1,2) += weightJ * p * (1.0 - oldParams[0]) * expMinusAlphaP;
+		J(2,2) -= weightJ * p * p * (1.0 - oldParams[0]) * dExpMinusAlphaP;
+	}
+
+	//now fill in lower triangle of J
+	J(1,0) = J(0,1);
+	J(2,0) = J(0,2);
+	J(2,1) = J(1,2);
+}
+
+void TPMDTable::fillF(arma::vec & F, double* oldParams){
+	F.zeros();
+
+	double weight;
+	double expMinusAlphaP;
+	double dExpMinusAlphaP;
+	for(int p=0; p<maxLength; ++p){
+		//exp
+		expMinusAlphaP = exp(-oldParams[2] * (double) p);
+		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
+
+		//first term
+		//----------
+		weight = counts[p][C][T] / (oldParams[0] + dExpMinusAlphaP);
+		weight -= (sums[p][C] - counts[p][C][T]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
+
+		//add to F
+		F(0) += weight;
+		F(1) += weight * expMinusAlphaP;
+		F(2) -= weight * (double) p * dExpMinusAlphaP;
+	}
+}
+
+double TPMDTable::calcLL(double* oldParams){
+	double LL = 0.0;
+	double dExpMinusAlphaP;
+	for(int p=0; p<maxLength; ++p){
+		dExpMinusAlphaP = oldParams[1] * exp(-oldParams[2] * p);
+		LL += counts[p][C][T] * log(oldParams[0] + dExpMinusAlphaP)
+			+ (sums[p][C] - counts[p][C][T]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
+	}
+	return LL;
+}
+
+void TPMDTable::fitExponentialModel(int & numNRIterations, double & eps, TLog* logfile){
+	//variables
+	arma::mat J(3,3);
+	arma::vec F(3);
+	arma::vec oldF(3);
+	arma::mat JxF;
+
+	//set starting values
+	double oldParams[3];
+	double newParams[3];
+	oldParams[0] = 0.1;
+	oldParams[1] = 0.3;
+	oldParams[2] = 0.01;
+	double LL, oldLL;
+	oldLL = calcLL(oldParams);
+	logfile->write("Initial LL = " + toString(oldLL));
+
+	std::cout << "INITIAL Params:";
+	for(int x=0; x<3; ++x)
+		std::cout << "\t" << oldParams[x];
+	std::cout << std::endl;
+
+	//first conduct a few steepst ascent runs
+	logfile->listFlush("Running steepest ascent runs ...");
+	double normF2;
+	for(int i = 0; i<1000000; ++i){
+		fillF(F, oldParams);
+		normF2 = 0;
+		for(int x=0; x<3; ++x) normF2 += F(x) * F(x);
+		normF2 = sqrt(normF2);
+		F = F / normF2;
+		for(int x=0; x<3; ++x)
+			oldParams[x] = oldParams[x] +  0.001 * F(x);
+
+		//test if we break
+		std::cout << i << ": DOT = " << (dot(F, oldF)) << std::endl;
+		std::cout << i << ": ASCENT Params:";
+		for(int x=0; x<3; ++x)
+			std::cout << "\t" << oldParams[x];
+		std::cout << std::endl;
+
+		if(i>10000 && dot(F, oldF) < 0.0) break;
+		oldF = F;
+	}
+
+	LL = calcLL(oldParams);
+	logfile->write(" done!");
+	logfile->conclude("LL increased to " + toString(LL));
+
+	std::cout << "ASCENT Params:";
+	for(int x=0; x<3; ++x)
+		std::cout << "\t" << oldParams[x];
+	std::cout << std::endl;
+
+
+	//now conduct Newton-Raphson
+	double lambda; //used in backtracking
+	bool acceptMove;
+	bool NRconverged = false;
+
+	for(int i = 0; i<numNRIterations; ++i){
+		fillFAndJacobian(F, J, oldParams);
+
+		std::cout << "J=" << J << std::endl;
+
+		if(solve(JxF, J, F)){
+
+			//update params for each read group using backtracking
+			lambda = 1.0;
+			acceptMove = false;
+			while(!acceptMove){
+				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
+				//estimate new params
+				for(int x=0; x<3; ++x)
+					newParams[x] = oldParams[x] - lambda * JxF(x);
+
+
+				std::cout << "NEW Params:";
+				for(int x=0; x<3; ++x)
+					std::cout << "\t" << newParams[x];
+				std::cout << std::endl;
+
+				//calculate LL at new location
+				LL = calcLL(newParams);
+				logfile->write("new LL = " + toString(LL));
+
+
+
+				//check if we accept or backtrack
+				if(LL > oldLL){
+					acceptMove = true; //accept
+					logfile->write(" accepting move!");
+					logfile->conclude("LL was increased from " + toString(oldLL) + " to " + toString(LL));
+
+					//check if we stop NR
+					if(LL - oldLL < eps){
+						NRconverged = true;
+						logfile->conclude("stopping Newton-Raphson: increase in LL was < " + toString(eps));
+						break;
+					}
+
+					oldLL = LL;
+
+					//store new params
+					for(int x=0; x<3; ++x)
+						oldParams[x] = newParams[x];
+
+
+				} else {
+					lambda = lambda / 2.0; //backtrack;
+					logfile->write(" rejecting move!");
+					if(lambda < 0.000000001){
+						acceptMove = true; //accept
+						NRconverged = true;
+						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
+					}
+				}
+			}
+		} else {
+			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
+			throw "Issue solving JxF in TPMDTable::fitExponentialModel!";
+		}
+
+		std::cout << "TMP Params:";
+		for(int x=0; x<3; ++x)
+			std::cout << "\t" << oldParams[x];
+		std::cout << std::endl;
+
+		//check if it converged
+		if(NRconverged) break;
+	}
+
+	//print params
+	std::cout << "Params:";
+	for(int x=0; x<3; ++x)
+		std::cout << "\t" << oldParams[x];
+	std::cout << std::endl;
+}
+
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
@@ -210,6 +441,14 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	}
 	out.close();
 };
+
+void TPMDTables::fitExponentialModel(int numNRIterations, double eps, TLog* logfile){
+	//loop over all read groups
+	for(int i=0; i<readGroups->numGroups; ++i){
+		forward[i]->fitExponentialModel(numNRIterations, eps, logfile);
+		//reverse[i]->fitExponentialModel(numNRIterations, eps, logfile);
+	}
+}
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------
