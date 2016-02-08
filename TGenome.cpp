@@ -1549,15 +1549,18 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
 	pmdTables.writeTableWithCounts(filename);
 	logfile->write(" done!");
-	filename = outputName + "_PMD_input_Table.txt";
+	filename = outputName + "_PMD_input_Empiric.txt";
 	logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
 	pmdTables.writePMDFile(filename);
 	logfile->write(" done!");
 
 	//estimate exponential model
-	int numNRIterations = params.getParameterInt("numNRIterations");
-	double eps = params.getParameterDoubleWithDefault("eps", 0.01);
-	pmdTables.fitExponentialModel(numNRIterations, eps, logfile);
+	filename = outputName + "_PMD_input_Exponential.txt";
+	logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
+	int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
+	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
+	pmdTables.fitExponentialModel(numNRIterations, eps, filename);
+	logfile->write(" done!");
 }
 
 void TGenome::mergePairedEndReads(TParameters & params){

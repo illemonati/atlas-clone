@@ -28,9 +28,9 @@ private:
 
 	void calculateSums();
 	void deleteSums();
-	void fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams);
-	void fillF(arma::vec & F, double* oldParams);
-	double calcLL(double* oldParams);
+	void fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams);
+	void fillF(arma::vec & F, Base & from, Base & to, double* oldParams);
+	double calcLL(Base & from, Base & to, double* oldParams);
 
 public:
 	TPMDTable(int MaxLength);
@@ -41,7 +41,7 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
-	void fitExponentialModel(int & numNRIterations, double & eps, TLog* logfile);
+	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps);
 };
 
 class TPMDTables{
@@ -57,7 +57,7 @@ public:
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
-	void fitExponentialModel(int numNRIterations, double eps, TLog* logfile);
+	void fitExponentialModel(int numNRIterations, double eps, std::string & filename);
 };
 
 
@@ -86,12 +86,12 @@ public:
 	std::string getString();
 };
 
-class TPMDVeeramah:public TPMDFunction{
+class TPMDExponential:public TPMDFunction{
 private:
 	double a,b,c;
 
 public:
-	TPMDVeeramah(double & A, double & B, double & C);
+	TPMDExponential(double & A, double & B, double & C);
 	double getProb(int & pos);
 	std::string getString();
 };

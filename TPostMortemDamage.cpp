@@ -147,7 +147,7 @@ std::string TPMDTable::getPMDStringGA(){
 };
 
 //function to fit an exponential model
-void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams){
+void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams){
 	F.zeros();
 	J.zeros();
 
@@ -162,7 +162,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams
 		//first term
 		//----------
 		tmp = oldParams[0] + dExpMinusAlphaP;
-		weight = counts[p][C][T] / tmp;
+		weight = counts[p][from][to] / tmp;
 		weightJ = weight / tmp;
 
 		//add to F
@@ -181,7 +181,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams
 		//second term
 		//-----------
 		tmp = (1.0 - oldParams[0] - dExpMinusAlphaP);
-		weight = (sums[p][C] - counts[p][C][T]) / tmp;
+		weight = (sums[p][from] - counts[p][from][to]) / tmp;
 		weightJ = weight / tmp;
 
 		//add to F
@@ -204,7 +204,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams
 	J(2,1) = J(1,2);
 }
 
-void TPMDTable::fillF(arma::vec & F, double* oldParams){
+void TPMDTable::fillF(arma::vec & F, Base & from, Base & to, double* oldParams){
 	F.zeros();
 
 	double weight;
@@ -217,8 +217,8 @@ void TPMDTable::fillF(arma::vec & F, double* oldParams){
 
 		//first term
 		//----------
-		weight = counts[p][C][T] / (oldParams[0] + dExpMinusAlphaP);
-		weight -= (sums[p][C] - counts[p][C][T]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
+		weight = counts[p][from][to] / (oldParams[0] + dExpMinusAlphaP);
+		weight -= (sums[p][from] - counts[p][from][to]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
 
 		//add to F
 		F(0) += weight;
@@ -227,18 +227,18 @@ void TPMDTable::fillF(arma::vec & F, double* oldParams){
 	}
 }
 
-double TPMDTable::calcLL(double* oldParams){
+double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
 	double LL = 0.0;
 	double dExpMinusAlphaP;
 	for(int p=0; p<maxLength; ++p){
 		dExpMinusAlphaP = oldParams[1] * exp(-oldParams[2] * p);
-		LL += counts[p][C][T] * log(oldParams[0] + dExpMinusAlphaP)
-			+ (sums[p][C] - counts[p][C][T]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
+		LL += counts[p][from][to] * log(oldParams[0] + dExpMinusAlphaP)
+			+ (sums[p][from] - counts[p][from][to]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
 	}
 	return LL;
 }
 
-void TPMDTable::fitExponentialModel(int & numNRIterations, double & eps, TLog* logfile){
+std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);
@@ -246,161 +246,83 @@ void TPMDTable::fitExponentialModel(int & numNRIterations, double & eps, TLog* l
 	arma::mat JxF;
 
 	//set starting values
-	double oldParams[3]; //mu, delta, alpha
+	double oldParams[3]; //exponential parameters alpha + beta exp(-gamma * position);
 	double newParams[3];
-	oldParams[0] = 0.1;
-	oldParams[1] = 0.3;
-	oldParams[2] = 0.01;
 	double LL, oldLL;
-	oldLL = calcLL(oldParams);
-	logfile->write("Initial LL = " + toString(oldLL));
-
-	std::cout << "INITIAL Params:";
-	for(int x=0; x<3; ++x)
-		std::cout << "\t" << oldParams[x];
-	std::cout << std::endl;
 
 	//find last entry with counts
 	int lastPositionToConsiderPlusOne = -1;
-	for(int p=0; p<maxLength; ++p){
-		if(sums[p][C] <= 0){
+	for(int p=maxLength-1; p >= 0; ++p){
+		if(sums[p][from] > 0){
 			lastPositionToConsiderPlusOne = p;
 			break;
 		}
 	}
 
-/*
 	//use OLS to find starting point
 	//------------------------------
 	//some variables
-	double alphaStep = 0.01;
-	double alphaTmp = -alphaStep;
-	int SSDold = lastPositionToConsiderPlusOne;
-	int SSRdiff = -1.0;
-	arma::vec vecOFOnes(lastPositionToConsiderPlusOne);
-	vecOFOnes.ones(lastPositionToConsiderPlusOne);
+	double gammaStep = 0.01;
+	double gammaTmp = -gammaStep + 0.00000001;
+	double SSRold = lastPositionToConsiderPlusOne;
+	double SSRnew;
+	double SSRdiff = -1.0;
+
 	arma::mat X(lastPositionToConsiderPlusOne, 2);
 	X.ones();
+	arma::mat XtX;
+	arma::mat betaHat;
 
-	//fill vector f to fit using OLS
-	double* f = new double[lastPositionToConsiderPlusOne];
+	//fill vector y to fit using OLS
+	arma::vec y(lastPositionToConsiderPlusOne);
+	double sumYSquared = 0.0;
 	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
-		f[p] = counts[p][C][T] / sums[p][C];
+		y(p) = (double) counts[p][from][to] / (double) sums[p][from];
+		sumYSquared += y(p) * y(p);
 	}
 
 	//do until we get a small alpha
-	while(fabs(alphaStep) > 0.00000001){
+	while(fabs(gammaStep) > 0.00000001){
 		while(SSRdiff < 0.0){
-			//update alpha
-			alphaTmp += alphaStep;
+			//update gamma
+			gammaTmp += gammaStep;
 
 			//fill x
 			for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
-				X(p,1) = exp(-alphaTmp * p);
+				X(p,1) = exp(-gammaTmp * (double) p);
 			}
 
-			//run OLS
+			betaHat = inv(X.t()*X) * X.t() * y;
 
-
-
+			//calc sum of squares
+			arma::mat tmp = (betaHat.t() * X.t() * y);
+			SSRnew = sumYSquared - tmp(0,0);
+			SSRdiff = SSRnew - SSRold;
+			SSRold = SSRnew;
 		}
+		//update alpha step
+		gammaStep = -0.1 * gammaStep;
+		SSRdiff = -1.0;
 	}
 
+	//store params
+	oldParams[0] = betaHat(0);
+	oldParams[1] = betaHat(1);
+	oldParams[2] = gammaTmp;
 
-	y <- f<-as.matrix(f, ncol=1);
-	ones <-matrix(1,nrow=P,ncol=1);
-
-	SSR.old <- P;
-	SSR.diff <- -1;
-	delta.alpha <- 0.01;
-
-	while (abs(delta.alpha) > 10^{-6}){
-	  while (SSR.diff < 0){
-
-	    alpha <- alpha + delta.alpha;
-	    x <- matrix(exp(-alpha*(1:P)),ncol=1);
-	    X <- cbind(ones,x);
-
-	    beta.hat <- solve(t(X)%*%X)%*%t(X)%*%y;
-	    SSR.new <- sum(y^2) - t(beta.hat)%*%t(X)%*%y;
-	    SSR.diff <- SSR.new - SSR.old;
-	    SSR.old <- SSR.new;
-	  }
-	delta.alpha <- -0.1*delta.alpha;
-	SSR.diff <- -1;
-	}
-	*/
-
-	//do grid search to find starting values
-	logfile->listFlush("Running grid search ...");
-	int gridSize = 11;
-	for(int i=0; i<gridSize; ++i){
-		newParams[0] = i * 1.0/(gridSize - 1);
-		for(int j=0; j<gridSize; ++j){
-			newParams[1] = j * 1.0/(gridSize - 1);
-			for(int k=0; k<gridSize; ++k){
-				newParams[2] = k * 1.0/(gridSize - 1);
-				//calc LL and decide if it is better than old
-				LL = calcLL(newParams);
-				if(LL > oldLL){
-					for(int x=0; x<3; ++x)
-						oldParams[x] = newParams[x];
-					oldLL = LL;
-				}
-			}
-		}
-	}
-
-	logfile->write(" done!");
-	logfile->conclude("LL increased to " + toString(LL));
-
-	std::cout << "GRID Params:";
-	for(int x=0; x<3; ++x)
-		std::cout << "\t" << oldParams[x];
-	std::cout << std::endl;
-
-	//then conduct a few steepst ascent runs
-	logfile->listFlush("Running steepest ascent runs ...");
-	double normF2;
-	for(int i = 0; i<100000; ++i){
-		fillF(F, oldParams);
-		normF2 = 0;
-		for(int x=0; x<3; ++x) normF2 += F(x) * F(x);
-		normF2 = sqrt(normF2);
-		F = F / normF2;
-		for(int x=0; x<3; ++x)
-			oldParams[x] = oldParams[x] +  0.001 * F(x);
-
-		//test if we break
-		if(i>100 && dot(F, oldF) < 0.0) break;
-		oldF = F;
-	}
-
-	LL = calcLL(oldParams);
-	logfile->write(" done!");
-	logfile->conclude("LL increased to " + toString(LL));
-
-	std::cout << "ASCENT Params:";
-	for(int x=0; x<3; ++x)
-		std::cout << "\t" << oldParams[x];
-	std::cout << std::endl;
-
-
-	//and finally conduct Newton-Raphson
-	logfile->listFlush("refining using Newton-Raphson ...");
-	double lambda; //used in backtracking
-	bool acceptMove;
-	bool NRconverged = false;
+	//Conduct Newton-Raphson to refine
+	//----------------------------------
+	oldLL = calcLL(from, to, oldParams);
 
 	for(int i = 0; i<numNRIterations; ++i){
-		fillFAndJacobian(F, J, oldParams);
+		fillFAndJacobian(F, J, from, to, oldParams);
 		if(solve(JxF, J, F)){
 			//estimate new params
 			for(int x=0; x<3; ++x)
-				newParams[x] = oldParams[x] - lambda * JxF(x);
+				newParams[x] = oldParams[x] - JxF(x);
 
 				//calculate LL at new location
-				LL = calcLL(newParams);
+				LL = calcLL(from, to, newParams);
 
 				//check if we accept or backtrack
 				if(LL > oldLL){
@@ -411,28 +333,37 @@ void TPMDTable::fitExponentialModel(int & numNRIterations, double & eps, TLog* l
 					//check if we stop NR
 					if(LL - oldLL < eps){
 						oldLL = LL;
-						logfile->conclude("Stopping Newton-Raphson: increase in LL was < " + toString(eps));
 						break;
 					}
-
 					oldLL = LL;
 				}
 		} else {
 			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
 			throw "Issue solving JxF in TPMDTable::fitExponentialModel!";
 		}
-
-		std::cout << "TMP Params:";
-		for(int x=0; x<3; ++x)
-			std::cout << "\t" << oldParams[x];
-		std::cout << std::endl;
 	}
 
-	//print params
-	std::cout << "Params:";
-	for(int x=0; x<3; ++x)
-		std::cout << "\t" << oldParams[x];
-	std::cout << std::endl;
+	//writing to file -> first need to "decode" the parameters
+	//the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
+	//but we fitted f(C->T) = alpha + beta * exp(-gamma * position).
+	//Hence we have:
+	// mu is estimated from T->C transitions
+	// a =  beta / (1 - mu)
+	// b = gamma
+	// c = (alpha - mu) / (1 - mu)
+	double mu = 0.0; double sum = 0.0;
+	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
+		mu += counts[p][to][from];
+		sum += sums[p][to];
+	}
+	mu = mu / sum;
+
+	double a = oldParams[1] / (1.0 - mu);
+	double b = oldParams[2];
+	double c = (oldParams[0] - mu) / (1.0 - mu);
+
+	//no return string
+	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
 
 //---------------------------------------------------------------
@@ -500,12 +431,15 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	out.close();
 };
 
-void TPMDTables::fitExponentialModel(int numNRIterations, double eps, TLog* logfile){
-	//loop over all read groups
+void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename){
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "'!";
+
+	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		forward[i]->fitExponentialModel(numNRIterations, eps, logfile);
-		//reverse[i]->fitExponentialModel(numNRIterations, eps, logfile);
+		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps) << "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps) << "\n";
 	}
+	out.close();
 }
 //---------------------------------------------------------------
 //TPMDFunction
@@ -522,14 +456,14 @@ std::string TPMDSkoglund::getString(){
 };
 
 //---------------------------------------------------------------
-TPMDVeeramah::TPMDVeeramah(double & A, double & B, double & C){
+TPMDExponential::TPMDExponential(double & A, double & B, double & C){
 	a = A; b = B; c = C;
 }
-double TPMDVeeramah::getProb(int & pos){
+double TPMDExponential::getProb(int & pos){
 	//Note: distance is zero based!
 	return a * exp(- (double) pos * b) + c;
 };
-std::string TPMDVeeramah::getString(){
+std::string TPMDExponential::getString(){
 	return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c);
 };
 
@@ -565,12 +499,10 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 	// none
 	// Skoglund[lambda,c]
 	// Veeramah[a,b,c]
-	std::string example = "Use either Skoglund[p,c], Veeramah[a,b,c] or Empiric[0.2,0.3,...]";
+	std::string example = "Use either Skoglund[p,c], Exponential[a,b,c] or Empiric[0.2,0.3,...]";
 
 	//check if function was initialized abefore
 	if(functionsInitialized[type]) throw "PMD function has been initialized previously!";
-
-	std::cout << "PMD STRING = '" << pmdString << "'" << std::endl;
 
 	//check if it is none
 	if(pmdString == "none"){
@@ -580,13 +512,8 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 		if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
 		std::string name = pmdString.substr(0,pos);
 
-
-
 		//switch between functions
 		if(name == "Empiric"){
-
-			std::cout << "EMPIRIC!!!!!" << std::endl;
-
 			std::string::size_type endPos = pmdString.find_first_of(']');
 			if(endPos == std::string::npos || endPos != pmdString.length()-1) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
 			std::string list = pmdString.substr(pos+1, endPos-pos-1);
@@ -605,26 +532,26 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 				double c = atof(tmp.substr(pos+1).c_str());
 				if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
 				myFunctions[type] = new TPMDSkoglund(first, c);
-			} else if(name == "Veeramah"){
+			} else if(name == "Exponential"){
 				//get a, b and c
-				if(first < 0.0) throw "Can not initialize Veeramah function with a < 0!";
+				if(first < 0.0) throw "Can not initialize Exponential function with a < 0!";
 
 				//get b
 				tmp = tmp.substr(pos+1);
 				pos = tmp.find_first_of(',');
 				if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
 				double b = atof(tmp.substr(0, pos).c_str());
-				if(b < 0.0) throw "Can not initialize Veeramah function with b < 0!";
+				if(b < 0.0) throw "Can not initialize Exponential function with b < 0!";
 
 				//get c
 				double c = atof(tmp.substr(pos+1).c_str());
-				if(c < 0.0) throw "Can not initialize Veeramah function with c < 0!";
+				if(c < 0.0) throw "Can not initialize Exponential function with c < 0!";
 
 				//test if it can be > 1
-				//if(first + c > 1) throw "Can not initialize Veeramah function with a + c > 1!";
+				//if(first + c > 1) throw "Can not initialize Exponential function with a + c > 1!";
 
 				//initialze
-				myFunctions[type] = new TPMDVeeramah(first, b, c);
+				myFunctions[type] = new TPMDExponential(first, b, c);
 			} else throw "Can not initialize post mortem damage function '" + pmdString + "': wrong name!\n" + example;
 		}
 	}
