@@ -205,7 +205,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					out << "\t" << geno[0];
 					genoVCF = "1/1";
 				} else {
-					out << "\t" << geno;
+					out << "\t" << geno[0] << ',' << geno[1];
 					genoVCF = "1/2";
 					if(referenceBase != 'N'){
 						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
@@ -263,11 +263,8 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			genoVCF = "0/0";
 		}
 
-		//print quality
-		out << "\t" << round(quality);
-
-		//print (no) filter
-		out << "\t.";
+		//print (no) variant quality and (no) filter
+		out << "\t.\t.";
 
 		//print info fields: coverage and all normalized likelihoods
 		out << "\tDP=" << bases.size();
@@ -277,10 +274,10 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 
 		//print format and genotype field
-		if(referenceBase != 'N') out << "\tGT:PL\t" << genoVCF << ":" << PL;
-		else out << "\tGT\t" << genoVCF;
+		if(referenceBase != 'N') out << "\tGT:GQ:PL\t" <<  genoVCF << ":" << round(quality) << ':' << PL;
+		else out << "\tGT:GQ\t" << genoVCF << ':' << round(quality);
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:GQ\t0/0:0";
 	}
 }
 
@@ -358,23 +355,20 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 		double phredEmissionProb[3];
 		calculatePhredScaledGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, phredEmissionProb, quality, maxGenotypeProb, MLGenotype);
 
-		//print quality
-		out << "\t" << round(quality);
-
-		//print (no) filter
-		out << "\t.";
+		//print (no) variant quality and (no) filter
+		out << "\t.\t.";
 
 		//print info fields: coverage and all normalized likelihoods
 		out << "\tDP=" << bases.size();
 
 		//print format and genotype field
-		out << "\tGT:PL\t";
+		out << "\tGT:GQ:PL\t";
 		if(MLGenotype == 0) out << "0/0";
 		else if(MLGenotype == 1) out << "0/1";
 		else out << "1/1";
-		out << ":" << round(phredEmissionProb[0] - maxGenotypeProb) << "," << round(phredEmissionProb[1] - maxGenotypeProb) << "," << round(phredEmissionProb[2] - maxGenotypeProb);
+		out << ":" << round(quality) << ':' << round(phredEmissionProb[0] - maxGenotypeProb) << "," << round(phredEmissionProb[1] - maxGenotypeProb) << "," << round(phredEmissionProb[2] - maxGenotypeProb);
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:GQ\t0/0:0";
 	}
 }
 
@@ -463,7 +457,7 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 					out << "\t" << geno[0];
 					genoVCF = "1/1";
 				} else {
-					out << "\t" << geno;
+					out << "\t" << geno[0] << ',' << geno[1];
 					genoVCF = "1/2";
 					if(referenceBase != 'N'){
 						GP +=  "," + toString(round(postProb[genoMap.getGenotype(referenceBase, geno[1])]));
@@ -521,11 +515,8 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 			genoVCF = "0/0";
 		}
 
-		//print quality
-		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
-
-		//print (no) filter
-		out << "\t.";
+		//print (no) variant quality and (no) filter
+		out << "\t.\t.";
 
 		//print info fields: coverage and all posterior probabilities
 		out << "\tDP=" << bases.size() << ";PP=" << round(makePhred(postProb[0]));
@@ -534,10 +525,10 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		}
 
 		//print format and genotype field
-		if(referenceBase != 'N') out << "\tGT:GP\t" << genoVCF << ":" << GP;
-		else out << "\tGT\t" << genoVCF;
+		if(referenceBase != 'N') out << "\tGT:GQ:GP\t" <<  genoVCF << ":" << round(makePhred(1.0 - postProb[MAPGenotype])) << ':' << GP;
+		else out << "\tGT:GQ\t" << genoVCF << ':' << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:GQ\t0/0:0";
 	}
 }
 

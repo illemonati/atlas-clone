@@ -229,9 +229,8 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	std::string ref; //fasta object fills string
 	reference.GetSequence(refId, start, stop, ref);
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			sites[i].setRefBase(ref[i]);
-		}
+//		if(sites[i].hasData)
+		sites[i].setRefBase(ref[i]);
 	}
 }
 
