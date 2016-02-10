@@ -91,37 +91,34 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups){
+bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
 	 */
-	if(bamAlignement.Position >= end) return true;
-
-	//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
-	if(bamAlignement.IsPaired() && bamAlignement.MateRefID != bamAlignement.RefID) return false;
+	if(bamAlignment.Position >= end) return true;
 
 	//find first position to be within window
-	double len = bamAlignement.AlignedBases.length();
-	if(bamAlignement.Position + len < start) return false;
+	double len = bamAlignment.AlignedBases.length();
+	if(bamAlignment.Position + len < start) return false;
 
 	//find which position to consider first
 	++numReadsInWindow;
-	int firstPos = start - bamAlignement.Position;
+	int firstPos = start - bamAlignment.Position;
 	if(firstPos < 0) firstPos = 0;
 	int lastPos = len;
-	if(bamAlignement.Position + lastPos > end) lastPos = end - bamAlignement.Position;
+	if(bamAlignment.Position + lastPos > end) lastPos = end - bamAlignment.Position;
 
 	//find relevant 3' end
 	int distFrom5prime, distFrom3Prime;
 
 	//Extract Read Group Info
 	std::string readGroup;
-	bamAlignement.GetTag("RG", readGroup);
+	bamAlignment.GetTag("RG", readGroup);
 	int readGroupId = readGroups->find(readGroup);
 
 	//add sites
-	int internalPos = bamAlignement.Position + firstPos - start;
+	int internalPos = bamAlignment.Position + firstPos - start;
 	char base; BaseContext context;
 	char quality;
 	int secondLastPos = lastPos - 1;
@@ -133,22 +130,22 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 	 *  4) Function add needs first P(C->T), then P(G->A)
 	 */
 
-	if(bamAlignement.IsProperPair()){
-		if(bamAlignement.IsFirstMate()){
+	if(bamAlignment.IsProperPair()){
+		if(bamAlignment.IsFirstMate()){
 			//first mate & reverse
 			//Hence P(C->T) is given as a function of pos
 			//And P(G->A) is given by (length of fragment) - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignement.AlignedBases.at(pos);
+				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignement.AlignedQualities.at(pos);
+					quality = bamAlignment.AlignedQualities.at(pos);
 					if((int) quality > 32){ //skip if quality dies not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
 						//set distances
 						distFrom5prime = pos;
-						distFrom3Prime = bamAlignement.InsertSize - pos - 1;
+						distFrom3Prime = bamAlignment.InsertSize - pos - 1;
 						//add base
 						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
 					}
@@ -159,15 +156,15 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 			//hence P(C->T) is given by f(dist since beginning of fragment) = f(insert - len + pos)
 			//and P(G->A) is given as f(end of fragment) = f(len - pos - 1)
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignement.AlignedBases.at(pos);
+				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignement.AlignedQualities.at(pos);
+					quality = bamAlignment.AlignedQualities.at(pos);
 					if((int) quality > 32){ //skip if quality dies not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
 						//set distances
-						distFrom5prime = bamAlignement.InsertSize - len + pos;
+						distFrom5prime = bamAlignment.InsertSize - len + pos;
 						distFrom3Prime = len - pos - 1;
 						//add base
 						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
@@ -178,18 +175,18 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 		}
 	} else {
 		//treat as single end
-		if(bamAlignement.IsReverseStrand()){
+		if(bamAlignment.IsReverseStrand()){
 			//not in pair & reverse
 			//Hence P(C->T) from 5' is just as P(G->A) from 3' in forward: f(pos)
 			//And P(G->A) from 3' is just as P(C->T) from 5' in forward: f(len - pos - 1)
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignement.AlignedBases.at(pos);
+				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignement.AlignedQualities.at(pos);
+					quality = bamAlignment.AlignedQualities.at(pos);
 					if((int) quality > 32){ //skip if quality dies not make sense
 						//get context: flip bases!
 						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(bamAlignement.AlignedBases.at(pos + 1), base);
+						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
 
 						//set distances
 						distFrom5prime = len - pos - 1;
@@ -204,13 +201,13 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjec
 			//Hence P(C->T) is given as a function of pos
 			//And P(G->A) is given by len - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignement.AlignedBases.at(pos);
+				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignement.AlignedQualities.at(pos);
+					quality = bamAlignment.AlignedQualities.at(pos);
 					if((int) quality > 32){ //skip if quality dies not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignement.AlignedBases.at(pos - 1), base);
+						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
 						//set distances
 						distFrom5prime = pos;
 						distFrom3Prime = len - pos - 1;

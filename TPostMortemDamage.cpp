@@ -362,6 +362,13 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	double b = oldParams[2];
 	double c = (oldParams[0] - mu) / (1.0 - mu);
 
+	//calculate variance of estimator
+	arma::mat Fisher = inv(J);
+	for(int x=0; x<3; ++x)
+		std::cout << "Variance " << x << " = " << sqrt(-Fisher.diag()) << std::endl;
+
+
+
 	//no return string
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
