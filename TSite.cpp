@@ -280,9 +280,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		if(referenceBase != 'N') out << "\tGT:PL\t" << genoVCF << ":" << PL;
 		else out << "\tGT\t" << genoVCF;
 	} else {
-		out << "\t0";
-		for(int i=0; i<numGenotypes; ++i) out << "\t-";
-		out << "\t-\t0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
 	}
 }
 
@@ -376,9 +374,7 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 		else out << "1/1";
 		out << ":" << round(phredEmissionProb[0] - maxGenotypeProb) << "," << round(phredEmissionProb[1] - maxGenotypeProb) << "," << round(phredEmissionProb[2] - maxGenotypeProb);
 	} else {
-		out << "\t0";
-		for(int i=0; i<numGenotypes; ++i) out << "\t-";
-		out << "\t-\t0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
 	}
 }
 
