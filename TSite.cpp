@@ -424,6 +424,7 @@ void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRan
 		out << "\t" << genoMap.getGenotypeString(MAPGenotype);
 		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
+		out << "\t" << referenceBase;
 		out << "\t0";
 		for(int i=0; i<numGenotypes; ++i) out << "\t-";
 		out << "\t-\t0";
@@ -588,6 +589,7 @@ void TSiteDiploid::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotype
 		else out << "\t" << alt << alt;
 		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
+		out << "\t" << referenceBase;
 		out << "\t0";
 		for(int i=0; i<3; ++i) out << "\t-";
 		out << "\t-\t0";
@@ -689,6 +691,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
 		//out << "\t" << quality << " -> " << maxProb;
 	} else {
+		out << "\t" << referenceBase;
 		out << "\t0\t-\t-\t-\t-\t-\t0";
 	}
 }
@@ -801,6 +804,7 @@ void TSiteDiploid::callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMa
 		else out << "\t" << alt;
 		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
 	} else {
+		out << "\t" << referenceBase;
 		out << "\t0\t-\t-\t-\t-\t-\t0";
 	}
 }
