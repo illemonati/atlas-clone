@@ -1619,10 +1619,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 					if(it->first->Name == bamAlignment.Name){
 						//check if this read accepts mate
 						if(it->second) throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
-
 						//merge reads
 						alignmentPointer = it->first;
+
 						if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->Length){
+
 							//reads do not overlap -> add Ns in between
 							int numN = bamAlignment.Position - alignmentPointer->Position + alignmentPointer->AlignedBases.size() - 1;
 							for(int i=0; i<numN; ++i){
@@ -1632,13 +1633,14 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
 							alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
 
-						} else if(bamAlignment.Position < alignmentPointer->Position) throw "Second ate of read '" + bamAlignment.Name + "' ha spos < pos of first mate!";
+						} else if(bamAlignment.Position < alignmentPointer->Position) throw "Second mate of read '" + bamAlignment.Name + "' has pos < pos of first mate!";
 						else {
-							//reads do overlap
+
+							//reads do overlap -> merge them
 							std::string alignment;
 							std::string quality;
 							int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
-							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size() + 1;
+							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
 
 							//first copy from first mate
 							alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
@@ -1659,12 +1661,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							//add rest from second
 							if(alignmentPointer->Position + alignmentPointer->AlignedBases.size() < bamAlignment.Position + bamAlignment.AlignedBases.size()){
 								alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
-								quality += bamAlignment.AlignedQualities.at(lastOverlapPlusOne - firstOverlap);
+								quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
 							}
 
 							//set
-							alignmentPointer->AlignedBases += alignment;
-							alignmentPointer->AlignedQualities += quality;
+							alignmentPointer->AlignedBases = alignment;
+							alignmentPointer->AlignedQualities = quality;
 						}
 
 						//update
@@ -1679,6 +1681,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						alignmentPointer->SetIsSecondMate(false);
 						it->second = true;
 
+
 						//write if is first in vector
 						if(it == alignmentStorage.begin()){
 							//write all that are OK
@@ -1692,12 +1695,15 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									break;
 								}
 							}
-
+							if(it == alignmentStorage.end()) alignmentStorage.clear();
 						}
 						break;
 					}
 				}
-				if(it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is second mate, but first one has not been read!";
+
+				if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is second mate, but first one has not been read!";
+
+
 			} else throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
 		} else {
 			//read is not paired: add to storage or write
