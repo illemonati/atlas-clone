@@ -1807,6 +1807,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 		if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between >0 and <1!";
 		downSampleProb[i] = *it;
 	}
+	logfile->newLine();
 
 	//open bam files for writing
 	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
