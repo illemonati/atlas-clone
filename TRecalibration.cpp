@@ -65,7 +65,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, bool printDebug){
 
 		q[k][0] = log(epsilon / (1.0 - epsilon));
 
-		if(printDebug) std::cout << "DEBUG CONSTRUCTOR site " << k << ": quality = " << (*it)->quality << " -> eps = " << epsilon << "q0 = " << q[k][0] << std::endl;
+		if(printDebug) std::cout << "DEBUG CONSTRUCTOR site " << k << ": quality = " << (*it)->quality << " -> eps = " << epsilon << " q0 = " << q[k][0] << std::endl;
 
 		q[k][1] = q[k][0] * q[k][0];
 
@@ -459,6 +459,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
+		maxCoverage = args.getParameterDoubleWithDefault("maxCoverage", 50);
+		logfile->list("Will ignore sites with coverage <= " + toString(maxCoverage));
 		logfile->endIndent();
 
 		//initialize vriables for EM
@@ -473,6 +475,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		maxEpsilon = 0.0;
 		NewtonRaphsonNumIterations = -1;
 		NewtonRaphsonMaxF = 0.0;
+		maxCoverage = -1;
 	}
 }
 
@@ -485,8 +488,10 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 }
 
 void TRecalibrationEM::addSite(TSite & site){
-	(*curWindow)->addSite(site);
-	++numSitesAdded;
+	if(site.getCoverage() <= maxCoverage){
+		(*curWindow)->addSite(site);
+		++numSitesAdded;
+	}
 }
 
 double TRecalibrationEM::getErrorRate(TBase* base, double** theseParams){
@@ -693,7 +698,6 @@ void TRecalibrationEM::runEM(std::string outputName){
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 		deltaLL = LL - oldLL;
 		logfile->conclude("Epsilon = " + toString(deltaLL));
-
 
 		//DEBUG--------------------------------------------------------
 		//calc Q surface for current old params

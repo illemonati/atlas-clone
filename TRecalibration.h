@@ -246,6 +246,7 @@ public:
 	arma::vec F;
 	arma::mat JxF;
 	long numSitesAdded;
+	int maxCoverage; //sites with higher coverage will be ignored
 
 	TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile);
 	~TRecalibrationEM(){

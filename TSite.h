@@ -60,6 +60,7 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
+	int getCoverage(){return bases.size();};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);
