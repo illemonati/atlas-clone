@@ -40,11 +40,10 @@ public:
 		referenceBase = 'N';
 		maxQualToPrint = 1000;
 		maxQualToPrintNaturalScale = pow(10.0, -maxQualToPrint / 10.0);
-
 	};
 	virtual ~TSite(){ clear(); };
-
 	void clear();
+	void stealFromOther(TSite* other);
 
 	virtual void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){
@@ -99,7 +98,6 @@ class TSiteDiploid:public TSite{
 public:
 
 	TSiteDiploid(){
-		hasData = false;
 		numGenotypes = 10;
 		emissionProbabilities = new double[numGenotypes];
 		P_g = new double[numGenotypes];

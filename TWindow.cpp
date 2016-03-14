@@ -137,9 +137,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 			//And P(G->A) is given by (length of fragment) - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > 32){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
@@ -157,9 +157,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 			//and P(G->A) is given as f(end of fragment) = f(len - pos - 1)
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > 32){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
@@ -181,9 +181,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 			//And P(G->A) from 3' is just as P(C->T) from 5' in forward: f(len - pos - 1)
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > 32){ //skip if quality does not make sense
 						//get context: flip bases!
 						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
 						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
@@ -202,9 +202,9 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 			//And P(G->A) is given by len - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > 32){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
@@ -714,7 +714,7 @@ void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMPara
 		}
 
 		//For debugging
-		//std::cout << std::setprecision(9) << iter << ") theta = " << theta << "\tLL = " << LL << "\teps = " << fabs(oldLL - LL) << std::endl;
+		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
 }
 
@@ -982,6 +982,33 @@ void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std
 		} else ++nCharOnLine;
 	}
 	delete[] pGenotype;
+}
+
+//-------------------------------------------------------
+//TWindowDiploidSpecificSites
+//-------------------------------------------------------
+TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(TBedReader* Subset){
+	subset = Subset;
+	length = subset->size();
+	initSites(length);
+	nextId = 0;
+
+}
+
+void TWindowDiploidSpecificSites::copySites(TWindowDiploid* other){
+	if(subset->hasPositionsInWindow(other->start)){
+		std::vector<long> thesePos = subset->getPositionInWindow(other->start);
+		if(nextId + thesePos.size() > length) throw "Can not add site to TWindowDiploidSpecificSites: container full!";
+		int pos;
+		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+			pos = *it - other->start;
+			if(pos < length){
+				sites[nextId].stealFromOther(&other->sites[pos]);
+				//increment id
+				++nextId;
+			}
+		}
+	}
 }
 
 //-------------------------------------------------------

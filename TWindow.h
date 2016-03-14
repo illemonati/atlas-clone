@@ -100,7 +100,7 @@ public:
 };
 
 class TWindowDiploid:public TWindow{
-private:
+protected:
 	Theta thetaContainer;
 
 	void fillPGenotype(double* pGenotype, double & expTheta);
@@ -122,6 +122,16 @@ public:
 	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF);
 	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
+};
+
+class TWindowDiploidSpecificSites:public TWindowDiploid{
+protected:
+	TBedReader* subset;
+	long nextId;
+
+public:
+	TWindowDiploidSpecificSites(TBedReader* Subset);
+	void copySites(TWindowDiploid* other);
 };
 
 class TWindowHaploid:public TWindow{

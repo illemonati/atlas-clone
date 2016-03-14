@@ -436,6 +436,7 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
+/*
 void TGenome::estimateTheta(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -469,6 +470,73 @@ void TGenome::estimateTheta(TParameters & params){
 	//clean up
 	out.close();
 }
+*/
+
+void TGenome::estimateTheta(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//EM params
+	EMParameters EMParams(params, logfile);
+
+	//open output
+	std::ofstream out; openThetaOutputFile(out);
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//only for a collection of specific sites or per window?
+	bool limitToSpecificSites = false;
+	//TSiteSubset* subset = NULL;
+	TBedReader* subset = NULL;
+	TWindowDiploidSpecificSites* windowSpecificSites;
+	if(params.parameterExists("sites")){
+		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		//else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		subset = new TBedReader(params.getParameterString("sites"), windowSize);
+		windowSpecificSites = new TWindowDiploidSpecificSites(subset);
+		limitToSpecificSites = true;
+	}
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		if(limitToSpecificSites) subset->setChr(chrIterator->Name);
+		while(iterateWindow(windows)){
+			//skip window?
+			if(!limitToSpecificSites || subset->hasPositionsInWindow(windows.cur->start)){
+				//read data for current window
+				if(readData(windows)){
+					if(limitToSpecificSites){
+						//copy sites to
+						logfile->listFlush("Adding relevant sites to data structure ...");
+						windowSpecificSites->copySites(windows.cur);
+						logfile->write(" done!");
+					} else {
+						//estimate theta for this window
+						//check if we have data -> can be extended to ensure
+						if(windows.cur->fractionSitesNoData > maxMissing){
+							logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+						} else {
+							//estimate Theta
+							out << chrIterator->Name << "\t";
+							windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+						}
+					}
+				}
+			} else logfile->list("No relevant positions -> skipping this window.");
+		}
+	}
+
+	//now infer theta, if for specific sites only
+	if(limitToSpecificSites){
+		windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
+		delete windowSpecificSites;
+	}
+
+	//clean up
+	out.close();
+}
+
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	//initialize recalibration

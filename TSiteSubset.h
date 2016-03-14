@@ -351,6 +351,13 @@ public:
 		return chrIt->second->getPositionInWindow(windowStart);
 	};
 
+	long size(){
+		long size = 0;
+		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
+			size += chrIt->second->size();
+		return size;
+	};
+
 };
 
 

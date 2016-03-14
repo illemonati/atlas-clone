@@ -19,6 +19,26 @@ void TSite::clear(){
 	}
 };
 
+void TSite::stealFromOther(TSite* other){
+	//this function extracts all data from the other object and sets it to empty
+	hasData = other->hasData;
+	if(hasData){
+		//copy data
+		referenceBase = other->referenceBase;
+		for(int i=0; i<numGenotypes; ++i){
+			emissionProbabilities[i] = other->emissionProbabilities[i];
+			P_g[i] = other->P_g[i];
+		}
+		//copy pointers to bases, BUT NOT BASES
+		for(std::vector<TBase*>::iterator it = other->bases.begin(); it!=other->bases.end(); ++it){
+			bases.push_back(*it);
+		}
+		//remove pointers from other site
+		other->bases.clear();
+		other->hasData = false;
+	}
+}
+
 void TSiteDiploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
 	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
