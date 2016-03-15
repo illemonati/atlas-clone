@@ -992,7 +992,8 @@ TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(TBedReader* Subset){
 	length = subset->size();
 	initSites(length);
 	nextId = 0;
-
+	start = 0;
+	end = length;
 }
 
 void TWindowDiploidSpecificSites::copySites(TWindowDiploid* other){

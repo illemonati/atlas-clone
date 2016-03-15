@@ -37,6 +37,10 @@ public:
 		for(std::vector<long>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it + 1;
 		std::cout << std::endl;
 	};
+
+	long size(){
+		return positions.size();
+	}
 };
 
 class TBedChromosome{
@@ -85,7 +89,7 @@ public:
 		//add position to that window
 		//Note BED is already 0 indexed
 		for(long i=start; i<end; ++i){
-			if(i>windowIt->second->end) findOrCreateWindow(i);
+			if(i >= windowIt->second->end) findOrCreateWindow(i);
 			windowIt->second->addPosition(i);
 		}
 	};
@@ -105,6 +109,13 @@ public:
 		findWindow(windowStart);
 		if(windowIt == windows.end()) throw "TBedReader Error: window '" + toString(windowStart) + "' does not exist!";
 		return windowIt->second->positions;
+	};
+
+	long size(){
+		long s = 0;
+		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt)
+			s += windowIt->second->size();
+		return s;
 	};
 };
 
@@ -191,6 +202,13 @@ public:
 		if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
 		return chrIt->second->getPositionInWindow(windowStart);
 	};
+
+	long size(){
+		long s=0;
+		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
+			s += chrIt->second->size();
+		return s;
+	}
 
 };
 
