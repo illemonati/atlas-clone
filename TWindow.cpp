@@ -355,6 +355,14 @@ void TWindow::calcCoverage(){
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
+void TWindow::applyCoverageFilter(int minCoverage, int maxCoverage){
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			if(sites[i].bases.size() < minCoverage || sites[i].bases.size() > maxCoverage)
+				sites[i].clear();
+		}
+	}
+}
 
 double TWindow::calcLogLikelihood(double* pGenotype){
 	double LL = 0.0;

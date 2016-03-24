@@ -369,7 +369,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 
 
-	//no return string
+	//now return string
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
 

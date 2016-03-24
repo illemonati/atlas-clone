@@ -459,8 +459,6 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
-		maxCoverage = args.getParameterDoubleWithDefault("maxCoverage", 50);
-		logfile->list("Will ignore sites with coverage <= " + toString(maxCoverage));
 		logfile->endIndent();
 
 		//initialize vriables for EM
@@ -488,10 +486,8 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 }
 
 void TRecalibrationEM::addSite(TSite & site){
-	if(site.getCoverage() <= maxCoverage){
-		(*curWindow)->addSite(site);
-		++numSitesAdded;
-	}
+	(*curWindow)->addSite(site);
+	++numSitesAdded;
 }
 
 double TRecalibrationEM::getErrorRate(TBase* base, double** theseParams){

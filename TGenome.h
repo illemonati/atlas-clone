@@ -61,6 +61,8 @@ private:
  	TBedReader* mask;
  	bool doMasking;
  	bool doCpGMasking;
+ 	bool applyCoverageFilter;
+ 	int minCoverage, maxCoverage;
  	long limitWindows;
  	int limitChr;
  	bool* useChromosome;
@@ -98,7 +100,7 @@ public:
 	void downSampleBamFile(TParameters & params);
 	void estimateApproximateCoverage(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
-
+	void simulateGWASData(TParameters & params);
 };
 
 

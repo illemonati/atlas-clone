@@ -83,7 +83,19 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		if(!fastaReference) throw "Cannot mask CpG sites without reference!";
 		doCpGMasking = true;
 		std::string maskFile = params.getParameterString("maskCpG");
+		logfile->list("Will mask all CpG sites");
 	} else doCpGMasking = false;
+
+	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
+		applyCoverageFilter = true;
+		minCoverage = params.getParameterIntWithDefault("minCoverage", 0);
+		maxCoverage = params.getParameterIntWithDefault("maxCoverage", 1000000);
+		logfile->list("Will filter out sites with coverage < " + toString(minCoverage) + " or > " + toString(maxCoverage));
+	} else {
+		applyCoverageFilter = false;
+		minCoverage = 0;
+		maxCoverage = 1000000;
+	}
 
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
@@ -279,7 +291,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
 	if(windowPair.curPointer->numReadsInWindow > 0){
-		//apply masks
+		//apply masks and filters
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
 			windowPair.curPointer->applyMask(mask);
@@ -290,6 +302,10 @@ bool TGenome::readData(TWindowPair & windowPair){
 			windowPair.curPointer->maskCpG(reference, chrNumber);
 			logfile->write(" done!");
 		}
+		if(applyCoverageFilter){
+			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
+		}
+
 
 		//calc coverage
 		windowPair.curPointer->calcCoverage();
@@ -1525,10 +1541,6 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						readBase = genoMap.flipBase(base);
 						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 						refBase = genoMap.flipBase(ref[internalPos]);
-
-						if(refBase == N){
-							std::cout << "ISSUE WITH REF at pos = " << internalPos << " = " << internalPos + window->start << std::endl;
-						}
 
 						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
 						pmdTables.addReverse(readGroupId, pos, refBase, readBase);
