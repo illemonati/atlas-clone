@@ -17,6 +17,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//read parameters
 	filename = params.getParameterString("bam");
+	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	windowSize = params.getParameterDoubleWithDefault("window", 100000);
 	numWindowsOnChr = 0;
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
@@ -339,6 +340,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 				pmdObjects[i].initializeFunction(pmdString, pmdCT);
 			}
 			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
+			if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
+			if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
 		} else {
 			if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
 			std::string pmdStringCT = params.getParameterString("pmdCT");
