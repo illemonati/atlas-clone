@@ -132,7 +132,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 
 	if(bamAlignment.IsProperPair()){
 		if(bamAlignment.IsFirstMate()){
-			//first mate & reverse
+			//first mate & forward (first mate is always on forward strand)
 			//Hence P(C->T) is given as a function of pos
 			//And P(G->A) is given by (length of fragment) - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){

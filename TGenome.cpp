@@ -1527,10 +1527,50 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//add to PMD
 	//distinguish between cases
 	int internalPos = bamAlignment.Position - window->start;
+
+	//paired end
 	if(bamAlignment.IsProperPair()){
-		throw "Not yet done for paired end!";
+		int insSize = bamAlignment.InsertSize;
+		if(bamAlignment.IsFirstMate()){
+			//Hence it maps on forward strand
+			//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+			//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignment.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+					quality = bamAlignment.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.getBase(base);
+						refBase = genoMap.getBase(ref[internalPos]);
+
+						pmdTables.addForward(readGroupId, pos, refBase, readBase);
+						pmdTables.addReverse(readGroupId, insSize - pos - 1, refBase, readBase);
+					}
+				}
+			}
+		} else {
+			//second mate
+			// hence it maps on reverse strand -> FLIP BASES
+			//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+			//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+			for(int pos = 0; pos < length; ++pos, ++internalPos){
+				base = bamAlignment.AlignedBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignment.AlignedQualities.at(pos);
+					if((int) quality > 32){ //skip if quality dies not make sense
+						readBase = genoMap.flipBase(base);
+						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+						refBase = genoMap.flipBase(ref[internalPos]);
+
+						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+						pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
+					}
+				}
+			}
+		}
+
+	//single end
 	} else {
-		//single end
 		if(bamAlignment.IsReverseStrand()){
 			//single end & reverse
 			//forward position = len - pos - 1
