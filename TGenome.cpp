@@ -1300,6 +1300,8 @@ void TGenome::recalibrateBamFile(TParameters & params){
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");
+	bool limit = params.parameterExists("limit");
+
 	logfile->listFlush("Reading single end read groups from file '" + filename + "' ...");
 	std::map<int, TReadGroupMaxLength> singleEndRG;
 	std::ifstream file(filename.c_str());
@@ -1365,7 +1367,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			//check length
 			if(bamAlignment.Length < singleEndRGIT->second.maxLen)
 				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(bamAlignment.Length > singleEndRGIT->second.maxLen) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
+			else if(bamAlignment.Length > singleEndRGIT->second.maxLen && !limit) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
 		}
 
 		//write
@@ -1389,7 +1391,6 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
-
 
 void TGenome::mergeReadGroups(TParameters & params){
 	//read read groups and their expected lengths
