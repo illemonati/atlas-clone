@@ -17,6 +17,13 @@ void TBase::fillEmissionProbabilities(TPMD & pmdObject){
 }
 */
 
+
+void TBaseHaploid::addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){
+	double sum=0.0;
+	for(int b=0; b<4; ++b) sum += emissionProbabilities.get(b) * baseFreq[b];
+	for(int b=0; b<4; ++b) expectedCounts[b] += emissionProbabilities.get(b) / sum;
+}
+
 void TBaseDiploidA::fillEmissionProbabilitiesCore(double thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
 	double errorOneThird = thisErrorRate / 3.0;

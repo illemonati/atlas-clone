@@ -101,6 +101,7 @@ public:
 	void estimateApproximateCoverage(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
 	void simulateGWASData(TParameters & params);
+	void calculatePoolFreqLikelihoods(TParameters & params);
 };
 
 

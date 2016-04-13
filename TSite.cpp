@@ -872,3 +872,64 @@ double TSiteDiploid::calculatePHomozygous(double* pGenotype){
 	//make sum for all homozygous genotypes
 	return (postProb[AA] + postProb[CC] + postProb[GG] + postProb[TT]) / tot;
 }
+
+
+void TSiteHaploid::addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){
+	double* tmp = new double[4];
+	for(int b=0; b<4; ++b) tmp[b]=0.0;
+	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
+		(*it)->addToExpectedBaseCounts(baseFreq, tmp);
+	}
+	for(int b=0; b<4; ++b) expectedCounts[b] += tmp[b] / (double) bases.size();
+}
+
+void TSiteHaploid::calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){
+	//write coverage
+	out << "\t" << genoMap.getBaseAsChar(allele1) << "\t" << genoMap.getBaseAsChar(allele2) << "\t" << bases.size();
+
+	if(hasData){
+		//calculate likelihood for sample frequencies from 0 to num chromosomes for allele 1
+		double LL;
+		double f;
+		for(int y = 0; y < (numChromosomes + 1); ++y){
+			//calculate likelihood
+			LL = 0.0;
+			f = (double) y / (double) numChromosomes;
+			for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
+				LL += log((*it)->getEmissionProbability(allele1) * f + (*it)->getEmissionProbability(allele2) * (1.0 -f));
+			}
+
+			//write it to file
+			out << "\t" << LL;
+		}
+	} else {
+		for(int y = 0; y < (numChromosomes + 1); ++y){
+			out << "\t0.0";
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

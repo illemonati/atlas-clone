@@ -15,8 +15,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	initializeRandomGenerator(params);
 
-	//read parameters
-	filename = params.getParameterString("bam");
+	//read name of bam files (could be a list!)
+	std::vector<std::string> bamFileNames;
+	fillVectorFromString(params.getParameterString("bam"), bamFileNames, ",");
+
+	//read window parameters
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	windowSize = params.getParameterDoubleWithDefault("window", 100000);
 	numWindowsOnChr = 0;
@@ -40,7 +43,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	oldPos = -1;
 	oldAlignementMustBeConsidered = false;
 
-	//open BAM file
+	//open BAM file (first in case of list)
+	filename = params.getParameterString("bam");
 	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
@@ -120,7 +124,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 					logfile->list(*it);
 					break;
 				}
-
 			}
 			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
@@ -2069,10 +2072,133 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 	output.close();
 }
 
+//TODO: find a way to incorporate multiple populations
+void TGenome::calculatePoolFreqLikelihoods(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//read parameters
+	int numChromosomes = params.getParameterInt("numChr");
+
+	//limit to a set of sites? Print all sites, even those without data?
+	bool limitToSitesWithKnownAlleles = false;
+	bool printIfNoData = true;
+	TSiteSubset* subset = NULL;
+	if(params.parameterExists("sites")){
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		limitToSitesWithKnownAlleles = true;
+	} else {
+		printIfNoData = params.parameterExists("printAll");
+		if(printIfNoData) logfile->list("Will print all sites, even those without data");
+	}
+
+	//open output: flat file
+	gz::ogzstream out;
+	std::string outputFileName = outputName + "_sampleFrequencyLikelihoods.txt.gz";
+	logfile->list("Writing sample frequency likelihoods to '" + outputFileName + "'");
+	out.open(outputFileName.c_str());
+	if(!out) throw "Failed to open output file '" + outputFileName + "'!";
+
+	//write header
+	out << "chr\tpos\tallele1\tallele2\tcoverage";
+	for(int y=0; y<(numChromosomes+1); ++y)
+		out << "\tP(D|Y=" << y << ")";
+	out << std::endl;
 
 
+	//prepare windows
+	TWindowPairHaploid windows;
 
+	//prepare storage for expected counts to do major minor
+	double** expectedCounts;
+	Base** majorMinor;
+	std::vector<int> tmp;
+	double max;
+	if(!limitToSitesWithKnownAlleles){
+		expectedCounts = new double*[windowSize];
+		majorMinor = new Base*[windowSize];
+		for(int i=0; i<windowSize; ++i){
+			expectedCounts[i] = new double[4];
+			majorMinor[i] = new Base[2];
+		}
+	}
 
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
+		while(iterateWindow(windows)){
+			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
+				//read data for current window
+				if(readData(windows)){
+					//calculate sample frequency likelihoods
+					logfile->listFlush("Calculating sample frequency likelihoods ...");
+					if(limitToSitesWithKnownAlleles){
+						//windows.cur->addReferenceBaseToSites(subset);
+						//windows.cur->estimateBaseFrequencies();
+						//windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF);
+					} else {
+						//do major minor from table of expected counts
+						//fill expected counts
+						for(int i=0; i<windowSize; ++i){
+							for(int b=0; b<4; ++b){
+								expectedCounts[i][b] = 0.0;
+							}
+							majorMinor[i][0] = (Base) 5;
+							majorMinor[i][1] = (Base) 5;
+						}
+						windows.cur->addToExpectedBaseCounts(recalObject, expectedCounts);
+						//do major minor
+						for(int i=0; i<windowSize; ++i){
+							//find major
+							tmp.clear();
+							max = -1.0;
+							for(int b=0; b<4; ++b){
+								if(expectedCounts[i][b] > max){
+									tmp.clear();
+									tmp.push_back(b);
+								} else if(expectedCounts[i][b] == max){
+									tmp.push_back(b);
+								}
+							}
+							if(tmp.size() == 1){
+								//also find minor
+								majorMinor[i][0] = (Base) tmp[0];
+								tmp.clear();
+								max = -1.0;
+								for(int b=0; b<4; ++b){
+									if(b != majorMinor[i][0] && expectedCounts[i][b] > max){
+										tmp.clear();
+										tmp.push_back(b);
+									} else if(expectedCounts[i][b] == max){
+										tmp.push_back(b);
+									}
+								}
+								majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
+							} else if(tmp.size() == 2){
+								majorMinor[i][0] = (Base) tmp[0];
+								majorMinor[i][1] = (Base) tmp[1];
+							} else {
+								majorMinor[i][0] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
+								majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
+								while(majorMinor[i][0] == majorMinor[i][1])
+									majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
+							}
+						}
+
+						//now use major minor alleles to calculate sample allele frequency likelihoods
+						windows.cur->calculatePoolFreqLikelihoods(numChromosomes, majorMinor, out, chrIterator->Name, printIfNoData);
+					}
+					logfile->write(" done!");
+				}
+			}
+		}
+	}
+
+	//clean up
+	out.close();
+
+}
 
 
 

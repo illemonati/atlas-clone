@@ -92,6 +92,9 @@ public:
 	virtual void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){ throw "callAllelePresenceVCF not implemented for TSite base class!";};
 	virtual void callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callAllelePresenceVCFKnownAlleles not implemented for TSite base class!";};
 	virtual double calculatePHomozygous(double* pGenotype){ throw "calculatePHomozygous not implemented for TSite base class!";};
+
+	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
+	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){ throw "addToExpectedBaseCounts not implemented for TSite base class!";};
 };
 
 class TSiteDiploid:public TSite{
@@ -139,6 +142,8 @@ public:
 		delete[] P_g;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
+	void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out);
 };
 
 

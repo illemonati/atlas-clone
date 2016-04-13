@@ -1065,4 +1065,30 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	}
 }
 
+void TWindowHaploid::addToExpectedBaseCounts(TRecalibration* recalObject, double** expectedCounts){
+	estimateBaseFrequencies();
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			recalObject->calcEmissionProbabilities(sites[i]);
+			sites[i].addToExpectedBaseCounts(baseFreq, expectedCounts[i]);
+		}
+	}
+}
+
+void TWindowHaploid::calculatePoolFreqLikelihoods(int & numChromosomes, Base** majorMinor, gz::ogzstream & out, std::string & chr, bool printAll){
+	//assumes that emission probabilities were calculated!!
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			out << chr << "\t" << start + i + 1;
+			sites[i].calculatePoolFreqLikelihoods(numChromosomes, genoMap, majorMinor[i][0], majorMinor[i][1], out);
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i + 1;
+				sites[i].calculatePoolFreqLikelihoods(numChromosomes, genoMap, majorMinor[i][0], majorMinor[i][1], out);
+			}
+		}
+	}
+}
 

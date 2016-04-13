@@ -85,6 +85,7 @@ public:
 	virtual double getEmissionProbability(int genotype){
 		throw "Function 'getEmissionProbability' Not implemented for base class TBase!";
 	};
+	virtual void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){throw "Function 'addToExpectedBaseCounts' Not implemented for base class TBase!";};
 };
 
 class TBaseDiploid:public TBase{
@@ -117,6 +118,7 @@ public:
 	double getEmissionProbability(int genotype){
 		return emissionProbabilities.get(genotype);
 	};
+	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
 };
 //---------------------------------------------------------------
 class TBaseDiploidA:public TBaseDiploid{
