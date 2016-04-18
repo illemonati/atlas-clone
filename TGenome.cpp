@@ -1535,10 +1535,8 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//paired end
 	if(bamAlignment.IsProperPair()){
 		int insSize = bamAlignment.InsertSize;
-		if(bamAlignment.IsFirstMate()){
+		if(!bamAlignment.IsReverseStrand()){
 			//Hence it maps on forward strand
-			//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-			//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 			for(int pos = 0; pos < length; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
@@ -1547,16 +1545,24 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						readBase = genoMap.getBase(base);
 						refBase = genoMap.getBase(ref[internalPos]);
 
-						pmdTables.addForward(readGroupId, pos, refBase, readBase);
-						pmdTables.addReverse(readGroupId, insSize - pos - 1, refBase, readBase);
+						if(bamAlignment.IsFirstMate()){
+							//normal case where the read that comes first in bamfile is also the first mate
+							//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+							//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+							pmdTables.addForward(readGroupId, pos, refBase, readBase);
+							pmdTables.addReverse(readGroupId, insSize - pos - 1, refBase, readBase);
+						}else{
+							//other case where read that comes first in bamfile is the second mate
+							//Hence P(C->T) is given as a function of (insert size) - pos -1 (add this to the in the forward table)
+							//And P(G->A) is given by pos (add this to the reverse table)
+							pmdTables.addForward(readGroupId, insSize - pos - 1, refBase, readBase);
+							pmdTables.addReverse(readGroupId, pos, refBase, readBase);
+						}
 					}
 				}
 			}
 		} else {
-			//second mate
-			// hence it maps on reverse strand -> FLIP BASES
-			//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
-			//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+			//mate that maps on reverse strand -> FLIP BASES
 			for(int pos = 0; pos < length; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
@@ -1566,8 +1572,19 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 						refBase = genoMap.flipBase(ref[internalPos]);
 
-						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-						pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
+						if(bamAlignment.IsFirstMate()){
+							//normal case where the read that comes second in bamfile is also the second mate
+							//hence P(C->T) is given by f(insert size - len + pos) (add this to the reverse table)
+							//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+							pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+							pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
+						}else{
+							//other case where the read that comes second in bamfile is first mate
+							//hence P(C->T) is given by f(read len - pos - 1)  (add this to the reverse table)
+							//and P(G->A) is given as f(insert size - len + pos) (add this to forward table)
+							pmdTables.addForward(readGroupId, insSize-length+pos, refBase, readBase);
+							pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
+						}
 					}
 				}
 			}

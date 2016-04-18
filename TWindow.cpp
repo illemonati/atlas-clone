@@ -131,8 +131,8 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 	 */
 
 	if(bamAlignment.IsProperPair()){
-		if(bamAlignment.IsFirstMate()){
-			//first mate & forward (first mate is always on forward strand)
+		if(!bamAlignment.IsReverseStrand()){
+			//forward (can be either first or second mate, but it's the one that comes first in bam file)
 			//Hence P(C->T) is given as a function of pos
 			//And P(G->A) is given by (length of fragment) - pos -1
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
@@ -152,7 +152,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				}
 			}
 		} else {
-			//second mate & reverse
+			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//hence P(C->T) is given by f(dist since beginning of fragment) = f(insert - len + pos)
 			//and P(G->A) is given as f(end of fragment) = f(len - pos - 1)
 			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
