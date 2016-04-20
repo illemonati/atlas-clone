@@ -15,11 +15,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	initializeRandomGenerator(params);
 
-	//read name of bam files (could be a list!)
-	std::vector<std::string> bamFileNames;
-	fillVectorFromString(params.getParameterString("bam"), bamFileNames, ",");
-
-	//read window parameters
+	//read parameters
+	filename = params.getParameterString("bam");
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	windowSize = params.getParameterDoubleWithDefault("window", 100000);
 	numWindowsOnChr = 0;
@@ -43,8 +40,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	oldPos = -1;
 	oldAlignementMustBeConsidered = false;
 
-	//open BAM file (first in case of list)
-	filename = params.getParameterString("bam");
+	//open BAM file
 	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
@@ -124,6 +120,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 					logfile->list(*it);
 					break;
 				}
+
 			}
 			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
@@ -1536,7 +1533,9 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	if(bamAlignment.IsProperPair()){
 		int insSize = bamAlignment.InsertSize;
 		if(!bamAlignment.IsReverseStrand()){
-			//Hence it maps on forward strand
+			//Hence it is first in the bam file and maps on forward strand
+			//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+			//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 			for(int pos = 0; pos < length; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
@@ -1545,24 +1544,15 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						readBase = genoMap.getBase(base);
 						refBase = genoMap.getBase(ref[internalPos]);
 
-						if(bamAlignment.IsFirstMate()){
-							//normal case where the read that comes first in bamfile is also the first mate
-							//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-							//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
-							pmdTables.addForward(readGroupId, pos, refBase, readBase);
-							pmdTables.addReverse(readGroupId, insSize - pos - 1, refBase, readBase);
-						}else{
-							//other case where read that comes first in bamfile is the second mate
-							//Hence P(C->T) is given as a function of (insert size) - pos -1 (add this to the in the forward table)
-							//And P(G->A) is given by pos (add this to the reverse table)
-							pmdTables.addForward(readGroupId, insSize - pos - 1, refBase, readBase);
-							pmdTables.addReverse(readGroupId, pos, refBase, readBase);
-						}
+						pmdTables.addForward(readGroupId, pos, refBase, readBase);
+						pmdTables.addReverse(readGroupId, insSize - pos - 1, refBase, readBase);
 					}
 				}
 			}
 		} else {
-			//mate that maps on reverse strand -> FLIP BASES
+			// hence it is second in bam file and maps on reverse strand -> FLIP BASES
+			//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+			//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
 			for(int pos = 0; pos < length; ++pos, ++internalPos){
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
@@ -1572,19 +1562,8 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 						refBase = genoMap.flipBase(ref[internalPos]);
 
-						if(bamAlignment.IsFirstMate()){
-							//normal case where the read that comes second in bamfile is also the second mate
-							//hence P(C->T) is given by f(insert size - len + pos) (add this to the reverse table)
-							//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
-							pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-							pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
-						}else{
-							//other case where the read that comes second in bamfile is first mate
-							//hence P(C->T) is given by f(read len - pos - 1)  (add this to the reverse table)
-							//and P(G->A) is given as f(insert size - len + pos) (add this to forward table)
-							pmdTables.addForward(readGroupId, insSize-length+pos, refBase, readBase);
-							pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
-						}
+						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+						pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
 					}
 				}
 			}
@@ -1755,9 +1734,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		}
 
 		//add alignment to storage
-		if(bamAlignment.IsPaired()){
-			if(bamAlignment.IsFirstMate()) alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
-			else if(bamAlignment.IsSecondMate()){
+		if(bamAlignment.IsProperPair()){
+			//put all forward reads into storage (these are the ones that come first in bam file)
+			if(!bamAlignment.IsReverseStrand()) alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
+			else if(bamAlignment.IsReverseStrand()){
 				//find first mate -> should be in storage
 				for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 					if(it->first->Name == bamAlignment.Name){
@@ -1766,7 +1746,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						//merge reads
 						alignmentPointer = it->first;
 
-						if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->Length){
+						if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
 
 							//reads do not overlap -> add Ns in between
 							int numN = bamAlignment.Position - alignmentPointer->Position + alignmentPointer->AlignedBases.size() - 1;
@@ -1779,12 +1759,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 						} else if(bamAlignment.Position < alignmentPointer->Position) throw "Second mate of read '" + bamAlignment.Name + "' has pos < pos of first mate!";
 						else {
-
 							//reads do overlap -> merge them
 							std::string alignment;
 							std::string quality;
-							int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
-							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
+
+							int firstOverlap = bamAlignment.Position - alignmentPointer->Position; //beginning of second read - beginning of first read
+							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size(); //length of first read
 
 							//first copy from first mate
 							alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
@@ -1811,6 +1791,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							//set
 							alignmentPointer->AlignedBases = alignment;
 							alignmentPointer->AlignedQualities = quality;
+
 						}
 
 						//update
@@ -1873,7 +1854,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
-
 
 
 void TGenome::generatePSMCInput(TParameters & params){
@@ -2089,133 +2069,10 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 	output.close();
 }
 
-//TODO: find a way to incorporate multiple populations
-void TGenome::calculatePoolFreqLikelihoods(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
-	//read parameters
-	int numChromosomes = params.getParameterInt("numChr");
-
-	//limit to a set of sites? Print all sites, even those without data?
-	bool limitToSitesWithKnownAlleles = false;
-	bool printIfNoData = true;
-	TSiteSubset* subset = NULL;
-	if(params.parameterExists("sites")){
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
-		limitToSitesWithKnownAlleles = true;
-	} else {
-		printIfNoData = params.parameterExists("printAll");
-		if(printIfNoData) logfile->list("Will print all sites, even those without data");
-	}
-
-	//open output: flat file
-	gz::ogzstream out;
-	std::string outputFileName = outputName + "_sampleFrequencyLikelihoods.txt.gz";
-	logfile->list("Writing sample frequency likelihoods to '" + outputFileName + "'");
-	out.open(outputFileName.c_str());
-	if(!out) throw "Failed to open output file '" + outputFileName + "'!";
-
-	//write header
-	out << "chr\tpos\tallele1\tallele2\tcoverage";
-	for(int y=0; y<(numChromosomes+1); ++y)
-		out << "\tP(D|Y=" << y << ")";
-	out << std::endl;
 
 
-	//prepare windows
-	TWindowPairHaploid windows;
 
-	//prepare storage for expected counts to do major minor
-	double** expectedCounts;
-	Base** majorMinor;
-	std::vector<int> tmp;
-	double max;
-	if(!limitToSitesWithKnownAlleles){
-		expectedCounts = new double*[windowSize];
-		majorMinor = new Base*[windowSize];
-		for(int i=0; i<windowSize; ++i){
-			expectedCounts[i] = new double[4];
-			majorMinor[i] = new Base[2];
-		}
-	}
 
-	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
-				//read data for current window
-				if(readData(windows)){
-					//calculate sample frequency likelihoods
-					logfile->listFlush("Calculating sample frequency likelihoods ...");
-					if(limitToSitesWithKnownAlleles){
-						//windows.cur->addReferenceBaseToSites(subset);
-						//windows.cur->estimateBaseFrequencies();
-						//windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF);
-					} else {
-						//do major minor from table of expected counts
-						//fill expected counts
-						for(int i=0; i<windowSize; ++i){
-							for(int b=0; b<4; ++b){
-								expectedCounts[i][b] = 0.0;
-							}
-							majorMinor[i][0] = (Base) 5;
-							majorMinor[i][1] = (Base) 5;
-						}
-						windows.cur->addToExpectedBaseCounts(recalObject, expectedCounts);
-						//do major minor
-						for(int i=0; i<windowSize; ++i){
-							//find major
-							tmp.clear();
-							max = -1.0;
-							for(int b=0; b<4; ++b){
-								if(expectedCounts[i][b] > max){
-									tmp.clear();
-									tmp.push_back(b);
-								} else if(expectedCounts[i][b] == max){
-									tmp.push_back(b);
-								}
-							}
-							if(tmp.size() == 1){
-								//also find minor
-								majorMinor[i][0] = (Base) tmp[0];
-								tmp.clear();
-								max = -1.0;
-								for(int b=0; b<4; ++b){
-									if(b != majorMinor[i][0] && expectedCounts[i][b] > max){
-										tmp.clear();
-										tmp.push_back(b);
-									} else if(expectedCounts[i][b] == max){
-										tmp.push_back(b);
-									}
-								}
-								majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
-							} else if(tmp.size() == 2){
-								majorMinor[i][0] = (Base) tmp[0];
-								majorMinor[i][1] = (Base) tmp[1];
-							} else {
-								majorMinor[i][0] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
-								majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
-								while(majorMinor[i][0] == majorMinor[i][1])
-									majorMinor[i][1] = (Base) tmp[randomGenerator->pickOne(tmp.size())];
-							}
-						}
-
-						//now use major minor alleles to calculate sample allele frequency likelihoods
-						windows.cur->calculatePoolFreqLikelihoods(numChromosomes, majorMinor, out, chrIterator->Name, printIfNoData);
-					}
-					logfile->write(" done!");
-				}
-			}
-		}
-	}
-
-	//clean up
-	out.close();
-
-}
 
 
 
