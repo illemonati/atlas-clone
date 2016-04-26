@@ -1563,7 +1563,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						refBase = genoMap.flipBase(ref[internalPos]);
 
 						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-						pmdTables.addReverse(readGroupId, insSize-length+pos, refBase, readBase);
+						pmdTables.addReverse(readGroupId, abs(insSize)-length+pos, refBase, readBase);
 					}
 				}
 			}
@@ -1709,6 +1709,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	//create storage for reads until their mate was found
 	std::vector< std::pair<BamTools::BamAlignment*, bool> > alignmentStorage;
 	std::vector< std::pair<BamTools::BamAlignment*, bool> >::iterator it;
+	std::vector< std::pair<BamTools::BamAlignment*, bool> >::iterator IT;
+
 	BamTools::BamAlignment* alignmentPointer;
 
 	//prepare reporting
@@ -1735,9 +1737,29 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 		//add alignment to storage
 		if(bamAlignment.IsProperPair()){
-			//put all forward reads into storage (these are the ones that come first in bam file)
-			if(!bamAlignment.IsReverseStrand()) alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
+			std::cout << "#####" << std::endl;
+			std::cout << "bamAlignment.Name "<< bamAlignment.Name << std::endl;
+			std::cout << "bamAlignment.IsSecondMate() " << bamAlignment.IsSecondMate() << std::endl;
+			std::cout << "bamAlignment.IsReverseStrand() " << bamAlignment.IsReverseStrand() << std::endl;
+
+			if(!bamAlignment.IsReverseStrand()) {
+				alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
+				std::cout << "is added to vector" << std::endl;
+				std::cout << "this is the current storage vector: ";
+				for (it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
+					std::cout << it->first->Name << ' ' << it->second <<"; ";
+				}
+				std::cout << "\n";
+
+			}
 			else if(bamAlignment.IsReverseStrand()){
+				if(!bamAlignment.IsSecondMate()) std::cout << "first mate and reverse strand" << std::endl;
+				std::cout << "this is the current storage vector: ";
+				for (it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
+					std::cout << it->first->Name << ' ' << it->second <<"; ";
+
+				}
+				std::cout << "\n";
 				//find first mate -> should be in storage
 				for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 					if(it->first->Name == bamAlignment.Name){
@@ -1759,12 +1781,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 						} else if(bamAlignment.Position < alignmentPointer->Position) throw "Second mate of read '" + bamAlignment.Name + "' has pos < pos of first mate!";
 						else {
+
 							//reads do overlap -> merge them
 							std::string alignment;
 							std::string quality;
-
-							int firstOverlap = bamAlignment.Position - alignmentPointer->Position; //beginning of second read - beginning of first read
-							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size(); //length of first read
+							int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
+							int lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
 
 							//first copy from first mate
 							alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
@@ -1791,7 +1813,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							//set
 							alignmentPointer->AlignedBases = alignment;
 							alignmentPointer->AlignedQualities = quality;
-
 						}
 
 						//update
@@ -1805,6 +1826,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						alignmentPointer->SetIsProperPair(false);
 						alignmentPointer->SetIsSecondMate(false);
 						it->second = true;
+						std::cout << "this alignment was merged" << std::endl;
 
 
 						//write if is first in vector
@@ -1812,21 +1834,28 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							//write all that are OK
 							for(; it != alignmentStorage.end(); ++it){
 								if(it->second){
-									bamWriter.SaveAlignment(*(it->first));
+									std::cout << "saved to bam: "<< it->first->Name << std::endl;
+									bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
 									delete it->first;
 								} else {
-									//first that can not be written -> erease all previous ones!
+									std::cout << "first alignment that cant be written: "<< it->first->Name << std::endl;
+
+									//first that can not be written -> erase all previous ones!
 									alignmentStorage.erase(alignmentStorage.begin(), it);
+									std::cout << "alignments were erased up to: " << it->first->Name << std::endl;
 									break;
 								}
+								//std::cout << "the current alignment is: " << it->first->Name << std::endl;
 							}
-							if(it == alignmentStorage.end()) alignmentStorage.clear();
+							if(it == alignmentStorage.end()){
+								alignmentStorage.clear();
+							}
 						}
 						break;
 					}
 				}
 
-				if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is second mate, but first one has not been read!";
+				if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
 
 
 			} else throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
@@ -2059,7 +2088,8 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 
 			//write to file
 			logfile->listFlush("Writing coverage to file ...");
-			output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
+			if(windows.cur->coverage == -1.0) output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << "0" << "\n";
+			else output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
 			logfile->write(" done!");
 		}
 	}
