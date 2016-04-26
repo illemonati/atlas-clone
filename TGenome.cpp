@@ -18,7 +18,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//read parameters
 	filename = params.getParameterString("bam");
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
-	windowSize = params.getParameterDoubleWithDefault("window", 100000);
+	windowSize = params.getParameterDoubleWithDefault("window", 1000000);
 	numWindowsOnChr = 0;
 	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
@@ -563,7 +563,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
-	int numWindows = params.getParameterIntWithDefault("numWindows", 1);
+	int limitWindows = params.getParameterIntWithDefault("limitWindows", 1);
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -595,7 +595,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 					//check if we break
 					++windowsCalculated;
-					if(windowsCalculated >= numWindows) break;
+					if(windowsCalculated >= limitWindows) break;
 				}
 			}
 		}
