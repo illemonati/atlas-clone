@@ -1127,7 +1127,7 @@ void TGenome::BQSR(TParameters & params){
 						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 						//add the base to BQSR
-						windows.cur->addSitesToBQSR(bqsr, logfile);
+						windows.cur->addSitesToBQSR(params, bqsr, logfile);
 					}
 				}
 			}

@@ -1427,6 +1427,7 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 
 	storeDataInMemory = params.parameterExists("storeInMemory");
 	if(storeDataInMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
+	if(mergedInd) logfile->list("Pooling all read groups for BQSR recalibration");
 	dataStored = false;
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
@@ -1893,19 +1894,34 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	logfile->conclude("Considering context");
 }
 
-void TRecalibrationBQSR::addSite(TSite & site){
+void TRecalibrationBQSR::addSite(TParameters & params, TSite & site){
+	if(params.parameterExists("mergedInd")) mergedInd = true;
+	else mergedInd = false;
+
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_quality[(*it)->readGroup][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+			if(!mergedInd){
+				for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+					BQSR_cells_readGroup_quality[(*it)->readGroup][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+				}
+			}else{
+				for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+					BQSR_cells_readGroup_quality[0][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+				}
 			}
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 
 				//DEBUG!
-				if((*it)->posInRead < maxPos) BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
+				if((*it)->posInRead < maxPos){
+					if(!mergedInd){
+						BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
+					}else{
+						BQSR_cells_readGroup_position[0][(*it)->posInRead].addBase(*it, refBase);
+					}
+				}
 
 				//ORIGINAL
 				//if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
@@ -1915,11 +1931,19 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		else if(considerPositionReverse && !positionReverseConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position_reverse[(*it)->readGroup][(*it)->posInReadRev].addBase(*it, refBase);
+				if(!mergedInd){
+					BQSR_cells_readGroup_position_reverse[(*it)->readGroup][(*it)->posInReadRev].addBase(*it, refBase);
+				} else{
+					BQSR_cells_readGroup_position_reverse[0][(*it)->posInReadRev].addBase(*it, refBase);
+				}
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_context[(*it)->readGroup][(*it)->context].addBase(*it, refBase);
+				if(!mergedInd){
+					BQSR_cells_readGroup_context[(*it)->readGroup][(*it)->context].addBase(*it, refBase);
+				} else {
+					BQSR_cells_readGroup_context[0][(*it)->context].addBase(*it, refBase);
+				}
 			}
 		}
 	}
@@ -2277,11 +2301,21 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
-		for(int q=0; q<qualityIndex->numQ; ++q){
-			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].getNumObsForPrinting();
-			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << "\t" << BQSR_cells_readGroup_quality[i][q].estimationConverged;
-			out << "\n";
+		if(!mergedInd){
+			for(int q=0; q<qualityIndex->numQ; ++q){
+				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_quality[i][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[i][q].F << "\t" << BQSR_cells_readGroup_quality[i][q].estimationConverged;
+				out << "\n";
+			}
+		} else {
+	//		i=0;
+			for(int q=0; q<qualityIndex->numQ; ++q){
+				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[0][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[0][q].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_quality[0][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[0][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[0][q].F << "\t" << BQSR_cells_readGroup_quality[0][q].estimationConverged;
+				out << "\n";
+			}
 		}
 	}
 	out.close();
@@ -2298,11 +2332,21 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
-		for(int p=0; p<maxPos; ++p){
-			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].getNumObsForPrinting();
-			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_position[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].F << "\t" << BQSR_cells_readGroup_position[i][p].estimationConverged;
-			out << "\n";
+		if(!mergedInd){
+			for(int p=0; p<maxPos; ++p){
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[i][p].F << "\t" << BQSR_cells_readGroup_position[i][p].estimationConverged;
+				out << "\n";
+			}
+		}else{
+			//print same recalibration for all read groups
+			for(int p=0; p<maxPos; ++p){
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[0][p].curEstimate << "\t" << BQSR_cells_readGroup_position[0][p].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position[0][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[0][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[0][p].F << "\t" << BQSR_cells_readGroup_position[0][p].estimationConverged;
+				out << "\n";
+			}
 		}
 	}
 	out.close();
@@ -2319,11 +2363,20 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<numReadGroups; ++i, ++it){
-		for(int p=0; p<maxPos; ++p){
-			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[i][p].getNumObsForPrinting();
-			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_position_reverse[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].F << "\t" << BQSR_cells_readGroup_position_reverse[i][p].estimationConverged;
-			out << "\n";
+		if(!mergedInd){
+			for(int p=0; p<maxPos; ++p){
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[i][p].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position_reverse[i][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[i][p].F << "\t" << BQSR_cells_readGroup_position_reverse[i][p].estimationConverged;
+				out << "\n";
+			}
+		} else {
+			for(int p=0; p<maxPos; ++p){
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[0][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[0][p].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_position_reverse[0][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[0][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[0][p].F << "\t" << BQSR_cells_readGroup_position_reverse[0][p].estimationConverged;
+				out << "\n";
+			}
 		}
 	}
 	out.close();
@@ -2340,11 +2393,20 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<numReadGroups; ++r, ++it){
-		for(int c=0; c<numContexts; ++c){
-			out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].getNumObsForPrinting();
-			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_context[r][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].F << "\t" << BQSR_cells_readGroup_context[r][c].estimationConverged;
-			out << "\n";
+		if(!mergedInd){
+			for(int c=0; c<numContexts; ++c){
+				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_context[r][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[r][c].F << "\t" << BQSR_cells_readGroup_context[r][c].estimationConverged;
+				out << "\n";
+			}
+		} else {
+			for(int c=0; c<numContexts; ++c){
+				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[0][c].curEstimate << "\t" << BQSR_cells_readGroup_context[0][c].getNumObsForPrinting();
+				//for debugging: also print derivatives, F and whether is has converged
+				out << "\t" << BQSR_cells_readGroup_context[0][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[0][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[0][c].F << "\t" << BQSR_cells_readGroup_context[0][c].estimationConverged;
+				out << "\n";
+			}
 		}
 	}
 	out.close();

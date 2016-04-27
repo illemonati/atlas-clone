@@ -374,11 +374,11 @@ double TWindow::calcLogLikelihood(double* pGenotype){
 	return LL;
 }
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
+void TWindow::addSitesToBQSR(TParameters & params, TRecalibrationBQSR & bqsr, TLog* logfile){
 	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			bqsr.addSite(sites[i]);
+			bqsr.addSite(params, sites[i]);
 		}
 	}
 	logfile->write(" done!");

@@ -430,6 +430,7 @@ private:
 	bool printLLSurface;
 	bool LLSurfacePrinted;
 	int numPosLLsurface;
+	bool mergedInd;
 
 	//recal tables
 	bool qualityConverged, estimateQuality;
@@ -486,7 +487,7 @@ public:
 	};
 
 	bool dataHasBeenStored(){ return dataStored; };
-	void addSite(TSite & site);
+	void addSite(TParameters & params, TSite & site);
 	void recalculateDerivativesFromDataInMemory();
 	bool estimateEpsilon(std::string filenameTag);
 	void writeAllToFile(std::string filenameTag);

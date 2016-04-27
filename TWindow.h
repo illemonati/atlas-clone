@@ -95,7 +95,7 @@ public:
 	void calcCoverage();
 	void applyCoverageFilter(int minCoverage, int maxCoverage);
 	double calcLogLikelihood(double* pGenotype);
-	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
+	void addSitesToBQSR(TParameters & params, TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile);
 	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
 };
