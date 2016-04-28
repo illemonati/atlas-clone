@@ -1428,7 +1428,81 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	storeDataInMemory = params.parameterExists("storeInMemory");
 	if(storeDataInMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
 	if(mergedInd) logfile->list("Pooling all read groups for BQSR recalibration");
+	if(params.parameterExists("mergedInd")) mergedInd = true;
+	else mergedInd = false;
 	dataStored = false;
+
+/*	if(params.parameterExists("mergeReadGroupsRecalibration")){
+	//read read groups and their expected lengths
+		std::string filename = params.getParameterString("mergeReadGroupsRecalibration");
+		logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
+		std::vector< std::vector<std::string> > readGroupsToMerge;
+		std::vector< std::vector<std::string> >::reverse_iterator rIt;
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open file '" + filename + "!";
+
+		//parse file and construct map
+		int lineNum = 0;
+		std::vector<std::string> vec;
+		std::string readGroup;
+		while(file.good() && !file.eof()){
+			++lineNum;
+			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			if(!vec.empty()){
+				//add to new header
+				//others are those to be merged: find read group in header and store int
+				readGroupsToMerge.push_back(std::vector<std::string>());
+				rIt = readGroupsToMerge.rbegin();
+				for(unsigned int i=0; i<vec.size(); ++i){
+					rIt->push_back(vec[i]);
+				}
+			}
+		}
+		TReadGroups newReadGroupObject;
+		newReadGroupObject.fill(newHeader);
+		logfile->write(" done!");
+
+		//report and construct map
+		int* readGroupMap = new int[bamHeader.ReadGroups.Size()];
+		for(int i=0; i<bamHeader.ReadGroups.Size(); ++i) readGroupMap[i] = -1;
+		logfile->startIndent("The following read groups will be merged:");
+		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
+		int oldId;
+		for(int rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
+			logfile->startIndent("New read group '" + newReadGroupObject.getName(rg) + "' will contain read groups:");
+			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
+				logfile->list(*it);
+				oldId = readGroups.find(*it);
+				if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
+				readGroupMap[oldId] = rg;
+			}
+			logfile->endIndent();
+		}
+		logfile->endIndent();
+
+		//now add read groups that will not be merged
+		bool printed = false;
+		std::string name;
+		for(int i = 0; i < readGroups.size(); ++i){
+			//check if it is mapped, otherwise add
+			if(readGroupMap[i] < 0){
+				if(!printed){
+					logfile->startIndent("The following read groups will be kept as is:");
+					printed = true;
+				}
+				name = readGroups.getName(i);
+				logfile->list(name);
+				newHeader.ReadGroups.Add(name);
+				newReadGroupObject.fill(newHeader);
+				readGroupMap[i] = newReadGroupObject.find(name);
+			}
+		}
+		if(printed) logfile->endIndent();
+		else logfile->list("All existing read groups will be merged into a new read group.");
+	}*/
+
+
+
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
 	initializeBQSRReadGroupQualityTable(params);
@@ -1894,10 +1968,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	logfile->conclude("Considering context");
 }
 
-void TRecalibrationBQSR::addSite(TParameters & params, TSite & site){
-	if(params.parameterExists("mergedInd")) mergedInd = true;
-	else mergedInd = false;
-
+void TRecalibrationBQSR::addSite(TSite & site){
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){

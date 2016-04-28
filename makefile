@@ -8,15 +8,17 @@ OBJ = $(SRC:%.cpp=%.o)
 
 BIN = atlas
 
-LIBS = armadillo 
-
 all:	$(BIN)
 
 $(BIN):	$(OBJ)
-	$(CC) -O3 -o $(BIN) $(OBJ) -lz -lblas -llapack
+	$(CC) -O3 -o $(BIN) $(OBJ) -lz -larmadillo
+	#$(CC) -O3 -o $(BIN) $(OBJ) -lz -lblas -llapack
+	
 
 %.o: %.cpp
-	$(CC) -O3 -c -Ibamtools -Iarmadillo-6.100.0/include -std=c++1y $< -o $@
+	$(CC) -O3 -c -Ibamtools -std=c++1y $< -o $@
+	#$(CC) -O3 -c -Ibamtools -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y $< -o $@
+	
 
 clean:
 	rm -rf *.o atlas

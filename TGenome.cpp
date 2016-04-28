@@ -1111,6 +1111,7 @@ void TGenome::BQSR(TParameters & params){
 		jumpToEnd();
 	} */
 
+
 	//loop over bam until BQSR converges
 	while(!hasConverged){
 		++loopNumber;
@@ -1127,7 +1128,7 @@ void TGenome::BQSR(TParameters & params){
 						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 						//add the base to BQSR
-						windows.cur->addSitesToBQSR(params, bqsr, logfile);
+						windows.cur->addSitesToBQSR(bqsr, logfile);
 					}
 				}
 			}
@@ -1528,7 +1529,6 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//add to PMD
 	//distinguish between cases
 	int internalPos = bamAlignment.Position - window->start;
-
 	//paired end
 	if(bamAlignment.IsProperPair()){
 		int insSize = bamAlignment.InsertSize;
@@ -1661,6 +1661,7 @@ void TGenome::estimatePMD(TParameters & params){
 						oldAlignementMustBeConsidered = true;
 						break;
 					}
+					++numreadsAdded;
 					addReadToPMD(windows.cur, genoMap, ref, pmdTables);
 				}
 

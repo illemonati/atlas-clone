@@ -286,6 +286,7 @@ public:
 // -
 class TBQSR_cell_base{
 public:
+ //	TReadGroups newReadGroupObject;
 	float curEstimate;
 	bool estimationConverged;
 	float firstDerivative, secondDerivative;
@@ -487,7 +488,7 @@ public:
 	};
 
 	bool dataHasBeenStored(){ return dataStored; };
-	void addSite(TParameters & params, TSite & site);
+	void addSite(TSite & site);
 	void recalculateDerivativesFromDataInMemory();
 	bool estimateEpsilon(std::string filenameTag);
 	void writeAllToFile(std::string filenameTag);
