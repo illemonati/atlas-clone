@@ -12,6 +12,7 @@
 #include "TRecalibration.h"
 #include "gzstream.h"
 #include "bamtools/api/BamWriter.h"
+#include "TLog.h"
 
 //---------------------------------------------------------------
 //TGenome

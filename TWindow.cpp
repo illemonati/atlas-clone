@@ -164,7 +164,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
 						//set distances
-						distFrom5prime = bamAlignment.InsertSize - len + pos;
+						distFrom5prime = abs(bamAlignment.InsertSize) - len + pos;
 						distFrom3Prime = len - pos - 1;
 						//add base
 						sites[internalPos].add(base, quality, distFrom5prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);

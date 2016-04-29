@@ -11,6 +11,7 @@
 #include "bamtools/api/BamReader.h"
 #include "TSite.h"
 #include <omp.h>
+#include "TReadGroups.h"
 
 //---------------------------------------------------------------
 //TQualityIndex

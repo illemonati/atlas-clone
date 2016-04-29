@@ -18,8 +18,8 @@ int main(int argc, char* argv[]){
 
 	TLog logfile;
 	logfile.newLine();
-	logfile.write(" estimHet 1.0 ");
-	logfile.write("**************");
+	logfile.write(" ATLAS 1.0 ");
+	logfile.write("***********");
     try{
 		//read parameters from the command line
     	TParameters myParameters(argc, argv, &logfile);
@@ -28,14 +28,20 @@ int main(int argc, char* argv[]){
 		bool verbose=myParameters.parameterExists("verbose");
 		if(!verbose) logfile.listNoFile("Running in silent mode (use 'verbose' to get a status report on screen)");
 		logfile.setVerbose(verbose);
+		//warnings?
+		bool suppressWarnings=myParameters.parameterExists("suppressWarnings");
+		if(suppressWarnings){
+			logfile.list("Suppressing Warnings");
+			logfile.suppressWarings();
+		}
 
 
 		//open log file that handles the output
 		std::string  logFilename=myParameters.getParameterString("logFile", false);
 		if(logFilename.length()>0){
 			logfile.openFile(logFilename.c_str());
-			logfile.writeFileOnly(" estimHet 1.0 ");
-			logfile.writeFileOnly("**************");
+			logfile.writeFileOnly(" ATLAS 1.0 ");
+			logfile.writeFileOnly("***********");
 		}
 
 		//create genome object
