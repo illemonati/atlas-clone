@@ -280,7 +280,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 			if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
 
 				//check if insert size is shorter than read, this means we are reading the adaptor sequence
-				if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) > bamAlignment.Length){
 
 					if(!addAlignementToWindows(bamAlignment, windowPair)){
 						//read is beyond window and should be reconsidered

@@ -1427,21 +1427,28 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 
 	storeDataInMemory = params.parameterExists("storeInMemory");
 	if(storeDataInMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
-	if(mergedInd) logfile->list("Pooling all read groups for BQSR recalibration");
-	if(params.parameterExists("mergedInd")) mergedInd = true;
+	//if(mergeReadGroupsRecalibration) logfile->list("Pooling all read groups for BQSR recalibration");
+	if(params.parameterExists("mergeReadGroupsRecalibration")) mergedInd = true;
 	else mergedInd = false;
 	dataStored = false;
 
-/*	if(params.parameterExists("mergeReadGroupsRecalibration")){
+	if(mergedInd){
+
 	//read read groups and their expected lengths
 		std::string filename = params.getParameterString("mergeReadGroupsRecalibration");
+		if(filename=="") throw "No file specifying read groups to merge provided!";
 		logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
 		std::vector< std::vector<std::string> > readGroupsToMerge;
 		std::vector< std::vector<std::string> >::reverse_iterator rIt;
 		std::ifstream file(filename.c_str());
 		if(!file) throw "Failed to open file '" + filename + "!";
 
-		//parse file and construct map
+		//construct new read groups in new header object
+		BamTools::SamHeader newHeader(*bamHeader);
+		newHeader.ReadGroups.Clear();
+
+
+		//parse file and fill vectors
 		int lineNum = 0;
 		std::vector<std::string> vec;
 		std::string readGroup;
@@ -1449,57 +1456,73 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			if(!vec.empty()){
+				if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
 				//add to new header
+				newHeader.ReadGroups.Add(vec[0]);
+				std::cout << "added to new header: " << vec[0] << std::endl;
 				//others are those to be merged: find read group in header and store int
 				readGroupsToMerge.push_back(std::vector<std::string>());
 				rIt = readGroupsToMerge.rbegin();
 				for(unsigned int i=0; i<vec.size(); ++i){
 					rIt->push_back(vec[i]);
+					std::cout << "added to vector: " << vec[i] << std::endl;
 				}
 			}
 		}
-		TReadGroups newReadGroupObject;
-		newReadGroupObject.fill(newHeader);
+		TReadGroups ReadGroupObject;
+		ReadGroupObject.fill(*bamHeader);
 		logfile->write(" done!");
 
-		//report and construct map
-		int* readGroupMap = new int[bamHeader.ReadGroups.Size()];
-		for(int i=0; i<bamHeader.ReadGroups.Size(); ++i) readGroupMap[i] = -1;
-		logfile->startIndent("The following read groups will be merged:");
+		for(int rg = 0; rg < ReadGroupObject.size(); ++rg){
+			std::cout << "read groups in ReadGroupObject " << ReadGroupObject.getName(rg) << std::endl;
+		}
+
+
+		//construct map from vectors and report
+		readGroupMap = new int[numReadGroups];
+		for(int i=0; i<numReadGroups; ++i){
+			readGroupMap[i] = -1; //map initialized
+			std::cout << "map keys: " << ReadGroupObject.getName(i) << std::endl;
+		}
 		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 		int oldId;
-		for(int rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
-			logfile->startIndent("New read group '" + newReadGroupObject.getName(rg) + "' will contain read groups:");
+		std::cout << "ReadGroupObject.size()" << ReadGroupObject.size() << std::endl;
+		std::cout << "newHeader.ReadGroups.Size()" << newHeader.ReadGroups.Size() << std::endl;
+
+		for(int rg = 0; rg < newHeader.ReadGroups.Size(); ++rg, ++mergeIt){
+			logfile->startIndent("The following read groups will be combined into one group for recalibration:");
 			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 				logfile->list(*it);
-				oldId = readGroups.find(*it);
+				oldId = ReadGroupObject.find(*it);
 				if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
 				readGroupMap[oldId] = rg;
 			}
 			logfile->endIndent();
 		}
-		logfile->endIndent();
 
 		//now add read groups that will not be merged
 		bool printed = false;
 		std::string name;
-		for(int i = 0; i < readGroups.size(); ++i){
+		for(int i = 0; i < ReadGroupObject.size(); ++i){
 			//check if it is mapped, otherwise add
 			if(readGroupMap[i] < 0){
 				if(!printed){
 					logfile->startIndent("The following read groups will be kept as is:");
 					printed = true;
 				}
-				name = readGroups.getName(i);
+				name = ReadGroupObject.getName(i);
 				logfile->list(name);
+				readGroupMap[i] = ReadGroupObject.find(name);
 				newHeader.ReadGroups.Add(name);
-				newReadGroupObject.fill(newHeader);
-				readGroupMap[i] = newReadGroupObject.find(name);
 			}
 		}
 		if(printed) logfile->endIndent();
 		else logfile->list("All existing read groups will be merged into a new read group.");
-	}*/
+
+		for(int i=0; i<numReadGroups; ++i){
+			std::cout << readGroupMap[i] << std::endl;
+		}
+	}
 
 
 
@@ -1978,7 +2001,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 				}
 			}else{
 				for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[0][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
 				}
 			}
 		}
@@ -2382,9 +2405,9 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 		} else {
 	//		i=0;
 			for(int q=0; q<qualityIndex->numQ; ++q){
-				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[0][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[0][q].getNumObsForPrinting();
+				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
-				out << "\t" << BQSR_cells_readGroup_quality[0][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[0][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[0][q].F << "\t" << BQSR_cells_readGroup_quality[0][q].estimationConverged;
+				out << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].F << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].estimationConverged;
 				out << "\n";
 			}
 		}
@@ -2413,9 +2436,9 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 		}else{
 			//print same recalibration for all read groups
 			for(int p=0; p<maxPos; ++p){
-				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[0][p].curEstimate << "\t" << BQSR_cells_readGroup_position[0][p].getNumObsForPrinting();
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
-				out << "\t" << BQSR_cells_readGroup_position[0][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[0][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[0][p].F << "\t" << BQSR_cells_readGroup_position[0][p].estimationConverged;
+				out << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].estimationConverged;
 				out << "\n";
 			}
 		}
@@ -2443,9 +2466,9 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 			}
 		} else {
 			for(int p=0; p<maxPos; ++p){
-				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[0][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[0][p].getNumObsForPrinting();
+				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
-				out << "\t" << BQSR_cells_readGroup_position_reverse[0][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[0][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[0][p].F << "\t" << BQSR_cells_readGroup_position_reverse[0][p].estimationConverged;
+				out << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].estimationConverged;
 				out << "\n";
 			}
 		}
@@ -2473,9 +2496,9 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 			}
 		} else {
 			for(int c=0; c<numContexts; ++c){
-				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[0][c].curEstimate << "\t" << BQSR_cells_readGroup_context[0][c].getNumObsForPrinting();
+				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].curEstimate << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
-				out << "\t" << BQSR_cells_readGroup_context[0][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[0][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[0][c].F << "\t" << BQSR_cells_readGroup_context[0][c].estimationConverged;
+				out << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].F << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].estimationConverged;
 				out << "\n";
 			}
 		}

@@ -12,6 +12,7 @@
 #include "TSite.h"
 #include <omp.h>
 #include "TReadGroups.h"
+#include "bamtools/api/SamHeader.h"
 
 //---------------------------------------------------------------
 //TQualityIndex
@@ -417,6 +418,8 @@ class TRecalibrationBQSR:public TRecalibration{
 private:
 	TQualityIndex* qualityIndex;
 	BamTools::SamHeader* bamHeader;
+	BamTools::SamHeader* newHeader;
+
 	TLog* logfile;
 	TGenotypeMap genoMap;
 	int numReadGroups;
@@ -433,6 +436,7 @@ private:
 	bool LLSurfacePrinted;
 	int numPosLLsurface;
 	bool mergedInd;
+	int* readGroupMap;
 
 	//recal tables
 	bool qualityConverged, estimateQuality;
