@@ -1418,7 +1418,6 @@ float TBQSR_cellContext::getEpsilon(TBase* base){
 TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 	bamHeader = BamHeader;
-	numReadGroups = bamHeader->ReadGroups.Size();
 	estimatetionRequired = false;
 	estimationConverged = false;
 	numContexts = 20;
@@ -1428,25 +1427,20 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	storeDataInMemory = params.parameterExists("storeInMemory");
 	if(storeDataInMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
 	//if(mergeReadGroupsRecalibration) logfile->list("Pooling all read groups for BQSR recalibration");
-	if(params.parameterExists("mergeReadGroupsRecalibration")) mergedInd = true;
+	if(params.parameterExists("poolReadGroups")) mergedInd = true;
 	else mergedInd = false;
 	dataStored = false;
 
 	if(mergedInd){
 
 	//read read groups and their expected lengths
-		std::string filename = params.getParameterString("mergeReadGroupsRecalibration");
+		std::string filename = params.getParameterString("poolReadGroups");
 		if(filename=="") throw "No file specifying read groups to merge provided!";
 		logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
 		std::vector< std::vector<std::string> > readGroupsToMerge;
 		std::vector< std::vector<std::string> >::reverse_iterator rIt;
 		std::ifstream file(filename.c_str());
 		if(!file) throw "Failed to open file '" + filename + "!";
-
-		//construct new read groups in new header object
-		BamTools::SamHeader newHeader(*bamHeader);
-		newHeader.ReadGroups.Clear();
-
 
 		//parse file and fill vectors
 		int lineNum = 0;
@@ -1458,14 +1452,11 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 			if(!vec.empty()){
 				if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
 				//add to new header
-				newHeader.ReadGroups.Add(vec[0]);
-				std::cout << "added to new header: " << vec[0] << std::endl;
 				//others are those to be merged: find read group in header and store int
 				readGroupsToMerge.push_back(std::vector<std::string>());
 				rIt = readGroupsToMerge.rbegin();
 				for(unsigned int i=0; i<vec.size(); ++i){
 					rIt->push_back(vec[i]);
-					std::cout << "added to vector: " << vec[i] << std::endl;
 				}
 			}
 		}
@@ -1473,23 +1464,15 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 		ReadGroupObject.fill(*bamHeader);
 		logfile->write(" done!");
 
-		for(int rg = 0; rg < ReadGroupObject.size(); ++rg){
-			std::cout << "read groups in ReadGroupObject " << ReadGroupObject.getName(rg) << std::endl;
-		}
+		//construct array from vectors and report
+		int origNumReadGroups = bamHeader->ReadGroups.Size();
+		readGroupMap = new int[origNumReadGroups];
+		for(int i=0; i<origNumReadGroups; ++i)	readGroupMap[i] = -1; //map initialized
 
-
-		//construct map from vectors and report
-		readGroupMap = new int[numReadGroups];
-		for(int i=0; i<numReadGroups; ++i){
-			readGroupMap[i] = -1; //map initialized
-			std::cout << "map keys: " << ReadGroupObject.getName(i) << std::endl;
-		}
 		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 		int oldId;
-		std::cout << "ReadGroupObject.size()" << ReadGroupObject.size() << std::endl;
-		std::cout << "newHeader.ReadGroups.Size()" << newHeader.ReadGroups.Size() << std::endl;
 
-		for(int rg = 0; rg < newHeader.ReadGroups.Size(); ++rg, ++mergeIt){
+		for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
 			logfile->startIndent("The following read groups will be combined into one group for recalibration:");
 			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 				logfile->list(*it);
@@ -1499,6 +1482,8 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 			}
 			logfile->endIndent();
 		}
+
+		numReadGroups = readGroupsToMerge.size();
 
 		//now add read groups that will not be merged
 		bool printed = false;
@@ -1512,17 +1497,15 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 				}
 				name = ReadGroupObject.getName(i);
 				logfile->list(name);
-				readGroupMap[i] = ReadGroupObject.find(name);
-				newHeader.ReadGroups.Add(name);
+				readGroupMap[i] = numReadGroups;
+				++numReadGroups;
 			}
 		}
 		if(printed) logfile->endIndent();
 		else logfile->list("All existing read groups will be merged into a new read group.");
-
-		for(int i=0; i<numReadGroups; ++i){
-			std::cout << readGroupMap[i] << std::endl;
-		}
 	}
+
+	else numReadGroups = bamHeader->ReadGroups.Size();
 
 
 
@@ -1550,13 +1533,13 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	}
 
 	//get minimal number of observations to conduct estimation
-	minObservations = params.getParameterLongWithDefault("minObservations", 1000);
+	minObservations = params.getParameterLongWithDefault("minObservations", 32000);
 
 	//do we print LL surfaces?
 	numPosLLsurface = params.getParameterIntWithDefault("LLSurface", 0);
 	if(numPosLLsurface > 0) printLLSurface = true;
+	else printLLSurface = false;
 	LLSurfacePrinted = false;
-
 }
 
 void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & params){
@@ -2007,19 +1990,13 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-
-				//DEBUG!
 				if((*it)->posInRead < maxPos){
 					if(!mergedInd){
 						BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
 					}else{
-						BQSR_cells_readGroup_position[0][(*it)->posInRead].addBase(*it, refBase);
+						BQSR_cells_readGroup_position[readGroupMap[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
 					}
 				}
-
-				//ORIGINAL
-				//if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				//BQSR_cells_readGroup_position[(*it)->readGroup][(*it)->posInRead].addBase(*it, refBase);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
@@ -2028,7 +2005,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 				if(!mergedInd){
 					BQSR_cells_readGroup_position_reverse[(*it)->readGroup][(*it)->posInReadRev].addBase(*it, refBase);
 				} else{
-					BQSR_cells_readGroup_position_reverse[0][(*it)->posInReadRev].addBase(*it, refBase);
+					BQSR_cells_readGroup_position_reverse[readGroupMap[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase);
 				}
 			}
 		} else if(considerContext && !contextConverged){
@@ -2036,7 +2013,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 				if(!mergedInd){
 					BQSR_cells_readGroup_context[(*it)->readGroup][(*it)->context].addBase(*it, refBase);
 				} else {
-					BQSR_cells_readGroup_context[0][(*it)->context].addBase(*it, refBase);
+					BQSR_cells_readGroup_context[readGroupMap[(*it)->readGroup]][(*it)->context].addBase(*it, refBase);
 				}
 			}
 		}
@@ -2394,7 +2371,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<bamHeader->ReadGroups.Size(); ++i, ++it){
 		if(!mergedInd){
 			for(int q=0; q<qualityIndex->numQ; ++q){
 				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[i][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[i][q].getNumObsForPrinting();
@@ -2403,7 +2380,6 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 				out << "\n";
 			}
 		} else {
-	//		i=0;
 			for(int q=0; q<qualityIndex->numQ; ++q){
 				out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].getNumObsForPrinting();
 				//for debugging: also print derivatives, F and whether is has converged
@@ -2425,7 +2401,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<bamHeader->ReadGroups.Size(); ++i, ++it){
 		if(!mergedInd){
 			for(int p=0; p<maxPos; ++p){
 				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position[i][p].getNumObsForPrinting();
@@ -2456,7 +2432,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<bamHeader->ReadGroups.Size(); ++i, ++it){
 		if(!mergedInd){
 			for(int p=0; p<maxPos; ++p){
 				out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[i][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[i][p].getNumObsForPrinting();
@@ -2486,7 +2462,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<numReadGroups; ++r, ++it){
+	for(int r=0; r<bamHeader->ReadGroups.Size(); ++r, ++it){
 		if(!mergedInd){
 			for(int c=0; c<numContexts; ++c){
 				out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[r][c].curEstimate << "\t" << BQSR_cells_readGroup_context[r][c].getNumObsForPrinting();
