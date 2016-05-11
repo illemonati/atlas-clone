@@ -1744,29 +1744,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 		//add alignment to storage
 		if(bamAlignment.IsProperPair()){
-			std::cout << "#####" << std::endl;
-			std::cout << "bamAlignment.Name "<< bamAlignment.Name << std::endl;
-			std::cout << "bamAlignment.IsSecondMate() " << bamAlignment.IsSecondMate() << std::endl;
-			std::cout << "bamAlignment.IsReverseStrand() " << bamAlignment.IsReverseStrand() << std::endl;
-
 			if(!bamAlignment.IsReverseStrand()) {
 				alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
-				std::cout << "is added to vector" << std::endl;
-				std::cout << "this is the current storage vector: ";
-				for (it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-					std::cout << it->first->Name << ' ' << it->second <<"; ";
-				}
-				std::cout << "\n";
-
 			}
 			else if(bamAlignment.IsReverseStrand()){
-				if(!bamAlignment.IsSecondMate()) std::cout << "first mate and reverse strand" << std::endl;
-				std::cout << "this is the current storage vector: ";
-				for (it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-					std::cout << it->first->Name << ' ' << it->second <<"; ";
 
-				}
-				std::cout << "\n";
 				//find first mate -> should be in storage
 				for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 					if(it->first->Name == bamAlignment.Name){
@@ -1833,26 +1815,19 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						alignmentPointer->SetIsProperPair(false);
 						alignmentPointer->SetIsSecondMate(false);
 						it->second = true;
-						std::cout << "this alignment was merged" << std::endl;
-
 
 						//write if is first in vector
 						if(it == alignmentStorage.begin()){
 							//write all that are OK
 							for(; it != alignmentStorage.end(); ++it){
 								if(it->second){
-									std::cout << "saved to bam: "<< it->first->Name << std::endl;
 									bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
 									delete it->first;
 								} else {
-									std::cout << "first alignment that cant be written: "<< it->first->Name << std::endl;
-
 									//first that can not be written -> erase all previous ones!
-									alignmentStorage.erase(alignmentStorage.begin(), it);
-									std::cout << "alignments were erased up to: " << it->first->Name << std::endl;
+									it = alignmentStorage.erase(alignmentStorage.begin(), it);
 									break;
 								}
-								//std::cout << "the current alignment is: " << it->first->Name << std::endl;
 							}
 							if(it == alignmentStorage.end()){
 								alignmentStorage.clear();
