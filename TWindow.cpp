@@ -355,7 +355,7 @@ void TWindow::calcCoverage(){
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
-void TWindow::calcCoveragePerSite(int * siteCoverage, unsigned int maxCov){
+void TWindow::calcCoveragePerSite(long * siteCoverage, unsigned int maxCov){
 	//calculate and return coverage
 	coverage = 0.0;
 	long noData = 0;

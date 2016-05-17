@@ -2090,12 +2090,13 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	int nCharOnLine = 0;
 	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	if(!maxCov) throw "No maximum coverage specified!";
 	int size = maxCov + 2; // need 0 bin and >maxCov bin
+	int nCharOnLine = 0;
 
 	//prepare array
-	int * siteCoverage = new int[size];
+	long * siteCoverage = new long[size];
 	for(int i=0; i<size; ++i){
 		siteCoverage[i] = 0;
 	}
