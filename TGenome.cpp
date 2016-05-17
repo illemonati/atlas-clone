@@ -273,6 +273,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 	}
 
 	while(bamReader.GetNextAlignment(bamAlignment) && bamAlignment.RefID==chrNumber){
+
 		//filter out unmapped reads and those that did not pass QC
 		if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
 
@@ -283,6 +284,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) > bamAlignment.Length){
 
 					if(!addAlignementToWindows(bamAlignment, windowPair)){
+
 						//read is beyond window and should be reconsidered
 						oldAlignementMustBeConsidered = true;
 						break;
@@ -1537,24 +1539,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//paired end
 	if(bamAlignment.IsProperPair()){
 		if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
-			if(!bamAlignment.IsReverseStrand()){
-				//Hence it is first in the bam file and maps on forward strand
-				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
-				for(int pos = 0; pos < length; ++pos, ++internalPos){
-					base = bamAlignment.AlignedBases.at(pos);
-					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > 32){ //skip if quality dies not make sense
-							readBase = genoMap.getBase(base);
-							refBase = genoMap.getBase(ref[internalPos]);
-
-							pmdTables.addForward(readGroupId, pos, refBase, readBase);
-							pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
-						}
-					}
-				}
-			} else {
+			if(bamAlignment.IsReverseStrand()){
 				// hence it is second in bam file and maps on reverse strand -> FLIP BASES
 				//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
 				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
@@ -1569,6 +1554,23 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 
 							pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
 							pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+						}
+					}
+				}
+			} else {
+				//Hence it is first in the bam file and maps on forward strand
+				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+				for(int pos = 0; pos < length; ++pos, ++internalPos){
+					base = bamAlignment.AlignedBases.at(pos);
+					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+						quality = bamAlignment.AlignedQualities.at(pos);
+						if((int) quality > 32){ //skip if quality does not make sense
+							readBase = genoMap.getBase(base);
+							refBase = genoMap.getBase(ref[internalPos]);
+
+							pmdTables.addForward(readGroupId, pos, refBase, readBase);
+							pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
 						}
 					}
 				}
@@ -1607,6 +1609,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					if((int) quality > 32){ //skip if quality dies not make sense
 						readBase = genoMap.getBase(base);
 						refBase = genoMap.getBase(ref[internalPos]);
+
 						pmdTables.addForward(readGroupId, pos, refBase, readBase);
 						pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 					}
@@ -2081,7 +2084,53 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 	output.close();
 }
 
+void TGenome::estimateCoveragePerSite(TParameters & params){
+	std::ofstream output;
+	std::string outputFileName = outputName + "_coveragePerSite.txt";
+	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	int nCharOnLine = 0;
+	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	int size = maxCov + 2; // need 0 bin and >maxCov bin
 
+	//prepare array
+	int * siteCoverage = new int[size];
+	for(int i=0; i<size; ++i){
+		siteCoverage[i] = 0;
+	}
+
+	//write header
+	output << "coverage\tcounts" << std::endl;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
+
+			logfile->listFlush("Adding coverages to table ...");
+			logfile->write(" done!");
+		}
+	}
+
+	//write to file
+	for(int i=0; i<(size-1); ++i){
+		output << i << "\t" << siteCoverage[i] << "\n";
+	}
+	output << ">" << maxCov << "\t" << siteCoverage[size - 1] << std::endl;
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
+	delete[] siteCoverage;
+}
 
 
 

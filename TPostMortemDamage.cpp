@@ -327,8 +327,10 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 				//check if we accept or backtrack
 				if(LL > oldLL){
 					//store new params
-					for(int x=0; x<3; ++x)
+					for(int x=0; x<3; ++x){
 						oldParams[x] = newParams[x];
+						std::cout << "newParams[x] " << newParams[x] << std::endl;
+					}
 
 					//check if we stop NR
 					if(LL - oldLL < eps){

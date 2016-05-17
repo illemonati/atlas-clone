@@ -355,6 +355,25 @@ void TWindow::calcCoverage(){
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
+void TWindow::calcCoveragePerSite(int * siteCoverage, unsigned int maxCov){
+	//calculate and return coverage
+	coverage = 0.0;
+	long noData = 0;
+	long plentyData = 0;
+
+	for(int i=0; i<length; ++i){
+		if(sites[i].bases.size() <= maxCov)	siteCoverage[sites[i].bases.size()] += 1;
+		else siteCoverage[maxCov + 1] += 1; //else it should be in the "greater than" bin
+
+		if(sites[i].bases.size() == 0) ++ noData;
+		else if(sites[i].bases.size() > 1) ++ plentyData;
+	}
+
+	coverage = coverage / (double) length;
+	fractionSitesNoData = (double) noData / (double) length;
+	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
+}
+
 void TWindow::applyCoverageFilter(int minCoverage, int maxCoverage){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){

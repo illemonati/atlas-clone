@@ -101,6 +101,7 @@ public:
 	void downSampleBamFile(TParameters & params);
 	void estimateApproximateCoverage(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
+	void estimateCoveragePerSite(TParameters & params);
 	void simulateGWASData(TParameters & params);
 	void calculatePoolFreqLikelihoods(TParameters & params);
 };
