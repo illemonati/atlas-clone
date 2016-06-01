@@ -1246,6 +1246,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		readGroupId = readGroups.find(readGroup);
 
 		//parse into bases
+		//TODO: fix for paired-end
 		for(int pos = 0; pos < len; ++pos){
 			base = bamAlignment.QueryBases.at(pos);
 			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
@@ -1547,7 +1548,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > 32){ //skip if quality dies not make sense
+						if((int) quality > 32){ //skip if quality d0es not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 							refBase = genoMap.flipBase(ref[internalPos]);
@@ -1702,6 +1703,36 @@ void TGenome::estimatePMD(TParameters & params){
 	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
 	pmdTables.fitExponentialModel(numNRIterations, eps, filename);
 	logfile->write(" done!");
+}
+
+void TGenome::runPMDS(TParameters & params){
+	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
+	//write new bam file with PMDS score added
+	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
+
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	filename = outputName + "_mergedReads.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	float runtime;
+	int curChr = -1;
+	long counter = 0;
+
+	 //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignment)){
+		++counter;
+
+
+	}
 }
 
 void TGenome::mergePairedEndReads(TParameters & params){

@@ -96,6 +96,7 @@ public:
 	void mergeReadGroups(TParameters & params);
 	void addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables);
 	void estimatePMD(TParameters & params);
+	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);

@@ -91,6 +91,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "estimatePMD"){
     		logfile.startIndent("Estimating Post-Mortem Damage (PMD) patterns:");
     		genome.estimatePMD(myParameters);
+    	} else if(task == "PMDS"){
+    		logfile.startIndent("Filtering for ancient reads using PMDS (Skoglund et al. 2014):");
+    		genome.runPMDS(myParameters);
     	} else if(task == "mergeReads"){
     		logfile.startIndent("Merging paired-end reads:");
     		genome.mergePairedEndReads(myParameters);

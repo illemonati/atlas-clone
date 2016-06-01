@@ -904,6 +904,11 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 	out.close();
 }
 
+int TRecalibrationEM::getQuality(TBase* base){
+	double q = getErrorRate(base);
+	//transform to quality
+	return makePhredInt(q);
+}
 //---------------------------------------------------------------
 //TBQSR_cell_base BQSR
 //---------------------------------------------------------------

@@ -278,6 +278,7 @@ public:
 	void writeParams(std::ofstream & out, double & LL);
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
+	int getQuality(TBase* base);
 };
 
 //---------------------------------------------------------------
