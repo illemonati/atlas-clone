@@ -7,6 +7,8 @@
 
 
 #include "TGenome.h"
+#include "TBase.h"
+
 
 //-------------------------------------------------------
 //TGenome
@@ -1247,39 +1249,107 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 		//parse into bases
 		//TODO: fix for paired-end
-		for(int pos = 0; pos < len; ++pos){
-			base = bamAlignment.QueryBases.at(pos);
-			if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-				quality = bamAlignment.Qualities.at(pos);
-				if((int) quality > 33){
-					if(bamAlignment.IsReverseStrand()){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
-						posInRead = len - pos - 1;
-						revPosInRead = pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
-						pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
-					} else {
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
-						posInRead = pos;
-						revPosInRead = len - pos - 1;
-						pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
-						pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
+
+		//--------------------------------------------------------
+		//add to PMD
+		//distinguish between cases
+		//paired end
+		if(bamAlignment.IsProperPair()){
+			if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+				if(bamAlignment.IsReverseStrand()){
+					// hence it is second in bam file and maps on reverse strand -> FLIP BASES
+					//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+					//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.AlignedBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+							quality = bamAlignment.AlignedQualities.at(pos);
+							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+							pmdCT = pmdObjects[readGroupId].getProbCT(len - pos - 1);
+							pmdGA = pmdObjects[readGroupId].getProbGA(abs(bamAlignment.InsertSize)-len+pos);
+
+							if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+						}
 					}
 
-					//create base object
-					if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
-					else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 
-					//get new quality
-					qual += recalObject->getQualityAsChar(basePointer);
+				} else {
+					//Hence it is first in the bam file and maps on forward strand
+					//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+					//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.AlignedBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+							quality = bamAlignment.AlignedQualities.at(pos);
+							quality = bamAlignment.AlignedQualities.at(pos);
+							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+							pmdCT = pmdObjects[readGroupId].getProbCT(pos);
+							pmdGA = pmdObjects[readGroupId].getProbGA(bamAlignment.InsertSize - pos - 1);
 
-					//delete base
-					delete basePointer;
-				} else qual += quality;
+							if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+						}
+					}
+				}
+			} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+
+		}else{
+			//single-end
+			if((int) quality > 33){
+				if(bamAlignment.IsReverseStrand()){
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.QueryBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+							quality = bamAlignment.Qualities.at(pos);
+							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+							posInRead = len - pos - 1;
+							revPosInRead = pos;
+							pmdCT = pmdObjects[readGroupId].getProbCT(len - pos);
+							pmdGA = pmdObjects[readGroupId].getProbGA(pos + 1);
+
+							if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+
+						}
+					}
+				} else {
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.QueryBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+							quality = bamAlignment.Qualities.at(pos);
+							if(pos == 0) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
+							posInRead = pos;
+							revPosInRead = len - pos - 1;
+							pmdCT = pmdObjects[readGroupId].getProbCT(pos + 1);
+							pmdGA = pmdObjects[readGroupId].getProbGA(len - pos);
+
+							if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+							else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+
+						}
+					}
+				}
+
+				//create base object
+
+				//get new quality
+				qual += recalObject->getQualityAsChar(basePointer);
+
+				//delete base
+				delete basePointer;
 			} else qual += quality;
 		}
 
@@ -1305,6 +1375,15 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	logfile->list("Reached end of BAm file!");
 	logfile->removeIndent();
 }
+
+//void TGenome::createBaseObject(char base, char quality, int posInRead, int revPosInRead, BaseContext context, int readGroupId){
+//	TBase* basePointer;
+//	if(base == 'A') basePointer = new TBaseDiploidA(quality&, posInRead&, revPosInRead,  pmdCT, pmdGA, context&, readGroupId);
+//	else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+//	else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+//	else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+////	return basePointer;
+//}
 
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
