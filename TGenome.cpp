@@ -1204,8 +1204,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	windows.clear();
 }
 
-//create base object
-char TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
+char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	TBase* basePointer;
 
 	if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
@@ -1218,6 +1217,8 @@ char TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, in
 	return qual;
 }
 
+
+
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -1229,9 +1230,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
-
-	//create array of TBase
-	TBase* basePointer;
 
 	//other temp variables
 	char base, quality;
@@ -1283,7 +1281,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 								pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
 								pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
-								qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+								qual += returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 							} else qual += quality;
 						} else qual += quality;
@@ -1300,13 +1298,13 @@ void TGenome::recalibrateBamFile(TParameters & params){
 							quality = bamAlignment.Qualities.at(pos);
 							if((int) quality > 33){
 								if(pos == (len - 1)) context = genoMap.getContext('N', base);
-								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
 								posInRead = pos;
 								revPosInRead = bamAlignment.InsertSize - pos - 1;
 								pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
 								pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
-								qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+								qual += returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 
 								//delete base
@@ -1336,7 +1334,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
 							//get new quality
-							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							qual += returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 						} else qual += quality;
 					} else qual += quality;
@@ -1357,7 +1355,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
 							//get new quality
-							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							qual += returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 						} else qual += quality;
 					} else qual += quality;
@@ -1484,6 +1482,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
+
 
 void TGenome::mergeReadGroups(TParameters & params){
 	//read read groups and their expected lengths
@@ -1789,10 +1788,31 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->write(" done!");
 }
 
+double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
+	TBase* basePointer;
+
+	if(base == 'A') basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+	else if(base == 'C') basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+	else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+	else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
+
+	char qual = recalObject->getQuality(basePointer);
+	delete basePointer;
+	return qual;
+}
+
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
 	//write new bam file with PMDS score added
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	float runtime;
+	int curChr = -1;
+	long counter = 0;
 
 
 	//open a bam file for writing
@@ -1803,21 +1823,232 @@ void TGenome::runPMDS(TParameters & params){
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	float runtime;
-	int curChr = -1;
-	long counter = 0;
+	//tmp variables
+	char base, quality;
+	int len;
+	int readGroupId;
+	BaseContext context;
+	TGenotypeMap genoMap;
+	std::string readGroup;
+	int posInRead, revPosInRead;
+	double pmdCT, pmdGA;
+	double probPMD;
+
+	if(!fastaReference) throw "Cannot mask CpG sites without reference!";
+
+	//get reference
+	int begin = 0;
+	int windowSize = 1000000;
+	int stop = begin + windowSize; //note that end is last position + 1
+
+	std::string ref; //fasta object fills string
+	reference.GetSequence(chrNumber, begin, stop, ref);
+
 
 	 //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
+		curChr = bamAlignment.RefID;
+		len = bamAlignment.Length;
+		//get readgroup info
+		bamAlignment.GetTag("RG", readGroup);
+		readGroupId = readGroups.find(readGroup);
+
+		//parse into bases
+		if(bamAlignment.IsProperPair()){
+			if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+				if(bamAlignment.IsReverseStrand()){
+
+					if(bamAlignment.Position + bamAlignment.InsertSize < stop){
+
+						for(int pos = 0; pos < len; ++pos){
+							base = bamAlignment.QueryBases.at(pos);
+							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+								quality = bamAlignment.Qualities.at(pos);
+								if((int) quality > 33){
+									if(pos == (len - 1)) context = genoMap.getContext('N', base);
+									else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+
+									posInRead = len - pos - 1;
+									revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
+									pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+									pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+
+									//probPMD *= getProbPMD(readGroup, pos, ref, read);
+								}
+							}
+						}
+					} else {
+						begin = bamAlignment.Position;
+						reference.GetSequence(chrNumber, begin, stop, ref);
+					}
+				}
+
+			}
+		}
+	}
+
+	//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+}
+
+
+
+
+
+/*//other temp variables
+char base, quality;
+BaseContext context;
+TGenotypeMap genoMap;
+int posInRead, revPosInRead;
+double pmdCT, pmdGA;
+int len;
+std::string qual;
+std::string readGroup;
+int readGroupId;
+long counter = 0;
+
+
+//now parse through bam file and write alignments
+while (bamReader.GetNextAlignment(bamAlignment)){
+	++counter;
+	len = bamAlignment.Length;
+	qual.clear();
+
+	//get readgroup info
+	bamAlignment.GetTag("RG", readGroup);
+	readGroupId = readGroups.find(readGroup);
+
+	//parse into bases
+	//TODO: fix for paired-end
+
+	if(bamAlignment.IsProperPair()){
+		if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+			if(bamAlignment.IsReverseStrand()){
+				// hence it is second in bam file and maps on reverse strand -> FLIP BASES
+				//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+				for(int pos = 0; pos < len; ++pos){
+					base = bamAlignment.QueryBases.at(pos);
+					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+						quality = bamAlignment.Qualities.at(pos);
+						if((int) quality > 33){
+							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+
+							posInRead = len - pos - 1;
+							revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
+							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+						} else qual += quality;
+					} else qual += quality;
+				}
+
+
+			} else {
+				//Hence it is first in the bam file and maps on forward strand
+				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+				for(int pos = 0; pos < len; ++pos){
+					base = bamAlignment.QueryBases.at(pos);
+					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+						quality = bamAlignment.Qualities.at(pos);
+						if((int) quality > 33){
+							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
+							posInRead = pos;
+							revPosInRead = bamAlignment.InsertSize - pos - 1;
+							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+
+							//delete base
+						//	delete basePointer;
+						} else qual += quality;
+					} else qual += quality;
+				}
+			}
+		} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+	}
+
+	else{
+
+		//single end
+
+		if(bamAlignment.IsReverseStrand()){
+			for(int pos = 0; pos < len; ++pos){
+				base = bamAlignment.QueryBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+					quality = bamAlignment.Qualities.at(pos);
+					if((int) quality > 33){
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+						posInRead = len - pos - 1;
+						revPosInRead = pos;
+						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+						//get new quality
+						qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+					} else qual += quality;
+				} else qual += quality;
+			}
+
+		} else {
+			for(int pos = 0; pos < len; ++pos){
+				base = bamAlignment.QueryBases.at(pos);
+
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
+					quality = bamAlignment.Qualities.at(pos);
+					if((int) quality > 33){
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
+						posInRead = pos;
+						revPosInRead = len - pos - 1;
+						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+						//get new quality
+						qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+					} else qual += quality;
+				} else qual += quality;
+			}
+		}
+	}
+
+	//update and write (only if alignment is not longer than insert size)
+	if(qual.size() != 0){
+	bamAlignment.Qualities = qual;
+	bamWriter.SaveAlignment(bamAlignment);
+	}
 
 
 	}
 }
+
+//close bam writer
+bamWriter.Close();
+
+//report
+gettimeofday(&end, NULL);
+runtime = (end.tv_sec  - start.tv_sec)/60.0;
+logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+logfile->list("Reached end of BAm file!");
+logfile->removeIndent();
+}*/
+
 
 void TGenome::mergePairedEndReads(TParameters & params){
 	//open a bam file for writing

@@ -55,7 +55,6 @@ public:
 	int posInRead; //zero based!
 	int posInReadRev; //zero based!
 	double PMD_CT, PMD_GA;
-	//int pos5, pos3; //is distance and starts at 1 for position = 0
 	int readGroup;
 	BaseContext context;
 
@@ -67,8 +66,6 @@ public:
 		posInReadRev = PosInReadRev;
 		PMD_CT = thisPMD_CT;
 		PMD_GA = thisPMD_GA;
-		//pos5 = Pos5;
-		//pos3 = Pos3;
 		readGroup = ReadGroup;
 		context = Context;
 	};

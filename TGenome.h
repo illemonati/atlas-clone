@@ -91,6 +91,8 @@ public:
 	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
+	char returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
+	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	void recalibrateBamFile(TParameters & params);
 	void splitSingleEndReadGroups(TParameters & params);
 	void mergeReadGroups(TParameters & params);
