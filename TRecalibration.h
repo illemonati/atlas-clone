@@ -121,8 +121,18 @@ public:
 //---------------------------------------------------------------
 class TRecalibration{
 public:
-	TRecalibration(){};
-	virtual ~TRecalibration(){};
+	bool mergedInd;
+	int* readGroupMap;
+	int numReadGroups;
+
+	TRecalibration();
+
+	virtual ~TRecalibration(){
+		delete[] readGroupMap;
+	};
+
+
+	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
 	int makePhredInt(double & epsilon){
 		return round(-10.0 * log10(epsilon));
@@ -228,7 +238,6 @@ class TRecalibrationEM:public TRecalibration{
 public:
 	TLog* logfile;
 	BamTools::SamHeader* bamHeader;
-	int numReadGroups;
 	std::string* readGroupNames;
 	int numParams;
 	int totNumParams;
@@ -423,7 +432,6 @@ private:
 
 	TLog* logfile;
 	TGenotypeMap genoMap;
-	int numReadGroups;
 	bool estimatetionRequired;
 	float convergenceThreshold_F;
 	float minEpsilonQuality, minEpsilonFactors;
@@ -436,8 +444,6 @@ private:
 	bool printLLSurface;
 	bool LLSurfacePrinted;
 	int numPosLLsurface;
-	bool mergedInd;
-	int* readGroupMap;
 
 	//recal tables
 	bool qualityConverged, estimateQuality;
