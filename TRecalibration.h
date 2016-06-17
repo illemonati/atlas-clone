@@ -125,11 +125,12 @@ public:
 	int* readGroupMap;
 	int numReadGroups;
 	int origNumReadGroups;
+	bool readGroupMapInitialized;
 
 	TRecalibration();
 
 	virtual ~TRecalibration(){
-		delete[] readGroupMap;
+		if(readGroupMapInitialized) delete[] readGroupMap;
 	};
 
 
@@ -188,14 +189,14 @@ public:
 //---------------------------------------------------------------
 class TRecalibrationEMSite{
 public:
-	double** q; //covariates such as quality, position etc.
-	double** D; //D for the emission probabilities: depends on genotype and base!
-	double** B; //B = 4/3 D - 1
-	int* context;
-	int* readGroup;
-	int* readGroupShifts;
-	double* epsilon;
-	double* P_g_given_d_oldBeta;
+	float** q; //covariates such as quality, position etc.
+	float** D; //D for the emission probabilities: depends on genotype and base!
+	float** B; //B = 4/3 D - 1
+	short* context;
+	short* readGroup;
+	short* readGroupShifts;
+	float* epsilon;
+	float* P_g_given_d_oldBeta;
 	int numReads;
 	bool initialized;
 
@@ -219,8 +220,9 @@ class TRecalibrationEMWindow{
 public:
 	std::vector<TRecalibrationEMSite*> sites;
 	double* freqs; //base frequencies
+	int* readGroupMap;
 
-	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs);
+	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int* ReadGroupMap);
 	~TRecalibrationEMWindow(){
 		delete[] freqs;
 		for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
@@ -228,7 +230,7 @@ public:
 		}
 		sites.clear();
 	};
-	void addSite(TSite & site, int* readGroupMap);
+	void addSite(TSite & site);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
 	double calcLL(double** oldParams);
 	double calcQ(double** newParams);

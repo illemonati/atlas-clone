@@ -16,6 +16,7 @@ TRecalibration::TRecalibration(){
 	readGroupMap = NULL;
 	origNumReadGroups = -1;
 	numReadGroups = -1;
+	readGroupMapInitialized = false;
 }
 
 int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups){
@@ -129,34 +130,34 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 
 TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
 	numReads = site.bases.size();
-	q = new double*[numReads];
-	D = new double*[4];
-	B = new double*[4];
+	q = new float*[numReads];
+	D = new float*[4];
+	B = new float*[4];
 	for(int g=0; g<4; ++g){
-		D[g] = new double[numReads];
-		B[g] = new double[numReads];
+		D[g] = new float[numReads];
+		B[g] = new float[numReads];
 	}
 
-	context = new int[numReads];
-	epsilon = new double[numReads];
-	readGroup = new int[numReads];
-	readGroupShifts = new int[numReads];
-	P_g_given_d_oldBeta = new double[4];
+	context = new short[numReads];
+	epsilon = new float[numReads];
+	readGroup = new short[numReads];
+	readGroupShifts = new short[numReads];
+	P_g_given_d_oldBeta = new float[4];
 	initialized = true;
 	int k=0;
-	double epsilon;
+	double eps;
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++k){
 		readGroup[k] = readGroupMap[(*it)->readGroup];
 		readGroupShifts[k] = readGroup[k] * 24; //shift by num params per read group!
-		q[k] = new double[4];
+		q[k] = new float[4];
 
 		//we will work with the following q_ikl:
 		// - transformed quality
 		// - square of transformed quality
-		epsilon = dePhred((*it)->quality);
+		eps = dePhred((*it)->quality);
 
 
-		q[k][0] = log(epsilon / (1.0 - epsilon));
+		q[k][0] = log(eps / (1.0 - eps));
 		q[k][1] = q[k][0] * q[k][0];
 
 		// - position
@@ -398,12 +399,13 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 //---------------------------------------------------------------
 //TRecalibrationEMWindow
 //---------------------------------------------------------------
-TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs){
+TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int* ReadGroupMap){
 	freqs = new double[4];
 	for(int i=0; i<4; ++i) freqs[i] = (*baseFreqs)[i];
+	readGroupMap = ReadGroupMap;
 }
 
-void TRecalibrationEMWindow::addSite(TSite & site, int* readGroupMap){
+void TRecalibrationEMWindow::addSite(TSite & site){
 	sites.push_back(new TRecalibrationEMSite(site, readGroupMap));
 }
 
@@ -453,7 +455,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 
 	//rad groups and log file
 	bamHeader = BamHeader;
-	TRecalibration::initializeReadGroupMap(BamHeader, args, Logfile);
+	initializeReadGroupMap(BamHeader, args, Logfile);
 	readGroupNames = new std::string[origNumReadGroups];
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<origNumReadGroups; ++r, ++it){
@@ -488,8 +490,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		std::vector<std::string> vec;
 		std::vector<std::string>::iterator it;
 		int rg;
-		bool* rgFound = new bool[origNumReadGroups];
-		for(int r=0; r<origNumReadGroups; ++r) rgFound[r] = false;
+		bool* rgFound = new bool[numReadGroups];
+		for(int r=0; r<numReadGroups; ++r) rgFound[r] = false;
 
 		//skip header
 		std::getline(file, tmp);
@@ -504,7 +506,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 				//find read group
 				it = vec.begin();
 				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
-				rg = findReadGroupIndex(*it, bamHeader->ReadGroups);
+				rg = readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
 				++it;
 				rgFound[rg] = true;
 
@@ -517,7 +519,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		}
 
 		//check if we miss some read groups
-		for(int r=0; r<origNumReadGroups; ++r){
+		for(int r=0; r<numReadGroups; ++r){
 			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
 		}
 
@@ -569,14 +571,14 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 
 
 void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
-	windows.push_back(new TRecalibrationEMWindow(freqs));
+	windows.push_back(new TRecalibrationEMWindow(freqs, readGroupMap));
 	//windows.emplace_back(freqs);
 	//set iterator
 	curWindow = windows.end(); --curWindow;
 }
 
 void TRecalibrationEM::addSite(TSite & site){
-	(*curWindow)->addSite(site, readGroupMap);
+	(*curWindow)->addSite(site);
 	++numSitesAdded;
 }
 
