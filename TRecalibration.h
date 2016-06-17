@@ -124,6 +124,7 @@ public:
 	bool mergedInd;
 	int* readGroupMap;
 	int numReadGroups;
+	int origNumReadGroups;
 
 	TRecalibration();
 
@@ -199,7 +200,7 @@ public:
 	bool initialized;
 
 	TRecalibrationEMSite();
-	TRecalibrationEMSite(TSite & site, bool printDebug);
+	TRecalibrationEMSite(TSite & site, int* readGroupMap);
 	double dePhred(double quality){
 		double tmp = pow(10.0, quality / -10.0);
 		if(tmp < 0.0000000001) return 0.0000000001;
@@ -227,7 +228,7 @@ public:
 		}
 		sites.clear();
 	};
-	void addSite(TSite & site);
+	void addSite(TSite & site, int* readGroupMap);
 	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
 	double calcLL(double** oldParams);
 	double calcQ(double** newParams);

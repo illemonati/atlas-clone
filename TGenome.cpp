@@ -985,7 +985,9 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
+				std::cout << "adding data..." << std::flush;
 				windows.cur->addToRecalibrationEM(recalObjectEM);
+				std::cout << "done!" << std::endl;
 			}
 		}
 	}
