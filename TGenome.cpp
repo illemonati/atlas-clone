@@ -100,6 +100,10 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		maxCoverage = 1000000;
 	}
 
+	minQuality = params.getParameterIntWithDefault("minQual", 32);
+	logfile->list("Will not consider bases with quality < " + toString(minQuality));
+
+
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
 	if(params.parameterExists("chr")){
@@ -245,9 +249,9 @@ bool TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindo
 		//check if still within current window and add to window
 		if(alignement.Position >= curEnd) return false;
 		else {
-			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups)){
+			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality)){
 				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups);
+				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality);
 			}
 		}
 	}
@@ -1633,7 +1637,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > 32){ //skip if quality d0es not make sense
+						if((int) quality > minQuality){ //skip if quality d0es not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 							refBase = genoMap.flipBase(ref[internalPos]);
@@ -1651,7 +1655,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > 32){ //skip if quality does not make sense
+						if((int) quality > minQuality){ //skip if quality does not make sense
 							readBase = genoMap.getBase(base);
 							refBase = genoMap.getBase(ref[internalPos]);
 
@@ -1674,7 +1678,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > minQuality){ //skip if quality dies not make sense
 						readBase = genoMap.flipBase(base);
 						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 						refBase = genoMap.flipBase(ref[internalPos]);
@@ -1692,7 +1696,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality dies not make sense
+					if((int) quality > minQuality){ //skip if quality dies not make sense
 						readBase = genoMap.getBase(base);
 						refBase = genoMap.getBase(ref[internalPos]);
 

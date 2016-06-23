@@ -64,6 +64,7 @@ private:
  	bool doCpGMasking;
  	bool applyCoverageFilter;
  	int minCoverage, maxCoverage;
+ 	int minQuality;
  	long limitWindows;
  	int limitChr;
  	bool* useChromosome;

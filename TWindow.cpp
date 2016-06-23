@@ -91,7 +91,7 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups){
+bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups, int minQuality){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
@@ -139,7 +139,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality does not make sense
+					if((int) quality > minQuality){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
@@ -159,7 +159,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality does not make sense
+					if((int) quality > minQuality){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
@@ -183,7 +183,8 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality does not make sense
+					if((int) quality < minQuality) std::cout << "quality: " << quality << std::endl;
+					if((int) quality > minQuality){ //skip if quality does not make sense
 						//get context: flip bases!
 						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
 						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
@@ -204,7 +205,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > 32){ //skip if quality does not make sense
+					if((int) quality > minQuality){ //skip if quality does not make sense
 						//get context
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
