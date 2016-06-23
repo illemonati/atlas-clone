@@ -1397,7 +1397,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");
-	bool limit = params.parameterExists("limit");
+	bool allowForLarger = params.parameterExists("limit");
 
 	logfile->listFlush("Reading single end read groups from file '" + filename + "' ...");
 	std::map<int, TReadGroupMaxLength> singleEndRG;
@@ -1464,7 +1464,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			//check length
 			if(bamAlignment.Length < singleEndRGIT->second.maxLen)
 				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(bamAlignment.Length > singleEndRGIT->second.maxLen && !limit) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
+			else if(bamAlignment.Length > singleEndRGIT->second.maxLen && !allowForLarger) throw "Length of read in read group '" + readGroup + "' is > max length provided!";
 		}
 
 		//write
