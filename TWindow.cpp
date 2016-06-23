@@ -183,7 +183,6 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality < minQuality) std::cout << "quality: " << quality << std::endl;
 					if((int) quality > minQuality){ //skip if quality does not make sense
 						//get context: flip bases!
 						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
