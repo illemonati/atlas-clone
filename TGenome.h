@@ -99,6 +99,8 @@ public:
 	void mergeReadGroups(TParameters & params);
 	void addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables);
 	void estimatePMD(TParameters & params);
+	double getProbPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
+	double getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
 	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);

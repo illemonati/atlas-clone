@@ -1709,6 +1709,8 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	}
 }
 
+
+
 void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
@@ -1807,6 +1809,72 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 	return qual;
 }
 
+double TGenome::getProbPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate){
+	double probPMD = -1;
+	double pi = 0.001;
+	double epsThird = errorRate / 3;
+	double fourEpsThird = 4*epsThird;
+
+	if(ref == 'A'){
+		if(read == 'A')	probPMD = 1 - errorRate - pi + fourEpsThird*pi + pmdGA*pi/3*(1-fourEpsThird);
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi - pi*pmdCT*(fourEpsThird-1);
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird-1);
+		else if(read == 'T') probPMD = errorRate - 4*pi*epsThird + pi*pmdCT*(1-4*epsThird) + pi;
+	}
+	else if (ref == 'C'){
+		if(read == 'A') probPMD = errorRate + pi - 2*errorRate*pi + pi*pmdGA*(1-fourEpsThird);
+		else if(read == 'C') probPMD = 1 - pi - errorRate + fourEpsThird*pi + (1-pi)*pmdCT*(fourEpsThird-1);
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi + pmdGA*(fourEpsThird*pi - pi);
+		else if(read == 'T') probPMD = epsThird + (1-pi)*pmdCT*(1-fourEpsThird);
+	}
+	else if (ref == 'G'){
+		if(read == 'A') probPMD = pmdGA*(3-3*pi+4*errorRate+4*errorRate*pi) + errorRate - fourEpsThird*pi + pi;
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1);
+		else if(read == 'G') probPMD = 1 - pi - errorRate + fourEpsThird*pi + (1-pi)*pmdGA*(fourEpsThird-1);
+		else if(read == 'T') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(1-fourEpsThird);
+	}
+	else if(ref == 'T'){
+		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi - epsThird*pi*pmdCT + pi*pmdGA*(1-errorRate);
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1);
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird - 1);
+		else if(read == 'T') probPMD = 1 - errorRate - pi + fourEpsThird*pi + pmdCT*(pi/3-fourEpsThird*pi/3);
+	}
+	return probPMD;
+}
+double TGenome::getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate){
+	double probPMD = -1;
+	double pi = 0.001;
+	double epsThird = errorRate / 3;
+	double fourEpsThird = 4*epsThird;
+
+	if(ref == 'A'){
+		if(read == 'A')	probPMD = 1 - errorRate - pi + fourEpsThird*pi;
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T')probPMD = errorRate - 4*pi*epsThird + pi;
+	}
+	else if (ref == 'C'){
+		if(read == 'A') probPMD = errorRate + pi - 2*errorRate*pi;
+		else if(read == 'C') probPMD = 1 - pi - errorRate + fourEpsThird*pi;
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T') probPMD = epsThird;
+	}
+	else if (ref == 'G'){
+		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probPMD = 1 - pi - errorRate + fourEpsThird*pi;
+		else if(read == 'T') probPMD = errorRate - fourEpsThird*pi + pi;
+	}
+	else if(ref == 'T'){
+		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T') probPMD = 1 - errorRate - pi + fourEpsThird*pi;
+	}
+	return probPMD;
+}
+
+
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
 	//write new bam file with PMDS score added
@@ -1837,10 +1905,9 @@ void TGenome::runPMDS(TParameters & params){
 	TGenotypeMap genoMap;
 	std::string readGroup;
 	int posInRead, revPosInRead;
-	double pmdCT, pmdGA;
-	double probPMD;
+	double pmdCT, pmdGA, qual, probPMD, propNoPMD;
 
-	if(!fastaReference) throw "Cannot mask CpG sites without reference!";
+	if(!fastaReference) throw "Cannot run PMDS without reference!";
 
 	//get reference
 	int begin = 0;
@@ -1863,34 +1930,34 @@ void TGenome::runPMDS(TParameters & params){
 		//parse into bases
 		if(bamAlignment.IsProperPair()){
 			if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
-				if(bamAlignment.IsReverseStrand()){
 
-					if(bamAlignment.Position + bamAlignment.InsertSize < stop){
+				if(bamAlignment.Position + bamAlignment.InsertSize < stop){
 
-						for(int pos = 0; pos < len; ++pos){
-							base = bamAlignment.QueryBases.at(pos);
-							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-								quality = bamAlignment.Qualities.at(pos);
-								if((int) quality > 33){
-									if(pos == (len - 1)) context = genoMap.getContext('N', base);
-									else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.QueryBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+							quality = bamAlignment.Qualities.at(pos);
+							if((int) quality > 33){
+								if(pos == (len - 1)) context = genoMap.getContext('N', base);
+								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
 
-									posInRead = len - pos - 1;
-									revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
-									pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-									pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+								posInRead = len - pos - 1;
+								revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
+								pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+								pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
+								qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-									//probPMD *= getProbPMD(readGroup, pos, ref, read);
-								}
+								probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position+pos], base, pmdCT, pmdGA, qual);
+								propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position+pos], base, pmdCT, pmdGA, qual);
+
 							}
 						}
-					} else {
-						begin = bamAlignment.Position;
-						reference.GetSequence(chrNumber, begin, stop, ref);
 					}
+				} else {
+					begin = bamAlignment.Position;
+					reference.GetSequence(chrNumber, begin, stop, ref);
 				}
-
 			}
 		}
 	}

@@ -567,5 +567,3 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 	functionsInitialized[type] = true;
 };
 
-
-
