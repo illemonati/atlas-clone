@@ -1719,7 +1719,7 @@ void TGenome::estimatePMD(TParameters & params){
 	TWindowPairDiploid windows;
 
 	//prepare PMD table
-	int maxLength = params.getParameterIntWithDefault("length", 100);
+	int maxLength = params.getParameterIntWithDefault("length", 50);
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
 	TPMDTables pmdTables(&readGroups, maxLength);
 

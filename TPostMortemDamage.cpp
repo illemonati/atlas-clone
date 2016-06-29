@@ -256,8 +256,10 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 		if(sums[p][from] > 0){
 			lastPositionToConsiderPlusOne = p;
 			break;
-		}
+		} else throw "''length'' cannot be longer than longest read!";
+
 	}
+
 
 	//use OLS to find starting point
 	//------------------------------
