@@ -989,9 +989,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
-				std::cout << "adding data..." << std::flush;
 				windows.cur->addToRecalibrationEM(recalObjectEM);
-				std::cout << "done!" << std::endl;
 			}
 		}
 	}
@@ -1804,7 +1802,7 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 	else if(base == 'G') basePointer = new TBaseDiploidG(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 	else basePointer = new TBaseDiploidT(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 
-	char qual = recalObject->getQuality(basePointer);
+	double qual = recalObject->getErrorRate(basePointer);
 	delete basePointer;
 	return qual;
 }
@@ -1888,14 +1886,16 @@ void TGenome::runPMDS(TParameters & params){
 	int curChr = -1;
 	long counter = 0;
 
+	initializeRecalibration(params);
+
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
-	filename = outputName + "_mergedReads.bam";
+/*	BamTools::BamWriter bamWriter;
+	filename = outputName + "_PMDS.bam";
 	BamTools::RefVector references = bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
+		throw "Failed to open BAM file '" + filename + "'!";*/
 
 	//tmp variables
 	char base, quality;
@@ -1915,51 +1915,75 @@ void TGenome::runPMDS(TParameters & params){
 	int stop = begin + windowSize; //note that end is last position + 1
 
 	std::string ref; //fasta object fills string
-	reference.GetSequence(chrNumber, begin, stop, ref);
-
 
 	 //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-		curChr = bamAlignment.RefID;
+		//curChr = bamAlignment.RefID;
 		len = bamAlignment.Length;
 		//get readgroup info
 		bamAlignment.GetTag("RG", readGroup);
 		readGroupId = readGroups.find(readGroup);
 
 		//parse into bases
-		if(bamAlignment.IsProperPair()){
-			if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+		if(bamAlignment.Position + len < stop && curChr==bamAlignment.RefID){
+			for(int pos = 0; pos < len; ++pos){
+				base = bamAlignment.QueryBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+					quality = bamAlignment.Qualities.at(pos);
+					if((int) quality > minQuality){
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
 
-				if(bamAlignment.Position + bamAlignment.InsertSize < stop){
+						posInRead = len - pos - 1;
+						revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
+						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
-					for(int pos = 0; pos < len; ++pos){
-						base = bamAlignment.QueryBases.at(pos);
-						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-							quality = bamAlignment.Qualities.at(pos);
-							if((int) quality > 33){
-								if(pos == (len - 1)) context = genoMap.getContext('N', base);
-								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+						qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-								posInRead = len - pos - 1;
-								revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
-								pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-								pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+						probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+						propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
 
-								qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+						//std::cout << "stop: " << stop << std::endl;
+						//std::cout << bamAlignment.Position+pos-1 << ref[bamAlignment.Position-begin+pos] << " " << base << std::endl;
 
-								probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position+pos], base, pmdCT, pmdGA, qual);
-								propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position+pos], base, pmdCT, pmdGA, qual);
-
-							}
-						}
 					}
-				} else {
-					begin = bamAlignment.Position;
-					reference.GetSequence(chrNumber, begin, stop, ref);
-				}
+				} else std::cout << "this base is not normal: "<< base << std::endl;
 			}
-		}
+		} else {
+			curChr = bamAlignment.RefID;
+			begin = bamAlignment.Position;
+			stop = begin + windowSize;
+			//std::cout << "begin:" << begin << std::endl;
+			//std::cout << "getting new ref sequence..." << std::flush;
+			reference.GetSequence(curChr, begin, stop, ref);
+			//std::cout << "done" << std::endl;
+
+			for(int pos = 0; pos < len; ++pos){
+				base = bamAlignment.QueryBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+					quality = bamAlignment.Qualities.at(pos);
+					if((int) quality > minQuality){
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+
+						posInRead = len - pos - 1;
+						revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
+						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+						qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+						probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+						propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+
+						//	std::cout << "stop: " << stop << std::endl;
+						//	std::cout << bamAlignment.Position+pos << ref[bamAlignment.Position-begin+pos] << " " << base << std::endl;
+					}
+				} //else std::cout << "this base at pos " << bamAlignment.Position+pos <<" is not normal: "<< base << std::endl;
+			}
+		}break;
 	}
 
 	//report
