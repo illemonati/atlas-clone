@@ -794,7 +794,7 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 
 	//calculate likelihood surface
 	double minLogTheta = -5.0;
-	double maxLogTheta = 2.0;
+	double maxLogTheta = -1.0;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
 	double theta;
 	double LL;
@@ -812,7 +812,7 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 		LL = calcLogLikelihood(pGenotype);
 
 		//write results
-		out << logTheta << "\t" << theta << "\t" << LL << "\n";
+		out << std::setprecision(12) << logTheta << "\t" << theta << "\t" << LL << "\n";
 	}
 }
 
