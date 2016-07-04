@@ -260,13 +260,35 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams
 		}
 		P_g_given_d_oldBeta[g] = tmp * freqs[g];
 		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
+	}
 
+	if(P_g_given_d_theta_denominator < 1.0E-25){
+		//do again but in log
+		double max = 0.0;
+		for(int g=0; g<4; ++g){
+			tmp = 0.0;
+			//loop over all reads
+			for(int k=0; k<numReads; ++k){
+				tmp += log(B[g][k] * epsilon[k] - D[g][k] + 1.0);
+			}
+			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
+			if(g==0) max = P_g_given_d_oldBeta[g];
+			else if(P_g_given_d_oldBeta[g] > max) max = P_g_given_d_oldBeta[g];
+		}
+
+		//rescale and delog
+		P_g_given_d_theta_denominator = 0.0;
+		for(int g=0; g<4; ++g){
+			P_g_given_d_oldBeta[g] = exp(P_g_given_d_oldBeta[g] - max);
+			P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
+		}
 	}
 
 	//calculate P(g|d, theta)
 	for(int g=0; g<4; ++g){
 		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
 	}
+
 
 	//return LL = P_g_given_d_theta_denominator
 	return log(P_g_given_d_theta_denominator);

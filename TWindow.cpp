@@ -91,7 +91,7 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups, int minQuality){
+bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window

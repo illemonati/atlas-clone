@@ -83,7 +83,7 @@ public:
 	};
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int minQual);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQual);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask);
