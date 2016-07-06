@@ -62,9 +62,9 @@ private:
  	TBedReader* mask;
  	bool doMasking;
  	bool doCpGMasking;
- 	bool applyCoverageFilter;
+ 	bool applyCoverageFilter, applyQualityFilter;
  	int minCoverage, maxCoverage;
- 	int minQuality;
+ 	int minQuality, maxQuality;
  	long limitWindows;
  	int limitChr;
  	bool* useChromosome;
@@ -101,6 +101,8 @@ public:
 	void estimatePMD(TParameters & params);
 	double getProbPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
 	double getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
+	double calculatePMDSPairedEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId);
+	double calculatePMDSSingleEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId);
 	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);

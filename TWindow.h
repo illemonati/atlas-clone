@@ -83,7 +83,7 @@ public:
 	};
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQual);
+	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQuality, int & maxQuality);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask);
@@ -168,11 +168,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int minQual){
-		curPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQual);
+	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
+		curPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQuality, maxQuality);
 	};
-	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int minQual){
-		nextPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQual);
+	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
+		nextPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQuality, maxQuality);
 	};
 	void clear(){
 		curPointer->clear();

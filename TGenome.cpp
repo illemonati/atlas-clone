@@ -8,6 +8,8 @@
 
 #include "TGenome.h"
 #include "TBase.h"
+#include <typeinfo>
+
 
 
 //-------------------------------------------------------
@@ -100,8 +102,18 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		maxCoverage = 1000000;
 	}
 
-	minQuality = params.getParameterIntWithDefault("minQual", 32);
-	logfile->list("Will not consider bases with quality < " + toString(minQuality));
+	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
+		applyQualityFilter = true;
+		minQuality = params.getParameterInt("minQual") + 33;
+		maxQuality = params.getParameterInt("maxQual") + 33;
+		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
+	} else {
+		applyQualityFilter = false;
+		minQuality = 33;
+		maxQuality = 1000000;
+	}
+	//minQuality = params.getParameterIntWithDefault("minQual", 32);
+	//logfile->list("Will not consider bases with quality < " + toString(minQuality));
 
 
 	//limit chrs and / or windows
@@ -249,9 +261,9 @@ bool TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindo
 		//check if still within current window and add to window
 		if(alignement.Position >= curEnd) return false;
 		else {
-			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality)){
+			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality)){
 				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality);
+				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality);
 			}
 		}
 	}
@@ -1276,7 +1288,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 						base = bamAlignment.QueryBases.at(pos);
 						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 							quality = bamAlignment.Qualities.at(pos);
-							if((int) quality > 33){
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){
 								if(pos == (len - 1)) context = genoMap.getContext('N', base);
 								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
 
@@ -1300,7 +1312,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 						base = bamAlignment.QueryBases.at(pos);
 						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 							quality = bamAlignment.Qualities.at(pos);
-							if((int) quality > 33){
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){
 								if(pos == (len - 1)) context = genoMap.getContext('N', base);
 								else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
 								posInRead = pos;
@@ -1329,7 +1341,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 					base = bamAlignment.QueryBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 						quality = bamAlignment.Qualities.at(pos);
-						if((int) quality > 33){
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){
 							if(pos == (len - 1)) context = genoMap.getContext('N', base);
 							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
 							posInRead = len - pos - 1;
@@ -1350,7 +1362,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 						quality = bamAlignment.Qualities.at(pos);
-						if((int) quality > 33){
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){
 							if(pos == 0) context = genoMap.getContext('N', base);
 							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
 							posInRead = pos;
@@ -1653,7 +1665,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > minQuality){ //skip if quality does not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 							readBase = genoMap.getBase(base);
 							refBase = genoMap.getBase(ref[internalPos]);
 
@@ -1676,7 +1688,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > minQuality){ //skip if quality dies not make sense
+					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 						readBase = genoMap.flipBase(base);
 						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 						refBase = genoMap.flipBase(ref[internalPos]);
@@ -1694,7 +1706,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				base = bamAlignment.AlignedBases.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 					quality = bamAlignment.AlignedQualities.at(pos);
-					if((int) quality > minQuality){ //skip if quality dies not make sense
+					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 						readBase = genoMap.getBase(base);
 						refBase = genoMap.getBase(ref[internalPos]);
 
@@ -1840,38 +1852,114 @@ double TGenome::getProbPMD(int readGroup, char & ref, char & read, double & pmdC
 	return probPMD;
 }
 double TGenome::getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate){
-	double probPMD = -1;
+	double probNoPMD = -1;
 	double pi = 0.001;
 	double epsThird = errorRate / 3;
 	double fourEpsThird = 4*epsThird;
 
 	if(ref == 'A'){
-		if(read == 'A')	probPMD = 1 - errorRate - pi + fourEpsThird*pi;
-		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'T')probPMD = errorRate - 4*pi*epsThird + pi;
+		if(read == 'A')	probNoPMD = 1 - errorRate - pi + fourEpsThird*pi;
+		else if(read == 'C') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T')probNoPMD = errorRate - 4*pi*epsThird + pi;
 	}
 	else if (ref == 'C'){
-		if(read == 'A') probPMD = errorRate + pi - 2*errorRate*pi;
-		else if(read == 'C') probPMD = 1 - pi - errorRate + fourEpsThird*pi;
-		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'T') probPMD = epsThird;
+		if(read == 'A') probNoPMD = errorRate + pi - 2*errorRate*pi;
+		else if(read == 'C') probNoPMD = 1 - pi - errorRate + fourEpsThird*pi;
+		else if(read == 'G') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T') probNoPMD = epsThird;
 	}
 	else if (ref == 'G'){
-		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'G') probPMD = 1 - pi - errorRate + fourEpsThird*pi;
-		else if(read == 'T') probPMD = errorRate - fourEpsThird*pi + pi;
+		if(read == 'A') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'C') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probNoPMD = 1 - pi - errorRate + fourEpsThird*pi;
+		else if(read == 'T') probNoPMD = errorRate - fourEpsThird*pi + pi;
 	}
 	else if(ref == 'T'){
-		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'T') probPMD = 1 - errorRate - pi + fourEpsThird*pi;
+		if(read == 'A') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'C') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'G') probNoPMD = errorRate - fourEpsThird*pi + pi;
+		else if(read == 'T') probNoPMD = 1 - errorRate - pi + fourEpsThird*pi;
 	}
-	return probPMD;
+	return probNoPMD;
 }
 
+double TGenome::calculatePMDSPairedEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId){
+	int len = bamAlignment.Length;
+	char base, quality;
+	BaseContext context;
+	TGenotypeMap genoMap;
+	std::string readGroup;
+	int posInRead, revPosInRead;
+	float PMDS=1;
+	double pmdCT, pmdGA, qual, probPMD=1, probNoPMD=1;
+	for(int pos = 0; pos < len; ++pos){
+		base = bamAlignment.QueryBases.at(pos);
+		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+			quality = bamAlignment.Qualities.at(pos);
+			if(minQuality <= (int) quality && (int) quality <= maxQuality){
+				if(pos == (len - 1)) context = genoMap.getContext('N', base);
+				else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+
+				if(bamAlignment.IsReverseStrand()){
+					posInRead = len - pos - 1;
+					revPosInRead = abs(bamAlignment.InsertSize) - len + pos;
+				} else {
+					posInRead = pos;
+					revPosInRead = abs(bamAlignment.InsertSize) - pos - 1;
+				}
+				pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+				pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+
+				qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+				probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+				probNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+			}
+		}
+	}
+	PMDS = log(probPMD / probNoPMD);
+	return PMDS;
+}
+
+double TGenome::calculatePMDSSingleEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId){
+	int len = bamAlignment.Length;
+	char base, quality;
+	BaseContext context;
+	TGenotypeMap genoMap;
+	std::string readGroup;
+	int posInRead, revPosInRead;
+	float PMDSf=1;
+	double pmdCT, pmdGA, qual, probPMD=1, probNoPMD=1;
+
+	for(int pos = 0; pos < len; ++pos){
+		base = bamAlignment.QueryBases.at(pos);
+		if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+			quality = bamAlignment.Qualities.at(pos);
+			if(minQuality <= (int) quality && (int) quality <= maxQuality){
+				if(pos == (len - 1)) context = genoMap.getContext('N', base);
+				else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+
+				if(bamAlignment.IsReverseStrand()){
+					posInRead = len - pos - 1;
+					revPosInRead = pos;
+				} else {
+					posInRead = pos;
+					revPosInRead = len - pos - 1;
+				}
+				pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
+				pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+				qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+
+
+				probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+				probNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
+			}
+		}
+	}
+	PMDSf = log(probPMD / probNoPMD);
+	return PMDSf;
+}
 
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
@@ -1886,26 +1974,23 @@ void TGenome::runPMDS(TParameters & params){
 	int curChr = -1;
 	long counter = 0;
 
+	double filter = params.getParameterDoubleWithDefault("filter", 0.0);
 	initializeRecalibration(params);
 
-
 	//open a bam file for writing
-/*	BamTools::BamWriter bamWriter;
+	BamTools::BamWriter bamWriter;
 	filename = outputName + "_PMDS.bam";
 	BamTools::RefVector references = bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";*/
+		throw "Failed to open BAM file '" + filename + "'!";
 
 	//tmp variables
-	char base, quality;
 	int len;
 	int readGroupId;
-	BaseContext context;
 	TGenotypeMap genoMap;
 	std::string readGroup;
-	int posInRead, revPosInRead;
-	double pmdCT, pmdGA, qual, probPMD, propNoPMD;
+	float PMDS = 0;
 
 	if(!fastaReference) throw "Cannot run PMDS without reference!";
 
@@ -1918,8 +2003,8 @@ void TGenome::runPMDS(TParameters & params){
 
 	 //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
+	//	std::cout << bamAlignment.Name << std::endl;
 		++counter;
-		//curChr = bamAlignment.RefID;
 		len = bamAlignment.Length;
 		//get readgroup info
 		bamAlignment.GetTag("RG", readGroup);
@@ -1927,225 +2012,46 @@ void TGenome::runPMDS(TParameters & params){
 
 		//parse into bases
 		if(bamAlignment.Position + len < stop && curChr==bamAlignment.RefID){
-			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.Qualities.at(pos);
-					if((int) quality > minQuality){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
-
-						posInRead = len - pos - 1;
-						revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-
-						qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-
-						probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
-						propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
-
-						//std::cout << "stop: " << stop << std::endl;
-						//std::cout << bamAlignment.Position+pos-1 << ref[bamAlignment.Position-begin+pos] << " " << base << std::endl;
-
-					}
-				} else std::cout << "this base is not normal: "<< base << std::endl;
+			if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.Length) PMDS = calculatePMDSPairedEnd(bamAlignment, ref, begin, readGroupId);
+			else {
+				PMDS = calculatePMDSSingleEnd(bamAlignment, ref, begin, readGroupId);
 			}
+			if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
+			else bamAlignment.EditTag("DS", "Z", PMDS);
+
 		} else {
 			curChr = bamAlignment.RefID;
 			begin = bamAlignment.Position;
 			stop = begin + windowSize;
-			//std::cout << "begin:" << begin << std::endl;
-			//std::cout << "getting new ref sequence..." << std::flush;
 			reference.GetSequence(curChr, begin, stop, ref);
-			//std::cout << "done" << std::endl;
 
-			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignment.Qualities.at(pos);
-					if((int) quality > minQuality){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+			if(bamAlignment.IsProperPair()) PMDS = calculatePMDSPairedEnd(bamAlignment, ref, begin, readGroupId);
+			else PMDS = calculatePMDSSingleEnd(bamAlignment, ref, begin, readGroupId);
 
-						posInRead = len - pos - 1;
-						revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+			if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
+			else bamAlignment.EditTag("DS", "Z", PMDS);
+		}
 
-						qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+		//update and write (only if alignment is not longer than insert size)
+		if(PMDS > filter) bamWriter.SaveAlignment(bamAlignment);
 
-						probPMD *= getProbPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
-						propNoPMD *= getProbNoPMD(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual);
-
-						//	std::cout << "stop: " << stop << std::endl;
-						//	std::cout << bamAlignment.Position+pos << ref[bamAlignment.Position-begin+pos] << " " << base << std::endl;
-					}
-				} //else std::cout << "this base at pos " << bamAlignment.Position+pos <<" is not normal: "<< base << std::endl;
-			}
-		}break;
+		//report progress
+		if(counter % 1000000 == 0){
+		gettimeofday(&end, NULL);
+		logfile->list("added " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
+		}
 	}
+
+	//close bam writer
+	bamWriter.Close();
 
 	//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
-}
-
-
-
-
-
-/*//other temp variables
-char base, quality;
-BaseContext context;
-TGenotypeMap genoMap;
-int posInRead, revPosInRead;
-double pmdCT, pmdGA;
-int len;
-std::string qual;
-std::string readGroup;
-int readGroupId;
-long counter = 0;
-
-
-//now parse through bam file and write alignments
-while (bamReader.GetNextAlignment(bamAlignment)){
-	++counter;
-	len = bamAlignment.Length;
-	qual.clear();
-
-	//get readgroup info
-	bamAlignment.GetTag("RG", readGroup);
-	readGroupId = readGroups.find(readGroup);
-
-	//parse into bases
-	//TODO: fix for paired-end
-
-	if(bamAlignment.IsProperPair()){
-		if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
-			if(bamAlignment.IsReverseStrand()){
-				// hence it is second in bam file and maps on reverse strand -> FLIP BASES
-				//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
-				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
-				for(int pos = 0; pos < len; ++pos){
-					base = bamAlignment.QueryBases.at(pos);
-					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-						quality = bamAlignment.Qualities.at(pos);
-						if((int) quality > 33){
-							if(pos == (len - 1)) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
-
-							posInRead = len - pos - 1;
-							revPosInRead = abs(bamAlignment.InsertSize)-len+pos;
-							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-
-							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-
-						} else qual += quality;
-					} else qual += quality;
-				}
-
-
-			} else {
-				//Hence it is first in the bam file and maps on forward strand
-				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
-				for(int pos = 0; pos < len; ++pos){
-					base = bamAlignment.QueryBases.at(pos);
-					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-						quality = bamAlignment.Qualities.at(pos);
-						if((int) quality > 33){
-							if(pos == (len - 1)) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
-							posInRead = pos;
-							revPosInRead = bamAlignment.InsertSize - pos - 1;
-							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-
-							qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-
-
-							//delete base
-						//	delete basePointer;
-						} else qual += quality;
-					} else qual += quality;
-				}
-			}
-		} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-	}
-
-	else{
-
-		//single end
-
-		if(bamAlignment.IsReverseStrand()){
-			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-					quality = bamAlignment.Qualities.at(pos);
-					if((int) quality > 33){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
-						posInRead = len - pos - 1;
-						revPosInRead = pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-
-						//get new quality
-						qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-
-					} else qual += quality;
-				} else qual += quality;
-			}
-
-		} else {
-			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
-
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-					quality = bamAlignment.Qualities.at(pos);
-					if((int) quality > 33){
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.QueryBases.at(pos - 1), base);
-						posInRead = pos;
-						revPosInRead = len - pos - 1;
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-
-						//get new quality
-						qual += returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-
-					} else qual += quality;
-				} else qual += quality;
-			}
-		}
-	}
-
-	//update and write (only if alignment is not longer than insert size)
-	if(qual.size() != 0){
-	bamAlignment.Qualities = qual;
-	bamWriter.SaveAlignment(bamAlignment);
-	}
-
-
+	if(counter % 1000000 == 0){
+		gettimeofday(&end, NULL);
+		runtime = (end.tv_sec  - start.tv_sec)/60.0;
+		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	}
 }
-
-//close bam writer
-bamWriter.Close();
-
-//report
-gettimeofday(&end, NULL);
-runtime = (end.tv_sec  - start.tv_sec)/60.0;
-logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-logfile->list("Reached end of BAm file!");
-logfile->removeIndent();
-}*/
-
 
 void TGenome::mergePairedEndReads(TParameters & params){
 	//open a bam file for writing
