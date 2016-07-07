@@ -1829,7 +1829,7 @@ double TGenome::getProbPMD(int readGroup, char & ref, char & read, double & pmdC
 		if(read == 'A')	probPMD = 1 - errorRate - pi + fourEpsThird*pi + pmdGA*pi/3*(1-fourEpsThird);
 		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi - pi*pmdCT*(fourEpsThird-1);
 		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird-1);
-		else if(read == 'T') probPMD = errorRate - 4*pi*epsThird + pi*pmdCT*(1-4*epsThird) + pi;
+		else if(read == 'T') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(1-fourEpsThird);
 	}
 	else if (ref == 'C'){
 		if(read == 'A') probPMD = errorRate + pi - 2*errorRate*pi + pi*pmdGA*(1-fourEpsThird);
@@ -1861,7 +1861,7 @@ double TGenome::getProbNoPMD(int readGroup, char & ref, char & read, double & pm
 		if(read == 'A')	probNoPMD = 1 - errorRate - pi + fourEpsThird*pi;
 		else if(read == 'C') probNoPMD = errorRate - fourEpsThird*pi + pi;
 		else if(read == 'G') probNoPMD = errorRate - fourEpsThird*pi + pi;
-		else if(read == 'T')probNoPMD = errorRate - 4*pi*epsThird + pi;
+		else if(read == 'T')probNoPMD = errorRate - fourEpsThird*pi;
 	}
 	else if (ref == 'C'){
 		if(read == 'A') probNoPMD = errorRate + pi - 2*errorRate*pi;
@@ -1972,7 +1972,7 @@ void TGenome::runPMDS(TParameters & params){
 	gettimeofday(&start, NULL);
 	float runtime;
 	int curChr = -1;
-	long counter = 0;
+	long counter = 0, counterF = 0;
 
 	double filter = params.getParameterDoubleWithDefault("filter", 0.0);
 	initializeRecalibration(params);
@@ -2034,11 +2034,12 @@ void TGenome::runPMDS(TParameters & params){
 
 		//update and write (only if alignment is not longer than insert size)
 		if(PMDS > filter) bamWriter.SaveAlignment(bamAlignment);
+		else ++counterF;
 
 		//report progress
 		if(counter % 1000000 == 0){
 		gettimeofday(&end, NULL);
-		logfile->list("added " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s)!");
+		logfile->list("analyzed " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s!");
 		}
 	}
 
@@ -2046,11 +2047,11 @@ void TGenome::runPMDS(TParameters & params){
 	bamWriter.Close();
 
 	//report
-	if(counter % 1000000 == 0){
-		gettimeofday(&end, NULL);
-		runtime = (end.tv_sec  - start.tv_sec)/60.0;
-		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-	}
+
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min. " + toString(counterF) + " reads were filtered out.");
+
 }
 
 void TGenome::mergePairedEndReads(TParameters & params){
