@@ -1974,7 +1974,7 @@ void TGenome::runPMDS(TParameters & params){
 	int curChr = -1;
 	long counter = 0, counterF = 0;
 
-	double filter = params.getParameterDoubleWithDefault("filter", 0.0);
+	double filter = params.getParameterDoubleWithDefault("filter", -10000);
 	initializeRecalibration(params);
 
 	//open a bam file for writing
