@@ -296,7 +296,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 		if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
 
 			//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
-			if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
+			//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
 
 				//check if insert size is shorter than read, this means we are reading the adaptor sequence
 				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) > bamAlignment.Length){
@@ -309,7 +309,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 					}
 				}
 				else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-			}
+			//}
 		}
 	}
 
@@ -1838,7 +1838,7 @@ double TGenome::getProbPMD(int readGroup, char & ref, char & read, double & pmdC
 		else if(read == 'T') probPMD = epsThird + (1-pi)*pmdCT*(1-fourEpsThird);
 	}
 	else if (ref == 'G'){
-		if(read == 'A') probPMD = pmdGA*(3-3*pi+4*errorRate+4*errorRate*pi) + errorRate - fourEpsThird*pi + pi;
+		if(read == 'A') probPMD = pmdGA*(3.0-3.0*pi+4.0*errorRate+4.0*errorRate*pi) + errorRate - fourEpsThird*pi + pi;
 		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1);
 		else if(read == 'G') probPMD = 1 - pi - errorRate + fourEpsThird*pi + (1-pi)*pmdGA*(fourEpsThird-1);
 		else if(read == 'T') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(1-fourEpsThird);
@@ -1847,10 +1847,11 @@ double TGenome::getProbPMD(int readGroup, char & ref, char & read, double & pmdC
 		if(read == 'A') probPMD = errorRate - fourEpsThird*pi + pi - epsThird*pi*pmdCT + pi*pmdGA*(1-errorRate);
 		else if(read == 'C') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1);
 		else if(read == 'G') probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird - 1);
-		else if(read == 'T') probPMD = 1 - errorRate - pi + fourEpsThird*pi + pmdCT*(pi/3-fourEpsThird*pi/3);
+		else if(read == 'T') probPMD = 1.0 - errorRate - pi + fourEpsThird*pi + pmdCT*(pi/3-fourEpsThird*pi/3);
 	}
 	return probPMD;
 }
+
 double TGenome::getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate){
 	double probNoPMD = -1;
 	double pi = 0.001;
@@ -2001,7 +2002,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	std::string ref; //fasta object fills string
 
-	 //now parse through bam file and write alignments
+	//now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 	//	std::cout << bamAlignment.Name << std::endl;
 		++counter;
@@ -2011,23 +2012,17 @@ void TGenome::runPMDS(TParameters & params){
 		readGroupId = readGroups.find(readGroup);
 
 		//parse into bases
-		if(bamAlignment.Position + len < stop && curChr==bamAlignment.RefID){
-			if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.Length) PMDS = calculatePMDSPairedEnd(bamAlignment, ref, begin, readGroupId);
-			else PMDS = calculatePMDSSingleEnd(bamAlignment, ref, begin, readGroupId);
-			if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
-			else bamAlignment.EditTag("DS", "Z", PMDS);
-
-		} else {
+		if(bamAlignment.Position + len >= stop || curChr!=bamAlignment.RefID){
 			curChr = bamAlignment.RefID;
 			begin = bamAlignment.Position;
 			stop = begin + windowSize;
 			reference.GetSequence(curChr, begin, stop, ref);
-
-			if(bamAlignment.IsProperPair()) PMDS = calculatePMDSPairedEnd(bamAlignment, ref, begin, readGroupId);
-			else PMDS = calculatePMDSSingleEnd(bamAlignment, ref, begin, readGroupId);
-			if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
-			else bamAlignment.EditTag("DS", "Z", PMDS);
 		}
+
+		if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.Length) PMDS = calculatePMDSPairedEnd(bamAlignment, ref, begin, readGroupId);
+		else PMDS = calculatePMDSSingleEnd(bamAlignment, ref, begin, readGroupId);
+		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
+		else bamAlignment.EditTag("DS", "Z", PMDS);
 
 		//update and write (only if alignment is not longer than insert size)
 		if(PMDS > minPMDS && PMDS < maxPMDS) bamWriter.SaveAlignment(bamAlignment);
