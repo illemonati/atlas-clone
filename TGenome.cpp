@@ -1647,7 +1647,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if((int) quality > minQuality){ //skip if quality d0es not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 							refBase = genoMap.flipBase(ref[internalPos]);
