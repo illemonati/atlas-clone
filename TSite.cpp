@@ -167,6 +167,7 @@ void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGene
 
 	//select best allele at random if there are multiple options
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
+	quality = quality - maxGenotypeProb;
 }
 
 void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
