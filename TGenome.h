@@ -75,9 +75,9 @@ public:
 		if(doMasking) delete mask;
 		if(fastaReference) reference.Close();
 		if(recalObjectInitialized) delete recalObject;
-		delete[] pmdObjects;
+		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
-		delete[] useChromosome;
+		if(useChromosome) delete[] useChromosome;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
@@ -99,10 +99,7 @@ public:
 	void mergeReadGroups(TParameters & params);
 	void addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables);
 	void estimatePMD(TParameters & params);
-	double getProbPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
-	double getProbNoPMD(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate);
-	double calculatePMDSPairedEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId);
-	double calculatePMDSSingleEnd(BamTools::BamAlignment & bamAlignment, std::string & ref, int & begin, int & readGroupId);
+	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
