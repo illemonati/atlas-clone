@@ -1417,10 +1417,13 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//parse file
 	int lineNum = 0;
 	std::vector<std::string> vec;
+	std::vector<std::string>::iterator it;
 	int len;
 	int readGroupId;
 	int truncatedReadGroupId;
+	BamTools::SamReadGroupIterator trunc, orig;
 	std::string readGroup;
+
 	while(file.good() && !file.eof()){
 		++lineNum;
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
@@ -1429,18 +1432,31 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			readGroupId = readGroups.find(vec[0]);
 			len = stringToInt(vec[1]);
 			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
+
 			//add a new readgroup for the truncated reads to the header
 			readGroup = vec[0] + "_truncated";
 			bamHeader.ReadGroups.Add(readGroup);
 			readGroups.fill(bamHeader);
 			truncatedReadGroupId = readGroups.find(readGroup);
 
+			//copy original tags to truncated read groups
+			trunc = bamHeader.ReadGroups.Begin()+truncatedReadGroupId;
+			orig = bamHeader.ReadGroups.Begin()+readGroupId;
+			trunc->Library = orig->Library;
+			trunc->PlatformUnit = orig->PlatformUnit;
+			trunc->PredictedInsertSize = orig->PredictedInsertSize;
+			trunc->ProductionDate = orig->ProductionDate;
+			trunc->Program = orig->Program;
+			trunc->Sample = orig->Sample;
+			trunc->SequencingCenter = orig->SequencingCenter;
+			trunc->SequencingTechnology = orig->SequencingTechnology;
+
 			//ad to map
 			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
 		}
 	}
 	logfile->write(" done!");
-	logfile->conclude("read " + toString(singleEndRG.size()) + " read groups to be splitted.");
+	logfile->conclude("read " + toString(singleEndRG.size()) + " read groups to be split.");
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1463,7 +1479,6 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-
 		//get read group info
 		bamAlignment.GetTag("RG", readGroup);
 		readGroupId = readGroups.find(readGroup);
