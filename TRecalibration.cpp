@@ -1612,7 +1612,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	if(!file) throw "Failed to open BQSR readGroup x quality table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_quality = new TBQSR_cell*[numReadGroups];
+	BQSR_cells_readGroup_quality = new TBQSR_cell*[origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -1641,7 +1641,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	qualityIndex = new TQualityIndex(minQ, maxQ);
 
 	//create corresponding objects
-	for(int i=0; i<numReadGroups; ++i){
+	for(int i=0; i<origNumReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDataInMemory, i);
 	}
@@ -1712,7 +1712,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	if(!file) throw "Failed to open BQSR readGroup x position table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_position = new TBQSR_cellPosition*[numReadGroups];
+	BQSR_cells_readGroup_position = new TBQSR_cellPosition*[origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -1736,8 +1736,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	}
 
 	//create corresponding objects and object to check if we will initialize all positions!
-	bool** isListed = new bool*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
+	bool** isListed = new bool*[origNumReadGroups];
+	for(int r=0; r<origNumReadGroups; ++r){
 		BQSR_cells_readGroup_position[r] = new TBQSR_cellPosition[maxPos];
 		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
@@ -1771,7 +1771,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 
 	//check if we miss positions
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
 			if(!isListed[i][p]) throw "Position " + toString(p+1) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
@@ -1828,7 +1828,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	if(!file) throw "Failed to open BQSR readGroup x position reverse table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[numReadGroups];
+	BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -1852,8 +1852,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	}
 
 	//create corresponding objects and object to check if we will initialize all positions!
-	bool** isListed = new bool*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
+	bool** isListed = new bool*[origNumReadGroups];
+	for(int r=0; r<origNumReadGroups; ++r){
 		BQSR_cells_readGroup_position_reverse[r] = new TBQSR_cellPositionRev[maxPos];
 		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
@@ -1888,7 +1888,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 
 	//check if we miss positions
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
 			if(!isListed[i][p]) throw "Position " + toString(p+1) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
@@ -1943,8 +1943,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	if(!file) throw "Failed to open BQSR readGroup x context table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_context = new TBQSR_cellContext*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
+	BQSR_cells_readGroup_context = new TBQSR_cellContext*[origNumReadGroups];
+	for(int r=0; r<origNumReadGroups; ++r){
 		BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 		for(int c=0; c<numContexts; ++c){
 			if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDataInMemory, r);
@@ -1955,8 +1955,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	}
 
 	//create object to check of all contexts have been initialized!
-	bool** isListed = new bool*[numReadGroups];
-	for(int i=0; i<numReadGroups; ++i){
+	bool** isListed = new bool*[origNumReadGroups];
+	for(int i=0; i<origNumReadGroups; ++i){
 		isListed[i] = new bool[numContexts];
 		for(int c=0; c<numContexts; ++c){
 			isListed[i][c] = false;
@@ -1992,7 +1992,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 
 	//check if we miss contexts
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<numReadGroups; ++i, ++it){
+	for(int i=0; i<origNumReadGroups; ++i, ++it){
 		for(int c=0; c<numContexts; ++c){
 			if(!isListed[i][c]) throw "Context " + genoMap.getContextString(c) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
