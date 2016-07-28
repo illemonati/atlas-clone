@@ -1842,25 +1842,21 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 		if(read == 'A'){
 			probPMD = 1.0 - errorRate - pi + fourEpsThird*pi + pmdGA*pi/3.0*(1.0-fourEpsThird);
 			probNoPMD = 1.0 - errorRate - pi + fourEpsThird*pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'C'){
 			probPMD = errorRate - fourEpsThird*pi + pi - pi*pmdCT*(fourEpsThird-1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'G'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird-1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'T'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(1.0-fourEpsThird);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 	}
@@ -1868,25 +1864,21 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 		if(read == 'A'){
 			probPMD = errorRate + pi - 2.0*errorRate*pi + pi*pmdGA*(1.0-fourEpsThird);
 			probNoPMD = errorRate + pi - 2.0*errorRate*pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'C'){
 			probPMD = 1.0 - pi - errorRate + fourEpsThird*pi + (1.0-pi)*pmdCT*(fourEpsThird-1.0);
 			probNoPMD = 1.0 - pi - errorRate + fourEpsThird*pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'G'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pmdGA*(fourEpsThird*pi - pi);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'T'){
 			probPMD = epsThird + (1.0-pi)*pmdCT*(1.0-fourEpsThird);
 			probNoPMD = epsThird;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 	}
@@ -1894,25 +1886,21 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 		if(read == 'A'){
 			probPMD = pmdGA*(3.0-3.0*pi+4.0*errorRate+4.0*errorRate*pi) + errorRate - fourEpsThird*pi + pi;
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'C'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'G'){
 			probPMD = 1.0 - pi - errorRate + fourEpsThird*pi + (1.0-pi)*pmdGA*(fourEpsThird-1.0);
 			probNoPMD = 1.0 - pi - errorRate + fourEpsThird*pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'T'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(1.0-fourEpsThird);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 	}
@@ -1920,25 +1908,21 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 		if(read == 'A'){
 			probPMD = errorRate - fourEpsThird*pi + pi - epsThird*pi*pmdCT + pi*pmdGA*(1.0-errorRate);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'C'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdCT*(fourEpsThird - 1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'G'){
 			probPMD = errorRate - fourEpsThird*pi + pi + pi*pmdGA*(fourEpsThird - 1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'T'){
 			probPMD = 1.0 - errorRate - pi + fourEpsThird*pi + pmdCT*(pi/3.0-fourEpsThird*pi/3.0);
 			probNoPMD = 1.0 - errorRate - pi + fourEpsThird*pi;
-			if(probPMD != probNoPMD) std::cout << "probPMD: " << probPMD << " probNoPMD: " << probNoPMD << " bases:" << ref << read << std::endl;
 			return probPMD/probNoPMD;
 		}
 	}
@@ -1980,7 +1964,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	//tmp variables
 	int len;
-	char base, quality;
+	char base, refBase, quality;
 	BaseContext context;
 	int posInRead, revPosInRead;
 	double pmdCT, pmdGA, qual=-1.0;
@@ -2019,7 +2003,8 @@ void TGenome::runPMDS(TParameters & params){
 		if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.Length){
 			for(int pos = 0; pos < len; ++pos){
 				base = bamAlignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+				refBase = ref[bamAlignment.Position-begin+pos];
+				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 					quality = bamAlignment.Qualities.at(pos);
 					if(pos == (len - 1)) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
@@ -2043,7 +2028,8 @@ void TGenome::runPMDS(TParameters & params){
 		else{
 			for(int pos = 0; pos < len; ++pos){
 				base = bamAlignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+				refBase = ref[bamAlignment.Position-begin+pos];
+				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 					quality = bamAlignment.Qualities.at(pos);
 					if(pos == (len - 1)) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
