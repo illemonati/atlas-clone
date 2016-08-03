@@ -301,7 +301,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
 		}
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t./.:0:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
@@ -392,7 +392,7 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 		else out << "1/1";
 		out << ":" <<  bases.size() << ":" << round(quality) << ':' << round(phredEmissionProb[0] - maxGenotypeProb) << "," << round(phredEmissionProb[1] - maxGenotypeProb) << "," << round(phredEmissionProb[2] - maxGenotypeProb);
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t./.:0:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
