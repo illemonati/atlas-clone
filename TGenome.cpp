@@ -660,11 +660,15 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//write header
 		out << "##fileformat=VCFv4.2\n";
-		out << "##source=estimHet\n";
+		out << "##source=ATLAS\n";
 		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-		out << "##FORMAT=<ID=PL,Number=1,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
+		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
+		out << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
+		out << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
+		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes\">\n";
+
 		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 	} else {
 		//open file
@@ -879,10 +883,10 @@ void TGenome::callAllelePresence(TParameters & params){
 
 		//write header
 		outAllelePresence << "##fileformat=VCFv4.2\n";
-		outAllelePresence << "##source=estimHet\n";
-		outAllelePresence << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		outAllelePresence << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of allele presence in the order A, C, G and T\">\n";
+		outAllelePresence << "##source=ATLAS\n";
 		outAllelePresence << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+		outAllelePresence << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		outAllelePresence << "##FORMAT=<ID=PP,Number=4,Type=Integer,Description=\"Phred-scaled posterior probabilities of allele presence in the order A, C, G and T\">\n";
 		outAllelePresence << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 	} else {
 		//open file
@@ -1971,7 +1975,7 @@ void TGenome::runPMDS(TParameters & params){
 	int readGroupId;
 	TGenotypeMap genoMap;
 	std::string readGroup;
-	float PMDS = 0.0, probNoPMD = -1.0, probPMD = -1.0;;
+	float PMDS = 0.0, probNoPMD = -1.0, probPMD = -1.0;
 
 
 	if(!fastaReference) throw "Cannot run PMDS without reference!";
@@ -1985,6 +1989,7 @@ void TGenome::runPMDS(TParameters & params){
 	//now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
+		PMDS = 0;
 		len = bamAlignment.Length;
 
 		//get readgroup info
@@ -2029,7 +2034,12 @@ void TGenome::runPMDS(TParameters & params){
 			for(int pos = 0; pos < len; ++pos){
 				base = bamAlignment.QueryBases.at(pos);
 				refBase = ref[bamAlignment.Position-begin+pos];
-				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
+//				if(counter==908){
+//							std::cout << bamAlignment.Name << std::endl;
+//							std::cout << "bases: " << refBase << base << std::endl;
+//						}
+			//	if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
+				if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
 					quality = bamAlignment.Qualities.at(pos);
 					if(pos == (len - 1)) context = genoMap.getContext('N', base);
 					else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
@@ -2049,8 +2059,13 @@ void TGenome::runPMDS(TParameters & params){
 				}
 			}
 		}
+		//if(counter==908) break;
+	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << bamAlignment.Name << ": end-len=" << bamAlignment.GetEndPosition() - bamAlignment.Length << " start=bamAlignment.Position" << bamAlignment.Position << std::endl;
+	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << counter << "," <<std::flush;
+	//	if(counter==1371) std::cout << bamAlignment.Name << std::endl;
 		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
 		else bamAlignment.EditTag("DS", "f", PMDS);
+		//std::cout << counter << "\t" << PMDS << std::endl;
 
 		//update and write (only if alignment is not longer than insert size)
 		if(PMDS > minPMDS && PMDS < maxPMDS) bamWriter.SaveAlignment(bamAlignment);
@@ -2061,6 +2076,7 @@ void TGenome::runPMDS(TParameters & params){
 		gettimeofday(&end, NULL);
 		logfile->list("Analyzed " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s and filtered out " + toString(counterF) + " of them!");
 		}
+	//	if(counter>10000) break;
 	}
 
 	//close bam writer

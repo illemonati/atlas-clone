@@ -287,18 +287,21 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		//print (no) variant quality and (no) filter
 		out << "\t.\t.";
 
-		//print info fields: coverage and all normalized likelihoods
+		//print info fields: coverage
 		out << "\tDP=" << bases.size();
-		out << ";GG=" << round(emissionProbabilities[0] - maxGenotypeProb);
-		for(int i=1; i<numGenotypes; ++i){
-			out << "," << round(emissionProbabilities[i] - maxGenotypeProb);
-		}
 
-		//print format and genotype field
-		if(referenceBase != 'N') out << "\tGT:DP:GQ:PL\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
-		else out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
+		//print format and genotype and all normalized likelihoodsfield
+		if(referenceBase != 'N'){
+			out << "\tGT:DP:GQ:PL:GG\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilities[0] - maxGenotypeProb);
+			for(int i=1; i<numGenotypes; ++i){
+				out << "," << round(emissionProbabilities[i] - maxGenotypeProb);
+			}
+		}
+		else{
+			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
+		}
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t0/0:0:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
@@ -389,7 +392,7 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 		else out << "1/1";
 		out << ":" <<  bases.size() << ":" << round(quality) << ':' << round(phredEmissionProb[0] - maxGenotypeProb) << "," << round(phredEmissionProb[1] - maxGenotypeProb) << "," << round(phredEmissionProb[2] - maxGenotypeProb);
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t0/0:0:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
@@ -550,7 +553,7 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		if(referenceBase != 'N') out << "\tGT:DP:GQ:GP\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(makePhred(1.0 - postProb[MAPGenotype])) << ':' << GP;
 		else out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t0/0:0:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
@@ -749,29 +752,31 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 			}
 			//select alternative allele at random if there are multiple options
 			out << "\t" << genoMap.getBaseAsChar(secondBase[randomGenerator.pickOne(secondBase.size())]);
-			genoVCF = "0|0";
+			genoVCF = "0";
 		} else {
 			out << "\t" << base;
-			genoVCF = "1|1";
+			genoVCF = "1";
 		}
 
 		//print quality
 		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
+	//	std::cout << postProbAllele[MAPAllele] << " " << 1.0 - postProbAllele[MAPAllele] << " "<< makePhred(1.0-postProbAllele[MAPAllele]) << std::endl;
 
 		//print (no) filter
 		out << "\t.";
 
-		//print info fields: coverage and all posterior probabilities
-		out << "\tDP=" << bases.size() << ";PP=" << round(makePhred(postProbAllele[0]));
+		//print (no) info
+		out << "\t.";
+
+		//print format field and genotype, coverage and posterior probabilities field
+		out << "\tGT:DP:PP\t" << genoVCF << ":" << bases.size() << ":" << round(makePhred(postProbAllele[0]));
+	//	std::cout << postProbAllele[0];
 		for(int i=1; i<4; ++i){
 			out << "," << round(makePhred(postProbAllele[i]));
+		//	std::cout << postProbAllele[i];
 		}
-
-		//print format and genotype field
-		out << "\tGT\t" << genoVCF;
-
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\tDP=0\tGT\t.";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:PP\t.:0:0,0,0,0";
 	}
 }
 
@@ -847,15 +852,15 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 		//print (no) filter
 		out << "\t.";
 
-		//print info fields: coverage and all posterior probabilities
-		out << "\tDP=" << bases.size() << ";PP=" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
+		//print (no) info fields: coverage and all posterior probabilities
+		out << "\t.";
 
-		//print chosen genotype
+		//print chosen genotype and coverage and all posterior probabilities
 		std::string genoVCF;
-		if(MAPAllele == 0) out << "\tGT\t0|0";
-		else out << "\tGT\t1|1";
+		if(MAPAllele == 0) out << "\tGT:DP:PP\t0:" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
+		else out << "\tGT:DP:PP\t1:" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 	} else {
-		out << "\t.\t" << referenceBase << "\t" << alt << "\t.\t.\tDP=0\tGT\t.";
+		out << "\t.\t" << referenceBase << "\t" << alt << "\t.\t.\t.\tGT:DP\t.:0";
 	}
 }
 
