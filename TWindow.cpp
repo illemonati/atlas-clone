@@ -287,13 +287,13 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	}
 }
 
-void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF){
 	if(isVCF){
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
-				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef);
+				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF);
 				out << "\n";
 			}
 		} else {
@@ -301,7 +301,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
 					recalObject->calcEmissionProbabilities(sites[i]);
-					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef);
+					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF);
 					out << "\n";
 
 				}

@@ -634,6 +634,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
+	bool gVCF = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
@@ -641,7 +642,12 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		limitToSitesWithKnownAlleles = true;
 	} else {
 		printIfNoData = params.parameterExists("printAll");
+		if(params.parameterExists("gVCF")){
+			gVCF = true;
+			printIfNoData = true;
+		}
 		if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
 	}
 
 	//open output: vcf or flat file?
@@ -653,8 +659,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		writeVCF = true;
 
 		//open file
-		outputFileName = outputName + "_MLEGenotypes.vcf.gz";
-		logfile->list("Writing MLE genotypes in VCF format to '" + outputFileName + "'");
+		if(gVCF) outputFileName = outputName + "_MLEGenotypes.gvcf.gz";
+		else outputFileName = outputName + "_MLEGenotypes.vcf.gz";
+		if(gVCF) logfile->list("Writing MLE genotypes in gVCF format to '" + outputFileName + "'");
+		else logfile->list("Writing MLE genotypes in VCF format to '" + outputFileName + "'");
 		out.open(outputFileName.c_str());
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
@@ -662,7 +670,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##fileformat=VCFv4.2\n";
 		out << "##source=ATLAS\n";
 		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+//		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
 		out << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
@@ -704,7 +712,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF);
 					}
 					logfile->write(" done!");
 				}
@@ -886,6 +894,7 @@ void TGenome::callAllelePresence(TParameters & params){
 		outAllelePresence << "##source=ATLAS\n";
 		outAllelePresence << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		outAllelePresence << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		outAllelePresence << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
 		if (limitToSitesWithKnownAlleles) outAllelePresence << "##FORMAT=<ID=PP,Number=2,Type=Integer,Description=\"Phred-scaled posterior probabilities of allele presence in the order A, C, G and T\">\n";
 		else outAllelePresence << "##FORMAT=<ID=PP,Number=4,Type=Integer,Description=\"Phred-scaled posterior probabilities of allele presence in the order A, C, G and T\">\n";
 		outAllelePresence << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
@@ -2066,7 +2075,7 @@ void TGenome::runPMDS(TParameters & params){
 	//	if(counter==1371) std::cout << bamAlignment.Name << std::endl;
 		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
 		else bamAlignment.EditTag("DS", "f", PMDS);
-		//std::cout << counter << "\t" << PMDS << std::endl;
+		std::cout << counter << "\t" << PMDS << std::endl;
 
 		//update and write (only if alignment is not longer than insert size)
 		if(PMDS > minPMDS && PMDS < maxPMDS) bamWriter.SaveAlignment(bamAlignment);
@@ -2131,7 +2140,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			alignmentStorage.clear();
 			curChr = bamAlignment.RefID;
 		}
-
 		//add alignment to storage
 		if(bamAlignment.IsProperPair()){
 			if(!bamAlignment.IsReverseStrand()) {

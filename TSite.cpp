@@ -199,7 +199,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 	}
 }
 
-void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF){
 	if(hasData){
 		//print reference allele
 		out << "\t.\t" << referenceBase;
@@ -207,12 +207,14 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
+		double nonRefPLSumHetR = 0, nonRefPLSumHetG = 0, nonRefPLSumHomo = 0;
 		int MLGenotype;
 		calculateNormalizedGenotypeLikelihoods(randomGenerator, quality, maxGenotypeProb, MLGenotype);
 
 		//find alternative alleles
 		std::string genoVCF;
 		std::string PL;
+		std::string bases = "ACTG";
 		if(referenceBase != 'N') PL = toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
@@ -225,6 +227,18 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				if(geno[0] == geno[1]){
 					out << "\t" << geno[0];
 					genoVCF = "1/1";
+
+					if(gVCF){
+						out << ",<NON_REF>";
+						for(int b=0; b<4; ++b){
+							if(bases[b] != geno[0]){
+								nonRefPLSumHetR +=  emissionProbabilities[genoMap.getGenotype(referenceBase, bases[b])] - maxGenotypeProb;
+								nonRefPLSumHetG +=  emissionProbabilities[genoMap.getGenotype(geno[0], bases[b])] - maxGenotypeProb;
+								nonRefPLSumHomo +=  emissionProbabilities[genoMap.getGenotype(bases[b], bases[b])] - maxGenotypeProb;
+							}
+						}
+						PL += "," + toString(round(nonRefPLSumHetR)) + "," + toString(round(nonRefPLSumHetG)) + "," + toString(round(nonRefPLSumHomo));
+					}
 				} else {
 					out << "\t" << geno[0] << ',' << geno[1];
 					genoVCF = "1/2";
@@ -232,14 +246,30 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
 						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[1])] - maxGenotypeProb));
 						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+						if(gVCF){
+							out << ",<NON_REF>";
+
+						}
+
 					}
 				}
-			} else {
+			} else { //geno[1]=ref
 				out << "\t" << geno[0];
 				genoVCF = "0/1";
 				if(referenceBase != 'N'){
 					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
 					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+					if(gVCF){
+						out << ",<NON_REF>";
+						for(int b=0; b<4; ++b){
+							if(bases[b] != geno[0] && bases[b] != geno[1]){
+								nonRefPLSumHetR +=  emissionProbabilities[genoMap.getGenotype(referenceBase, bases[b])] - maxGenotypeProb;
+								nonRefPLSumHetG +=  emissionProbabilities[genoMap.getGenotype(geno[0], bases[b])] - maxGenotypeProb;
+								nonRefPLSumHomo +=  emissionProbabilities[genoMap.getGenotype(bases[b], bases[b])] - maxGenotypeProb;
+							}
+						}
+						PL += "," + toString(round(nonRefPLSumHetR)) + "," + toString(round(nonRefPLSumHetG)) + "," + toString(round(nonRefPLSumHomo));
+					}
 				}
 			}
 		} else if(geno[1] != referenceBase){
@@ -249,39 +279,61 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
 				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
 			}
+			if(gVCF){
+				out << ",<NON_REF>";
+				for(int b = 0; b<4; ++b){
+					if(bases[b] != geno[0] && bases[b] != geno[1]){
+						nonRefPLSumHetR +=  emissionProbabilities[genoMap.getGenotype(referenceBase, bases[b])] - maxGenotypeProb;
+						nonRefPLSumHetG +=  emissionProbabilities[genoMap.getGenotype(geno[1], bases[b])] - maxGenotypeProb;
+						nonRefPLSumHomo +=  emissionProbabilities[genoMap.getGenotype(bases[b], bases[b])] - maxGenotypeProb;
+					}
+				}
+				PL += "," + toString(round(nonRefPLSumHetR)) + "," + toString(round(nonRefPLSumHetG)) + "," + toString(round(nonRefPLSumHomo));
+			}
 		} else {
 			//both are ref -> let's find the second most likely genotype
-			double maxPostProb = 1000.0;
-			std::vector<int> secondMostLikely;
-			for(int i=0; i<numGenotypes; ++i){
-				if(i != MLGenotype){
-					if(emissionProbabilities[i] < maxPostProb){
-						maxPostProb = emissionProbabilities[i];
-						secondMostLikely.clear();
-						secondMostLikely.push_back(i);
-					} else if(emissionProbabilities[i] == maxPostProb){
-						secondMostLikely.push_back(i);
+			genoVCF = "0/0";
+			if(gVCF){
+				out << "\t<NON_REF>";
+				for(int b = 0; b<4; ++b){
+					if(bases[b] != geno[0] && bases[b] != geno[1]){
+						nonRefPLSumHetR +=  emissionProbabilities[genoMap.getGenotype(referenceBase, bases[b])] - maxGenotypeProb;
+						nonRefPLSumHomo +=  emissionProbabilities[genoMap.getGenotype(bases[b], bases[b])] - maxGenotypeProb;
+					}
+				}
+				PL += "," + toString(round(nonRefPLSumHetR)) + "," + toString(round(nonRefPLSumHetG)) + "," + toString(round(nonRefPLSumHomo));
+			} else {
+				double maxPostProb = 1000.0;
+				std::vector<int> secondMostLikely;
+				for(int i=0; i<numGenotypes; ++i){
+					if(i != MLGenotype){
+						if(emissionProbabilities[i] < maxPostProb){
+							maxPostProb = emissionProbabilities[i];
+							secondMostLikely.clear();
+							secondMostLikely.push_back(i);
+						} else if(emissionProbabilities[i] == maxPostProb){
+							secondMostLikely.push_back(i);
+						}
+					}
+				}
+				//select best allele at random if there are multiple options
+				std::string genoSecond = genoMap.getGenotypeString(secondMostLikely[randomGenerator.pickOne(secondMostLikely.size())]);
+
+				//now use this one to decide on alternative allele
+				if(genoSecond[0] != referenceBase){
+					out << "\t" << genoSecond[0];
+					if(referenceBase != 'N'){
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
+					}
+				} else {
+					out << "\t" << genoSecond[1];
+					if(referenceBase != 'N'){
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
 					}
 				}
 			}
-			//select best allele at random if there are multiple options
-			std::string genoSecond = genoMap.getGenotypeString(secondMostLikely[randomGenerator.pickOne(secondMostLikely.size())]);
-
-			//now use this one to decide on alternative allele
-			if(genoSecond[0] != referenceBase){
-				out << "\t" << genoSecond[0];
-				if(referenceBase != 'N'){
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
-				}
-			} else {
-				out << "\t" << genoSecond[1];
-				if(referenceBase != 'N'){
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
-				}
-			}
-			genoVCF = "0/0";
 		}
 
 		//print (no) variant quality and (no) filter
@@ -292,16 +344,20 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//print format and genotype and all normalized likelihoodsfield
 		if(referenceBase != 'N'){
-			out << "\tGT:DP:GQ:PL:GG\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilities[0] - maxGenotypeProb);
-			for(int i=1; i<numGenotypes; ++i){
-				out << "," << round(emissionProbabilities[i] - maxGenotypeProb);
-			}
+			if(!gVCF){
+				out << "\tGT:DP:GQ:PL:GG\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilities[0] - maxGenotypeProb);
+				for(int i=1; i<numGenotypes; ++i){
+					out << "," << round(emissionProbabilities[i] - maxGenotypeProb);
+				}
+			} else 	out << "\tGT:DP:GQ:PL\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
 		}
 		else{
 			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
 		}
+
 	} else {
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
+		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
+		else out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
@@ -758,8 +814,8 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 			genoVCF = "1";
 		}
 
-		//print quality
-		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
+		//print (no) quality
+		out << "\t.";
 	//	std::cout << postProbAllele[MAPAllele] << " " << 1.0 - postProbAllele[MAPAllele] << " "<< makePhred(1.0-postProbAllele[MAPAllele]) << std::endl;
 
 		//print (no) filter
@@ -769,7 +825,7 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 		out << "\t.";
 
 		//print format field and genotype, coverage and posterior probabilities field
-		out << "\tGT:DP:PP\t" << genoVCF << ":" << bases.size() << ":" << round(makePhred(postProbAllele[0]));
+		out << "\tGT:DP:GQ:PP\t" << genoVCF << ":" << bases.size() << ":" << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" <<round(makePhred(postProbAllele[0]));
 	//	std::cout << postProbAllele[0];
 		for(int i=1; i<4; ++i){
 			out << "," << round(makePhred(postProbAllele[i]));
@@ -846,8 +902,8 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 		int MAPAllele;
 		calculatePosteriorOnAllelePresenceKnownAlleles(pGenotype, alt, genoMap, randomGenerator, postProbAllele, MAPAllele);
 
-		//print quality
-		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
+		//print (no) quality
+		out << "\t.";
 
 		//print (no) filter
 		out << "\t.";
@@ -857,8 +913,8 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 
 		//print chosen genotype and coverage and all posterior probabilities
 		std::string genoVCF;
-		if(MAPAllele == 0) out << "\tGT:DP:PP\t0:" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
-		else out << "\tGT:DP:PP\t1:" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
+		if(MAPAllele == 0) out << "\tGT:DP:GQ:PP\t0:" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
+		else out << "\tGT:DP:GQ:PP\t1:" << bases.size() << ':' << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 	} else {
 		out << "\t.\t" << referenceBase << "\t" << alt << "\t.\t.\t.\tGT:DP\t.:0";
 	}

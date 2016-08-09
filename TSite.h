@@ -77,7 +77,7 @@ public:
 	//MLE Callers
 	void calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double & quality, double & maxGenotypeProb, int & MLGenotype);
 	void callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef);
-	void callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef);
+	void callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF);
 	virtual void callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callMLEGenotypeKnownAlleles not implemented for TSite base class!";};
 	virtual void callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callMLEGenotypeVCFKnownAlleles not implemented for TSite base class!";};
 	//Bayesian Callers
