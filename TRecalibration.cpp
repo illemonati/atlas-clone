@@ -790,8 +790,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 
 void TRecalibrationEM::runEM(std::string outputName){
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
-
-	//if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+	if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
