@@ -41,7 +41,7 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps);
+	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName);
 };
 
 class TPMDTables{

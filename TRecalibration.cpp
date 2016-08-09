@@ -155,7 +155,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
 		// - transformed quality
 		// - square of transformed quality
 		eps = dePhred((*it)->quality);
-
+		if(eps < 0.0000000001) eps = 0.0000000001;
+		else if(eps > 0.9999999999) eps = 0.9999999999;
 
 		q[k][0] = log(eps / (1.0 - eps));
 		q[k][1] = q[k][0] * q[k][0];
@@ -237,8 +238,8 @@ void TRecalibrationEMSite::calcEpsilon(double** params){
 		}
 		eta += params[readGroup[k]][context[k]+4];
 
-		if(eta > 22.2) epsilon[k] = 0.9999999999;
-		else if(eta < -23.02685) epsilon[k] = 0.0000000001;
+		if(eta > 16.11) epsilon[k] = 0.9999999;
+		else if(eta < -16.11) epsilon[k] = 0.0000001;
 		else {
 			eta = exp(eta);
 			epsilon[k] = eta / (1.0 + eta);
@@ -358,7 +359,6 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 	for(int g=0; g<4; ++g){
 		//calc weights
 		//------------
-
 		for(int k=0; k<numReads; ++k){
 			weights[k] = B[g][k] / (1.0 - D[g][k] + B[g][k] * epsilon[k]) * eps1MinusEps[k];
 			weightJacobian[k] = P_g_given_d_oldBeta[g] * weights[k] * (oneMinus2Eps[k] - weights[k]);
@@ -717,7 +717,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		if(solve(JxF, Jacobian, F)){
 			logfile->write(" done!");
 
-			/*
+/*
 			std::cout << "----------------------------------------------" << std::endl;
 			std::cout << "JxF " << JxF << std::endl;
 			std::cout << "----------------------------------------------" << std::endl;
@@ -790,6 +790,9 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 
 void TRecalibrationEM::runEM(std::string outputName){
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
+
+	//if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
 	std::string filename;

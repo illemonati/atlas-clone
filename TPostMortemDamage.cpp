@@ -238,7 +238,7 @@ double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
 	return LL;
 }
 
-std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps){
+std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);
@@ -253,11 +253,18 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	//find last entry with counts
 	int lastPositionToConsiderPlusOne = -1;
 	for(int p=maxLength-1; p >= 0; ++p){
-		if(sums[p][from] > 0){
+		if(sums[p][from] > 100){
 			lastPositionToConsiderPlusOne = p;
 			break;
-		} else throw "''length'' cannot be longer than longest read!";
+		}
+	}
+	++lastPositionToConsiderPlusOne;
 
+	if(lastPositionToConsiderPlusOne < 10) throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': less than the ten first positions have > 100 data points!";
+	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
+		if(sums[p][from] == 0){
+			throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': no observations for some reference alleles! Consider reducing the considered length.";
+		}
 	}
 
 
@@ -448,7 +455,8 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps) << "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps) << "\n";
+		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i))
+			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i)) << "\n";
 	}
 	out.close();
 }
