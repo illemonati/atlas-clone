@@ -174,11 +174,6 @@ public:
 		//then for the site
 		site.calcEmissionProbabilities();
 	};
-	void addSiteToQualityTransformTable(TSite & site, TQualityTransformTable & QT){
-		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-			QT.add((*it)->quality, getQuality(*it));
-		}
-	};
 
 	virtual bool requiresEstimation(){ return false;};
 	int findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups);

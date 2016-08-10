@@ -138,7 +138,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 					logfile->list(*it);
 					break;
 				}
-
 			}
 			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
@@ -153,7 +152,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	}
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
-
 };
 
 void TGenome::jumpToEnd(){
@@ -1196,6 +1194,27 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
 
+	//compare to a second recalibration definition?
+	/*
+	if(params.parameterExists("recal2")){
+			recalObject = new TRecalibrationEM(&bamHeader, params, logfile);
+			doRecalibration = true;
+		} else if(params.parameterExists("BQSRQuality")){
+			recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
+			doRecalibration = true;
+		} else {
+			logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+			doRecalibration = false;
+			recalObject = new TRecalibration();
+		}
+		recalObjectInitialized = true;
+
+		//check if estimation is required, in which case throw an error!
+		if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+	---------------------------------------------------------------------
+*/
+
+
 	//prepare windows
 	TWindowPairHaploid windows;
 
@@ -1215,12 +1234,6 @@ void TGenome::printQualityTransformation(TParameters & params){
 				windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
 			}
 		}
-		//print out after each chr
-		filename = outputName + "_qualityTransformation_upToChr_" + toString(chrNumber) + ".txt";
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open output file '" + outputName + "'!";
-		QT.printTable(out);
-		out.close();
 	}
 
 	//print final table
