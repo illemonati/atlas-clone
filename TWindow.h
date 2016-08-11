@@ -90,7 +90,7 @@ public:
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
-	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF);
+	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
@@ -119,11 +119,11 @@ public:
 	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF);
+	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
 	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
-	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
-	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF);
+	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
+	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
 	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 };
 

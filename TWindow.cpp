@@ -287,13 +287,13 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	}
 }
 
-void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF){
+void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
 	if(isVCF){
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
-				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF);
+				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF, noAltIfHomoRef);
 				out << "\n";
 			}
 		} else {
@@ -301,7 +301,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
 					recalObject->calcEmissionProbabilities(sites[i]);
-					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF);
+					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, printRef, gVCF, noAltIfHomoRef);
 					out << "\n";
 
 				}
@@ -832,7 +832,7 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 	}
 }
 
-void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
+void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
@@ -919,7 +919,7 @@ void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRand
 	}
 }
 
-void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
 	//calc prior probabilities on Genotypes
 	double pGenotype[10];
 	fillPGenotype(pGenotype, thetaContainer.expTheta);
@@ -929,14 +929,14 @@ void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out);
+				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out);
+					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
 					out << "\n";
 				}
 			}
@@ -960,7 +960,7 @@ void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::
 	}
 }
 
-void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
+void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
@@ -974,7 +974,7 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 			pos = it->first - start;
 			out << chr << "\t" << it->first + 1;
 			if(isVCF)
-				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
+				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef);
 			else
 				sites[pos].callAllelePresenceKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
 			out << "\n";

@@ -138,6 +138,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 					logfile->list(*it);
 					break;
 				}
+
 			}
 			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
@@ -152,6 +153,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	}
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+
 };
 
 void TGenome::jumpToEnd(){
@@ -633,11 +635,15 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
 	bool gVCF = false;
+	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
+	} if(params.parameterExists("noAltIfHomoRef")){
+		noAltIfHomoRef = true;
+		logfile->list("Will not print alternative alleles when genotype is 0/0");
 	} else {
 		printIfNoData = params.parameterExists("printAll");
 		if(params.parameterExists("gVCF")){
@@ -707,10 +713,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 					logfile->listFlush("Calling MLE genotypes ...");
 					if(limitToSitesWithKnownAlleles){
 						windows.cur->addReferenceBaseToSites(subset);
-						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF);
+						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);
 					}
 					logfile->write(" done!");
 				}
@@ -862,11 +868,15 @@ void TGenome::callAllelePresence(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
+	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
+	} if(params.parameterExists("noAltIfHomoRef")){
+		noAltIfHomoRef = true;
+		logfile->list("Will not print alternative alleles when genotype is 0/0");
 	} else {
 		printIfNoData = params.parameterExists("printAll");
 		if(printIfNoData) logfile->list("Will print all sites, even those without data");
@@ -890,6 +900,7 @@ void TGenome::callAllelePresence(TParameters & params){
 		//write header
 		outAllelePresence << "##fileformat=VCFv4.2\n";
 		outAllelePresence << "##source=ATLAS\n";
+		outAllelePresence << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 		outAllelePresence << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		outAllelePresence << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 		outAllelePresence << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
@@ -940,10 +951,10 @@ void TGenome::callAllelePresence(TParameters & params){
 						logfile->listFlush("Calling allele presence ...");
 						if(limitToSitesWithKnownAlleles){
 							windows.cur->addReferenceBaseToSites(subset);
-							windows.cur->callAllelePresenceKnwonAlleles(subset, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF);
+							windows.cur->callAllelePresenceKnwonAlleles(subset, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF, noAltIfHomoRef);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-							windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+							windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
 						}
 						logfile->write(" done!");
 					}
