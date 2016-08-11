@@ -200,7 +200,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 }
 
 void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef){
-	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA, RB, AB, BB, RC, AC, BC, CC
+	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
 		//print reference allele
@@ -233,7 +233,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					if(gVCF){
 						out << ",<NON_REF>";
 						for(int b=0; b<4; ++b){
-							if(baseString[b] != geno[0]){
+							if(baseString[b] != geno[0] && baseString[b] != geno[1]){
 								nonRefPLSumRB +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
 								nonRefPLSumAB +=  emissionProbabilities[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
 								nonRefPLSumBB +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
@@ -251,7 +251,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 						if(gVCF){
 							out << ",<NON_REF>";
 							for(int b=0; b<4; ++b){
-								if(baseString[b] != referenceBase && baseString[b] != geno[0], baseString[b] != geno[1]){
+								if(baseString[b] != referenceBase && baseString[b] != geno[0] && baseString[b] != geno[1]){
 									nonRefPLSumRC += emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
 									nonRefPLSumAC += emissionProbabilities[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
 									nonRefPLSumBC += emissionProbabilities[genoMap.getGenotype(geno[1], baseString[b])] - maxGenotypeProb;
@@ -306,7 +306,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			if(gVCF){
 				out << "\t<NON_REF>";
 				for(int b = 0; b<4; ++b){
-					if(baseString[b] != geno[0] && baseString[b] != geno[1]){
+					if(baseString[b] != geno[0]){
 						nonRefPLSumRA +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
 						nonRefPLSumAA +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 					}
