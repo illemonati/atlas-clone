@@ -338,7 +338,6 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 					//store new params
 					for(int x=0; x<3; ++x){
 						oldParams[x] = newParams[x];
-						std::cout << "newParams[x] " << newParams[x] << std::endl;
 					}
 
 					//check if we stop NR
@@ -375,10 +374,6 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 	//calculate variance of estimator
 	arma::mat Fisher = inv(J);
-	for(int x=0; x<3; ++x)
-		std::cout << "Variance " << x << " = " << sqrt(-Fisher.diag()) << std::endl;
-
-
 
 	//now return string
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";

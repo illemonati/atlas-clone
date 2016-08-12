@@ -1097,7 +1097,6 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 		if(sites[i].hasData){
 			recalObject.addSite(sites[i]);
 		}
-		if(recalObject.numSitesAdded > 2) break;
 	}
 }
 
