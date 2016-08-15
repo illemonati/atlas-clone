@@ -631,9 +631,9 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
 
-	//limit to a set of sites? Print all sites, even those without data?
+	//set all booleans in the booleans class
 	bool limitToSitesWithKnownAlleles = false;
-	bool printIfNoData = true;
+	bool printIfNoData = false;
 	bool gVCF = false;
 	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
@@ -641,24 +641,31 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
-	} if(params.parameterExists("noAltIfHomoRef")){
+	}
+	if(params.parameterExists("printAll")){
+		printIfNoData = true;
+		logfile->list("Will print all sites, even those without data");
+	}
+	if(params.parameterExists("noAltIfHomoRef")){
 		noAltIfHomoRef = true;
 		logfile->list("Will not print alternative alleles when genotype is 0/0");
-	} else {
-		printIfNoData = params.parameterExists("printAll");
-		if(params.parameterExists("gVCF")){
-			gVCF = true;
-			printIfNoData = true;
-		}
-		if(printIfNoData) logfile->list("Will print all sites, even those without data");
-
 	}
+	if(params.parameterExists("gVCF")){
+		gVCF = true;
+		if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
+		if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
+		logfile->list("Will print output in gVCF format");
+	}
+
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream out;
 	std::string outputFileName;
-	if(params.parameterExists("vcf")){
+
+//	boolsForVCF boolaeans(writeVCF, noAltIfHomoRef, gVCF);
+
+	if(params.parameterExists("vcf") || gVCF){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
