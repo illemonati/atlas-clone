@@ -80,6 +80,12 @@ public:
 		throw "Read Group '" + name + "' was not present in header of bam file!";
 	};
 
+	int find(BamTools::BamAlignment & alignment){
+		std::string tmp;
+		alignment.GetTag("RG", tmp);
+		return find(tmp);
+	};
+
 	bool readGroupExists(std::string & name){
 		for(int i=0; i<numGroups; ++i){
 			if(groups[i].name == name) return true;

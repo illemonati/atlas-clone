@@ -144,24 +144,24 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------
-void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double & quality, double & maxGenotypeProb, int & MLGenotype){
+void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
 	//calculate phred-scaled likelihoods and find max
 	maxGenotypeProb = 100000.0;
 	quality = 100000.0;
 	std::vector<int> MLEs;
 	for(int i=0; i<numGenotypes; ++i){
-		emissionProbabilities[i] = makePhredByRef(emissionProbabilities[i]);
-		if(emissionProbabilities[i] < maxGenotypeProb){
+		emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
+		if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb){
 			MLGenotype = i;
 			quality = maxGenotypeProb;
-			maxGenotypeProb = emissionProbabilities[i];
+			maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
 			MLEs.clear();
 			MLEs.push_back(i);
-		} else if(emissionProbabilities[i] == maxGenotypeProb){
+		} else if(emissionProbabilitiesPhredScaled[i] == maxGenotypeProb){
 			MLEs.push_back(i);
-			quality = emissionProbabilities[i];
-		} else if(emissionProbabilities[i] < quality){
-			quality = emissionProbabilities[i];
+			quality = emissionProbabilitiesPhredScaled[i];
+		} else if(emissionProbabilitiesPhredScaled[i] < quality){
+			quality = emissionProbabilitiesPhredScaled[i];
 		}
 	}
 
@@ -182,11 +182,12 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
 		int MLGenotype;
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, quality, maxGenotypeProb, MLGenotype);
+		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
+		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//now print normalized (max = 0)
 		for(int i=0; i<numGenotypes; ++i){
-			out << "\t" << round(emissionProbabilities[i] - maxGenotypeProb);
+			out << "\t" << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
 		}
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
@@ -211,20 +212,21 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		double quality, maxGenotypeProb;
 		double nonRefPLSumRA = 0, nonRefPLSumAA = 0, nonRefPLSumRB = 0, nonRefPLSumAB = 0, nonRefPLSumBB = 0, nonRefPLSumRC = 0, nonRefPLSumAC = 0, nonRefPLSumBC = 0, nonRefPLSumCC = 0;
 		int MLGenotype;
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, quality, maxGenotypeProb, MLGenotype);
+		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
+		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//find alternative alleles
 		std::string genoVCF;
 		std::string PL;
 		std::string baseString = "ACTG";
-		if(referenceBase != 'N') PL = toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
+		if(referenceBase != 'N') PL = toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
 		if(geno[0] != referenceBase){
 			if(geno[1] != referenceBase){
 				if(referenceBase != 'N'){
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
 				}
 				if(geno[0] == geno[1]){
 					out << "\t" << geno[0];
@@ -234,9 +236,9 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 						out << ",<NON_REF>";
 						for(int b=0; b<4; ++b){
 							if(baseString[b] != geno[0] && baseString[b] != geno[1]){
-								nonRefPLSumRB +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
-								nonRefPLSumAB +=  emissionProbabilities[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
-								nonRefPLSumBB +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
+								nonRefPLSumRB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
+								nonRefPLSumAB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
+								nonRefPLSumBB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 							}
 						}
 						PL += "," + toString(round(nonRefPLSumRB)) + "," + toString(round(nonRefPLSumAB)) + "," + toString(round(nonRefPLSumBB));
@@ -245,17 +247,17 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					out << "\t" << geno[0] << ',' << geno[1];
 					genoVCF = "1/2";
 					if(referenceBase != 'N'){
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[1])] - maxGenotypeProb));
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], geno[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
 						if(gVCF){
 							out << ",<NON_REF>";
 							for(int b=0; b<4; ++b){
 								if(baseString[b] != referenceBase && baseString[b] != geno[0] && baseString[b] != geno[1]){
-									nonRefPLSumRC += emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
-									nonRefPLSumAC += emissionProbabilities[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
-									nonRefPLSumBC += emissionProbabilities[genoMap.getGenotype(geno[1], baseString[b])] - maxGenotypeProb;
-									nonRefPLSumCC += emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
+									nonRefPLSumRC += emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
+									nonRefPLSumAC += emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
+									nonRefPLSumBC += emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[1], baseString[b])] - maxGenotypeProb;
+									nonRefPLSumCC += emissionProbabilitiesPhredScaled[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 								}
 							}
 						PL += "," + toString(round(nonRefPLSumRC)) + "," + toString(round(nonRefPLSumAC)) + "," + toString(round(nonRefPLSumBC)) + "," + toString(round(nonRefPLSumCC));
@@ -266,15 +268,15 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				out << "\t" << geno[0];
 				genoVCF = "0/1";
 				if(referenceBase != 'N'){
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
-					PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
+					PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], geno[0])] - maxGenotypeProb));
 					if(gVCF){
 						out << ",<NON_REF>";
 						for(int b=0; b<4; ++b){
 							if(baseString[b] != geno[0] && baseString[b] != geno[1]){
-								nonRefPLSumRB +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
-								nonRefPLSumAB +=  emissionProbabilities[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
-								nonRefPLSumBB +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
+								nonRefPLSumRB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
+								nonRefPLSumAB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[0], baseString[b])] - maxGenotypeProb;
+								nonRefPLSumBB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 							}
 						}
 						PL += "," + toString(round(nonRefPLSumRB)) + "," + toString(round(nonRefPLSumAB)) + "," + toString(round(nonRefPLSumBB));
@@ -285,16 +287,16 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			out << "\t" << geno[1];
 			genoVCF = "0/1";
 			if(referenceBase != 'N'){
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
-				PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
+				PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
+				PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[1], geno[1])] - maxGenotypeProb));
 			}
 			if(gVCF){
 				out << ",<NON_REF>";
 				for(int b = 0; b<4; ++b){
 					if(baseString[b] != geno[0] && baseString[b] != geno[1]){
-						nonRefPLSumRB +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
-						nonRefPLSumAB +=  emissionProbabilities[genoMap.getGenotype(geno[1], baseString[b])] - maxGenotypeProb;
-						nonRefPLSumBB +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
+						nonRefPLSumRB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
+						nonRefPLSumAB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(geno[1], baseString[b])] - maxGenotypeProb;
+						nonRefPLSumBB +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 					}
 				}
 				PL += "," + toString(round(nonRefPLSumRB)) + "," + toString(round(nonRefPLSumAB)) + "," + toString(round(nonRefPLSumBB));
@@ -307,8 +309,8 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				out << "\t<NON_REF>";
 				for(int b = 0; b<4; ++b){
 					if(baseString[b] != geno[0]){
-						nonRefPLSumRA +=  emissionProbabilities[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
-						nonRefPLSumAA +=  emissionProbabilities[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
+						nonRefPLSumRA +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, baseString[b])] - maxGenotypeProb;
+						nonRefPLSumAA +=  emissionProbabilitiesPhredScaled[genoMap.getGenotype(baseString[b], baseString[b])] - maxGenotypeProb;
 					}
 				}
 				PL += "," + toString(round(nonRefPLSumRA)) + "," + toString(round(nonRefPLSumAA));
@@ -321,11 +323,11 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				std::vector<int> secondMostLikely;
 				for(int i=0; i<numGenotypes; ++i){
 					if(i != MLGenotype){
-						if(emissionProbabilities[i] < maxPostProb){
-							maxPostProb = emissionProbabilities[i];
+						if(emissionProbabilitiesPhredScaled[i] < maxPostProb){
+							maxPostProb = emissionProbabilitiesPhredScaled[i];
 							secondMostLikely.clear();
 							secondMostLikely.push_back(i);
-						} else if(emissionProbabilities[i] == maxPostProb){
+						} else if(emissionProbabilitiesPhredScaled[i] == maxPostProb){
 							secondMostLikely.push_back(i);
 						}
 					}
@@ -337,14 +339,14 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				if(genoSecond[0] != referenceBase){
 					out << "\t" << genoSecond[0];
 					if(referenceBase != 'N'){
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, genoSecond[0])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(genoSecond[0], genoSecond[0])] - maxGenotypeProb));
 					}
 				} else {
 					out << "\t" << genoSecond[1];
 					if(referenceBase != 'N'){
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
-						PL +=  "," + toString(round(emissionProbabilities[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, genoSecond[1])] - maxGenotypeProb));
+						PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(genoSecond[1], genoSecond[1])] - maxGenotypeProb));
 					}
 				}
 			}
@@ -359,9 +361,9 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		//print format and genotype and all normalized likelihoodsfield
 		if(referenceBase != 'N'){
 			if(!gVCF){
-				out << "\tGT:DP:GQ:PL:GG\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilities[0] - maxGenotypeProb);
+				out << "\tGT:DP:GQ:PL:GG\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
 				for(int i=1; i<numGenotypes; ++i){
-					out << "," << round(emissionProbabilities[i] - maxGenotypeProb);
+					out << "," << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
 				}
 			} else 	out << "\tGT:DP:GQ:PL\t" <<  genoVCF << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
 		}

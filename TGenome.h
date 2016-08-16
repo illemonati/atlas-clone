@@ -32,6 +32,7 @@ private:
 	void initializeRandomGenerator(TParameters & params);
 
 	TPMD* pmdObjects;
+	bool hasPMD;
 	TRecalibration* recalObject;
 	bool doRecalibration;
 	bool recalObjectInitialized;
@@ -92,8 +93,10 @@ public:
 	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
+	void createBase(TBase* basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	char returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
+	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap);
 	void recalibrateBamFile(TParameters & params);
 	void splitSingleEndReadGroups(TParameters & params);
 	void mergeReadGroups(TParameters & params);
