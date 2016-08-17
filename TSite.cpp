@@ -276,7 +276,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 							//additional AD
 							if(rest.size() == 0) AD += ",0";
 							else {
-								for(int i=0; i<rest.size(); ++i)	if (rest[i] == genoSecond[altAllele]) ++C_AD;
+								for(int i=0; i<rest.size(); ++i) if (rest[i] == genoSecond[altAllele]) ++C_AD;
 								AD += ',' + toString(C_AD);
 							}
 						}
@@ -337,7 +337,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 						else if(basesString[i] == geno[0]) ++A_AD;
 						else rest += basesString[i];
 					}
-					AD = toString(R_AD) + ',' + toString(A_AD) + ',' + toString(B_AD);
+					AD = toString(R_AD) + ',' + toString(A_AD);
 
 					if(gVCF){
 						out << ",<NON_REF>";
@@ -357,7 +357,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 						//additional AD
 						if(rest.size() == 0) AD += ",0";
 						else{
-							for(int i=0; i<rest.size(); ++i)	if (rest[i] == genoSecond[altAllele]) ++B_AD;
+							for(int i=0; i<rest.size(); ++i) if (rest[i] == genoSecond[altAllele]) ++B_AD;
 							AD += ',' + toString(B_AD);
 						}
 					}
@@ -376,7 +376,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					else if(basesString[i] == geno[1]) ++A_AD;
 					else rest += basesString[i];
 				}
-				AD = toString(R_AD) + ',' + toString(A_AD) + ',' + toString(B_AD);
+				AD = toString(R_AD) + ',' + toString(A_AD);
 
 				if(gVCF){
 					out << ",<NON_REF>";
