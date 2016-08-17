@@ -684,6 +684,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##fileformat=VCFv4.2\n";
 		out << "##source=ATLAS\n";
 		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+		out << "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n";
 //		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
