@@ -409,8 +409,12 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 			//now use second most likely genotype one to decide on alternative allele
 			int altAllele;
-			if(genoSecond[0] != geno[0]) altAllele = 0;
-			else altAllele = 1;
+			if(genoSecond[0] != geno[0]){
+				if(genoSecond[1] != geno[0]){
+					if(randomGenerator.getRand() < 0.5) altAllele = 0;
+					else altAllele = 1;
+				} else altAllele = 0;
+			} else altAllele = 1;
 
 			if(referenceBase != 'N' && !noAltIfHomoRef){
 				PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, genoSecond[altAllele])] - maxGenotypeProb));
