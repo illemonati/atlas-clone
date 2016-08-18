@@ -67,7 +67,7 @@ TPMDTable::~TPMDTable(){
 		}
 		delete[] counts[p];
 	}
-	delete counts;
+	delete[] counts;
 	if(sumsCalculated) deleteSums();
 };
 
