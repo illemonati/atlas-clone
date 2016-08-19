@@ -847,10 +847,12 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 			pos = it->first - start;
 			out << chr << "\t" << it->first + 1;
 			if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
-			if(isVCF)
-				sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second);
-			else
+			if(isVCF){
+				std::string basesString = sites[pos].getBases();
+				sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
+			} else {
 				sites[pos].callMLEGenotypeKnownAlleles(genoMap, randomGenerator, out, it->second.second);
+			}
 			out << "\n";
 		}
 	}
@@ -930,14 +932,16 @@ void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
+				std::string baseString = sites[i].getBases();
+				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
+					std::string baseString = sites[i].getBases();
+					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
 					out << "\n";
 				}
 			}
@@ -974,11 +978,14 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 			pos = it->first - start;
 			out << chr << "\t" << it->first + 1;
-			if(isVCF)
-				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef);
-			else
+			if(isVCF){
+				std::string basesString = sites[pos].getBases();
+				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
+			} else {
 				sites[pos].callAllelePresenceKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
+			}
 			out << "\n";
+
 		}
 	}
 }
