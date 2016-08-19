@@ -30,6 +30,7 @@ int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGrou
 void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile){
 	origNumReadGroups = bamHeader->ReadGroups.Size();
 	readGroupMap = new int[origNumReadGroups];
+	readGroupMapInitialized = true;
 	if(params.parameterExists("poolReadGroups")) mergedInd = true;
 	else mergedInd = false;
 
@@ -544,7 +545,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 		for(int r=0; r<numReadGroups; ++r){
 			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
 		}
-
+		delete[] rgFound;
 		logfile->write(" done!");
 
 		//check if we anyway estimate things
