@@ -1598,7 +1598,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 
 		//initialize BQSR table
 		BQSR_cells_readGroup_quality = new TBQSR_cell*[numReadGroups];
-		std::cout << "BQSR table initialized" << std::endl;
 		for(int i=0; i<numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 			for(int q=0; q<qualityIndex->numQ; ++q){
@@ -2133,10 +2132,11 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			writeQualityToFile(filenameTag);
 
 			//empty storage
-			if(storeDataInMemory)
-			for(int i=0; i<numReadGroups; ++i){
-				for(int j=0; j<qualityIndex->numQ; ++j){
-					BQSR_cells_readGroup_quality[i][j].clearStorage();
+			if(storeDataInMemory){
+				for(int i=0; i<numReadGroups; ++i){
+					for(int j=0; j<qualityIndex->numQ; ++j){
+						BQSR_cells_readGroup_quality[i][j].clearStorage();
+					}
 				}
 			}
 			dataStored = false;
@@ -2200,10 +2200,11 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			writePositionToFile(filenameTag);
 
 			//empty storage
-			if(storeDataInMemory)
-			for(int i=0; i<numReadGroups; ++i){
-				for(int p=0; p<maxPos; ++p){
-					BQSR_cells_readGroup_position[i][p].clearStorage();
+			if(storeDataInMemory){
+				for(int i=0; i<numReadGroups; ++i){
+					for(int p=0; p<maxPos; ++p){
+						BQSR_cells_readGroup_position[i][p].clearStorage();
+					}
 				}
 			}
 			dataStored = false;
@@ -2267,10 +2268,11 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			writePositionReverseToFile(filenameTag);
 
 			//empty storage
-			if(storeDataInMemory)
-			for(int i=0; i<numReadGroups; ++i){
-				for(int p=0; p<maxPos; ++p){
-					BQSR_cells_readGroup_position_reverse[i][p].clearStorage();
+			if(storeDataInMemory){
+				for(int i=0; i<numReadGroups; ++i){
+					for(int p=0; p<maxPos; ++p){
+						BQSR_cells_readGroup_position_reverse[i][p].clearStorage();
+					}
 				}
 			}
 			dataStored = false;
@@ -2332,14 +2334,14 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			writeContextToFile(filenameTag);
 
 			//empty storage
-			if(storeDataInMemory)
-			for(int i=0; i<numReadGroups; ++i){
-				for(int c=0; c<numContexts; ++c){
-					BQSR_cells_readGroup_context[i][c].clearStorage();
+			if(storeDataInMemory){
+				for(int i=0; i<numReadGroups; ++i){
+					for(int c=0; c<numContexts; ++c){
+						BQSR_cells_readGroup_context[i][c].clearStorage();
+					}
 				}
 			}
 			dataStored = false;
-
 			estimationConverged = true;
 		}
 		return estimationConverged;
