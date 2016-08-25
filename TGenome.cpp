@@ -300,7 +300,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 			//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
 
 				//check if insert size is shorter than read, this means we are reading the adaptor sequence
-				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) > bamAlignment.Length){
+				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 
 					if(!addAlignementToWindows(bamAlignment, windowPair)){
 
@@ -644,20 +644,21 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
-	}
-	if(params.parameterExists("printAll")){
-		printIfNoData = true;
-		logfile->list("Will print all sites, even those without data");
-	}
-	if(params.parameterExists("noAltIfHomoRef")){
-		noAltIfHomoRef = true;
-		logfile->list("Will not print alternative alleles when genotype is 0/0");
-	}
-	if(params.parameterExists("gVCF")){
-		gVCF = true;
-		if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
-		if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
-		logfile->list("Will print output in gVCF format");
+	} else {
+		if(params.parameterExists("printAll")){
+			printIfNoData = true;
+			logfile->list("Will print all sites, even those without data");
+		}
+		if(params.parameterExists("noAltIfHomoRef")){
+			noAltIfHomoRef = true;
+			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
+		if(params.parameterExists("gVCF")){
+			gVCF = true;
+			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
+			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
+			logfile->list("Will print output in gVCF format");
+		}
 	}
 
 
@@ -878,7 +879,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
-	bool printIfNoData = true;
+	bool printIfNoData = false;
 	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
@@ -889,8 +890,14 @@ void TGenome::callAllelePresence(TParameters & params){
 		noAltIfHomoRef = true;
 		logfile->list("Will not print alternative alleles when genotype is 0/0");
 	} else {
-		printIfNoData = params.parameterExists("printAll");
-		if(printIfNoData) logfile->list("Will print all sites, even those without data");
+		if(params.parameterExists("printAll")){
+			printIfNoData = true;
+			logfile->list("Will print all sites, even those without data");
+		}
+		if(params.parameterExists("noAltIfHomoRef")){
+			noAltIfHomoRef = true;
+			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
 	}
 
 
@@ -1705,40 +1712,82 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//distinguish between cases
 	int internalPos = bamAlignment.Position - window->start;
 	//paired end
-	if(bamAlignment.IsProperPair()){
-		if(abs(bamAlignment.InsertSize) > bamAlignment.Length){
+	if(!bamAlignment.IsDuplicate()){
+		if(bamAlignment.IsProperPair()){
+			if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.size()){ //this can happen when sequencing adapters or when there is insertion. if there is both, the read may pass although it shouldnt ? before it was bamAlignment.Length
+				if(bamAlignment.IsReverseStrand()){
+					// hence it is second in bam file and maps on reverse strand -> FLIP BASES
+					//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+					//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+					for(int pos = 0; pos < length; ++pos, ++internalPos){
+						base = bamAlignment.AlignedBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+							quality = bamAlignment.AlignedQualities.at(pos);
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
+								readBase = genoMap.flipBase(base);
+								//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+								refBase = genoMap.flipBase(ref[internalPos]);
+
+								pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+								pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+							}
+						}
+					}
+				} else {
+					//Hence it is first in the bam file and maps on forward strand
+					//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+					//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+					for(int pos = 0; pos < length; ++pos, ++internalPos){
+						base = bamAlignment.AlignedBases.at(pos);
+						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+							quality = bamAlignment.AlignedQualities.at(pos);
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+								readBase = genoMap.getBase(base);
+								refBase = genoMap.getBase(ref[internalPos]);
+
+								pmdTables.addForward(readGroupId, pos, refBase, readBase);
+								pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
+							}
+						}
+					}
+				}
+			} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name + " Legnth: " + toString(length));
+
+		//single end
+		} else {
 			if(bamAlignment.IsReverseStrand()){
-				// hence it is second in bam file and maps on reverse strand -> FLIP BASES
-				//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
-				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+				//single end & reverse
+				//forward position = len - pos - 1
+				//reverse position = pos
+				//FLIP BASES!
 				for(int pos = 0; pos < length; ++pos, ++internalPos){
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 							refBase = genoMap.flipBase(ref[internalPos]);
 
 							pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-							pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+							pmdTables.addReverse(readGroupId, pos, refBase, readBase);
 						}
 					}
 				}
 			} else {
-				//Hence it is first in the bam file and maps on forward strand
-				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+				//single end & forward
+				//forward position = pos
+				//reverse position = len - pos -1
 				for(int pos = 0; pos < length; ++pos, ++internalPos){
 					base = bamAlignment.AlignedBases.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = bamAlignment.AlignedQualities.at(pos);
-						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 							readBase = genoMap.getBase(base);
 							refBase = genoMap.getBase(ref[internalPos]);
 
 							pmdTables.addForward(readGroupId, pos, refBase, readBase);
-							pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
+							pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 						}
 					}
 				}

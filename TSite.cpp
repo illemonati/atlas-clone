@@ -960,7 +960,7 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 		//calculate AD
 		for(unsigned int i=0; i<basesString.size(); ++i){
 			if(basesString[i] == referenceBase) ++R_AD;
-			else if(basesString[i] == alt && !noAltIfHomoRef) ++A_AD;
+			else if(basesString[i] == alt) ++A_AD;
 		}
 
 		//print (no) quality
@@ -976,7 +976,7 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 
 		//print format field and genotype, coverage and posterior probabilities field
 		out << "\tGT:AD:DP:GQ:PP\t" << genoVCF << ":" << R_AD;
-		if(!noAltIfHomoRef) out << "," << A_AD;
+		if(!(noAltIfHomoRef && genoVCF == "0")) out << "," << A_AD;
 		out << ":" << bases.size() << ":" << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" <<round(makePhred(postProbAllele[0]));
 		for(int i=1; i<4; ++i){
 			out << "," << round(makePhred(postProbAllele[i]));
@@ -1128,6 +1128,7 @@ void TSiteHaploid::calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeM
 		}
 	}
 }
+
 
 
 
