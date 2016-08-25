@@ -1714,7 +1714,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//paired end
 	if(!bamAlignment.IsDuplicate()){
 		if(bamAlignment.IsProperPair()){
-			if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.size()){ //this can happen when sequencing adapters or when there is insertion. if there is both, the read may pass although it shouldnt ? before it was bamAlignment.Length
+			if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 				if(bamAlignment.IsReverseStrand()){
 					// hence it is second in bam file and maps on reverse strand -> FLIP BASES
 					//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
@@ -1751,7 +1751,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 						}
 					}
 				}
-			} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name + " Legnth: " + toString(length));
+			} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 
 		//single end
 		} else {
@@ -1789,46 +1789,6 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 							pmdTables.addForward(readGroupId, pos, refBase, readBase);
 							pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 						}
-					}
-				}
-			}
-		} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-
-	//single end
-	} else {
-		if(bamAlignment.IsReverseStrand()){
-			//single end & reverse
-			//forward position = len - pos - 1
-			//reverse position = pos
-			//FLIP BASES!
-			for(int pos = 0; pos < length; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
-						readBase = genoMap.flipBase(base);
-						//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
-						refBase = genoMap.flipBase(ref[internalPos]);
-
-						pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-						pmdTables.addReverse(readGroupId, pos, refBase, readBase);
-					}
-				}
-			}
-		} else {
-			//single end & forward
-			//forward position = pos
-			//reverse position = len - pos -1
-			for(int pos = 0; pos < length; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
-						readBase = genoMap.getBase(base);
-						refBase = genoMap.getBase(ref[internalPos]);
-
-						pmdTables.addForward(readGroupId, pos, refBase, readBase);
-						pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 					}
 				}
 			}
