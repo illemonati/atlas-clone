@@ -672,6 +672,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	if(params.parameterExists("vcf") || gVCF){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
+		std::string sName = params.getParameterStringWithDefault("sampleName", outputName);
+
 
 		//open file
 		if(gVCF) outputFileName = outputName + "_MLEGenotypes.gvcf.gz";
@@ -693,7 +695,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
 		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes\">\n";
 
-		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sName << "\n";
 	} else {
 		//open file
 		outputFileName = outputName + "_MLEGenotypes.txt.gz";
