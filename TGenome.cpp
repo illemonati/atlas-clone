@@ -1722,9 +1722,9 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
 					//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
 					for(int pos = 0; pos < length; ++pos, ++internalPos){
-						base = bamAlignment.AlignedBases.at(pos);
+						base = bamAlignment.AlignedBases[pos];
 						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-							quality = bamAlignment.AlignedQualities.at(pos);
+							quality = bamAlignment.AlignedQualities[pos];
 							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
 								readBase = genoMap.flipBase(base);
 								//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
@@ -1740,9 +1740,9 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
 					//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 					for(int pos = 0; pos < length; ++pos, ++internalPos){
-						base = bamAlignment.AlignedBases.at(pos);
+						base = bamAlignment.AlignedBases[pos];
 						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-							quality = bamAlignment.AlignedQualities.at(pos);
+							quality = bamAlignment.AlignedQualities[pos];
 							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 								readBase = genoMap.getBase(base);
 								refBase = genoMap.getBase(ref[internalPos]);
@@ -1763,9 +1763,9 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				//reverse position = pos
 				//FLIP BASES!
 				for(int pos = 0; pos < length; ++pos, ++internalPos){
-					base = bamAlignment.AlignedBases.at(pos);
+					base = bamAlignment.AlignedBases[pos];
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-						quality = bamAlignment.AlignedQualities.at(pos);
+						quality = bamAlignment.AlignedQualities[pos];
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
@@ -1781,9 +1781,9 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 				//forward position = pos
 				//reverse position = len - pos -1
 				for(int pos = 0; pos < length; ++pos, ++internalPos){
-					base = bamAlignment.AlignedBases.at(pos);
+					base = bamAlignment.AlignedBases[pos];
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-						quality = bamAlignment.AlignedQualities.at(pos);
+						quality = bamAlignment.AlignedQualities[pos];
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
 							readBase = genoMap.getBase(base);
 							refBase = genoMap.getBase(ref[internalPos]);
@@ -2033,7 +2033,7 @@ void TGenome::runPMDS(TParameters & params){
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
 		PMDS = 0;
-		len = bamAlignment.Length;
+		len = bamAlignment.AlignedBases.size();
 
 		//get readgroup info
 		bamAlignment.GetTag("RG", readGroup);
@@ -2048,14 +2048,14 @@ void TGenome::runPMDS(TParameters & params){
 		}
 
 		//paired-end
-		if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.Length){
+		if(bamAlignment.IsProperPair() && abs(bamAlignment.InsertSize) > bamAlignment.AlignedBases.size()){
 			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
+				base = bamAlignment.AlignedBases[pos];
 				refBase = ref[bamAlignment.Position-begin+pos];
 				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
-					quality = bamAlignment.Qualities.at(pos);
+					quality = bamAlignment.AlignedQualities[pos];
 					if(pos == (len - 1)) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+					else context = genoMap.getContext(bamAlignment.AlignedBases[pos+1], base);
 
 					if(bamAlignment.IsReverseStrand()){
 						posInRead = len - pos - 1;
@@ -2075,17 +2075,13 @@ void TGenome::runPMDS(TParameters & params){
 		//single-end
 		else{
 			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.QueryBases.at(pos);
+				base = bamAlignment.AlignedBases[pos];
 				refBase = ref[bamAlignment.Position-begin+pos];
-//				if(counter==908){
-//							std::cout << bamAlignment.Name << std::endl;
-//							std::cout << "bases: " << refBase << base << std::endl;
-//						}
-			//	if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
-				if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
-					quality = bamAlignment.Qualities.at(pos);
+				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
+			//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
+					quality = bamAlignment.AlignedQualities[pos];
 					if(pos == (len - 1)) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignment.QueryBases.at(pos + 1), base);
+					else context = genoMap.getContext(bamAlignment.AlignedBases[pos+1], base);
 
 					if(bamAlignment.IsReverseStrand()){
 						posInRead = len - pos - 1;
@@ -2102,15 +2098,15 @@ void TGenome::runPMDS(TParameters & params){
 				}
 			}
 		}
-		//if(counter==908) break;
+		if(counter==5000000) break;
 	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << bamAlignment.Name << ": end-len=" << bamAlignment.GetEndPosition() - bamAlignment.Length << " start=bamAlignment.Position" << bamAlignment.Position << std::endl;
 	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << counter << "," <<std::flush;
 	//	if(counter==1371) std::cout << bamAlignment.Name << std::endl;
 		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
 		else bamAlignment.EditTag("DS", "f", PMDS);
-		std::cout << counter << "\t" << PMDS << std::endl;
+	//	std::cout << counter << "\t" << PMDS << std::endl;
 
-		//update and write (only if alignment is not longer than insert size)
+		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS) bamWriter.SaveAlignment(bamAlignment);
 		else ++counterF;
 
@@ -2119,7 +2115,6 @@ void TGenome::runPMDS(TParameters & params){
 		gettimeofday(&end, NULL);
 		logfile->list("Analyzed " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s and filtered out " + toString(counterF) + " of them!");
 		}
-	//	if(counter>10000) break;
 	}
 
 	//close bam writer
@@ -2175,7 +2170,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			curChr = bamAlignment.RefID;
 		}
 		//add alignment to storage
-		if(bamAlignment.IsProperPair()){
+		if(bamAlignment.IsProperPair() && !bamAlignment.IsDuplicate()){
 			if(!bamAlignment.IsReverseStrand()) {
 				alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
 			}
@@ -2268,7 +2263,13 @@ void TGenome::mergePairedEndReads(TParameters & params){
 				if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
 
 
-			} else throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
+			} else{
+				for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
+					delete it->first;
+				}
+				alignmentStorage.clear();
+				throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
+			}
 		} else {
 			//read is not paired: add to storage or write
 			if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignment);
