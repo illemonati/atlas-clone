@@ -212,11 +212,13 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
 		out << "\t" << round(quality - maxGenotypeProb);
+		delete[] emissionProbabilitiesPhredScaled;
 	} else {
 		out << "\t0";
 		for(int i=0; i<numGenotypes; ++i) out << "\t-";
 		out << "\t-\t0";
 	}
+
 }
 
 void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
@@ -485,7 +487,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		else{
 			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
 		}
-
+		delete[] emissionProbabilitiesPhredScaled;
 	} else {
 //		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
 		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
