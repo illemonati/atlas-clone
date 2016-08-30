@@ -28,7 +28,6 @@ public:
 	std::vector<TBase*> bases;
 	int numGenotypes;
 	double* emissionProbabilities;
-	double* emissionProbabilitesPhredScaled;
 	double* P_g; //P(g|d, theta, pi), see equation (3)
 	char referenceBase; //optional
 	double maxQualToPrint, maxQualToPrintNaturalScale;

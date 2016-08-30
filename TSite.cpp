@@ -224,7 +224,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
-	if(hasData && referenceBase != 'N'){
+	if(hasData){
 		//print reference allele
 		out << "\t.\t" << referenceBase;
 		//out << "\t(" << getBases() << ")"; //printing data for debugging
