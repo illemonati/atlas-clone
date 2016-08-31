@@ -48,8 +48,8 @@ int main(int argc, char* argv[]){
 		TGenome genome(&logfile, myParameters);
 
 		//what to do?
-		std::string task = myParameters.getParameterStringWithDefault("task", "estimate");
-		if(task == "estimate"){
+		std::string task = myParameters.getParameterString("task");
+		if(task == "estimateTheta"){
 			logfile.startIndent("Running an EM algorithm to estimate heterozygosity:");
 			genome.estimateTheta(myParameters);
 		} else if(task == "LLsurface"){
