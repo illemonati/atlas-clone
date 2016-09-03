@@ -1305,20 +1305,18 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 
 bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap){
 	//variables
-	char base, quality;
+	char base, flippedBase, flippedPrevBase, quality;
 	BaseContext context;
 	int posInRead, revPosInRead;
 	double pmdCT, pmdGA;
 	qual.clear();
 
-	std::cout << "in recalibrateAlignment" << std::endl;
 	//get length readgroup info
 	int len = alignment.Length;
 	int readGroupId = readGroups.find(alignment);
 
 	//parse into bases
 	if(alignment.IsProperPair()){
-		std::cout << "proper pair" << std::endl;
 		if(abs(alignment.InsertSize) > alignment.AlignedBases.size()){
 			//now recalibrate
 			if(alignment.IsReverseStrand()){
@@ -1330,8 +1328,12 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = alignment.Qualities.at(pos);
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){
-							if(pos == (len - 1)) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(alignment.QueryBases.at(pos + 1), base);
+							flippedBase = genoMap.flipBaseReturnChar(base);
+							if(pos == (len - 1)) context = genoMap.getContext('N', flippedBase);
+							else {
+								flippedPrevBase = genoMap.flipBaseReturnChar(alignment.QueryBases.at(pos + 1));
+								context = genoMap.getContext(flippedPrevBase, flippedBase);
+							}
 
 							posInRead = len - pos - 1;
 							revPosInRead = abs(alignment.InsertSize)-len+pos;
@@ -1348,8 +1350,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
 				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 				for(int pos = 0; pos < len; ++pos){
-						base = alignment.QueryBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+					base = alignment.QueryBases.at(pos);
+					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = alignment.Qualities.at(pos);
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){
 							if(pos == 0) context = genoMap.getContext('N', base);
@@ -1362,7 +1364,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							qual += returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 							//delete base
-						//	delete basePointer;
+							//delete basePointer;
 						} else qual += quality;
 					} else qual += quality;
 				}
@@ -1378,8 +1380,12 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 					quality = alignment.Qualities.at(pos);
 					if(minQuality <= (int) quality && (int) quality <= maxQuality){
-						if(pos == (len - 1)) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(alignment.QueryBases.at(pos + 1), base);
+						flippedBase = genoMap.flipBaseReturnChar(base);
+						if(pos == (len - 1)) context = genoMap.getContext('N', flippedBase);
+						else {
+							flippedPrevBase = genoMap.flipBaseReturnChar(alignment.QueryBases.at(pos + 1));
+							context = genoMap.getContext(flippedPrevBase, flippedBase);
+						}
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
 						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
@@ -1413,8 +1419,6 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 			}
 		}
 	}
-	std::cout << qual << std::endl;
-	std::cout << "done\n" << std::flush;
 	return true;
 }
 
@@ -2013,7 +2017,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	//tmp variables
 	int len;
-	char base, refBase, quality;
+	char base, refBase, flippedBase, flippedPrevBase, quality;
 	BaseContext context;
 	int posInRead, revPosInRead;
 	double pmdCT, pmdGA, qual=-1.0;
@@ -2056,13 +2060,19 @@ void TGenome::runPMDS(TParameters & params){
 				refBase = ref[bamAlignment.Position-begin+pos];
 				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 					quality = bamAlignment.AlignedQualities[pos];
-					if(pos == (len - 1)) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignment.AlignedBases[pos+1], base);
 
 					if(bamAlignment.IsReverseStrand()){
+						flippedBase = genoMap.flipBase(base);
+						if(pos == (len - 1)) context = genoMap.getContext('N', base);
+						else {
+							flippedPrevBase = genoMap.flipBase(bamAlignment.AlignedBases.at(pos+1));
+							context = genoMap.getContext(bamAlignment.AlignedBases.at(pos+1), base);
+						}
 						posInRead = len - pos - 1;
 						revPosInRead = abs(bamAlignment.InsertSize) - len + pos;
 					} else {
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos-1), base);
 						posInRead = pos;
 						revPosInRead = abs(bamAlignment.InsertSize) - pos - 1;
 					}
@@ -2082,13 +2092,18 @@ void TGenome::runPMDS(TParameters & params){
 				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 			//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
 					quality = bamAlignment.AlignedQualities[pos];
-					if(pos == (len - 1)) context = genoMap.getContext('N', base);
-					else context = genoMap.getContext(bamAlignment.AlignedBases[pos+1], base);
-
 					if(bamAlignment.IsReverseStrand()){
+						flippedBase = genoMap.flipBase(base);
+						if(pos == (len - 1)) context = genoMap.getContext('N', flippedBase);
+						else {
+							flippedPrevBase = genoMap.flipBase(bamAlignment.AlignedBases.at(pos+1));
+							context = genoMap.getContext(flippedPrevBase, flippedBase);
+						}
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
 					} else {
+						if(pos == 0) context = genoMap.getContext('N', base);
+						else context = genoMap.getContext(bamAlignment.AlignedBases[pos-1], base);
 						posInRead = pos;
 						revPosInRead = len - pos - 1;
 					}
@@ -2101,12 +2116,8 @@ void TGenome::runPMDS(TParameters & params){
 			}
 		}
 		if(counter==5000000) break;
-	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << bamAlignment.Name << ": end-len=" << bamAlignment.GetEndPosition() - bamAlignment.Length << " start=bamAlignment.Position" << bamAlignment.Position << std::endl;
-	//	if(bamAlignment.GetEndPosition() - bamAlignment.Length != bamAlignment.Position) std::cout << counter << "," <<std::flush;
-	//	if(counter==1371) std::cout << bamAlignment.Name << std::endl;
 		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
 		else bamAlignment.EditTag("DS", "f", PMDS);
-	//	std::cout << counter << "\t" << PMDS << std::endl;
 
 		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS) bamWriter.SaveAlignment(bamAlignment);
