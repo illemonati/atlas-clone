@@ -1311,13 +1311,15 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	double pmdCT, pmdGA;
 	qual.clear();
 
+	std::cout << "in recalibrateAlignment" << std::endl;
 	//get length readgroup info
 	int len = alignment.Length;
 	int readGroupId = readGroups.find(alignment);
 
 	//parse into bases
 	if(alignment.IsProperPair()){
-		if(abs(alignment.InsertSize) > alignment.Length){
+		std::cout << "proper pair" << std::endl;
+		if(abs(alignment.InsertSize) > alignment.AlignedBases.size()){
 			//now recalibrate
 			if(alignment.IsReverseStrand()){
 				// hence it is second in bam file and maps on reverse strand -> FLIP BASES
@@ -1346,11 +1348,11 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
 				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 				for(int pos = 0; pos < len; ++pos){
-					base = alignment.QueryBases.at(pos);
-					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+						base = alignment.QueryBases.at(pos);
+				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = alignment.Qualities.at(pos);
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){
-							if(pos == (len - 1)) context = genoMap.getContext('N', base);
+							if(pos == 0) context = genoMap.getContext('N', base);
 							else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
 							posInRead = pos;
 							revPosInRead = alignment.InsertSize - pos - 1;
@@ -1411,6 +1413,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 			}
 		}
 	}
+	std::cout << qual << std::endl;
+	std::cout << "done\n" << std::flush;
 	return true;
 }
 
@@ -1440,13 +1444,11 @@ void TGenome::recalibrateBamFile(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap)){
 			bamAlignment.Qualities = qual;
 			bamWriter.SaveAlignment(bamAlignment);
 		}
-
 		//report
 		if(counter % 1000000 == 0){
 			gettimeofday(&end, NULL);
