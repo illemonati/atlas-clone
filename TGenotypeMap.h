@@ -108,18 +108,6 @@ public:
 		return N;
 	};
 
-	char flipBaseReturnChar(char & base){
-		if(base == 'A') return 'T';
-		if(base == 'C') return 'G';
-		if(base == 'G') return 'C';
-		if(base == 'T') return 'A';
-		if(base == 'a') return 'T';
-		if(base == 'c') return 'G';
-		if(base == 'g') return 'C';
-		if(base == 't') return 'A';
-		return 'N';
-		};
-
 	Genotype getGenotype(Base first, Base second){
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];

@@ -141,8 +141,8 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 					quality = bamAlignment.AlignedQualities.at(pos);
 					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 						//get context
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
+						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
+						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
 						//set distances
 						distFrom5prime = pos;
 						distFrom3Prime = bamAlignment.InsertSize - pos - 1;
