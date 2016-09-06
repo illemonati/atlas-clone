@@ -2184,7 +2184,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-		if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0)	bamWriter.SaveAlignment(bamAlignment);
+		if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0)	continue;
 		else {
 			//if on new chromosome, empty storage
 			if(curChr != bamAlignment.RefID){
@@ -2199,6 +2199,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			if(!bamAlignment.IsDuplicate()){
 				if(bamAlignment.IsProperPair()){
 					if(!bamAlignment.IsReverseStrand()) {
+						//mate on forward strand is always first in bam file
 						alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
 					}
 					else if(bamAlignment.IsReverseStrand()){
@@ -2265,7 +2266,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								alignmentPointer->SetIsPaired(false);
 								alignmentPointer->SetIsProperPair(false);
 								alignmentPointer->SetIsSecondMate(false);
+								alignmentPointer->SetIsMateReverseStrand(false);
+								alignmentPointer->SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
+
 								it->second = true;
+								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){
@@ -2273,6 +2278,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									for(; it != alignmentStorage.end(); ++it){
 										if(it->second){
 											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
+											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
+
 											delete it->first;
 										} else {
 											//first that can not be written -> erase all previous ones!
@@ -2312,6 +2319,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			runtime = (end.tv_sec  - start.tv_sec)/60.0;
 			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 		}
+	//	if(counter==1200000) break;
 	}
 
 	//close bam writer
