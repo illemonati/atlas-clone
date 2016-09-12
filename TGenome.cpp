@@ -2101,7 +2101,6 @@ void TGenome::runPMDS(TParameters & params){
 				}
 			}
 		}
-		if(counter==5000000) break;
 		if(bamAlignment.HasTag("DS") == false) bamAlignment.AddTag("DS", "f", PMDS);
 		else bamAlignment.EditTag("DS", "f", PMDS);
 
@@ -2184,7 +2183,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-		if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0)	continue;
+		if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0 && bamAlignment.IsProperPair() && !bamAlignment.IsDuplicate()){
+			continue;
+			//alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
+		}
 		else {
 			//if on new chromosome, empty storage
 			if(curChr != bamAlignment.RefID){
@@ -2255,22 +2257,30 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									alignmentPointer->AlignedBases = alignment;
 									alignmentPointer->AlignedQualities = quality;
 								}
-
 								//update
+
 								alignmentPointer->QueryBases = alignmentPointer->AlignedBases;
 								alignmentPointer->Qualities = alignmentPointer->AlignedQualities;
 								alignmentPointer->Length = alignmentPointer->AlignedBases.size();
 								alignmentPointer->CigarData.clear();
 								alignmentPointer->CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, alignmentPointer->Length));
 								alignmentPointer->SetIsFirstMate(false);
+								alignmentPointer->SetIsSecondMate(false);
 								alignmentPointer->SetIsPaired(false);
 								alignmentPointer->SetIsProperPair(false);
-								alignmentPointer->SetIsSecondMate(false);
 								alignmentPointer->SetIsMateReverseStrand(false);
 								alignmentPointer->SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
+								alignmentPointer->MateRefID = -1;
+								alignmentPointer->MatePosition = -1;
+								alignmentPointer->InsertSize = 0;
+//								std::cout << "MateRefID " << alignmentPointer->MateRefID << std::endl;
+//								std::cout << "alignmentPointer->MatePosition: " << alignmentPointer->MatePosition << std::endl;
+//								std::cout << "alignmentPointer->MateRefID: " << alignmentPointer->MateRefID << std::endl;
+//								std::cout << "alignmentPointer->InsertSize: " << alignmentPointer->InsertSize << std::endl;
+
 
 								it->second = true;
-								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
+//								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){
@@ -2278,7 +2288,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									for(; it != alignmentStorage.end(); ++it){
 										if(it->second){
 											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
-											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
+//											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
 
 											delete it->first;
 										} else {
@@ -2319,7 +2329,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			runtime = (end.tv_sec  - start.tv_sec)/60.0;
 			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 		}
-	//	if(counter==1200000) break;
+//		if(counter==1200000) break;
 	}
 
 	//close bam writer
