@@ -1305,8 +1305,7 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 
 bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, std::map <std::string, int> & mateTooLong){
 	//variables
-	char base, quality;
-	int newQual= -1;
+	char base, quality, newQual;
 	BaseContext context;
 	int posInRead, revPosInRead;
 	double pmdCT, pmdGA;
@@ -1338,11 +1337,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
 							newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-							if(newQual <= maxQuality) qual += newQual;
-							else{
-								std::cout << "else newQual" << newQual << std::endl;
-								qual += 'K';
-							}
+							if((int)newQual <= maxQuality) qual += newQual;
+							else qual += 'K';
 						} else qual += quality;
 					} else qual += quality;
 				}
@@ -1363,11 +1359,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
 							newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-							if(newQual <= maxQuality) qual += newQual;
-							else {
-								std::cout << "else newQual" << newQual << std::endl;
-								qual += 'K';
-							}
+							if((int)newQual <= maxQuality) qual += newQual;
+							else qual += 'K';
 						} else qual += quality;
 					} else qual += quality;
 				}
@@ -1393,7 +1386,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 
 						//get new quality
 						newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-						if(newQual <= maxQuality) qual += newQual;
+						if((int)newQual <= maxQuality) qual += newQual;
 						else qual += 'K';
 					} else qual += quality;
 				} else qual += quality;
@@ -1414,7 +1407,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 
 						//get new quality
 						newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-						if(newQual <= maxQuality) qual += newQual;
+						if((int)newQual <= maxQuality) qual += newQual;
 						else qual += 'K';
 					} else qual += quality;
 				} else qual += quality;
