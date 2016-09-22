@@ -1465,7 +1465,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	gettimeofday(&end, NULL);
 	runtime = (end.tv_sec  - start.tv_sec)/60.0;
 	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-	logfile->list("Reached end of BAm file!");
+	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
 
@@ -2188,7 +2188,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-		if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0 && bamAlignment.IsProperPair() && !bamAlignment.IsDuplicate()){
+		if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
+			std::cout << "filtered out because of adapter " << bamAlignment.Name << std::endl;
+			readsToOmit.insert(make_pair(bamAlignment.Name, 1));
+		}
+		else if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0 || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate()){
 			continue;
 			//alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 		}
@@ -2219,14 +2223,15 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								alignmentPointer = it->first;
 								if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
 									//reads do not overlap -> add Ns in between
-									int numN = bamAlignment.Position - alignmentPointer->Position + alignmentPointer->AlignedBases.size() - 1;
+									//int numN = bamAlignment.Position - (alignmentPointer->Position + alignmentPointer)->AlignedBases.size() - 1;
+									int numN = abs(bamAlignment.InsertSize) - bamAlignment.AlignedBases.size() - alignmentPointer->AlignedBases.size();
 									for(int i=0; i<numN; ++i){
 										alignmentPointer->AlignedBases += 'N';
 										alignmentPointer->AlignedQualities += '!';
 									}
 									alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
 									alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
-								} else if(bamAlignment.Position < alignmentPointer->Position) throw "Second mate of read '" + bamAlignment.Name + "' has pos < pos of first mate!";
+								} else if(bamAlignment.Position < alignmentPointer->Position) std::cout << "Second mate of read '" << bamAlignment.Name << "' has pos < pos of first mate!";
 								else {
 									//reads do overlap -> merge them
 									std::string alignment;
@@ -2257,6 +2262,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 										alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
 										quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
 									}
+									if(alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size!";
 
 									//set
 									alignmentPointer->AlignedBases = alignment;
@@ -2278,10 +2284,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								alignmentPointer->MateRefID = -1;
 								alignmentPointer->MatePosition = -1;
 								alignmentPointer->InsertSize = 0;
-//								std::cout << "MateRefID " << alignmentPointer->MateRefID << std::endl;
-//								std::cout << "alignmentPointer->MatePosition: " << alignmentPointer->MatePosition << std::endl;
-//								std::cout << "alignmentPointer->MateRefID: " << alignmentPointer->MateRefID << std::endl;
-//								std::cout << "alignmentPointer->InsertSize: " << alignmentPointer->InsertSize << std::endl;
 
 
 								it->second = true;
@@ -2294,7 +2296,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 										if(it->second){
 											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
 //											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
-
 											delete it->first;
 										} else {
 											//first that can not be written -> erase all previous ones!
@@ -2305,14 +2306,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									if(it == alignmentStorage.end()){
 										alignmentStorage.clear();
 									}
-								}
-								break;
+								} break;
 							}
 						}
-
 						if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
-
-
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;
@@ -2334,7 +2331,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			runtime = (end.tv_sec  - start.tv_sec)/60.0;
 			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 		}
-//		if(counter==1200000) break;
 	}
 
 	//close bam writer
