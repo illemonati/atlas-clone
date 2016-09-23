@@ -572,7 +572,7 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 
 		//print reference and alt allele
 		out << "\t.\t" << referenceBase;
-		if(noAltIfHomoRef) out << "\t.";
+		if(noAltIfHomoRef && MLGenotype == 0) out << "\t.";
 		else out << "\t" << alt;
 
 		//print (no) variant quality and (no) filter
@@ -1047,14 +1047,15 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 	if(hasData){
 		//print reference and alternative allele
 		out << "\t.\t" << referenceBase;
-		if(noAltIfHomoRef) out << "\t.";
-		else out << "\t" << alt;
 		//out << "\t(" << getBases() << ")"; //printing data for debugging
 
 		//calculate posterior probability for each genotype
 		double postProbAllele[2];
 		int MAPAllele, R_AD=0, A_AD=0;
 		calculatePosteriorOnAllelePresenceKnownAlleles(pGenotype, alt, genoMap, randomGenerator, postProbAllele, MAPAllele);
+
+		if(noAltIfHomoRef && MAPAllele ==0 ) out << "\t.";
+		else out << "\t" << alt;
 
 		//calculate AD
 		for(unsigned int i=0; i<basesString.size(); ++i){
