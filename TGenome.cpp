@@ -644,6 +644,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		limitToSitesWithKnownAlleles = true;
+		if(params.parameterExists("noAltIfHomoRef")){
+			noAltIfHomoRef = true;
+			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
 	} else {
 		if(params.parameterExists("printAll")){
 			printIfNoData = true;

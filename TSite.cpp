@@ -1077,7 +1077,7 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 		if(MAPAllele == 0) out << "\tGT:AD:DP:GQ:PP\t0:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 		else out << "\tGT:AD:DP:GQ:PP\t1:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 	} else {
-		out << "\t.\t" << referenceBase << "\t" << alt << "\t.\t.\t.\tGT:DP\t.:0";
+		out << "\t.\t" << referenceBase << "\t" << "." << "\t.\t.\t.\tGT:DP\t.:0";
 	}
 }
 
