@@ -1074,7 +1074,7 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 
 		//print chosen genotype and coverage and all posterior probabilities
 		std::string genoVCF;
-		if(MAPAllele == 0) out << "\tGT:AD:DP:GQ:PP\t0:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(makePhred(postProbAllele[0])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
+		if(MAPAllele == 0) out << "\tGT:AD:DP:GQ:PP\t0:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(1.0 - makePhred(postProbAllele[0])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 		else out << "\tGT:AD:DP:GQ:PP\t1:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 	} else {
 		out << "\t.\t" << referenceBase << "\t" << "." << "\t.\t.\t.\tGT:DP\t.:0";
