@@ -257,7 +257,7 @@ public:
 	long numSitesAdded;
 	int maxCoverage; //sites with higher coverage will be ignored
 
-	TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile);
+	TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & params, TLog* Logfile);
 	~TRecalibrationEM(){
 		for(int i=0; i<numReadGroups; ++i){
 			delete[] params[i];

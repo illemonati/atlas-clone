@@ -464,7 +464,7 @@ void TRecalibrationEMWindow::addToJacobianAndF(arma::mat & Jacobian, arma::vec &
 //---------------------------------------------------------------
 //TRecalibrationEM
 //---------------------------------------------------------------
-TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters & args, TLog* Logfile){
+TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile){
 	//create data structure to store q_ikl for each observation
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
@@ -502,7 +502,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TParameters &
 	estimatetionRequired = false;
 	if(args.parameterExists("recal")){
 		//read parameters from file
-		std::string filename = args.getParameterString("recal");
+		std::string filename = name;
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
 		std::ifstream file(filename.c_str());
 		if(!file) throw "Failed to open file '" + filename + "' for reading!";

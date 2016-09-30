@@ -402,7 +402,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		while(file.good() && !file.eof()){
 			++lineNum;
 			//skip empty lines or those that start with //
-			std::getline(file, line);
+//			std::getline(file, line);
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
@@ -443,7 +443,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 
 void TGenome::initializeRecalibration(TParameters & params){
 	if(params.parameterExists("recal")){
-		recalObject = new TRecalibrationEM(&bamHeader, params, logfile);
+		std::string filename = params.getParameterString("recal");
+		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile);
 		doRecalibration = true;
 	} else if(params.parameterExists("BQSRQuality")){
 		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
@@ -1034,7 +1035,10 @@ void TGenome::printPileup(TParameters & params){
 
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	TRecalibrationEM recalObjectEM(&bamHeader, params, logfile);
+	std::string filename;
+	if(params.parameterExists("recal")) filename = params.getParameterString("recal");
+	else filename = "empty";
+	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile);
 	if(!recalObjectEM.estimatetionRequired){
 		logfile->list("No need to estimate anything. Aborting Program.");
 		return;
@@ -1083,7 +1087,8 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 
 void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	TRecalibrationEM recalObjectEM(&bamHeader, params, logfile);
+	std::string filename = "empty";
+	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile);
 
 	//prepare windows
 	TWindowPairHaploid windows;
@@ -1228,27 +1233,35 @@ void TGenome::BQSR(TParameters & params){
 
 void TGenome::printQualityTransformation(TParameters & params){
 	//initialize recalibration
-	initializeRecalibration(params);
-
 	//compare to a second recalibration definition?
-	/*
-	if(params.parameterExists("recal2")){
-			recalObject = new TRecalibrationEM(&bamHeader, params, logfile);
-			doRecalibration = true;
-		} else if(params.parameterExists("BQSRQuality")){
-			recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
-			doRecalibration = true;
-		} else {
-			logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-			doRecalibration = false;
-			recalObject = new TRecalibration();
-		}
-		recalObjectInitialized = true;
+	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
 
-		//check if estimation is required, in which case throw an error!
-		if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
-	---------------------------------------------------------------------
-*/
+	if(params.parameterExists("recal")){
+		std::string nameRecal = params.getParameterString("recal");
+		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile);
+		if(params.parameterExists("recal2")){
+			std::string nameRecal2 = params.getParameterString("recal2");
+			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile);
+			doRecalibration2 = true;
+			recalObjectInitialized2 = true;
+		} else if(params.parameterExists("BQSRQuality")){
+			recalObject2 = new TRecalibrationBQSR(&bamHeader, params, logfile);
+			doRecalibration2 = true;
+			recalObjectInitialized2 = true;
+		}
+	} else if(params.parameterExists("BQSRQuality")){
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile);
+		doRecalibration = true;
+	} else {
+		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+		doRecalibration = false;
+		recalObject = new TRecalibration();
+	}
+	recalObjectInitialized = true;
+
+	//check if estimation is required, in which case throw an error!
+	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+
 
 
 	//prepare windows
@@ -1267,7 +1280,8 @@ void TGenome::printQualityTransformation(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
-				windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
+				if(recalObjectInitialized2) windows.cur->addSitesToQualityTransformTable(recalObject, recalObject2, QT, logfile);
+				else windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
 			}
 		}
 	}

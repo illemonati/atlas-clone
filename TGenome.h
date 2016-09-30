@@ -34,8 +34,12 @@ private:
 	TPMD* pmdObjects;
 	bool hasPMD;
 	TRecalibration* recalObject;
+	TRecalibration* recalObject2;
 	bool doRecalibration;
+	bool doRecalibration2;
 	bool recalObjectInitialized;
+	bool recalObjectInitialized2;
+
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
