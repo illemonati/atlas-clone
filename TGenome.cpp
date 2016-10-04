@@ -1137,6 +1137,15 @@ void TGenome::BQSR(TParameters & params){
 	bool printTmpTables = params.parameterExists("writeTmpTables");
 	if(printTmpTables) logfile->list("Temporary BQSR tables will be written to disk.");
 
+	//do we consider only specific sites?
+	bool invariantSites = false;
+	TSiteSubset* subset = NULL;
+
+	if(params.parameterExists("sites")){
+		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		invariantSites = true;
+	}
+
 	/*
 	//check if we use first chromosome for initial convergence
 	if(params.parameterExists("preConverge")){
@@ -1199,6 +1208,7 @@ void TGenome::BQSR(TParameters & params){
 		if(!bqsr.dataHasBeenStored()){
 			logfile->startIndent("Reading data from BAM file:");
 			while(iterateChromosome(windows)){
+				if(invariantSites) subset->setChr(chrIterator->Name);
 				while(iterateWindow(windows)){
 					//read data for current window
 					if(readData(windows)){
@@ -1206,7 +1216,8 @@ void TGenome::BQSR(TParameters & params){
 						windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
 						//add the base to BQSR
-						windows.cur->addSitesToBQSR(bqsr, logfile);
+						if(invariantSites) windows.cur->addSitesToBQSR(bqsr, subset, logfile);
+						else windows.cur->addSitesToBQSR(bqsr, logfile);
 					}
 				}
 			}

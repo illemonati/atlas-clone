@@ -404,6 +404,23 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
 	logfile->write(" done!");
 }
 
+void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile){
+	logfile->listFlush("Adding sites to BQSR ...");
+	//now only run over sites listed in that window
+	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+	int pos;
+	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+		pos = it->first - start;
+		sites->setRefBase(it->second.second);
+		std::cout << it->first << " has ref " << it->second.second <<std::endl;
+		if(sites[pos].hasData){
+			bqsr.addSite(sites[pos]);
+		}
+	}
+	logfile->write(" done!");
+
+}
+
 void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile){
 	logfile->listFlush("Adding sites to quality transformation table ...");
 	std::vector<TBase*>::iterator it;
