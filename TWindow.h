@@ -148,6 +148,7 @@ public:
 	void initSites(long newLength);
 	double calcLogLikelihood();
 	void addToRecalibrationEM(TRecalibrationEM & recalObject);
+	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset);
 	void addToExpectedBaseCounts(TRecalibration* recalObject, double** expectedCounts);
 	void calculatePoolFreqLikelihoods(int & numChromosomes, Base** majorMinor, gz::ogzstream & out, std::string & chr, bool printAll);
 };

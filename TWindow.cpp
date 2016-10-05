@@ -412,7 +412,6 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
 		sites->setRefBase(it->second.second);
-		std::cout << it->first << " has ref " << it->second.second <<std::endl;
 		if(sites[pos].hasData){
 			bqsr.addSite(sites[pos]);
 		}
@@ -1121,6 +1120,21 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			recalObject.addSite(sites[i]);
+		}
+	}
+}
+
+void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset){
+	estimateBaseFrequencies();
+	recalObject.addNewWindow(&baseFreq);
+	//now only run over sites listed in that window
+	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+	int pos;
+	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+		pos = it->first - start;
+		sites->setRefBase(it->second.second); //sometimes reference base is 0 in our sites file.
+		if(sites[pos].hasData){
+			recalObject.addSite(sites[pos]);
 		}
 	}
 }

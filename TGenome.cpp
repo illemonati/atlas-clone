@@ -1044,17 +1044,33 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		return;
 	}
 
+	//do we consider only specific sites?
+	bool invariantSites = false;
+	TSiteSubset* subset = NULL;
+
+	if(params.parameterExists("sites")){
+		if(!fastaReference) throw "Need the reference to run recal with \"sites\"!";
+		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+	//	subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		invariantSites = true;
+	}
+
+
 	//prepare windows
 	TWindowPairHaploid windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
 	while(iterateChromosome(windows)){
+		if(invariantSites) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				windows.cur->addToRecalibrationEM(recalObjectEM);
-			}
+			if((invariantSites && subset->hasPositionsInWindow(windows.cur->start)) || !invariantSites){
+				//read data for current window
+				if(readData(windows)){
+					if(invariantSites) windows.cur->addToRecalibrationEM(recalObjectEM, subset);
+					else windows.cur->addToRecalibrationEM(recalObjectEM);
+				}
+			} else logfile->list("No positions in this window.");
 		}
 	}
 	//clean up memory
@@ -1210,15 +1226,17 @@ void TGenome::BQSR(TParameters & params){
 			while(iterateChromosome(windows)){
 				if(invariantSites) subset->setChr(chrIterator->Name);
 				while(iterateWindow(windows)){
-					//read data for current window
-					if(readData(windows)){
-						//add reference data
-						windows.cur->addReferenceBaseToSites(reference, chrNumber);
+					if((invariantSites && subset->hasPositionsInWindow(windows.cur->start)) || !invariantSites){
+						//read data for current window
+						if(readData(windows)){
+							//add reference data
+							windows.cur->addReferenceBaseToSites(reference, chrNumber);
 
-						//add the base to BQSR
-						if(invariantSites) windows.cur->addSitesToBQSR(bqsr, subset, logfile);
-						else windows.cur->addSitesToBQSR(bqsr, logfile);
-					}
+							//add the base to BQSR
+							if(invariantSites) windows.cur->addSitesToBQSR(bqsr, subset, logfile);
+							else windows.cur->addSitesToBQSR(bqsr, logfile);
+						}
+					} else logfile->list("No positions in this window.");
 				}
 			}
 			//clean up memory

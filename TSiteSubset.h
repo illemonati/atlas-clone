@@ -341,7 +341,6 @@ public:
 	bool hasPositionsInWindow(const long & windowStart){
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()){
-			std::cout << "false here" << std::endl;
 			return false;
 		}
 		else return chrIt->second->hasPositionsInWindow(windowStart);
