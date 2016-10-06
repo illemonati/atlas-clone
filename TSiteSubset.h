@@ -95,7 +95,7 @@ public:
 		}
 	};
 
-	void addPosition(std::vector<std::string> & tmp, const std::string & chr){
+	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -113,7 +113,8 @@ public:
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
-		if(ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(!invariantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(invariantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
 
 		//identify window
 		findOrCreateWindow(pos);
@@ -194,6 +195,7 @@ private:
 	std::map<std::string, TSiteSubsetChr*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
+	bool invariantSites;
 
 	void readFile(TLog* logfile){
 		logfile->listFlush("Reading sites to be used from '" + filename + "' ...");
@@ -225,7 +227,7 @@ private:
 				}
 
 				//add positions
-				chrIt->second->addPosition(vec, chrIt->first);
+				chrIt->second->addPosition(vec, chrIt->first, invariantSites);
 			}
 		}
 
@@ -302,14 +304,14 @@ private:
 
 		//close file
 		sitesFile.close();
-
 	};
 
 public:
 	std::string filename;
-	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile){
+	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
+		invariantSites = InvariantSites;
 		readFile(logfile);
 		curChr = "";
 	};

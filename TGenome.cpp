@@ -643,7 +643,10 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		else {
+			bool invariantSites = false;
+			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		}
 		limitToSitesWithKnownAlleles = true;
 		if(params.parameterExists("noAltIfHomoRef")){
 			noAltIfHomoRef = true;
@@ -773,7 +776,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		else {
+			bool invariantSites = false;
+			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		}
 		limitToSitesWithKnownAlleles = true;
 	} else {
 		printIfNoData = params.parameterExists("printAll");
@@ -891,7 +897,10 @@ void TGenome::callAllelePresence(TParameters & params){
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
+		else {
+			bool invariantSites = false;
+			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		}
 		limitToSitesWithKnownAlleles = true;
 	} if(params.parameterExists("noAltIfHomoRef")){
 		noAltIfHomoRef = true;
@@ -1045,14 +1054,13 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	}
 
 	//do we consider only specific sites?
-	bool invariantSites = false;
 	TSiteSubset* subset = NULL;
+	bool invariantSites = false;
 
 	if(params.parameterExists("sites")){
-		if(!fastaReference) throw "Need the reference to run recal with \"sites\"!";
-		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-	//	subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		invariantSites = true;
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 	}
 
 

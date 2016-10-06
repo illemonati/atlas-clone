@@ -411,8 +411,8 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 	int pos;
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
-		sites->setRefBase(it->second.second);
 		if(sites[pos].hasData){
+			sites[pos].setRefBase(it->second.second);
 			bqsr.addSite(sites[pos]);
 		}
 	}
@@ -1132,8 +1132,8 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteS
 	int pos;
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
-		sites->setRefBase(it->second.second); //sometimes reference base is 0 in our sites file.
 		if(sites[pos].hasData){
+			sites[pos].setRefBase(it->second.second);
 			recalObject.addSite(sites[pos]);
 		}
 	}
