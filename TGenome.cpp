@@ -642,11 +642,9 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else {
-			bool invariantSites = false;
-			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		}
+		bool invariantSites = false;
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 		if(params.parameterExists("noAltIfHomoRef")){
 			noAltIfHomoRef = true;
@@ -775,11 +773,9 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool printIfNoData = true;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else {
-			bool invariantSites = false;
-			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		}
+		bool invariantSites = false;
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 	} else {
 		printIfNoData = params.parameterExists("printAll");
@@ -896,11 +892,9 @@ void TGenome::callAllelePresence(TParameters & params){
 	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		else {
-			bool invariantSites = false;
-			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		}
+		bool invariantSites = false;
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 	} if(params.parameterExists("noAltIfHomoRef")){
 		noAltIfHomoRef = true;
@@ -1059,7 +1053,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 
 	if(params.parameterExists("sites")){
 		invariantSites = true;
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 	}
 
@@ -1166,7 +1160,7 @@ void TGenome::BQSR(TParameters & params){
 	TSiteSubset* subset = NULL;
 
 	if(params.parameterExists("sites")){
-		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
+		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		invariantSites = true;
 	}
 

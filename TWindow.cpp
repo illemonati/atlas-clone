@@ -1133,7 +1133,6 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteS
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
 		if(sites[pos].hasData){
-			sites[pos].setRefBase(it->second.second);
 			recalObject.addSite(sites[pos]);
 		}
 	}
