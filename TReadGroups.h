@@ -99,13 +99,6 @@ public:
 		return false;
 	};
 
-	void setReadGroupsInUse(std::vector<std::string> vec){
-		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
-			if(inUse[find(*it)]) inUse[find(*it)] = true;
-			else inUse[find(*it)] = false;
-		}
-	}
-
 	bool readGroupInUse(BamTools::BamAlignment & alignment){
 		return inUse[find(alignment)];
 	}
