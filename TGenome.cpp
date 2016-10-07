@@ -155,6 +155,21 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
 
+	//limit readGroups
+	if(params.parameterExists("readGroup")){
+		limitReadGroups = true;
+		fillVectorFromString(params.getParameterString("readGroup"), readGroupsInUse, ',');
+		logfile->startIndent("Will limit analysis to the following read groups:");
+		for(std::vector<std::string>::iterator it=readGroupsInUse.begin(); it!=readGroupsInUse.end(); ++it){
+			if(readGroups.inUse[readGroups.find(*it)]) {
+				readGroups.inUse[readGroups.find(*it)] = true;
+				logfile->list(*it);
+			}
+			else readGroups.inUse[readGroups.find(*it)] = false;
+		}
+		logfile->endIndent();
+	} else limitReadGroups = false;
+
 };
 
 void TGenome::jumpToEnd(){
@@ -293,24 +308,27 @@ bool TGenome::readData(TWindowPair & windowPair){
 
 	while(bamReader.GetNextAlignment(bamAlignment) && bamAlignment.RefID==chrNumber){
 
-		//filter out unmapped reads and those that did not pass QC
-		if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
+		if(limitReadGroups && readGroups.readGroupInUse(bamAlignment)){
 
-			//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
-			//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
+			//filter out unmapped reads and those that did not pass QC
+			if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
 
-				//check if insert size is shorter than read, this means we are reading the adaptor sequence
-				if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
+				//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
+				//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
 
-					if(!addAlignementToWindows(bamAlignment, windowPair)){
+					//check if insert size is shorter than read, this means we are reading the adaptor sequence
+					if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 
-						//read is beyond window and should be reconsidered
-						oldAlignementMustBeConsidered = true;
-						break;
+						if(!addAlignementToWindows(bamAlignment, windowPair)){
+
+							//read is beyond window and should be reconsidered
+							oldAlignementMustBeConsidered = true;
+							break;
+						}
 					}
-				}
-				else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-			//}
+					else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+				//}
+			}
 		}
 	}
 

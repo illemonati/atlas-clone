@@ -73,6 +73,8 @@ private:
  	long limitWindows;
  	int limitChr;
  	bool* useChromosome;
+ 	bool limitReadGroups;
+ 	std::vector<std::string> readGroupsInUse;
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);

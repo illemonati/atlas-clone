@@ -47,15 +47,20 @@ public:
 	readGroup* groups;
 	int numGroups;
 	bool initialized;
+	bool* inUse;
 
 	TReadGroups(){
 		initialized = false;
 		numGroups = 0;
 		groups = NULL;
+		inUse = new bool[numGroups];
 	};
 
 	~TReadGroups(){
-		if(initialized) delete[] groups;
+		if(initialized){
+			delete[] groups;
+			delete[] inUse;
+		}
 	};
 
 	void fill(BamTools::SamHeader & bamHeader){
@@ -69,6 +74,7 @@ public:
 			groups[i].id = i;
 			groups[i].name = it->ID;
 			groups[i].object= &(*it);
+			inUse[i] = true;
 		}
 		initialized = true;
 	};
@@ -92,6 +98,17 @@ public:
 		}
 		return false;
 	};
+
+	void setReadGroupsInUse(std::vector<std::string> vec){
+		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
+			if(inUse[find(*it)]) inUse[find(*it)] = true;
+			else inUse[find(*it)] = false;
+		}
+	}
+
+	bool readGroupInUse(BamTools::BamAlignment & alignment){
+		return inUse[find(alignment)];
+	}
 
 	std::string getName(int num){
 		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
