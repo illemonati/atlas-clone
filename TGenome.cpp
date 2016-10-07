@@ -163,7 +163,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		for(int i=0; i < readGroups.numGroups; i++){
 			if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), readGroups.getName(i)) != readGroupsInUse.end()){
 				readGroups.inUse[i] = true;
-				std::cout << readGroups.getName(i) << " is set to true";
 			} else readGroups.inUse[i] = false;
 		}
 		logfile->endIndent();
