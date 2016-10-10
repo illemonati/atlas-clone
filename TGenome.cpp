@@ -306,7 +306,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 
 	while(bamReader.GetNextAlignment(bamAlignment) && bamAlignment.RefID==chrNumber){
 
-		if(limitReadGroups && readGroups.readGroupInUse(bamAlignment)){
+		if(readGroups.readGroupInUse(bamAlignment)){
 
 			//filter out unmapped reads and those that did not pass QC
 			if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
