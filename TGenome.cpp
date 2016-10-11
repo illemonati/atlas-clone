@@ -418,7 +418,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		while(file.good() && !file.eof()){
 			++lineNum;
 			//skip empty lines or those that start with //
-//			std::getline(file, line);
+			std::getline(file, line);
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
