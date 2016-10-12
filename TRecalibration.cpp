@@ -1670,7 +1670,6 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
-				std::cout << "dePhred(quality) " << dePhred(quality) << std::endl;
 				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), vec[4]);
 			}
 		}
