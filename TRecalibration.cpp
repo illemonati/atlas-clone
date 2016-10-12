@@ -1097,6 +1097,8 @@ float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
 }
 
 void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold){
+	if(F != F) throw "F is not a number!";
+
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
@@ -1192,6 +1194,7 @@ void TBQSR_cell::addBase(TBase* base, Base & RefBase){
 
 void TBQSR_cell::addToDerivatives(float & D){
 	float oneMinus4D = 1.0 - 4.0 * D;
+	if(curEstimate >= 1.0) curEstimate = 0.999999;
 	firstDerivative += oneMinus4D / (-4.0*D*curEstimate + 3.0*D + curEstimate);
 	float tmpF = oneMinus4D / (D*(3.0-4.0*curEstimate) + curEstimate);
 	secondDerivative -= tmpF * tmpF;
@@ -1247,6 +1250,7 @@ void TBQSR_cell::recalculateLLFromDataInMemory(){
 void TBQSR_cell::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
 	//need Newton-Raphson to estimate epsilon
 	float oldEstimate = curEstimate;
+
 	runNewtonRaphson(convergenceThreshold);
 
 	//check boundaries
@@ -1284,6 +1288,7 @@ bool TBQSR_cell::estimate(float & convergenceThreshold, float & minEpsilon, long
 			curEstimate = 0.0;
 			estimationConverged = true;
 		} else if(numMatches < 1.0){ // epsilon = 1.0
+			std::cout << "numMatches < 1" << std::endl;
 			curEstimate = 1.0;
 			estimationConverged = true;
 		} else {
@@ -1665,6 +1670,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
+				std::cout << "dePhred(quality) " << dePhred(quality) << std::endl;
 				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), vec[4]);
 			}
 		}
@@ -2164,6 +2170,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
+				std::cout << "BQSR_cells_readGroup_position[i][p].F "<<BQSR_cells_readGroup_position[i][p].F << std::endl;
 				if(!BQSR_cells_readGroup_position[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_position[i][p].F > maxF) maxF = BQSR_cells_readGroup_position[i][p].F;
