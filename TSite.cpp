@@ -489,8 +489,8 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 		delete[] emissionProbabilitiesPhredScaled;
 	} else {
-//		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
-		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
+		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t0/0:0";
+		else out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
 
