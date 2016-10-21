@@ -148,7 +148,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->endIndent();
 	} else {
 		limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
-		if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
+		if(params.parameterExists("limitChr")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
 		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
 			useChromosome[i] = true;
 	}
