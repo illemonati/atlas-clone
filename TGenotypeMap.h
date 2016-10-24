@@ -81,10 +81,6 @@ public:
 		if(base == C) return 'C';
 		if(base == G) return 'G';
 		if(base == T) return 'T';
-		if(base == 'a') return A;
-		if(base == 'c') return C;
-		if(base == 'g') return G;
-		if(base == 't') return T;
 		return 'N';
 	};
 
