@@ -53,7 +53,7 @@ public:
 		initialized = false;
 		numGroups = 0;
 		groups = NULL;
-		inUse = new bool[numGroups];
+		inUse = NULL;
 	};
 
 	~TReadGroups(){
@@ -69,6 +69,7 @@ public:
 		//create and fill array
 		numGroups = bamHeader.ReadGroups.Size();
 		groups = new readGroup[numGroups];
+		inUse = new bool[numGroups];
 		int i = 0;
 		for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
 			groups[i].id = i;

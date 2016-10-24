@@ -148,7 +148,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->endIndent();
 	} else {
 		limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
-		if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
+		if(params.parameterExists("limitChr")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
 		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
 			useChromosome[i] = true;
 	}
@@ -2257,7 +2257,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			std::cout << "filtered out because of adapter " << bamAlignment.Name << std::endl;
 			readsToOmit.insert(make_pair(bamAlignment.Name, 1));
 		}
-		else if(blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0 || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate()){
+		else if((blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0) || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate()){
 			continue;
 			//alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 		}
