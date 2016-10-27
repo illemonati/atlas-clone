@@ -1396,10 +1396,10 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
 							else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
 
-							posInRead = len - pos - 1;
-							revPosInRead = abs(alignment.InsertSize)-len+pos;
-							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+							posInRead = abs(alignment.InsertSize)-len+pos;
+							revPosInRead = len - pos - 1;
+							pmdCT = pmdObjects[readGroupId].getProbGA(posInRead);
+							pmdGA = pmdObjects[readGroupId].getProbCT(revPosInRead);
 
 							newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 							if((int)newQual <= maxQuality) qual += newQual;
@@ -1446,8 +1446,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+						pmdCT = pmdObjects[readGroupId].getProbGA(posInRead);
+						pmdGA = pmdObjects[readGroupId].getProbCT(revPosInRead);
 
 						//get new quality
 						newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
@@ -1834,7 +1834,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases[pos];
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 						quality = bamAlignment.AlignedQualities[pos];
-						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 							readBase = genoMap.flipBase(base);
 							//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 							refBase = genoMap.flipBase(ref[internalPos]);
@@ -1852,7 +1852,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 					base = bamAlignment.AlignedBases[pos];
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						quality = bamAlignment.AlignedQualities[pos];
-						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality dies not make sense
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 							readBase = genoMap.getBase(base);
 							refBase = genoMap.getBase(ref[internalPos]);
 
