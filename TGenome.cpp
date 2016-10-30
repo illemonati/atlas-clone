@@ -2079,9 +2079,9 @@ void TGenome::runPMDS(TParameters & params){
 
 	//tmp variables
 	int len;
-	char base, refBase, quality;
+	char base, baseFlipped, refBase, refBaseFlipped, quality;
 	BaseContext context;
-	int posInRead, revPosInRead;
+	int distFrom5Prime, distFrom3Prime;
 	double pmdCT, pmdGA, qual=-1.0;
 	int readGroupId;
 	TGenotypeMap genoMap;
@@ -2118,56 +2118,98 @@ void TGenome::runPMDS(TParameters & params){
 		//paired-end
 		if(bamAlignment.IsProperPair()){
 			if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.size()){
-				for(int pos = 0; pos < len; ++pos){
-					base = bamAlignment.AlignedBases[pos];
-					refBase = ref[bamAlignment.Position-begin+pos];
-					if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
-						quality = bamAlignment.AlignedQualities[pos];
+				if(bamAlignment.IsReverseStrand()){
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.AlignedBases.at(pos);
+						baseFlipped = genoMap.flipBase(bamAlignment.AlignedBases[pos]);
+						refBaseFlipped = genoMap.flipBase(ref[bamAlignment.Position-begin+pos]);
+						if((baseFlipped == 'A' || baseFlipped == 'C' || baseFlipped == 'G' || refBaseFlipped == 'T') && (refBaseFlipped == 'A' || refBaseFlipped == 'C' || refBaseFlipped == 'G' || refBaseFlipped == 'T')){ //skip any other
+							quality = bamAlignment.AlignedQualities[pos];
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+								if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
+								else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos+1), base);
+								distFrom5Prime = len - pos - 1; //is this 5' of the read?
+								distFrom3Prime = abs(bamAlignment.InsertSize) - len + pos;
+								pmdCT = pmdObjects[readGroupId].getProbGA(distFrom5Prime); //the main pattern we want to correct for is pmdCT. why not distance from 3'?
+								pmdGA = pmdObjects[readGroupId].getProbCT(distFrom3Prime);
+								qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
 
-						if(bamAlignment.IsReverseStrand()){
-							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-							else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos+1), base);
-							posInRead = len - pos - 1;
-							revPosInRead = abs(bamAlignment.InsertSize) - len + pos;
-						} else {
-							if(pos == 0) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos-1), base);
-							posInRead = pos;
-							revPosInRead = abs(bamAlignment.InsertSize) - pos - 1;
+								PMDS += log(calculatePMDS(readGroupId, refBaseFlipped, baseFlipped, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+
+							}
 						}
-						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-						qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-						PMDS += log(calculatePMDS(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+					}
+				} else {
+					for(int pos = 0; pos < len; ++pos){
+						base = bamAlignment.AlignedBases[pos];
+						refBase = ref[bamAlignment.Position-begin+pos];
+						if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
+							quality = bamAlignment.AlignedQualities[pos];
+							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+								if(pos == 0) context = genoMap.getContext('N', base);
+								else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos-1), base);
+								distFrom5Prime = pos;
+								distFrom3Prime = abs(bamAlignment.InsertSize) - pos - 1;
+								pmdCT = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
+								pmdGA = pmdObjects[readGroupId].getProbGA(distFrom3Prime);
+								qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
+
+								PMDS += log(calculatePMDS(readGroupId, refBase, base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+							}
+						}
 					}
 				}
+
+
 			} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 		}
 		//single-end
 		else{
-			for(int pos = 0; pos < len; ++pos){
-				base = bamAlignment.AlignedBases[pos];
-				refBase = ref[bamAlignment.Position-begin+pos];
-				if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
-			//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
-					quality = bamAlignment.AlignedQualities[pos];
-					if(bamAlignment.IsReverseStrand()){
-						if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos+1), base);
-						posInRead = len - pos - 1;
-						revPosInRead = pos;
-					} else {
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos-1), base);
-						posInRead = pos;
-						revPosInRead = len - pos - 1;
-					}
-					pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
-					pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
-					qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+			if(bamAlignment.IsReverseStrand()){
+				for(int pos = 0; pos < len; ++pos){
+					base = bamAlignment.AlignedBases.at(pos);
+					baseFlipped = genoMap.flipBase(bamAlignment.AlignedBases.at(pos));
+					refBaseFlipped = genoMap.flipBase(ref.at(bamAlignment.Position-begin+pos));
+					if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBaseFlipped == 'A' || refBaseFlipped == 'C' || refBaseFlipped == 'G' || refBaseFlipped == 'T')){ //skip any other
+				//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
+						quality = bamAlignment.AlignedQualities.at(pos);
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
+							else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos+1), base);
+							distFrom5Prime = len - pos - 1;
+							distFrom3Prime = pos;
 
-					PMDS += log(calculatePMDS(readGroupId, ref[bamAlignment.Position-begin+pos], base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+							pmdCT = pmdObjects[readGroupId].getProbGA(distFrom3Prime);
+							pmdGA = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
+
+							qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
+
+							PMDS += log(calculatePMDS(readGroupId, refBaseFlipped, baseFlipped, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+						}
+					}
+				}
+			} else {
+				for(int pos = 0; pos < len; ++pos){
+					base = bamAlignment.AlignedBases.at(pos);
+					refBase = ref.at(bamAlignment.Position-begin+pos);
+					if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
+				//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
+						quality = bamAlignment.AlignedQualities[pos];
+						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+
+							if(pos == 0) context = genoMap.getContext('N', base);
+							else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos-1), base);
+							distFrom5Prime = pos;
+							distFrom3Prime = len - pos - 1;
+
+							pmdCT = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
+							pmdGA = pmdObjects[readGroupId].getProbGA(distFrom3Prime);
+							qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
+
+							PMDS += log(calculatePMDS(readGroupId, refBase, base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+						}
+					}
 				}
 			}
 		}
