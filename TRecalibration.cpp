@@ -2169,7 +2169,6 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 		for(int i=0; i<numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
-				std::cout << "BQSR_cells_readGroup_position[i][p].F "<<BQSR_cells_readGroup_position[i][p].F << std::endl;
 				if(!BQSR_cells_readGroup_position[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){
 					++numCellsNotConverged;
 					if(BQSR_cells_readGroup_position[i][p].F > maxF) maxF = BQSR_cells_readGroup_position[i][p].F;
