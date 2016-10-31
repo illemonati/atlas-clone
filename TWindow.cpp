@@ -122,6 +122,7 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 	char base; BaseContext context;
 	char quality;
 	int secondLastPos = lastPos - 1;
+	double pmdCT, pmdGA;
 
 	/* Note:
 	 *  1) Reference is 5' -> 3'
@@ -146,8 +147,10 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 						//set distances
 						distFrom3Prime = abs(bamAlignment.InsertSize) - len + pos;
 						distFrom5Prime = len - pos - 1;
+						pmdCT = pmdObjects[readGroupId].getProbGA(distFrom3Prime); //get flipped pmd pattern instead of flipping bases
+						pmdGA = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
 						//add base
-						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdObjects[readGroupId].getProbGA(distFrom3Prime), pmdObjects[readGroupId].getProbCT(distFrom5Prime), context, readGroupId);
+						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
 					}
 				}
 			}

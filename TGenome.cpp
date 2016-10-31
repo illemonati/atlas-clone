@@ -2079,7 +2079,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	//tmp variables
 	int len;
-	char base, baseFlipped, refBase, refBaseFlipped, quality;
+	char base, refBase, quality;
 	BaseContext context;
 	int distFrom5Prime, distFrom3Prime;
 	double pmdCT, pmdGA, qual=-1.0;
@@ -2121,20 +2121,20 @@ void TGenome::runPMDS(TParameters & params){
 				if(bamAlignment.IsReverseStrand()){
 					for(int pos = 0; pos < len; ++pos){
 						base = bamAlignment.AlignedBases.at(pos);
-						baseFlipped = genoMap.flipBase(bamAlignment.AlignedBases[pos]);
-						refBaseFlipped = genoMap.flipBase(ref[bamAlignment.Position-begin+pos]);
-						if((baseFlipped == 'A' || baseFlipped == 'C' || baseFlipped == 'G' || refBaseFlipped == 'T') && (refBaseFlipped == 'A' || refBaseFlipped == 'C' || refBaseFlipped == 'G' || refBaseFlipped == 'T')){ //skip any other
+						refBase = ref[bamAlignment.Position-begin+pos];
+						if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 							quality = bamAlignment.AlignedQualities[pos];
 							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 								if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
 								else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos+1), base);
 								distFrom5Prime = len - pos - 1; //is this 5' of the read?
 								distFrom3Prime = abs(bamAlignment.InsertSize) - len + pos;
-								pmdCT = pmdObjects[readGroupId].getProbGA(distFrom5Prime); //the main pattern we want to correct for is pmdCT. why not distance from 3'?
-								pmdGA = pmdObjects[readGroupId].getProbCT(distFrom3Prime);
+								//bases not flipped -> flip pmd pattern
+								pmdCT = pmdObjects[readGroupId].getProbCT(distFrom5Prime); //the main pattern we want to correct for is pmdCT. why not distance from 3'?
+								pmdGA = pmdObjects[readGroupId].getProbGA(distFrom3Prime);
 								qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
 
-								PMDS += log(calculatePMDS(readGroupId, refBaseFlipped, baseFlipped, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+								PMDS += log(calculatePMDS(readGroupId, refBase, base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
 
 							}
 						}
@@ -2169,9 +2169,8 @@ void TGenome::runPMDS(TParameters & params){
 			if(bamAlignment.IsReverseStrand()){
 				for(int pos = 0; pos < len; ++pos){
 					base = bamAlignment.AlignedBases.at(pos);
-					baseFlipped = genoMap.flipBase(bamAlignment.AlignedBases.at(pos));
-					refBaseFlipped = genoMap.flipBase(ref.at(bamAlignment.Position-begin+pos));
-					if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBaseFlipped == 'A' || refBaseFlipped == 'C' || refBaseFlipped == 'G' || refBaseFlipped == 'T')){ //skip any other
+					refBase = ref.at(bamAlignment.Position-begin+pos);
+					if((base == 'A' || base == 'C' || base == 'G' || base == 'T') && (refBase == 'A' || refBase == 'C' || refBase == 'G' || refBase == 'T')){ //skip any other
 				//	if((refBase == 'C' && (base=='C'||base=='T')) || (refBase == 'G' && (base == 'G' || base == 'A'))){
 						quality = bamAlignment.AlignedQualities.at(pos);
 						if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
@@ -2180,12 +2179,13 @@ void TGenome::runPMDS(TParameters & params){
 							distFrom5Prime = len - pos - 1;
 							distFrom3Prime = pos;
 
+							//bases not flipped -> flip pmd pattern
 							pmdCT = pmdObjects[readGroupId].getProbGA(distFrom3Prime);
 							pmdGA = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
 
 							qual = returnBaseQuality(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
 
-							PMDS += log(calculatePMDS(readGroupId, refBaseFlipped, baseFlipped, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
+							PMDS += log(calculatePMDS(readGroupId, refBase, base, pmdCT, pmdGA, qual, pi, probPMD, probNoPMD));
 						}
 					}
 				}
