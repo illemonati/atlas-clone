@@ -1360,6 +1360,29 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 	return qual;
 }
 
+double TGenome::returnBaseQualityWithPMDAsCharRevMapping(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
+	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+	if(base == 'T') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
+	else if(base == 'A') qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
+	qual = round(-10.0 * log10(qual));
+	return qual + 33;
+}
+
+double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
+	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+	if(base == 'T'){
+//		std::cout << "qual before correction: " << qual << std::endl;
+//		std::cout << "pmdCT: " << pmdCT << std::endl;
+		qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
+//		std::cout << "qual after correction: " << qual << std::endl;
+//		std::cout << "--------------------" << std::endl;
+
+	}
+	else if(base == 'A') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
+	qual = round(-10.0 * log10(qual));
+	return qual + 33;
+}
+
 double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
@@ -1368,7 +1391,7 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 	return qual;
 }
 
-bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, std::map <std::string, int> & mateTooLong){
+bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, std::map <std::string, int> & mateTooLong){
 	//variables
 	char base, quality, newQual;
 	BaseContext context;
@@ -1379,6 +1402,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	//get length readgroup info
 	int len = alignment.Length;
 	int readGroupId = readGroups.find(alignment);
+//	std::cout << "########################### new alignment ######################" << std::endl;
 
 	//parse into bases
 	if(alignment.IsProperPair()){
@@ -1401,7 +1425,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							pmdCT = pmdObjects[readGroupId].getProbGA(posInRead);
 							pmdGA = pmdObjects[readGroupId].getProbCT(revPosInRead);
 
-							newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							if(withPMD) newQual = returnBaseQualityWithPMDAsCharRevMapping(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							else newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 							if((int)newQual <= maxQuality) qual += newQual;
 							else qual += 'K';
 						} else qual += quality;
@@ -1423,7 +1448,9 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
-							newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							//get new quality
+							if(withPMD) newQual = returnBaseQualityWithPMDAsCharFwdMapping(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+							else newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 							if((int)newQual <= maxQuality) qual += newQual;
 							else qual += 'K';
 						} else qual += quality;
@@ -1450,7 +1477,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						pmdGA = pmdObjects[readGroupId].getProbCT(revPosInRead);
 
 						//get new quality
-						newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+						if(withPMD) newQual = returnBaseQualityWithPMDAsCharRevMapping(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+						else newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 						if((int)newQual <= maxQuality) qual += newQual;
 						else qual += 'K';
 					} else qual += quality;
@@ -1471,7 +1499,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
 
 						//get new quality
-						newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+						if(withPMD) newQual = returnBaseQualityWithPMDAsCharFwdMapping(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+						else newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 						if((int)newQual <= maxQuality) qual += newQual;
 						else qual += 'K';
 					} else qual += quality;
@@ -1499,7 +1528,8 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	std::string qual;
 	long counter = 0;
 	std::map <std::string, int> mateTooLong;
-
+	bool withPMD = params.parameterExists("withPMD");
+	if(!withPMD && hasPMD) logfile->warning("The pmd pattern will not have any affect on the quality scores. If you want the quality scores to reflect pmd, use \"withPMD\"!");
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1511,7 +1541,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
 		//update and write (only if alignment qualities could be calculated)
-		if(recalibrateAlignment(bamAlignment, qual, genoMap, mateTooLong)){
+		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, mateTooLong)){
 			bamAlignment.Qualities = qual;
 			bamWriter.SaveAlignment(bamAlignment);
 		}
@@ -1520,6 +1550,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			gettimeofday(&end, NULL);
 			runtime = (end.tv_sec  - start.tv_sec)/60.0;
 			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+			break;
 		}
 	}
 
