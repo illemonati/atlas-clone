@@ -1580,7 +1580,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			gettimeofday(&end, NULL);
 			runtime = (end.tv_sec  - start.tv_sec)/60.0;
 			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-			break;
 		}
 	}
 
