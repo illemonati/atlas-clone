@@ -101,10 +101,10 @@ public:
 	void printQualityTransformation(TParameters & params);
 	void createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	char returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
+	double returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharRevMapping(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, std::map <std::string, int> & mateTooLong);
+	double returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
+	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, int & begin, std::string & ref, std::map <std::string, int> & mateTooLong);
 	void recalibrateBamFile(TParameters & params);
 	void splitSingleEndReadGroups(TParameters & params);
 	void mergeReadGroups(TParameters & params);
