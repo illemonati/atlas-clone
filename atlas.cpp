@@ -97,7 +97,7 @@ int main(int argc, char* argv[]){
     	} else if(task == "mergeReads"){
     		logfile.startIndent("Merging paired-end reads:");
     		genome.mergePairedEndReads(myParameters);
-    	} else if(task == "psmc"){
+    	} else if(task == "PSMC"){
     	    logfile.startIndent("Generating a PSMC Input file probabilistically:");
     	    genome.generatePSMCInput(myParameters);
     	} else if(task == "downsample"){
