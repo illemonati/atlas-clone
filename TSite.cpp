@@ -144,16 +144,18 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------
-void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
+void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype, int & counter, int & printInfoGVCF){
 	//calculate phred-scaled likelihoods and find max
 	maxGenotypeProb = 100000.0;
 	quality = 100000.0;
 	std::vector<int> MLEs;
+	std::vector<int>::iterator it;
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
+		if(counter==printInfoGVCF) std::cout << emissionProbabilities[i] << ",";
 		if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb){
 			MLGenotype = i;
-			if(i==0) quality = maxGenotypeProb;
+			quality = maxGenotypeProb;
 			maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
 			MLEs.clear();
 			MLEs.push_back(i);
@@ -164,10 +166,19 @@ void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGene
 			quality = emissionProbabilitiesPhredScaled[i];
 		}
 	}
-
+	if(counter==printInfoGVCF) std::cout << "\n";
 	//select best allele at random if there are multiple options
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
+	if(counter==printInfoGVCF){
+		std::cout << "in MLE vector: ";
+		for(it=MLEs.begin(); it!= MLEs.end(); ++it) std::cout << *it;
+		std::cout << "\n";
+	}
+
 	quality = quality - maxGenotypeProb;
+	if(counter==printInfoGVCF) std::cout << "MLE genotype: " << MLGenotype << " quality: " << quality << std::endl;
+
+
 }
 
 void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, TGenotypeMap & genoMap, int MLGenotype, std::string & genoSecond){
@@ -189,7 +200,7 @@ void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, dou
 
 }
 
-void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, int & counter, int & printInfoGVCF){
 	if(hasData){
 		//print reference allele
 		if(printRef) out << "\t" << referenceBase;
@@ -202,7 +213,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 		double quality, maxGenotypeProb;
 		int MLGenotype;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype, counter, printInfoGVCF);
 
 		//now print normalized (max = 0)
 		for(int i=0; i<numGenotypes; ++i){
@@ -221,10 +232,18 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 
 }
 
-void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
+void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString, int & counter, int & printInfoGVCF){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
+		if(counter == printInfoGVCF){
+			std::cout << "reference: " << referenceBase <<" basesString: " << basesString << std::endl;
+			std::vector<TBase*>::iterator itB;
+			for(itB=bases.begin(); itB!=bases.end(); ++itB){
+				std::cout << "base: "<<  (*itB)->getBase() << " quality: "<< (*itB)->quality << std::endl;
+			}
+
+		}
 		//print reference allele
 		out << "\t.\t" << referenceBase;
 		//out << "\t(" << getBases() << ")"; //printing data for debugging
@@ -234,7 +253,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		int MLGenotype;
 		int R_AD=0, A_AD=0, B_AD=0, C_AD=0;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype, counter, printInfoGVCF);
 
 		//find alternative alleles
 		std::string genoVCF;
@@ -489,8 +508,9 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 		delete[] emissionProbabilitiesPhredScaled;
 	} else {
-		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
-		else out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
+		//hasData is false
+		//if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
+		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
 

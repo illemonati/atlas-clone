@@ -682,6 +682,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			logfile->list("Will print output in gVCF format");
 		}
 	}
+	int printInfoGVCF = params.getParameterIntWithDefault("printInfoGVCF", -1);
 
 
 	//open output: vcf or flat file?
@@ -752,7 +753,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef, printInfoGVCF);
 					}
 					logfile->write(" done!");
 				}
@@ -2014,6 +2015,8 @@ void TGenome::estimatePMD(TParameters & params){
 float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD){
 	double epsThird = errorRate / 3.0;
 	double fourEpsThird = 4.0*epsThird;
+	//std::cout << "error: " << errorRate << " pmdGA " << pmdGA << " pmdCT " << pmdCT << std::endl;
+
 
 	if(ref == 'A'){
 		if(read == 'A'){
@@ -2021,7 +2024,7 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 			probNoPMD = 1.0 - errorRate - pi + fourEpsThird*pi;
 			return probPMD/probNoPMD;
 		}
-		else if(read == 'C'){
+		else if(read == 'C'){ //ok
 			probPMD = errorRate - fourEpsThird*pi + pi - pi*pmdCT*(fourEpsThird-1.0);
 			probNoPMD = errorRate - fourEpsThird*pi + pi;
 			return probPMD/probNoPMD;
@@ -2071,8 +2074,8 @@ float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pm
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'G'){
-			probPMD = 1.0 - pi - errorRate + fourEpsThird*pi + (1.0-pi)*pmdGA*(fourEpsThird-1.0);
-			probNoPMD = 1.0 - pi - errorRate + fourEpsThird*pi;
+			probPMD = 1.0 - errorRate - pi + fourEpsThird*pi + (1.0-pi)*pmdGA*(fourEpsThird-1.0);
+			probNoPMD = 1.0 - errorRate - pi + fourEpsThird*pi;
 			return probPMD/probNoPMD;
 		}
 		else if(read == 'T'){
