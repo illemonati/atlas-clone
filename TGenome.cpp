@@ -1357,6 +1357,8 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 	char qual = recalObject->getQualityAsChar(basePointer);
 	delete basePointer;
+	if(qual < minQuality) qual = minQuality;
+	else if(qual > maxQuality) qual = maxQuality;
 	return qual;
 }
 
@@ -1365,6 +1367,8 @@ double TGenome::returnBaseQualityWithPMDAsCharRevMapping(char & base, char & ref
 	if(base == 'T' && refBase == 'C') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
 	else if(base == 'A' && refBase == 'G') qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
 	qual = round(-10.0 * log10(qual));
+	if(qual < minQuality) qual = minQuality;
+	else if(qual > maxQuality) qual = maxQuality;
 	return qual + 33;
 }
 
@@ -1380,6 +1384,8 @@ double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & ref
 	}
 	else if(base == 'A' && refBase == 'G') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
 	qual = round(-10.0 * log10(qual));
+	if(qual < minQuality) qual = minQuality;
+	else if(qual > maxQuality) qual = maxQuality;
 	return qual + 33;
 }
 
