@@ -166,7 +166,13 @@ void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGene
 			quality = emissionProbabilitiesPhredScaled[i];
 		}
 	}
-	if(counter==printInfoGVCF) std::cout << "\n";
+	if(counter==printInfoGVCF){
+		std::cout << "\n";
+		for(int i=0; i<numGenotypes; ++i){
+			std::cout << emissionProbabilitiesPhredScaled[i] << ",";
+		}
+		std::cout << "\n";
+	}
 	//select best allele at random if there are multiple options
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 	if(counter==printInfoGVCF){
