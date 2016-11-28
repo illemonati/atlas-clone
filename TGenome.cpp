@@ -105,7 +105,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
 		applyQualityFilter = true;
-		minQuality = params.getParameterInt("minQual") + 33;
+		minQuality = params.getParameterInt("minQual") + 33; //bamAlignment.Qualities is in ascii
 		maxQuality = params.getParameterInt("maxQual") + 33;
 		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
 	} else {
@@ -1355,38 +1355,31 @@ void TGenome::createBase(TBase** basePointer, char & base, char & quality, int &
 char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-	char qual = recalObject->getQualityAsChar(basePointer);
+
+	char qual = recalObject->getQualityAsChar(basePointer); //is in ascii, already has filter
+
 	delete basePointer;
-	if(qual < minQuality) qual = minQuality;
-	else if(qual > maxQuality) qual = maxQuality;
 	return qual;
 }
 
 double TGenome::returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
-	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId); //error rate
 	if(base == 'T' && refBase == 'C') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
 	else if(base == 'A' && refBase == 'G') qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
-	qual = round(-10.0 * log10(qual));
-	if(qual < minQuality) qual = minQuality;
-	else if(qual > maxQuality) qual = maxQuality;
-	return qual + 33;
+	qual = round(-10.0 * log10(qual)) + 33; //cutoffs are in ascii
+	if(qual < 33) qual = 33;
+	else if(qual > 126) qual = 126;
+	return qual;
 }
 
 double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
-	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-	if(base == 'T' && refBase == 'C'){
-	//	std::cout << "base is " << base << " ref is " << refBase << std::endl;
-	//	std::cout << "qual before correction: " << qual << std::endl;
-	//	std::cout << "pmdCT: " << pmdCT << std::endl;
-		qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
-	//	std::cout << "qual after correction: " << qual << std::endl;
-	//	std::cout << "--------------------" << std::endl;
-	}
-	else if(base == 'A' && refBase == 'G') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
-	qual = round(-10.0 * log10(qual));
-	if(qual < minQuality) qual = minQuality;
-	else if(qual > maxQuality) qual = maxQuality;
-	return qual + 33;
+	double error = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+	if(base == 'T' && refBase == 'C') error = error*(1-pmdCT) + (1-error)*pmdCT;
+	else if(base == 'A' && refBase == 'G')	error = error*(1-pmdGA) + (1-error)*pmdGA;
+	double qual = round(-10.0 * log10(error)) + 33; //cutoffs are in ascii
+	if(qual < 33) qual = 33;
+	else if(qual > 126) qual = 126;
+	return qual;
 }
 
 double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
@@ -1408,7 +1401,6 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	//get length readgroup info
 	int len = alignment.Length;
 	int readGroupId = readGroups.find(alignment);
-//	std::cout << "########################### new alignment ######################" << alignment.Name << std::endl;
 
 	//parse into bases
 	if(alignment.IsProperPair()){

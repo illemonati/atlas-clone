@@ -163,7 +163,10 @@ public:
 	};
 
 	char getQualityAsChar(TBase* base){
-		return getQuality(base) + 33;
+		int qual = getQuality(base) + 33;
+		if(qual > 126) qual = 126;
+		if(qual < 33) qual = 33;
+		return qual;
 	};
 
 	void calcEmissionProbabilities(TSite & site){
