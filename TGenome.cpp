@@ -1412,8 +1412,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
 				for(int pos = 0; pos < len; ++pos){
 					base = alignment.QueryBases.at(pos);
+					quality = alignment.Qualities.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-						quality = alignment.Qualities.at(pos);
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
 							else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
@@ -1439,8 +1439,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 				for(int pos = 0; pos < len; ++pos){
 					base = alignment.QueryBases.at(pos);
+					quality = alignment.Qualities.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-						quality = alignment.Qualities.at(pos);
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == 0) context = genoMap.getContext('N', base);
 							else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
@@ -1470,8 +1470,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 		if(alignment.IsReverseStrand()){
 			for(int pos = 0; pos < len; ++pos){
 				base = alignment.QueryBases.at(pos);
+				quality = alignment.Qualities.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-					quality = alignment.Qualities.at(pos);
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
 						else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
@@ -1495,9 +1495,8 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 		} else {
 			for(int pos = 0; pos < len; ++pos){
 				base = alignment.QueryBases.at(pos);
-
+				quality = alignment.Qualities.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
-					quality = alignment.Qualities.at(pos);
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == 0) context = genoMap.getContext('N', base);
 						else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
