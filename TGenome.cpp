@@ -1058,6 +1058,12 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	std::string filename;
 	if(params.parameterExists("recal")) filename = params.getParameterString("recal");
 	else filename = "empty";
+
+	bool writeTmpTables = false;
+	if(params.parameterExists("writeTmpTables")){
+		writeTmpTables = true;
+		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
+	}
 	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile);
 	if(!recalObjectEM.estimatetionRequired){
 		logfile->list("No need to estimate anything. Aborting Program.");
@@ -1097,7 +1103,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	logfile->endIndent();
 
 	//run EM iterations
-	recalObjectEM.runEM(outputName);
+	recalObjectEM.runEM(outputName, writeTmpTables);
 }
 
 /*

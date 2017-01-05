@@ -638,7 +638,7 @@ double TRecalibrationEM::getErrorRate(TBase* base){
 	return getErrorRate(base, params);
 }
 
-void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, std::string debugFilename){
+void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
 	//variables
 	double maxF;
 	int index;
@@ -653,22 +653,26 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		curQ += (*curWindow)->calcQ(theseParams);
 	}
 
+	std::ofstream* myStream = NULL;
+
 	//open debug file
-	std::ofstream out(debugFilename.c_str());
-	if(!out) throw "Failed to open output file '" + debugFilename + "'!";
-	//add header
-	out << "iteration";
-	for(int i=0; i<numParams; ++i) out << "\tbeta'" << i;
-	for(int i=0; i<numParams; ++i) out << "\tF" << i;
-	for(int i=0; i<numParams; ++i) out << "\tbeta" << i;
-	out << std::endl;
+	if(writeTmpTables){
+		myStream = new std::ofstream(debugFilename.c_str());
+		if(!myStream) throw "Failed to open output file '" + debugFilename + "'!";
+		//add header
+		*myStream << "iteration";
+		for(int i=0; i<numParams; ++i) *myStream << "\tbeta'" << i;
+		for(int i=0; i<numParams; ++i) *myStream << "\tF" << i;
+		for(int i=0; i<numParams; ++i) *myStream << "\tbeta" << i;
+		*myStream << std::endl;
+	}
 
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
 		logfile->startIndent("Running iteration " + toString(i+1) + ":");
 		logfile->listFlush("Calculating Jacobian and gradient ...");
-		out << i;
+		if(writeTmpTables) *myStream << i;
 
 		//set to zero
 		Jacobian.zeros();
@@ -704,14 +708,16 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		std::cout << "----------------------------------------------" << std::endl;
 
 */
-		//print beta'
-		for(int i=0; i<numParams; ++i){
-			out << "\t" << theseParams[0][i];
-		}
+		if(writeTmpTables){
+			//print beta'
+			for(int i=0; i<numParams; ++i){
+				*myStream << "\t" << theseParams[0][i];
+			}
 
-		//print F
-		for(int i=0; i<numParams; ++i){
-			out << "\t" << F[i];
+			//print F
+			for(int i=0; i<numParams; ++i){
+				*myStream << "\t" << F[i];
+			}
 		}
 
 
@@ -770,11 +776,13 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
 		}
 
-		//print beta
-		for(int i=0; i<numParams; ++i){
-			out << "\t" << theseParams[0][i];
+		if(writeTmpTables){
+			//print beta
+			for(int i=0; i<numParams; ++i){
+				*myStream << "\t" << theseParams[0][i];
+			}
+			*myStream << std::endl;
 		}
-		out << std::endl;
 
 		//get largest gradient (F) to check if we break
 		maxF = 0.0;
@@ -785,11 +793,13 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		logfile->endIndent();
 		if(maxF < maxFThreshold || NRconverged) break;
 	}
-	out.close();
+	myStream->close();
 	logfile->endIndent();
+
+	delete myStream;
 }
 
-void TRecalibrationEM::runEM(std::string outputName){
+void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 	if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
@@ -832,7 +842,7 @@ void TRecalibrationEM::runEM(std::string outputName){
 		else oldLL = LL;
 
 		//run NewtonRaphson until convergence
-		runNewtonRaphson(newParams, NewtonRaphsonNumIterations, NewtonRaphsonMaxF, logfile, outputName + "_NewtonRaphson_" + toString(iter) + ".txt");
+		runNewtonRaphson(newParams, NewtonRaphsonNumIterations, NewtonRaphsonMaxF, logfile, writeTmpTables, outputName + "_NewtonRaphson_" + toString(iter) + ".txt");
 
 		//save parameters
 		for(int r=0; r<numReadGroups; ++r){
@@ -842,10 +852,12 @@ void TRecalibrationEM::runEM(std::string outputName){
 		}
 
 		//write current estimates to file
-		filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
-		logfile->listFlush("Writing current estimates to file '" + filename + "' ...");
-		writeCurrentEstimates(filename, LL);
-		logfile->write(" done!");
+		if(writeTmpTables){
+			filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
+			logfile->listFlush("Writing current estimates to file '" + filename + "' ...");
+			writeCurrentEstimates(filename, LL);
+			logfile->write(" done!");
+		}
 
 		//end loop
 		logfile->endIndent();
