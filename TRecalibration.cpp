@@ -793,10 +793,11 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		logfile->endIndent();
 		if(maxF < maxFThreshold || NRconverged) break;
 	}
-	myStream->close();
+	if(writeTmpTables){
+		myStream->close();
+		delete myStream;
+	}
 	logfile->endIndent();
-
-	delete myStream;
 }
 
 void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
