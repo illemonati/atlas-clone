@@ -2655,6 +2655,61 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->removeIndent();
 }
 
+void TGenome::downSampleReads(TParameters & params){
+
+	double fraction = params.getParameterDoubleWithDefault("fraction", 0.1);
+	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked.");
+
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_downsampledReads" + toString(fraction) + ".bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//other temp variables
+	long counter = 0;
+	double r;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignment)){
+		++counter;
+		for(int i=0; i<bamAlignment.Length; ++i){
+			r = randomGenerator->getRand();
+			if(r < fraction){
+				bamAlignment.QueryBases.at(i) = 'N';
+				bamAlignment.Qualities.at(i) = '!';
+			}
+		}
+		bamWriter.SaveAlignment(bamAlignment);
+
+		// intermetiate report report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
+
 void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome length
 	double totLength = 0.0;
 	for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)

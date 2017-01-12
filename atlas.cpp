@@ -103,6 +103,9 @@ int main(int argc, char* argv[]){
     	} else if(task == "downsample"){
     		logfile.startIndent("Downsampling a bam file:");
     	    genome.downSampleBamFile(myParameters);
+    	} else if(task == "downSampleReads"){
+			logfile.startIndent("Downsampling a bam file:");
+			genome.downSampleReads(myParameters);
     	} else if(task == "coverage"){
     		logfile.startIndent("Estimating approximate coverage:");
     	    genome.estimateApproximateCoverage(myParameters);
