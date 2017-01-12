@@ -242,14 +242,6 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
-		if(counter == printInfoGVCF){
-			std::cout << "reference: " << referenceBase <<" basesString: " << basesString << std::endl;
-			std::vector<TBase*>::iterator itB;
-			for(itB=bases.begin(); itB!=bases.end(); ++itB){
-				std::cout << "base: "<<  (*itB)->getBase() << " quality: "<< (*itB)->quality << std::endl;
-			}
-
-		}
 		//print reference allele
 		out << "\t.\t" << referenceBase;
 		//out << "\t(" << getBases() << ")"; //printing data for debugging
