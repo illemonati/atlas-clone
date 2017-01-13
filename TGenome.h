@@ -115,6 +115,7 @@ public:
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
+	void downSampleReads(TParameters & params);
 	void estimateApproximateCoverage(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
 	void estimateCoveragePerSite(TParameters & params);
