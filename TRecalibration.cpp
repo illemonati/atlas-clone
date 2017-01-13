@@ -1684,7 +1684,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 				q = stringToInt(vec[1]);
 				quality = stringToDouble(vec[3]);
 				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), vec[4]);
-			}
+			} else throw "readGroup " + vec[0] + " does not exist in BAM file header!";
 		}
 	}
 
@@ -2045,9 +2045,8 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInRead < maxPos){
-					BQSR_cells_readGroup_position[readGroupMap[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
-				}
+				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
+				BQSR_cells_readGroup_position[readGroupMap[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
