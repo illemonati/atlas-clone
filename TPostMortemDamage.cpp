@@ -252,7 +252,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 	//find last entry with counts
 	int lastPositionToConsiderPlusOne = -1;
-	for(int p=maxLength-1; p >= 0; ++p){
+	for(int p=maxLength-1; p >= 0; --p){
 		if(sums[p][from] > 100){
 			lastPositionToConsiderPlusOne = p;
 			break;
