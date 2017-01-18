@@ -656,6 +656,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool printIfNoData = false;
 	bool gVCF = false;
 	bool noAltIfHomoRef = false;
+	bool beagle = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		bool invariantSites = false;
@@ -681,9 +682,11 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
 			logfile->list("Will print output in gVCF format");
 		}
+		else if(params.parameterExists("beagle")){
+			beagle=true;
+			logfile->list("Will print output in beagle format");
+		}
 	}
-	int printInfoGVCF = params.getParameterIntWithDefault("printInfoGVCF", -1);
-
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
@@ -719,6 +722,16 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes\">\n";
 
 		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sName << "\n";
+	} else if(beagle){
+		//open file
+		outputFileName = outputName + "_MLEGenotypes.beagle.gz";
+		logfile->list("Writing MLE genotypes to '" + outputFileName + "'");
+		out.open(outputFileName.c_str());
+		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
+
+		//write header
+		out << "marker\talleleA\talleleB\tind1\tind1\tind1\n";
+
 	} else {
 		//open file
 		outputFileName = outputName + "_MLEGenotypes.txt.gz";
@@ -753,7 +766,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef, printInfoGVCF);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef, beagle);
 					}
 					logfile->write(" done!");
 				}
