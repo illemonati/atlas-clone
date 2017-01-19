@@ -191,10 +191,11 @@ void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, dou
 
 }
 
-void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	out << "\t" << referenceBase;
+
 	if(hasData){
 		//print reference allele
-		if(printRef) out << "\t" << referenceBase;
 
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
@@ -223,7 +224,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 
 }
 
-void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
+void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
@@ -649,10 +650,11 @@ void TSite::calculateGenotypePosteriorProbabilities(double* pGenotype, TRandomGe
 	MAP = MAPs[randomGenerator.pickOne(MAPs.size())];
 }
 
-void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	//print reference allele
+	out << "\t" << referenceBase;
 	if(hasData){
-		//print reference allele
-		if(printRef) out << "\t" << referenceBase;
+
 
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
@@ -673,7 +675,6 @@ void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRan
 		out << "\t" << genoMap.getGenotypeString(MAPGenotype);
 		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
-		out << "\t" << referenceBase;
 		out << "\t0";
 		for(int i=0; i<numGenotypes; ++i) out << "\t-";
 		out << "\t-\t0";
@@ -918,10 +919,10 @@ void TSiteDiploid::calculatePosteriorOnAllelePresence(double* pGenotype, TGenoty
 	MAP = MAPs[randomGenerator.pickOne(MAPs.size())];
 }
 
-void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	out << "\t" << referenceBase;
 	if(hasData){
 		//print ref base, coverage (and read bases)
-		if(printRef) out << "\t" << referenceBase;
 		out << "\t" << bases.size();
 		//out << "\t" << getBases(); //printing data for debugging
 
@@ -939,10 +940,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		out << "\t" << genoMap.getBaseAsChar(MAPAllele);
 		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
 		//out << "\t" << quality << " -> " << maxProb;
-	} else {
-		out << "\t" << referenceBase;
-		out << "\t0\t-\t-\t-\t-\t-\t0";
-	}
+	} else 	out << "\t0\t-\t-\t-\t-\t-\t0";
 }
 
 void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){
