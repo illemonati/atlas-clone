@@ -222,22 +222,6 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 	}
 
 }
-void TSite::callMLEGenotypeBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
-	if(hasData){
-		//calc normalized likelihoods
-		double quality, maxGenotypeProb;
-		int MLGenotype;
-		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
-
-		//now print normalized (max = 0)
-		for(int i=0; i<numGenotypes; ++i){
-			out << "\t" << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
-		}
-	} else{
-
-	}
-}
 
 void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
@@ -547,6 +531,32 @@ void TSiteDiploid::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotype
 
 void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
+		//print reference allele
+		out << "\t" << referenceBase << "\t" << alt;
+
+		//calc normalized likelihoods
+		double quality, maxGenotypeProb;
+		int MLGenotype;
+		double phredEmissionProbs[3];
+		calculatePhredScaledGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, phredEmissionProbs, quality, maxGenotypeProb, MLGenotype);
+
+		//now print normalized (max = 0)
+		for(int i=0; i<3; ++i){
+			out << "\t" << round(phredEmissionProbs[i] - maxGenotypeProb);
+		}
+
+	} else {
+		out << "\t" << referenceBase << "\t" << alt;
+		for(int i=0; i<3; ++i) out << "\t-";
+		out << "\t-\t0";
+	}
+}
+
+void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
+	std::cout << "correct function" << std::endl;
+
+	if(hasData){
+		std::cout << "correct function" << std::endl;
 		//print reference allele
 		out << "\t" << referenceBase << "\t" << alt;
 

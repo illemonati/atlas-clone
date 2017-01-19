@@ -289,8 +289,7 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	}
 }
 
-void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef, bool & beagle){
-	int counter = 0;
+void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
 	if(isVCF){
 		if(printAll){
 			for(int i=0; i<length; ++i){
@@ -312,15 +311,6 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 			}
 		}
 	} else {
-		if(beagle){
-			for(int i=0; i<length; ++i){
-				++counter;
-				out << chr << "_" << counter;
-				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
-				sites[i].callMLEGenotypeBeagle(genoMap, randomGenerator, out);
-				out << "\n";
-			}
-		}
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
@@ -861,9 +851,10 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 	}
 }
 
-void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
+void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef, bool beagle){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
+		std::cout << "window has positions" << std::endl;
 		//calc prior probabilities on Genotypes
 		double pGenotype[10];
 		fillPGenotype(pGenotype, thetaContainer.expTheta);
@@ -878,6 +869,9 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 			if(isVCF){
 				std::string basesString = sites[pos].getBases();
 				sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
+			} else if(beagle) {
+				std::cout << "found parameter beagle" << std::endl;
+				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second);
 			} else {
 				sites[pos].callMLEGenotypeKnownAlleles(genoMap, randomGenerator, out, it->second.second);
 			}

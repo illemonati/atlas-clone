@@ -90,7 +90,7 @@ public:
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
-	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef, bool & beagle);
+	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
 	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
@@ -120,7 +120,7 @@ public:
 	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
+	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef, bool beagle);
 	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
 	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);

@@ -658,7 +658,13 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool noAltIfHomoRef = false;
 	bool beagle = false;
 	TSiteSubset* subset = NULL;
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("beagle")){
+			bool invariantSites = false;
+			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+			beagle=true;
+			logfile->list("Will print output in beagle format");
+		}
+	else if(params.parameterExists("sites")){
 		bool invariantSites = false;
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
@@ -681,10 +687,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
 			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
 			logfile->list("Will print output in gVCF format");
-		}
-		else if(params.parameterExists("beagle")){
-			beagle=true;
-			logfile->list("Will print output in beagle format");
 		}
 	}
 
@@ -730,7 +732,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		out << "marker\talleleA\talleleB\tind1\tind1\tind1\n";
+		out << "#marker\talleleA\talleleB\tind1\tind1\tind1\n";
 
 	} else {
 		//open file
@@ -761,12 +763,13 @@ void TGenome::callMLEGenotypes(TParameters & params){
 				if(readData(windows)){
 					//call genotypes
 					logfile->listFlush("Calling MLE genotypes ...");
-					if(limitToSitesWithKnownAlleles){
+					if(limitToSitesWithKnownAlleles || beagle){
+						std::cout << "found beagele parameter in tgenome" << std::endl;
 						windows.cur->addReferenceBaseToSites(subset);
-						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef);
+						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef, beagle);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef, beagle);
+						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);
 					}
 					logfile->write(" done!");
 				}
