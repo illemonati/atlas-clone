@@ -742,13 +742,9 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		out << "chr\tpos";
-		if(limitToSitesWithKnownAlleles){
-			out << "\tRef\tAlt\tcoverage\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
-		} else {
-			if(fastaReference) out << "\tRef";
-			out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
-		}
+		out << "chr\tpos\tRef";
+		if(limitToSitesWithKnownAlleles) out << "\tAlt\tcoverage\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
+		else out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 	}
 
 	//prepare windows
