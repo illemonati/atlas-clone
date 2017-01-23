@@ -656,13 +656,17 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool printIfNoData = false;
 	bool gVCF = false;
 	bool noAltIfHomoRef = false;
-	bool beagle = false;
+	bool beagle = false, printOnlyGL = false;
+	std::string indName;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("beagle")){
 			bool invariantSites = false;
 			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 			beagle=true;
 			logfile->list("Will print output in beagle format");
+			printOnlyGL = params.parameterExists("printOnlyGL");
+			if(printOnlyGL) logfile->list("Will print only genotype likelihoods");
+			indName = params.getParameterStringWithDefault("indName", outputName);
 		}
 	else if(params.parameterExists("sites")){
 		bool invariantSites = false;
@@ -732,7 +736,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		out << "#marker\talleleA\talleleB\tind1\tind1\tind1\n";
+		if(printOnlyGL) out << indName << "\t" << indName << "\t" << indName << "\n";
+		else out << "#marker\talleleA\talleleB\t" << indName << "\t" << indName << "\t" << indName << "\n";
 
 	} else {
 		//open file
@@ -761,7 +766,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 					logfile->listFlush("Calling MLE genotypes ...");
 					if(limitToSitesWithKnownAlleles || beagle){
 						windows.cur->addReferenceBaseToSites(subset);
-						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef, beagle);
+						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef, beagle, printOnlyGL);
 					} else {
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);

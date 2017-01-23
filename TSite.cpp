@@ -586,10 +586,10 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 	}
 }
 
-void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos){
+void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, bool & printOnlyGL){
 	//print reference allele
 	if(hasData){
-		out <<chr << "_" << pos << "\t" << referenceBase << "\t" << alt;
+		if(!printOnlyGL) out <<chr << "_" << pos << "\t" << referenceBase << "\t" << alt;
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
 		int MLGenotype;
@@ -598,10 +598,12 @@ void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRa
 
 		//now print normalized (max = 0)
 		for(int i=0; i<3; ++i){
-			out << "\t" << (emissionProbs[i] / maxGenotypeProb);
+			if(printOnlyGL && i==0) out << emissionProbs[i] / maxGenotypeProb;
+			else out << "\t" << (emissionProbs[i] / maxGenotypeProb);
 		}
 	}
-	else out << chr << "_" << pos << "\tN\tN\t0.333\t0.333\t0.333";
+	else if(!printOnlyGL) out << chr << "_" << pos << "\tN\tN\t0.333\t0.333\t0.333";
+	else out << "0.333\t0.333\t0.333";
 	out << "\n";
 
 }

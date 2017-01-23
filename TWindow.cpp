@@ -851,7 +851,7 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 	}
 }
 
-void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef, bool beagle){
+void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
@@ -865,7 +865,7 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 			pos = it->first - start;
 			if(beagle) {
 				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
-				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos);
+				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos, printOnlyGL);
 			} else {
 				out << chr << "\t" << it->first + 1;
 				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
