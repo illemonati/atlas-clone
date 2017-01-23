@@ -854,7 +854,6 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef, bool beagle){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
-		std::cout << "window has positions" << std::endl;
 		//calc prior probabilities on Genotypes
 		double pGenotype[10];
 		fillPGenotype(pGenotype, thetaContainer.expTheta);
@@ -864,18 +863,18 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 		int pos;
 		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 			pos = it->first - start;
-			out << chr << "\t" << it->first + 1;
-			if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
-			if(isVCF){
-				std::string basesString = sites[pos].getBases();
-				sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
-			} else if(beagle) {
-				std::cout << "found parameter beagle" << std::endl;
-				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second);
+			if(beagle) {
+				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
+				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos);
 			} else {
-				sites[pos].callMLEGenotypeKnownAlleles(genoMap, randomGenerator, out, it->second.second);
+				out << chr << "\t" << it->first + 1;
+				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
+				if(isVCF){
+					std::string basesString = sites[pos].getBases();
+					sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
+				} else sites[pos].callMLEGenotypeKnownAlleles(genoMap, randomGenerator, out, it->second.second);
+				out << "\n";
 			}
-			out << "\n";
 		}
 	}
 }

@@ -530,6 +530,39 @@ void TSiteDiploid::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotype
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 }
 
+void TSiteDiploid::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & quality, double & maxGenotypeProb, int & MLGenotype){
+	//which genotypes?
+	int genotypes[3];
+	genotypes[0] = genoMap.getGenotype(referenceBase, referenceBase);
+	genotypes[1] = genoMap.getGenotype(referenceBase, alt);
+	genotypes[2] = genoMap.getGenotype(alt, alt);
+
+	//calculate phred-scaled likelihoods and find max
+	maxGenotypeProb = 100000.0;
+	quality = 100000.0;
+	std::vector<int> MLEs;
+
+	for(int j=0; j<3; ++j){
+		emissionProbs[j] = emissionProbabilities[genotypes[j]];
+		if(emissionProbs[j] < maxGenotypeProb){
+			MLGenotype = j;
+			quality = maxGenotypeProb;
+			maxGenotypeProb = emissionProbs[j];
+			MLEs.clear();
+			MLEs.push_back(j);
+		} else if(emissionProbs[j] == maxGenotypeProb){
+			MLEs.push_back(j);
+			quality = emissionProbs[j];
+		} else if(emissionProbs[j] < quality){
+			quality = emissionProbs[j];
+		}
+	}
+
+	//select best allele at random if there are multiple options
+	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
+}
+
+
 void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
 		//print reference allele
@@ -553,37 +586,24 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 	}
 }
 
-void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
-	std::cout << "correct function" << std::endl;
-
+void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos){
+	//print reference allele
 	if(hasData){
-		std::cout << "correct function" << std::endl;
-		//print reference allele
-		out << "\t" << referenceBase << "\t" << alt;
-
-		//print coverage (and read bases)
-		out << "\t" << bases.size();
-		//out << "\t" << getBases(); //printing data for debugging
-
+		out <<chr << "_" << pos << "\t" << referenceBase << "\t" << alt;
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
 		int MLGenotype;
-		double phredEmissionProbs[3];
-		calculatePhredScaledGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, phredEmissionProbs, quality, maxGenotypeProb, MLGenotype);
+		double emissionProbs[3];
+		calculateGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, emissionProbs, quality, maxGenotypeProb, MLGenotype);
 
 		//now print normalized (max = 0)
 		for(int i=0; i<3; ++i){
-			out << "\t" << round(phredEmissionProbs[i] - maxGenotypeProb);
+			out << "\t" << (emissionProbs[i] / maxGenotypeProb);
 		}
-
-		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
-		out << "\t" << genoMap.getGenotypeString(MLGenotype);
-		out << "\t" << round(quality - maxGenotypeProb);
-	} else {
-		out << "\t" << referenceBase << "\t" << alt;
-		for(int i=0; i<3; ++i) out << "\t-";
-		out << "\t-\t0";
 	}
+	else out << chr << "_" << pos << "\tN\tN\t0.333\t0.333\t0.333";
+	out << "\n";
+
 }
 
 

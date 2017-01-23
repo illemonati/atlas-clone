@@ -752,15 +752,14 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
+		if(limitToSitesWithKnownAlleles || beagle) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
+			if((!limitToSitesWithKnownAlleles && !beagle) || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
 				if(readData(windows)){
 					//call genotypes
 					logfile->listFlush("Calling MLE genotypes ...");
 					if(limitToSitesWithKnownAlleles || beagle){
-						std::cout << "found beagele parameter in tgenome" << std::endl;
 						windows.cur->addReferenceBaseToSites(subset);
 						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef, beagle);
 					} else {
