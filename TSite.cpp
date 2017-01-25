@@ -572,7 +572,7 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
 		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
-		out << "\t" << referenceBase << "\t" << alt << 0;
+		out << "\t" << referenceBase << "\t" << alt << "\t" << 0;
 		for(int i=0; i<3; ++i) out << "\t-";
 		out << "\t-\t0";
 	}
