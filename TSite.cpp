@@ -553,6 +553,10 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 		//print reference allele
 		out << "\t" << referenceBase << "\t" << alt;
 
+		//print coverage (and read bases)
+		out << "\t" << bases.size();
+		//out << "\t" << getBases(); //printing data for debugging
+
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
 		int MLGenotype;
@@ -564,8 +568,11 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 			out << "\t" << round(phredEmissionProbs[i] - maxGenotypeProb);
 		}
 
+		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
+		out << "\t" << genoMap.getGenotypeString(MLGenotype);
+		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
-		out << "\t" << referenceBase << "\t" << alt;
+		out << "\t" << referenceBase << "\t" << alt << 0;
 		for(int i=0; i<3; ++i) out << "\t-";
 		out << "\t-\t0";
 	}
