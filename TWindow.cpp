@@ -865,7 +865,7 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 			pos = it->first - start;
 			if(beagle) {
 				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);
-				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos, printOnlyGL);
+				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos, start, printOnlyGL);
 			} else {
 				out << chr << "\t" << it->first + 1;
 				if(sites[pos].hasData) recalObject->calcEmissionProbabilities(sites[pos]);

@@ -543,7 +543,6 @@ void TSiteDiploid::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoM
 	for(int j=0; j<3; ++j){
 		emissionProbs[j] = emissionProbabilities[genotypes[j]];
 		sumEmissionProbs += emissionProbs[j];
-		if(pos == 316889) std::cout << sumEmissionProbs << std::endl;
 	}
 }
 
@@ -578,10 +577,10 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 	}
 }
 
-void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, bool & printOnlyGL){
+void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){
 	//print reference allele
 	if(hasData){
-		if(!printOnlyGL) out <<chr << "_" << pos << "\t" << referenceBase << "\t" << alt;
+		if(!printOnlyGL) out <<chr << "_" << pos + start + 1 << "\t" << referenceBase << "\t" << alt;
 		//calc normalized likelihoods
 		double sumEmissionProbs = 0;
 		double emissionProbs[3];
@@ -590,12 +589,11 @@ void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRa
 		//now print normalized (max = 0)
 		for(int i=0; i<3; ++i){
 			double frac = emissionProbs[i] / sumEmissionProbs;
-			if(pos==316889) std::cout << emissionProbs[i] << " " << sumEmissionProbs << std::endl;
 			if(printOnlyGL && i==0) out << boost::format("%.6f") % frac;
 			else out << "\t" << boost::format("%.6f") % frac;
 		}
 	}
-	else if(!printOnlyGL) out << chr << "_" << pos << "\tN\tN\t0.333\t0.333\t0.333";
+	else if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\tN\tN\t0.333\t0.333\t0.333";
 	else out << "0.333\t0.333\t0.333";
 	out << "\n";
 
