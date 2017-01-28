@@ -1386,21 +1386,21 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 
 double TGenome::returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId); //error rate
-	if(base == 'T' && refBase == 'C') qual = qual*(1-pmdGA) + (1-qual)*pmdGA;
-	else if(base == 'A' && refBase == 'G') qual = qual*(1-pmdCT) + (1-qual)*pmdCT;
-	qual = round(-10.0 * log10(qual)) + 33; //cutoffs are in ascii
-	if(qual < 33) qual = 33;
-	else if(qual > 126) qual = 126;
+	if(base == 'T' && refBase == 'C') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdGA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+	else if(base == 'A' && refBase == 'G') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdCT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+	qual = round(-10.0 * log10(qual)) + 33.0; //cutoffs are in ascii
+	if(qual < 33.0) qual = 33.0;
+	else if(qual > 126.0) qual = 126.0;
 	return qual;
 }
 
 double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
-	double error = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-	if(base == 'T' && refBase == 'C') error = error*(1-pmdCT) + (1-error)*pmdCT;
-	else if(base == 'A' && refBase == 'G')	error = error*(1-pmdGA) + (1-error)*pmdGA;
-	double qual = round(-10.0 * log10(error)) + 33; //cutoffs are in ascii
-	if(qual < 33) qual = 33;
-	else if(qual > 126) qual = 126;
+	double qual = returnBaseQuality(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
+	if(base == 'T' && refBase == 'C') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdCT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+	else if(base == 'A' && refBase == 'G')	qual = 1.0 - ((1.0 - qual)*(1.0 - pmdGA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+	qual = round(-10.0 * log10(qual)) + 33.0; //cutoffs are in ascii
+	if(qual < 33.0) qual = 33.0;
+	else if(qual > 126.0) qual = 126.0;
 	return qual;
 }
 
