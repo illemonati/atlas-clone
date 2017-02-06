@@ -1033,6 +1033,62 @@ void TGenome::callAllelePresence(TParameters & params){
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
+void TGenome::combineBeagleFiles(TParameters & params){
+	std::string list = params.getParameterString("beagleList");
+	std::string sites = params.getParameterString("sites");
+
+	std::string bamName;
+	std::string beagleLine;
+	std::string sitesLine;
+	std::vector<std::string> sitesLineVec;
+	//std::vector<std::string> beagleLineVec;
+	std::string marker;
+
+	std::ifstream listFile(list.c_str());
+	if(!listFile) throw "Failed to open file '" + list + "!";
+
+
+//	std::string *beagleLines = new std::string[numBeagle];
+	std::vector<gz::igzstream*> input;
+	std::vector<gz::igzstream*>::iterator inputIt;
+
+
+	//Open all files and store them in ifs
+	while(listFile.good() && !listFile.eof()){
+		std::getline(listFile, bamName);
+		gz::igzstream* f = new gz::igzstream(bamName.c_str(), std::ios::in); // create in free store
+		input.push_back(f);
+		delete f;
+	}
+
+
+	std::ifstream sitesFile(sites.c_str());
+
+	int lineNum = 0;
+	while(sitesFile.good() && !sitesFile.eof()){
+		++lineNum;
+		std::getline(sitesFile, sitesLine);
+		fillVectorFromStringWhiteSpaceSkipEmpty(sitesLine, sitesLineVec);
+		marker = ""; marker += sitesLineVec[0] + "_" + sitesLineVec[1];
+		for(inputIt=input.begin(); inputIt!=input.end(); ++inputIt){
+//			std::getline(*(input.at(inputIt)), beagleLine);
+//			fillVectorFromStringWhiteSpaceSkipEmpty(beagleLine, sitesLineVec);
+//			if(input.at(inputIt) == marker) std::cout << marker << std::endl;
+		}
+
+	}
+
+
+/*
+	if(!bamName.empty()){
+
+	}
+
+	fillVectorFromStringWhiteSpaceSkipEmpty(trueLine, trueVec);
+*/
+
+}
+
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
