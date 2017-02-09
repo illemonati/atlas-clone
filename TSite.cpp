@@ -215,7 +215,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
-		out << "\t" << round(quality - maxGenotypeProb);
+		out << "\t" << round(quality);
 		delete[] emissionProbabilitiesPhredScaled;
 	} else {
 		out << "\t0";
