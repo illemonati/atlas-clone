@@ -6,7 +6,6 @@
  */
 
 #include "TSite.h"
-#include <boost/format.hpp>
 
 //-------------------------------------------------------
 //TSite
@@ -580,23 +579,21 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){
 	//print reference allele
 	if(hasData){
-		if(!printOnlyGL) out <<chr << "_" << pos + start + 1 << "\t" << referenceBase << "\t" << alt;
+		if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\t" << referenceBase << "\t" << alt;
 		//calc normalized likelihoods
 		double sumEmissionProbs = 0;
 		double emissionProbs[3];
 		calculateGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, emissionProbs, sumEmissionProbs, pos);
 
 		//now print normalized (max = 0)
-		for(int i=0; i<3; ++i){
-			double frac = emissionProbs[i] / sumEmissionProbs;
-			if(printOnlyGL && i==0) out << boost::format("%.6f") % frac;
-			else out << "\t" << boost::format("%.6f") % frac;
-		}
+		out << std::setprecision(6);
+		out << emissionProbs[0] / sumEmissionProbs;
+		out << "\t" << emissionProbs[1] / sumEmissionProbs;
+		out << "\t" << emissionProbs[2] / sumEmissionProbs;
 	}
 	else if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\tN\tN\t0.333\t0.333\t0.333";
 	else out << "0.333\t0.333\t0.333";
 	out << "\n";
-
 }
 
 

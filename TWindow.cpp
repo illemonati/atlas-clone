@@ -465,7 +465,11 @@ void TWindowDiploid::initSites(long newLength){
 	if(sitesInitialized)
 		delete[] sites;
 	length = newLength;
-	sites = new TSiteDiploid[length];
+	try{
+		sites = new TSiteDiploid[length];
+	} catch(...){
+		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
+	}
 	sitesInitialized = true;
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
@@ -1011,7 +1015,6 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 	}
 }
 
-
 void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
@@ -1038,7 +1041,6 @@ void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std
 		}
 
 		//check if we are heterozygous
-
 		if(logPHomo > logConfidence){
 			out << 'T';
 		} else if(logPHomo < logConfidenceHet){
@@ -1092,7 +1094,11 @@ void TWindowHaploid::initSites(long newLength){
 	if(sitesInitialized)
 		delete[] sites;
 	length = newLength;
-	sites = new TSiteHaploid[length];
+	try{
+		sites = new TSiteHaploid[length];
+	} catch(...){
+		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
+	}
 	sitesInitialized = true;
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;

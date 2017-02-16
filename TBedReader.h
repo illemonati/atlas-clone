@@ -40,7 +40,7 @@ public:
 
 	long size(){
 		return positions.size();
-	}
+	};
 };
 
 class TBedChromosome{

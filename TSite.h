@@ -26,11 +26,11 @@ class TSite{
 public:
 	bool hasData;
 	std::vector<TBase*> bases;
-	int numGenotypes;
+	short int numGenotypes;
 	double* emissionProbabilities;
 	double* P_g; //P(g|d, theta, pi), see equation (3)
 	char referenceBase; //optional
-	double maxQualToPrint, maxQualToPrintNaturalScale;
+	float maxQualToPrint, maxQualToPrintNaturalScale;
 
 	TSite(){
 		hasData = false;

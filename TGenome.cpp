@@ -557,9 +557,21 @@ void TGenome::estimateTheta(TParameters & params){
 	if(params.parameterExists("sites")){
 		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		//else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
-		subset = new TBedReader(params.getParameterString("sites"), windowSize);
+		std::string sitesFile = params.getParameterString("sites");
+		logfile->startIndent("Inferring theta from specific sites:");
+		logfile->listFlush("Reading sites from '" + sitesFile +"' ...");
+		subset = new TBedReader(sitesFile, windowSize);
+		logfile->write(" done!");
+		logfile->conclude("Will infer theta from " + toString(subset->size()) + "  sites.");
+
+		std::cout << "------- A ----------------" << std::endl;
+		logfile->listFlush("Allocating necessary memory ...");
 		windowSpecificSites = new TWindowDiploidSpecificSites(subset);
+
+		std::cout << "------- B ----------------" << std::endl;
+
 		limitToSpecificSites = true;
+
 	}
 
 	//iterate through windows
@@ -1541,7 +1553,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 			}
 		} else {
 			logfile->warning("One mate of the following alignment pair is longer than its insert size: " + alignment.Name);
-			mateTooLong.insert(make_pair(alignment.Name, 1));
+			mateTooLong.insert(std::pair<std::string,int>(alignment.Name, 1));
 			return false;
 		}
 	} else { //single end
@@ -2406,7 +2418,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		while(file.good() && !file.eof()){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty()) readsToOmit.insert(make_pair(vec[0], 1));
+			if(!vec.empty()) readsToOmit.insert(std::pair<std::string,int>(vec[0], 1));
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
@@ -2435,7 +2447,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		++counter;
 		if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
 			std::cout << "filtered out because of adapter " << bamAlignment.Name << std::endl;
-			readsToOmit.insert(make_pair(bamAlignment.Name, 1));
+			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 		}
 		else if((blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0) || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate()){
 			continue;
