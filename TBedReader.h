@@ -16,18 +16,18 @@
 //store all data in chr / window combinations using vectors
 //Store all positions 0-based, as in TWindow
 
-class TBedWindow{
+class TBedReaderWindow{
 public:
 	bool hasData;
 	long start, end;
 	std::vector<long> positions;
 
-	TBedWindow(long Start, long End){
+	TBedReaderWindow(long Start, long End){
 		hasData = false;
 		start = Start;
 		end = End;
 	};
-	~TBedWindow(){};
+	~TBedReaderWindow(){};
 	void addPosition(long & pos){
 		positions.push_back(pos);
 	};
@@ -40,23 +40,23 @@ public:
 
 	long size(){
 		return positions.size();
-	};
+	}
 };
 
-class TBedChromosome{
+class TBedReaderChromosome{
 public:
 	std::string name;
-	std::map<int, TBedWindow*> windows;
-	std::map<int, TBedWindow*>::iterator windowIt;
+	std::map<int, TBedReaderWindow*> windows;
+	std::map<int, TBedReaderWindow*>::iterator windowIt;
 	int windowSize;
 
 
-	TBedChromosome(std::string & Name, int & WindowSize){
+	TBedReaderChromosome(std::string & Name, int & WindowSize){
 		name = Name;
 		windowSize = WindowSize;
 	};
 
-	~TBedChromosome(){
+	~TBedReaderChromosome(){
 		//delete all windows
 		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt){
 			delete windowIt->second;
@@ -74,7 +74,7 @@ public:
 		if(windowIt == windows.end()){
 			//insert window
 			int w = (double) pos / (double) windowSize;
-			windows.insert(std::pair<int, TBedWindow*>(w, new TBedWindow(w*windowSize, (w+1)*windowSize - 1)));
+			windows.insert(std::pair<int, TBedReaderWindow*>(w, new TBedReaderWindow(w*windowSize, (w+1)*windowSize - 1)));
 			findWindow(pos);
 		}
 	}
@@ -121,8 +121,8 @@ public:
 
 class TBedReader{
 private:
-	std::map<std::string, TBedChromosome*> chromosomes;
-	std::map<std::string, TBedChromosome*>::iterator chrIt;
+	std::map<std::string, TBedReaderChromosome*> chromosomes;
+	std::map<std::string, TBedReaderChromosome*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
 
@@ -148,7 +148,7 @@ private:
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0], windowSize)));
+						chromosomes.insert(std::pair<std::string, TBedReaderChromosome*>(vec[0], new TBedReaderChromosome(vec[0], windowSize)));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
@@ -208,7 +208,11 @@ public:
 		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
 			s += chrIt->second->size();
 		return s;
-	}
+	};
+
+	int getNumChromosomes(){
+		return chromosomes.size();
+	};
 
 };
 

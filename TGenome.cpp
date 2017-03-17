@@ -19,13 +19,35 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	initializeRandomGenerator(params);
 
-	//read parameters
+	//open BAM file
 	filename = params.getParameterString("bam");
+	logfile->list("Reading data from BAM file '" + filename + "'.");
+	if (!bamReader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "'!";
+	//load index file
+	if(!bamReader.LocateIndex())
+		throw "No index file found for BAM file '" + filename + "'!";
+
+	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
+
+	//read window parameter
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
-	windowSize = params.getParameterDoubleWithDefault("window", 1000000);
+	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
+	//check if it is a number
+	if(stringContainsOnly(tmp, "1234567890.Ee-+")){
+		windowsPredefined = false;
+		windowSize = stringToInt(tmp);
+		logfile->list("Setting window size to " + toString(windowSize));
+		if(windowSize < maxReadLength) throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
+	} else {
+		windowsPredefined = true;
+		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
+		windows = new TBed(tmp);
+		logfile->write(" done!");
+		logfile->conclude("read " + toString(windows->size()) + " on " + toString(windows->getNumChromosomes()) + " chromosomes");
+	}
 	numWindowsOnChr = 0;
-	//if(windowSize < 1000) throw "Window size should be at least 1Kb!";
-	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -43,15 +65,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	curEnd = -1;
 	oldPos = -1;
 	oldAlignementMustBeConsidered = false;
-
-	//open BAM file
-	logfile->list("Reading data from BAM file '" + filename + "'.");
-	if (!bamReader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "'!";
-
-	//load index file
-	if(!bamReader.LocateIndex())
-		throw "No index file found for BAM file '" + filename + "'!";
 
 	//read header
 	bamHeader = bamReader.GetHeader();
@@ -75,6 +88,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//check if we mask sites
 	if(params.parameterExists("mask")){
+		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
@@ -92,6 +106,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->list("Will mask all CpG sites");
 	} else doCpGMasking = false;
 
+	//filters
 	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
 		applyCoverageFilter = true;
 		minCoverage = params.getParameterIntWithDefault("minCoverage", 0);
@@ -113,9 +128,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		minQuality = 34; //filter out quality 0 by default
 		maxQuality = 1000000;
 	}
-	//minQuality = params.getParameterIntWithDefault("minQual", 32);
-	//logfile->list("Will not consider bases with quality < " + toString(minQuality));
-
+	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
@@ -139,7 +152,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 					logfile->list(*it);
 					break;
 				}
-
 			}
 			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
@@ -214,18 +226,25 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
 	oldAlignementMustBeConsidered = false;
+	chrLength = stringToLong(chrIterator->Length);
 
 	//restart windows
-	chrLength = stringToLong(chrIterator->Length);
-	numWindowsOnChr = ceil(chrLength / (double) windowSize);
-
 	curStart = 0;
 	curEnd = 0;
 	oldPos = -1;
 	windowNumber = 0;
-	int nextEnd = windowSize;
-	if(nextEnd > chrLength) nextEnd = chrLength;
-	windowPair.nextPointer->move(0, nextEnd);
+	if(windowsPredefined){
+		windows->setChr(chrIterator->Name);
+		numWindowsOnChr = windows->getNumWindowsOnCurChr();
+		int nextEnd = windows->curWindowEnd();
+		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		else windowPair.nextPointer->move(windows->curWindowStart(), nextEnd);
+	} else {
+		numWindowsOnChr = ceil(chrLength / (double) windowSize);
+		int nextEnd = windowSize;
+		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		windowPair.nextPointer->move(0, nextEnd);
+	}
 
 	//advance mask
 	if(doMasking) mask->setChr(chrIterator->Name);
@@ -241,19 +260,35 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	windowPair.swap();
 
 	//move to next region
-	curStart = curEnd;
+	curStart = windowPair.curPointer->start;
 	curEnd = windowPair.curPointer->end;
-	if(curStart >= chrLength || windowNumber>= limitWindows) return false;
+	if(curStart >= chrLength || windowNumber >= limitWindows) return false;
 
 	//move next
-	long nextEnd = curEnd + windowSize;
-	if(nextEnd > chrLength) nextEnd = chrLength + 1;
-	windowPair.nextPointer->move(curEnd, nextEnd);
+	if(windowsPredefined){
+		if(numWindowsOnChr < 1){
+			logfile->conclude("No windows on this chromosome.");
+			return false;
+		}
+		//jump reader if large gap to previous window
+		if(windowPair.curPointer->start - windowPair.nextPointer->end > maxReadLength)
+			bamReader.Jump(chrNumber, curStart);
+
+		//now move coordinates of next window
+		if(windows->nextWindow()){
+			int nextEnd = windows->curWindowEnd();
+			if(nextEnd > chrLength) nextEnd = chrLength + 1;
+			windowPair.nextPointer->move(windows->curWindowStart(), nextEnd);
+		} else {
+			windowPair.nextPointer->move(chrLength + 1, chrLength + 2);
+		}
+	} else {
+		long nextEnd = curEnd + windowSize;
+		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		windowPair.nextPointer->move(curEnd, nextEnd);
+	}
 
 	++windowNumber;
-
-	//jump reader
-	//bamReader.Jump(chrNumber, curStart);
 
 	//report
 	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
@@ -317,6 +352,9 @@ bool TGenome::readData(TWindowPair & windowPair){
 					//check if insert size is shorter than read, this means we are reading the adaptor sequence
 					if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 
+						if(bamAlignment.AlignedBases.size() > maxReadLength)
+							throw "Alignment '" +  bamAlignment.Name + "' is long than the max read length! Please change max read length to parse this data.";
+
 						if(!addAlignementToWindows(bamAlignment, windowPair)){
 
 							//read is beyond window and should be reconsidered
@@ -348,7 +386,6 @@ bool TGenome::readData(TWindowPair & windowPair){
 		if(applyCoverageFilter){
 			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
 		}
-
 
 		//calc coverage
 		windowPair.curPointer->calcCoverage();
@@ -500,41 +537,7 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
-/*
-void TGenome::estimateTheta(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
 
-	//EM params
-	EMParameters EMParams(params, logfile);
-
-	//open output
-	std::ofstream out; openThetaOutputFile(out);
-
-	//prepare windows
-	TWindowPairDiploid windows;
-
-	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} else {
-					//estimate Theta
-					out << chrIterator->Name << "\t";
-					windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
-				}
-			}
-		}
-	}
-
-	//clean up
-	out.close();
-}
-*/
 
 void TGenome::estimateTheta(TParameters & params){
 	//initialize recalibration
@@ -555,6 +558,7 @@ void TGenome::estimateTheta(TParameters & params){
 	TBedReader* subset = NULL;
 	TWindowDiploidSpecificSites* windowSpecificSites;
 	if(params.parameterExists("sites")){
+		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		//else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
 		std::string sitesFile = params.getParameterString("sites");
@@ -563,15 +567,9 @@ void TGenome::estimateTheta(TParameters & params){
 		subset = new TBedReader(sitesFile, windowSize);
 		logfile->write(" done!");
 		logfile->conclude("Will infer theta from " + toString(subset->size()) + "  sites.");
-
-		std::cout << "------- A ----------------" << std::endl;
 		logfile->listFlush("Allocating necessary memory ...");
 		windowSpecificSites = new TWindowDiploidSpecificSites(subset);
-
-		std::cout << "------- B ----------------" << std::endl;
-
 		limitToSpecificSites = true;
-
 	}
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -816,6 +814,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool printIfNoData = true;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
+		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		bool invariantSites = false;
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
@@ -935,6 +934,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	bool noAltIfHomoRef = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
+		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		bool invariantSites = false;
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
@@ -1157,11 +1157,11 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	bool invariantSites = false;
 
 	if(params.parameterExists("sites")){
+		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		invariantSites = true;
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 	}
-
 
 	//prepare windows
 	TWindowPairHaploid windows;
@@ -1551,7 +1551,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 			}
 		} else {
 			logfile->warning("One mate of the following alignment pair is longer than its insert size: " + alignment.Name);
-			mateTooLong.insert(std::pair<std::string,int>(alignment.Name, 1));
+			mateTooLong.insert(make_pair(alignment.Name, 1));
 			return false;
 		}
 	} else { //single end

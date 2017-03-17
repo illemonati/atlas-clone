@@ -13,24 +13,13 @@
 #include "gzstream.h"
 #include "bamtools/api/BamWriter.h"
 #include "TLog.h"
+#include "TBed.h"
 
 //---------------------------------------------------------------
 //TGenome
 //---------------------------------------------------------------
 class TGenome{
 private:
-	void jumpToEnd();
-	void restartChromosome(TWindowPair & windowPair);
-	bool iterateChromosome(TWindowPair & windowPair);
-	void moveChromosome(TWindowPair & windowPair);
-	bool iterateWindow(TWindowPair & windowPair);
-	bool addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
-	bool readData(TWindowPair & windowPair);
-	void initializePostMortemDamage(TParameters & params);
-	void initializeRecalibration(TParameters & params);
-	void openThetaOutputFile(std::ofstream & out);
-	void initializeRandomGenerator(TParameters & params);
-
 	TPMD* pmdObjects;
 	bool hasPMD;
 	TRecalibration* recalObject;
@@ -58,23 +47,39 @@ private:
  	long curEnd;
 	std::string filename;
 	TLog* logfile;
- 	int windowSize;
- 	int numWindowsOnChr;
- 	int windowNumber;
- 	double maxMissing;
- 	long oldPos;
- 	std::string outputName;
- 	TBedReader* mask;
- 	bool doMasking;
- 	bool doCpGMasking;
- 	bool applyCoverageFilter, applyQualityFilter;
- 	int minCoverage, maxCoverage;
- 	int minQuality, maxQuality;
- 	long limitWindows;
- 	int limitChr;
- 	bool* useChromosome;
- 	bool limitReadGroups;
- 	std::vector<std::string> readGroupsInUse;
+	bool windowsPredefined;
+	TBed* windows;
+	int windowSize;
+	int numWindowsOnChr;
+	int windowNumber;
+	int maxReadLength;
+	double maxMissing;
+	long oldPos;
+	std::string outputName;
+	TBedReader* mask;
+	bool doMasking;
+	bool doCpGMasking;
+	bool applyCoverageFilter, applyQualityFilter;
+	int minCoverage, maxCoverage;
+	int minQuality, maxQuality;
+	long limitWindows;
+	int limitChr;
+	bool* useChromosome;
+	bool limitReadGroups;
+	std::vector<std::string> readGroupsInUse;
+
+	void jumpToEnd();
+	void restartChromosome(TWindowPair & windowPair);
+	bool iterateChromosome(TWindowPair & windowPair);
+	void moveChromosome(TWindowPair & windowPair);
+	bool iterateWindow(TWindowPair & windowPair);
+	bool addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+	bool readData(TWindowPair & windowPair);
+	void initializePostMortemDamage(TParameters & params);
+	void initializeRecalibration(TParameters & params);
+	void openThetaOutputFile(std::ofstream & out);
+	void initializeRandomGenerator(TParameters & params);
+	void openSiteSubset(TBedReader* subset, std::string filename);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -85,6 +90,7 @@ public:
 		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 		if(useChromosome) delete[] useChromosome;
+		if(windowsPredefined) delete windows;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
