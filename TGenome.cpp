@@ -573,7 +573,6 @@ void TGenome::estimateTheta(TParameters & params){
 		limitToSpecificSites = true;
 
 	}
-
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		if(limitToSpecificSites) subset->setChr(chrIterator->Name);
@@ -737,8 +736,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
 		out << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
 		out << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
-		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes\">\n";
-
+		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes in alphabetical order\">\n";
 		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sName << "\n";
 	} else if(beagle){
 		//open file
