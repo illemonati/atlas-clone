@@ -19,6 +19,9 @@
 #include <algorithm>
 #include "TRandomGenerator.h"
 
+#define maxQualToPrint 1000
+#define maxQualToPrintNaturalScale 1E-100
+
 //---------------------------------------------------------------
 //TSite
 //---------------------------------------------------------------
@@ -30,7 +33,6 @@ public:
 	double* emissionProbabilities;
 	double* P_g; //P(g|d, theta, pi), see equation (3)
 	char referenceBase; //optional
-	float maxQualToPrint, maxQualToPrintNaturalScale;
 
 	TSite(){
 		hasData = false;
@@ -38,8 +40,7 @@ public:
 		emissionProbabilities = NULL;
 		P_g = NULL;
 		referenceBase = 'N';
-		maxQualToPrint = 1000;
-		maxQualToPrintNaturalScale = pow(10.0, -maxQualToPrint / 10.0);
+		//std::cout << "maxQualToPrintNaturalScale " << maxQualToPrintNaturalScale << std::endl;
 	};
 	virtual ~TSite(){ clear(); };
 	void clear();

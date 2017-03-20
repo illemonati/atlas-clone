@@ -168,8 +168,6 @@ void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGene
 	//select best allele at random if there are multiple options
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 	quality = quality - maxGenotypeProb;
-
-
 }
 
 void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, TGenotypeMap & genoMap, int MLGenotype, std::string & genoSecond){
