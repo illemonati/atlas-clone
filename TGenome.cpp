@@ -2793,6 +2793,13 @@ void TGenome::downSampleReads(TParameters & params){
 }
 
 void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome length
+	//open output file
+	std::ofstream output;
+	std::string outputFileName = outputName + "_approximateCoverage.txt";
+	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+
 	double totLength = 0.0;
 	for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
 		totLength += stringToLong(chrIterator->Length);
@@ -2831,6 +2838,10 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 
 	//report approximate coverage
 	logfile->list("Approximate coverage was estimated at " + toString(toNumAlignedBases/totLength));
+
+	output << "Approximate_coverage\n" << toNumAlignedBases/totLength << std::endl;
+
+	output.close();
 }
 
 
