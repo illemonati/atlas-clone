@@ -175,6 +175,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		for(int i=0; i < readGroups.numGroups; i++){
 			if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), readGroups.getName(i)) != readGroupsInUse.end()){
 				readGroups.inUse[i] = true;
+				logfile->list(readGroups.getName(i));
 			} else readGroups.inUse[i] = false;
 		}
 		logfile->endIndent();
@@ -2793,6 +2794,25 @@ void TGenome::downSampleReads(TParameters & params){
 }
 
 void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome length
+	//open output files
+	std::ofstream outputCoverage;
+	std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
+	logfile->list("Writing coverage estimates to '" + outputFileNameCov + "'");
+	outputCoverage.open(outputFileNameCov.c_str());
+	if(!outputCoverage) throw "Failed to open output file '" + outputFileNameCov + "'!";
+
+	std::ofstream outputMQ;
+	std::string outputFileNameMQ = outputName + "_MQ.txt";
+	logfile->list("Writing MQ histogram to '" + outputFileNameMQ + "'");
+	outputMQ.open(outputFileNameMQ.c_str());
+	if(!outputMQ) throw "Failed to open output file '" + outputFileNameMQ + "'!";
+
+	std::ofstream outputReadLen;
+	std::string outputFileNameRL = outputName + "_readLength.txt";
+	logfile->list("Writing read length histogram to '" + outputFileNameRL + "'");
+	outputReadLen.open(outputFileNameRL.c_str());
+	if(!outputReadLen) throw "Failed to open output file '" + outputFileNameRL + "'!";
+
 	double totLength = 0.0;
 	for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
 		totLength += stringToLong(chrIterator->Length);
@@ -2806,13 +2826,15 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 	//other temp variables
 	long counter = 0;
 	double toNumAlignedBases = 0.0;
+	int MQ[100]={0}, RL[500]={0};
 
     //now parse through bam file and sum number of aligned bases
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
 
-		//accept read or not?
 		toNumAlignedBases += bamAlignment.AlignedBases.length();
+		++MQ[bamAlignment.MapQuality];
+		++RL[bamAlignment.Length];
 
 		//report
 		if(counter % 1000000 == 0){
@@ -2829,8 +2851,25 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 
-	//report approximate coverage
+	//report approximate coverage in logfile
 	logfile->list("Approximate coverage was estimated at " + toString(toNumAlignedBases/totLength));
+
+	//output results to files
+	outputCoverage << "Approximate_coverage\n" << toNumAlignedBases/totLength << std::endl;
+
+	outputMQ << "Qual\tCount";
+	for(int i=0; i<100; ++i){
+		outputMQ << "\n" << i << "\t" << MQ[i];
+	}
+
+	outputReadLen << "Read_length\tCount";
+	for(int i=0; i<100; ++i){
+		outputReadLen << "\n" << i << "\t" << RL[i];
+	}
+
+	outputCoverage.close();
+	outputMQ.close();
+	outputReadLen.close();
 }
 
 
