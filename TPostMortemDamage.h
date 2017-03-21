@@ -41,7 +41,7 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName);
+	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile);
 };
 
 class TPMDTables{
@@ -57,7 +57,7 @@ public:
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
-	void fitExponentialModel(int numNRIterations, double eps, std::string & filename);
+	void fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile);
 };
 
 
@@ -128,7 +128,7 @@ public:
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
-	void initializeFunction(std::string & pmdString, PMDType type);
+	void initializeFunction(std::string & pmdString, PMDType type, TLog* logfile);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
 	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };

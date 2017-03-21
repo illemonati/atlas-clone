@@ -415,8 +415,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 			std::string pmdString = params.getParameterString("pmd");
 			logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
 			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdString, pmdGA);
-				pmdObjects[i].initializeFunction(pmdString, pmdCT);
+				pmdObjects[i].initializeFunction(pmdString, pmdGA, logfile);
+				pmdObjects[i].initializeFunction(pmdString, pmdCT, logfile);
 			}
 			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
 			if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
@@ -426,7 +426,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 			std::string pmdStringCT = params.getParameterString("pmdCT");
 			logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
 			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdStringCT, pmdCT);
+				pmdObjects[i].initializeFunction(pmdStringCT, pmdCT, logfile);
 			}
 			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
 
@@ -435,7 +435,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 			std::string pmdStringGA = params.getParameterString("pmdGA");
 			logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
 			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdStringGA, pmdGA);
+				pmdObjects[i].initializeFunction(pmdStringGA, pmdGA, logfile);
 			}
 			logfile->conclude(pmdObjects[0].getFunctionString(pmdGA));
 		}
@@ -465,9 +465,9 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
 					readGroupId = readGroups.find(vec[0]);
 					//initialize functions
-					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
+					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT, logfile);
 					logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
-					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
+					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA, logfile);
 					logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
 				}
 			}
@@ -487,8 +487,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		logfile->list("Assuming there is no PMD in the data.");
 		std::string pmdString = "none";
 		for(int i=0; i<readGroups.numGroups; ++i){
-			pmdObjects[i].initializeFunction(pmdString, pmdGA);
-			pmdObjects[i].initializeFunction(pmdString, pmdCT);
+			pmdObjects[i].initializeFunction(pmdString, pmdGA, logfile);
+			pmdObjects[i].initializeFunction(pmdString, pmdCT, logfile);
 		}
 	}
 	logfile->endIndent();
@@ -2093,7 +2093,7 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
 	int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
 	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
-	pmdTables.fitExponentialModel(numNRIterations, eps, filename);
+	pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
 	logfile->write(" done!");
 }
 

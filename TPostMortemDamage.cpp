@@ -238,7 +238,7 @@ double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
 	return LL;
 }
 
-std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName){
+std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);
@@ -376,6 +376,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	arma::mat Fisher = inv(J);
 
 	//now return string
+	if(a < 0) logfile->warning("Read group " + readGroupName + " was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
 
@@ -444,14 +445,14 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	out.close();
 };
 
-void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename){
+void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "'!";
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i))
-			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i)) << "\n";
+		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
+			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
 	}
 	out.close();
 }
@@ -508,7 +509,7 @@ std::string TPMDEmpiric::getString(){
 //------------------------------------------------------
 //TPMD
 //------------------------------------------------------
-void TPMD::initializeFunction(std::string & pmdString, PMDType type){
+void TPMD::initializeFunction(std::string & pmdString, PMDType type, TLog* logfile){
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]
@@ -548,7 +549,7 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type){
 				myFunctions[type] = new TPMDSkoglund(first, c);
 			} else if(name == "Exponential"){
 				//get a, b and c
-				if(first < 0.0) throw "Can not initialize Exponential function with a < 0!";
+				if(first < 0.0)  logfile->warning("At least one read group was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
 
 				//get b
 				tmp = tmp.substr(pos+1);
