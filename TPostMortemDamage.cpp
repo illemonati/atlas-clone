@@ -416,7 +416,7 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
-		out << readGroups->getName(i) << "\t" << forward[i]->getPMDStringCT() << "\t" << reverse[i]->getPMDStringGA() << "\n";
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[i]->getPMDStringCT() << "\t" << reverse[i]->getPMDStringGA() << "\n";
 	}
 	out.close();
 }
@@ -427,8 +427,10 @@ void TPMDTables::writeTable(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
-		forward[i]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-		reverse[i]->writeTable(out, readGroups->getName(i) + "\treverse\t");
+		if(readGroups->inUse[i]){
+			forward[i]->writeTable(out, readGroups->getName(i) + "\tforward\t");
+			reverse[i]->writeTable(out, readGroups->getName(i) + "\treverse\t");
+		}
 	}
 	out.close();
 };
@@ -439,8 +441,10 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<readGroups->numGroups; ++i){
-		forward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-		reverse[i]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
+		if(readGroups->inUse[i]){
+			forward[i]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
+			reverse[i]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
+		}
 	}
 	out.close();
 };
@@ -451,7 +455,7 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
 			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
 	}
 	out.close();
