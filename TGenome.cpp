@@ -2830,6 +2830,8 @@ void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome le
 
     //now parse through bam file and sum number of aligned bases
 	while (bamReader.GetNextAlignment(bamAlignment)){
+		if(!readGroups.readGroupInUse(bamAlignment)) continue;
+		if(!useChromosome[bamAlignment.RefID]) continue;
 		++counter;
 
 		toNumAlignedBases += bamAlignment.AlignedBases.length();
