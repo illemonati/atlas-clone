@@ -2795,86 +2795,135 @@ void TGenome::downSampleReads(TParameters & params){
 	logfile->removeIndent();
 }
 
-void TGenome::estimateApproximateCoverage(TParameters & params){	//get genome length
-	//open output files
-	std::ofstream outputCoverage;
-	std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
-	logfile->list("Writing coverage estimates to '" + outputFileNameCov + "'");
-	outputCoverage.open(outputFileNameCov.c_str());
-	if(!outputCoverage) throw "Failed to open output file '" + outputFileNameCov + "'!";
+void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome length
+    //open output files
+    std::ofstream outputCoverage;
+    std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
+    logfile->list("Writing coverage estimates to '" + outputFileNameCov + "'");
+    outputCoverage.open(outputFileNameCov.c_str());
+    if(!outputCoverage) throw "Failed to open output file '" + outputFileNameCov + "'!";
 
-	std::ofstream outputMQ;
-	std::string outputFileNameMQ = outputName + "_MQ.txt";
-	logfile->list("Writing MQ histogram to '" + outputFileNameMQ + "'");
-	outputMQ.open(outputFileNameMQ.c_str());
-	if(!outputMQ) throw "Failed to open output file '" + outputFileNameMQ + "'!";
+    std::ofstream outputMQ;
+    std::string outputFileNameMQ = outputName + "_MQ.txt";
+    logfile->list("Writing MQ histogram to '" + outputFileNameMQ + "'");
+    outputMQ.open(outputFileNameMQ.c_str());
+    if(!outputMQ) throw "Failed to open output file '" + outputFileNameMQ + "'!";
 
-	std::ofstream outputReadLen;
-	std::string outputFileNameRL = outputName + "_readLength.txt";
-	logfile->list("Writing read length histogram to '" + outputFileNameRL + "'");
-	outputReadLen.open(outputFileNameRL.c_str());
-	if(!outputReadLen) throw "Failed to open output file '" + outputFileNameRL + "'!";
+    std::ofstream outputReadLen;
+    std::string outputFileNameRL = outputName + "_readLength.txt";
+    logfile->list("Writing read length histogram to '" + outputFileNameRL + "'");
+    outputReadLen.open(outputFileNameRL.c_str());
+    if(!outputReadLen) throw "Failed to open output file '" + outputFileNameRL + "'!";
 
-	double totLength = 0.0;
-	for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
-		totLength += stringToLong(chrIterator->Length);
+    double totLength = 0.0;
+    for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
+        totLength += stringToLong(chrIterator->Length);
 
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+    //prepare reporting
+    logfile->startIndent("Parsing through BAM file:");
+    struct timeval start, end;
     gettimeofday(&start, NULL);
-	float runtime;
+    float runtime;
 
-	//other temp variables
-	long counter = 0;
-	double toNumAlignedBases = 0.0;
-	int MQ[100]={0}, RL[500]={0};
+    //other temp variables
+    long counter = 0;
+    //double toNumAlignedBases = 0.0;
+    //std::vector<int*> MQ;
+    //std::vector<int*> RL;
+    int RGInd = -1;
+
+/*
+    long MQ[readGroups.numGroups][100];
+    long RL[readGroups.numGroups][500];
+    double cov[readGroups.numGroups];
+*/
+
+    std::vector<double> cov;
+
+    long** MQ = new long*[readGroups.numGroups];
+    long** RL = new long*[readGroups.numGroups];
+    for(int i = 0; i < readGroups.numGroups; ++i){
+    	cov.push_back(0);
+    	MQ[i] = new long[100];
+    	RL[i] = new long[500];
+//    	memset(MQ[i], 0, 100);
+ //   	memset(RL[i], 0, 100);
+    	for(int j=0; j<100; ++j) MQ[i][j]=0;
+    	for(int j=0; j<500; ++j) RL[i][j]=0;
+    }
+
+    std::cout << MQ[0][37] << std::endl;
+
+
+
+    double totCov =0.0;
 
     //now parse through bam file and sum number of aligned bases
-	while (bamReader.GetNextAlignment(bamAlignment)){
-		if(!readGroups.readGroupInUse(bamAlignment)) continue;
-		if(!useChromosome[bamAlignment.RefID]) continue;
-		++counter;
+    while (bamReader.GetNextAlignment(bamAlignment)){
+        if(!readGroups.readGroupInUse(bamAlignment)) continue;
+        if(!useChromosome[bamAlignment.RefID]) continue;
+        ++counter;
+        RGInd = readGroups.find(bamAlignment);
+        totCov += bamAlignment.AlignedBases.length();
+        cov[RGInd] += bamAlignment.AlignedBases.length();
+//        std::cout << readGroups.getName(readGroups.find(bamAlignment)) << bamAlignment.MapQuality << std::endl;
+//        std::cout << "++MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] before " << MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] <<std::endl;
+        ++MQ[RGInd][bamAlignment.MapQuality];
+ //       std::cout << "++MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] " << MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] <<std::endl;
+        ++RL[RGInd][bamAlignment.Length];
 
-		toNumAlignedBases += bamAlignment.AlignedBases.length();
-		++MQ[bamAlignment.MapQuality];
-		++RL[bamAlignment.Length];
+        //report
+        if(counter % 1000000 == 0){
+            gettimeofday(&end, NULL);
+            runtime = (end.tv_sec  - start.tv_sec)/60.0;
+            logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+        }
+    }
 
-		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
-	}
+    //report
+    gettimeofday(&end, NULL);
+    runtime = (end.tv_sec  - start.tv_sec)/60.0;
+    logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+    logfile->list("Reached end of BAM file!");
+    logfile->removeIndent();
 
-	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+    logfile->list("Approximate coverage was estimated at " + toString(totCov/totLength));
 
-	//report approximate coverage in logfile
-	logfile->list("Approximate coverage was estimated at " + toString(toNumAlignedBases/totLength));
+    logfile->listFlush("Writing to output files ...");
+    outputCoverage << "RG\tApproximate_coverage";
+    outputCoverage << "\ntotal_coverage\t" << totCov/totLength;
+    for(int r=0; r<readGroups.numGroups; ++r){
+        outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
+    }
 
-	//output results to files
-	outputCoverage << "Approximate_coverage\n" << toNumAlignedBases/totLength << std::endl;
+    outputMQ << "RG\tMapping_quality\tCount";
+    for(int r=0; r<readGroups.numGroups; ++r){
+        for(int i=0; i<100; ++i){
+            outputMQ << "\n" << readGroups.getName(r) << "\t" << i << "\t" << MQ[r][i];
+        }
+    }
 
-	outputMQ << "Qual\tCount";
-	for(int i=0; i<100; ++i){
-		outputMQ << "\n" << i << "\t" << MQ[i];
-	}
+    outputReadLen << "RG\tRead_length\tCount";
+    for(int r=0; r<readGroups.numGroups; ++r){
+        for(int i=0; i<500; ++i){
+            outputReadLen << "\n" << readGroups.getName(r)<< "\t" << i << "\t" << RL[r][i];
+        }
+    }
 
-	outputReadLen << "Read_length\tCount";
-	for(int i=0; i<100; ++i){
-		outputReadLen << "\n" << i << "\t" << RL[i];
-	}
+    logfile->write(" done!");
 
-	outputCoverage.close();
-	outputMQ.close();
-	outputReadLen.close();
+    outputCoverage.close();
+    outputMQ.close();
+    outputReadLen.close();
+
+    for(int i = 0; i < readGroups.numGroups; ++i){
+    	delete MQ[i];
+    	delete RL[i];
+    }
+    delete MQ;
+    delete RL;
 }
+
 
 
 void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
