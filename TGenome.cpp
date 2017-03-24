@@ -2839,6 +2839,7 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
 */
 
     std::vector<double> cov;
+    double totCov =0.0;
 
     long** MQ = new long*[readGroups.numGroups];
     long** RL = new long*[readGroups.numGroups];
@@ -2852,11 +2853,6 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
     	for(int j=0; j<500; ++j) RL[i][j]=0;
     }
 
-    std::cout << MQ[0][37] << std::endl;
-
-
-
-    double totCov =0.0;
 
     //now parse through bam file and sum number of aligned bases
     while (bamReader.GetNextAlignment(bamAlignment)){
@@ -2866,10 +2862,7 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
         RGInd = readGroups.find(bamAlignment);
         totCov += bamAlignment.AlignedBases.length();
         cov[RGInd] += bamAlignment.AlignedBases.length();
-//        std::cout << readGroups.getName(readGroups.find(bamAlignment)) << bamAlignment.MapQuality << std::endl;
-//        std::cout << "++MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] before " << MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] <<std::endl;
         ++MQ[RGInd][bamAlignment.MapQuality];
- //       std::cout << "++MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] " << MQ[readGroups.find(bamAlignment)][bamAlignment.MapQuality] <<std::endl;
         ++RL[RGInd][bamAlignment.Length];
 
         //report
@@ -2886,24 +2879,39 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
     logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
     logfile->list("Reached end of BAM file!");
     logfile->removeIndent();
-
     logfile->list("Approximate coverage was estimated at " + toString(totCov/totLength));
 
     logfile->listFlush("Writing to output files ...");
+
+    //cov
     outputCoverage << "RG\tApproximate_coverage";
     outputCoverage << "\ntotal_coverage\t" << totCov/totLength;
     for(int r=0; r<readGroups.numGroups; ++r){
         outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
     }
 
+    //MQ
+    long tot;
     outputMQ << "RG\tMapping_quality\tCount";
+    for(int i=0; i<100; ++i){
+    	tot = 0;
+    	for(int r=0; r<readGroups.numGroups; ++r) tot += MQ[r][i];
+		outputMQ << "\nallReadGroups\t" << i << "\t" << tot;
+
+    }
     for(int r=0; r<readGroups.numGroups; ++r){
         for(int i=0; i<100; ++i){
             outputMQ << "\n" << readGroups.getName(r) << "\t" << i << "\t" << MQ[r][i];
         }
     }
 
+    //RL
     outputReadLen << "RG\tRead_length\tCount";
+    for(int i=0; i<500; ++i){
+    	tot = 0;
+    	for(int r=0; r<readGroups.numGroups; ++r) tot += RL[r][i];
+		outputReadLen << "\nallReadGroups\t" << i << "\t" << tot;
+    }
     for(int r=0; r<readGroups.numGroups; ++r){
         for(int i=0; i<500; ++i){
             outputReadLen << "\n" << readGroups.getName(r)<< "\t" << i << "\t" << RL[r][i];
