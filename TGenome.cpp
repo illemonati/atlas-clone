@@ -2885,7 +2885,7 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
 
     //cov
     outputCoverage << "RG\tApproximate_coverage";
-    outputCoverage << "\ntotal_coverage\t" << totCov/totLength;
+    outputCoverage << "\nallReadGroups\t" << totCov/totLength;
     for(int r=0; r<readGroups.numGroups; ++r){
         outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
     }
