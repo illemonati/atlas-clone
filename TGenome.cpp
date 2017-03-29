@@ -89,6 +89,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//check if we mask sites
 	if(params.parameterExists("mask")){
 		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
@@ -105,6 +106,20 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("maskCpG");
 		logfile->list("Will mask all CpG sites");
 	} else doCpGMasking = false;
+
+	if(params.parameterExists("regions")){
+		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
+		doInverseMasking = true;
+		std::string regionsFile = params.getParameterString("regions");
+		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
+		logfile->listFlush("Reading file ...");
+		regions = new TBedReader(regionsFile, windowSize);
+		logfile->write(" done!");
+		logfile->endIndent();
+
+
+	} else doInverseMasking = false;
 
 	//filters
 	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
