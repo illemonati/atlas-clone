@@ -248,7 +248,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 	}
 }
 
-void TWindow::applyMask(TBedReader* mask){
+void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	//test if mask is required
 	if(mask->hasPositionsInWindow(start)){
 		//skip sites listed in mask by setting their hasData = false

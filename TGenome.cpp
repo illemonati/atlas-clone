@@ -389,15 +389,17 @@ bool TGenome::readData(TWindowPair & windowPair){
 		//apply masks and filters
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
-			windowPair.curPointer->applyMask(mask);
+			windowPair.curPointer->applyMask(mask, doInverseMasking);
 			logfile->write(" done!");
-		}
-		if(doCpGMasking){
+		} else if(doInverseMasking){
+			logfile->listFlush("Adding regions ...");
+			windowPair.curPointer->applyMask(mask, doInverseMasking);
+			logfile->write(" done!");
+		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
 			windowPair.curPointer->maskCpG(reference, chrNumber);
 			logfile->write(" done!");
-		}
-		if(applyCoverageFilter){
+		} if(applyCoverageFilter){
 			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
 		}
 
