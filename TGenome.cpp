@@ -117,8 +117,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		regions = new TBedReader(regionsFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
-
-
 	} else doInverseMasking = false;
 
 	//filters
