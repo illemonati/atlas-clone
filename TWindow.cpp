@@ -250,13 +250,31 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 
 void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	//test if mask is required
-	if(mask->hasPositionsInWindow(start)){
-		//skip sites listed in mask by setting their hasData = false
-		std::vector<long> thesePos = mask->getPositionInWindow(start);
-		int pos;
-		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = *it - start;
-			if(pos < length) sites[pos].clear();
+	std::cout << "mask has position in window" << std::endl;
+	std::vector<long> thesePos = mask->getPositionInWindow(start);
+	int pos;
+	long first = start;
+
+	if(doInverseMasking){
+		if(mask->hasPositionsInWindow(start)){
+			for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+				pos = *it - start;
+				for(int i=first; i<pos; ++i){
+					if(pos < length){
+						sites[i].clear();
+						std::cout << "cleared site" << std::endl;
+					}
+				}
+				first = pos + 1;
+			}
+		} else clear();
+	} else{
+		if(mask->hasPositionsInWindow(start)){
+			//skip sites listed in mask by setting their hasData = false
+			for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+				pos = *it - start;
+				if(pos < length) sites[pos].clear();
+			}
 		}
 	}
 }

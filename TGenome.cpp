@@ -90,6 +90,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	if(params.parameterExists("mask")){
 		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
 		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
+		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
@@ -114,7 +115,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string regionsFile = params.getParameterString("regions");
 		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
 		logfile->listFlush("Reading file ...");
-		regions = new TBedReader(regionsFile, windowSize);
+		mask = new TBedReader(regionsFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
 	} else doInverseMasking = false;
@@ -261,7 +262,7 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	}
 
 	//advance mask
-	if(doMasking) mask->setChr(chrIterator->Name);
+	if(doMasking || doInverseMasking) mask->setChr(chrIterator->Name);
 
 	//write progress
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
