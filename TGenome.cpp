@@ -568,48 +568,43 @@ void TGenome::estimateTheta(TParameters & params){
 	//prepare windows
 	TWindowPairDiploid windows;
 
-	//only for a collection of specific sites or per window?
-	bool limitToSpecificSites = false;
 	//TSiteSubset* subset = NULL;
 	TBedReader* subset = NULL;
 	TWindowDiploidSpecificSites* windowSpecificSites;
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("regions")){
 		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
 		//else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
-		std::string sitesFile = params.getParameterString("sites");
+		std::string regionsFile = params.getParameterString("regions");
 		logfile->startIndent("Inferring theta from specific sites:");
-		logfile->listFlush("Reading sites from '" + sitesFile +"' ...");
-		subset = new TBedReader(sitesFile, windowSize);
+		logfile->listFlush("Reading sites from '" + regionsFile +"' ...");
+		subset = new TBedReader(regionsFile, windowSize);
 		logfile->write(" done!");
 		logfile->conclude("Will infer theta from " + toString(subset->size()) + "  sites.");
 		logfile->listFlush("Allocating necessary memory ...");
 		windowSpecificSites = new TWindowDiploidSpecificSites(subset);
-		limitToSpecificSites = true;
+		logfile->write(" done!");
 	}
 	//iterate through windows
 	while(iterateChromosome(windows)){
-		if(limitToSpecificSites) subset->setChr(chrIterator->Name);
+		if(doInverseMasking) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//skip window?
-			if(!limitToSpecificSites || subset->hasPositionsInWindow(windows.cur->start)){
-				//read data for current window
-				if(readData(windows)){
-					if(limitToSpecificSites){
-						//copy sites to
-						logfile->listFlush("Adding relevant sites to data structure ...");
-						windowSpecificSites->copySites(windows.cur);
-						logfile->write(" done!");
+			//read data for current window
+			if(readData(windows)){
+				if(doInverseMasking){
+					//copy sites to
+					logfile->listFlush("Adding relevant sites to data structure ...");
+					windowSpecificSites->copySites(windows.cur);
+					logfile->write(" done!");
+				} else {
+					//estimate theta for this window
+					//check if we have data -> can be extended to ensure
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 					} else {
-						//estimate theta for this window
-						//check if we have data -> can be extended to ensure
-						if(windows.cur->fractionSitesNoData > maxMissing){
-							logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-						} else {
-							//estimate Theta
-							out << chrIterator->Name << "\t";
-							windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
-						}
+						//estimate Theta
+						out << chrIterator->Name << "\t";
+						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
 					}
 				}
 			} else logfile->list("No relevant positions -> skipping this window.");
@@ -617,7 +612,7 @@ void TGenome::estimateTheta(TParameters & params){
 	}
 
 	//now infer theta, if for specific sites only
-	if(limitToSpecificSites){
+	if(doInverseMasking){
 		windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
 		delete windowSpecificSites;
 	}
@@ -1168,32 +1163,16 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		return;
 	}
 
-	//do we consider only specific sites?
-	TSiteSubset* subset = NULL;
-	bool invariantSites = false;
-
-	if(params.parameterExists("sites")){
-		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
-		invariantSites = true;
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-	}
-
 	//prepare windows
 	TWindowPairHaploid windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
 	while(iterateChromosome(windows)){
-		if(invariantSites) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			if((invariantSites && subset->hasPositionsInWindow(windows.cur->start)) || !invariantSites){
-				//read data for current window
-				if(readData(windows)){
-					if(invariantSites) windows.cur->addToRecalibrationEM(recalObjectEM, subset);
-					else windows.cur->addToRecalibrationEM(recalObjectEM);
-				}
-			} else logfile->list("No positions in this window.");
+			//read data for current window
+			if(readData(windows)) windows.cur->addToRecalibrationEM(recalObjectEM);
+			else logfile->list("No positions in this window.");
 		}
 	}
 	//clean up memory
