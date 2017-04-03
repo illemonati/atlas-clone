@@ -194,9 +194,6 @@ public:
 	bool hasPositionsInWindow(const long & windowStart){
 		std::cout << "in first hasPositionsInWindow" << std::endl;
 		chrIt = chromosomes.find(curChr);
-		std::cout << "curChr " << curChr << std::endl;
-
-		std::cout << "chrIt " << chrIt->first << std::endl;
 		if(chrIt == chromosomes.end()) return false;
 		else return chrIt->second->hasPositionsInWindow(windowStart);
 	}
@@ -205,6 +202,7 @@ public:
 		//find chromosome
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
+		std::cout << "getting positions from window with start " << windowStart << std::endl;
 		return chrIt->second->getPositionInWindow(windowStart);
 	};
 

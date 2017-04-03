@@ -394,6 +394,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 			logfile->write(" done!");
 		} else if(doInverseMasking){
 			logfile->listFlush("Adding regions ...");
+			std::cout << "adding regions to window " << windowPair.curPointer->start << " to " << windowPair.curPointer->end << std::endl;
 			windowPair.curPointer->applyMask(mask, doInverseMasking);
 			logfile->write(" done!");
 		} else if(doCpGMasking){
