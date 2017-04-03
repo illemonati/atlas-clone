@@ -306,7 +306,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	++windowNumber;
 
 	//report
-	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 
 	return true;
@@ -382,7 +382,6 @@ bool TGenome::readData(TWindowPair & windowPair){
 			}
 		}
 	}
-
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
@@ -393,8 +392,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 			windowPair.curPointer->applyMask(mask, doInverseMasking);
 			logfile->write(" done!");
 		} else if(doInverseMasking){
-			logfile->listFlush("Adding regions ...");
-			std::cout << "adding regions to window " << windowPair.curPointer->start << " to " << windowPair.curPointer->end << std::endl;
+			logfile->listFlush("Masking sites outside regions ...");
 			windowPair.curPointer->applyMask(mask, doInverseMasking);
 			logfile->write(" done!");
 		} else if(doCpGMasking){

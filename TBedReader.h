@@ -127,7 +127,6 @@ private:
 	std::string curChr;
 
 	void readFile(){
-		std::cout << "reading bed file" << std::endl;
 		//open file
 		std::ifstream bedFile(filename.c_str());
 		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
@@ -192,7 +191,6 @@ public:
 	};
 
 	bool hasPositionsInWindow(const long & windowStart){
-		std::cout << "in first hasPositionsInWindow" << std::endl;
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()) return false;
 		else return chrIt->second->hasPositionsInWindow(windowStart);
@@ -202,7 +200,6 @@ public:
 		//find chromosome
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
-		std::cout << "getting positions from window with start " << windowStart << std::endl;
 		return chrIt->second->getPositionInWindow(windowStart);
 	};
 
