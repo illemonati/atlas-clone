@@ -1145,7 +1145,6 @@ void TGenome::printPileup(TParameters & params){
 	out.close();
 }
 
-
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	std::string filename;
