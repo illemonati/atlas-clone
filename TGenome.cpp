@@ -795,7 +795,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			}
 		}
 	}
-
 	//clean up
 	out.close();
 }
