@@ -143,11 +143,21 @@ int TRandomGenerator::getRand(int min, int maxPlusOne){
 }
 
 int TRandomGenerator::pickOne(int numElements){
-	if(numElements < 1) throw "TRandomGenerator::pickOne: can not choose an element among less than 1 elements!";
+	//if(numElements < 1) throw "TRandomGenerator::pickOne: can not choose an element among less than 1 elements!";
 	if(numElements == 1) return 0;
 	float r = 1.0;
 	while(r == 1.0) r=getRand(); //we have a number in [0,1[
 	return floor(r*(numElements));
+}
+
+int TRandomGenerator::pickOne(int numElements, float* probsCumulative){
+	if(numElements == 1) return 0;
+	float r = 1.0;
+	while(r == 1.0) r=getRand(); //we have a number in [0,1[
+	int i=0;
+	while(r > probsCumulative[i])
+		++i;
+	return i;
 }
 
 long TRandomGenerator::getRand(long min, long maxPlusOne){
