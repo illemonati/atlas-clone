@@ -1053,6 +1053,53 @@ void TGenome::callAllelePresence(TParameters & params){
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
+void TGenome::randomBaseCaller(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	bool printIfNoData = false;
+	if(params.parameterExists("printAll")){
+		printIfNoData = true;
+		logfile->list("Will print all sites, even those without data");
+	}
+
+	//open output: vcf or flat file?
+	gz::ogzstream randomBases;
+	std::string outputFileName;
+
+	//open file
+	outputFileName = outputName + "_randomBase.txt.gz";
+	logfile->list("Writing random base calls to '" + outputFileName + "'");
+	randomBases.open(outputFileName.c_str());
+	if(!randomBases) throw "Failed to open output file '" + outputFileName + "'!";
+
+	//write header
+	randomBases << "chr\tpos";
+	randomBases << "\tcoverage\tpileup\trandom_base\n";
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows)){
+				//check if we have data -> can be extended to ensure
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} else {
+					//call allele presence
+					logfile->listFlush("Calling allele presence ...");
+					if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+					windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
+					logfile->write(" done!");
+				}
+			} else logfile->list("No positions in this window.");
+		}
+	}
+}
+
 void TGenome::combineBeagleFiles(TParameters & params){
 	std::string list = params.getParameterString("beagleList");
 	std::string sites = params.getParameterString("sites");

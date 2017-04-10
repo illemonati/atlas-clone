@@ -98,6 +98,7 @@ public:
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
+	void randomBaseCaller(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
 	void estimateErrorCalibration(TParameters & params);

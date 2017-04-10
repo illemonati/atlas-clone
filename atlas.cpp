@@ -76,6 +76,9 @@ int main(int argc, char* argv[]){
 		} else if(task == "allelePresence"){
 			logfile.startIndent("Calling Allele Presence (task = allelePresence):");
 			genome.callAllelePresence(myParameters);
+		} else if(task == "randomBaseCaller"){
+			logfile.startIndent("Calling random bases (task = randomBaseCaller");
+			genome.randomBaseCaller(myParameters);
 		} else if(task == "combineBeagleFiles"){
 			logfile.startIndent("combining beagle files (task = combineBeagleFiles):");
 			genome.combineBeagleFiles(myParameters);
@@ -116,7 +119,7 @@ int main(int argc, char* argv[]){
     		logfile.startIndent("Estimating coverage per window (task = coveragePerWindow):");
     	    genome.estimateApproximateCoveragePerWindow(myParameters);
     	} else if(task == "coveragePerSite"){
-    		logfile.startIndent("Estimating coverage per site (task = coveragePerSitecoveragePerWindow:");
+    		logfile.startIndent("Estimating coverage per site (task = coveragePerSitecoveragePerWindow):");
     		genome.estimateCoveragePerSite(myParameters);
 
     	} else throw "Unknown task '" + task + "'!";
