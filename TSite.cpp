@@ -1119,14 +1119,14 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 void TSiteDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out){
 	if(hasData){
 		//print ref base, alt base, coverage (and read bases)
-		out << "\t" << bases.size();
+		out << "\t" << referenceBase << "\t" << bases.size();
 		out << "\t";
 		for(unsigned int i = 0; i<bases.size(); ++i){
 			out << bases[i]->getBase();
 		}
 		out << "\t" << bases[randomGenerator.pickOne(bases.size())]->getBase();
  	} else {
-		out << "\t0\t-";
+		out << "\t" << referenceBase << "\t0\t-\t-";
 	}
 }
 

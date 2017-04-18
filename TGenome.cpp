@@ -1074,8 +1074,7 @@ void TGenome::randomBaseCaller(TParameters & params){
 	if(!randomBases) throw "Failed to open output file '" + outputFileName + "'!";
 
 	//write header
-	randomBases << "chr\tpos";
-	randomBases << "\tcoverage\tpileup\trandom_base\n";
+	randomBases << "chr\tpos\tref\tcoverage\tpileup\trandom_base\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -1085,16 +1084,12 @@ void TGenome::randomBaseCaller(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
-				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} else {
-					//call allele presence
-					logfile->listFlush("Calling allele presence ...");
-					if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-					windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
-					logfile->write(" done!");
-				}
+				//call random allele
+				logfile->listFlush("Calling allele presence ...");
+				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+				windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
+				logfile->write(" done!");
+
 			} else logfile->list("No positions in this window.");
 		}
 	}
