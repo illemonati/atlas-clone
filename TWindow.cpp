@@ -63,6 +63,7 @@ TWindow::TWindow(){
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
+	referenceBaseAdded = false;
 };
 
 TWindow::TWindow(long Start, long End){
@@ -79,6 +80,7 @@ void TWindow::clear(){
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
+	referenceBaseAdded = false;
 };
 
 void TWindow::move(long Start, long End){
@@ -229,24 +231,30 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 }
 
 void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
-	int stop = end - 1; //note that end is last position + 1
-	std::string ref; //fasta object fills string
-	reference.GetSequence(refId, start, stop, ref);
-	for(int i=0; i<length; ++i){
-//		if(sites[i].hasData)
-		sites[i].setRefBase(ref[i]);
+	if(!referenceBaseAdded){
+		int stop = end - 1; //note that end is last position + 1
+		std::string ref; //fasta object fills string
+		reference.GetSequence(refId, start, stop, ref);
+		for(int i=0; i<length; ++i){
+	//		if(sites[i].hasData)
+			sites[i].setRefBase(ref[i]);
+		}
+		referenceBaseAdded = true;
 	}
 }
 
 void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
-	if(subset->hasPositionsInWindow(start)){
-		//now only run over sites listed in that window
-		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-		int pos;
-		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start;
-			sites[pos].setRefBase(it->second.first);
+	if(!referenceBaseAdded){
+		if(subset->hasPositionsInWindow(start)){
+			//now only run over sites listed in that window
+			std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+			int pos;
+			for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+				pos = it->first - start;
+				sites[pos].setRefBase(it->second.first);
+			}
 		}
+		referenceBaseAdded = true;
 	}
 }
 
@@ -504,6 +512,7 @@ void TWindowDiploid::initSites(long newLength){
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
+	referenceBaseAdded = false;
 }
 
 void TWindowDiploid::fillPGenotype(double* pGenotype, double & expTheta){
@@ -1110,10 +1119,33 @@ void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std
 	delete[] pGenotype;
 }
 
+void TWindowDiploid::addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec){
+	for(int i=0; i<length; ++i){
+		if(sites[i].getCoverage() > 1){
+			siteVec.push_back(new TSiteDiploid(&sites[i]));
+		}
+	}
+}
+
 //-------------------------------------------------------
 //TWindowDiploidSpecificSites
 //-------------------------------------------------------
-TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(TBedReader* Subset){
+TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSite*> & siteVec){
+	length = siteVec.size();
+	initSites(length);
+	nextId = 0;
+	start = 0;
+	end = length;
+
+	//copy sites
+	long index = 0;
+	for(std::vector<TSite*>::iterator it = siteVec.begin(); it != siteVec.end(); ++it, ++index){
+		sites[index].stealFromOther(*it);
+		delete *it;
+	}
+}
+
+TWindowDiploidSiteSubset::TWindowDiploidSiteSubset(TBedReader* Subset){
 	subset = Subset;
 	length = subset->size();
 	initSites(length);
@@ -1122,7 +1154,7 @@ TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(TBedReader* Subset){
 	end = length;
 }
 
-void TWindowDiploidSpecificSites::copySites(TWindowDiploid* other){
+void TWindowDiploidSiteSubset::copySites(TWindowDiploid* other){
 	if(subset->hasPositionsInWindow(other->start)){
 		std::vector<long> thesePos = subset->getPositionInWindow(other->start);
 		if(nextId + thesePos.size() > length) throw "Can not add site to TWindowDiploidSpecificSites: container full!";

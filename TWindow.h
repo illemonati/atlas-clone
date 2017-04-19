@@ -73,6 +73,7 @@ public:
 	double fractionRefIsN;
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
+	bool referenceBaseAdded;
 
 	TWindow();
 	TWindow(long Start, long End);
@@ -129,15 +130,25 @@ public:
 	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
 	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
+	void addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec);
 };
 
+
 class TWindowDiploidSpecificSites:public TWindowDiploid{
+protected:
+	long nextId;
+
+public:
+	TWindowDiploidSpecificSites(std::vector<TSite*> & siteVec);
+};
+
+class TWindowDiploidSiteSubset:public TWindowDiploid{
 protected:
 	TBedReader* subset;
 	long nextId;
 
 public:
-	TWindowDiploidSpecificSites(TBedReader* Subset);
+	TWindowDiploidSiteSubset(TBedReader* Subset);
 	void copySites(TWindowDiploid* other);
 };
 

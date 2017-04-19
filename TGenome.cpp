@@ -409,6 +409,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 		} if(applyCoverageFilter){
 			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
 		} if(maxRefN < 1.0 && fastaReference == true){
+			windowPair.curPointer->addReferenceBaseToSites(reference, chrNumber);
 			windowPair.curPointer->calcFracN();
 		}
 
@@ -579,8 +580,9 @@ void TGenome::estimateTheta(TParameters & params){
 	TWindowPairDiploid windows;
 
 	//TSiteSubset* subset = NULL;
+	//TODO: check if we really need to reread the regions?
 	TBedReader* subset = NULL;
-	TWindowDiploidSpecificSites* windowSpecificSites;
+	TWindowDiploidSiteSubset* windowSpecificSites;
 	if(params.parameterExists("regions")){
 		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
@@ -589,18 +591,16 @@ void TGenome::estimateTheta(TParameters & params){
 		logfile->startIndent("Inferring theta from specific sites:");
 		logfile->listFlush("Reading sites from '" + regionsFile +"' ...");
 		subset = new TBedReader(regionsFile, windowSize);
-		logfile->write(" done!");
+		logfile->done();
 		logfile->conclude("Will infer theta from " + toString(subset->size()) + "  sites.");
 		logfile->listFlush("Allocating necessary memory ...");
-		windowSpecificSites = new TWindowDiploidSpecificSites(subset);
-		logfile->write(" done!");
+		windowSpecificSites = new TWindowDiploidSiteSubset(subset);
+		logfile->done();
 	}
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		if(doInverseMasking) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//add reference if this should be filter criterion
-			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(readData(windows)){
 				if(doInverseMasking){

@@ -42,6 +42,7 @@ public:
 		referenceBase = 'N';
 		//std::cout << "maxQualToPrintNaturalScale " << maxQualToPrintNaturalScale << std::endl;
 	};
+	TSite(TSite* other):TSite(){stealFromOther(other);};
 	virtual ~TSite(){ clear(); };
 	void clear();
 	void stealFromOther(TSite* other);
@@ -109,6 +110,7 @@ public:
 		emissionProbabilities = new double[numGenotypes];
 		P_g = new double[numGenotypes];
 	};
+	TSiteDiploid(TSite* other):TSiteDiploid(){stealFromOther(other);};
 	~TSiteDiploid(){
 		delete[] emissionProbabilities;
 		delete[] P_g;
@@ -139,11 +141,11 @@ class TSiteHaploid:public TSite{
 public:
 
 	TSiteHaploid(){
-		hasData = false;
 		numGenotypes = 4;
 		emissionProbabilities = new double[numGenotypes];
 		P_g = new double[numGenotypes];
 	}
+	TSiteHaploid(TSite* other):TSiteHaploid(){stealFromOther(other);};
 	~TSiteHaploid(){
 		delete[] emissionProbabilities;
 		delete[] P_g;
