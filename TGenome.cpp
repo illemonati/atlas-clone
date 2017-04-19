@@ -581,59 +581,54 @@ void TGenome::estimateTheta(TParameters & params){
 
 	//TSiteSubset* subset = NULL;
 	//TODO: check if we really need to reread the regions?
-	TBedReader* subset = NULL;
+	//TBedReader* subset = NULL;
 	TWindowDiploidSiteSubset* windowSpecificSites;
-	if(params.parameterExists("regions")){
-		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
-		//if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile);
-		//else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile);
-		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Inferring theta from specific sites:");
-		logfile->listFlush("Reading sites from '" + regionsFile +"' ...");
-		subset = new TBedReader(regionsFile, windowSize);
-		logfile->done();
-		logfile->conclude("Will infer theta from " + toString(subset->size()) + "  sites.");
-		logfile->listFlush("Allocating necessary memory ...");
-		windowSpecificSites = new TWindowDiploidSiteSubset(subset);
-		logfile->done();
-	}
-	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(doInverseMasking) subset->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				if(doInverseMasking){
+	if(doInverseMasking) windowSpecificSites = new TWindowDiploidSiteSubset(mask);
+	//mask = new TBedReader(regionsFile, windowSize);
+
+	if(doInverseMasking){
+		windowSpecificSites = new TWindowDiploidSiteSubset(mask);
+		while(iterateChromosome(windows)){
+			mask->setChr(chrIterator->Name);
+			while(iterateWindow(windows)){
+				//read data for current window
+				if(readData(windows)){
 					//copy sites to
 					logfile->listFlush("Adding relevant sites to data structure ...");
 					windowSpecificSites->copySites(windows.cur);
 					logfile->write(" done!");
+					windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
+				} else logfile->list("No relevant positions -> skipping this window.");
+			}
+		} delete windowSpecificSites;
+	}
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		if(doInverseMasking) mask->setChr(chrIterator->Name);
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows)){
+				//estimate theta for this window
+				//check if we have data -> can be extended to ensure
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} if(windows.cur->fractionRefIsN > maxRefN){
+					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 				} else {
-					//estimate theta for this window
-					//check if we have data -> can be extended to ensure
-					if(windows.cur->fractionSitesNoData > maxMissing){
-						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-					} if(windows.cur->fractionRefIsN > maxRefN){
-						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-					} else {
-						//estimate Theta
-						out << chrIterator->Name << "\t";
-						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
-					}
+					//estimate Theta
+					out << chrIterator->Name << "\t";
+					windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
 				}
 			} else logfile->list("No relevant positions -> skipping this window.");
 		}
 	}
 
-	//now infer theta, if for specific sites only
-	if(doInverseMasking){
-		windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
-		delete windowSpecificSites;
-	}
 
 	//clean up
 	out.close();
 }
+
 
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
@@ -652,8 +647,6 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	std::string filename;
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
-			//add reference if this should be filter criterion
-			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(readData(windows)){
 				//check if we have data -> can be extended to ensure
@@ -894,8 +887,6 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	while(iterateChromosome(windows)){
 		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//add reference if this should be filter criterion
-			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				if(readData(windows)){
@@ -1033,8 +1024,6 @@ void TGenome::callAllelePresence(TParameters & params){
 	while(iterateChromosome(windows)){
 		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
-			//add reference if this should be filter criterion
-			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
 				if(readData(windows)){
