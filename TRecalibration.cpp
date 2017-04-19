@@ -773,7 +773,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 			}
 		} else {
 			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
-			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()!";
+			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
 		}
 
 		if(writeTmpTables){
