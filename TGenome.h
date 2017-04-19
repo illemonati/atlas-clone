@@ -54,6 +54,7 @@ private:
 	int windowNumber;
 	int maxReadLength;
 	double maxMissing;
+	double maxRefN;
 	long oldPos;
 	std::string outputName;
 	TBedReader* mask;

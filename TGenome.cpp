@@ -142,7 +142,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		minQuality = 34; //filter out quality 0 by default
 		maxQuality = 1000000;
 	}
+
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
+	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
+
+	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
+	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
+	if(maxRefN < 1.0 && fastaReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
+
 
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
@@ -401,6 +408,8 @@ bool TGenome::readData(TWindowPair & windowPair){
 			logfile->write(" done!");
 		} if(applyCoverageFilter){
 			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
+		} if(maxRefN < 1.0 && fastaReference == true){
+			windowPair.curPointer->calcFracN();
 		}
 
 		//calc coverage
@@ -411,6 +420,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 		logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
 		logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
 		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
+		if(maxRefN < 1.0 && fastaReference == true) logfile->conclude(toString(windowPair.curPointer->fractionRefIsN * 100) + "% of all reference bases are 'N'");
 		return true;
 	} else {
 		logfile->conclude("No data in this window.");
@@ -589,6 +599,8 @@ void TGenome::estimateTheta(TParameters & params){
 	while(iterateChromosome(windows)){
 		if(doInverseMasking) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
+			//add reference if this should be filter criterion
+			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(readData(windows)){
 				if(doInverseMasking){
@@ -601,6 +613,8 @@ void TGenome::estimateTheta(TParameters & params){
 					//check if we have data -> can be extended to ensure
 					if(windows.cur->fractionSitesNoData > maxMissing){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
 						//estimate Theta
 						out << chrIterator->Name << "\t";
@@ -638,11 +652,15 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	std::string filename;
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
+			//add reference if this should be filter criterion
+			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(readData(windows)){
 				//check if we have data -> can be extended to ensure
 				if(windows.cur->fractionSitesNoData > maxMissing){
 					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} if(windows.cur->fractionRefIsN > maxRefN){
+					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 				} else {
 					//open file
 					std::ofstream out;
@@ -876,12 +894,16 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	while(iterateChromosome(windows)){
 		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
+			//add reference if this should be filter criterion
+			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			//read data for current window
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				if(readData(windows)){
 					//check if we have data -> can be extended to ensure
-					if(windows.cur->fractionSitesNoData > maxMissing){
+					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN && estimateTheta){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
 						//set Theta
 						if(estimateTheta){
@@ -936,7 +958,6 @@ void TGenome::callAllelePresence(TParameters & params){
 		//read EM params
 		EMParams = new EMParameters(params, logfile);
 	}
-
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
@@ -1012,12 +1033,16 @@ void TGenome::callAllelePresence(TParameters & params){
 	while(iterateChromosome(windows)){
 		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
+			//add reference if this should be filter criterion
+			if(maxRefN < 1.0) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
 				if(readData(windows)){
 					//check if we have data -> can be extended to ensure
-					if(windows.cur->fractionSitesNoData > maxMissing){
+					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN && estimateTheta){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
 						//set Theta
 						if(estimateTheta){

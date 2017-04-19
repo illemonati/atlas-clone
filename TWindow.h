@@ -70,6 +70,7 @@ public:
 	bool sitesInitialized;
 	int numReadsInWindow;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
+	double fractionRefIsN;
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
 
@@ -93,6 +94,7 @@ public:
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	void calcCoverage();
+	void calcFracN();
 	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
 	void applyCoverageFilter(int minCoverage, int maxCoverage);
 	double calcLogLikelihood(double* pGenotype);

@@ -60,6 +60,7 @@ TWindow::TWindow(){
 	sitesInitialized = false;
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
+	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
 };
@@ -75,6 +76,7 @@ void TWindow::clear(){
 	for(int i=0; i<length; ++i) sites[i].clear();
 	coverage = -1.0;
 	fractionSitesNoData = -1.0;
+	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
 };
@@ -377,6 +379,12 @@ void TWindow::calcCoverage(){
 	coverage = coverage / (double) length;
 	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
+}
+
+void TWindow::calcFracN(){
+	double numN = 0.0;
+	for(int i=0; i<length; ++i)	if(sites[i].referenceBase == 'N') ++numN;
+	fractionRefIsN = numN / (double) length;
 }
 
 void TWindow::calcCoveragePerSite(long * siteCoverage, unsigned int maxCov){
