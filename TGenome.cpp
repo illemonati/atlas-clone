@@ -579,48 +579,63 @@ void TGenome::estimateTheta(TParameters & params){
 	//prepare windows
 	TWindowPairDiploid windows;
 
-	//TSiteSubset* subset = NULL;
-	//TODO: check if we really need to reread the regions?
-	//TBedReader* subset = NULL;
-	TWindowDiploidSiteSubset* windowSpecificSites;
-	if(doInverseMasking) windowSpecificSites = new TWindowDiploidSiteSubset(mask);
-	//mask = new TBedReader(regionsFile, windowSize);
-
 	if(doInverseMasking){
-		windowSpecificSites = new TWindowDiploidSiteSubset(mask);
+		// windowSpecificSites;
+		TWindowDiploidSiteSubset* windowSpecificSites = new TWindowDiploidSiteSubset(mask);
 		while(iterateChromosome(windows)){
 			mask->setChr(chrIterator->Name);
 			while(iterateWindow(windows)){
-				//read data for current window
 				if(readData(windows)){
-					//copy sites to
-					logfile->listFlush("Adding relevant sites to data structure ...");
-					windowSpecificSites->copySites(windows.cur);
-					logfile->write(" done!");
-					windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+					} else {
+						//copy sites to a fake window
+						logfile->listFlush("Adding relevant sites to data structure ...");
+						windowSpecificSites->copySites(windows.cur);
+						logfile->write(" done!");
+						//estimate Theta
+						windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
+					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
 		} delete windowSpecificSites;
-	}
 
-	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(doInverseMasking) mask->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//estimate theta for this window
-				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} if(windows.cur->fractionRefIsN > maxRefN){
-					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				} else {
-					//estimate Theta
-					out << chrIterator->Name << "\t";
-					windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
-				}
-			} else logfile->list("No relevant positions -> skipping this window.");
+	} else if(params.parameterExists("thetaGenomeWide")){
+		while(iterateChromosome(windows)){
+			while(iterateWindow(windows)){
+				if(readData(windows)){
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+					} else {
+						//estimate Theta
+						out << chrIterator->Name << "\t";
+						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+					}
+				} else logfile->list("No relevant positions -> skipping this window.");
+			}
+		}
+
+	} else {
+		//iterate through windows
+		while(iterateChromosome(windows)){
+			if(doInverseMasking) mask->setChr(chrIterator->Name);
+			while(iterateWindow(windows)){
+				if(readData(windows)){
+					if(windows.cur->fractionSitesNoData > maxMissing){
+						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+					} if(windows.cur->fractionRefIsN > maxRefN){
+						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+					} else {
+						//estimate Theta
+						out << chrIterator->Name << "\t";
+						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+					}
+				} else logfile->list("No relevant positions -> skipping this window.");
+			}
 		}
 	}
 
