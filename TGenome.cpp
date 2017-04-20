@@ -628,10 +628,10 @@ void TGenome::estimateTheta(TParameters & params){
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
-			//estimate Theta
-			TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
-			specificSites.estimateTheta(EMParams, recalObject, out, logfile);
 		}
+		//estimate Theta
+		TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
+		specificSites.estimateTheta(EMParams, recalObject, out, logfile);
 
 	} else {
 		//iterate through windows
