@@ -58,7 +58,7 @@ private:
 	long oldPos;
 	std::string outputName;
 	TBedReader* mask;
-	bool doMasking, doInverseMasking;
+	bool doMasking, considerRegions;
 	bool doCpGMasking;
 	bool applyCoverageFilter, applyQualityFilter;
 	int minCoverage, maxCoverage;

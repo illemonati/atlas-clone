@@ -1127,10 +1127,11 @@ void TWindowDiploid::addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid
 	}
 }
 
-//-------------------------------------------------------
-//TWindowDiploidSpecificSites
-//-------------------------------------------------------
-TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSite*> & siteVec){
+//--------------------------------------------------------------------------
+//TWindowDiploidSpecificSites: decide which positions to add on the fly
+//TWindowDiploidSiteSubset: provide regions file with positions
+//---------------------------------------------------------------------------
+TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec){
 	length = siteVec.size();
 	initSites(length);
 	nextId = 0;
@@ -1139,7 +1140,7 @@ TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSite*> & s
 
 	//copy sites
 	long index = 0;
-	for(std::vector<TSite*>::iterator it = siteVec.begin(); it != siteVec.end(); ++it, ++index){
+	for(std::vector<TSiteDiploid*>::iterator it = siteVec.begin(); it != siteVec.end(); ++it, ++index){
 		sites[index].stealFromOther(*it);
 		delete *it;
 	}

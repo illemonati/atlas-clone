@@ -111,14 +111,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	if(params.parameterExists("regions")){
 		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
 		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
-		doInverseMasking = true;
+		considerRegions = true;
 		std::string regionsFile = params.getParameterString("regions");
 		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
 		logfile->listFlush("Reading file ...");
 		mask = new TBedReader(regionsFile, windowSize);
 		logfile->write(" done!");
 		logfile->endIndent();
-	} else doInverseMasking = false;
+	} else considerRegions = false;
 
 	//filters
 	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
@@ -269,7 +269,7 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	}
 
 	//advance mask
-	if(doMasking || doInverseMasking) mask->setChr(chrIterator->Name);
+	if(doMasking || considerRegions) mask->setChr(chrIterator->Name);
 
 	//write progress
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
@@ -396,11 +396,11 @@ bool TGenome::readData(TWindowPair & windowPair){
 		//apply masks and filters
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
-			windowPair.curPointer->applyMask(mask, doInverseMasking);
+			windowPair.curPointer->applyMask(mask, considerRegions);
 			logfile->write(" done!");
-		} else if(doInverseMasking){
+		} else if(considerRegions){
 			logfile->listFlush("Masking sites outside regions ...");
-			windowPair.curPointer->applyMask(mask, doInverseMasking);
+			windowPair.curPointer->applyMask(mask, considerRegions);
 			logfile->write(" done!");
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
@@ -579,9 +579,8 @@ void TGenome::estimateTheta(TParameters & params){
 	//prepare windows
 	TWindowPairDiploid windows;
 
-	if(doInverseMasking){
-		// windowSpecificSites;
-		TWindowDiploidSiteSubset* windowSpecificSites = new TWindowDiploidSiteSubset(mask);
+	if(considerRegions){
+		TWindowDiploidSiteSubset* windowSitesSubset = new TWindowDiploidSiteSubset(mask);
 		while(iterateChromosome(windows)){
 			mask->setChr(chrIterator->Name);
 			while(iterateWindow(windows)){
@@ -593,16 +592,17 @@ void TGenome::estimateTheta(TParameters & params){
 					} else {
 						//copy sites to a fake window
 						logfile->listFlush("Adding relevant sites to data structure ...");
-						windowSpecificSites->copySites(windows.cur);
-						logfile->write(" done!");
+						windowSitesSubset->copySites(windows.cur);
+						logfile->done();
 						//estimate Theta
-						windowSpecificSites->estimateTheta(EMParams, recalObject, out, logfile);
+						windowSitesSubset->estimateTheta(EMParams, recalObject, out, logfile);
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
-		} delete windowSpecificSites;
+		} delete windowSitesSubset;
 
 	} else if(params.parameterExists("thetaGenomeWide")){
+		std::vector<TSiteDiploid*> siteVec;
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
 				if(readData(windows)){
@@ -611,18 +611,25 @@ void TGenome::estimateTheta(TParameters & params){
 					} if(windows.cur->fractionRefIsN > maxRefN){
 						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
-						//estimate Theta
-						out << chrIterator->Name << "\t";
-						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+						//add informative sites to siteVec
+						logfile->listFlush("Adding relevant sites to data structure ...");
+						try{
+						windows.cur->addSitesWithDepthTwoOrMoreToVector(siteVec);
+						} catch(...){
+							throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
+						}
+						logfile->done();
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
+			//estimate Theta
+			TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
+			specificSites.estimateTheta(EMParams, recalObject, out, logfile);
 		}
 
 	} else {
 		//iterate through windows
 		while(iterateChromosome(windows)){
-			if(doInverseMasking) mask->setChr(chrIterator->Name);
 			while(iterateWindow(windows)){
 				if(readData(windows)){
 					if(windows.cur->fractionSitesNoData > maxMissing){
@@ -3080,22 +3087,3 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	output.close();
 	delete[] siteCoverage;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

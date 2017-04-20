@@ -133,15 +133,16 @@ public:
 	void addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec);
 };
 
-
+//decide which positions to add on the fly
 class TWindowDiploidSpecificSites:public TWindowDiploid{
 protected:
 	long nextId;
 
 public:
-	TWindowDiploidSpecificSites(std::vector<TSite*> & siteVec);
+	TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec);
 };
 
+//provide regions file with positions
 class TWindowDiploidSiteSubset:public TWindowDiploid{
 protected:
 	TBedReader* subset;
