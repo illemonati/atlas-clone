@@ -34,7 +34,6 @@ private:
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignment;
 	bool oldAlignementMustBeConsidered;
-
 	BamTools::Fasta reference;
 	bool fastaReference;
  	BamTools::SamSequenceIterator chrIterator;

@@ -567,6 +567,12 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 
 
 void TGenome::estimateTheta(TParameters & params){
+	//read parameters
+	bool thetaGenomeWide = false;
+	if(params.parameterExists("thetaGenomeWide")){
+		if(considerRegions) throw "thetaGenomeWide can presently not be used in combination with regions!";
+		thetaGenomeWide = true;
+	}
 	//initialize recalibration
 	initializeRecalibration(params);
 
@@ -601,7 +607,7 @@ void TGenome::estimateTheta(TParameters & params){
 			}
 		} delete windowSitesSubset;
 
-	} else if(params.parameterExists("thetaGenomeWide")){
+	} else if(thetaGenomeWide){
 		std::vector<TSiteDiploid*> siteVec;
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
