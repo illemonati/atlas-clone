@@ -1125,9 +1125,9 @@ void TGenome::randomBaseCaller(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			if(readData(windows)){
+			if(readData(windows) || params.parameterExists("printAll")){
 				//call random allele
-				logfile->listFlush("Calling allele presence ...");
+				logfile->listFlush("Calling random base ...");
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 				windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
 				logfile->write(" done!");
