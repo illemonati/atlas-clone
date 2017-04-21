@@ -95,7 +95,6 @@ public:
 	};
 
 	void print(){
-		std::cout << "Chromosome '" << name << "':" << std::endl;
 		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 	};
 
@@ -126,7 +125,7 @@ private:
 	int windowSize;
 	std::string curChr;
 
-	void readFile(){
+	void readFile(BamTools::SamSequenceDictionary & Sequences){
 		//open file
 		std::ifstream bedFile(filename.c_str());
 		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
@@ -145,6 +144,7 @@ private:
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
 
 				//get chromosome
+				if(!Sequences.Contains(vec[0])) throw "Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!";
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
@@ -166,10 +166,10 @@ private:
 public:
 	std::string filename;
 
-	TBedReader(std::string Filename, int & WindowSize){
+	TBedReader(std::string Filename, int & WindowSize, BamTools::SamSequenceDictionary & Sequences){
 		filename = Filename;
 		windowSize = WindowSize;
-		readFile();
+		readFile(Sequences);
 		curChr = "";
 	};
 
@@ -186,7 +186,6 @@ public:
 	};
 
 	void print(){
-		std::cout << "Bed File '" << filename << "':" << std::endl;
 		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
 	};
 

@@ -95,7 +95,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("mask");
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize);
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences);
 		logfile->write(" done!");
 		logfile->endIndent();
 		//mask->print();
@@ -115,7 +115,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string regionsFile = params.getParameterString("regions");
 		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize);
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences);
 		logfile->write(" done!");
 		logfile->endIndent();
 	} else considerRegions = false;
@@ -1054,6 +1054,7 @@ void TGenome::callAllelePresence(TParameters & params){
 		while(iterateWindow(windows)){
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
+				//TODO: ask Dan if following line should actually be if(readData || printIfNoData)
 				if(readData(windows)){
 					//check if we have data -> can be extended to ensure
 					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
