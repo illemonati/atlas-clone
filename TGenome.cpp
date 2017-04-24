@@ -95,7 +95,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("mask");
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences);
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
 		logfile->write(" done!");
 		logfile->endIndent();
 		//mask->print();
@@ -115,7 +115,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string regionsFile = params.getParameterString("regions");
 		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences);
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
 		logfile->write(" done!");
 		logfile->endIndent();
 	} else considerRegions = false;
@@ -493,9 +493,9 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 					readGroupId = readGroups.find(vec[0]);
 					//initialize functions
 					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT, logfile);
-					logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
+				//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
 					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA, logfile);
-					logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
+				//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
 				}
 			}
 		}
@@ -1558,6 +1558,7 @@ double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, 
 
 bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, int & begin, std::string & ref, std::map <std::string, int> & mateTooLong){
 	//variables
+	std::cout << "in recalibrate alignment" << std::endl;
 	char base, refBase, quality, newQual;
 	BaseContext context;
 	int posInRead, revPosInRead;
@@ -1612,8 +1613,11 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
 							posInRead = pos;
 							revPosInRead = alignment.InsertSize - pos - 1;
+							std::cout << "before get pmd " << std::endl;
+
 							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
+							std::cout << "after get pmd" << std::endl;
 
 							//get new quality
 							if(withPMD){
@@ -1726,6 +1730,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
+		std::cout << bamAlignment.Name << std::endl;
 		len = bamAlignment.AlignedBases.size();
 		if(withPMD && (bamAlignment.Position + len >= stop || curChr!=bamAlignment.RefID)){
 			curChr = bamAlignment.RefID;
@@ -1734,6 +1739,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			reference.GetSequence(curChr, begin, stop, ref);
 		}
 		++counter;
+		if(counter == 1000) break;
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
 			bamAlignment.Qualities = qual;

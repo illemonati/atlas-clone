@@ -125,7 +125,7 @@ private:
 	int windowSize;
 	std::string curChr;
 
-	void readFile(BamTools::SamSequenceDictionary & Sequences){
+	void readFile(BamTools::SamSequenceDictionary & Sequences, 	TLog* logfile){
 		//open file
 		std::ifstream bedFile(filename.c_str());
 		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
@@ -141,7 +141,7 @@ private:
 			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
+				if(vec.size() < 3) logfile->warning("Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!");
 
 				//get chromosome
 				if(!Sequences.Contains(vec[0])) throw "Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!";
@@ -166,10 +166,10 @@ private:
 public:
 	std::string filename;
 
-	TBedReader(std::string Filename, int & WindowSize, BamTools::SamSequenceDictionary & Sequences){
+	TBedReader(std::string Filename, int & WindowSize, BamTools::SamSequenceDictionary & Sequences, TLog* logfile){
 		filename = Filename;
 		windowSize = WindowSize;
-		readFile(Sequences);
+		readFile(Sequences, logfile);
 		curChr = "";
 	};
 
