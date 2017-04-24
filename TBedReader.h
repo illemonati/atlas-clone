@@ -141,10 +141,10 @@ private:
 			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() < 3) logfile->warning("Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!");
+				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
 
 				//get chromosome
-				if(!Sequences.Contains(vec[0])) throw "Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!";
+				if(!Sequences.Contains(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
