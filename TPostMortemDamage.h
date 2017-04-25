@@ -99,7 +99,7 @@ public:
 class TPMDEmpiric:public TPMDFunction{
 private:
 	int length;
-	double* probs;
+	std::vector<double> probs;
 	double last;
 
 public:

@@ -1564,8 +1564,16 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	double pmdCT, pmdGA;
 	qual.clear();
 
-	//get length readgroup info
-	int len = alignment.Length;
+	std::string bases = alignment.AlignedBases;
+	std::string qualities = alignment.AlignedQualities;
+
+	int len = bases.size();
+
+	/*if(withPMD){
+		//withPMD requires knowledge about distance from read ends. If there are indels, these distances can only be calculated by
+		//taking cigar string into account. Since
+		if(alignment.AlignedBases.size() != alignment.QueryBases.size()) withPMD = false;
+	}*/
 	int readGroupId = readGroups.find(alignment);
 
 	//parse into bases
@@ -1577,12 +1585,12 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
 				//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
 				for(int pos = 0; pos < len; ++pos){
-					base = alignment.QueryBases.at(pos);
-					quality = alignment.Qualities.at(pos);
+					base = bases.at(pos);
+					quality = qualities.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-							else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
+							else context = genoMap.getContextReverseRead(alignment.AlignedBases.at(pos + 1), base);
 
 							posInRead = abs(alignment.InsertSize)-len+pos;
 							revPosInRead = len - pos - 1;
@@ -1597,6 +1605,9 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							qual += newQual;
 
 						} else qual += quality;
+					} else if(base == '-'){
+						//this means there was a deletion, don't want to add quality '!' to new quality string!
+						continue;
 					} else qual += quality;
 				}
 			} else {
@@ -1604,14 +1615,14 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
 				//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
 				for(int pos = 0; pos < len; ++pos){
-					base = alignment.QueryBases.at(pos);
-					quality = alignment.Qualities.at(pos);
+					base = bases.at(pos);
+					quality = qualities.at(pos);
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == 0) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
+							else context = genoMap.getContext(alignment.AlignedBases.at(pos - 1), base);
 							posInRead = pos;
-							revPosInRead = alignment.InsertSize - pos - 1;
+							revPosInRead = abs(alignment.InsertSize) - pos - 1;
 
 							pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
 							pmdGA = pmdObjects[readGroupId].getProbGA(revPosInRead);
@@ -1623,8 +1634,10 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							} else newQual = returnBaseQualityAsChar(base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
 							qual += newQual;
-
-						} else qual += quality;
+						} else 	qual += quality;
+					} else if(base == '-'){
+						//this means there was a deletion, don't want to add quality '!' to new quality string!
+						continue;
 					} else qual += quality;
 				}
 			}
@@ -1636,12 +1649,12 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	} else { //single end
 		if(alignment.IsReverseStrand()){
 			for(int pos = 0; pos < len; ++pos){
-				base = alignment.QueryBases.at(pos);
-				quality = alignment.Qualities.at(pos);
+				base = bases.at(pos);
+				quality = qualities.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
+						else context = genoMap.getContextReverseRead(alignment.AlignedBases.at(pos + 1), base);
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
 						pmdCT = pmdObjects[readGroupId].getProbGA(posInRead);
@@ -1657,16 +1670,19 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						qual += newQual;
 
 					} else qual += quality;
+				} else if(base == '-'){
+					//this means there was a deletion, don't want to add quality '!' to new quality string!
+					continue;
 				} else qual += quality;
 			}
 		} else {
 			for(int pos = 0; pos < len; ++pos){
-				base = alignment.QueryBases.at(pos);
-				quality = alignment.Qualities.at(pos);
+				base = bases.at(pos);
+				quality = qualities.at(pos);
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
+						else context = genoMap.getContext(alignment.AlignedBases.at(pos - 1), base);
 						posInRead = pos;
 						revPosInRead = len - pos - 1;
 						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
@@ -1682,6 +1698,9 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						qual += newQual;
 
 					} else qual += quality;
+				} else if(base == '-'){
+					//this means there was a deletion, don't want to add quality '!' to new quality string!
+					continue;
 				} else qual += quality;
 			}
 		}
@@ -1735,9 +1754,11 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			reference.GetSequence(curChr, begin, stop, ref);
 		}
 		++counter;
+		if(counter == 100) break;
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
 			bamAlignment.Qualities = qual;
+			bamAlignment.QueryBases = bamAlignment.AlignedBases;
 			bamWriter.SaveAlignment(bamAlignment);
 		}
 		//report

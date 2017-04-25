@@ -492,9 +492,9 @@ TPMDEmpiric::TPMDEmpiric(std::string & values, std::string & example){
 	fillVectorFromString(values, vec, ',');
 	length = vec.size();
 	if(length < 1) throw "Can not initialize post mortem damage function 'Empiric[" + values + "]': wrong format!\n" + example;
-	probs = new double[length];
+	//probs = std::vector<double>;
 	for(int i=0; i<length; ++i){
-		probs[i] = vec[i];
+		probs.push_back(vec[i]);
 	}
 	last = probs[length-1];
 };
