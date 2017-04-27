@@ -1754,7 +1754,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			reference.GetSequence(curChr, begin, stop, ref);
 		}
 		++counter;
-		if(counter == 100) break;
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
 			bamAlignment.Qualities = qual;
