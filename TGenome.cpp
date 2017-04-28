@@ -131,7 +131,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		minCoverage = 0;
 		maxCoverage = 1000000;
 	}
-
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
 		applyQualityFilter = true;
 		minQuality = params.getParameterInt("minQual") + 33; //bamAlignment.Qualities is in ascii
@@ -368,24 +367,27 @@ bool TGenome::readData(TWindowPair & windowPair){
 			//filter out unmapped reads and those that did not pass QC
 			if(bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()){
 
-				//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
-				//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
+				if(bamAlignment.IsPrimaryAlignment()){
 
-					//check if insert size is shorter than read, this means we are reading the adaptor sequence
-					if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
+					//check if read is paired and reject reads with pairs on different chromosomes (maybe too harsh?)
+					//if(!bamAlignment.IsPaired() || bamAlignment.MateRefID == bamAlignment.RefID){
 
-						if(bamAlignment.AlignedBases.size() > maxReadLength)
-							throw "Alignment '" +  bamAlignment.Name + "' is long than the max read length! Please change max read length to parse this data.";
+						//check if insert size is shorter than read, this means we are reading the adaptor sequence
+						if(!bamAlignment.IsPaired() || abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 
-						if(!addAlignementToWindows(bamAlignment, windowPair)){
+							if(bamAlignment.AlignedBases.size() > maxReadLength)
+								throw "Alignment '" +  bamAlignment.Name + "' is long than the max read length! Please change max read length to parse this data.";
 
-							//read is beyond window and should be reconsidered
-							oldAlignementMustBeConsidered = true;
-							break;
+							if(!addAlignementToWindows(bamAlignment, windowPair)){
+
+								//read is beyond window and should be reconsidered
+								oldAlignementMustBeConsidered = true;
+								break;
+							}
 						}
-					}
-					else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-				//}
+						else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+					//}
+				}
 			}
 		}
 	}
@@ -2029,30 +2031,72 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//paired end
 	if(readGroups.inUse[readGroupId] == true){
 		if(!bamAlignment.IsDuplicate()){
-			if(bamAlignment.IsProperPair()){
-				if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
+			if(!bamAlignment.IsPrimaryAlignment()){
+				if(bamAlignment.IsProperPair()){
+					if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
+						if(bamAlignment.IsReverseStrand()){
+							// hence it is second in bam file and maps on reverse strand -> FLIP BASES
+							//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
+							//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+							for(int pos = 0; pos < length; ++pos, ++internalPos){
+								base = bamAlignment.AlignedBases[pos];
+								if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
+									quality = bamAlignment.AlignedQualities[pos];
+									if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
+										readBase = genoMap.flipBase(base);
+										//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+										refBase = genoMap.flipBase(ref[internalPos]);
+
+										pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+										pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+									}
+								}
+							}
+						} else {
+							//Hence it is first in the bam file and maps on forward strand
+							//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
+							//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+							for(int pos = 0; pos < length; ++pos, ++internalPos){
+								base = bamAlignment.AlignedBases[pos];
+								if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
+									quality = bamAlignment.AlignedQualities[pos];
+									if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
+										readBase = genoMap.getBase(base);
+										refBase = genoMap.getBase(ref[internalPos]);
+
+										pmdTables.addForward(readGroupId, pos, refBase, readBase);
+										pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
+									}
+								}
+							}
+						}
+					} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+
+				//single end
+				} else {
 					if(bamAlignment.IsReverseStrand()){
-						// hence it is second in bam file and maps on reverse strand -> FLIP BASES
-						//hence P(C->T) is given by  f(insert size - len + pos) (add this to the reverse table)
-						//and P(G->A) is given as f(read len - pos - 1) (add this to forward table)
+						//single end & reverse
+						//forward position = len - pos - 1
+						//reverse position = pos
+						//FLIP BASES!
 						for(int pos = 0; pos < length; ++pos, ++internalPos){
 							base = bamAlignment.AlignedBases[pos];
 							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
 								quality = bamAlignment.AlignedQualities[pos];
-								if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality d0es not make sense
+								if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
 									readBase = genoMap.flipBase(base);
 									//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
 									refBase = genoMap.flipBase(ref[internalPos]);
 
 									pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-									pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+									pmdTables.addReverse(readGroupId, pos, refBase, readBase);
 								}
 							}
 						}
 					} else {
-						//Hence it is first in the bam file and maps on forward strand
-						//Hence P(C->T) is given as a function of pos (add this to the in the forward table)
-						//And P(G->A) is given by (insert size) - pos -1 (add this to the reverse table)
+						//single end & forward
+						//forward position = pos
+						//reverse position = len - pos -1
 						for(int pos = 0; pos < length; ++pos, ++internalPos){
 							base = bamAlignment.AlignedBases[pos];
 							if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
@@ -2062,48 +2106,8 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 									refBase = genoMap.getBase(ref[internalPos]);
 
 									pmdTables.addForward(readGroupId, pos, refBase, readBase);
-									pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
+									pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 								}
-							}
-						}
-					}
-				} else logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-
-			//single end
-			} else {
-				if(bamAlignment.IsReverseStrand()){
-					//single end & reverse
-					//forward position = len - pos - 1
-					//reverse position = pos
-					//FLIP BASES!
-					for(int pos = 0; pos < length; ++pos, ++internalPos){
-						base = bamAlignment.AlignedBases[pos];
-						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip ann other
-							quality = bamAlignment.AlignedQualities[pos];
-							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-								readBase = genoMap.flipBase(base);
-								//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
-								refBase = genoMap.flipBase(ref[internalPos]);
-
-								pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-								pmdTables.addReverse(readGroupId, pos, refBase, readBase);
-							}
-						}
-					}
-				} else {
-					//single end & forward
-					//forward position = pos
-					//reverse position = len - pos -1
-					for(int pos = 0; pos < length; ++pos, ++internalPos){
-						base = bamAlignment.AlignedBases[pos];
-						if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-							quality = bamAlignment.AlignedQualities[pos];
-							if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-								readBase = genoMap.getBase(base);
-								refBase = genoMap.getBase(ref[internalPos]);
-
-								pmdTables.addForward(readGroupId, pos, refBase, readBase);
-								pmdTables.addReverse(readGroupId, length - pos - 1, refBase, readBase);
 							}
 						}
 					}
@@ -2954,8 +2958,13 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
 
     //now parse through bam file and sum number of aligned bases
     while (bamReader.GetNextAlignment(bamAlignment)){
+    	//filters
         if(!readGroups.readGroupInUse(bamAlignment)) continue;
         if(!useChromosome[bamAlignment.RefID]) continue;
+        if(bamAlignment.IsDuplicate()) continue;
+        if(!bamAlignment.IsPrimaryAlignment()) continue;
+        if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
+
         ++counter;
         RGInd = readGroups.find(bamAlignment);
         totCov += bamAlignment.AlignedBases.length();
