@@ -2031,7 +2031,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 	//paired end
 	if(readGroups.inUse[readGroupId] == true){
 		if(!bamAlignment.IsDuplicate()){
-			if(!bamAlignment.IsPrimaryAlignment()){
+			if(bamAlignment.IsPrimaryAlignment()){
 				if(bamAlignment.IsProperPair()){
 					if(abs(bamAlignment.InsertSize) >= bamAlignment.AlignedBases.length()){
 						if(bamAlignment.IsReverseStrand()){
