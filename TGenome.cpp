@@ -1760,6 +1760,9 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
 			bamAlignment.Qualities = qual;
 			bamAlignment.QueryBases = bamAlignment.AlignedBases;
+			bamAlignment.CigarData.clear();
+			bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, bamAlignment.Qualities.size()));
+
 			bamWriter.SaveAlignment(bamAlignment);
 		}
 		//report
@@ -2544,7 +2547,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	float runtime;
 	int curChr = -1;
 
-
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
@@ -2567,120 +2569,123 @@ void TGenome::mergePairedEndReads(TParameters & params){
 				curChr = bamAlignment.RefID;
 			}
 			//add alignment to storage
-			if(!bamAlignment.IsDuplicate()){
-				if(bamAlignment.IsProperPair()){
-					if(!bamAlignment.IsReverseStrand()) {
-						//mate on forward strand is always first in bam file
-						alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
-					}
-					else if(bamAlignment.IsReverseStrand()){
-						//find first mate -> should be in storage
-						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-							if(it->first->Name == bamAlignment.Name){
-								//check if this read accepts mate
-								if(it->second) throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
-								//merge reads
-								alignmentPointer = it->first;
-								if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
-									//reads do not overlap -> add Ns in between
-									//int numN = bamAlignment.Position - (alignmentPointer->Position + alignmentPointer)->AlignedBases.size() - 1;
-									int numN = abs(bamAlignment.InsertSize) - bamAlignment.AlignedBases.size() - alignmentPointer->AlignedBases.size();
-									for(int i=0; i<numN; ++i){
-										alignmentPointer->AlignedBases += 'N';
-										alignmentPointer->AlignedQualities += '!';
-									}
-									alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
-									alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
-								} else if(bamAlignment.Position < alignmentPointer->Position) std::cout << "Second mate of read '" << bamAlignment.Name << "' has pos < pos of first mate!";
-								else {
-									//reads do overlap -> merge them
-									std::string alignment;
-									std::string quality;
-									int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
-									int lastOverlapPlusOne = -1;
-									if((alignmentPointer->Position + alignmentPointer->AlignedBases.size()) <= (bamAlignment.Position + bamAlignment.AlignedBases.size())) lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
-									else lastOverlapPlusOne = bamAlignment.AlignedBases.size();
-
-									//first copy from first mate
-									alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
-									quality = alignmentPointer->AlignedQualities.substr(0, firstOverlap);
-
-									//decide which alignment has higher quality in overlap
-									for(int i=firstOverlap; i<lastOverlapPlusOne; ++i){
-										//decide which quality is higher
-										if(alignmentPointer->AlignedQualities.at(i) > bamAlignment.AlignedQualities.at(i - firstOverlap)){
-											alignment += alignmentPointer->AlignedBases.at(i);
-											quality += alignmentPointer->AlignedQualities.at(i);
-										} else {
-											alignment += bamAlignment.AlignedBases.at(i - firstOverlap);
-											quality += bamAlignment.AlignedQualities.at(i - firstOverlap);
+			if(bamAlignment.IsPrimaryAlignment()){
+				if(!bamAlignment.IsDuplicate()){
+					if(bamAlignment.IsProperPair()){
+						if(!bamAlignment.IsReverseStrand()) {
+							//mate on forward strand is always first in bam file
+							alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
+						}
+						else if(bamAlignment.IsReverseStrand()){
+							std::cout << "alignment is reversed strand" << std::endl;
+							//find first mate -> should be in storage
+							for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
+								if(it->first->Name == bamAlignment.Name){
+									//check if this read accepts mate
+									if(it->second) throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
+									//merge reads
+									alignmentPointer = it->first;
+									if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
+										//reads do not overlap -> add Ns in between
+										//int numN = bamAlignment.Position - (alignmentPointer->Position + alignmentPointer)->AlignedBases.size() - 1;
+										int numN = abs(bamAlignment.InsertSize) - bamAlignment.AlignedBases.size() - alignmentPointer->AlignedBases.size();
+										for(int i=0; i<numN; ++i){
+											alignmentPointer->AlignedBases += 'N';
+											alignmentPointer->AlignedQualities += '!';
 										}
-									}
+										alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
+										alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
+									} else if(bamAlignment.Position < alignmentPointer->Position) std::cout << "Second mate of read '" << bamAlignment.Name << "' has pos < pos of first mate!";
+									else {
+										//reads do overlap -> merge them
+										std::string alignment;
+										std::string quality;
+										int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
+										int lastOverlapPlusOne = -1;
+										if((alignmentPointer->Position + alignmentPointer->AlignedBases.size()) <= (bamAlignment.Position + bamAlignment.AlignedBases.size())) lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
+										else lastOverlapPlusOne = bamAlignment.AlignedBases.size();
 
-									//add rest from second
-									if(alignmentPointer->Position + alignmentPointer->AlignedBases.size() < bamAlignment.Position + bamAlignment.AlignedBases.size()){
-										alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
-										quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
-									}
-									if(alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size!";
+										//first copy from first mate
+										alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
+										quality = alignmentPointer->AlignedQualities.substr(0, firstOverlap);
+										//decide which alignment has higher quality in overlap
+										for(int i=firstOverlap; i<lastOverlapPlusOne; ++i){
+											//decide which quality is higher
+											if(alignmentPointer->AlignedQualities.at(i) > bamAlignment.AlignedQualities.at(i - firstOverlap)){
+												alignment += alignmentPointer->AlignedBases.at(i);
+												quality += alignmentPointer->AlignedQualities.at(i);
+											} else {
+												alignment += bamAlignment.AlignedBases.at(i - firstOverlap);
+												quality += bamAlignment.AlignedQualities.at(i - firstOverlap);
+											}
+										}
 
-									//set
-									alignmentPointer->AlignedBases = alignment;
-									alignmentPointer->AlignedQualities = quality;
+										//add rest from second
+										if(alignmentPointer->Position + alignmentPointer->AlignedBases.size() < bamAlignment.Position + bamAlignment.AlignedBases.size()){
+											alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
+											quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
+										}
+										if(alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size!";
+
+										//set
+										alignmentPointer->AlignedBases = alignment;
+										alignmentPointer->AlignedQualities = quality;
+									}
+									//update
+
+									alignmentPointer->QueryBases = alignmentPointer->AlignedBases;
+									alignmentPointer->Qualities = alignmentPointer->AlignedQualities;
+									alignmentPointer->Length = alignmentPointer->AlignedBases.size();
+									alignmentPointer->CigarData.clear();
+									alignmentPointer->CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, alignmentPointer->Length));
+									alignmentPointer->SetIsFirstMate(false);
+									alignmentPointer->SetIsSecondMate(false);
+									alignmentPointer->SetIsPaired(false);
+									alignmentPointer->SetIsProperPair(false);
+									alignmentPointer->SetIsMateReverseStrand(false);
+									alignmentPointer->SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
+									alignmentPointer->MateRefID = -1;
+									alignmentPointer->MatePosition = -1;
+									alignmentPointer->InsertSize = 0;
+
+									it->second = true;
+	//								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
+
+									//write if is first in vector
+									if(it == alignmentStorage.begin()){
+
+										//write all that are OK
+										for(; it != alignmentStorage.end(); ++it){
+											if(it->second){
+												bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
+	//											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
+												delete it->first;
+											} else {
+												//first that can not be written -> erase all previous ones!
+												it = alignmentStorage.erase(alignmentStorage.begin(), it);
+												break;
+											}
+										}
+										if(it == alignmentStorage.end()){
+											alignmentStorage.clear();
+										}
+									} break;
 								}
-								//update
-
-								alignmentPointer->QueryBases = alignmentPointer->AlignedBases;
-								alignmentPointer->Qualities = alignmentPointer->AlignedQualities;
-								alignmentPointer->Length = alignmentPointer->AlignedBases.size();
-								alignmentPointer->CigarData.clear();
-								alignmentPointer->CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, alignmentPointer->Length));
-								alignmentPointer->SetIsFirstMate(false);
-								alignmentPointer->SetIsSecondMate(false);
-								alignmentPointer->SetIsPaired(false);
-								alignmentPointer->SetIsProperPair(false);
-								alignmentPointer->SetIsMateReverseStrand(false);
-								alignmentPointer->SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
-								alignmentPointer->MateRefID = -1;
-								alignmentPointer->MatePosition = -1;
-								alignmentPointer->InsertSize = 0;
-
-
-								it->second = true;
-//								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
-
-								//write if is first in vector
-								if(it == alignmentStorage.begin()){
-									//write all that are OK
-									for(; it != alignmentStorage.end(); ++it){
-										if(it->second){
-											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
-//											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
-											delete it->first;
-										} else {
-											//first that can not be written -> erase all previous ones!
-											it = alignmentStorage.erase(alignmentStorage.begin(), it);
-											break;
-										}
-									}
-									if(it == alignmentStorage.end()){
-										alignmentStorage.clear();
-									}
-								} break;
 							}
+
+							if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
+						} else{
+							for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
+								delete it->first;
+							}
+							alignmentStorage.clear();
+							throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
 						}
-						if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
-					} else{
-						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
-							delete it->first;
-						}
-						alignmentStorage.clear();
-						throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
+					} else {
+						//read is not paired: add to storage or write
+						if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignment);
+						else alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 					}
-				} else {
-					//read is not paired: add to storage or write
-					if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignment);
-					else alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 				}
 			}
 		}
