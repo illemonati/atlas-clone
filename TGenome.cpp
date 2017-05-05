@@ -2577,7 +2577,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), false));
 						}
 						else if(bamAlignment.IsReverseStrand()){
-							std::cout << "alignment is reversed strand" << std::endl;
 							//find first mate -> should be in storage
 							for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 								if(it->first->Name == bamAlignment.Name){
