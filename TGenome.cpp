@@ -1452,7 +1452,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//initialize recalibration
 	//compare to a second recalibration definition?
 	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
-
+	recalObjectInitialized2 = false;
 	if(params.parameterExists("recal")){
 		std::string nameRecal = params.getParameterString("recal");
 		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile);
@@ -1474,7 +1474,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 		doRecalibration = false;
 		recalObject = new TRecalibration();
 	}
-	recalObjectInitialized = true;
+	//recalObjectInitialized = true;
 
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
@@ -1484,9 +1484,16 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//prepare windows
 	TWindowPairHaploid windows;
 
-	//create table to store counts
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
-	TQualityTransformTable QT(maxQ);
+
+
+
+	//create table to store counts
+	std::vector<TQualityTransformTable*> QTtables;
+	for(int i=0; i<readGroups.numGroups; ++i){
+		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
+		QTtables.push_back(QT);
+	}
 
 	//prepare output
 	std::ofstream out;
@@ -1497,21 +1504,27 @@ void TGenome::printQualityTransformation(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
-				if(recalObjectInitialized2) windows.cur->addSitesToQualityTransformTable(recalObject, recalObject2, QT, logfile);
-				else windows.cur->addSitesToQualityTransformTable(recalObject, QT, logfile);
+				if(recalObjectInitialized2) windows.cur->addSitesToQualityTransformTable(recalObject, recalObject2, QTtables, logfile);
+				else windows.cur->addSitesToQualityTransformTable(recalObject, QTtables, logfile);
 			}
 		}
 	}
 
-	//print final table
-	filename = outputName + "_qualityTransformation.txt";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
-	QT.printTable(out);
-	out.close();
+	//print final tables
+	for(int i=0; i<readGroups.numGroups; ++i){
+		filename = outputName + "_" + readGroups.getName(i) + "_qualityTransformation.txt";
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open output file '" + filename + "'!";
+		QTtables[i]->printTable(out);
+		out.close();
+
+		//clean up vector
+		delete QTtables.at(i);
+	}
 
 	//clean up memory
 	windows.clear();
+
 }
 
 void TGenome::createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
