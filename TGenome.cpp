@@ -573,6 +573,7 @@ void TGenome::estimateTheta(TParameters & params){
 	bool thetaGenomeWide = false;
 	if(params.parameterExists("thetaGenomeWide")){
 		if(considerRegions) throw "thetaGenomeWide can presently not be used in combination with regions!";
+		logfile->list("estimating theta for all sites with depth >= 2");
 		thetaGenomeWide = true;
 	}
 	//initialize recalibration
@@ -2963,6 +2964,7 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
     //now parse through bam file and sum number of aligned bases
     while (bamReader.GetNextAlignment(bamAlignment)){
     	//filters
+    	if(bamAlignment.Length > 75) std::cout << bamAlignment.Name << std::endl;
         if(!readGroups.readGroupInUse(bamAlignment)) continue;
         if(!useChromosome[bamAlignment.RefID]) continue;
         if(bamAlignment.IsDuplicate()) continue;
