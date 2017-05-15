@@ -1799,6 +1799,73 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	logfile->removeIndent();
 }
 
+void TGenome::binQualityScores(TParameters & params){
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_binnedQualityScores.bam";
+	BamTools::RefVector references = bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//other temp variables
+	TGenotypeMap genoMap;
+	long counter = 0;
+	int len;
+	int q;
+	char qChar;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+    gettimeofday(&start, NULL);
+	float runtime;
+
+    //now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignment)){
+		std::string qual;
+
+		++counter;
+		len = bamAlignment.Qualities.size();
+		for(int i=0; i<len; ++i){
+			q = (int) bamAlignment.Qualities[i] - 33;
+			if(q >= 2 && q <= 9) qChar = 6 + 33;
+			else if(q >= 10 && q <= 19) qChar = 15 + 33;
+			else if(q >= 20 && q <= 24) qChar = 22 + 33;
+			else if(q >= 25 && q <= 29) qChar = 27 + 33;
+			else if(q >= 30 && q <= 34) qChar = 33 + 33;
+			else if(q >= 35 && q <= 39) qChar = 37 + 33;
+			else if(q >= 40) qChar = 40 + 33;
+			else {
+				logfile->warning("Quality in alignment " + bamAlignment.Name + " has quality " + toString(q) + ". Will keep it as is.");
+				qChar = q + 33;
+			}
+			qual += qChar;
+		}
+
+		//update and write (only if alignment qualities could be calculated)
+		bamAlignment.Qualities = qual;
+		bamWriter.SaveAlignment(bamAlignment);
+
+		//report
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
+
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");

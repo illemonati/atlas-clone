@@ -88,6 +88,9 @@ int main(int argc, char* argv[]){
 		} else if(task == "recalBAM"){
 			logfile.startIndent("Recalibrating a BAM file (task = recalBAM):");
 			genome.recalibrateBamFile(myParameters);
+		} else if(task == "binQualityScores"){
+			logfile.startIndent("Binning quality scores (task = binQualityScores");
+			genome.binQualityScores(myParameters);
     	} else if(task == "splitRGbyLength"){
 			logfile.startIndent("Splitting single end read groups in a BAM file (task = splitRGbyLength):");
 			genome.splitSingleEndReadGroups(myParameters);
