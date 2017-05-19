@@ -29,6 +29,7 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
 	refInitialized = false;
 	qualToErroTableInitialized = false;
 	pmdInitialized = false;
+	qualTransformationInitialized = false;
 };
 
 void TSimulator::setQualityDistribution(double mean, double sd){
@@ -49,6 +50,8 @@ void TSimulator::initializeChromosomes(std::map<std::string, long> & chr){
 }
 
 void TSimulator::setReadLength(int length){
+	if(qualTransformationInitialized && length != readLength)
+		throw "TSimulator: Can not change read length after quality transformation was initialized!";
 	readLength = length;
 	bamAlignment.Length = readLength;
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', readLength));
@@ -68,6 +71,34 @@ void TSimulator::setReadGroupName(std::string name){
 void TSimulator::setPMD(TPMD* PmdObject){
 	pmdObject = PmdObject;
 	pmdInitialized = true;
+}
+
+
+void TSimulator::setQualityTransformation(std::vector<double> & Betas){
+	if(Betas.size() != 25)
+		throw "Wrong size of beta vector when initializing quality transformation: need 25 values (quality, quality^2, pos, pos^2 and 20 contexts).";
+
+	//copy betas
+	beta = new double[25];
+	for(int i=0; i<25; ++i)
+		beta[i] = Betas[i];
+
+	//precalculate stuff
+	qualTermForTransformation = new double[127];
+	for(int i=0; i<33; ++i)
+		qualTermForTransformation[i] = 1.0;
+	double tmp;
+	for(int i=33; i<127; ++i){
+		tmp = pow(10.0, (double) -(i - 33) / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 -tmp));
+	}
+
+	posTermForTransformation = new double[readLength];
+	for(int i=0; i<readLength; ++i){
+		posTermForTransformation[i] = beta[2] * i + beta[3] * i*i;
+	}
+
+	qualTransformationInitialized = true;
 }
 
 void TSimulator::openBamFile(std::string filename){
@@ -187,6 +218,14 @@ void TSimulator::initializeQualToErrorTable(){
 	qualToErroTableInitialized = true;
 };
 
+/*
+void TSimulator::transformQuality(int & qual, int & pos, int context){
+	static double constant;
+	constant = qualTermForTransformation[qual] + posTermForTransformation[pos] + beta[context+4];
+	//double q = -beta[0] +
+}
+*/
+
 void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 	//TODO: Add PMD as general feature to be set prior to simulations.
 	static short base;
@@ -210,9 +249,9 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 					base = ref[p];
 
 				//apply PMD
-				if(base == 1){
+				if(base == 1){ //means is C
 					if(randomGenerator->getRand() < pmdObject->getProbCT(p-pos))
-						base = 3;
+						base = 3; //means T
 				}
 
 				//sample quality and add error

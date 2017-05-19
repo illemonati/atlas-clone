@@ -37,13 +37,19 @@ private:
 	std::map<std::string, long>::iterator chrIt;
 	std::string readGroupName;
 
-	//Qual to erro table
+	//Qual to error table
 	double* qualToErroTable;
 	bool qualToErroTableInitialized;
 
 	//PMD
 	TPMD* pmdObject;
 	bool pmdInitialized;
+
+	//Quality transformation
+	double* beta;
+	double* qualTermForTransformation;
+	double* posTermForTransformation;
+	bool qualTransformationInitialized;
 
 	//helper tools
 	BamTools::BamAlignment bamAlignment;
@@ -80,6 +86,7 @@ public:
 	void setDepth(float depth);
 	void setReadGroupName(std::string name);
 	void setPMD(TPMD* PmdObject);
+	void setQualityTransformation(std::vector<double> & Betas);
 	void initializeChromosomes(int numChr, long chrLength);
 	void initializeChromosomes(std::map<std::string, long> & chr);
 

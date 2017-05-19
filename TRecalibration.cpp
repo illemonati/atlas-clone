@@ -500,7 +500,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 
 	//Are the values provided?
 	estimatetionRequired = false;
-	if(args.parameterExists("recal")){
+	if(args.parameterExists("recal")){ //ToDo: Super ugly hack.... find better solution.
 		//read parameters from file
 		std::string filename = name;
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");

@@ -76,7 +76,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 
 	//quality distribution
 	double meanQual = params.getParameterDoubleWithDefault("meanQual", 30);
-	double sdQual = params.getParameterDoubleWithDefault("meanQual", 10);
+	double sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
 	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual));
 	simulator.setQualityDistribution(meanQual, sdQual);
 	logfile->endIndent();
