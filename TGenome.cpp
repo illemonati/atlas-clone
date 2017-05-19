@@ -2853,38 +2853,52 @@ void TGenome::downSampleBamFile(TParameters & params){
 	if(!stringContainsOnly(prob, "-0123456789.,")) throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
 	fillVectorFromString(prob, downSampleProbVector, ',');
 
-	//check if probs are between 0 and 1, save in array and print them
 	std::vector<double>::iterator it;
 	int numProbs = downSampleProbVector.size();
+
+	if(times > 1 && numProbs > 1) throw "Replicated downsampling is not implemented for more than one prob";
+	if(times > 1) numProbs = times;
+
+	//check if probs are between 0 and 1, save in array and print them
 	double* downSampleProb = new double[numProbs];
 	logfile->listFlush("Will accept reads with probabilities");
 	bool first = true;
 	int i=0;
-	for(it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
-		if(first) first = false;
-		else logfile->flush(",");
-		logfile->flush(" " + toString(*it));
-		if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between >0 and <1!";
-		downSampleProb[i] = *it;
+	if(times == 1){
+		for(it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
+			if(first) first = false;
+			else logfile->flush(",");
+			logfile->flush(" " + toString(*it));
+			if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between >0 and <1!";
+			downSampleProb[i] = *it;
+		}
+	} else {
+		for(int i=0; i<times; ++i){
+			downSampleProb[i] = *(downSampleProbVector.begin());
+		}
 	}
 	logfile->newLine();
-
-	if(times > 1 && numProbs > 1) throw "Replicated downsampling is not implemented for more than one prob";
-	if(times > 1) numProbs = times;
 
 	//open bam files for writing
 	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
 	BamTools::RefVector references = bamReader.GetReferenceData();
 	logfile->startIndent("Writing results to the following files:");
-	for(i=0; i<numProbs; ++i){
-		//construct and print filename
-		if(times > 1) 		filename = outputName + "_downsampled" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
-		else filename = outputName + "_downsampled" + toString(downSampleProb[i]) + ".bam";
-		logfile->list(filename);
-
-		//open file
-		if(!bamWriter[i].Open(filename, bamHeader, references))
-			throw "Failed to open BAM file '" + filename + "'!";
+	if(times > 1){
+		for(i=0; i<numProbs; ++i){
+			//construct and print filename
+			filename = outputName + "_downsampled" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
+			logfile->list(filename);
+			//open file
+			if(!bamWriter[i].Open(filename, bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+		}
+	} else {
+		for(i=0; i<numProbs; ++i){
+			//construct and print filename
+			filename = outputName + "_downsampled" + toString(downSampleProb[i]) + ".bam";
+			logfile->list(filename);
+			//open file
+			if(!bamWriter[i].Open(filename, bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+		}
 	}
 	logfile->endIndent();
 
