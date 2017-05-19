@@ -2874,7 +2874,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->startIndent("Writing results to the following files:");
 	for(i=0; i<numProbs; ++i){
 		//construct and print filename
-		filename = outputName + "_downsampled" + toString(downSampleProb[i]) + ".bam";
+		filename = outputName + "_downsampled" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
 		logfile->list(filename);
 
 		//open file
