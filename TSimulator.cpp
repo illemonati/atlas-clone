@@ -28,6 +28,7 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
 	alt = NULL;
 	refInitialized = false;
 	qualToErroTableInitialized = false;
+	pmdInitialized = false;
 };
 
 void TSimulator::setQualityDistribution(double mean, double sd){
@@ -62,6 +63,11 @@ void TSimulator::setReadGroupName(std::string name){
 		throw "Can not change read group name after opening BAM file!";
 	readGroupName = name;
 	bamAlignment.AddTag("RG", "Z", readGroupName);
+}
+
+void TSimulator::setPMD(TPMD* PmdObject){
+	pmdObject = PmdObject;
+	pmdInitialized = true;
 }
 
 void TSimulator::openBamFile(std::string filename){
@@ -185,28 +191,56 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 	//TODO: Add PMD as general feature to be set prior to simulations.
 	static short base;
 	static int qual;
-	//Whole sim process, numReads pooled and individual can be seen as frequency, no?
-	for(int r=0; r<numReads; ++r){
+	static int r;
+	static long p;
+
+	for(r=0; r<numReads; ++r){
 		//simulate a read starting here
 		bamAlignment.Position = pos;
 		bamAlignment.QueryBases = "";
 		bamAlignment.Qualities = "";
-		for(long p=pos; p<pos+readLength; ++p){
-			//sample base
-			if(randomGenerator->getRand() < altFreq[p])
-				base = alt[p];
-			else
-				base = ref[p];
 
-			//sample quality and add error
-			qual = sampleQuality();
-			if(randomGenerator->getRand() < qualToErroTable[qual])
-				base = (base + randomGenerator->pickOne(3) + 1) % 4;
+		//with or without PMD?
+		if(pmdInitialized){
+			for(p=pos; p<pos+readLength; ++p){
+				//sample base
+				if(randomGenerator->getRand() < altFreq[p])
+					base = alt[p];
+				else
+					base = ref[p];
 
-			//add to bam alignment
-			bamAlignment.Qualities += (char) qual;
-			bamAlignment.QueryBases += toBase[base];
+				//apply PMD
+				if(base == 1){
+					if(randomGenerator->getRand() < pmdObject->getProbCT(p-pos))
+						base = 3;
+				}
 
+				//sample quality and add error
+				qual = sampleQuality();
+				if(randomGenerator->getRand() < qualToErroTable[qual])
+					base = (base + randomGenerator->pickOne(3) + 1) % 4;
+
+				//add to bam alignment
+				bamAlignment.Qualities += (char) qual;
+				bamAlignment.QueryBases += toBase[base];
+			}
+		} else {
+			for(p=pos; p<pos+readLength; ++p){
+				//sample base
+				if(randomGenerator->getRand() < altFreq[p])
+					base = alt[p];
+				else
+					base = ref[p];
+
+				//sample quality and add error
+				qual = sampleQuality();
+				if(randomGenerator->getRand() < qualToErroTable[qual])
+					base = (base + randomGenerator->pickOne(3) + 1) % 4;
+
+				//add to bam alignment
+				bamAlignment.Qualities += (char) qual;
+				bamAlignment.QueryBases += toBase[base];
+			}
 		}
 		bamWriter.SaveAlignment(bamAlignment);
 	}
@@ -247,7 +281,7 @@ void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outna
 		altFreq = new float[chrIt->second];
 		for(int l=0; l<chrIt->second; ++l){
 			altFreq[l] = sfs.getRandomFrequency(randomGenerator);
-			freqFile << chrIt->first << "\t" << altFreq[l] << "\n";
+			freqFile << chrIt->first << "\t" << l+1 << altFreq[l] << "\n";
 		}
 		logfile->write(" done!");
 
@@ -303,8 +337,8 @@ void TSimulator::simulateSingleIndividual(double theta, std::string outname){
 	//prepare cumulative frequencies for genotypes
 	float cumulFreq[3];
 	cumulFreq[1] = theta;
-	cumulFreq[2] = theta / 2.0;
-	cumulFreq[0] = 1.0 - cumulFreq[1] - cumulFreq[2];
+	cumulFreq[2] = theta / 2.0 + cumulFreq[2];
+	cumulFreq[0] = 1.0;
 	if(cumulFreq[0] < 0.0)
 		throw "Error when simulating data: current theta value too big, leads to too many mutations!";
 
@@ -316,10 +350,11 @@ void TSimulator::simulateSingleIndividual(double theta, std::string outname){
 	int numReadsHere;
 	long numReadsSimulated;
 	initializeQualToErrorTable();
+	int geno;
 
-	//open frequency file
-	filename = outname + "_frequencies.txt";
-	std::ofstream freqFile(filename.c_str());
+	//open file for true genotypes
+	filename = outname + "_trueGenotypes.txt";
+	std::ofstream genoFile(filename.c_str());
 
 	//simulate sequences
 	int refId = 0;
@@ -334,7 +369,12 @@ void TSimulator::simulateSingleIndividual(double theta, std::string outname){
 		delete[] altFreq;
 		altFreq = new float[chrIt->second];
 		for(int l=0; l<chrIt->second; ++l){
-			altFreq[l] = randomGenerator->pickOne(3, cumulFreq) / 2.0;
+			geno = randomGenerator->pickOne(3, cumulFreq) / 2.0;
+			altFreq[l] = geno / 2.0;
+			genoFile << chrIt->first << "\t" << l+1 << "\t";
+			if(geno == 0) genoFile << toBase[ref[l]] << "/" << toBase[ref[l]] << "\n";
+			else if(geno == 1) genoFile << toBase[ref[l]] << "/" << toBase[alt[l]] << "\n";
+			else genoFile << toBase[alt[l]] << "/" << toBase[alt[l]] << "\n";
 		}
 		logfile->write(" done!");
 
@@ -372,7 +412,7 @@ void TSimulator::simulateSingleIndividual(double theta, std::string outname){
 	//close stuff
 	closeBamFile();
 	closeFastaFile();
-	freqFile.close();
+	genoFile.close();
 
 	//clear memory
 	delete[] altFreq;

@@ -438,8 +438,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 
 	//now fill them!
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
-		logfile->list("Initializing one PMD function for all read groups.");
 		//all read groups have the same pmd
+		logfile->list("Initializing one PMD function for all read groups.");
 		if(params.parameterExists("pmd")){
 			std::string pmdString = params.getParameterString("pmd");
 			logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");

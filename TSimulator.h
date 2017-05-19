@@ -11,6 +11,7 @@
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "SFS.h"
+#include "TPostMortemDamage.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/BamWriter.h"
 #include "bamtools/api/SamHeader.h"
@@ -39,6 +40,10 @@ private:
 	//Qual to erro table
 	double* qualToErroTable;
 	bool qualToErroTableInitialized;
+
+	//PMD
+	TPMD* pmdObject;
+	bool pmdInitialized;
 
 	//helper tools
 	BamTools::BamAlignment bamAlignment;
@@ -74,6 +79,7 @@ public:
 	void setReadLength(int length);
 	void setDepth(float depth);
 	void setReadGroupName(std::string name);
+	void setPMD(TPMD* PmdObject);
 	void initializeChromosomes(int numChr, long chrLength);
 	void initializeChromosomes(std::map<std::string, long> & chr);
 
