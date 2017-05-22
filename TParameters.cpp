@@ -175,6 +175,32 @@ void TParameters::fillParameterIntoVector(std::string my_name, std::vector<std::
 	fillVectorFromString(str, vec, delim);
 }
 //---------------------------------------------------------------------------
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<int> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<long> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<double> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<float> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<bool> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<std::string> & vec, char delim, std::string def){
+	std::string str = getParameterStringWithDefault(my_name, def);
+	fillVectorFromString(str, vec, delim);
+}
+
+//---------------------------------------------------------------------------
 std::string TParameters::getListOfUnusedParameters(){
 	std::string parameterList="";
 	std::map<std::string, bool>::iterator cur;

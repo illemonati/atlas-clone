@@ -25,12 +25,78 @@ void runSimulations(TParameters & params, TLog* logfile){
 	logfile->startIndent("Reading simulation parameters:");
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
 	logfile->list("Will write output files with tag '" + outname + "'.");
-	int sampleSize = params.getParameterInt("sampleSize");
+	int sampleSize = params.getParameterIntWithDefault("sampleSize", 1);
 	logfile->list("Will simulate data from " + toString(sampleSize) + " individuals.");
 	if(sampleSize < 1)
 		throw "Sample size needs to be at least 1!";
-	float theta = params.getParameterDouble("theta");
+	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
 	logfile->list("Will simulate data with theta = " + toString(theta) + ".");
+	double referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
+	logfile->list("Will simulate data with theta = " + toString(theta) + ".");
+
+	//read length & depth
+	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
+	simulator.setDepth(depth);
+	int readLength = params.getParameterIntWithDefault("readLength", 100);
+	simulator.setReadLength(readLength);
+	logfile->list("Will simulate reads of length " + toString(readLength) + " to a depth of " + toString(depth) + ".");
+
+	//chromosomes
+	std::vector<std::string> string_vec;
+	std::vector<long> chrLength;
+	params.fillParameterIntoVectorWithDefault("chrLength", string_vec, ',', "1000000");
+	repeatIndexes(string_vec, chrLength);
+	std::vector<int> ploidy;
+	params.fillParameterIntoVectorWithDefault("ploidy", string_vec, ',', "2");
+	repeatIndexes(string_vec, ploidy);
+	if(ploidy.size() != chrLength.size())
+		throw "List fo chromosome lengths and ploidies differ in length!";
+	std::vector<bool> haploid;
+	for(std::vector<int>::iterator it=ploidy.begin(); it!=ploidy.end(); ++it){
+		if(*it == 1) haploid.push_back(true);
+		else if(*it == 2) haploid.push_back(false);
+		else throw "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!";
+	}
+
+	if(chrLength.size() < 1)
+		throw "Issue understanding length of chromosomes!";
+	if(chrLength.size() == 1){
+		int numChr = params.getParameterIntWithDefault("numChr", 1);
+		std::string text = "Will simulate ";
+		if(haploid[0]) text += "haploid ";
+		else text += "diploid ";
+		text += toString(numChr) + " chromosome(s) of length " + toString(chrLength[0]) + " each.";
+		logfile->list(text);
+		simulator.initializeChromosomes(numChr, chrLength[0], haploid[0]);
+	} else {
+		logfile->startIndent("Will simulate " + toString(chrLength.size()) + " chromosome(s) of the following length:");
+		std::vector<bool>::iterator hIt=haploid.begin();
+		std::string text;
+		for(std::vector<long>::iterator it=chrLength.begin(); it!=chrLength.end(); ++it, ++hIt){
+			text = toString(*it) + " (";
+			if(*hIt) text += "haploid)";
+			else text += "diploid)";
+			logfile->list(text);
+		}
+		simulator.initializeChromosomes(chrLength, haploid);
+	}
+
+	//quality distribution
+	double meanQual = params.getParameterDoubleWithDefault("meanQual", 30);
+	double sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
+	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual));
+	simulator.setQualityDistribution(meanQual, sdQual);
+	logfile->endIndent();
+
+	//quality transformation
+	if(params.parameterExists("qualTransform")){
+		params.fillParameterIntoVector("qualTransform", string_vec, ',');
+		std::vector<double> beta;
+		repeatIndexes(string_vec, beta);
+		if(beta.size() != 24)
+			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+		simulator.setQualityTransformation(beta);
+	}
 
 	//initialize PMD
 	TPMD pmdObject;
@@ -61,29 +127,9 @@ void runSimulations(TParameters & params, TLog* logfile){
 		simulator.setPMD(&pmdObject);
 	}
 
-	//read length & depth
-	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
-	simulator.setDepth(depth);
-	int readLength = params.getParameterIntWithDefault("readLength", 100);
-	simulator.setReadLength(readLength);
-	logfile->list("Will simulate reads of length " + toString(readLength) + " to a depth of " + toString(depth) + ".");
-
-	//chromosomes
-	int numChr = params.getParameterIntWithDefault("numChr", 1);
-	long chrLength = params.getParameterLongWithDefault("chrLength", 1000000);
-	logfile->list("Will simulate " + toString(numChr) + " chromosome(s) of length " + toString(chrLength) + " each.");
-	simulator.initializeChromosomes(numChr, chrLength);
-
-	//quality distribution
-	double meanQual = params.getParameterDoubleWithDefault("meanQual", 30);
-	double sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
-	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual));
-	simulator.setQualityDistribution(meanQual, sdQual);
-	logfile->endIndent();
-
 	//simulate differently depending on number of individuals
 	if(sampleSize == 1){
-		simulator.simulateSingleIndividual(theta, outname);
+		simulator.simulateSingleIndividual(theta, referenceDivergence, outname);
 	} else {
 		//prepare SFS
 		logfile->startIndent("Preparing SFS:");

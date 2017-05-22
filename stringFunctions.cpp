@@ -1022,6 +1022,24 @@ void repeatIndexes(std::vector<std::string> & orig, std::vector<double> & vec){
 		vec.push_back(stringToDoubleCheck(*it));
 	}
 }
+void repeatIndexes(std::vector<std::string> & orig, std::vector<int> & vec){
+	std::vector<std::string> tmp;
+	for(std::vector<std::string>::iterator it=orig.begin(); it!=orig.end(); ++it){
+		addRepeatedIndex(*it, tmp);
+	}
+	for(std::vector<std::string>::iterator it=tmp.begin(); it!=tmp.end(); ++it){
+		vec.push_back(stringToIntCheck(*it));
+	}
+}
+void repeatIndexes(std::vector<std::string> & orig, std::vector<long> & vec){
+	std::vector<std::string> tmp;
+	for(std::vector<std::string>::iterator it=orig.begin(); it!=orig.end(); ++it){
+		addRepeatedIndex(*it, tmp);
+	}
+	for(std::vector<std::string>::iterator it=tmp.begin(); it!=tmp.end(); ++it){
+		vec.push_back(stringToLongCheck(*it));
+	}
+}
 
 void addRepeatedAndExpandedIndexesOfSub(const std::string & orig, std::vector< std::vector<std::string> > & vec, std::string delim){
 	std::vector<std::string> origVec;

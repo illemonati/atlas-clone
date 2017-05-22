@@ -44,6 +44,14 @@ class TParameters{
 		void fillParameterIntoVector(std::string my_name, std::vector<float> & vec, char delim, bool mandatory=true);
 		void fillParameterIntoVector(std::string my_name, std::vector<bool> & vec, char delim, bool mandatory=true);
 		void fillParameterIntoVector(std::string my_name, std::vector<std::string> & vec, char delim, bool mandatory=true);
+
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<int> & vec, char delim, std::string def);
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<long> & vec, char delim, std::string def);
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<double> & vec, char delim, std::string def);
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<float> & vec, char delim, std::string def);
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<bool> & vec, char delim, std::string def);
+		void fillParameterIntoVectorWithDefault(std::string my_name, std::vector<std::string> & vec, char delim, std::string def);
+
 		std::string getListOfUnusedParameters();
 };
 #endif
