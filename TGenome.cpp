@@ -2636,7 +2636,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			std::cout << "filtered out because of adapter " << bamAlignment.Name << std::endl;
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 		}
-		else if((blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0) || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate()){
+		else if((blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0) || !bamAlignment.IsProperPair() || bamAlignment.IsDuplicate() || (bamAlignment.IsMateReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsMateReverseStrand() && !bamAlignment.IsMateReverseStrand())){
 			continue;
 			//alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 		}
