@@ -2639,8 +2639,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			logfile->warning("filtered out because of adapter: " + bamAlignment.Name);
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 			continue;
-		} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || (bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
-			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
+		} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || bamAlignment.IsSupplementary() ||(bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
 			continue;
 		}
 		else {
