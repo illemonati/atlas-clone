@@ -2632,16 +2632,16 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
-
-		if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
-			logfile->warning("filtered out because of adapter: " + bamAlignment.Name);
-			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
-		}
-		if((blacklistGiven && readsToOmit.count(bamAlignment.Name) > 0)){
+		if((readsToOmit.count(bamAlignment.Name) > 0)){
 			continue;
 			//alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
+		} else if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
+			logfile->warning("filtered out because of adapter: " + bamAlignment.Name);
+			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
+			continue;
 		} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || (bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
+			continue;
 		}
 		else {
 			//if on new chromosome, empty storage
