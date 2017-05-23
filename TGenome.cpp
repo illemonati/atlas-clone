@@ -2707,7 +2707,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 											alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
 											quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
 										}
-										if(alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size!";
+
+										if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!";
 
 										//set
 										alignmentPointer->AlignedBases = alignment;
