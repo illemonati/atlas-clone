@@ -1770,15 +1770,18 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			stop = begin + windowSize;
 			reference.GetSequence(curChr, begin, stop, ref);
 		}
+
 		++counter;
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
 			bamAlignment.Qualities = qual;
+			eraseAllOccurences(bamAlignment.AlignedBases, "-");
 			bamAlignment.QueryBases = bamAlignment.AlignedBases;
 			bamAlignment.CigarData.clear();
 			bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, bamAlignment.Qualities.size()));
 
-			bamWriter.SaveAlignment(bamAlignment);
+			if(!bamWriter.SaveAlignment(bamAlignment)) throw bamAlignment.Name + " read not printed";
+
 		}
 		//report
 		if(counter % 1000000 == 0){
@@ -2707,7 +2710,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 											quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
 										}
 
-										if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize)) throw "merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!";
+										if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize)) logfile->warning("merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!");
 
 										//set
 										alignmentPointer->AlignedBases = alignment;
