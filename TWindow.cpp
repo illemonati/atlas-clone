@@ -541,7 +541,7 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
-void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile){
+void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions){
 	logfile->startIndent("Estimating Theta:");
 
 	//measure runtime
@@ -590,9 +590,11 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 
 	//write results to file
 	//position
-	out << start << "\t" << end-1;
+	if(considerRegions) out << "givenByUser\tgivenByUser\tgivenByUser";
+	else out << start << "\t" << end-1;
 	//coverage NOTE: assumes coverage has been calculated before...
-	out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
+	if(considerRegions) out << "\t" << "NA" << "\t" << "NA" << "\t" << "NA";
+	else out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
 	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];

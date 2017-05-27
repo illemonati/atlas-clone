@@ -107,7 +107,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string maskFile = params.getParameterString("maskCpG");
 		logfile->list("Will mask all CpG sites");
 	} else doCpGMasking = false;
-
 	if(params.parameterExists("regions")){
 		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
 		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
@@ -603,11 +602,12 @@ void TGenome::estimateTheta(TParameters & params){
 						logfile->listFlush("Adding relevant sites to data structure ...");
 						windowSitesSubset->copySites(windows.cur);
 						logfile->done();
-						//estimate Theta
-						windowSitesSubset->estimateTheta(EMParams, recalObject, out, logfile);
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
+			//estimate Theta
+			windowSitesSubset->estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
+
 		} delete windowSitesSubset;
 
 	} else if(thetaGenomeWide){
@@ -635,7 +635,7 @@ void TGenome::estimateTheta(TParameters & params){
 		//estimate Theta
 		logfile->list("will estimate theta based on a total of " + toString(siteVec.size()) + " sites");
 		TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
-		specificSites.estimateTheta(EMParams, recalObject, out, logfile);
+		specificSites.estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
 
 	} else {
 		//iterate through windows
@@ -649,7 +649,7 @@ void TGenome::estimateTheta(TParameters & params){
 					} else {
 						//estimate Theta
 						out << chrIterator->Name << "\t";
-						windows.cur->estimateTheta(EMParams, recalObject, out, logfile);
+						windows.cur->estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
@@ -931,7 +931,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 						//set Theta
 						if(estimateTheta){
 							outTheta << chrIterator->Name << "\t";
-							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile);
+							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile, considerRegions);
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
@@ -1069,7 +1069,7 @@ void TGenome::callAllelePresence(TParameters & params){
 						//set Theta
 						if(estimateTheta){
 							outTheta << chrIterator->Name << "\t";
-							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile);
+							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile, considerRegions);
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
