@@ -96,6 +96,36 @@ void runSimulations(TParameters & params, TLog* logfile){
 		if(beta.size() != 24)
 			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 		simulator.setQualityTransformation(beta);
+	} else if(params.parameterExists("recal")){
+		std::string filename = params.getParameterString("recal");
+		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open file '" + filename + "' for reading!";
+
+		//tmp variables for reading
+		std::string tmp;
+		std::vector<std::string> vec;
+		std::vector<double> beta;
+
+
+		//skip header
+		std::getline(file, tmp);
+
+		//parse file to read details for each read group
+		std::getline(file, tmp);
+
+		fillVectorFromString(tmp, vec, "\t");
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
+			for(int i=1; i < 25; ++i) beta.push_back(stringToFloat(vec[i]));
+			logfile->done();
+			if(beta.size() != 24)
+				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+			simulator.setQualityTransformation(beta);
+		}
+
+
 	}
 
 	//initialize PMD
