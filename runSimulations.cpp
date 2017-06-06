@@ -107,7 +107,6 @@ void runSimulations(TParameters & params, TLog* logfile){
 		std::vector<std::string> vec;
 		std::vector<double> beta;
 
-
 		//skip header
 		std::getline(file, tmp);
 
@@ -124,8 +123,6 @@ void runSimulations(TParameters & params, TLog* logfile){
 				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 			simulator.setQualityTransformation(beta);
 		}
-
-
 	}
 
 	//initialize PMD

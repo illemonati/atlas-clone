@@ -534,6 +534,16 @@ void TSimulator::writeTrueGenotypes(short** haplotypes, std::ofstream & genoFile
 		genoFile << chrIt->name << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "/" << toBase[haplotypes[1][l]] << "\n";
 }
 
+void TSimulator::writeInvariantSites(short** haplotypes, std::ofstream & genoFile){
+	//0-based
+	for(int l=0; l<chrIt->length; ++l){
+		if(haplotypes[0][l] == haplotypes[1][l]){
+			genoFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
+		}
+	}
+}
+
+
 
 void TSimulator::simulateSingleIndividual(double theta, double referenceDivergence, std::string outname){
 	//open BAM file
@@ -566,6 +576,11 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 	filename = outname + "_trueGenotypes.txt";
 	std::ofstream genoFile(filename.c_str());
 
+	//open file for invariant positions
+	filename = outname + "_invariantSites.txt";
+	std::ofstream invariantSitesFile(filename.c_str());
+
+
 	//prepare mutation table
 	float** mutTable;
 	mutTable = new float*[4];
@@ -590,6 +605,7 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 
 		simulateDiploidHaplotypesCurChromosome(haplotypes, mutTable, referenceDivergence);
 		writeTrueGenotypes(haplotypes, genoFile);
+		writeInvariantSites(haplotypes, invariantSitesFile);
 
 		logfile->write(" done!");
 

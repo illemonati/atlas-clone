@@ -94,6 +94,7 @@ private:
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, const double & referenceDivergence);
 	void writeTrueGenotypes(short** haplotypes, std::ofstream & genoFile);
+	void writeInvariantSites(short** haplotypes, std::ofstream & genoFile);
 	void simulateReads(int & numReads, long & pos, float* & altFreq);
 	void writeRead(long & pos, short* haplotype);
 
