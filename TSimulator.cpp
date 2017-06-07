@@ -44,6 +44,10 @@ void TSimulator::setQualityDistribution(double mean, double sd){
 	sdQual = sd;
 }
 
+void TSimulator::setMaxQual(int MaxQual){
+	maxQual = MaxQual;
+}
+
 void TSimulator::initializeChromosomes(int numChr, long chrLength, bool haploid){
 	chromosomes.clear();
 	for(int i=0; i<numChr; ++i){
@@ -376,11 +380,17 @@ void TSimulator::writeRead(long & pos, short* haplotype){
 
 		//add to bam alignment
 		if(qualTransformationInitialized){
-			bamAlignment.Qualities += (char) transformQuality(qual, p, genoMap.getContext(previousBase, base));
+			int transQual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
+			//cap at highest possible illumina score
+			if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
+			else bamAlignment.Qualities += (char) transformQuality(qual, p, genoMap.getContext(previousBase, base));
 			previousBase = base;
-		} else
-			bamAlignment.Qualities += (char) qual;
+		} else {
+			if(qual > maxQual) bamAlignment.Qualities += (char) maxQual;
+			else bamAlignment.Qualities += (char) qual;
+		}
 		bamAlignment.QueryBases += toBase[base];
+
 	}
 	bamWriter.SaveAlignment(bamAlignment);
 }

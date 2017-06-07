@@ -48,6 +48,7 @@ private:
 
 	//general simulation parameters
 	double meanQual, sdQual;
+	int maxQual;
 	float seqDepth;
 	int readLength;
 	std::vector<TSimulatorChromosome> chromosomes;
@@ -110,6 +111,7 @@ public:
 
 	//functions to set general parameters
 	void setQualityDistribution(double mean, double sd);
+	void setMaxQual(int maxQual);
 	void setReadLength(int length);
 	void setDepth(float depth);
 	void setBaseFreq();

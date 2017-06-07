@@ -28,7 +28,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 	//initialize simulator
 	TSimulator simulator(logfile, randomGenerator, baseFreq);
 
-	//read parameters
+	//read other parameters
 	logfile->startIndent("Reading simulation parameters:");
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
 	logfile->list("Will write output files with tag '" + outname + "'.");
@@ -93,6 +93,9 @@ void runSimulations(TParameters & params, TLog* logfile){
 	double sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
 	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual));
 	simulator.setQualityDistribution(meanQual, sdQual);
+	int maxQual = params.getParameterDoubleWithDefault("maxQual", 500);
+	simulator.setMaxQual(maxQual);
+	logfile->list("will cap qualities at " + maxQual);
 	logfile->endIndent();
 
 	//quality transformation
