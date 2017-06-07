@@ -74,7 +74,7 @@ private:
 	char toBase[4];
 	long refLength;
 	short* ref;
-	float baseFreq[4];
+	std::vector<float> baseFreq;
 	float cumulBaseFreq[4];
 	bool refInitialized;
 
@@ -99,7 +99,7 @@ private:
 	void writeRead(long & pos, short* haplotype);
 
 public:
-	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & baseFreq);
 	~TSimulator(){
 		closeBamFile();
 		closeFastaFile();
@@ -112,7 +112,7 @@ public:
 	void setQualityDistribution(double mean, double sd);
 	void setReadLength(int length);
 	void setDepth(float depth);
-	void setBaseFreq(float* freq);
+	void setBaseFreq();
 	void setReadGroupName(std::string name);
 	void setPMD(TPMD* PmdObject);
 	void setQualityTransformation(std::vector<double> & Betas);

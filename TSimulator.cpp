@@ -7,9 +7,10 @@
 
 #include "TSimulator.h"
 
-TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
+TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & Freq){
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
+	baseFreq = Freq;
 	bamFileOpen = false;
 	fastaOpen = false;
 	oldOffset = 0;
@@ -29,12 +30,14 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
 	//helper tools
 	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
 	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
-	float tmp[4];
-	tmp[0] = 0.25; tmp[1] = 0.25; tmp[2] = 0.25; tmp[3] = 0.25;
-	setBaseFreq(tmp);
+//	float tmp[4];
+//	tmp[0] = 0.33; tmp[1] = 0.17; tmp[2] = 0.17; tmp[3] = 0.33;
+	setBaseFreq();
 	refLength = 0;
 	ref = NULL;
 };
+
+
 
 void TSimulator::setQualityDistribution(double mean, double sd){
 	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
@@ -67,11 +70,10 @@ void TSimulator::setDepth(float depth){
 	seqDepth = depth;
 }
 
-void TSimulator::setBaseFreq(float* freq){
+void TSimulator::setBaseFreq(){
 	float sum = 0.0;
 	for(int i=0; i<4; ++i){
-		baseFreq[i] = freq[i];
-		sum += freq[i];
+		sum += baseFreq[i];
 	}
 	for(int i=0; i<4; ++i){
 		baseFreq[i] /= sum;

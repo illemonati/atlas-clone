@@ -3007,7 +3007,19 @@ void TGenome::downSampleReads(TParameters & params){
 	logfile->removeIndent();
 }
 
-void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome length
+void TGenome::estimateApproximateCoverage(TParameters & params){
+	std::ofstream outLongReadsCovFwd;
+	std::string outLongReadsFileNameCovFwd = outputName + "_longReadsFwd.txt";
+	logfile->list("Writing coverage estimates to '" + outLongReadsFileNameCovFwd + "'");
+	outLongReadsCovFwd.open(outLongReadsFileNameCovFwd.c_str());
+	if(!outLongReadsCovFwd) throw "Failed to open output file '" + outLongReadsFileNameCovFwd + "'!";
+
+	std::ofstream outLongReadsCovRev;
+	std::string outLongReadsFileNameCovRev = outputName + "_longReadsRev.txt";
+	logfile->list("Writing coverage estimates to '" + outLongReadsFileNameCovRev + "'");
+	outLongReadsCovRev.open(outLongReadsFileNameCovRev.c_str());
+	if(!outLongReadsCovRev) throw "Failed to open output file '" + outLongReadsFileNameCovRev + "'!";
+
     //open output files
     std::ofstream outputCoverage;
     std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
@@ -3068,6 +3080,8 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
 
     //now parse through bam file and sum number of aligned bases
     while (bamReader.GetNextAlignment(bamAlignment)){
+    	if(bamAlignment.Length == 76 && !bamAlignment.IsReverseStrand()) outLongReadsCovFwd << bamAlignment.QueryBases << "\n";
+    	else if(bamAlignment.Length == 76 && bamAlignment.IsReverseStrand()) outLongReadsCovRev << bamAlignment.QueryBases << "\n";
     	//filters
         if(!readGroups.readGroupInUse(bamAlignment)) continue;
         if(!useChromosome[bamAlignment.RefID]) continue;
@@ -3140,6 +3154,8 @@ void TGenome::estimateApproximateCoverage(TParameters & params){    //get genome
     outputCoverage.close();
     outputMQ.close();
     outputReadLen.close();
+    outLongReadsCovFwd.close();
+    outLongReadsCovRev.close();
 
     for(int i = 0; i < readGroups.numGroups; ++i){
     	delete MQ[i];

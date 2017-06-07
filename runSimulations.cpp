@@ -18,8 +18,15 @@ void runSimulations(TParameters & params, TLog* logfile){
 	} else randomGenerator=new TRandomGenerator();
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 
+	//obtain base frequencies
+	std::vector<float> baseFreq;
+	std::string tmp = params.getParameterStringWithDefault("baseFreq", "0.25,0.25,0.25,0.25");
+	fillVectorFromString(tmp, baseFreq, ',');
+	if(baseFreq.size() != 4) throw "baseFreq vector must have size = 4!";
+	logfile->list("simulating chromosomes with base frequencies A:" + toString(baseFreq[0]) + " C:" + toString(baseFreq[1])+ " G:" + toString(baseFreq[1])+ " T:" + toString(baseFreq[1]));
+
 	//initialize simulator
-	TSimulator simulator(logfile, randomGenerator);
+	TSimulator simulator(logfile, randomGenerator, baseFreq);
 
 	//read parameters
 	logfile->startIndent("Reading simulation parameters:");
