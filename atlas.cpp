@@ -132,6 +132,8 @@ int main(int argc, char* argv[]){
 				logfile.startIndent("Estimating coverage per site (task = coveragePerSite):");
 				genome.estimateCoveragePerSite(myParameters);
 
+
+
 			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile.clearIndent();
