@@ -59,7 +59,7 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
 		(*it)->addToBaseFrequencies(frequencies, weight);
 	}
-}
+};
 
 void TSite::calcEmissionProbabilities(){
 	//assumes that emission probabilities were calculated for TBase!

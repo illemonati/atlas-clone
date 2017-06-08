@@ -14,6 +14,10 @@
 #include "bamtools/api/BamWriter.h"
 #include "TLog.h"
 #include "TBed.h"
+#include <typeinfo>
+#include <map>
+
+#include "TBase.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -47,7 +51,7 @@ private:
 	std::string filename;
 	TLog* logfile;
 	bool windowsPredefined;
-	TBed* windows;
+	TBed* predefinedWindows;
 	int windowSize;
 	int numWindowsOnChr;
 	int windowNumber;
@@ -90,7 +94,7 @@ public:
 		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 		if(useChromosome) delete[] useChromosome;
-		if(windowsPredefined) delete windows;
+		if(windowsPredefined) delete predefinedWindows;
 	};
 	void estimateTheta(TParameters & params);
 	void calcLikelihoodSurfaces(TParameters & params);
@@ -125,7 +129,7 @@ public:
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
 	void downSampleReads(TParameters & params);
-	void estimateApproximateCoverage(TParameters & params);
+	void diagnoseBamFile(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
 	void estimateCoveragePerSite(TParameters & params);
 	void simulateGWASData(TParameters & params);

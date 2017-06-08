@@ -137,7 +137,7 @@ public:
 //---------------------------------------------------------------
 class TBaseDiploidC:public TBaseDiploid{
 public:
-	TBaseDiploidC(char & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
+	TBaseDiploidC(char & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup):TBaseDiploid(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
 	char getBase(){ return 'C'; };
 	Base getBaseAsEnum(){ return C;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };

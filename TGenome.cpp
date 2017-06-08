@@ -5,12 +5,7 @@
  *      Author: wegmannd
  */
 
-
 #include "TGenome.h"
-#include "TBase.h"
-#include <typeinfo>
-#include <map>
-
 
 //-------------------------------------------------------
 //TGenome
@@ -43,9 +38,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else {
 		windowsPredefined = true;
 		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
-		windows = new TBed(tmp);
+		predefinedWindows = new TBed(tmp);
 		logfile->write(" done!");
-		logfile->conclude("read " + toString(windows->size()) + " on " + toString(windows->getNumChromosomes()) + " chromosomes");
+		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
 	}
 	numWindowsOnChr = 0;
 
@@ -254,11 +249,11 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	oldPos = -1;
 	windowNumber = 0;
 	if(windowsPredefined){
-		windows->setChr(chrIterator->Name);
-		numWindowsOnChr = windows->getNumWindowsOnCurChr();
-		int nextEnd = windows->curWindowEnd();
+		predefinedWindows->setChr(chrIterator->Name);
+		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
+		int nextEnd = predefinedWindows->curWindowEnd();
 		if(nextEnd > chrLength) nextEnd = chrLength + 1;
-		else windowPair.nextPointer->move(windows->curWindowStart(), nextEnd);
+		else windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
@@ -291,14 +286,15 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 			return false;
 		}
 		//jump reader if large gap to previous window
+		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
 		if(windowPair.curPointer->start - windowPair.nextPointer->end > maxReadLength)
 			bamReader.Jump(chrNumber, curStart);
 
 		//now move coordinates of next window
-		if(windows->nextWindow()){
-			int nextEnd = windows->curWindowEnd();
+		if(predefinedWindows->nextWindow()){
+			int nextEnd = predefinedWindows->curWindowEnd();
 			if(nextEnd > chrLength) nextEnd = chrLength + 1;
-			windowPair.nextPointer->move(windows->curWindowStart(), nextEnd);
+			windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
 		} else {
 			windowPair.nextPointer->move(chrLength + 1, chrLength + 2);
 		}
@@ -833,7 +829,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);
 					}
-					logfile->write(" done!");
+					logfile->done();
 				}
 			}
 		}
@@ -947,7 +943,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 							windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
 						}
-						logfile->write(" done!");
+						logfile->done();
 					}
 				}
 			}
@@ -2918,7 +2914,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	float runtime;
 
     //now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
+	while(bamReader.GetNextAlignment(bamAlignment)){
 		++counter;
 
 		//accept read or not?
@@ -3007,7 +3003,7 @@ void TGenome::downSampleReads(TParameters & params){
 	logfile->removeIndent();
 }
 
-void TGenome::estimateApproximateCoverage(TParameters & params){
+void TGenome::diagnoseBamFile(TParameters & params){
 	std::ofstream outLongReadsCovFwd;
 	std::string outLongReadsFileNameCovFwd = outputName + "_longReadsFwd.txt";
 	logfile->list("Writing coverage estimates to '" + outLongReadsFileNameCovFwd + "'");
@@ -3077,9 +3073,8 @@ void TGenome::estimateApproximateCoverage(TParameters & params){
     	for(int j=0; j<500; ++j) RL[i][j]=0;
     }
 
-
     //now parse through bam file and sum number of aligned bases
-    while (bamReader.GetNextAlignment(bamAlignment)){
+    while(bamReader.GetNextAlignment(bamAlignment)){
     	if(bamAlignment.Length == 76 && !bamAlignment.IsReverseStrand()) outLongReadsCovFwd << bamAlignment.QueryBases << "\n";
     	else if(bamAlignment.Length == 76 && bamAlignment.IsReverseStrand()) outLongReadsCovRev << bamAlignment.QueryBases << "\n";
     	//filters

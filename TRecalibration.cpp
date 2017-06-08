@@ -2613,7 +2613,6 @@ void TRecalibrationBQSR::reopenEstimation(){
 		}
 		contextConverged = false;
 	}
-
 }
 
 double TRecalibrationBQSR::getErrorRate(TBase* base){

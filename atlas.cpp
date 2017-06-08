@@ -26,7 +26,7 @@ int main(int argc, char* argv[]){
     	TParameters myParameters(argc, argv, &logfile);
 
 		//verbose?
-		bool verbose=myParameters.parameterExists("verbose");
+		bool verbose = myParameters.parameterExists("verbose");
 		if(!verbose) logfile.listNoFile("Running in silent mode (use 'verbose' to get a status report on screen)");
 		logfile.setVerbose(verbose);
 		//warnings?
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]){
 				genome.downSampleReads(myParameters);
 			} else if(task == "BAMDiagnostics"){
 				logfile.startIndent("Estimating approximate coverage, read length frequencies and mapping quality frequencies (task = BAMDiagnostics):");
-				genome.estimateApproximateCoverage(myParameters);
+				genome.diagnoseBamFile(myParameters);
 			} else if(task == "coveragePerWindow"){
 				logfile.startIndent("Estimating coverage per window (task = coveragePerWindow):");
 				genome.estimateApproximateCoveragePerWindow(myParameters);
