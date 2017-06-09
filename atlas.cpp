@@ -131,9 +131,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "coveragePerSite"){
 				logfile.startIndent("Estimating coverage per site (task = coveragePerSite):");
 				genome.estimateCoveragePerSite(myParameters);
-
-
-
+			} else if(task == "imbalance"){
+				logfile.startIndent("Generating a table of allelic imbalance (task = imbalance):");
+				genome.generateAllelicImbalance(myParameters);
 			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile.clearIndent();

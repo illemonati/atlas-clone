@@ -3204,8 +3204,8 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 
 void TGenome::estimateCoveragePerSite(TParameters & params){
 	std::ofstream output;
-	std::string outputFileName = outputName + "_coveragePerSite.txt";
-	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
+	std::string outputFileName = outputName + "_allelicImbalance.txt";
+	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
@@ -3250,3 +3250,62 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	output.close();
 	delete[] siteCoverage;
 }
+
+void TGenome::generateAllelicImbalance(TParameters & params){
+	std::ofstream output;
+	std::string outputFileName = outputName + "_AllelicImbalance.txt";
+	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	if(!maxCov) throw "No maximum coverage specified!";
+	int size = maxCov + 2; // need 0 bin and >maxCov bin
+	int nCharOnLine = 0;
+
+	//prepare array
+	long****siteImbalance = new long***[size];
+	for(int i=0; i<size; ++i){
+		siteImbalance[i] = new long**[size];
+		for(int j=0; j<size; ++j){
+			siteImbalance[i][j] = new long*[size];
+			for(int k=0; k<size; ++k){
+				siteImbalance[i][j][k] = new long[size];
+				for(int l=0; l<size; ++l){
+					siteImbalance[i][j][k][l] = 0;
+				}
+			}
+		}
+	}
+
+	//write header
+	//output << "coverage\tcounts" << std::endl;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
+
+			logfile->listFlush("Adding coverages to table ...");
+			logfile->write(" done!");
+		}
+	}
+
+	//write to file
+	for(int i=0; i<(size-1); ++i){
+		output << i << "\t" << siteCoverage[i] << "\n";
+	}
+	output << ">" << maxCov << "\t" << siteCoverage[size - 1] << std::endl;
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
+	delete[] siteCoverage;
+}
+
