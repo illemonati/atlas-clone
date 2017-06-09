@@ -3281,31 +3281,40 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	//output << "coverage\tcounts" << std::endl;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	//TWindowPairDiploid windows;
 
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	//while(iterateChromosome(windows)){
 		//write chromosome to file
-		while(iterateWindow(windows)){
+		//while(iterateWindow(windows)){
 			//read data for current window
-			readData(windows);
-			windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
+			//readData(windows);
+			//windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
 
-			logfile->listFlush("Adding coverages to table ...");
-			logfile->write(" done!");
-		}
-	}
+			//logfile->listFlush("Adding coverages to table ...");
+			//logfile->write(" done!");
+		//}
+	//}
 
 	//write to file
 	for(int i=0; i<(size-1); ++i){
-		output << i << "\t" << siteCoverage[i] << "\n";
+		for(int j=0; j<(size-1); ++j){
+			for(int k=0; k<(size-1); ++k){
+				for(int l=0; l<(size-1); ++l){
+					output <<  siteImbalance[i][j][k][l] << " ";
+				}
+				output << std::endl;
+			}
+			output << std::endl;
+		}
+		output << std::endl;
 	}
-	output << ">" << maxCov << "\t" << siteCoverage[size - 1] << std::endl;
+	output << ">" << maxCov << "\t" << siteImbalance[size - 1] << std::endl;
 
 	//clean up
 	if(nCharOnLine > 0) output << '\n';
 	output.close();
-	delete[] siteCoverage;
+	delete[] siteImbalance;
 }
 
