@@ -95,8 +95,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 	simulator.setQualityDistribution(meanQual, sdQual);
 	int maxQual = params.getParameterDoubleWithDefault("maxQual", 500);
 	simulator.setMaxQual(maxQual);
-	logfile->list("will cap qualities at " + maxQual);
-	logfile->endIndent();
+	logfile->list("Will cap qualities at " + toString(maxQual));
 
 	//quality transformation
 	if(params.parameterExists("qualTransform")){
@@ -105,6 +104,8 @@ void runSimulations(TParameters & params, TLog* logfile){
 		repeatIndexes(string_vec, beta);
 		if(beta.size() != 24)
 			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+		std::string s = concatenateString(beta, ",");
+		logfile->list("Will transform qualities with beta = {" + s + "}");
 		simulator.setQualityTransformation(beta);
 	} else if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
@@ -122,8 +123,9 @@ void runSimulations(TParameters & params, TLog* logfile){
 
 		//parse file to read details for each read group
 		std::getline(file, tmp);
-
 		fillVectorFromString(tmp, vec, "\t");
+		logfile->done();
+
 		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
@@ -131,8 +133,11 @@ void runSimulations(TParameters & params, TLog* logfile){
 			logfile->done();
 			if(beta.size() != 24)
 				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+			std::string s = concatenateString(beta, ",");
+			logfile->list("Will transform qualities with beta = {" + s + "}");
 			simulator.setQualityTransformation(beta);
 		}
+
 	}
 
 	//initialize PMD
@@ -163,6 +168,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 		}
 		simulator.setPMD(&pmdObject);
 	}
+	logfile->endIndent();
 
 	//simulate differently depending on number of individuals
 	if(sampleSize == 1){
