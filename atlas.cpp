@@ -161,10 +161,6 @@ int main(int argc, char* argv[]){
 	logfile.list("Program terminated in ", runtime, " min!");
 	logfile.close();
 
-	std::cout << "\n----------------------------";
-	std::cout << "\n THIS WAS NEW RECAL BRANCH! ";
-	std::cout << "\n----------------------------";
-
     return 0;
 }
 
