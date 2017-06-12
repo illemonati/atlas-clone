@@ -3281,21 +3281,18 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	//output << "coverage\tcounts" << std::endl;
 
 	//prepare windows
-	//TWindowPairDiploid windows;
-
-
+	TWindowPairDiploid windows;
 	//iterate through windows
-	//while(iterateChromosome(windows)){
+	while(iterateChromosome(windows)){
 		//write chromosome to file
-		//while(iterateWindow(windows)){
+		while(iterateWindow(windows)){
 			//read data for current window
-			//readData(windows);
-			//windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
-
-			//logfile->listFlush("Adding coverages to table ...");
-			//logfile->write(" done!");
-		//}
-	//}
+			readData(windows);
+			windows.cur->calcImbalancePerSite(siteImbalance, maxCov);
+			logfile->listFlush("Adding imbalance values to table ...");
+			logfile->write(" done!");
+		}
+	}
 
 	//write to file
 	for(int i=0; i<(size-1); ++i){
