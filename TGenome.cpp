@@ -3072,9 +3072,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
         if(!bamAlignment.IsPrimaryAlignment()) continue;
         if(bamAlignment.IsProperPair()){
         	if(!bamAlignment.IsReverseStrand()){
-        		if(bamAlignment.InsertSize < 0) throw "insert size of forward read " + bamAlignment.Name + " is negative!";
         		++numProperPairs;
-        		sumFragLen += bamAlignment.InsertSize;
+        		sumFragLen += abs(bamAlignment.InsertSize);
         		sumSquaredFragLen += (bamAlignment.InsertSize * bamAlignment.InsertSize);
         	}
         } else if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
