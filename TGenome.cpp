@@ -3006,18 +3006,6 @@ void TGenome::downSampleReads(TParameters & params){
 }
 
 void TGenome::diagnoseBamFile(TParameters & params){
-	std::ofstream outLongReadsCovFwd;
-	std::string outLongReadsFileNameCovFwd = outputName + "_longReadsFwd.txt";
-	logfile->list("Writing coverage estimates to '" + outLongReadsFileNameCovFwd + "'");
-	outLongReadsCovFwd.open(outLongReadsFileNameCovFwd.c_str());
-	if(!outLongReadsCovFwd) throw "Failed to open output file '" + outLongReadsFileNameCovFwd + "'!";
-
-	std::ofstream outLongReadsCovRev;
-	std::string outLongReadsFileNameCovRev = outputName + "_longReadsRev.txt";
-	logfile->list("Writing coverage estimates to '" + outLongReadsFileNameCovRev + "'");
-	outLongReadsCovRev.open(outLongReadsFileNameCovRev.c_str());
-	if(!outLongReadsCovRev) throw "Failed to open output file '" + outLongReadsFileNameCovRev + "'!";
-
     //open output files
     std::ofstream outputCoverage;
     std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
@@ -3037,6 +3025,13 @@ void TGenome::diagnoseBamFile(TParameters & params){
     outputReadLen.open(outputFileNameRL.c_str());
     if(!outputReadLen) throw "Failed to open output file '" + outputFileNameRL + "'!";
 
+    std::ofstream fragmentStats;
+    std::string outputFileNameFL = outputName + "_fragmentStats.txt";
+    logfile->list("Writing fragment length mean and variance to '" + outputFileNameFL + "'");
+    fragmentStats.open(outputFileNameFL.c_str());
+    if(!fragmentStats) throw "Failed to open output file '" + outputFileNameFL + "'!";
+
+
     double totLength = 0.0;
     for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
         totLength += stringToLong(chrIterator->Length);
@@ -3049,19 +3044,12 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //other temp variables
     long counter = 0;
-    //double toNumAlignedBases = 0.0;
-    //std::vector<int*> MQ;
-    //std::vector<int*> RL;
     int RGInd = -1;
-
-/*
-    long MQ[readGroups.numGroups][100];
-    long RL[readGroups.numGroups][500];
-    double cov[readGroups.numGroups];
-*/
-
     std::vector<double> cov;
-    double totCov =0.0;
+    double totCov = 0.0;
+    int numProperPairs = 0;
+    long sumFragLen = 0;
+    long sumSquaredFragLen = 0;
 
     long** MQ = new long*[readGroups.numGroups];
     long** RL = new long*[readGroups.numGroups];
@@ -3077,14 +3065,19 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //now parse through bam file and sum number of aligned bases
     while(bamReader.GetNextAlignment(bamAlignment)){
-    	if(bamAlignment.Length == 76 && !bamAlignment.IsReverseStrand()) outLongReadsCovFwd << bamAlignment.QueryBases << "\n";
-    	else if(bamAlignment.Length == 76 && bamAlignment.IsReverseStrand()) outLongReadsCovRev << bamAlignment.QueryBases << "\n";
     	//filters
         if(!readGroups.readGroupInUse(bamAlignment)) continue;
         if(!useChromosome[bamAlignment.RefID]) continue;
         if(bamAlignment.IsDuplicate()) continue;
         if(!bamAlignment.IsPrimaryAlignment()) continue;
-        if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
+        if(bamAlignment.IsProperPair()){
+        	if(!bamAlignment.IsReverseStrand()){
+        		if(bamAlignment.InsertSize < 0) throw "insert size of forward read is negative!";
+        		++numProperPairs;
+        		sumFragLen += bamAlignment.InsertSize;
+        		sumSquaredFragLen += (bamAlignment.InsertSize * bamAlignment.InsertSize);
+        	}
+        } else if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
 
         ++counter;
         RGInd = readGroups.find(bamAlignment);
@@ -3146,13 +3139,18 @@ void TGenome::diagnoseBamFile(TParameters & params){
         }
     }
 
+    //FL
+    float mean = float(sumFragLen)/float(numProperPairs);
+    float var = float(sumSquaredFragLen) / float(numProperPairs) - mean;
+    fragmentStats << "mean: " << mean << "\n" << "variance: " << var;
+
     logfile->write(" done!");
 
     outputCoverage.close();
     outputMQ.close();
     outputReadLen.close();
-    outLongReadsCovFwd.close();
-    outLongReadsCovRev.close();
+    fragmentStats.close();
+
 
     for(int i = 0; i < readGroups.numGroups; ++i){
     	delete MQ[i];
