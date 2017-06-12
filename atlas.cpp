@@ -160,6 +160,11 @@ int main(int argc, char* argv[]){
 	float runtime=(end.tv_sec  - start.tv_sec)/60.0;
 	logfile.list("Program terminated in ", runtime, " min!");
 	logfile.close();
+
+	std::cout << "\n----------------------------";
+	std::cout << "\n THIS WAS NEW RECAL BRANCH! ";
+	std::cout << "\n----------------------------";
+
     return 0;
 }
 
