@@ -185,6 +185,46 @@ public:
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
+class TRecalibrationEMModel{
+public:
+	int numParams;
+	int numReadGroups;
+	int totNumParams;
+	int* readGroupShifts;
+
+	double** betas; //betas of the model
+	double** oldBetas; //use during estimation
+	arma::mat Jacobian;
+	arma::vec F;
+	arma::mat JxF;
+	bool EMParamsInitialized;
+	long numSitesAdded;
+	double tmp;
+	int tmpIndex;
+
+	TRecalibrationEMModel(int NumReadGroups);
+	~TRecalibrationEMModel(){
+		delete[] readGroupShifts;
+		for(int r=0; r<numReadGroups; ++r){
+			delete[] betas[r];
+			delete[] oldBetas[r];
+		}
+		delete[] betas;
+		delete[] oldBetas;
+	};
+
+	void initializeEMParams();
+	void setEMParamsToZero();
+	double calcEpsilon(const short & readGroup, float* & q, const short & context);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
+
+	bool solveJxF();
+	void proposeNewParameters(double & lambda);
+	void rejectProposedParameters();
+	double getSteepestGradient();
+	void writeParametersToFile(std::ofstream & out, const int & readGroup);
+};
+
 class TRecalibrationEMSite{
 public:
 	float** q; //covariates such as quality, position etc.
@@ -206,12 +246,12 @@ public:
 		if(tmp > 0.9999999999) return 0.9999999999;
 		return tmp;
 	};
-	~TRecalibrationEMSite();
-	void calcEpsilon(double** params);
-	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs);
-	double calcLL(double** oldParams, double* freqs);
-	double calcQ(double** newParams);
-	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
+	virtual ~TRecalibrationEMSite();
+	virtual void calcEpsilon(TRecalibrationEMModel* & model);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* freqs);
+	double calcLL(TRecalibrationEMModel* & model, double* freqs);
+	double calcQ(TRecalibrationEMModel* & model);
+	virtual void addToJacobianAndF(TRecalibrationEMModel* & model);
 };
 
 class TRecalibrationEMWindow{
@@ -221,18 +261,18 @@ public:
 	int* readGroupMap;
 
 	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int* ReadGroupMap);
-	~TRecalibrationEMWindow(){
+	virtual ~TRecalibrationEMWindow(){
 		delete[] freqs;
 		for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
 			delete *site;
 		}
 		sites.clear();
 	};
-	void addSite(TSite & site);
-	double fill_P_g_given_d_beta_AND_calcLL(double** oldParams);
-	double calcLL(double** oldParams);
-	double calcQ(double** newParams);
-	void addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params);
+	virtual void addSite(TSite & site);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model);
+	double calcLL(TRecalibrationEMModel* & model);
+	double calcQ(TRecalibrationEMModel* & model);
+	void addToJacobianAndF(TRecalibrationEMModel* & model);
 };
 
 class TRecalibrationEM:public TRecalibration{
@@ -240,8 +280,7 @@ public:
 	TLog* logfile;
 	BamTools::SamHeader* bamHeader;
 	std::string* readGroupNames;
-	int numParams;
-	int totNumParams;
+	TRecalibrationEMModel* model;
 	double** params;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
@@ -254,9 +293,7 @@ public:
 	double NewtonRaphsonMaxF;
 	double** newParams; //used during EM
 	double** tmpParams; //used during NR
-	arma::mat Jacobian;
-	arma::vec F;
-	arma::mat JxF;
+
 	long numSitesAdded;
 	int maxCoverage; //sites with higher coverage will be ignored
 
@@ -275,13 +312,14 @@ public:
 			delete *curWindow;
 		}
 		windows.clear();
+		delete model;
 	};
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
 	double getErrorRate(TBase* base, double** theseParams);
 	double getErrorRate(TBase* base);
-	void runNewtonRaphson(double** theseParams, int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
+	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename, double & LL);
 	void writeHeader(std::ofstream & out);

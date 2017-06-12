@@ -39,7 +39,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
 	logfile->list("Will simulate data with theta = " + toString(theta) + ".");
 	double referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
-	logfile->list("Will simulate data with theta = " + toString(theta) + ".");
+	logfile->list("Will simulate data with reference divergence = " + toString(referenceDivergence) + ".");
 
 	//read length & depth
 	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
@@ -69,10 +69,10 @@ void runSimulations(TParameters & params, TLog* logfile){
 		throw "Issue understanding length of chromosomes!";
 	if(chrLength.size() == 1){
 		int numChr = params.getParameterIntWithDefault("numChr", 1);
-		std::string text = "Will simulate ";
-		if(haploid[0]) text += "haploid ";
-		else text += "diploid ";
-		text += toString(numChr) + " chromosome(s) of length " + toString(chrLength[0]) + " each.";
+		std::string text = "Will simulate " + toString(numChr) ;
+		if(haploid[0]) text += " haploid";
+		else text += " diploid";
+		text += " chromosome(s) of length " + toString(chrLength[0]) + " each.";
 		logfile->list(text);
 		simulator.initializeChromosomes(numChr, chrLength[0], haploid[0]);
 	} else {

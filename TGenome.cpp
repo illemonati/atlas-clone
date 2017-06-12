@@ -1310,7 +1310,7 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 
 	//calc likelihood surface
 	int numMarginalGridPoint = params.getParameterIntWithDefault("numGridPoints", 51);
-	recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
+	//recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
 }
 
 void TGenome::BQSR(TParameters & params){

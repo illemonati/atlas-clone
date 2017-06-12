@@ -137,7 +137,7 @@ void TSimulator::openBamFile(std::string filename){
 	bamFileName = filename;
 
 	if(chromosomes.size() < 1)
-		throw "Can not open a BAM file without specififed chromosomes!";
+		throw "Can not open a BAM file without specified chromosomes!";
 
 	BamTools::SamHeader header("");
 	header.Version = "1.4";
