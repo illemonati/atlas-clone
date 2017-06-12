@@ -3140,7 +3140,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //FL
     float mean = float(sumFragLen)/float(numProperPairs);
-    float var = float(sumSquaredFragLen) / float(numProperPairs) - mean;
+    float var = float(sumSquaredFragLen) / float(numProperPairs) - (mean*mean);
     fragmentStats << "mean: " << mean << "\n" << "variance: " << var;
 
     logfile->write(" done!");
