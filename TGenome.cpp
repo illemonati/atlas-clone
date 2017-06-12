@@ -1288,7 +1288,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 
 void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	std::string filename = "empty";
+	std::string filename = params.getParameterString("recal");
 	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile);
 
 	//prepare windows
@@ -1309,8 +1309,10 @@ void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params)
 	logfile->endIndent();
 
 	//calc likelihood surface
-	int numMarginalGridPoint = params.getParameterIntWithDefault("numGridPoints", 51);
-	recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
+	//int numMarginalGridPoint = params.getParameterIntWithDefault("numGridPoints", 51);
+	//recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
+
+	logfile->list("LL = " + toString(recalObjectEM.calcLL()));
 }
 
 void TGenome::BQSR(TParameters & params){

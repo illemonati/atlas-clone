@@ -904,6 +904,15 @@ void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 	}
 }
 
+double TRecalibrationEM::calcLL(){
+	double LL = 0.0;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		LL += (*curWindow)->calcLL(params);
+	}
+	return LL;
+}
+
+
 void TRecalibrationEM::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
 	double LL;
 

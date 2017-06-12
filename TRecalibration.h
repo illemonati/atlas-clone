@@ -286,6 +286,7 @@ public:
 	void writeCurrentEstimates(std::string filename, double & LL);
 	void writeHeader(std::ofstream & out);
 	void writeParams(std::ofstream & out, double & LL);
+	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 	int getQuality(TBase* base);
