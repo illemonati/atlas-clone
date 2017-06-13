@@ -417,27 +417,17 @@ void TWindow::calcCoveragePerSite(long * siteCoverage, unsigned int maxCov){
 void TWindow::applyCoverageFilter(int minCoverage, int maxCoverage){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			if(sites[i].bases.size() < minCoverage || sites[i].bases.size() > maxCoverage)
+			if(sites[i].getNumBases() < minCoverage || sites[i].getNumBases() > maxCoverage)
 				sites[i].clear();
 		}
 	}
 }
 
-void TWindow::calcImbalancePerSite(long **** siteImbalance, unsigned int maxCov){
+void TWindow::compileAlleleicCountsTable(long**** & siteImbalance, const unsigned int & maxCov){
 	//calculate and return imbalance
-	int* b = new int[4];
-	std::fill(b, b + 4, 0);
 	for(int i=0; i<length; ++i){
-		if(sites[i].bases.size() <= maxCov && sites[i].bases.size() > 0){
-			std::string basesString = sites[i].getBases();
-			for(unsigned int a=0; a<basesString.size(); ++a){
-								if(basesString[a] == 'A' ) ++b[0];
-								else if(basesString[a] == 'C') ++b[1];
-								else if(basesString[a] == 'G') ++b[2];
-								else if(basesString[a] == 'T') ++b[3];
-							}
-			++siteImbalance[b[0]][b[1]][b[2]][b[3]];
-		}
+		if(sites[i].getNumBases() <= maxCov && sites[i].getNumBases() > 0)
+			sites[i].compileAllelicCounts(siteImbalance);
 	}
 }
 

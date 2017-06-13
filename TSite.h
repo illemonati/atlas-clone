@@ -53,6 +53,7 @@ public:
 			referenceBase = Base;
 		else referenceBase = 'N';
 	};
+	unsigned int getNumBases(){ return bases.size();};
 	char getRefBase(){return referenceBase;};
 	Base getRefBaseAsEnum(){
 		if(referenceBase == 'A') return A;
@@ -100,6 +101,8 @@ public:
 
 	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){ throw "addToExpectedBaseCounts not implemented for TSite base class!";};
+
+	void compileAllelicCounts(long**** & siteImbalance);
 };
 
 class TSiteDiploid:public TSite{

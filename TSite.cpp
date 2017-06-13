@@ -141,9 +141,21 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	return log(sum);
 }
 
+void TSite::compileAllelicCounts(long**** & siteImbalance){
+	//calculate and return imbalance
+	static int b[5];
+	std::fill(b, b + 5, 0);
+
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+		++b[(*it)->getBaseAsEnum()];
+	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
+}
+
+
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------
+//TODO: shouldn't MLE callers be in TSiteDiploid?
 void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
 	//calculate phred-scaled likelihoods and find max
 	maxGenotypeProb = 100000.0;
@@ -1144,7 +1156,6 @@ double TSiteDiploid::calculatePHomozygous(double* pGenotype){
 	//make sum for all homozygous genotypes
 	return (postProb[AA] + postProb[CC] + postProb[GG] + postProb[TT]) / tot;
 }
-
 
 void TSiteHaploid::addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){
 	double* tmp = new double[4];

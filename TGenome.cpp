@@ -3263,7 +3263,7 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	int nCharOnLine = 0;
 
 	//prepare array
-	long****siteImbalance = new long***[size];
+	long**** siteImbalance = new long***[size];
 	for(int i=0; i<size; ++i){
 		siteImbalance[i] = new long**[size];
 		for(int j=0; j<size; ++j){
@@ -3288,7 +3288,7 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
-			windows.cur->calcImbalancePerSite(siteImbalance, maxCov);
+			windows.cur->compileAlleleicCountsTable(siteImbalance, maxCov);
 			logfile->listFlush("Adding imbalance values to table ...");
 			logfile->write(" done!");
 		}
