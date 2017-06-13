@@ -186,8 +186,7 @@ public:
 //RecalibrationEM
 //---------------------------------------------------------------
 class TRecalibrationEMModel{
-public:
-	int numParams;
+protected:
 	int numReadGroups;
 	int totNumParams;
 	int* readGroupShifts;
@@ -197,13 +196,21 @@ public:
 	arma::mat Jacobian;
 	arma::vec F;
 	arma::mat JxF;
+	bool initialized;
 	bool EMParamsInitialized;
-	long numSitesAdded;
+
 	double tmp;
 	int tmpIndex;
 
+	void initialize(int NumReadGroups);
+
+public:
+	int numParams;
+	long numSitesAdded;
+
+	TRecalibrationEMModel();
 	TRecalibrationEMModel(int NumReadGroups);
-	~TRecalibrationEMModel(){
+	virtual ~TRecalibrationEMModel(){
 		delete[] readGroupShifts;
 		for(int r=0; r<numReadGroups; ++r){
 			delete[] betas[r];
@@ -213,16 +220,28 @@ public:
 		delete[] oldBetas;
 	};
 
+	bool setParams(std::vector<std::string> & vec, int & rg);
 	void initializeEMParams();
 	void setEMParamsToZero();
-	double calcEpsilon(const short & readGroup, float* & q, const short & context);
-	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
-
+	virtual double calcEpsilon(const short & readGroup, float* & q, const short & context);
+	virtual void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	void rejectProposedParameters();
 	double getSteepestGradient();
+	virtual void writeParametersToFile(std::ofstream & out, const int & readGroup);
+	void printJacobianToStdOut();
+	virtual double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context);
+};
+
+class TRecalibrationEMModelNoContext:public TRecalibrationEMModel{
+public:
+	TRecalibrationEMModelNoContext(int NumReadGroups);
+
+	double calcEpsilon(const short & readGroup, float* & q, const short & context);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
 	void writeParametersToFile(std::ofstream & out, const int & readGroup);
+	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context);
 };
 
 class TRecalibrationEMSite{
@@ -273,6 +292,7 @@ public:
 	double calcLL(TRecalibrationEMModel* & model);
 	double calcQ(TRecalibrationEMModel* & model);
 	void addToJacobianAndF(TRecalibrationEMModel* & model);
+	void setEuqalBaseFrequencies();
 };
 
 class TRecalibrationEM:public TRecalibration{
@@ -281,32 +301,21 @@ public:
 	BamTools::SamHeader* bamHeader;
 	std::string* readGroupNames;
 	TRecalibrationEMModel* model;
-	double** params;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
 
 	//variables for EM
 	bool estimatetionRequired;
+	bool equalBaseFrequencies;
+	long numSitesAdded;
 	int numEMIterations;
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
-	double** newParams; //used during EM
-	double** tmpParams; //used during NR
-
-	long numSitesAdded;
 	int maxCoverage; //sites with higher coverage will be ignored
 
 	TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & params, TLog* Logfile);
 	~TRecalibrationEM(){
-		for(int i=0; i<numReadGroups; ++i){
-			delete[] params[i];
-			delete[] newParams[i];
-			delete[] tmpParams[i];
-		}
-		delete[] params;
-		delete[] newParams;
-		delete[] tmpParams;
 		delete[] readGroupNames;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;
@@ -317,7 +326,6 @@ public:
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
-	double getErrorRate(TBase* base, double** theseParams);
 	double getErrorRate(TBase* base);
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);

@@ -116,6 +116,20 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 //---------------------------------------------------------------
 //TRecalibrationEMModel
 //---------------------------------------------------------------
+TRecalibrationEMModel::TRecalibrationEMModel(){
+	numParams = 24;
+	initialized = false;
+	EMParamsInitialized = false;
+	numSitesAdded = 0;
+	numReadGroups = 0;
+	totNumParams = 0;
+	readGroupShifts = NULL;
+	tmpIndex = 0;
+	tmp = 0;
+	betas = NULL;
+	oldBetas = NULL;
+}
+
 TRecalibrationEMModel::TRecalibrationEMModel(int NumReadGroups){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
@@ -125,8 +139,14 @@ TRecalibrationEMModel::TRecalibrationEMModel(int NumReadGroups){
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 24 variables to estimate
 	numParams = 24;
+	initialized = false;
+	initialize(NumReadGroups);
+}
+
+void TRecalibrationEMModel::initialize(int NumReadGroups){
 	EMParamsInitialized = false;
 	numSitesAdded = 0;
+
 	numReadGroups = NumReadGroups;
 	totNumParams = numParams * numReadGroups;
 	readGroupShifts = new int[numReadGroups];
@@ -147,6 +167,16 @@ TRecalibrationEMModel::TRecalibrationEMModel(int NumReadGroups){
 			betas[r][i] = 0.0;
 		betas[r][0] = 1.0;
 	}
+	initialized = true;
+}
+
+bool TRecalibrationEMModel::setParams(std::vector<std::string> & vec, int & rg){
+	if(vec.size() < (numParams + 1)) return false;
+	std::vector<std::string>::iterator it = vec.begin(); ++it; //skype name of read group in first column
+	for(int i=0; i<numParams; ++i, ++it){
+		betas[rg][i] = stringToDouble(*it);
+	}
+	return true;
 }
 
 void TRecalibrationEMModel::initializeEMParams(){
@@ -277,6 +307,140 @@ void TRecalibrationEMModel::writeParametersToFile(std::ofstream & out, const int
 	for(int i=0; i<numParams; ++i){
 		out << "\t" << betas[readGroup][i];
 	}
+}
+
+void TRecalibrationEMModel::printJacobianToStdOut(){
+	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
+}
+
+double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	double eta = betas[rg][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[rg][2] * (double) posInRead;
+
+	//q[3] is square of position
+	eta += betas[rg][3] * (double) (posInRead * posInRead);
+
+	//q[4] until q[23] are indicators for the context. Just pick the matching one!
+	eta += betas[rg][context + 4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}
+
+//---------------------------------------------------------------
+//TRecalibrationEMModelNoContext
+//---------------------------------------------------------------
+TRecalibrationEMModelNoContext::TRecalibrationEMModelNoContext(int NumReadGroups){
+	//we will work with the following q_ikl (per read group):
+	// - transformed quality
+	// - square of transformed quality
+	// - position
+	// - square of position
+	// - 1 intercept for all contexts
+	// -> in total, 5 variables to estimate
+	numParams = 5;
+	initialize(NumReadGroups);
+}
+
+ double TRecalibrationEMModelNoContext::calcEpsilon(const short & readGroup, float* & q, const short & context){
+	//eta = params[readGroup[k]][0];
+	tmp = 0.0;
+	for(int p=0; p<4; ++p){ //loop over all parameters except context
+		tmp += betas[readGroup][p] * q[p];
+	}
+	//add intercept
+	tmp += betas[readGroup][4];
+
+	if(tmp > 16.11) return 0.9999999;
+	if(tmp < -16.11) return 0.0000001;
+
+	tmp = exp(tmp);
+	return tmp / (1.0 + tmp);
+};
+
+void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context){
+	//add to F
+	//--------
+	int m;
+	for(int k=0; k<numReads; ++k){
+		tmp = P_g_given_d_oldBeta * weights[k];
+		//all 4 covariates except context. Derivatives are given by the q's
+		for(m=0; m<4; ++m){ //loop over all parameters except context
+			F(readGroupShifts[readGroup[k]] + m) += tmp * q[k][m];
+		}
+		//now intercept at position 4 in F!
+		F(readGroupShifts[readGroup[k]] + 4) += tmp;
+	}
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	for(int k=0; k<numReads; ++k){
+		tmp = weightsJacobian[k];
+
+		//all rows except context
+		for(int row=0; row<4; ++row){
+			for(int col=row; col<4; ++col){
+				Jacobian(readGroupShifts[readGroup[k]] + row, readGroupShifts[readGroup[k]] + col) +=  tmp * q[k][row] * q[k][col];
+			}
+		}
+
+		//intercept column
+		tmpIndex = readGroupShifts[readGroup[k]] + 4;
+		for(int p=0; p<4; ++p){
+			Jacobian(readGroupShifts[readGroup[k]] + p, tmpIndex) += tmp * q[k][p];
+		}
+		//intercept x intercept
+		Jacobian(tmpIndex, tmpIndex) += tmp;
+	}
+
+	++numSitesAdded;
+}
+
+void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, const int & readGroup){
+	//write q, q2, p and p2
+	for(int i=0; i<4; ++i)
+		out << "\t" << betas[readGroup][i];
+	//write the same intercept for all contcext
+	for(int i=0; i<20; ++i)
+		out << "\t" << betas[readGroup][4];
+}
+
+double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	double eta = betas[rg][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[rg][2] * (double) posInRead;
+
+	//q[3] is square of position
+	eta += betas[rg][3] * (double) (posInRead * posInRead);
+
+	//add intercept
+	eta += betas[rg][4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
 }
 
 //---------------------------------------------------------------
@@ -443,7 +607,6 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
 	}
 
-
 	//return LL = P_g_given_d_theta_denominator
 	return log(P_g_given_d_theta_denominator);
 }
@@ -563,11 +726,19 @@ void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel* & model){
 		(*site)->addToJacobianAndF(model);
 	}
 }
+
+void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
+	for(int i=0; i<4; ++i) freqs[i] = 0.25;
+}
+
+
 //---------------------------------------------------------------
 //TRecalibrationEM
 //---------------------------------------------------------------
 TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile){
 	//read groups and log file
+	numSitesAdded = 0;
+	equalBaseFrequencies = false;
 	bamHeader = BamHeader;
 	initializeReadGroupMap(BamHeader, args, Logfile);
 	readGroupNames = new std::string[origNumReadGroups];
@@ -575,22 +746,18 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 	for(int r=0; r<origNumReadGroups; ++r, ++it){
 		readGroupNames[r] = it->ID;
 	}
-	numSitesAdded = 0;
 	logfile = Logfile;
 
 	//initialize model
-	model = new TRecalibrationEMModel(numReadGroups);
-
-	//create data structure to store q_ikl for each observation
-	//create parameter arrays
-	params = new double*[numReadGroups];
-	newParams = new double*[numReadGroups];
-	tmpParams = new double*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
-		params[r] = new double[model->numParams];
-		newParams[r] = new double[model->numParams];
-		tmpParams[r] = new double[model->numParams];
-	}
+	//which model to run?
+	std::string modelTag = args.getParameterStringWithDefault("model", "full");
+	if(modelTag == "full"){
+		logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
+		model = new TRecalibrationEMModel(numReadGroups);
+	} else if(modelTag == "noContext"){
+		logfile->list("Will use full model with quality, quality squared, position, position squared and one intercept.");
+		model = new TRecalibrationEMModelNoContext(numReadGroups);
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
 
 	//Are the values provided?
 	estimatetionRequired = false;
@@ -619,19 +786,15 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 				//find read group
 				it = vec.begin();
 				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
 				rg = readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
-				++it;
 				rgFound[rg] = true;
 
-				//read parameters
-				for(int i=0; i<model->numParams; ++i, ++it){
-					params[rg][i] = stringToDouble(*it);
-					newParams[rg][i] = params[rg][i];
-				}
+				//add to model
+				if(!model->setParams(vec, rg))
+					throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Do you use the right model?";
 			}
 		}
 
@@ -644,11 +807,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 
 		//check if we anyway estimate things
 		if(args.parameterExists("estimateRecal")) estimatetionRequired = true;
-	} else {
-		//parameters will be estimated
-		estimatetionRequired = true;
-		model->initializeEMParams();
-	}
+	} else estimatetionRequired = true;
 
 	//read estimation parameters, if required
 	if(estimatetionRequired){
@@ -661,15 +820,11 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
-		/*
-		if(args.parameterExists("noContext")){
-			logfile->list("Will not use context information, but infer a single intercept.");
-			useContext = false;
-		}
-		*/
+		equalBaseFrequencies = args.parameterExists("equalBaseFreq");
+		if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
 		logfile->endIndent();
 
-		//initialize vriables for EM
+		//initialize variables for EM
 		model->initializeEMParams();
 	} else {
 		numEMIterations = -1;
@@ -680,12 +835,11 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 	}
 }
 
-
 void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 	windows.push_back(new TRecalibrationEMWindow(freqs, readGroupMap));
-	//windows.emplace_back(freqs);
 	//set iterator
 	curWindow = windows.end(); --curWindow;
+	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
 }
 
 void TRecalibrationEM::addSite(TSite & site){
@@ -693,43 +847,13 @@ void TRecalibrationEM::addSite(TSite & site){
 	++numSitesAdded;
 }
 
-double TRecalibrationEM::getErrorRate(TBase* base, double** theseParams){
-	//eta = beta0 + SUM_i beta[i] * q[i]
-	int rg = readGroupMap[base->readGroup];
-
-	// q[0] is transformed quality
-	double tmp = dePhred(base->quality);
-	tmp = log(tmp / (1.0 + tmp));
-	double eta = theseParams[rg][0] * tmp;
-
-	//q[1] is square of transformed quality
-	eta += theseParams[rg][1] * tmp * tmp;
-
-	//q[2] is position
-	eta += theseParams[rg][2] * base->posInRead;
-
-	//q[3] is square of position
-	eta += theseParams[rg][3] * base->posInRead * base->posInRead;
-
-	//q[4] until q[23] are indicators for the context. Just pick the matching one!
-	eta += theseParams[rg][base->context + 4];
-
-	//now calculate epsilon from eta
-	if(eta > 22.2) return 0.9999999999;
-	if(eta < -23.02685) return 0.0000000001;
-
-	eta = exp(eta);
-	return eta / (1.0 + eta);
-}
-
 double TRecalibrationEM::getErrorRate(TBase* base){
-	return getErrorRate(base, params);
+	return model->getErrorRate(readGroupMap[base->readGroup], dePhred(base->quality), base->posInRead, base->context);
 }
 
 void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
 	//variables
 	double maxF;
-	int index;
 	double lambda; //used in backtracking
 	bool acceptMove;
 	bool NRconverged = false;
@@ -811,7 +935,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 				}
 			}
 		} else {
-			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << model->Jacobian.diag() << std::endl << std::endl;
+			model->printJacobianToStdOut();
 			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
 		}
 
