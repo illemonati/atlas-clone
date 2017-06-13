@@ -112,10 +112,10 @@ void TSimulator::setQualityTransformation(std::vector<double> & Betas){
 
 	//precalculate stuff
 	qualTermForTransformation = new double[127];
-	for(int i=0; i<33; ++i)
-		qualTermForTransformation[i] = 1.0;
+	for(int i=0; i<34; ++i)
+		qualTermForTransformation[i] = 100.0;
 	double tmp;
-	for(int i=33; i<127; ++i){
+	for(int i=34; i<127; ++i){
 		tmp = pow(10.0, -(double) (i - 33) / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
@@ -289,9 +289,9 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 		q = (-tmp - beta[0]) / 2.0 / beta[1];
 		//if(q < 0) q = (-tmp - beta[0]) / 2.0 / beta[1];
 	}
+
 	tmp = exp(q);
-	q = -10.0 * log10(tmp / (1.0 - tmp));
-	return (int) round(q) + 33;
+	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
 /*
@@ -383,7 +383,7 @@ void TSimulator::writeRead(long & pos, short* haplotype){
 			int transQual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
 			//cap at highest possible illumina score
 			if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
-			else bamAlignment.Qualities += (char) transformQuality(qual, p, genoMap.getContext(previousBase, base));
+			else bamAlignment.Qualities += (char) transQual;
 			previousBase = base;
 		} else {
 			if(qual > maxQual) bamAlignment.Qualities += (char) maxQual;
@@ -554,8 +554,6 @@ void TSimulator::writeInvariantSites(short** haplotypes, std::ofstream & genoFil
 		}
 	}
 }
-
-
 
 void TSimulator::simulateSingleIndividual(double theta, double referenceDivergence, std::string outname){
 	//open BAM file
