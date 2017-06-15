@@ -68,9 +68,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "recal"){
 				logfile.startIndent("Estimating error calibration function with EM (task = recal):");
 				genome.estimateErrorCalibrationEM(myParameters);
-			} else if(task == "recalLLsurface"){
-				logfile.startIndent("Estimating LL surface for error calibration function (task = recalLLsurface):");
-				genome.calculateLikelihoodSurfaceErrorCalibrationEM(myParameters);
+			} else if(task == "recalLL"){
+				logfile.startIndent("Calculating LL for error calibration function (task = recalLL):");
+				genome.calculateLikelihoodErrorCalibrationEM(myParameters);
 			} else if(task == "BQSR"){
 				logfile.startIndent("Estimating recalibration parameters (task = BQSR):");
 				genome.BQSR(myParameters);
@@ -160,6 +160,7 @@ int main(int argc, char* argv[]){
 	float runtime=(end.tv_sec  - start.tv_sec)/60.0;
 	logfile.list("Program terminated in ", runtime, " min!");
 	logfile.close();
+
     return 0;
 }
 

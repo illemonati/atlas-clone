@@ -108,7 +108,7 @@ public:
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
 	//void fillSequence(std::vector<double> & vec, std::string & str);
-	void calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params);
+	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
 	void createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);

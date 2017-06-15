@@ -114,6 +114,336 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 }
 
 //---------------------------------------------------------------
+//TRecalibrationEMModel
+//---------------------------------------------------------------
+TRecalibrationEMModel::TRecalibrationEMModel(){
+	numParams = 24;
+	initialized = false;
+	EMParamsInitialized = false;
+	numSitesAdded = 0;
+	numReadGroups = 0;
+	totNumParams = 0;
+	readGroupShifts = NULL;
+	tmpIndex = 0;
+	tmp = 0;
+	betas = NULL;
+	oldBetas = NULL;
+}
+
+TRecalibrationEMModel::TRecalibrationEMModel(int NumReadGroups){
+	//we will work with the following q_ikl (per read group):
+	// - transformed quality
+	// - square of transformed quality
+	// - position
+	// - square of position
+	// - 20 context indicators (either 0.0 or 1.0)
+	// -> in total, 24 variables to estimate
+	numParams = 24;
+	initialized = false;
+	initialize(NumReadGroups);
+}
+
+void TRecalibrationEMModel::initialize(int NumReadGroups){
+	EMParamsInitialized = false;
+	numSitesAdded = 0;
+
+	numReadGroups = NumReadGroups;
+	totNumParams = numParams * numReadGroups;
+	readGroupShifts = new int[numReadGroups];
+	tmpIndex = 0;
+	tmp = 0;
+
+	for(int k=0; k<numReadGroups; ++k)
+		readGroupShifts[k] = k * numParams;
+
+	//initialize beta memory
+	//set initial parameters: all to 0 except beta_quality = 1
+	betas = new double*[numReadGroups];
+	oldBetas = new double*[numReadGroups];
+	for(int r=0; r<numReadGroups; ++r){
+		betas[r] = new double[numParams];
+		oldBetas[r] = new double[numParams];
+		for(int i=0; i<numParams; ++i)
+			betas[r][i] = 0.0;
+		betas[r][0] = 1.0;
+	}
+	initialized = true;
+}
+
+bool TRecalibrationEMModel::setParams(std::vector<std::string> & vec, int & rg){
+	if(vec.size() < (numParams + 1)) return false;
+	std::vector<std::string>::iterator it = vec.begin(); ++it; //skype name of read group in first column
+	for(int i=0; i<numParams; ++i, ++it){
+		betas[rg][i] = stringToDouble(*it);
+	}
+	return true;
+}
+
+void TRecalibrationEMModel::initializeEMParams(){
+	//initialize variables for EM
+	Jacobian.resize(totNumParams, totNumParams);
+	Jacobian.zeros();
+	F.resize(totNumParams);
+	F.zeros();
+	JxF.resize(totNumParams, 1);
+	JxF.zeros();
+	EMParamsInitialized = true;
+}
+
+void TRecalibrationEMModel::setEMParamsToZero(){
+	if(!EMParamsInitialized)
+		throw "In TRecalibrationEMModel::setEMParamsToZero(): EM Parameters have never been initialized!";
+
+	Jacobian.zeros();
+	F.zeros();
+	numSitesAdded = 0;
+}
+
+double TRecalibrationEMModel::calcEpsilon(const short & readGroup, float* & q, const short & context){
+	//eta = params[readGroup[k]][0];
+	tmp = 0.0;
+	for(int p=0; p<4; ++p){ //loop over all parameters except context
+		tmp += betas[readGroup][p] * q[p];
+	}
+	//add context
+	tmp += betas[readGroup][context + 4];
+
+	if(tmp > 16.11) return 0.9999999;
+	if(tmp < -16.11) return 0.0000001;
+
+	tmp = exp(tmp);
+	return tmp / (1.0 + tmp);
+};
+
+void TRecalibrationEMModel::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context){
+	//add to F
+	//--------
+	int m;
+	for(int k=0; k<numReads; ++k){
+		tmp = P_g_given_d_oldBeta * weights[k];
+		//all 4 covariates except context. Derivatives are given by the q's
+		for(m=0; m<4; ++m){ //loop over all parameters except context
+			F(m + readGroupShifts[readGroup[k]]) += tmp * q[k][m];
+		}
+		//now context: start at position 4 in F!
+		F(context[k] + 4 + readGroupShifts[readGroup[k]]) += tmp;
+	}
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	for(int k=0; k<numReads; ++k){
+		tmp = weightsJacobian[k];
+
+		//all rows except context
+		for(int row=0; row<4; ++row){
+			for(int col=row; col<4; ++col){
+				Jacobian(readGroupShifts[readGroup[k]] + row, readGroupShifts[readGroup[k]] + col) +=  tmp * q[k][row] * q[k][col];
+			}
+		}
+
+		//context column
+		tmpIndex = readGroupShifts[readGroup[k]] + context[k] + 4;
+		for(int p=0; p<4; ++p){
+			Jacobian(readGroupShifts[readGroup[k]] + p, tmpIndex) += tmp * q[k][p];
+		}
+		//context x context: only add to diagonal, as all others are 0
+		Jacobian(tmpIndex, tmpIndex) += tmp;
+	}
+
+	++numSitesAdded;
+}
+
+bool TRecalibrationEMModel::solveJxF(){
+	//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
+	for(int i=0; i<(totNumParams-1); ++i){
+		for(int j=i+1; j<totNumParams; ++j){
+			//copy from upper triangle to lower triangle
+			Jacobian(j,i) = Jacobian(i,j);
+		}
+	}
+
+	//scale F and J by 1/#sites
+	Jacobian = Jacobian / (double) numSitesAdded;
+	F = F / (double) numSitesAdded;
+
+	//now solve J^-1 x F
+	return solve(JxF, Jacobian, F);
+}
+
+void TRecalibrationEMModel::proposeNewParameters(double & lambda){
+	//save old parameters
+	for(int r=0; r<numReadGroups; ++r){
+		for(int i=0; i<numParams; ++i){
+			oldBetas[r][i] = betas[r][i];
+		}
+	}
+
+	//update new ones
+	for(int r=0; r<numReadGroups; ++r){
+		tmpIndex = r*numParams;
+		for(int i=0; i<numParams; ++i){
+			betas[r][i] = oldBetas[r][i] - lambda * JxF(tmpIndex + i);
+		}
+	}
+}
+
+void TRecalibrationEMModel::rejectProposedParameters(){
+	for(int r=0; r<numReadGroups; ++r){
+		for(int i=0; i<numParams; ++i){
+			betas[r][i] = oldBetas[r][i];
+		}
+	}
+}
+
+double TRecalibrationEMModel::getSteepestGradient(){
+	double maxF = 0.0;
+	for(int i=0; i<numParams; ++i){
+		if(fabs(F(i)) > maxF) maxF = fabs(F(i));
+	}
+	return maxF;
+}
+
+void TRecalibrationEMModel::writeParametersToFile(std::ofstream & out, const int & readGroup){
+	for(int i=0; i<numParams; ++i){
+		out << "\t" << betas[readGroup][i];
+	}
+}
+
+void TRecalibrationEMModel::printJacobianToStdOut(){
+	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
+}
+
+double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	double eta = betas[rg][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[rg][2] * (double) posInRead;
+
+	//q[3] is square of position
+	eta += betas[rg][3] * (double) (posInRead * posInRead);
+
+	//q[4] until q[23] are indicators for the context. Just pick the matching one!
+	eta += betas[rg][context + 4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}
+
+//---------------------------------------------------------------
+//TRecalibrationEMModelNoContext
+//---------------------------------------------------------------
+TRecalibrationEMModelNoContext::TRecalibrationEMModelNoContext(int NumReadGroups){
+	//we will work with the following q_ikl (per read group):
+	// - transformed quality
+	// - square of transformed quality
+	// - position
+	// - square of position
+	// - 1 intercept for all contexts
+	// -> in total, 5 variables to estimate
+	numParams = 5;
+	initialize(NumReadGroups);
+}
+
+ double TRecalibrationEMModelNoContext::calcEpsilon(const short & readGroup, float* & q, const short & context){
+	//eta = params[readGroup[k]][0];
+	tmp = 0.0;
+	for(int p=0; p<4; ++p){ //loop over all parameters except context
+		tmp += betas[readGroup][p] * q[p];
+	}
+	//add intercept
+	tmp += betas[readGroup][4];
+
+	if(tmp > 16.11) return 0.9999999;
+	if(tmp < -16.11) return 0.0000001;
+
+	tmp = exp(tmp);
+	return tmp / (1.0 + tmp);
+};
+
+void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context){
+	//add to F
+	//--------
+	int m;
+	for(int k=0; k<numReads; ++k){
+		tmp = P_g_given_d_oldBeta * weights[k];
+		//all 4 covariates except context. Derivatives are given by the q's
+		for(m=0; m<4; ++m){ //loop over all parameters except context
+			F(readGroupShifts[readGroup[k]] + m) += tmp * q[k][m];
+		}
+		//now intercept at position 4 in F!
+		F(readGroupShifts[readGroup[k]] + 4) += tmp;
+	}
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	for(int k=0; k<numReads; ++k){
+		tmp = weightsJacobian[k];
+
+		//all rows except context
+		for(int row=0; row<4; ++row){
+			for(int col=row; col<4; ++col){
+				Jacobian(readGroupShifts[readGroup[k]] + row, readGroupShifts[readGroup[k]] + col) +=  tmp * q[k][row] * q[k][col];
+			}
+		}
+
+		//intercept column
+		tmpIndex = readGroupShifts[readGroup[k]] + 4;
+		for(int p=0; p<4; ++p){
+			Jacobian(readGroupShifts[readGroup[k]] + p, tmpIndex) += tmp * q[k][p];
+		}
+		//intercept x intercept
+		Jacobian(tmpIndex, tmpIndex) += tmp;
+	}
+
+	++numSitesAdded;
+}
+
+void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, const int & readGroup){
+	//write q, q2, p and p2
+	for(int i=0; i<4; ++i)
+		out << "\t" << betas[readGroup][i];
+	//write the same intercept for all contcext
+	for(int i=0; i<20; ++i)
+		out << "\t" << betas[readGroup][4];
+}
+
+double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	double eta = betas[rg][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[rg][2] * (double) posInRead;
+
+	//q[3] is square of position
+	eta += betas[rg][3] * (double) (posInRead * posInRead);
+
+	//add intercept
+	eta += betas[rg][4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}
+
+//---------------------------------------------------------------
 //RecalibrationEMSite
 //---------------------------------------------------------------
 TRecalibrationEMSite::TRecalibrationEMSite(){
@@ -228,28 +558,14 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 	}
 }
 
-void TRecalibrationEMSite::calcEpsilon(double** params){
+void TRecalibrationEMSite::calcEpsilon(TRecalibrationEMModel* & model){
 	//calc epsilon using parameter estimates provided
-	double eta;
-	for(int k=0; k<numReads; ++k){
-		//eta = params[readGroup[k]][0];
-		eta = 0.0;
-		for(int p=0; p<4; ++p){ //loop over all parameters except beta0
-			eta += params[readGroup[k]][p] * q[k][p];
-		}
-		eta += params[readGroup[k]][context[k]+4];
-
-		if(eta > 16.11) epsilon[k] = 0.9999999;
-		else if(eta < -16.11) epsilon[k] = 0.0000001;
-		else {
-			eta = exp(eta);
-			epsilon[k] = eta / (1.0 + eta);
-		}
-	}
+	for(int k=0; k<numReads; ++k)
+		epsilon[k] = model->calcEpsilon(readGroup[k], q[k], context[k]);
 }
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams, double* freqs){
-	calcEpsilon(oldParams);
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* freqs){
+	calcEpsilon(model);
 
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
@@ -291,13 +607,12 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(double** oldParams
 		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
 	}
 
-
 	//return LL = P_g_given_d_theta_denominator
 	return log(P_g_given_d_theta_denominator);
 }
 
-double TRecalibrationEMSite::calcLL(double** oldParams, double* freqs){
-	calcEpsilon(oldParams);
+double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, double* freqs){
+	calcEpsilon(model);
 
 	//over all genotypes
 	double LL = 0.0;
@@ -315,8 +630,8 @@ double TRecalibrationEMSite::calcLL(double** oldParams, double* freqs){
 	return log(LL);
 }
 
-double TRecalibrationEMSite::calcQ(double** newParams){
-	calcEpsilon(newParams);
+double TRecalibrationEMSite::calcQ(TRecalibrationEMModel* & model){
+	calcEpsilon(model);
 
 	//now calculate P(d, g, new params)
 	double P_d_given_g_beta;
@@ -336,9 +651,9 @@ double TRecalibrationEMSite::calcQ(double** newParams){
 	return Q;
 }
 
-void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params){
+void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel* & model){
 	//calculate epsilon with current parameters
-	calcEpsilon(params);
+	calcEpsilon(model);
 
 	//tmp variables
 	double* weights = new double[numReads];
@@ -349,12 +664,6 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 		eps1MinusEps[k] = epsilon[k] * (1.0 - epsilon[k]);
 		oneMinus2Eps[k] = 1.0 - 2.0 * epsilon[k];
 	}
-	double tmp;
-	int tmpIndex;
-
-	//DEBUG-------------------------------------------------------------------
-	//set all loops to go over the first two params only
-	//DEBUG-------------------------------------------------------------------
 
 	//fill F and Jacobian
 	for(int g=0; g<4; ++g){
@@ -365,52 +674,8 @@ void TRecalibrationEMSite::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F
 			weightJacobian[k] = P_g_given_d_oldBeta[g] * weights[k] * (oneMinus2Eps[k] - weights[k]);
 		}
 
-		//add to F
-		//--------
-		//beta 0
-		//for(int k=0; k<numReads; ++k){
-			//F(readGroupShifts[k]) += P_g_given_d_oldBeta[g] * weights[k];
-		//}
-
-		for(int k=0; k<numReads; ++k){
-			tmp = P_g_given_d_oldBeta[g] * weights[k];
-			//all 4 covariates except context. Derivatives are given by the q's
-			for(int m=0; m<4; ++m){ //loop over all parameters except beta0
-				F(m + readGroupShifts[k]) += tmp * q[k][m];
-			}
-			//now context: start at position 4 in F!
-			F(context[k] + 4 + readGroupShifts[k]) += tmp;
-		}
-
-		//add to Jacobian (only upper triangle)
-		//-------------------------------------
-		for(int k=0; k<numReads; ++k){
-			tmp = weightJacobian[k];
-
-			//beta0
-			//Jacobian(readGroupShifts[k],readGroupShifts[k]) += tmp;
-
-			//first row
-			//for(int m=0; m<4; ++m){ //loop over all parameters except beta0 and context
-			//	Jacobian(readGroupShifts[k],m + readGroupShifts[k]) += tmp * q[k][m];
-			//}
-
-			//all rows except context
-			for(int row=0; row<4; ++row){
-				for(int col=row; col<4; ++col){
-					Jacobian(readGroupShifts[k] + row, readGroupShifts[k] + col) +=  tmp * q[k][row] * q[k][col];
-				}
-			}
-
-			//context column
-			tmpIndex = readGroupShifts[k] + context[k] + 4;
-			for(int p=0; p<4; ++p){
-				Jacobian(readGroupShifts[k] + p, tmpIndex) += tmp * q[k][p];
-			}
-			//context x context: only add to diagonal, as all others are 0
-			Jacobian(tmpIndex, tmpIndex) += tmp;
-		}
-	} //end loop over genotypes
+		model->addToFandJacobian(numReads, weights, weightJacobian, P_g_given_d_oldBeta[g], q, readGroup, context);
+	}
 
 	//delete tmp variables
 	delete[] weights;
@@ -432,51 +697,48 @@ void TRecalibrationEMWindow::addSite(TSite & site){
 	sites.push_back(new TRecalibrationEMSite(site, readGroupMap));
 }
 
-double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(double** oldParams){
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model){
 	double LL = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->fill_P_g_given_d_beta_AND_calcLL(oldParams, freqs);
+		LL += (*site)->fill_P_g_given_d_beta_AND_calcLL(model, freqs);
 	}
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcLL(double** oldParams){
+double TRecalibrationEMWindow::calcLL(TRecalibrationEMModel* & model){
 	double LL = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->calcLL(oldParams, freqs);
+		LL += (*site)->calcLL(model, freqs);
 	}
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcQ(double** newParams){
+double TRecalibrationEMWindow::calcQ(TRecalibrationEMModel* & model){
 	double Q = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		Q += (*site)->calcQ(newParams);
+		Q += (*site)->calcQ(model);
 	}
 	return Q;
 }
 
-void TRecalibrationEMWindow::addToJacobianAndF(arma::mat & Jacobian, arma::vec & F, double** params){
+void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel* & model){
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		(*site)->addToJacobianAndF(Jacobian, F, params);
+		(*site)->addToJacobianAndF(model);
 	}
 }
+
+void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
+	for(int i=0; i<4; ++i) freqs[i] = 0.25;
+}
+
+
 //---------------------------------------------------------------
 //TRecalibrationEM
 //---------------------------------------------------------------
 TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile){
-	//create data structure to store q_ikl for each observation
-	//we will work with the following q_ikl (per read group):
-	// - transformed quality
-	// - square of transformed quality
-	// - position
-	// - square of position
-	// - 20 context indicators (either 0.0 or 1.0)
-	// -> in total, 24 variables to estimate
-	//if these are changed, TRecalibrationEMSite needs to be changed!
-	numParams = 24;
-
-	//rad groups and log file
+	//read groups and log file
+	numSitesAdded = 0;
+	equalBaseFrequencies = false;
 	bamHeader = BamHeader;
 	initializeReadGroupMap(BamHeader, args, Logfile);
 	readGroupNames = new std::string[origNumReadGroups];
@@ -484,19 +746,18 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 	for(int r=0; r<origNumReadGroups; ++r, ++it){
 		readGroupNames[r] = it->ID;
 	}
-	totNumParams = numParams * numReadGroups;
-	numSitesAdded = 0;
 	logfile = Logfile;
 
-	//create parameter arrays
-	params = new double*[numReadGroups];
-	newParams = new double*[numReadGroups];
-	tmpParams = new double*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
-		params[r] = new double[numParams];
-		newParams[r] = new double[numParams];
-		tmpParams[r] = new double[numParams];
-	}
+	//initialize model
+	//which model to run?
+	std::string modelTag = args.getParameterStringWithDefault("model", "full");
+	if(modelTag == "full"){
+		logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
+		model = new TRecalibrationEMModel(numReadGroups);
+	} else if(modelTag == "noContext"){
+		logfile->list("Will use full model with quality, quality squared, position, position squared and one intercept.");
+		model = new TRecalibrationEMModelNoContext(numReadGroups);
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
 
 	//Are the values provided?
 	estimatetionRequired = false;
@@ -525,19 +786,15 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 				//find read group
 				it = vec.begin();
 				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
 				rg = readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
-				++it;
 				rgFound[rg] = true;
 
-				//read parameters
-				for(int i=0; i<numParams; ++i, ++it){
-					params[rg][i] = stringToDouble(*it);
-					newParams[rg][i] = params[rg][i];
-				}
+				//add to model
+				if(!model->setParams(vec, rg))
+					throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Do you use the right model?";
 			}
 		}
 
@@ -550,18 +807,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 
 		//check if we anyway estimate things
 		if(args.parameterExists("estimateRecal")) estimatetionRequired = true;
-	} else {
-		estimatetionRequired = true;
-		//set initial values: all to 0 except beta0 (quality) = 1
-		for(int r=0; r<numReadGroups; ++r){
-			params[r][0] = 1.0;
-			newParams[r][0] = 1.0;
-			for(int i=1; i<numParams; ++i){
-				params[r][i] = 0.0;
-				newParams[r][i] = 0.0;
-			}
-		}
-	}
+	} else estimatetionRequired = true;
 
 	//read estimation parameters, if required
 	if(estimatetionRequired){
@@ -574,15 +820,12 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 		NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 		logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
+		equalBaseFrequencies = args.parameterExists("equalBaseFreq");
+		if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
 		logfile->endIndent();
 
-		//initialize vriables for EM
-		Jacobian.resize(totNumParams, totNumParams);
-		Jacobian.zeros();
-		F.resize(totNumParams);
-		F.zeros();
-		JxF.resize(totNumParams, totNumParams);
-		JxF.zeros();
+		//initialize variables for EM
+		model->initializeEMParams();
 	} else {
 		numEMIterations = -1;
 		maxEpsilon = 0.0;
@@ -592,12 +835,11 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 	}
 }
 
-
 void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 	windows.push_back(new TRecalibrationEMWindow(freqs, readGroupMap));
-	//windows.emplace_back(freqs);
 	//set iterator
 	curWindow = windows.end(); --curWindow;
+	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
 }
 
 void TRecalibrationEM::addSite(TSite & site){
@@ -605,43 +847,13 @@ void TRecalibrationEM::addSite(TSite & site){
 	++numSitesAdded;
 }
 
-double TRecalibrationEM::getErrorRate(TBase* base, double** theseParams){
-	//eta = beta0 + SUM_i beta[i] * q[i]
-	int rg = readGroupMap[base->readGroup];
-
-	// q[0] is transformed quality
-	double tmp = dePhred(base->quality);
-	tmp = log(tmp / (1.0 + tmp));
-	double eta = theseParams[rg][0] * tmp;
-
-	//q[1] is square of transformed quality
-	eta += theseParams[rg][1] * tmp * tmp;
-
-	//q[2] is position
-	eta += theseParams[rg][2] * base->posInRead;
-
-	//q[3] is square of position
-	eta += theseParams[rg][3] * base->posInRead * base->posInRead;
-
-	//q[4] until q[23] are indicators for the context. Just pick the matching one!
-	eta += theseParams[rg][base->context + 4];
-
-	//now calculate epsilon from eta
-	if(eta > 22.2) return 0.9999999999;
-	if(eta < -23.02685) return 0.0000000001;
-
-	eta = exp(eta);
-	return eta / (1.0 + eta);
-}
-
 double TRecalibrationEM::getErrorRate(TBase* base){
-	return getErrorRate(base, params);
+	return model->getErrorRate(readGroupMap[base->readGroup], dePhred(base->quality), base->posInRead, base->context);
 }
 
-void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
+void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
 	//variables
 	double maxF;
-	int index;
 	double lambda; //used in backtracking
 	bool acceptMove;
 	bool NRconverged = false;
@@ -650,7 +862,7 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 	double Q;
 	double curQ = 0.0;
 	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		curQ += (*curWindow)->calcQ(theseParams);
+		curQ += (*curWindow)->calcQ(model);
 	}
 
 	std::ofstream* myStream = NULL;
@@ -661,9 +873,9 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		if(!myStream) throw "Failed to open output file '" + debugFilename + "'!";
 		//add header
 		*myStream << "iteration";
-		for(int i=0; i<numParams; ++i) *myStream << "\tbeta'" << i;
-		for(int i=0; i<numParams; ++i) *myStream << "\tF" << i;
-		for(int i=0; i<numParams; ++i) *myStream << "\tbeta" << i;
+		for(int i=0; i<model->numParams; ++i) *myStream << "\tbeta'" << i;
+		for(int i=0; i<model->numParams; ++i) *myStream << "\tF" << i;
+		for(int i=0; i<model->numParams; ++i) *myStream << "\tbeta" << i;
 		*myStream << std::endl;
 	}
 
@@ -675,53 +887,15 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 		if(writeTmpTables) *myStream << i;
 
 		//set to zero
-		Jacobian.zeros();
-		F.zeros();
+		model->setEMParamsToZero();
 
 		//fill Jacobin and F: loop over all sites
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			(*curWindow)->addToJacobianAndF(Jacobian, F, theseParams);
+			(*curWindow)->addToJacobianAndF(model);
 		}
 
-		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-		for(int i=0; i<(totNumParams-1); ++i){
-			for(int j=i+1; j<totNumParams; ++j){
-				//copy from upper triangle to lower triangle
-				Jacobian(j,i) = Jacobian(i,j);
-			}
-		}
-
-		//scale F and J by 1/#sites
-		Jacobian = Jacobian / (double) numSitesAdded;
-		F = F / (double) numSitesAdded;
-
-		//now calculate J^-1 x F
-
-		/*
-		std::cout << std::endl << "-------JACOBIAN-------------------------------" << std::endl;
-		std::cout << Jacobian << std::endl;
-		std::cout << "----------------------------------------------" << std::endl;
-		std::cout << "F: " << F << std::endl;
-		std::cout << "----------------------------------------------" << std::endl;
-		std::cout << "det(J) = " << det(Jacobian) << std::endl;
-		std::cout << std::endl;
-		std::cout << "----------------------------------------------" << std::endl;
-
-*/
-		if(writeTmpTables){
-			//print beta'
-			for(int i=0; i<numParams; ++i){
-				*myStream << "\t" << theseParams[0][i];
-			}
-
-			//print F
-			for(int i=0; i<numParams; ++i){
-				*myStream << "\t" << F[i];
-			}
-		}
-
-
-		if(solve(JxF, Jacobian, F)){
+		//now solve J^-1 x F
+		if(model->solveJxF()){
 			logfile->write(" done!");
 
 /*
@@ -729,23 +903,18 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 			std::cout << "JxF " << JxF << std::endl;
 			std::cout << "----------------------------------------------" << std::endl;
 */
+
 			//update params for each read group using backtracking
 			lambda = 1.0;
 			acceptMove = false;
 			while(!acceptMove){
 				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
-				//estimate new params
-				for(int r=0; r<numReadGroups; ++r){
-					index = r*numParams;
-					for(int i=0; i<numParams; ++i){
-						tmpParams[r][i] = theseParams[r][i] - lambda * JxF(index + i);
-					}
-				}
+				model->proposeNewParameters(lambda);
 
 				//calculate Q at new location
 				Q = 0.0;
 				for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-					Q += (*curWindow)->calcQ(tmpParams);
+					Q += (*curWindow)->calcQ(model);
 				}
 
 				//check if we accept or backtrack
@@ -754,16 +923,10 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 					logfile->write(" accepting move!");
 					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
 					curQ = Q;
-					//store new params
-					for(int r=0; r<numReadGroups; ++r){
-						for(int i=0; i<numParams; ++i){
-							theseParams[r][i] = tmpParams[r][i];
-						}
-					}
-				}
-				else{
+				} else {
 					lambda = lambda / 2.0; //backtrack;
 					logfile->write(" rejecting move!");
+					model->rejectProposedParameters();
 					if(lambda < 0.000000001){
 						acceptMove = true; //accept
 						NRconverged = true;
@@ -772,30 +935,15 @@ void TRecalibrationEM::runNewtonRaphson(double** theseParams, int & maxNewtonRap
 				}
 			}
 		} else {
-			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
+			model->printJacobianToStdOut();
 			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
 		}
 
-		if(writeTmpTables){
-			//print beta
-			for(int i=0; i<numParams; ++i){
-				*myStream << "\t" << theseParams[0][i];
-			}
-			*myStream << std::endl;
-		}
-
 		//get largest gradient (F) to check if we break
-		maxF = 0.0;
-		for(int i=0; i<numParams; ++i){
-			if(fabs(F(i)) > maxF) maxF = fabs(F(i));
-		}
+		maxF = model->getSteepestGradient();
 		logfile->conclude("max(F) = " + toString(maxF));
 		logfile->endIndent();
 		if(maxF < maxFThreshold || NRconverged) break;
-	}
-	if(writeTmpTables){
-		myStream->close();
-		delete myStream;
 	}
 	logfile->endIndent();
 }
@@ -816,41 +964,29 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		LL = 0.0;
 		logfile->listFlush("Calculating P(g|d, beta') ...");
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(params);
+			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model);
 		}
 		logfile->write(" done!");
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
-		deltaLL = LL - oldLL;
-		logfile->conclude("Epsilon = " + toString(deltaLL));
 
 		//DEBUG--------------------------------------------------------
 		//calc Q surface for current old params
 		//calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 21);
 		//DEBUG--------------------------------------------------------
 
-		//fill vector of new params by copying current values
-		for(int r=0; r<numReadGroups; ++r){
-			for(int i=0; i<numParams; ++i){
-				newParams[r][i] = params[r][i];
-			}
-		}
-
 		//check if we break based on LL
-		if(iter > 0 && deltaLL < maxEpsilon){
-			logfile->conclude("EM has converged (epsilon < " + toString(maxEpsilon) + ")");
-			break;
-		}
-		else oldLL = LL;
+		if(iter > 0){
+			deltaLL = LL - oldLL;
+			logfile->conclude("Epsilon = " + toString(deltaLL));
+			if(iter > 0 && deltaLL < maxEpsilon){
+				logfile->conclude("EM has converged (epsilon < " + toString(maxEpsilon) + ")");
+				break;
+			} else oldLL = LL;
+		} else oldLL = LL;
+
 
 		//run NewtonRaphson until convergence
-		runNewtonRaphson(newParams, NewtonRaphsonNumIterations, NewtonRaphsonMaxF, logfile, writeTmpTables, outputName + "_NewtonRaphson_" + toString(iter) + ".txt");
-
-		//save parameters
-		for(int r=0; r<numReadGroups; ++r){
-			for(int i=0; i<numParams; ++i){
-				params[r][i] = newParams[r][i];
-			}
-		}
+		runNewtonRaphson(NewtonRaphsonNumIterations, NewtonRaphsonMaxF, logfile, writeTmpTables, outputName + "_NewtonRaphson_" + toString(iter) + ".txt");
 
 		//write current estimates to file
 		if(writeTmpTables){
@@ -896,9 +1032,7 @@ void TRecalibrationEM::writeHeader(std::ofstream & out){
 void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 	for(int r=0; r<origNumReadGroups; ++r){
 		out << readGroupNames[r];
-		for(int i=0; i<numParams; ++i){
-			out << "\t" << params[readGroupMap[r]][i];
-		}
+		model->writeParametersToFile(out, readGroupMap[r]);
 		out << "\t" << LL;
 		out << std::endl;
 	}
@@ -907,12 +1041,12 @@ void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 double TRecalibrationEM::calcLL(){
 	double LL = 0.0;
 	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		LL += (*curWindow)->calcLL(params);
+		LL += (*curWindow)->calcLL(model);
 	}
 	return LL;
 }
 
-
+/*
 void TRecalibrationEM::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
 	double LL;
 
@@ -1042,6 +1176,8 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 	//close file
 	out.close();
 }
+
+*/
 
 int TRecalibrationEM::getQuality(TBase* base){
 	double q = getErrorRate(base);

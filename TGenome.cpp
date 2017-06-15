@@ -1286,7 +1286,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	}
 }*/
 
-void TGenome::calculateLikelihoodSurfaceErrorCalibrationEM(TParameters & params){
+void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	std::string filename = params.getParameterString("recal");
 	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile);
