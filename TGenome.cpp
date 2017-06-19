@@ -3199,21 +3199,21 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 void TGenome::estimateCoveragePerSite(TParameters & params){
 	std::ofstream output;
 	std::ofstream outputNormalized;
-	std::ofstream outputQuantiles;
+	//std::ofstream outputQuantiles;
 
 	std::string outputFileName = outputName + "_coveragePerSite.txt";
 	std::string outputFileNameNormalized = outputName + "_normalizedCumulativeCoveragePerSite.txt";
-	std::string outputFileNameQuantiles = outputName + "_quantilesCoveragePerSite.txt";
+	//std::string outputFileNameQuantiles = outputName + "_quantilesCoveragePerSite.txt";
 
 
 	logfile->list("Writing cumulative coverage distribution to '" + outputFileName + "'");
 	logfile->list("Writing normalized cumulative coverage distribution to '" + outputFileNameNormalized + "'");
-	logfile->list("Writing quantiles of cumulative coverage distribution to '" + outputFileNameQuantiles + "'");
+	//logfile->list("Writing quantiles of cumulative coverage distribution to '" + outputFileNameQuantiles + "'");
 
 
 	output.open(outputFileName.c_str());
 	outputNormalized.open(outputFileNameNormalized.c_str());
-	outputQuantiles.open(outputFileNameQuantiles.c_str());
+	//outputQuantiles.open(outputFileNameQuantiles.c_str());
 
 
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
@@ -3239,7 +3239,7 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	//write headers
 	output << "coverage\tcounts" << std::endl;
 	outputNormalized << "coverage\tcounts" << std::endl;
-	outputQuantiles << "percent\tquantile" << std::endl;
+	//	outputQuantiles << "percent\tquantile" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -3280,17 +3280,17 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 			norm = cumul / totalSites;
 			outputNormalized << i << "\t" << norm << "\n";
 		}
-		for(int p=0; p<numberOfPercentages-1; ++p){
-			std::cout << percentages[p] << std::endl;
-			std::cout << i << " " << norm << std::endl;
-			//if smallest quantiles = 0
-			if(i == 0 && norm > percentages[p]) quantiles[p] = i;
-			else if(quantiles[p] == -1 && norm >= percentages[p] && norm <= percentages[p + 1]){
-				std::cout << "if was fulfilled" << std::endl;
-				quantiles[p] = i;
-			}
-		}
-		if(quantiles[numberOfPercentages] == -1 && i >= percentages[numberOfPercentages]) quantiles[numberOfPercentages] = i;
+//		for(int p=0; p<numberOfPercentages-1; ++p){
+//			std::cout << percentages[p] << std::endl;
+//			std::cout << i << " " << norm << " " << quantiles[p]<<std::endl;
+//			//if smallest quantiles = 0
+//			if(i == 0 && norm > percentages[p]) quantiles[p] = i;
+//			else if(quantiles[p] == -1 && norm >= percentages[p] && norm <= percentages[p + 1]){
+//				std::cout << "if was fulfilled" << std::endl;
+//				quantiles[p] = i;
+//			}
+//		}
+//		if(quantiles[numberOfPercentages] == -1 && i >= percentages[numberOfPercentages]) quantiles[numberOfPercentages] = i;
 	}
 	if(norm == 1.0) outputNormalized << ">" << maxCov << "\t" << 0 << "\n";
 	else {
@@ -3303,9 +3303,9 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 		if(quantiles[p] == -1) quantiles[p] = maxCov;
 	}
 
-	for(int i=0; i < numberOfPercentages; ++i){
-		outputQuantiles << percentages[i] << "\t" << quantiles[i] << std::endl;
-	}
+	//	for(int i=0; i < numberOfPercentages; ++i){
+	//		outputQuantiles << percentages[i] << "\t" << quantiles[i] << std::endl;
+	//	}
 
 	//clean up
 	if(nCharOnLine > 0){
@@ -3314,7 +3314,7 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	}
 	output.close();
 	outputNormalized.close();
-	outputQuantiles.close();
+	//	outputQuantiles.close();
 
 	delete[] siteCoverage;
 	delete[] siteCoverageNormalized;
