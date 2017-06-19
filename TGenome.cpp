@@ -3273,22 +3273,31 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	int numberOfPercentages = 11;
 	int quantiles[numberOfPercentages];
 	std::fill_n(quantiles, numberOfPercentages, -1);
-	for(int i=0; i<(size-1.0); ++i){
-		cumul += (double) siteCoverage[i];
-		norm = cumul / totalSites;
-		outputNormalized << i << "\t" << norm << "\n";
+	for(int i=0; i<(size-1); ++i){
+		cumul += (double) (siteCoverage[i]);
+		if(i > 0 && norm == 1.0) outputNormalized << i << "\t" << 0 << "\n";
+		else {
+			norm = cumul / totalSites;
+			outputNormalized << i << "\t" << norm << "\n";
+		}
 		for(int p=0; p<numberOfPercentages-1; ++p){
+			std::cout << percentages[p] << std::endl;
+			std::cout << i << " " << norm << std::endl;
 			//if smallest quantiles = 0
 			if(i == 0 && norm > percentages[p]) quantiles[p] = i;
 			else if(quantiles[p] == -1 && norm >= percentages[p] && norm <= percentages[p + 1]){
+				std::cout << "if was fulfilled" << std::endl;
 				quantiles[p] = i;
 			}
 		}
 		if(quantiles[numberOfPercentages] == -1 && i >= percentages[numberOfPercentages]) quantiles[numberOfPercentages] = i;
 	}
-	cumul += (double) siteCoverage[size - 1];
-	norm = cumul / totalSites;
-	outputNormalized << ">" << maxCov << "\t" << norm << std::endl;
+	if(norm == 1.0) outputNormalized << ">" << maxCov << "\t" << 0 << "\n";
+	else {
+		cumul += (double) siteCoverage[size - 1];
+		norm = cumul / totalSites;
+		outputNormalized << ">" << maxCov << "\t" << norm << std::endl;
+	}
 
 	for(int p=0; p<numberOfPercentages; ++p){
 		if(quantiles[p] == -1) quantiles[p] = maxCov;
