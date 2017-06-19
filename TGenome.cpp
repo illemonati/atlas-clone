@@ -3278,7 +3278,7 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	}
 
 	//write header
-	//output << "coverage\tcounts" << std::endl;
+	output << "A C G T Counts" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -3299,13 +3299,10 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 		for(int j=0; j<(size-1); ++j){
 			for(int k=0; k<(size-1); ++k){
 				for(int l=0; l<(size-1); ++l){
-					output <<  siteImbalance[i][j][k][l] << " ";
+					output <<  i << " " << j << " " << k << " " << l << " " << siteImbalance[i][j][k][l] << std::endl;
 				}
-				output << std::endl;
 			}
-			output << std::endl;
 		}
-		output << std::endl;
 	}
 	output << ">" << maxCov << "\t" << siteImbalance[size - 1] << std::endl;
 
