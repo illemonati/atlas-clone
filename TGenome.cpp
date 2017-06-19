@@ -3198,27 +3198,51 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 
 void TGenome::estimateCoveragePerSite(TParameters & params){
 	std::ofstream output;
+	std::ofstream outputNormalized;
+	std::ofstream outputQuantiles;
+
 	std::string outputFileName = outputName + "_coveragePerSite.txt";
-	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
+	std::string outputFileNameNormalized = outputName + "_normalizedCumulativeCoveragePerSite.txt";
+	std::string outputFileNameQuantiles = outputName + "_quantilesCoveragePerSite.txt";
+
+
+	logfile->list("Writing cumulative coverage distribution to '" + outputFileName + "'");
+	logfile->list("Writing normalized cumulative coverage distribution to '" + outputFileNameNormalized + "'");
+	logfile->list("Writing quantiles of cumulative coverage distribution to '" + outputFileNameQuantiles + "'");
+
+
 	output.open(outputFileName.c_str());
+	outputNormalized.open(outputFileNameNormalized.c_str());
+	outputQuantiles.open(outputFileNameQuantiles.c_str());
+
+
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	if(!outputNormalized) throw "Failed to open output file '" + outputFileNameNormalized + "'!";
+
 	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
 	if(!maxCov) throw "No maximum coverage specified!";
 	int size = maxCov + 2; // need 0 bin and >maxCov bin
 	int nCharOnLine = 0;
+	double totalSites = 0.0;
 
-	//prepare array
+	//prepare arrays
 	long * siteCoverage = new long[size];
 	for(int i=0; i<size; ++i){
 		siteCoverage[i] = 0;
 	}
 
-	//write header
+	long * siteCoverageNormalized = new long[size];
+	for(int i=0; i<size; ++i){
+		siteCoverageNormalized[i] = 0;
+	}
+
+	//write headers
 	output << "coverage\tcounts" << std::endl;
+	outputNormalized << "coverage\tcounts" << std::endl;
+	outputQuantiles << "percent\tquantile" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
-
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -3233,14 +3257,57 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 		}
 	}
 
-	//write to file
+	//write to files
+	//read counts
 	for(int i=0; i<(size-1); ++i){
 		output << i << "\t" << siteCoverage[i] << "\n";
+		totalSites += (double) siteCoverage[i];
 	}
+	totalSites += siteCoverage[size - 1];
 	output << ">" << maxCov << "\t" << siteCoverage[size - 1] << std::endl;
 
+	//normalized cumulative distribution and quantiles
+	double cumul = 0.0;
+	double norm = 0.0;
+	float percentages[11] = {0.005, 0.01, 0.025, 0.05, 0.2, 0.8, 0.9, 0.95, 0.975, 0.99, 0.995};
+	int numberOfPercentages = 11;
+	int quantiles[numberOfPercentages];
+	std::fill_n(quantiles, numberOfPercentages, -1);
+	for(int i=0; i<(size-1.0); ++i){
+		cumul += (double) siteCoverage[i];
+		norm = cumul / totalSites;
+		outputNormalized << i << "\t" << norm << "\n";
+		for(int p=0; p<numberOfPercentages-1; ++p){
+			//if smallest quantiles = 0
+			if(i == 0 && norm > percentages[p]) quantiles[p] = i;
+			else if(quantiles[p] == -1 && norm >= percentages[p] && norm <= percentages[p + 1]){
+				quantiles[p] = i;
+			}
+		}
+		if(quantiles[numberOfPercentages] == -1 && i >= percentages[numberOfPercentages]) quantiles[numberOfPercentages] = i;
+	}
+	cumul += (double) siteCoverage[size - 1];
+	norm = cumul / totalSites;
+	outputNormalized << ">" << maxCov << "\t" << norm << std::endl;
+
+	for(int p=0; p<numberOfPercentages; ++p){
+		if(quantiles[p] == -1) quantiles[p] = maxCov;
+	}
+
+	for(int i=0; i < numberOfPercentages; ++i){
+		outputQuantiles << percentages[i] << "\t" << quantiles[i] << std::endl;
+	}
+
 	//clean up
-	if(nCharOnLine > 0) output << '\n';
+	if(nCharOnLine > 0){
+		output << '\n';
+		outputNormalized << '\n';
+	}
 	output.close();
+	outputNormalized.close();
+	outputQuantiles.close();
+
 	delete[] siteCoverage;
+	delete[] siteCoverageNormalized;
+
 }
