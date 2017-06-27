@@ -464,12 +464,13 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 }
 
 void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
-	logfile->listFlush("Adding sites to quality transformation table ...");
+	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
 				QTtables.at((*it)->readGroup)->add((*it)->quality, recalObject->getQuality(*it));
+				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQuality(*it));
 			}
 		}
 	}
@@ -477,12 +478,13 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 }
 
 void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
-	logfile->listFlush("Adding sites to quality transformation table ...");
+	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
 				QTtables.at((*it)->readGroup)->add(recalObject->getQuality(*it), otherRecalObject->getQuality(*it));
+				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQuality(*it));
 			}
 		}
 	}

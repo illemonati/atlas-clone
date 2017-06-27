@@ -1489,7 +1489,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
-	for(int i=0; i<readGroups.numGroups; ++i){
+	for(int i=0; i<readGroups.numGroups + 1; ++i){
 		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
 		QTtables.push_back(QT);
 	}
@@ -1509,7 +1509,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 		}
 	}
 
-	//print final tables
+	//print final tables for read groups
 	for(int i=0; i<readGroups.numGroups; ++i){
 		filename = outputName + "_" + readGroups.getName(i) + "_qualityTransformation.txt";
 		out.open(filename.c_str());
@@ -1520,6 +1520,13 @@ void TGenome::printQualityTransformation(TParameters & params){
 		//clean up vector
 		delete QTtables.at(i);
 	}
+	//print table for total data
+	filename = outputName + "_total_qualityTransformation.txt";
+	out.open(filename.c_str());
+	if(!out) throw "Failed to open output file '" + filename + "'!";
+	QTtables.at(QTtables.size()-1)->printTable(out);
+	out.close();
+	delete QTtables.at(QTtables.size()-1);
 
 	//clean up memory
 	windows.clear();
