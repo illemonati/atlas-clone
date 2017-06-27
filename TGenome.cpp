@@ -3276,8 +3276,8 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	//normalized cumulative distribution and quantiles
 	double cumul = 0.0;
 	double norm = 0.0;
-	float percentages[13] = {0.001, 0.005, 0.01, 0.025, 0.05, 0.2, 0.8, 0.9, 0.95, 0.975, 0.99, 0.995, 0.999};
-	int numberOfPercentages = 13;
+	float percentages[14] = {0.001, 0.005, 0.01, 0.025, 0.05, 0.2, 0.5, 0.8, 0.9, 0.95, 0.975, 0.99, 0.995, 0.999};
+	int numberOfPercentages = 14;
 	int quantiles[numberOfPercentages];
 	std::fill_n(quantiles, numberOfPercentages, -1);
 	for(int i=0; i<(size-1); ++i){
