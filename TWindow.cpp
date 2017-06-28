@@ -484,7 +484,7 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TReca
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
 				QTtables.at((*it)->readGroup)->add(recalObject->getQuality(*it), otherRecalObject->getQuality(*it));
-				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQuality(*it));
+				QTtables.at(QTtables.size() - 1)->add(recalObject->getQuality(*it), otherRecalObject->getQuality(*it));
 			}
 		}
 	}
