@@ -131,7 +131,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "coveragePerSite"){
 				logfile.startIndent("Estimating coverage per site (task = coveragePerSite):");
 				genome.estimateCoveragePerSite(myParameters);
-
+			} else if(task=="createDepthMask"){
+				logfile.startIndent("Creating depth mask BED file (task=createDepthMask:");
+				genome.createDepthMask(myParameters);
 			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile.clearIndent();

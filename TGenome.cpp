@@ -3225,6 +3225,8 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	if(!outputNormalized) throw "Failed to open output file '" + outputFileNameNormalized + "'!";
+	if(!outputQuantiles) throw "Failed to open output file '" + outputFileNameQuantiles + "'!";
+
 
 	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
 	if(!maxCov) throw "No maximum coverage specified!";
@@ -3323,4 +3325,32 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 	delete[] siteCoverage;
 	delete[] siteCoverageNormalized;
 
+}
+
+void TGenome::createDepthMask(TParameters & params){
+
+	int minDepthForMask = params.getParameterInt("minDepthForMask");
+	int maxDepthForMask = params.getParameterInt("maxDepthForMask");
+	if(params.parameterExists("maxCoverage") || params.parameterExists("minCoverage")) throw "Cannot mask sites for sequencing depth while creating the mask!";
+
+	std::ofstream output;
+	std::string outputFileName = outputName + "_minDepth"+ toString(minDepthForMask) + "_maxDepth" + toString(maxDepthForMask) + "_depthMask.txt";
+	logfile->list("Writing sites with depth < " + toString(minDepthForMask) + " and with depth > " + toString(maxDepthForMask) + " to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			logfile->listFlush("Writing sites to mask to output file ...");
+			windows.cur->createDepthMask(minDepthForMask, maxDepthForMask, output, chrIterator->Name);
+			logfile->write(" done!");
+		}
+	}
+	output.close();
 }

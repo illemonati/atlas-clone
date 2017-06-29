@@ -427,6 +427,17 @@ void TWindow::applyCoverageFilter(int minCoverage, int maxCoverage){
 	}
 }
 
+void TWindow::createDepthMask(int minDepthForMask, int maxDepthForMask, std::ofstream & outputMaskFile, std::string & chr){
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			if(sites[i].bases.size() < minDepthForMask || sites[i].bases.size() > maxDepthForMask){
+				std::cout << "maxDepth " << maxDepthForMask << std::endl;
+				outputMaskFile << chr << "\t" << start + i << "\t" << start + i + 1 << "\n";
+			}
+		}
+	}
+}
+
 double TWindow::calcLogLikelihood(double* pGenotype){
 	double LL = 0.0;
 	for(int i=0; i<length; ++i){

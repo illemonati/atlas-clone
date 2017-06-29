@@ -98,6 +98,7 @@ public:
 	void calcFracN();
 	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
 	void applyCoverageFilter(int minCoverage, int maxCoverage);
+	void createDepthMask(int minCoverage, int maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
 	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
