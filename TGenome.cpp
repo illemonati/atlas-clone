@@ -2158,7 +2158,7 @@ void TGenome::addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::
 										refBase = genoMap.getBase(ref[internalPos]);
 
 										pmdTables.addForward(readGroupId, pos, refBase, readBase);
-										pmdTables.addReverse(readGroupId, bamAlignment.InsertSize - pos - 1, refBase, readBase);
+										pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize) - pos - 1, refBase, readBase);
 									}
 								}
 							}
