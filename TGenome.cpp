@@ -3257,11 +3257,12 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	//int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	int maxCov = params.getParameterIntWithDefault("maxCoverage", 1000000);
 	if(!maxCov) throw "No maximum coverage specified!";
 	int size = maxCov + 2; // need 0 bin and >maxCov bin
 	int nCharOnLine = 0;
-
+	output <<  size << std::endl;
 	//prepare array
 	long**** siteImbalance = new long***[size];
 	for(int i=0; i<size; ++i){
@@ -3304,7 +3305,6 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 			}
 		}
 	}
-	output << ">" << maxCov << "\t" << siteImbalance[size - 1] << std::endl;
 
 	//clean up
 	if(nCharOnLine > 0) output << '\n';
