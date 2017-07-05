@@ -423,11 +423,11 @@ void TWindow::applyCoverageFilter(int minCoverage, int maxCoverage){
 	}
 }
 
-void TWindow::compileAlleleicCountsTable(long**** & siteImbalance, const unsigned int & maxCov){
+void TWindow::compileAlleleicCountsTable(long**** & siteImbalance,long** & siteQuality, const unsigned int & maxCov){
 	//calculate and return imbalance
 	for(int i=0; i<length; ++i){
 		if(sites[i].getNumBases() <= maxCov && sites[i].getNumBases() > 0)
-			sites[i].compileAllelicCounts(siteImbalance);
+			sites[i].compileAllelicCounts(siteImbalance,siteQuality);
 	}
 }
 

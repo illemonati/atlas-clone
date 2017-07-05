@@ -3262,7 +3262,6 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	if(!maxCov) throw "No maximum coverage specified!";
 	int size = maxCov + 2; // need 0 bin and >maxCov bin
 	int nCharOnLine = 0;
-	output <<  size << std::endl;
 	//prepare array
 	long**** siteImbalance = new long***[size];
 	for(int i=0; i<size; ++i){
@@ -3277,9 +3276,21 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 			}
 		}
 	}
-
+	//prepare array for qualities
+	int	type=size*size*size*size;
+	long** siteQuality = new long*[type];
+	for(int i=0; i<type; ++i){
+		siteQuality[i] = new long[100];
+		for(int j=0; j<100; ++j){
+			siteQuality[i][j] =0;
+		}
+	}
 	//write header
-	output << "A C G T Counts" << std::endl;
+	output << "A C G T Counts";
+	for(int i=0; i<(100+1); ++i){
+			output << " " << i;
+	}
+	output << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -3289,18 +3300,24 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
-			windows.cur->compileAlleleicCountsTable(siteImbalance, maxCov);
+			windows.cur->compileAlleleicCountsTable(siteImbalance,siteQuality, maxCov);
 			logfile->listFlush("Adding imbalance values to table ...");
 			logfile->write(" done!");
 		}
 	}
 
 	//write to file
+	int a=0;
 	for(int i=0; i<(size-1); ++i){
 		for(int j=0; j<(size-1); ++j){
 			for(int k=0; k<(size-1); ++k){
 				for(int l=0; l<(size-1); ++l){
-					output <<  i << " " << j << " " << k << " " << l << " " << siteImbalance[i][j][k][l] << std::endl;
+					output <<  i << " " << j << " " << k << " " << l << " " << siteImbalance[i][j][k][l];
+					for(int m=0; m<(100+1); ++m){
+						output << " " << siteQuality[a][m];
+					}
+					output << std::endl;
+					++a;
 				}
 			}
 		}
@@ -3310,5 +3327,6 @@ void TGenome::generateAllelicImbalance(TParameters & params){
 	if(nCharOnLine > 0) output << '\n';
 	output.close();
 	delete[] siteImbalance;
+	delete[] siteQuality;
 }
 

@@ -102,7 +102,7 @@ public:
 	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){ throw "addToExpectedBaseCounts not implemented for TSite base class!";};
 
-	void compileAllelicCounts(long**** & siteImbalance);
+	void compileAllelicCounts(long**** & siteImbalance,long** & siteQuality);
 };
 
 class TSiteDiploid:public TSite{

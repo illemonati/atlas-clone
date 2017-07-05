@@ -141,13 +141,21 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	return log(sum);
 }
 
-void TSite::compileAllelicCounts(long**** & siteImbalance){
+void TSite::compileAllelicCounts(long**** & siteImbalance,long** & siteQuality){
 	//calculate and return imbalance
 	static int b[5];
 	std::fill(b, b + 5, 0);
-
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+	static int q[100];
+	std::fill(q, q + 100, 0);
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
 		++b[(*it)->getBaseAsEnum()];
+		++q[((*it)->quality)];
+	}
+	int a=0;
+	a=1330*b[3]+b[3]+120*b[2]+b[2]+10*b[1]+b[1]+b[0];
+	for (int i=0;i<101;++i){
+		siteQuality[a][i]=q[i]+siteQuality[a][i];
+	}
 	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
 }
 
