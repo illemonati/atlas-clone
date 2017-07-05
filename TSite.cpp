@@ -152,7 +152,7 @@ void TSite::compileAllelicCounts(long**** & siteImbalance,long** & siteQuality){
 		++q[((*it)->quality)];
 	}
 	int a=0;
-	a=1330*b[3]+b[3]+120*b[2]+b[2]+10*b[1]+b[1]+b[0];
+	a=1330*b[0]+b[0]+120*b[1]+b[1]+10*b[2]+b[2]+b[3];
 	for (int i=0;i<101;++i){
 		siteQuality[a][i]=q[i]+siteQuality[a][i];
 	}
