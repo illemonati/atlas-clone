@@ -631,6 +631,7 @@ void TGenome::estimateTheta(TParameters & params){
 		//estimate Theta
 		logfile->list("will estimate theta based on a total of " + toString(siteVec.size()) + " sites");
 		TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
+		out  << "0\t"; //chromosome
 		specificSites.estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
 
 	} else {
