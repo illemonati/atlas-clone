@@ -541,7 +541,7 @@ void TGenome::openThetaOutputFile(std::ofstream & out){
 	std::string filename = outputName + "_theta_estimates.txt";
 	logfile->list("Writing theta estimates to '" + filename + "'");
 	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	if(!out) throw "Failed to open output file '" + filename + "'!";
 
 	//write header
 	out << std::setprecision(9) << "Chr\t";
@@ -634,6 +634,14 @@ void TGenome::estimateTheta(TParameters & params){
 		out  << "0\t"; //chromosome
 		specificSites.estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
 
+		//check if we do bootstrapping
+		if(params.parameterExists("bootstraps")){
+			int numBootstraps = params.getParameterInt("bootstraps");
+			if(numBootstraps > 0){
+				std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
+				specificSites.bootstrapTheta(numBootstraps, EMParams, recalObject, bootstrapFilename, logfile, *randomGenerator);
+			} else throw "Number of bootstraps must be > 1!";
+		}
 	} else {
 		//iterate through windows
 		while(iterateChromosome(windows)){

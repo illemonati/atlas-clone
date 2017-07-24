@@ -71,6 +71,7 @@ public:
 	int numReadsInWindow;
 	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
 	double fractionRefIsN;
+	long numSitesWithData;
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
@@ -94,12 +95,11 @@ public:
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
-	void calcCoverage();
+	virtual void calcCoverage();
 	void calcFracN();
 	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
 	void applyCoverageFilter(int minCoverage, int maxCoverage);
 	void createDepthMask(int minCoverage, int maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
-	double calcLogLikelihood(double* pGenotype);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
@@ -112,16 +112,17 @@ protected:
 	Theta thetaContainer;
 
 	void fillPGenotype(double* pGenotype, double & expTheta);
-	void fillP_G(double* P_g, double* pGenotype);
+	virtual void fillP_G(double* P_g, double* pGenotype);
+	virtual double calcLogLikelihood(double* pGenotype);
 	void findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams);
-	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, int & lengthWithData);
+	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, long & lengthWithData);
 	void estimateConfidenceInterval(Theta & thetaContainer);
 
 public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions);
+	void estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
@@ -135,12 +136,25 @@ public:
 };
 
 //decide which positions to add on the fly
+//Attention: the bootstrapping is a hack that is only implemented and tested for the theta estimation!!
 class TWindowDiploidSpecificSites:public TWindowDiploid{
 protected:
 	long nextId;
+	TSite** bootstrappedSites;
+	bool bootstrapFilled;
+
+	void fillBootstrap(TRandomGenerator & randomGenerator);
+	void clearBootstrap();
+	void calcCoverage();
+	void fillP_G(double* P_G, double* pGenotype);
+	double calcLogLikelihood(double* pGenotype);
 
 public:
 	TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec);
+	~TWindowDiploidSpecificSites(){
+		clearBootstrap();
+	};
+	void bootstrapTheta(int numBootstraps, EMParameters & EMParams, TRecalibration* recalObject, std::string filename, TLog* logfile, TRandomGenerator & randomGenerator);
 };
 
 //provide regions file with positions

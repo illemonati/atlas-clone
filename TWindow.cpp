@@ -387,6 +387,7 @@ void TWindow::calcCoverage(){
 	}
 
 	coverage = coverage / (double) length;
+	numSitesWithData = length - noData;
 	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
@@ -435,16 +436,6 @@ void TWindow::createDepthMask(int minDepthForMask, int maxDepthForMask, std::ofs
 			}
 		}
 	}
-}
-
-double TWindow::calcLogLikelihood(double* pGenotype){
-	double LL = 0.0;
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			LL += sites[i].calculateLogLikelihood(pGenotype);
-		}
-	}
-	return LL;
 }
 
 void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
@@ -557,6 +548,16 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 	}
 }
 
+double TWindowDiploid::calcLogLikelihood(double* pGenotype){
+	double LL = 0.0;
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData){
+			LL += sites[i].calculateLogLikelihood(pGenotype);
+		}
+	}
+	return LL;
+}
+
 void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions){
 	logfile->startIndent("Estimating Theta:");
 
@@ -571,12 +572,7 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 	logfile->write(" done!");
 
 	//get num sites with data
-	int lengthWithData = 0;
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			++lengthWithData;
-		}
-	}
+	calcCoverage();
 
 	//estimate starting parameters
 	logfile->startIndent("Estimating initial parameters:");
@@ -594,7 +590,7 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 
 	//Run EM
 	logfile->listFlush("Running EM to find ML estimations ...");
-	runEMForTheta(thetaContainer, EMParams, lengthWithData);
+	runEMForTheta(thetaContainer, EMParams, numSitesWithData);
 	logfile->write(" done!");
 	logfile->conclude("theta was estimated at ", thetaContainer.theta);
 
@@ -606,6 +602,7 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 
 	//write results to file
 	//position
+	//TODO: think about how to treat when regions are to be considered
 	if(considerRegions) out << "givenByUser\tgivenByUser\tgivenByUser";
 	else out << start << "\t" << end-1;
 	//coverage NOTE: assumes coverage has been calculated before...
@@ -621,7 +618,6 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 	logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
 	logfile->endIndent();
 }
-
 
 void TWindowDiploid::findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams){
 	//assumes that initial base frequencies have been estimated and site emission probs calculated!
@@ -680,7 +676,7 @@ void TWindowDiploid::findGoodStartingTheta(Theta & thetaContainer, EMParameters 
 	}
 }
 
-void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMParams, int & lengthWithData){
+void TWindowDiploid::runEMForTheta(Theta & thetaContainer, EMParameters & EMParams, long & lengthWithData){
 	//prepare storage
 	double pGenotype[10];
 	double P_G[10];
@@ -939,7 +935,6 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 	}
 }
 
-
 void TWindowDiploid::callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
 	//calc prior probabilities on Genotypes
 	double pGenotype[10];
@@ -1147,7 +1142,6 @@ void TWindowDiploid::addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid
 
 //--------------------------------------------------------------------------
 //TWindowDiploidSpecificSites: decide which positions to add on the fly
-//TWindowDiploidSiteSubset: provide regions file with positions
 //---------------------------------------------------------------------------
 TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec){
 	length = siteVec.size();
@@ -1155,6 +1149,8 @@ TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSiteDiploi
 	nextId = 0;
 	start = 0;
 	end = length;
+	bootstrapFilled = false;
+	bootstrappedSites = NULL;
 
 	//copy sites
 	long index = 0;
@@ -1164,6 +1160,150 @@ TWindowDiploidSpecificSites::TWindowDiploidSpecificSites(std::vector<TSiteDiploi
 	}
 }
 
+//functions to bootstrap sites for theta
+void TWindowDiploidSpecificSites::fillBootstrap(TRandomGenerator & randomGenerator){
+	if(!bootstrapFilled)
+		bootstrappedSites = new TSite*[length];
+
+	//sample sites with replacement
+	for(long i=0; i<length; ++i){
+		bootstrappedSites[i] = &sites[randomGenerator.pickOne(length)];
+	}
+
+	bootstrapFilled = true;
+}
+
+void TWindowDiploidSpecificSites::clearBootstrap(){
+	if(bootstrapFilled){
+		delete[] bootstrappedSites;
+		bootstrapFilled = false;
+	}
+}
+
+void TWindowDiploidSpecificSites::calcCoverage(){
+	if(bootstrapFilled){
+		coverage = 0.0;
+		long noData = 0;
+		long plentyData = 0;
+		int cov;
+		for(int i=0; i<length; ++i){
+			cov = bootstrappedSites[i]->getCoverage();
+			coverage += cov;
+			if(cov == 0) ++noData;
+			else if(cov > 1) ++ plentyData;
+		}
+
+		coverage = coverage / (double) length;
+		numSitesWithData = length - noData;
+		fractionSitesNoData = (double) noData / (double) length;
+		fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
+	} else TWindow::calcCoverage(); //else use parental class
+}
+
+void TWindowDiploidSpecificSites::fillP_G(double* P_G, double* pGenotype){
+	if(bootstrapFilled){
+		for(int g=0; g<10; ++g)
+			P_G[g] = 0.0;
+
+		//calculate P_g for each site
+		for(int i=0; i<length; ++i){
+			if(bootstrappedSites[i]->hasData){
+				bootstrappedSites[i]->calculateP_g(pGenotype);
+				for(int g=0; g<10; ++g){
+					P_G[g] += bootstrappedSites[i]->P_g[g];
+				}
+			}
+		}
+	} else TWindowDiploid::fillP_G(P_G, pGenotype); //elese use parental class
+}
+
+double TWindowDiploidSpecificSites::calcLogLikelihood(double* pGenotype){
+	if(bootstrapFilled){
+		double LL = 0.0;
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				LL += bootstrappedSites[i]->calculateLogLikelihood(pGenotype);
+			}
+		}
+		return LL;
+	} else return TWindowDiploid::calcLogLikelihood(pGenotype); //else use parental class
+}
+
+void TWindowDiploidSpecificSites::bootstrapTheta(int numBootstraps, EMParameters & EMParams, TRecalibration* recalObject, std::string filename, TLog* logfile, TRandomGenerator & randomGenerator){
+	logfile->startIndent("Bootstrapping Theta:");
+
+	//measure runtime
+	struct timeval startTime, endTime;
+	gettimeofday(&startTime, NULL);
+
+	//open output file
+	std::ofstream bootstrapOut;
+	logfile->list("Writing theta bootstraps to '" + filename + "'");
+	bootstrapOut.open(filename.c_str());
+	if(!bootstrapOut) throw "Failed to open output file '" + filename + "'!";
+
+	//write header
+	bootstrapOut << std::setprecision(9) << "Bootstrap\t";
+	bootstrapOut << "\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
+	bootstrapOut << "\n";
+
+	//estimate initial base frequencies
+	//calculate per site emission probabilities
+	logfile->listFlush("Calculating emission probabilities ...");
+	calculateEmissionProbabilities(recalObject);
+	logfile->write(" done!");
+
+	//loop over bootstraps
+	logfile->startIndent("Generating " + toString(numBootstraps) + " bootstrap estimates of theta:");
+	for(int s=0; s<numBootstraps; ++s){
+		//fill bootstrap
+		logfile->startIndent("Bootstrap " + toString(s+1) + ":");
+		logfile->listFlush("Bootstrapping data ...");
+		fillBootstrap(randomGenerator);
+		logfile->done();
+
+		//get num sites with data
+		calcCoverage();
+
+		//estimate starting parameters
+		logfile->startIndent("Estimating initial parameters:");
+		logfile->listFlush("Estimating initial base frequencies ...");
+		estimateBaseFrequencies();
+		logfile->done();
+		logfile->conclude("Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
+
+		//set initial parameters
+		logfile->listFlush("Estimating initial theta ...");
+		findGoodStartingTheta(thetaContainer, EMParams);
+		logfile->done();
+		logfile->conclude("Starting EM with theta = ", thetaContainer.theta);
+		logfile->endIndent();
+
+		//Run EM
+		logfile->listFlush("Running EM to find ML estimations ...");
+		runEMForTheta(thetaContainer, EMParams, numSitesWithData);
+		logfile->done();
+		logfile->conclude("theta was estimated at ", thetaContainer.theta);
+
+		//write results to file
+		bootstrapOut << s+1 + "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
+		//estimated params
+		for(int i=0; i<4; ++i)
+			bootstrapOut << "\t" << baseFreq[i];
+		bootstrapOut << "\t" << thetaContainer.theta << "\t" << thetaContainer.theta - thetaContainer.thetaConfidence << "\t" << thetaContainer.theta + thetaContainer.thetaConfidence << "\t" << thetaContainer.LL << std::endl;
+		logfile->endIndent();
+	}
+	logfile->endIndent();
+
+	//finish
+	gettimeofday(&endTime, NULL);
+	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, "min");
+	logfile->endIndent();
+}
+
+//--------------------------------------------------------------------------
+//TWindowDiploidSiteSubset: provide regions file with positions
+//---------------------------------------------------------------------------
 TWindowDiploidSiteSubset::TWindowDiploidSiteSubset(TBedReader* Subset){
 	subset = Subset;
 	length = subset->size();
