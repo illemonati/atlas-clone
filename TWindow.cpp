@@ -1243,7 +1243,7 @@ void TWindowDiploidSpecificSites::bootstrapTheta(int numBootstraps, EMParameters
 	if(!bootstrapOut) throw "Failed to open output file '" + filename + "'!";
 
 	//write header
-	bootstrapOut << std::setprecision(9) << "Bootstrap\t";
+	bootstrapOut << std::setprecision(9) << "Bootstrap";
 	bootstrapOut << "\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
 	bootstrapOut << "\n";
 
@@ -1286,7 +1286,7 @@ void TWindowDiploidSpecificSites::bootstrapTheta(int numBootstraps, EMParameters
 		logfile->conclude("theta was estimated at ", thetaContainer.theta);
 
 		//write results to file
-		bootstrapOut << s+1 + "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
+		bootstrapOut << s+1 << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
 		//estimated params
 		for(int i=0; i<4; ++i)
 			bootstrapOut << "\t" << baseFreq[i];
