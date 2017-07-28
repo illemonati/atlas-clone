@@ -2651,15 +2651,16 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		++counter;
 		if((readsToOmit.count(bamAlignment.Name) > 0)){
 			continue;
-/*
+
 		} else if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
-			logfile->warning("filtered out because of adapter: " + bamAlignment.Name);
+			logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size");
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 			continue;
-*/
+
 		} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || bamAlignment.IsSupplementary() ||(bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
 			continue;
 		}
+
 		else {
 			//if on new chromosome, empty storage
 			if(curChr != bamAlignment.RefID){
