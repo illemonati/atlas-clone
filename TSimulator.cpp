@@ -67,6 +67,7 @@ void TSimulator::setReadLength(int length){
 		throw "TSimulator: Can not change read length after quality transformation was initialized!";
 	readLength = length;
 	bamAlignment.Length = readLength;
+	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', readLength));
 }
 
@@ -239,8 +240,9 @@ void TSimulator::simulateReferenceSequenceCurChromosome(){
 }
 
 void TSimulator::initializeRefStorage(){
-	if(refInitialized && refLength != chrIt->length)
+	if(refInitialized && refLength != chrIt->length){
 		clearRefStorage();
+	}
 	if(!refInitialized){
 		ref = new short[chrIt->length];
 		refInitialized = true;
@@ -251,6 +253,7 @@ void TSimulator::initializeRefStorage(){
 void TSimulator::clearRefStorage(){
 	if(refInitialized){
 		delete[] ref;
+		refInitialized = false;
 	}
 }
 

@@ -144,7 +144,32 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------
-void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
+void TSite::calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL){
+	if(hasData){
+		//calculate phred-scaled likelihoods and find max
+		double maxGenotypeProb = 100000.0;
+		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
+
+		for(int i=0; i<numGenotypes; ++i){
+			emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
+			if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb)
+				maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
+		}
+
+		for(int i=0; i<numGenotypes; ++i)
+			normalizedGL[i] = round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
+
+
+		delete[] emissionProbabilitiesPhredScaled;
+		maxLL = round(maxGenotypeProb);
+	} else {
+		for(int i=0; i<numGenotypes; ++i)
+			normalizedGL[i] = 0;
+		maxLL = 0;
+	}
+}
+
+void TSite::calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
 	//calculate phred-scaled likelihoods and find max
 	maxGenotypeProb = 100000.0;
 	quality = 100000.0;
@@ -186,7 +211,6 @@ void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, dou
 	}
 	//select best allele at random if there are multiple options
 	genoSecond = genoMap.getGenotypeString(secondMostLikely[randomGenerator.pickOne(secondMostLikely.size())]);
-
 }
 
 void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
@@ -203,7 +227,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 		double quality, maxGenotypeProb;
 		int MLGenotype;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//now print normalized (max = 0)
 		for(int i=0; i<numGenotypes; ++i){
@@ -235,7 +259,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		int MLGenotype;
 		int R_AD=0, A_AD=0, B_AD=0, C_AD=0;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//find alternative alleles
 		std::string genoVCF;

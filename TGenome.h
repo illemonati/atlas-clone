@@ -103,6 +103,7 @@ public:
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
 	void randomBaseCaller(TParameters & params);
+	void writeGLF(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
 	void estimateErrorCalibration(TParameters & params);
@@ -134,7 +135,6 @@ public:
 	void estimateCoveragePerSite(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
-	void calculatePoolFreqLikelihoods(TParameters & params);
 };
 
 

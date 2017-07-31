@@ -62,6 +62,7 @@ TWindow::TWindow(){
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
 };
@@ -79,6 +80,7 @@ void TWindow::clear(){
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
+	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
 };
@@ -1087,6 +1089,26 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 
 		}
 	}
+}
+
+void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
+	//TODO: calculate root mean squared mapping qualities for sites. Would be helpful in VCFs as well
+	uint8_t* gl = new uint8_t[10];
+	uint32_t maxLL;
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
+			writer.writeSite(start + i + 1, sites[i].getCoverage(), 0, gl, maxLL);
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
+				writer.writeSite(start + i + 1, sites[i].getCoverage(), 0, gl, maxLL);
+			}
+		}
+	}
+	delete[] gl;
 }
 
 void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){

@@ -9,6 +9,7 @@
 #include "TParameters.h"
 #include "TGenome.h"
 #include "runSimulations.h"
+#include "TDistanceEstimator.h"
 
 //---------------------------------------------------------------------------
 //Main function
@@ -45,7 +46,6 @@ int main(int argc, char* argv[]){
 			logfile.writeFileOnly("***********");
 		}
 
-
 		//what to do?
 		std::string task = myParameters.getParameterString("task");
 
@@ -53,6 +53,10 @@ int main(int argc, char* argv[]){
 		if(task=="simulate"){
 			logfile.startIndent("Generating simulations (task = simulate):");
 			runSimulations(myParameters, &logfile);
+		} else if(task=="estimateDist"){
+			logfile.startIndent("Estimating the genetic distance between individuals (task=estimateDist:");
+			TDistanceEstimator distEst;
+			distEst.calcDistance(myParameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(&logfile, myParameters);
@@ -86,6 +90,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "randomBaseCaller"){
 				logfile.startIndent("Calling random bases (task = randomBaseCaller");
 				genome.randomBaseCaller(myParameters);
+			} else if(task == "glf"){
+				logfile.startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
+				genome.writeGLF(myParameters);
 			} else if(task == "combineBeagleFiles"){
 				logfile.startIndent("combining beagle files (task = combineBeagleFiles):");
 				genome.combineBeagleFiles(myParameters);

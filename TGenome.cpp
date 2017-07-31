@@ -561,8 +561,6 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
-
-
 void TGenome::estimateTheta(TParameters & params){
 	//read parameters
 	bool thetaGenomeWide = false;
@@ -661,12 +659,9 @@ void TGenome::estimateTheta(TParameters & params){
 		}
 	}
 
-
 	//clean up
 	out.close();
 }
-
-
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	//initialize recalibration
@@ -1145,6 +1140,41 @@ void TGenome::randomBaseCaller(TParameters & params){
 			} else logfile->list("No positions in this window.");
 		}
 	}
+}
+
+void TGenome::writeGLF(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//print all?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData)
+		logfile->list("Will print all sites, even those without data");
+
+	//open GLF file
+	std::string outputFileName = outputName + ".glf.gz";
+	logfile->list("Will write data to GLF file '" + outputFileName + "'");
+	TGlfWriter writer(outputFileName);
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		writer.newChromosome(chrIterator->Name, stringToLong(chrIterator->Length));
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows)){
+				//write to GLF
+				logfile->listFlush("Adding window to GLF file ...");
+				windows.cur->calculateEmissionProbabilities(recalObject);
+				windows.cur->addToGLF(writer, printIfNoData);
+				logfile->done();
+			}
+		}
+	}
+	//clean up
+	writer.close();
 }
 
 void TGenome::combineBeagleFiles(TParameters & params){
@@ -3337,7 +3367,6 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 }
 
 void TGenome::createDepthMask(TParameters & params){
-
 	int minDepthForMask = params.getParameterInt("minDepthForMask");
 	int maxDepthForMask = params.getParameterInt("maxDepthForMask");
 	if(params.parameterExists("maxCoverage") || params.parameterExists("minCoverage")) throw "Cannot mask sites for sequencing depth while creating the mask!";
@@ -3363,3 +3392,4 @@ void TGenome::createDepthMask(TParameters & params){
 	}
 	output.close();
 }
+

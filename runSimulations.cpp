@@ -54,8 +54,13 @@ void runSimulations(TParameters & params, TLog* logfile){
 	params.fillParameterIntoVectorWithDefault("chrLength", string_vec, ',', "1000000");
 	repeatIndexes(string_vec, chrLength);
 	std::vector<int> ploidy;
-	params.fillParameterIntoVectorWithDefault("ploidy", string_vec, ',', "2");
-	repeatIndexes(string_vec, ploidy);
+	if(params.parameterExists("ploidy")){
+		params.fillParameterIntoVector("ploidy", string_vec, ',');
+		repeatIndexes(string_vec, ploidy);
+	} else {
+		for(size_t i=0; i<chrLength.size(); ++i)
+			ploidy.push_back(2);
+	}
 	if(ploidy.size() != chrLength.size())
 		throw "List fo chromosome lengths and ploidies differ in length!";
 	std::vector<bool> haploid;
