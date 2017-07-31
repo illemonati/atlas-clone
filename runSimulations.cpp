@@ -62,7 +62,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 			ploidy.push_back(2);
 	}
 	if(ploidy.size() != chrLength.size())
-		throw "List fo chromosome lengths and ploidies differ in length!";
+		throw "List of chromosome lengths and ploidies differ in length!";
 	std::vector<bool> haploid;
 	for(std::vector<int>::iterator it=ploidy.begin(); it!=ploidy.end(); ++it){
 		if(*it == 1) haploid.push_back(true);

@@ -1092,7 +1092,7 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 }
 
 void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
-	//TODO: calculate root mean squared mapping qualities for sites. Would be helpful in VCFs as well
+	//TODO: calculate root mean squared mapping qualities for sites (now just passin g0). Would be helpful in VCFs as well
 	uint8_t* gl = new uint8_t[10];
 	uint32_t maxLL;
 	if(printAll){

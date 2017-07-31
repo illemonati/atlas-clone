@@ -149,16 +149,13 @@ void TSite::calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32
 		//calculate phred-scaled likelihoods and find max
 		double maxGenotypeProb = 100000.0;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-
 		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
 			if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb)
 				maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
 		}
-
 		for(int i=0; i<numGenotypes; ++i)
 			normalizedGL[i] = round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
-
 
 		delete[] emissionProbabilitiesPhredScaled;
 		maxLL = round(maxGenotypeProb);

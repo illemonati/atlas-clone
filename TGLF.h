@@ -11,6 +11,7 @@
 #include <zlib.h>
 #include "gzstream.h"
 #include <algorithm>
+//#include <bitset>
 
 class TGlfHandle{
 protected:
@@ -48,6 +49,7 @@ public:
 class TGlfWriter:public TGlfHandle{
 private:
 	long oldPos;
+	uint8_t recordType1;
 
 	void writeHeader(){
 		write(version.c_str(), 4*sizeof(char));
@@ -75,6 +77,7 @@ public:
 	};
 	void init(){
 		oldPos = 0;
+		recordType1 = one8 << 4;
 	};
 	~TGlfWriter(){
 		close();
@@ -108,14 +111,15 @@ public:
 		write(name.c_str(), name.length() * sizeof(char));
 		write(&length, sizeof(uint32_t));
 
-		//set oldPos
+		//set oldPos and curChr
 		oldPos = 0;
+		curChr = name;
 	};
 
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL){
 		//record type
-		//TODO: could also add reference
-		write(&one8, sizeof(uint8_t));
+		//TODO: add reference
+		write(&recordType1, sizeof(uint8_t));
 
 		//offset
 		offset = pos - oldPos;
@@ -124,11 +128,8 @@ public:
 
 		//maxLL (capped at 255) and depth as one uint32_t
 		if(maxLL > 255) maxLL = 255;
-		maxLL = 13;
 		uint32_t tmp = maxLL << 24;
 		tmp = tmp | depth;
-
-		//tmp = tmp & depth;
 		write(&tmp, sizeof(uint32_t));
 
 		//root mean square of mapping qualities
@@ -137,8 +138,6 @@ public:
 		//genotype likelihoods
 		//TODO: test if using more accuracy on qualities matters
 		write(genoQualities, 10*sizeof(uint8_t));
-
-		std::cout << "Writing as " << (unsigned int) genoQualities[9] << " -> " << std::hex << (unsigned int) genoQualities[9] << std::dec << std::endl;
 	};
 
 };
@@ -164,7 +163,7 @@ private:
 		RMS_mappingQual = 0;
 		chr = "";
 		chrLength = 0;
-		depth_mask = 0x00FFFFFF;
+		depth_mask = 0xFFFFFF;
 		tmpInt32 = 0;
 		tmpInt8 = 0;
 		_lenRead = 0;
@@ -188,7 +187,8 @@ private:
 		read(tmp, len*sizeof(char));
 		chr.assign(tmp, len);
 
-		read(&chrLength, sizeof(uint32_t));
+		read(&tmpInt32, sizeof(uint32_t));
+		chrLength = tmpInt32;
 		position = 0;
 
 		return true;
@@ -208,6 +208,7 @@ public:
 		init();
 	};
 	TGlfReader(std::string Filename){
+		init();
 		open(Filename);
 	};
 	~TGlfReader(){
@@ -233,7 +234,7 @@ public:
 		version = buffer;
 
 		uint32_t len;
-		read(&len, sizeof(int32_t));
+		read(&len, sizeof(uint32_t));
 
 		if(len > 0){
 			char* header = new char[len];
@@ -248,8 +249,8 @@ public:
 		//read record type
 		if(!read(&tmpInt8, sizeof(uint8_t)))
 			return false;
+		recordType = tmpInt8 >> 4;
 
-		recordType = tmpInt8;
 		if(recordType == 0){
 			readChr();
 			return readNext();
@@ -276,7 +277,7 @@ public:
 			}
 
 			return true;
-		} else throw "Unknwon record type in file '" + filename + "'!";
+		} else throw "Unknown record type in file '" + filename + "'!";
 	};
 
 	void printChr(){
