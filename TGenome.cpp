@@ -1595,8 +1595,10 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	double pmdCT, pmdGA;
 	qual.clear();
 
-	std::string bases = alignment.AlignedBases;
-	std::string qualities = alignment.AlignedQualities;
+	//std::string bases = alignment.AlignedBases;
+	std::string bases = alignment.QueryBases;
+	//std::string qualities = alignment.AlignedQualities;
+	std::string qualities = alignment.Qualities;
 
 	int len = bases.size();
 
@@ -1636,9 +1638,12 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 							qual += newQual;
 
 						} else qual += quality;
+					/*
 					} else if(base == '-'){
+
 						//this means there was a deletion, don't want to add quality '!' to new quality string!
 						continue;
+					 */
 					} else qual += quality;
 				}
 			} else {
@@ -1666,9 +1671,11 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 
 							qual += newQual;
 						} else 	qual += quality;
+					/*
 					} else if(base == '-'){
 						//this means there was a deletion, don't want to add quality '!' to new quality string!
 						continue;
+					 */
 					} else qual += quality;
 				}
 			}
@@ -1701,9 +1708,11 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						qual += newQual;
 
 					} else qual += quality;
+				/*
 				} else if(base == '-'){
 					//this means there was a deletion, don't want to add quality '!' to new quality string!
 					continue;
+				 */
 				} else qual += quality;
 			}
 		} else {
@@ -1729,9 +1738,11 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 						qual += newQual;
 
 					} else qual += quality;
+				/*
 				} else if(base == '-'){
 					//this means there was a deletion, don't want to add quality '!' to new quality string!
 					continue;
+				*/
 				} else qual += quality;
 			}
 		}
@@ -1788,11 +1799,16 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		++counter;
 		//update and write (only if alignment qualities could be calculated)
 		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
+			/*
 			bamAlignment.Qualities = qual;
 			eraseAllOccurences(bamAlignment.AlignedBases, "-");
 			bamAlignment.QueryBases = bamAlignment.AlignedBases;
 			bamAlignment.CigarData.clear();
 			bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, bamAlignment.Qualities.size()));
+			*/
+
+			//does not update aligned qualities!
+			bamAlignment.Qualities = qual;
 
 			if(!bamWriter.SaveAlignment(bamAlignment)) throw bamAlignment.Name + " read not printed";
 
