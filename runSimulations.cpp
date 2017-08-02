@@ -90,6 +90,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 		}
 		simulator.initializeChromosomes(chrLength, haploid);
 	}
+	logfile->endIndent();
 
 	//quality distribution
 	double meanQual = params.getParameterDoubleWithDefault("meanQual", 30);
@@ -174,17 +175,34 @@ void runSimulations(TParameters & params, TLog* logfile){
 
 	//simulate differently depending on number of individuals
 	if(sampleSize == 1){
+		logfile->startIndent("Simulating a single individual:");
 		double theta = params.getParameterDoubleWithDefault("theta", 0.001);
 		logfile->list("Will simulate data with theta = " + toString(theta) + ".");
 		simulator.simulateSingleIndividual(theta, referenceDivergence, outname);
-	} else if(sampleSize == 2 && params.parameterExists("genDist")){
+	} else if(sampleSize == 2 && params.parameterExists("phi")){
+		logfile->startIndent("Simulating two individuals with predefined genetic distance:");
 		//simulate according to genetic distance
 		//parse distance
-		std::vector<double> gammas;
-		params.fillParameterIntoVector("genDist", gammas, ',');
-		if(gammas.size() != 10)
-			throw "Wrong number of gammas! Required are ten values for 00/00, 00/01, 01/00, 00/11, 00/12, 12/00, 01/12, 12/01, 01/23";
+		std::vector<double> phis;
+		params.fillParameterIntoVector("phi", phis, ',');
+		if(phis.size() != 9)
+			throw "Wrong number of phi! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
+		//noralize phis
+		double sum = 0.0;
+		for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
+			sum += *it;
+		if(sum != 1.0){
+			logfile->list("Normalizing phi to sum to one (currently summing to " + toString(sum) + ").");
+			for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
+				*it /= sum;
+		}
+
+		logfile->list("Used phi are: " + concatenateString(phis, ", "));
+
+		//now run simulations
+		simulator.simulateIndividualPair(phis, referenceDivergence, outname);
 	} else {
+		logfile->startIndent("Simulating multiple individuals based on an SFS:");
 		//prepare SFS
 		//TODO: think about ploidy!
 		logfile->startIndent("Preparing SFS:");
@@ -212,6 +230,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 
 		throw "SIMULATION FROM SFS NOT YET IMPLEMENTED!!!";
 	}
+	logfile->endIndent();
 
 	//clean up
 	delete randomGenerator;

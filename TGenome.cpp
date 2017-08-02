@@ -1704,7 +1704,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 			}
 		} else {
 			logfile->warning("One mate of the following alignment pair is longer than its insert size: " + alignment.Name);
-			mateTooLong.insert(make_pair(alignment.Name, 1));
+			mateTooLong.insert(std::pair<std::string, int>(alignment.Name, 1));
 			return false;
 		}
 	} else { //single end

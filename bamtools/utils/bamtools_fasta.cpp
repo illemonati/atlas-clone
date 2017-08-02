@@ -62,7 +62,9 @@ struct Fasta::FastaPrivate {
 };
 
 Fasta::FastaPrivate::FastaPrivate(void) 
-    : IsOpen(false)
+    : Stream(NULL)
+	, IsOpen(false)
+	, IndexStream(NULL)
     , HasIndex(false)
     , IsIndexOpen(false)
 { }

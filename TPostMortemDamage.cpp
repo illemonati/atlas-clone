@@ -331,23 +331,23 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 			for(int x=0; x<3; ++x)
 				newParams[x] = oldParams[x] - JxF(x);
 
-				//calculate LL at new location
-				LL = calcLL(from, to, newParams);
+			//calculate LL at new location
+			LL = calcLL(from, to, newParams);
 
-				//check if we accept or backtrack
-				if(LL > oldLL){
-					//store new params
-					for(int x=0; x<3; ++x){
-						oldParams[x] = newParams[x];
-					}
-
-					//check if we stop NR
-					if(LL - oldLL < eps){
-						oldLL = LL;
-						break;
-					}
-					oldLL = LL;
+			//check if we accept or backtrack
+			if(LL > oldLL){
+				//store new params
+				for(int x=0; x<3; ++x){
+					oldParams[x] = newParams[x];
 				}
+
+				//check if we stop NR
+				if(LL - oldLL < eps){
+					oldLL = LL;
+					break;
+				}
+				oldLL = LL;
+			}
 		} else {
 			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
 			throw "Issue solving JxF in TPMDTable::fitExponentialModel!";

@@ -161,6 +161,17 @@ int TRandomGenerator::pickOne(int numElements, float* probsCumulative){
 	return i;
 }
 
+int TRandomGenerator::pickOne(int numElements, double* probsCumulative){
+	if(numElements == 1) return 0;
+	double r = 1.0;
+	//while(r == 1.0) r=getRand(); //we have a number in [0,1[
+	r = getRand();
+	int i = 0;
+	while(r > probsCumulative[i])
+		++i;
+	return i;
+}
+
 long TRandomGenerator::getRand(long min, long maxPlusOne){
 	//return an random integer between min and maxPlusOne-1
 	double r=1.0;

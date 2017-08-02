@@ -34,11 +34,11 @@ static const string   FTP_NEWLINE       = "\r\n";
 static const string DEFAULT_USER = "anonymous";
 static const string DEFAULT_PASS = "anonymous@";
 
-static const string ABOR_CMD = "ABOR";
+//static const string ABOR_CMD = "ABOR";
 static const string USER_CMD = "USER";
 static const string PASS_CMD = "PASS";
 static const string PASV_CMD = "PASV";
-static const string REIN_CMD = "REIN";
+//static const string REIN_CMD = "REIN";
 static const string REST_CMD = "REST";
 static const string RETR_CMD = "RETR";
 static const string TYPE_CMD = "TYPE";

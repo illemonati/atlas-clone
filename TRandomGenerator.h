@@ -40,6 +40,7 @@ public:
 	int getRand(int min, int maxPlusOne);
 	int pickOne(int numElements);
 	int pickOne(int numElements, float* probsCumulative);
+	int pickOne(int numElements, double* probsCumulative);
 	long getRand(long min, long maxPlusOne);
 
 	//normal
