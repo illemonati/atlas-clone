@@ -20,6 +20,7 @@
 #include "bamtools/api/BamAlignment.h"
 #include <math.h>
 
+
 class TSimulatorChromosome{
 public:
 	std::string name;
@@ -97,7 +98,7 @@ private:
 	void writeTrueGenotypes(short** haplotypes, std::ofstream & genoFile);
 	void writeInvariantSites(short** haplotypes, std::ofstream & genoFile);
 	void simulateReads(int & numReads, long & pos, float* & altFreq);
-	void writeRead(long & pos, short* haplotype);
+	void writeRead(long & pos, short* haplotype, BamTools::BamWriter & thisBamWriter);
 
 public:
 	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & baseFreq);
@@ -123,6 +124,8 @@ public:
 
 	void simulatePooledData(int sampleSize, SFS & sfs, std::string outname);
 	void simulateSingleIndividual(double theta, double referenceDivergence, std::string outname);
+
+	void simulateIndividualPair(std::vector<double> & gammas, double referenceDivergence, std::string outname);
 
 };
 

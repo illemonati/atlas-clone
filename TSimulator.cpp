@@ -348,7 +348,7 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 }
 */
 
-void TSimulator::writeRead(long & pos, short* haplotype){
+void TSimulator::writeRead(long & pos, short* haplotype, BamTools::BamWriter & thisBamWriter){
 	static short base;
 	static int qual;
 	static long p;
@@ -395,7 +395,7 @@ void TSimulator::writeRead(long & pos, short* haplotype){
 		bamAlignment.QueryBases += toBase[base];
 
 	}
-	bamWriter.SaveAlignment(bamAlignment);
+	thisBamWriter.SaveAlignment(bamAlignment);
 }
 
 /*
@@ -640,7 +640,7 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 			if(numReadsHere > 0){
 				numReadsSimulated += numReadsHere;
 				for(r=0; r<numReadsHere; ++r)
-					writeRead(l, haplotypes[randomGenerator->pickOne(2)]);
+					writeRead(l, haplotypes[randomGenerator->pickOne(2)], bamWriter);
 
 				//report progress
 				prog = 100.0 * (float) numReadsSimulated / (float) numReads;
@@ -671,3 +671,5 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 	delete[] haplotypes[1];
 	delete[] haplotypes;
 }
+
+void simulateIndividualPair(std::vector<double> & gammas, double referenceDivergence, std::string outname);

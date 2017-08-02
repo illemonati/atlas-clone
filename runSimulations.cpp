@@ -36,8 +36,6 @@ void runSimulations(TParameters & params, TLog* logfile){
 	logfile->list("Will simulate data from " + toString(sampleSize) + " individuals.");
 	if(sampleSize < 1)
 		throw "Sample size needs to be at least 1!";
-	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
-	logfile->list("Will simulate data with theta = " + toString(theta) + ".");
 	double referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
 	logfile->list("Will simulate data with reference divergence = " + toString(referenceDivergence) + ".");
 
@@ -142,7 +140,6 @@ void runSimulations(TParameters & params, TLog* logfile){
 			logfile->list("Will transform qualities with beta = {" + s + "}");
 			simulator.setQualityTransformation(beta);
 		}
-
 	}
 
 	//initialize PMD
@@ -177,21 +174,43 @@ void runSimulations(TParameters & params, TLog* logfile){
 
 	//simulate differently depending on number of individuals
 	if(sampleSize == 1){
+		double theta = params.getParameterDoubleWithDefault("theta", 0.001);
+		logfile->list("Will simulate data with theta = " + toString(theta) + ".");
 		simulator.simulateSingleIndividual(theta, referenceDivergence, outname);
+	} else if(sampleSize == 2 && params.parameterExists("genDist")){
+		//simulate according to genetic distance
+		//parse distance
+		std::vector<double> gammas;
+		params.fillParameterIntoVector("genDist", gammas, ',');
+		if(gammas.size() != 10)
+			throw "Wrong number of gammas! Required are ten values for 00/00, 00/01, 01/00, 00/11, 00/12, 12/00, 01/12, 12/01, 01/23";
 	} else {
 		//prepare SFS
+		//TODO: think about ploidy!
 		logfile->startIndent("Preparing SFS:");
-		float theta = params.getParameterDouble("theta");
-		logfile->listFlush("Generating SFS for " + toString(sampleSize) + " chromosomes and with theta = " + toString(theta) + " ...");
-		SFS sfs(sampleSize, theta);
-		logfile->write(" done!");
+		SFS* sfs;
+		if(params.parameterExists("sfs")){
+			std::string sfsFile = params.getParameterString("sfs");
+			logfile->listFlush("Reading the sfs from file '" + sfsFile + "' ...");
+			sfs = new SFS(sfsFile);
+			logfile->done();
+			if(sfs->numChromosomes != 2*sampleSize)
+				throw "SFS does not match sample size! It contains data for " + toString(sfs->numChromosomes) + " instead of " + toString(2*sampleSize) + " chromosomes.";
+		} else if(params.parameterExists("theta")){
+				float theta = params.getParameterDouble("theta");
+				logfile->listFlush("Generating SFS for " + toString(2*sampleSize) + " chromosomes and with theta = " + toString(theta) + " ...");
+				sfs = new SFS(2*sampleSize, theta);
+				logfile->done();
+		} else throw "Specifying either sfs or theta is required to initialize the SFS!";
+
+		//save true SFS
 		std::string filename = outname + "_trueSFS.txt";
 		logfile->listFlush("Writing true SFS to '" + filename + "' ...");
-		sfs.writeToFile(filename);
+		sfs->writeToFile(filename);
 		logfile->write(" done!");
 		logfile->endIndent();
 
-		throw "NOT YET IMPLEMENTED!!!";
+		throw "SIMULATION FROM SFS NOT YET IMPLEMENTED!!!";
 	}
 
 	//clean up
