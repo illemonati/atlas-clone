@@ -1921,7 +1921,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 	gz::ogzstream out(filename.c_str());
 	if(!out)
 		throw "Failed ot open file '" + filename + "' for writing!";
-	out << "Read\tposition\nClippedLeft\tnNotClipped\tnClippedRight\n";
+	out << "Read\tposition\tClippedLeft\tnNotClipped\tnClippedRight\n";
 
 	//other temp variables
 	std::vector<BamTools::CigarOp>::iterator it;
