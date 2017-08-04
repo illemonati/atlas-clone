@@ -1623,7 +1623,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-							else context = genoMap.getContextReverseRead(alignment.AlignedBases.at(pos + 1), base);
+							else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
 
 							posInRead = abs(alignment.InsertSize)-len+pos;
 							revPosInRead = len - pos - 1;
@@ -1656,7 +1656,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 					if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
 						if((int)quality >= minQuality && (int)quality <= maxQuality){
 							if(pos == 0) context = genoMap.getContext('N', base);
-							else context = genoMap.getContext(alignment.AlignedBases.at(pos - 1), base);
+							else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
 							posInRead = pos;
 							revPosInRead = abs(alignment.InsertSize) - pos - 1;
 
@@ -1692,7 +1692,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == (len - 1)) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(alignment.AlignedBases.at(pos + 1), base);
+						else context = genoMap.getContextReverseRead(alignment.QueryBases.at(pos + 1), base);
 						posInRead = len - pos - 1;
 						revPosInRead = pos;
 						pmdCT = pmdObjects[readGroupId].getProbGA(posInRead);
@@ -1722,7 +1722,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){
 					if((int)quality >= minQuality && (int)quality <= maxQuality){
 						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(alignment.AlignedBases.at(pos - 1), base);
+						else context = genoMap.getContext(alignment.QueryBases.at(pos - 1), base);
 						posInRead = pos;
 						revPosInRead = len - pos - 1;
 						pmdCT = pmdObjects[readGroupId].getProbCT(posInRead);
