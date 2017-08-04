@@ -1913,6 +1913,69 @@ void TGenome::binQualityScores(TParameters & params){
 	logfile->removeIndent();
 }
 
+void TGenome::assessSoftClipping(TParameters & params){
+	//build table ??
+
+	//open output file
+	std::string filename = outputName + "_clippingStats.txt.gz";
+	gz::ogzstream out(filename.c_str());
+	if(!out)
+		throw "Failed ot open file '" + filename + "' for writing!";
+	out << "Read\tposition\nClippedLeft\tnNotClipped\tnClippedRight\n";
+
+	//other temp variables
+	std::vector<BamTools::CigarOp>::iterator it;
+	int S_left, S_right, middle;
+	bool reachedMiddle;
+	long counter = 0;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	float runtime;
+
+	//now parse through bam file and write alignments
+	while (bamReader.GetNextAlignment(bamAlignment)){
+
+		//count S, not S, S pattern from cigar string
+		S_left = 0;
+		S_right = 0;
+		middle = 0;
+		reachedMiddle = false;
+		for(it = bamAlignment.CigarData.begin(); it != bamAlignment.CigarData.end(); ++it){
+			if(it->Type == 'S'){
+				if(reachedMiddle) S_right += it->Length;
+				else S_left += it->Length;
+			} else {
+				reachedMiddle = true;
+				middle += it->Length;
+			}
+		}
+
+		//report
+		out << bamAlignment.Name << "\t" << bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
+
+		//report
+		++counter;
+		if(counter % 1000000 == 0){
+			gettimeofday(&end, NULL);
+			runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		}
+	}
+
+	//close output file
+	out.close();
+
+	//report
+	gettimeofday(&end, NULL);
+	runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
+
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");

@@ -105,6 +105,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "binQualityScores"){
 				logfile.startIndent("Binning quality scores (task = binQualityScores");
 				genome.binQualityScores(myParameters);
+			} else if(task == "assessSoftClipping"){
+				logfile.startIndent("Assessing level of soft clipping in BAM file:");
+				genome.assessSoftClipping(myParameters);
 			} else if(task == "splitRGbyLength"){
 				logfile.startIndent("Splitting single end read groups in a BAM file (task = splitRGbyLength):");
 				genome.splitSingleEndReadGroups(myParameters);
