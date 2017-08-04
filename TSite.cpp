@@ -146,6 +146,7 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 //-----------------------------------------------------------------------
 void TSite::calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL){
 	if(hasData){
+		int tmp;
 		//calculate phred-scaled likelihoods and find max
 		double maxGenotypeProb = 100000.0;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
@@ -154,9 +155,11 @@ void TSite::calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32
 			if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb)
 				maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
 		}
-		for(int i=0; i<numGenotypes; ++i)
-			normalizedGL[i] = round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
-
+		for(int i=0; i<numGenotypes; ++i){
+			tmp = round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
+			if(tmp > 255) tmp = 255;
+			normalizedGL[i] = tmp;
+		}
 		delete[] emissionProbabilitiesPhredScaled;
 		maxLL = round(maxGenotypeProb);
 	} else {
