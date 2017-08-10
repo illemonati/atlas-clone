@@ -35,7 +35,12 @@ public:
 		setSeed(0);
 		init();
 	};
-	~TRandomGenerator(){};
+	~TRandomGenerator(){
+		if(factorialTableInitialized)
+			delete[] factorialTable;
+		if(factorialTableLnInitialized)
+			delete[] factorialTableLn;
+	};
 	void setSeed(long addToSeed, bool seedIsFixed=false);
 
 	//uniform
