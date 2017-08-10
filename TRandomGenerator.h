@@ -14,6 +14,7 @@ private:
 	double _lowerIncompleteGamma(double alpha, double z);
 	double _upperIncompleteGamma(double alpha, double z);
 	long get_randomSeedFromCurrentTime(long & addToSeed);
+	void init();
 
 public:
 	long usedSeed;
@@ -23,21 +24,19 @@ public:
 	bool factorialTableLnInitialized;
 
 	TRandomGenerator(long addToSeed){
-		init(addToSeed);
+		setSeed(addToSeed);
+		init();
 	};
 	TRandomGenerator(long addToSeed, bool seedIsFixed){
-		if(!seedIsFixed) init(addToSeed);
-		else {
-			if(addToSeed<0) addToSeed=-addToSeed;
-	        usedSeed=addToSeed;
-	        _Idum=-addToSeed;
-		}
+		setSeed(addToSeed, seedIsFixed);
+		init();
 	};
 	TRandomGenerator(){
-			init(0);
+		setSeed(0);
+		init();
 	};
 	~TRandomGenerator(){};
-	void init(long addToSeed);
+	void setSeed(long addToSeed, bool seedIsFixed=false);
 
 	//uniform
 	double getRand(){ return ran3(); };

@@ -2557,7 +2557,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x quality table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tQualityScore\tEventType\tEmpiricalQuality\tObservations";
+	out << "ReadGroup\tQualityScore\tEventType\tEmpiricalQuality\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
@@ -2578,7 +2578,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x position table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
+	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
@@ -2600,7 +2600,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x position reverse table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tPosition\tEventType\tScaling\tObservations";
+	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
@@ -2621,7 +2621,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	logfile->listFlush("Writing BQSR readGroup x context table to '" + filename + "' ...");
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
-	out << "ReadGroup\tContext\tEventType\tScaling\tObservations";
+	out << "ReadGroup\tContext\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();

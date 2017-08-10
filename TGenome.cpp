@@ -1517,14 +1517,9 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 
-
-
 	//prepare windows
 	TWindowPairHaploid windows;
-
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
-
-
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
@@ -1788,7 +1783,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	std::map <std::string, int> mateTooLong;
 	bool withPMD = params.parameterExists("withPMD");
 
-	if(!withPMD && hasPMD) logfile->warning("The pmd pattern will not have any affect on the quality scores. If you want the quality scores to reflect pmd, use \"withPMD\"!");
+	if(!withPMD && hasPMD) logfile->list("Note: PMD will not be reflected in the quality scores (preferred option when using ATLAS). If you want the quality scores to reflect pmd, use \"withPMD\"!");
 	else if(withPMD && hasPMD) logfile->list("Probability of PMD will be reflected in new quality scores");
 	else if(withPMD && !hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
 	if(withPMD && !fastaReference) throw "Cannot run recalBAM withPMD without reference!";

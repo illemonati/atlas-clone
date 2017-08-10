@@ -8,14 +8,21 @@
 #include "TRandomGenerator.h"
 
 //---------------------------------------------------------------------------------------
-void TRandomGenerator::init(long addToSeed){
-	_Idum = get_randomSeedFromCurrentTime(addToSeed);
-	if(_Idum==0) _Idum=get_randomSeedFromCurrentTime(_Idum);
-	if(_Idum < 0) _Idum=-_Idum;
-	if(_Idum > 161803398) _Idum = _Idum % 161803397;
-	usedSeed = _Idum;
-	_Idum = -_Idum;
+void TRandomGenerator::setSeed(long addToSeed, bool seedIsFixed){
+	if(seedIsFixed){
+		if(addToSeed<0) addToSeed=-addToSeed;
+        usedSeed = addToSeed;
+        _Idum = -addToSeed;
+	} else {
+		_Idum = get_randomSeedFromCurrentTime(addToSeed);
+		if(_Idum==0) _Idum=get_randomSeedFromCurrentTime(_Idum);
+		if(_Idum < 0) _Idum=-_Idum;
+		if(_Idum > 161803398) _Idum = _Idum % 161803397;
+		usedSeed = _Idum;
+		_Idum = -_Idum;
+	}
 };
+
 long TRandomGenerator::get_randomSeedFromCurrentTime(long & addToSeed){
 	struct timeval time;
 	gettimeofday(&time, 0);
@@ -26,6 +33,12 @@ long TRandomGenerator::get_randomSeedFromCurrentTime(long & addToSeed){
    return microseconds ;
 }
 
+void TRandomGenerator::init(){
+	factorialTable = NULL;
+	factorialTableInitialized = false;
+	factorialTableLn = NULL;
+	factorialTableLnInitialized = false;
+}
 
 #define MBIG 1000000000L
 #define MSEED 161803398L
@@ -153,11 +166,12 @@ double TRandomGenerator::factorialLn(int n){
 	if(n < TABLESIZE){
 		if(!factorialTableLnInitialized){
 			factorialTableLn = new double[TABLESIZE];
+			factorialTableLn[0] = 0.0;
 			for(int i=1; i<TABLESIZE; i++)
 				factorialTableLn[i] = gammaln(i+1);
 			factorialTableLnInitialized = true;
 		}
-		return factorialTable[n];
+		return factorialTableLn[n];
 	}
 	return gammaln(n+1);
 }
