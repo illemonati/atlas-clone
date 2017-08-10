@@ -5,6 +5,7 @@
 //#include <time.h>
 #include <sys/time.h>
 #include <iostream>
+#include <sstream>
 
 class TRandomGenerator{
 private:
@@ -16,6 +17,10 @@ private:
 
 public:
 	long usedSeed;
+	double* factorialTable;
+	bool factorialTableInitialized;
+	double* factorialTableLn;
+	bool factorialTableLnInitialized;
 
 	TRandomGenerator(long addToSeed){
 		init(addToSeed);
@@ -51,7 +56,11 @@ public:
 
 	//binomial
 	double getBiomialRand(double pp, int n);
+	double factorial(int n);
+	double factorialLn(int n);
 	double binomCoeffLn(int n, int k);
+	int binomCoeff(int n, int k);
+	double binomDensity(int n, int k, double p);
 
 	//gamma
 	double gammaln(double z);

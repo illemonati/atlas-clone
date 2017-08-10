@@ -124,9 +124,58 @@ double TRandomGenerator::getBiomialRand(double pp, int n){
  return bnl;
 }
 
-double TRandomGenerator::binomCoeffLn(int n, int k){
-	return gammaln(n+1) - gammaln(k+1) - gammaln(n-k+1);
+double TRandomGenerator::factorial(int n){
+	if(n < 0 || n > 170){
+		std::ostringstream tos;
+		tos << n;
+		throw "TRandomGenerator::factorial: n = " + tos.str() + " out of range!";
+	}
+
+	if(!factorialTableInitialized){
+		factorialTable = new double[171];
+		factorialTable[0] = 1.0;
+		for(int i=1; i<171; i++)
+			factorialTable[i] = factorialTable[i-1]*i;
+		factorialTableInitialized = true;
+	}
+
+	return factorialTable[n];
 }
+
+double TRandomGenerator::factorialLn(int n){
+	static const int TABLESIZE = 2000;
+	if(n < 0){
+		std::ostringstream tos;
+		tos << n;
+		throw "TRandomGenerator::factorial: n = " + tos.str() + "out of range!";
+	}
+
+	if(n < TABLESIZE){
+		if(!factorialTableLnInitialized){
+			factorialTableLn = new double[TABLESIZE];
+			for(int i=1; i<TABLESIZE; i++)
+				factorialTableLn[i] = gammaln(i+1);
+			factorialTableLnInitialized = true;
+		}
+		return factorialTable[n];
+	}
+	return gammaln(n+1);
+}
+
+
+double TRandomGenerator::binomCoeffLn(int n, int k){
+	return factorialLn(n) - factorialLn(k) - factorialLn(n-k);
+}
+
+int TRandomGenerator::binomCoeff(int n, int k){
+	return factorial(n) - factorial(k) - factorial(n-k);
+}
+
+double TRandomGenerator::binomDensity(int n, int k, double p){
+	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
+}
+
+
 
 //--------------------------------------------------------
 //Uniform Distribution
