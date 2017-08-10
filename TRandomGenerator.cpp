@@ -186,6 +186,14 @@ int TRandomGenerator::binomCoeff(int n, int k){
 }
 
 double TRandomGenerator::binomDensity(int n, int k, double p){
+	if(p == 0.0){
+		if(k == 0) return 1.0;
+		else return 0.0;
+	}
+	if(p == 1.0){
+		if(k == n) return 1.0;
+		else return 0.0;
+	}
 	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
 }
 
