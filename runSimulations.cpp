@@ -183,8 +183,11 @@ void runSimulations(TParameters & params, TLog* logfile){
 		logfile->startIndent("Simulating two individuals with predefined genetic distance:");
 		//simulate according to genetic distance
 		//parse distance
+		std::vector<std::string> tmp;
 		std::vector<double> phis;
-		params.fillParameterIntoVector("phi", phis, ',');
+		params.fillParameterIntoVector("phi", tmp, ',');
+		repeatIndexes(tmp, phis);
+		//params.fillParameterIntoVector("phi", phis, ',');
 		if(phis.size() != 9)
 			throw "Wrong number of phi! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
 		//noralize phis

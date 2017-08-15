@@ -3136,7 +3136,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
     fragmentStats.open(outputFileNameFL.c_str());
     if(!fragmentStats) throw "Failed to open output file '" + outputFileNameFL + "'!";
 
-
     double totLength = 0.0;
     for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
         totLength += stringToLong(chrIterator->Length);
@@ -3263,8 +3262,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
     delete MQ;
     delete RL;
 }
-
-
 
 void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 	//open output file

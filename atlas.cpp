@@ -37,7 +37,6 @@ int main(int argc, char* argv[]){
 			logfile.suppressWarings();
 		}
 
-
 		//open log file that handles the output
 		std::string  logFilename=myParameters.getParameterString("logFile", false);
 		if(logFilename.length()>0){
@@ -53,10 +52,14 @@ int main(int argc, char* argv[]){
 		if(task=="simulate"){
 			logfile.startIndent("Generating simulations (task = simulate):");
 			runSimulations(myParameters, &logfile);
+		} else if(task=="printGLF"){
+			logfile.startIndent("Printing a GLF file to screen (task=printGLF):");
+			TDistanceEstimator distEst(&logfile);
+			distEst.printGLF(myParameters);
 		} else if(task=="estimateDist"){
-			logfile.startIndent("Estimating the genetic distance between individuals (task=estimateDist:");
-			TDistanceEstimator distEst;
-			distEst.calcDistance(myParameters);
+			logfile.startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
+			TDistanceEstimator distEst(&logfile);
+			distEst.estimateDistances(myParameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(&logfile, myParameters);

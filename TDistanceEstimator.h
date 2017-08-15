@@ -10,14 +10,29 @@
 
 #include "TParameters.h"
 #include "TGLF.h"
+#include <math.h>
 
 class TDistanceEstimator{
 private:
+	TLog* logfile;
+	double* phredToLikelihood;
+	bool phredToLikelihoodInitialized;
+
+	void initializePhredToLikelihoodTable();
+	void deletePhredToLikelihoodTable();
+	void estimateDistanceInWindows(std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
+
+	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData);
+	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd);
 
 public:
-	TDistanceEstimator(){}
+	TDistanceEstimator(TLog* Logfile);
+	~TDistanceEstimator(){
+		deletePhredToLikelihoodTable();
+	};
 
-	void calcDistance(TParameters & params);
+	void printGLF(TParameters & params);
+	void estimateDistances(TParameters & params);
 
 };
 
