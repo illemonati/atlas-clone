@@ -3213,6 +3213,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     for(int r=0; r<readGroups.numGroups; ++r){
         outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
     }
+    outputCoverage << "\n";
+
 
     //MQ
     long tot;
@@ -3228,6 +3230,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
             outputMQ << "\n" << readGroups.getName(r) << "\t" << i << "\t" << MQ[r][i];
         }
     }
+    outputMQ << "\n";
+
 
     //RL
     outputReadLen << "RG\tRead_length\tCount";
@@ -3241,11 +3245,13 @@ void TGenome::diagnoseBamFile(TParameters & params){
             outputReadLen << "\n" << readGroups.getName(r)<< "\t" << i << "\t" << RL[r][i];
         }
     }
+    outputReadLen << "\n";
+
 
     //FL
     float mean = float(sumFragLen)/float(numProperPairs);
     float var = float(sumSquaredFragLen) / float(numProperPairs) - (mean*mean);
-    fragmentStats << "mean: " << mean << "\n" << "variance: " << var;
+    fragmentStats << "mean: " << mean << "\n" << "variance: " << var << "\n";
 
     logfile->write(" done!");
 
@@ -3253,7 +3259,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
     outputMQ.close();
     outputReadLen.close();
     fragmentStats.close();
-
 
     for(int i = 0; i < readGroups.numGroups; ++i){
     	delete MQ[i];
