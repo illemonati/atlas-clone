@@ -60,10 +60,9 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	}
 	logfile->endIndent();
 
+	//in windows or whole genome?
 	long windowLen = params.getParameterLongWithDefault("window", 1000000);
 	logfile->list("Will estimate genetic distance in windows of length " + toString(windowLen) + ".");
-
-	std::cout << "HELLO --------------- E ------------" << std::endl;
 
 	//now calculate all pairwise distances
 	int g2;
@@ -71,7 +70,6 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	for(g1=0; g1<(numGLFs-1); ++g1){
 		for(g2 = g1+1; g2 < numGLFs; ++g2){
 			//estimate distance
-
 			std::cout << "RUN " << g1 << " and " << g2 << ".... " << std::endl;
 
 			filename = glfNames[g1] + "_" + glfNames[g2] + "_distanceEstimates.txt.gz";

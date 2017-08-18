@@ -325,7 +325,7 @@ public:
 	void initializeChromosomes(std::vector<long> & chrLength, std::vector<bool> haploid);
 
 	void simulatePooledData(int sampleSize, SFS & sfs, std::string outname);
-	void simulateSingleIndividual(double theta, double referenceDivergence, std::string outname);
+	void simulateSingleIndividual(std::vector<double> theta, double referenceDivergence, std::string outname);
 
 	void simulateIndividualPair(std::vector<double> & phis, double referenceDivergence, std::string outname);
 

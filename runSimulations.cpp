@@ -176,9 +176,21 @@ void runSimulations(TParameters & params, TLog* logfile){
 	//simulate differently depending on number of individuals
 	if(sampleSize == 1){
 		logfile->startIndent("Simulating a single individual:");
-		double theta = params.getParameterDoubleWithDefault("theta", 0.001);
-		logfile->list("Will simulate data with theta = " + toString(theta) + ".");
-		simulator.simulateSingleIndividual(theta, referenceDivergence, outname);
+
+		std::vector<std::string> tmp;
+		params.fillParameterIntoVectorWithDefault("theta", tmp, ',', "0.001");
+		std::vector<double> thetas;
+		repeatIndexes(tmp, thetas);
+		if(thetas.size() == 1){
+			logfile->list("Will simulate data with theta = " + toString(thetas[0]) + ".");
+			for(int i=1; i<chrLength.size(); ++i)
+				thetas.push_back(thetas[0]);
+		} else {
+			if(thetas.size() != chrLength.size())
+				throw "Number of theta values does not match number of chromosomes!";
+			logfile->list("Will simulate data with chromosome specific thetas " + concatenateString(thetas, ", "));
+		}
+		simulator.simulateSingleIndividual(thetas, referenceDivergence, outname);
 	} else if(sampleSize == 2 && params.parameterExists("phi")){
 		logfile->startIndent("Simulating two individuals with predefined genetic distance:");
 		//simulate according to genetic distance

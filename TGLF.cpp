@@ -106,6 +106,10 @@ void TGlfReader::init(){
 };
 
 bool TGlfReader::readChr(){
+	//store current chromosome name in list of chromosomes parsed
+	if(curChr != "")
+		chromosomesAlreadyParsed.push_back(curChr);
+
 	//read chromosome info
 	uint32_t len;
 	if(!read(&len, sizeof(uint32_t))){
@@ -121,6 +125,14 @@ bool TGlfReader::readChr(){
 	position = 0;
 
 	return true;
+};
+
+bool TGlfReader::chromosomeParsed(std::string & chr){
+	for(std::vector<std::string>::iterator it=chromosomesAlreadyParsed.begin(); it!=chromosomesAlreadyParsed.end(); ++it){
+		if(*it == chr)
+			return true;
+	}
+	return false;
 };
 
 bool TGlfReader::readRecordType(){
@@ -190,6 +202,7 @@ void TGlfReader::open(std::string Filename){
 	_eof = false;
 
 	//read info of first chromosome
+	chromosomesAlreadyParsed.clear();
 	readChr();
 };
 
@@ -226,6 +239,7 @@ bool TGlfReader::jumpToEndOfChr(){
 bool TGlfReader::readNextWindow(int** genoLikelihoods, std::string chr, long start, long end){
 	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
+	if(chromosomeParsed(chr)) return false;
 
 	//move to correct chromosome
 	if(curChr != chr){

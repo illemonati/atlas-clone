@@ -498,7 +498,7 @@ void TSimulator::writeInvariantSites(short** haplotypes, std::ofstream & genoFil
 	}
 }
 
-void TSimulator::simulateSingleIndividual(double theta, double referenceDivergence, std::string outname){
+void TSimulator::simulateSingleIndividual(std::vector<double> theta, double referenceDivergence, std::string outname){
 	//open BAM file
 	TSimulatorBamFile bamFile(outname + ".bam", readGroupName, chromosomes, logfile);
 	bamFileOpen = true;
@@ -506,13 +506,6 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 	//open FASTA file for reference sequences
 	std::string filename = outname + ".fasta";
 	TSimulatorReference referenceObj(filename, toBase, logfile);
-
-	//prepare cumulative frequencies for genotypes
-	float cumulFreq[3];
-	cumulFreq[0] = 1.0 - theta;
-	cumulFreq[1] = 1.0;
-	if(cumulFreq[0] < 0.0)
-		throw "Error when simulating data: current theta value too big, leads to too many mutations!";
 
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(1);
@@ -530,12 +523,20 @@ void TSimulator::simulateSingleIndividual(double theta, double referenceDivergen
 	mutTable = new float*[4];
 	for(int i=0; i<4; ++i)
 		mutTable[i] = new float[4];
-	fillMutationTable(mutTable, theta);
 
 	//simulate sequences
 	int refId = 0;
-	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
+	double oldTheta = -1.0;
+	std::vector<double>::iterator thetaIt = theta.begin();
+	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId, ++thetaIt){
 		logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
+
+		//create mutation table
+		if(*thetaIt != oldTheta){
+			fillMutationTable(mutTable, *thetaIt);
+			oldTheta = *thetaIt;
+		}
+
 		//update reference storage and update haplotype lengths
 		referenceObj.setChr(chrIt->name, chrIt->length);
 		haplotypes.setLength(chrIt->length);

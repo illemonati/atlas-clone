@@ -13,6 +13,7 @@
 #include "gzstream.h"
 #include <algorithm>
 #include <string.h>
+#include <vector>
 //#include <bitset>
 
 //----------------------------------------------------
@@ -114,6 +115,7 @@ private:
 	int _i;
 	bool _eof;
 	int* genotypeQualitiesMissingData;
+	std::vector<std::string> chromosomesAlreadyParsed;
 
 	void init();
 	template <typename T>
@@ -124,6 +126,7 @@ private:
 		return true;
 	};
 	bool readChr();
+	bool chromosomeParsed(std::string & chr);
 	bool readRecordType();
 	void readSNPRecord();
 	inline void skipRecord(){
