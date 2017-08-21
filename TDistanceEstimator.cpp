@@ -26,7 +26,6 @@ void TDistanceEstimate::guessPi(int** genoQual1, int** genoQual2, long numSites)
 	pi.clear();
 	double sum1, sum2;
 	int i;
-	std::pair<Base,Base> bases;
 
 	//now loop over sites
 	for(long s=0; s<numSites; ++s){
@@ -45,6 +44,34 @@ void TDistanceEstimate::guessPi(int** genoQual1, int** genoQual2, long numSites)
 
 	//normalize
 	pi.normalize();
+}
+
+void TDistanceEstimate::guessPhi(int** genoQual1, int** genoQual2, long numSites){
+	//set to zero
+	for(int i=0; i<9; ++i)
+		phi[i] = 0.0;
+
+	//now loop over sites and add posterior probs
+	double sum1, sum2;
+	int i;
+	for(long s=0; s<numSites; ++s){
+		sum1 = 0.0; sum2 = 0.0;
+		for(i=0; i<10; ++i){
+			sum1 += phredToLik[genoQual1[s][i]];
+			sum2 += phredToLik[genoQual2[s][i]];
+		}
+
+		//add to aa/aa
+
+		for(i=0; i<10; ++i){
+			pi.addNoRef(genoMap.genotypeToBase[i][0], phredToLik[genoQual1[s][i]] / sum1);
+			pi.addNoRef(genoMap.genotypeToBase[i][0], phredToLik[genoQual1[s][i]] / sum1);
+			pi.addNoRef(genoMap.genotypeToBase[i][1], phredToLik[genoQual2[s][i]] / sum2);
+			pi.addNoRef(genoMap.genotypeToBase[i][1], phredToLik[genoQual2[s][i]] / sum2);
+		}
+	}
+
+
 }
 
 //----------------------------------------------------
