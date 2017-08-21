@@ -7,9 +7,51 @@
 
 #include "TDistanceEstimator.h"
 
+//----------------------------------------------------
+//TDistanceEstimate
+//----------------------------------------------------
+TDistanceEstimate::TDistanceEstimate(){
+	phi = new double[9];
+	old_phi = new double[9];
+	for(int i=0; i<9; ++i){
+		phi[i] = 0.0;
+		old_phi[i] = 0.0;
+	}
+	LL = 0.0;
+	old_LL = 0.0;
+};
+
+void TDistanceEstimate::guessPi(int** genoQual1, int** genoQual2, long numSites){
+	//just estimate pi as average posterior probability
+	pi.clear();
+	double sum1, sum2;
+	int i;
+	std::pair<Base,Base> bases;
+
+	//now loop over sites
+	for(long s=0; s<numSites; ++s){
+		sum1 = 0.0; sum2 = 0.0;
+		for(i=0; i<10; ++i){
+			sum1 += phredToLik[genoQual1[s][i]];
+			sum2 += phredToLik[genoQual2[s][i]];
+		}
+		for(i=0; i<10; ++i){
+			pi.addNoRef(genoMap.genotypeToBase[i][0], phredToLik[genoQual1[s][i]] / sum1);
+			pi.addNoRef(genoMap.genotypeToBase[i][0], phredToLik[genoQual1[s][i]] / sum1);
+			pi.addNoRef(genoMap.genotypeToBase[i][1], phredToLik[genoQual2[s][i]] / sum2);
+			pi.addNoRef(genoMap.genotypeToBase[i][1], phredToLik[genoQual2[s][i]] / sum2);
+		}
+	}
+
+	//normalize
+	pi.normalize();
+}
+
+//----------------------------------------------------
+//TDistanceEstimator
+//----------------------------------------------------
 TDistanceEstimator::TDistanceEstimator(TLog* Logfile){
 	logfile = Logfile;
-	phredToLikelihood = NULL;
 }
 
 void TDistanceEstimator::printGLF(TParameters & params){
@@ -22,26 +64,8 @@ void TDistanceEstimator::printGLF(TParameters & params){
 	reader.printToEnd();
 }
 
-void TDistanceEstimator::initializePhredToLikelihoodTable(){
-	phredToLikelihood = new double[256];
-	phredToLikelihood[0] = 1.0;
-	for(int i=0; i<256; ++i){
-		phredToLikelihood[i] = pow(10.0, (double) -i/10.0);
-	}
-	phredToLikelihoodInitialized = true;
-}
-
-void TDistanceEstimator::deletePhredToLikelihoodTable(){
-	if(phredToLikelihoodInitialized)
-		delete[] phredToLikelihood;
-}
-
-
 //------------------------------------------------------------------
 void TDistanceEstimator::estimateDistances(TParameters & params){
-	//prepare stuff
-	initializePhredToLikelihoodTable();
-
 	//open all GLF files specified
 	std::vector<std::string> glfNames;
 	params.fillParameterIntoVector("glf", glfNames, ',');
@@ -251,7 +275,16 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 
 }
 
+//void TDistanceEstimator::estimatePhis(int** genoQual1, int** genoQual2, long numSites){
+	//variables
 
+
+	//estimate starting values
+
+
+	//run EM on these sites
+
+//}
 
 
 

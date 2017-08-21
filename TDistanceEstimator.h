@@ -11,12 +11,29 @@
 #include "TParameters.h"
 #include "TGLF.h"
 #include <math.h>
+#include "TGenotypeMap.h"
+
+class TDistanceEstimate{
+private:
+	TGenotypeMap genoMap;
+	TPhredToLikelihood phredToLik;
+
+public:
+	TBaseFrequencies pi, old_pi;
+	double* phi;
+	double* old_phi;
+	double LL;
+	double old_LL;
+
+	TDistanceEstimate();
+	void guessPi(int** genoQual1, int** genoQual2, long numSites);
+
+};
 
 class TDistanceEstimator{
 private:
 	TLog* logfile;
-	double* phredToLikelihood;
-	bool phredToLikelihoodInitialized;
+	TPhredToLikelihood phredToLik;
 
 	void initializePhredToLikelihoodTable();
 	void deletePhredToLikelihoodTable();
@@ -27,9 +44,7 @@ private:
 
 public:
 	TDistanceEstimator(TLog* Logfile);
-	~TDistanceEstimator(){
-		deletePhredToLikelihoodTable();
-	};
+	~TDistanceEstimator(){};
 
 	void printGLF(TParameters & params);
 	void estimateDistances(TParameters & params);

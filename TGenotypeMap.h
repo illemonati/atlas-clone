@@ -9,6 +9,7 @@
 #define TGENOTYPEMAP_H_
 
 #include "stringFunctions.h"
+#include <math.h>
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
@@ -22,6 +23,7 @@ class TGenotypeMap{
 public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
+	Base** genotypeToBase; //mapping genotypes to bases
 	int numContexts;
 
 	TGenotypeMap(){
@@ -39,6 +41,22 @@ public:
 				++geno;
 			}
 		}
+
+		//create and fill genotypeToBase
+		genotypeToBase = new Base*[10];
+		for(int i=0; i<10; ++i){
+			genotypeToBase[i] = new Base[2];
+		}
+		genotypeToBase[0][0] = A; genotypeToBase[0][1] = A;
+		genotypeToBase[1][0] = A; genotypeToBase[1][1] = C;
+		genotypeToBase[2][0] = A; genotypeToBase[2][1] = G;
+		genotypeToBase[3][0] = A; genotypeToBase[3][1] = T;
+		genotypeToBase[4][0] = C; genotypeToBase[4][1] = C;
+		genotypeToBase[5][0] = C; genotypeToBase[5][1] = G;
+		genotypeToBase[6][0] = C; genotypeToBase[6][1] = T;
+		genotypeToBase[7][0] = G; genotypeToBase[7][1] = G;
+		genotypeToBase[8][0] = G; genotypeToBase[8][1] = T;
+		genotypeToBase[9][0] = T; genotypeToBase[9][1] = T;
 
 		//create and fill context map
 		numContexts = 20;
@@ -208,7 +226,10 @@ public:
 	};
 	void add(Base B, double & weight){
 		freq[B] += weight;
-	}
+	};
+	void addNoRef(Base B, double weight){
+		freq[B] += weight;
+	};
 	void normalize(){
 		double sum = 0.0;
 		for(int i = 0; i < 4; ++i) sum += freq[i];
@@ -223,8 +244,40 @@ public:
 	};
 	double& operator[](int pos){
 		return freq[pos];
-	}
+	};
 };
 
+//---------------------------------------------------------------
+//TPhredToLikelihood
+//---------------------------------------------------------------
+class TPhredToLikelihood{
+public:
+	double* phredToLikelihood;
+	double min;
+
+	TPhredToLikelihood(){
+		//only up to phred = 255, else always return 256
+		phredToLikelihood = new double[256];
+		phredToLikelihood[0] = 1.0;
+		for(int i=0; i<256; ++i)
+			phredToLikelihood[i] = pow(10.0, (double) -i/10.0);
+		min = pow(10.0, (double) -256/10.0);
+	};
+
+	~TPhredToLikelihood(){
+		delete[] phredToLikelihood;
+	};
+
+	double getLikelihood(int phred){
+		if(phred>255)
+			return min;
+		else return phredToLikelihood[phred];
+	};
+
+	double& operator[](int phred){
+		//Note: no check on range!
+		return phredToLikelihood[phred];
+	};
+};
 
 #endif /* TGENOTYPEMAP_H_ */
