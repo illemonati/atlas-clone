@@ -71,19 +71,31 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	genoToPhiMap[CT][CT] = 4;
 	genoToPhiMap[GT][GT] = 4;
 
-	//case ab/cc
-	genoToPhiMap[AC][GG] = 5;
-	genoToPhiMap[AC][TT] = 5;
-	genoToPhiMap[AG][CC] = 5;
-	genoToPhiMap[AG][TT] = 5;
-	genoToPhiMap[AT][CC] = 5;
-	genoToPhiMap[AT][GG] = 5;
-	genoToPhiMap[CG][AA] = 5;
-	genoToPhiMap[CG][TT] = 5;
-	genoToPhiMap[CT][AA] = 5;
-	genoToPhiMap[CT][GG] = 5;
-	genoToPhiMap[GT][AA] = 5;
-	genoToPhiMap[GT][CC] = 5;
+	//case ab/ac
+	genoToPhiMap[AC][AG] = 5;
+	genoToPhiMap[AC][AT] = 5;
+	genoToPhiMap[AC][CG] = 5;
+	genoToPhiMap[AC][CT] = 5;
+	genoToPhiMap[AG][AC] = 5;
+	genoToPhiMap[AG][AT] = 5;
+	genoToPhiMap[AG][CG] = 5;
+	genoToPhiMap[AG][GT] = 5;
+	genoToPhiMap[AT][AC] = 5;
+	genoToPhiMap[AT][AG] = 5;
+	genoToPhiMap[AT][CT] = 5;
+	genoToPhiMap[AT][GT] = 5;
+	genoToPhiMap[CG][AC] = 5;
+	genoToPhiMap[CG][CT] = 5;
+	genoToPhiMap[CG][AG] = 5;
+	genoToPhiMap[CG][GT] = 5;
+	genoToPhiMap[CT][AC] = 5;
+	genoToPhiMap[CT][CG] = 5;
+	genoToPhiMap[CT][AT] = 5;
+	genoToPhiMap[CT][GT] = 5;
+	genoToPhiMap[GT][AG] = 5;
+	genoToPhiMap[GT][CG] = 5;
+	genoToPhiMap[GT][AT] = 5;
+	genoToPhiMap[GT][CT] = 5;
 
 	//case aa/bc
 	genoToPhiMap[GG][AC] = 6;
@@ -99,31 +111,19 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	genoToPhiMap[AA][GT] = 6;
 	genoToPhiMap[CC][GT] = 6;
 
-	//case ab/ac
-	genoToPhiMap[AC][AG] = 7;
-	genoToPhiMap[AC][AT] = 7;
-	genoToPhiMap[AC][CG] = 7;
-	genoToPhiMap[AC][CT] = 7;
-	genoToPhiMap[AG][AC] = 7;
-	genoToPhiMap[AG][AT] = 7;
-	genoToPhiMap[AG][CG] = 7;
-	genoToPhiMap[AG][GT] = 7;
-	genoToPhiMap[AT][AC] = 7;
-	genoToPhiMap[AT][AG] = 7;
-	genoToPhiMap[AT][CT] = 7;
-	genoToPhiMap[AT][GT] = 7;
-	genoToPhiMap[CG][AC] = 7;
-	genoToPhiMap[CG][CT] = 7;
-	genoToPhiMap[CG][AG] = 7;
-	genoToPhiMap[CG][GT] = 7;
-	genoToPhiMap[CT][AC] = 7;
-	genoToPhiMap[CT][CG] = 7;
-	genoToPhiMap[CT][AT] = 7;
-	genoToPhiMap[CT][GT] = 7;
-	genoToPhiMap[GT][AG] = 7;
-	genoToPhiMap[GT][CG] = 7;
-	genoToPhiMap[GT][AT] = 7;
-	genoToPhiMap[GT][CT] = 7;
+	//case ab/cc
+	genoToPhiMap[AC][GG] = 7;
+	genoToPhiMap[AC][TT] = 7;
+	genoToPhiMap[AG][CC] = 7;
+	genoToPhiMap[AG][TT] = 7;
+	genoToPhiMap[AT][CC] = 7;
+	genoToPhiMap[AT][GG] = 7;
+	genoToPhiMap[CG][AA] = 7;
+	genoToPhiMap[CG][TT] = 7;
+	genoToPhiMap[CT][AA] = 7;
+	genoToPhiMap[CT][GG] = 7;
+	genoToPhiMap[GT][AA] = 7;
+	genoToPhiMap[GT][CC] = 7;
 
 	//case ab/cd
 	genoToPhiMap[AC][GT] = 8;
@@ -254,7 +254,7 @@ void TDistanceEstimate::fill_P_g_given_phi_pi(double* thesePhi, TBaseFrequencies
 	probGeno[GG][GG] = thesePhi[0] * thesePi[G];
 	probGeno[TT][TT] = thesePhi[0] * thesePi[T];
 
-	//cases aa/ab and ab/aa
+	//cases aa/ab
 	double tmp = thesePhi[1] * K[1];
 	double tmp2 = tmp * thesePi[A];
 	probGeno[AA][AC] = tmp2 * thesePi[C];
@@ -322,46 +322,8 @@ void TDistanceEstimate::fill_P_g_given_phi_pi(double* thesePhi, TBaseFrequencies
 	probGeno[CT][CT] = tmp2 * thesePi[T];
 	probGeno[GT][GT] = tmp * thesePi[G] * thesePi[T];
 
-	//case ab/cc
-	tmp = thesePhi[5] * K[5];
-	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
-	probGeno[AC][GG] = tmp2;
-	probGeno[AG][CC] = tmp2;
-	probGeno[CG][AA] = tmp2;
-	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[T];
-	probGeno[AC][TT] = tmp2;
-	probGeno[AT][CC] = tmp2;
-	probGeno[CT][AA] = tmp2;
-	tmp2 = tmp * thesePi[A] * thesePi[G] * thesePi[T];
-	probGeno[AG][TT] = tmp2;
-	probGeno[AT][GG] = tmp2;
-	probGeno[GT][AA] = tmp2;
-	tmp2 = tmp * thesePi[C] * thesePi[G] * thesePi[T];
-	probGeno[CG][TT] = tmp2;
-	probGeno[CT][GG] = tmp2;
-	probGeno[GT][CC] = tmp2;
-
-	//case aa/bc
-	tmp = thesePhi[6] * K[6];
-	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
-	probGeno[AA][CG] = tmp2;
-	probGeno[CC][AG] = tmp2;
-	probGeno[GG][AC] = tmp2;
-	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[T];
-	probGeno[AA][CT] = tmp2;
-	probGeno[CC][AT] = tmp2;
-	probGeno[TT][AC] = tmp2;
-	tmp2 = tmp * thesePi[A] * thesePi[G] * thesePi[T];
-	probGeno[AA][GT] = tmp2;
-	probGeno[GG][AT] = tmp2;
-	probGeno[TT][AG] = tmp2;
-	tmp2 = tmp * thesePi[C] * thesePi[G] * thesePi[T];
-	probGeno[CC][GT] = tmp2;
-	probGeno[GG][CT] = tmp2;
-	probGeno[TT][CG] = tmp2;
-
 	//case ab/ac
-	tmp = thesePhi[7] * K[7];
+	tmp = thesePhi[5] * K[5];
 	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
 	probGeno[AC][AG] = tmp2;
 	probGeno[AC][CG] = tmp2;
@@ -391,6 +353,44 @@ void TDistanceEstimate::fill_P_g_given_phi_pi(double* thesePhi, TBaseFrequencies
 	probGeno[GT][CG] = tmp2;
 	probGeno[GT][CT] = tmp2;
 
+
+	//case aa/bc
+	tmp = thesePhi[6] * K[6];
+	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
+	probGeno[AA][CG] = tmp2;
+	probGeno[CC][AG] = tmp2;
+	probGeno[GG][AC] = tmp2;
+	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[T];
+	probGeno[AA][CT] = tmp2;
+	probGeno[CC][AT] = tmp2;
+	probGeno[TT][AC] = tmp2;
+	tmp2 = tmp * thesePi[A] * thesePi[G] * thesePi[T];
+	probGeno[AA][GT] = tmp2;
+	probGeno[GG][AT] = tmp2;
+	probGeno[TT][AG] = tmp2;
+	tmp2 = tmp * thesePi[C] * thesePi[G] * thesePi[T];
+	probGeno[CC][GT] = tmp2;
+	probGeno[GG][CT] = tmp2;
+	probGeno[TT][CG] = tmp2;
+
+	//case ab/cc
+	tmp = thesePhi[7] * K[7];
+	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
+	probGeno[AC][GG] = tmp2;
+	probGeno[AG][CC] = tmp2;
+	probGeno[CG][AA] = tmp2;
+	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[T];
+	probGeno[AC][TT] = tmp2;
+	probGeno[AT][CC] = tmp2;
+	probGeno[CT][AA] = tmp2;
+	tmp2 = tmp * thesePi[A] * thesePi[G] * thesePi[T];
+	probGeno[AG][TT] = tmp2;
+	probGeno[AT][GG] = tmp2;
+	probGeno[GT][AA] = tmp2;
+	tmp2 = tmp * thesePi[C] * thesePi[G] * thesePi[T];
+	probGeno[CG][TT] = tmp2;
+	probGeno[CT][GG] = tmp2;
+	probGeno[GT][CC] = tmp2;
 
 	//case ab/cd
 	tmp = thesePhi[8] * K[8];
