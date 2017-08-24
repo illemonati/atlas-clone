@@ -77,7 +77,9 @@ private:
 	double** P_G;
 	double** P_G_one_site;
 	int g1, g2; //index variables
+	double* distanceWeight; //weight for each phi class towards the distance.
 
+	void calculateDistance();
 	void guessPi(int** genoQual1, int** genoQual2, long numSites);
 	void guessPhi(int** genoQual1, int** genoQual2, long numSites);
 	void fill_K(TBaseFrequencies  & thesePi);
@@ -87,8 +89,9 @@ public:
 	TBaseFrequencies pi;
 	double* phi;
 	double LL;
+	double distance;
 
-	TEMforDistanceEstimation(TLog* Logfile);
+	TEMforDistanceEstimation(TLog* Logfile, TParameters & params);
 	~TEMforDistanceEstimation(){
 		delete[] phi;
 		delete[] K;
@@ -100,6 +103,7 @@ public:
 		delete[] probGeno;
 		delete[] P_G;
 		delete[] P_G_one_site;
+		delete[] distanceWeight;
 	};
 
 	bool estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon);
@@ -114,7 +118,7 @@ private:
 	int maxNumEMIterations;
 	double epsilonForEM;
 
-	void estimateDistanceInWindows(std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
 
 	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd);

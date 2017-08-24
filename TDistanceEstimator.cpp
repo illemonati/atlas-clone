@@ -132,7 +132,7 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //----------------------------------------------------
 //TDistanceEstimate
 //----------------------------------------------------
-TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile){
+TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 
 	//prepare storage
@@ -154,8 +154,46 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile){
 
 	//other variables
 	g1 = 0; g2 = 0;
+	distance = -1.0;
 
+	//set how to calculate distances
+	distanceWeight = new double[9];
+	if(params.parameterExists("distWeights")){
+		logfile->list("Using user-provided distance weights.");
+		std::vector<double> vec;
+		std::vector<std::string> tmp;
+		params.fillParameterIntoVector("distWeights", tmp, ',');
+		repeatIndexes(tmp, vec);
+		if(vec.size() != 9)
+			throw "Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
+
+		for(int i=0; i<9; ++i)
+			distanceWeight[i] = vec[i];
+	} else {
+		std::string distType = params.getParameterStringWithDefault("distType", "probMismatch");
+		logfile->list("Using distance type '" + distType + "'.");
+		if(distType == "probMismatch"){
+			//probability that a random allele from each individual is different
+			distanceWeight[0] = 0.0; //case aa/aa
+			distanceWeight[1] = 0.5; //case ab/aa
+			distanceWeight[2] = 0.5; //case aa/ab
+			distanceWeight[3] = 1.0; //case aa/bb
+			distanceWeight[4] = 0.5; //case ab/ab
+			distanceWeight[5] = 0.75; //case ab/ac
+			distanceWeight[6] = 1.0; //case aa/bc
+			distanceWeight[7] = 1.0; //case ab/cc
+			distanceWeight[8] = 1.0; //case ab/cd
+		} else
+			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
+	}
+	logfile->conclude("Using distance weights " + concatenateString(distanceWeight, 9, ", ") + ".");
 };
+
+void TEMforDistanceEstimation::calculateDistance(){
+	distance = 0.0;
+	for(int i=0; i<9; ++i)
+		distance += phi[i] * distanceWeight[i];
+}
 
 void TEMforDistanceEstimation::guessPi(int** genoQual1, int** genoQual2, long numSites){
 	//just estimate pi as average posterior probability
@@ -417,6 +455,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 	double LL_diff;
 
 	//now run EM
+	logfile->startIndent("Estimating phi using an EM algorithm:");
 	for(int iter=0; iter<maxNumIterations; ++iter){
 		logfile->listFlush("Running EM iteration " + toString(iter+1) + " ...");
 		//save old LL
@@ -493,12 +532,18 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 			logfile->conclude("LL = " + toString(LL) + " (deltaLL = " + toString(LL_diff) + ").");
 			if(LL_diff < epsilon){
 				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilon));
+				calculateDistance();
+				logfile->conclude("Resulting distance is " + toString(distance));
+				logfile->endIndent();
 				return true;
 			}
 		} else
 			logfile->conclude("LL = " + toString(LL) + ".");
 	}
 	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumIterations) + ") without converging!");
+	calculateDistance();
+	logfile->conclude("Resulting distance is " + toString(distance));
+	logfile->endIndent();
 	return false;
 };
 
@@ -535,11 +580,15 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	logfile->startIndent("Opening GLF files:");
 	int g1 = 0;
 	for(std::vector<std::string>::iterator it=glfNames.begin(); it != glfNames.end(); ++it, ++g1){
-		logfile->list("Opening GLF '" + *it + "' ...");
+		logfile->listFlush("Opening GLF '" + *it + "' ...");
 		glfs[g1].open(*it);
 		logfile->done();
 	}
 	logfile->endIndent();
+
+	//create estimate object
+	TEMforDistanceEstimation EM_object(logfile, params);
+
 
 	//read EM parameters
 	logfile->startIndent("Parameters of EM algorithm:");
@@ -564,9 +613,7 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 			logfile->list("Will write estimates to file '" + filename + "'.");
 
 			//now run estimation
-			logfile->startIndent("Estimating phi using an EM algorithm:");
-			estimateDistanceInWindows(filename, glfs[g1], glfs[g2], windowLen);
-			logfile->endIndent();
+			estimateDistanceInWindows(EM_object, filename, glfs[g1], glfs[g2], windowLen);
 
 			//rewind GLFs
 			glfs[g1].rewind();
@@ -649,21 +696,25 @@ void TDistanceEstimator::estimateDistanceInWindows(TGlfReader & g1, TGlfReader &
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t" << numsitesWithData;
+	//write pi
 	for(int b=0; b<4; ++b)
 		out << "\t" << EM_object.pi[b];
+	//write phi
 	for(int b=0; b<9; ++b)
 		out << "\t" << EM_object.phi[b];
+	//write distance
+	out << "\t" << EM_object.distance;
 	out << "\n";
 }
 
 void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd){
 	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t0";
-	for(int i=0; i<13; ++i)
+	for(int i=0; i<14; ++i)
 		out << "\t-";
 	out << "\n";
 }
 
-void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen){
+void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen){
 	//initialize variables
 	bool keepReading = true;
 	bool isGood1 = true;
@@ -688,12 +739,10 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 	long windowStart;
 	long windowEnd;
 
-	//create estimate object
-	TEMforDistanceEstimation EM_object(logfile);
-
 	int numSitesWithData = 100;
 
 	//parse GLFs in windows
+	logfile->startIndent("Will estimate distance in windows of size " + toString(windowLen) + ":");
 	while(keepReading){
 		//move to new chromosome
 		curChr = g1.chr();
@@ -701,8 +750,12 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 		long windowStart = 1;
 		long windowEnd = windowLen+1;
 
+		logfile->startNumbering("Chromosome " + curChr + ":");
+
 		//parse all windows of chromosome
 		while(windowStart < curChrLen){
+			logfile->number("Window [" + toString(windowStart) + ", " + toString(windowEnd) + ")");
+			logfile->addIndent();
 			//read data
 			isGood1 = g1.readNextWindow(genoQual1, curChr, windowStart, windowEnd);
 			if(isGood1 || g1.eof()){
@@ -736,12 +789,14 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 			//move window
 			windowStart = windowEnd;
 			windowEnd = windowStart + windowLen;
-
+			logfile->endIndent();
 		}
+		logfile->endNumbering();
 
 		if(g1.eof() && g2.eof())
 			keepReading = false;
 	}
+	logfile->endIndent();
 
 }
 
