@@ -94,6 +94,17 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	genoToPhiMap[CG][AT] = 8;
 	genoToPhiMap[CT][AG] = 8;
 	genoToPhiMap[GT][AC] = 8;
+
+
+	//test (seemed correct on 24/8/2017)
+	/*
+	for(int g1 = 0; g1<10; ++g1){
+		for(int g2 = 0; g2<10; ++g2){
+			std::cout << genoMap.getGenotypeString(g1) << "/" << genoMap.getGenotypeString(g2) << " -> " << genoToPhiMap[g1][g2] << std::endl;
+		}
+	}
+	*/
+
 };
 
 //----------------------------------------------------
@@ -121,7 +132,10 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //----------------------------------------------------
 //TDistanceEstimate
 //----------------------------------------------------
-TEMforDistanceEstimation::TEMforDistanceEstimation(){
+TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile){
+	logfile = Logfile;
+
+	//prepare storage
 	phi = new double[9];
 	for(int i=0; i<9; ++i){
 		phi[i] = 0.0;
@@ -385,8 +399,14 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon){
 	//prepare estimates
+	logfile->listFlush("Estimating initial base frequencies pi ...");
 	guessPi(genoQual1, genoQual2, numSites);
+	logfile->done();
+	logfile->conclude("Initial pi are A=" + toString(pi.freq[0]) + ", C=" + toString(pi.freq[1]) + ", G=" + toString(pi.freq[2]) + " and T=" + toString(pi.freq[3]) + ".");
+	logfile->listFlush("Estimating initial genotype classes phi ...");
 	guessPhi(genoQual1, genoQual2, numSites);
+	logfile->done();
+	logfile->conclude("Initial phi are " + concatenateString(phi, 9, ", ") + ".");
 
 	//variables
 	long s;
@@ -398,11 +418,13 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 
 	//now run EM
 	for(int iter=0; iter<maxNumIterations; ++iter){
+		logfile->listFlush("Running EM iteration " + toString(iter+1) + " ...");
 		//save old LL
 		old_LL = LL;
 		LL = 0.0;
 
 		//calculate P(g|phi, pi)
+		fill_K(pi);
 		fill_P_g_given_phi_pi(phi, pi);
 
 		//set P_G to zero
@@ -419,6 +441,9 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 			for(g1 = 0; g1<10; ++g1){
 				for(g2 = 0; g2<10; ++g2){
 					P_G_one_site[g1][g2] = phredToLik[genoQual1[s][g1]] * phredToLik[genoQual2[s][g2]] * probGeno[g1][g2];
+
+					//std::cout << g1 << "/" << g2 << ": " <<  phredToLik[genoQual1[s][g1]] << " * " << phredToLik[genoQual2[s][g2]] << " * " << probGeno[g1][g2] << " = " << P_G_one_site[g1][g2] << std::endl;
+
 					sum += P_G_one_site[g1][g2];
 				}
 			}
@@ -432,6 +457,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 
 			//add to LL
 			LL += log(sum);
+			//std::cout << s << "\t" << sum << " -> " << LL << "\n";
 		}
 
 		//update phi
@@ -460,10 +486,19 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		pi.normalize();
 
 		//check if EM converged
-		LL_diff = LL - old_LL;
-		if(iter > 0 && LL_diff < epsilon)
-			return true;
+		logfile->done();
+		//throw "done!";
+		if(iter > 0 ){
+			LL_diff = LL - old_LL;
+			logfile->conclude("LL = " + toString(LL) + " (deltaLL = " + toString(LL_diff) + ").");
+			if(LL_diff < epsilon){
+				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilon));
+				return true;
+			}
+		} else
+			logfile->conclude("LL = " + toString(LL) + ".");
 	}
+	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumIterations) + ") without converging!");
 	return false;
 };
 
@@ -522,19 +557,21 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	std::string filename;
 	for(g1=0; g1<(numGLFs-1); ++g1){
 		for(g2 = g1+1; g2 < numGLFs; ++g2){
-			//estimate distance
-			std::cout << "RUN " << g1 << " and " << g2 << ".... " << std::endl;
+			logfile->startIndent("Estimating distance between individuals " + toString(g1+1) + "(" + glfNames[g1] + ") and " + toString(g2+1) + " (" + glfNames[g2] + "):");
 
+			//output file
 			filename = glfNames[g1] + "_" + glfNames[g2] + "_distanceEstimates.txt.gz";
+			logfile->list("Will write estimates to file '" + filename + "'.");
 
+			//now run estimation
+			logfile->startIndent("Estimating phi using an EM algorithm:");
 			estimateDistanceInWindows(filename, glfs[g1], glfs[g2], windowLen);
-
-			//report
+			logfile->endIndent();
 
 			//rewind GLFs
 			glfs[g1].rewind();
 			glfs[g2].rewind();
-
+			logfile->endIndent();
 		}
 	}
 
@@ -643,7 +680,7 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 
 	//open output file
 	gz::ogzstream out(filename.c_str());
-	if(!out) throw "Failed to ipen file '" + filename + "' for writing!";
+	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 
 	//prepare variables
 	std::string curChr;
@@ -652,7 +689,7 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 	long windowEnd;
 
 	//create estimate object
-	TEMforDistanceEstimation EM_object;
+	TEMforDistanceEstimation EM_object(logfile);
 
 	int numSitesWithData = 100;
 
@@ -666,9 +703,6 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 
 		//parse all windows of chromosome
 		while(windowStart < curChrLen){
-
-			std::cout << "Chr '" << curChr << "' [" << windowStart  << ", " << windowEnd << "):" << std::endl;
-
 			//read data
 			isGood1 = g1.readNextWindow(genoQual1, curChr, windowStart, windowEnd);
 			if(isGood1 || g1.eof()){
@@ -682,7 +716,7 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 
 
 				} else writeDistanceEstimatesNoData(out, curChr, windowStart, windowEnd);
-			} writeDistanceEstimatesNoData(out, curChr, windowStart, windowEnd);
+			} else writeDistanceEstimatesNoData(out, curChr, windowStart, windowEnd);
 
 /*
 			//print data
@@ -704,11 +738,6 @@ void TDistanceEstimator::estimateDistanceInWindows(std::string filename, TGlfRea
 			windowEnd = windowStart + windowLen;
 
 		}
-
-		std::cout << "END OF WINDOW LOOP ...." << std::endl;
-
-		std::cout << "G1.EOF = " << g1.eof() << std::endl;
-		std::cout << "G2.EOF = " << g2.eof() << std::endl;
 
 		if(g1.eof() && g2.eof())
 			keepReading = false;

@@ -66,6 +66,7 @@ public:
 //--------------------------------------------
 class TEMforDistanceEstimation{
 private:
+	TLog* logfile;
 	TGenotypeMap genoMap;
 	TGenoToPhiMap genoToPhiMap;
 	TGenocombinationToBaseMap genoToBaseMap;
@@ -87,7 +88,7 @@ public:
 	double* phi;
 	double LL;
 
-	TEMforDistanceEstimation();
+	TEMforDistanceEstimation(TLog* Logfile);
 	~TEMforDistanceEstimation(){
 		delete[] phi;
 		delete[] K;

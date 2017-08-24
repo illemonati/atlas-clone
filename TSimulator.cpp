@@ -567,9 +567,9 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, double refe
 
 
 
-//--------------------------------------------------------------------
-//Functions to simulate a pair of individuals according to distances
-//--------------------------------------------------------------------
+//-------------------------------------------------------------------------------------
+//Functions to simulate a pair of individuals according to a specific genetic distance
+//-------------------------------------------------------------------------------------
 void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::vector<float> & baseFreq){
 	//file cumulative frequencies of cases (phis)
 	double sum = 0.0;
@@ -589,6 +589,7 @@ void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::
 	//some variables
 	int a,b,c,d;
 	int index;
+	double* cumul = new double[24];
 
 	//case 0: aa/aa
 	//-----------------------------------------
@@ -606,10 +607,9 @@ void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::
 		genoTrans[0][a][3] = a;
 	}
 
-	//cases 1 to 4: aa/ab, ab/aa, aa/bb, ab/ab
+	//cases 1 to 3: aa/ab, ab/aa, aa/bb
 	//-----------------------------------------
 	//build normalized cumulative vector for these cases
-	double* cumul = new double[12];
 	index = 0;
 	sum = 0.0;
 	for(a=0; a<4; ++a){
@@ -644,15 +644,71 @@ void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::
 				genoTrans[1][index][0] = a; genoTrans[1][index][1] = a; genoTrans[1][index][2] = a; genoTrans[1][index][3] = b;
 				genoTrans[2][index][0] = a; genoTrans[2][index][1] = b; genoTrans[2][index][2] = a; genoTrans[2][index][3] = a;
 				genoTrans[3][index][0] = a; genoTrans[3][index][1] = a; genoTrans[3][index][2] = b; genoTrans[3][index][3] = b;
-				genoTrans[4][index][0] = a; genoTrans[4][index][1] = b; genoTrans[4][index][2] = a; genoTrans[4][index][3] = b;
 				++index;
 			}
 		}
 	}
 
-	delete[] cumul;
+	//cases 4: ab/ab
+	//-----------------------------------------
+	//build normalized cumulative vector for these cases
+	index = 0;
+	sum = 0.0;
+	genoTrans[4] = new short*[6];
+	for(a=0; a<3; ++a){
+		for(b=a+1; b<4; ++b){
+			sum += baseFreq[a] * baseFreq[b];
+			cumul[index] = sum;
+			genoTrans[4][index] = new short[4];
+			genoTrans[4][index][0] = a; genoTrans[4][index][1] = b; genoTrans[4][index][2] = a; genoTrans[4][index][3] = b;
+			++index;
+		}
+	}
+	//normalize
+	for(index=0; index<6; ++index)
+		cumul[index] /= sum;
 
-	//cases 5 to 7: ab/ac, aa/bc, ab/cc
+	//now initialize
+	cumulGenoCombinationFreq[4] = new double[6];
+	numGenotypeCombinations[4] = 6;
+	for(index=0; index<6; ++index){
+		cumulGenoCombinationFreq[4][index] = cumul[index];
+
+	}
+
+	//case 5: ab/ac
+	//-----------------------------------------
+	//build normalized cumulative vector for these cases
+	index = 0;
+	sum = 0.0;
+	genoTrans[5] = new short*[24];
+	for(a=0; a<4; ++a){
+		for(b=0; b<4; ++b){
+			if(a!=b){
+				for(c=0; c<4; ++c){
+					if(c!=a && c!=b){
+						sum += baseFreq[a] * baseFreq[b] * baseFreq[c];
+						cumul[index] = sum;
+						genoTrans[5][index] = new short[4];
+						genoTrans[5][index][0] = a; genoTrans[5][index][1] = b; genoTrans[5][index][2] = a; genoTrans[5][index][3] = c;
+						++index;
+					}
+				}
+			}
+		}
+	}
+	//normalize
+	for(index=0; index<24; ++index)
+		cumul[index] /= sum;
+
+	//now initialize
+	cumulGenoCombinationFreq[5] = new double[24];
+	numGenotypeCombinations[5] = 24;
+	for(index=0; index<24; ++index){
+		cumulGenoCombinationFreq[5][index] = cumul[index];
+	}
+
+	//cases 6 and 7: aa/bc, ab/cc
 	//-----------------------------------------
 	//build normalized cumulative vector for these cases
 	cumul = new double[24];
@@ -703,8 +759,6 @@ void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::
 		}
 	}
 
-	delete[] cumul;
-
 	//case 8: ab/cd
 	//-----------------------------------------
 	cumulGenoCombinationFreq[8] = new double[24];
@@ -744,6 +798,9 @@ void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::
 	orderLookup[2][0] = 1; orderLookup[2][1] = 0; orderLookup[2][2] = 2; orderLookup[2][3] = 3;
 	orderLookup[3] = new short[4];
 	orderLookup[3][0] = 1; orderLookup[3][1] = 0; orderLookup[3][2] = 3; orderLookup[3][3] = 2;
+
+	//clean up
+	delete[] cumul;
 
 	//set as initialized
 	tablesInitialized = true;
