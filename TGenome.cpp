@@ -717,29 +717,25 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//set all booleans in the booleans class
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = false;
-	bool gVCF = false;
 	bool noAltIfHomoRef = false;
+
+	bool gVCF = false;
+	bool writeVCF = false;
 	bool beagle = false, printOnlyGL = false;
+
+
 	std::string indName;
 	TSiteSubset* subset = NULL;
-	if(params.parameterExists("beagle")){
-			bool invariantSites = false;
-			subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-			beagle=true;
-			logfile->list("Will print output in beagle format");
-			printOnlyGL = params.parameterExists("printOnlyGL");
-			if(printOnlyGL) logfile->list("Will print only genotype likelihoods");
-			indName = params.getParameterStringWithDefault("indName", outputName);
-		}
-	else if(params.parameterExists("sites")){
+
+	//only call at specific sites?
+	if(params.parameterExists("sites")){
 		bool invariantSites = false;
+
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
-		if(params.parameterExists("noAltIfHomoRef")){
-			noAltIfHomoRef = true;
-			logfile->list("Will not print alternative alleles when genotype is 0/0");
-		}
+
+	//if not, how much information should be printed?
 	} else {
 		if(params.parameterExists("printAll")){
 			printIfNoData = true;
@@ -753,16 +749,34 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			gVCF = true;
 			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
 			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
+			if(!fastaReference) throw "Can not print VCF file without reference!";
 			logfile->list("Will print output in gVCF format");
 		}
 	}
 
-	//open output: vcf or flat file?
-	bool writeVCF = false;
+	if(params.parameterExists("beagle")){
+		if(limitToSitesWithKnownAlleles == false) throw "Need sites file specifying major and minor alleles for beagle format!";
+		beagle=true;
+		logfile->list("Will print output in beagle format");
+		printOnlyGL = params.parameterExists("printOnlyGL");
+		if(printOnlyGL) logfile->list("Will print only genotype likelihoods");
+		indName = params.getParameterStringWithDefault("indName", outputName);
+	}
+
+	if(params.parameterExists("vcf")){
+		if(!fastaReference) throw "Can not print VCF file without reference!";
+		writeVCF = true;
+	}
+
+	if((writeVCF + gVCF + beagle) > 1) throw "More than one output format specified!";
+
+	//open output file
 	gz::ogzstream out;
 	std::string outputFileName;
 
 //	boolsForVCF boolaeans(writeVCF, noAltIfHomoRef, gVCF);
+
+
 
 	if(params.parameterExists("vcf") || gVCF){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
