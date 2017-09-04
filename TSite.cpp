@@ -1154,6 +1154,38 @@ void TSiteDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstr
 	}
 }
 
+void TSiteDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	if(hasData){
+		//print ref base, alt base, coverage (and read bases)
+		out << "\t" << referenceBase << "\t" << bases.size();
+		out << "\t";
+
+		//count bases
+		int counts[5] = {0};
+		for(unsigned int i = 0; i<bases.size(); ++i){
+			out << bases[i]->getBase();
+			++counts[bases[i]->getBaseAsEnum()];
+		}
+
+		//find majority
+		char b[5] = {'A','C','G','T','N'};
+		int max = 0;
+		std::vector<char> maxBase;
+		for(int i=0; i<5; ++i){
+			if(counts[i] > max){
+				max = counts[i];
+				maxBase.clear();
+				maxBase.push_back(b[i]);
+			} else if(counts[i] == max){
+				maxBase.push_back(b[i]);
+			}
+		}
+		out << "\t" << maxBase[randomGenerator.pickOne(maxBase.size())];
+ 	} else {
+		out << "\t" << referenceBase << "\t0\t-\t-";
+	}
+}
+
 
 double TSiteDiploid::calculatePHomozygous(double* pGenotype){
 	//calculate posterior probability for each genotype

@@ -103,6 +103,7 @@ public:
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
 	void randomBaseCaller(TParameters & params);
+	void majorityBaseCaller(TParameters & params);
 	void writeGLF(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);

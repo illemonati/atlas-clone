@@ -93,6 +93,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "randomBaseCaller"){
 				logfile.startIndent("Calling random bases (task = randomBaseCaller");
 				genome.randomBaseCaller(myParameters);
+			} else if(task == "majorityBaseCaller"){
+				logfile.startIndent("Calling random bases (task = majorityBaseCaller");
+				genome.majorityBaseCaller(myParameters);
 			} else if(task == "glf"){
 				logfile.startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
 				genome.writeGLF(myParameters);

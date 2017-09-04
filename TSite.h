@@ -97,6 +97,8 @@ public:
 	virtual void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){ throw "callAllelePresenceVCF not implemented for TSite base class!";};
 	virtual void callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString){ throw "callAllelePresenceVCFKnownAlleles not implemented for TSite base class!";};
 	virtual void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out) { throw "callRandomBase not implemented for TSite base class!";};
+	virtual void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){ throw "majorityCall not implemented for TSite base class!";};
+
 	virtual double calculatePHomozygous(double* pGenotype){ throw "calculatePHomozygous not implemented for TSite base class!";};
 
 	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
@@ -135,6 +137,7 @@ public:
 	void callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt);
 	void callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString);
 	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out);
+	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	double calculatePHomozygous(double* pGenotype);
 };
 

@@ -1066,6 +1066,29 @@ void TWindowDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzs
 	}
 }
 
+void TWindowDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
+	//calc prior probabilities on Genotypes
+	double pGenotype[10];
+	fillPGenotype(pGenotype, thetaContainer.expTheta);
+
+	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
+	if(printAll){
+		for(int i=0; i<length; ++i){
+			out << chr << "\t" << start + i + 1;
+			sites[i].majorityCall(randomGenerator, out);
+			out << "\n";
+		}
+	} else {
+		for(int i=0; i<length; ++i){
+			if(sites[i].hasData){
+				out << chr << "\t" << start + i + 1;
+				sites[i].majorityCall(randomGenerator, out);
+				out << "\n";
+			}
+		}
+	}
+}
+
 void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){

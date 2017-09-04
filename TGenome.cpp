@@ -1156,6 +1156,48 @@ void TGenome::randomBaseCaller(TParameters & params){
 	}
 }
 
+void TGenome::majorityBaseCaller(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	bool printIfNoData = false;
+	if(params.parameterExists("printAll")){
+		printIfNoData = true;
+		logfile->list("Will print all sites, even those without data");
+	}
+
+	//open output: vcf or flat file?
+	gz::ogzstream randomBases;
+	std::string outputFileName;
+
+	//open file
+	outputFileName = outputName + "_majorityCalls.txt.gz";
+	logfile->list("Writing random base calls to '" + outputFileName + "'");
+	randomBases.open(outputFileName.c_str());
+	if(!randomBases) throw "Failed to open output file '" + outputFileName + "'!";
+
+	//write header
+	randomBases << "chr\tpos\tref\tcoverage\tpileup\trandom_base\n";
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows) || params.parameterExists("printAll")){
+				//call random allele
+				logfile->listFlush("Calling random base ...");
+				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
+				windows.cur->majorityCall(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
+				logfile->write(" done!");
+
+			} else logfile->list("No positions in this window.");
+		}
+	}
+}
+
 void TGenome::writeGLF(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
