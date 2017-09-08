@@ -540,14 +540,16 @@ void TWindowDiploid::fillP_G(double* P_G, double* pGenotype){
 		P_G[g] = 0.0;
 
 	//calculate P_g for each site
+	double* P_g_oneSite = new double[10];
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			sites[i].calculateP_g(pGenotype);
+			sites[i].calculateP_g(pGenotype, P_g_oneSite);
 			for(int g=0; g<10; ++g){
-				P_G[g] += sites[i].P_g[g];
+				P_G[g] += P_g_oneSite[g];
 			}
 		}
 	}
+	delete[] P_g_oneSite;
 }
 
 double TWindowDiploid::calcLogLikelihood(double* pGenotype){
@@ -1250,15 +1252,17 @@ void TWindowDiploidSpecificSites::fillP_G(double* P_G, double* pGenotype){
 		for(int g=0; g<10; ++g)
 			P_G[g] = 0.0;
 
+		double* P_g_oneSite = new double[10];
 		//calculate P_g for each site
 		for(int i=0; i<length; ++i){
 			if(bootstrappedSites[i]->hasData){
-				bootstrappedSites[i]->calculateP_g(pGenotype);
+				bootstrappedSites[i]->calculateP_g(pGenotype, P_g_oneSite);
 				for(int g=0; g<10; ++g){
-					P_G[g] += bootstrappedSites[i]->P_g[g];
+					P_G[g] += P_g_oneSite[g];
 				}
 			}
 		}
+		delete[] P_g_oneSite;
 	} else TWindowDiploid::fillP_G(P_G, pGenotype); //elese use parental class
 }
 

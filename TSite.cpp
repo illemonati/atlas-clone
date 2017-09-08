@@ -27,7 +27,6 @@ void TSite::stealFromOther(TSite* other){
 		referenceBase = other->referenceBase;
 		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilities[i] = other->emissionProbabilities[i];
-			P_g[i] = other->P_g[i];
 		}
 		//copy pointers to bases, BUT NOT BASES
 		for(std::vector<TBase*>::iterator it = other->bases.begin(); it!=other->bases.end(); ++it){
@@ -111,7 +110,7 @@ std::string TSite::getEmissionProbs(){
 	return b;
 }
 
-void TSite::calculateP_g(double* genotypeProbabilities){
+void TSite::calculateP_g(double* & genotypeProbabilities, double* & P_g){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
 	for(int i=0; i<numGenotypes; ++i){

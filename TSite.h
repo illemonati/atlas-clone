@@ -31,14 +31,12 @@ public:
 	std::vector<TBase*> bases;
 	short int numGenotypes;
 	double* emissionProbabilities;
-	double* P_g; //P(g|d, theta, pi), see equation (3)
 	char referenceBase; //optional
 
 	TSite(){
 		hasData = false;
 		numGenotypes = 0;
 		emissionProbabilities = NULL;
-		P_g = NULL;
 		referenceBase = 'N';
 		//std::cout << "maxQualToPrintNaturalScale " << maxQualToPrintNaturalScale << std::endl;
 	};
@@ -71,7 +69,7 @@ public:
 		return -10.0 * log10(epsilon);
 	};
 	void calcEmissionProbabilities();
-	void calculateP_g(double* genotypeProbabilities);
+	void calculateP_g(double* & genotypeProbabilities, double* & P_g);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();
@@ -111,12 +109,10 @@ public:
 	TSiteDiploid(){
 		numGenotypes = 10;
 		emissionProbabilities = new double[numGenotypes];
-		P_g = new double[numGenotypes];
 	};
 	TSiteDiploid(TSite* other):TSiteDiploid(){stealFromOther(other);};
 	~TSiteDiploid(){
 		delete[] emissionProbabilities;
-		delete[] P_g;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	//MLE callers
@@ -147,12 +143,10 @@ public:
 	TSiteHaploid(){
 		numGenotypes = 4;
 		emissionProbabilities = new double[numGenotypes];
-		P_g = new double[numGenotypes];
 	}
 	TSiteHaploid(TSite* other):TSiteHaploid(){stealFromOther(other);};
 	~TSiteHaploid(){
 		delete[] emissionProbabilities;
-		delete[] P_g;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
