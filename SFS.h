@@ -42,10 +42,10 @@ public:
 	SFS(int numChr, int onlyThisBin);
 	virtual ~SFS(){ clear(); };
 
-	void writeToFile(std::string & filename);
+	void writeToFile(std::string & filename, bool writeLog=false);
 	virtual double calcLLOneSite(float* gl);
 	double getRandomFrequency(TRandomGenerator* randomGenerator);
-	double getRandomAlleleCount(TRandomGenerator* randomGenerator);
+	int getRandomAlleleCount(TRandomGenerator* randomGenerator);
 };
 
 class SFSfolded:public SFS{

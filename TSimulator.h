@@ -137,6 +137,9 @@ public:
 		init(Logfile);
 		open(Filename, readGroupName, chromosomes);
 	};
+	~TSimulatorBamFile(){
+		close();
+	};
 
 	void open(std::string Filename, const std::string & readGroupName, std::vector<TSimulatorChromosome> & chromosomes);
 	bool saveAlignment(const BamTools::BamAlignment & bamAlignment){
@@ -161,9 +164,6 @@ private:
 	void allocateStorage(long length){
 		freeStorage();
 		//allocate storage
-
-
-
 		haplotypes = new short**[numInd];
 		for(ind=0; ind<numInd; ++ind){
 			haplotypes[ind] = new short*[2];
@@ -182,6 +182,7 @@ private:
 				delete[] haplotypes[ind];
 			}
 			delete[] haplotypes;
+			initialized = false;
 		}
 	};
 
@@ -219,10 +220,24 @@ public:
 	void writeGenotypes(std::ofstream & out, std::string & chrName, char* toBase){
 		for(int l=0; l<curLength; ++l){
 			out << chrName << "\t" << l+1;
-			for(ind=0; ind < numInd; ++ind)
+			for(ind=0; ind < numInd; ++ind){
+
+
+				//std::cout << ind << " @ " << l << ": " << std::flush;
+				//std::cout << "\t" << toBase[haplotypes[ind][0][l]] << "/" << toBase[haplotypes[ind][1][l]] << std::endl;
+
 				out << "\t" << toBase[haplotypes[ind][0][l]] << "/" << toBase[haplotypes[ind][1][l]];
+			}
 			out << "\n";
 		}
+	};
+
+	int size(){
+		return numInd;
+	};
+
+	short& operator()(int ind, int hap, long site){
+		return haplotypes[ind][hap][site];
 	};
 };
 
@@ -302,8 +317,12 @@ private:
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref, const double & referenceDivergence);
 	void writeInvariantSites(short** haplotypes, std::ofstream & genoFile);
 	//void simulateReads(int & numReads, long & pos, float* & altFreq);
-	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile);
+	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	void writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile);
+
+	//from SFS
+	void fillMutationTable(float** & mutTable);
+	void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, short* ref, const double & referenceDivergence);
 
 public:
 	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & baseFreq);
@@ -326,9 +345,8 @@ public:
 
 	void simulatePooledData(int sampleSize, SFS & sfs, std::string outname);
 	void simulateSingleIndividual(std::vector<double> theta, double referenceDivergence, std::string outname);
-
 	void simulateIndividualPair(std::vector<double> & phis, double referenceDivergence, std::string outname);
-
+	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, double referenceDivergence, std::string outname);
 };
 
 

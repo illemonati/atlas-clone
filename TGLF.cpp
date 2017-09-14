@@ -137,15 +137,9 @@ bool TGlfReader::chromosomeParsed(std::string & chr){
 
 bool TGlfReader::readRecordType(){
 	if(!read(&tmpInt8, sizeof(uint8_t))){
-
-		std::cout << "SETTING EOF = TRUE!!!!!" << std::endl;
-
 		_eof = true;
 		return false;
 	}
-
-	std::cout << "READ RECORD TYPE OK?????" << std::endl;
-
 	recordType = tmpInt8 >> 4;
 	if(recordType > 1) throw "Unknown record type in file '" + filename + "'!";
 	return true;
@@ -257,13 +251,7 @@ bool TGlfReader::readNextWindow(int** genoLikelihoods, std::string chr, long sta
 
 	//jump to first position in window
 	while(position < start){
-
-		std::cout << "POSTION IS = " << position << " < start = " << start << std::endl;
-
 		if(!readRecordType()) return false;
-
-		std::cout << "RECORD TYPE = " << recordType << std::endl;
-
 		if(recordType == 0){
 			//means no data on this chromosome
 			readChr();
@@ -291,18 +279,13 @@ bool TGlfReader::readNextWindow(int** genoLikelihoods, std::string chr, long sta
 		++index; ++i;
 
 		//read next record
-		std::cout << "READ NEXT RECORD ..." << std::flush;
 		if(!readRecordType() || recordType == 0){
-			std::cout << "INSIDE LOOP TYPE = 0 " << std::flush;
 			for(; i<end; ++i, ++index)
 				memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, 10*sizeof(int));
-			std::cout << " READ CHR ... " << std::endl;
 			readChr();
 			break;
 		}
-		std::cout << " READ SNP ..." << std::flush;
 		readSNPRecord();
-		std::cout << " DONE" << std::endl;
 	}
 
 	return true;

@@ -7,6 +7,8 @@
 
 #include "runSimulations.h"
 
+//TODO: this function is horribly long. Some parts shoudl either be functions, or pushed to TSimulator
+
 void runSimulations(TParameters & params, TLog* logfile){
 	//initialize random generator
 	TRandomGenerator* randomGenerator;
@@ -89,8 +91,8 @@ void runSimulations(TParameters & params, TLog* logfile){
 			logfile->list(text);
 		}
 		simulator.initializeChromosomes(chrLength, haploid);
+		logfile->endIndent();
 	}
-	logfile->endIndent();
 
 	//quality distribution
 	double meanQual = params.getParameterDoubleWithDefault("meanQual", 30);
@@ -202,7 +204,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 		//params.fillParameterIntoVector("phi", phis, ',');
 		if(phis.size() != 9)
 			throw "Wrong number of phi! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
-		//noralize phis
+		//normalize phis
 		double sum = 0.0;
 		for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
 			sum += *it;
@@ -221,29 +223,59 @@ void runSimulations(TParameters & params, TLog* logfile){
 		//prepare SFS
 		//TODO: think about ploidy!
 		logfile->startIndent("Preparing SFS:");
-		SFS* sfs;
+		std::vector<SFS*> sfs;
 		if(params.parameterExists("sfs")){
-			std::string sfsFile = params.getParameterString("sfs");
-			logfile->listFlush("Reading the sfs from file '" + sfsFile + "' ...");
-			sfs = new SFS(sfsFile);
-			logfile->done();
-			if(sfs->numChromosomes != 2*sampleSize)
-				throw "SFS does not match sample size! It contains data for " + toString(sfs->numChromosomes) + " instead of " + toString(2*sampleSize) + " chromosomes.";
-		} else if(params.parameterExists("theta")){
-				float theta = params.getParameterDouble("theta");
-				logfile->listFlush("Generating SFS for " + toString(2*sampleSize) + " chromosomes and with theta = " + toString(theta) + " ...");
-				sfs = new SFS(2*sampleSize, theta);
+			std::vector<std::string> tmp;
+			std::vector<std::string> sfsFileNames;
+			params.fillParameterIntoVector("sfs", tmp, ',');
+			repeatIndexes(tmp, sfsFileNames);
+			if(sfsFileNames.size() != chrLength.size())
+				throw "List of chromosome lengths and SFS files differ in length!";
+
+			//now read those files
+			std::vector<int>::iterator ploidyIt=ploidy.begin();
+			for(std::vector<std::string>::iterator it=sfsFileNames.begin(); it!=sfsFileNames.end(); ++it, ++ploidyIt){
+				logfile->listFlush("Reading the sfs from file '" + *it + "' ...");
+				sfs.push_back(new SFS(*it));
 				logfile->done();
+				if((*sfs.rbegin())->numChromosomes != *ploidyIt * sampleSize)
+					throw "SFS does not match sample size! It contains data for " + toString((*sfs.rbegin())->numChromosomes) + " instead of " + toString(2*sampleSize) + " chromosomes.";
+			}
+		} else if(params.parameterExists("theta")){
+			//parse theta from command line
+			std::vector<std::string> tmp;
+			params.fillParameterIntoVector("theta", tmp, ',');
+			std::vector<double> thetas;
+			repeatIndexes(tmp, thetas);
+
+			if(thetas.size() != chrLength.size())
+				throw "Number of theta values does not match number of chromosomes!";
+			logfile->list("Will simulate data with chromosome specific thetas " + concatenateString(thetas, ", "));
+
+			//generate SFS for each chromosome
+			logfile->listFlush("Generating SFS from provided theta values ...");
+			int chr = 1;
+			std::string filename;
+			logfile->listFlush("Writing true SFS to '" + filename + "' ...");
+			std::vector<double>::iterator thetaIt = thetas.begin();
+			for(std::vector<int>::iterator it=ploidy.begin(); it!=ploidy.end(); ++it, ++thetaIt, ++chr){
+				sfs.push_back(new SFS(*it * sampleSize, (float) *thetaIt));
+
+				//save true SFS
+				filename = outname + "_trueSFS_chr" + toString(chr) + ".txt";
+				(*sfs.rbegin())->writeToFile(filename);
+			}
+			logfile->done();
 		} else throw "Specifying either sfs or theta is required to initialize the SFS!";
 
-		//save true SFS
-		std::string filename = outname + "_trueSFS.txt";
-		logfile->listFlush("Writing true SFS to '" + filename + "' ...");
-		sfs->writeToFile(filename);
-		logfile->write(" done!");
-		logfile->endIndent();
+		//run simulations
+		simulator.simulatePopulationFromSFS(sfs, sampleSize, referenceDivergence, outname);
 
-		throw "SIMULATION FROM SFS NOT YET IMPLEMENTED!!!";
+		//deleting SFS
+		for(std::vector<SFS*>::iterator it=sfs.begin(); it!=sfs.end(); ++it)
+			delete *it;
+
+		logfile->endIndent();
 	}
 	logfile->endIndent();
 

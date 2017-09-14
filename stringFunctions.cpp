@@ -461,6 +461,18 @@ std::string concatenateString(std::vector<double> & vec, std::string delim){
 	}
 	return s;
 }
+
+std::string concatenateString(double* array, int length, std::string delim){
+	std::string s;
+	if(length>0){
+		s = toString(array[0]);
+		for(int i=1; i<length; ++i){
+			s += delim + toString(array[i]);
+		}
+	}
+	return s;
+}
+
 //-----------------------------------------------------------------------
 //split into vector
 //-----------------------------------------------------------------------

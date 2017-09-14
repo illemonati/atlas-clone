@@ -138,13 +138,21 @@ void SFS::fillCumulative(){
 	sfsCumulative[numChromosomes] = 1.0;
 }
 
-void SFS::writeToFile(std::string & filename){
+void SFS::writeToFile(std::string & filename, bool writeLog){
 	std::ofstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
-	out << sfs[0];
-	for(int i=1; i<dimension; ++i){
-		out << " " << sfs[i];
+
+	if(writeLog){
+		out << log(sfs[0]);
+		for(int i=1; i<dimension; ++i){
+			out << " " << log(sfs[i]);
+		}
+	} else {
+		out << sfs[0];
+		for(int i=1; i<dimension; ++i){
+			out << " " << sfs[i];
+		}
 	}
 	out << "\n";
 	out.close();
@@ -163,7 +171,7 @@ double SFS::getRandomFrequency(TRandomGenerator* randomGenerator){
 	return sfsFrequencies[randomGenerator->pickOne(dimension, sfsCumulative)];
 }
 
-double SFS::getRandomAlleleCount(TRandomGenerator* randomGenerator){
+int SFS::getRandomAlleleCount(TRandomGenerator* randomGenerator){
 	return randomGenerator->pickOne(dimension, sfsCumulative);
 }
 

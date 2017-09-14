@@ -85,6 +85,7 @@ void concatenateString(std::vector<double> & vec, std::string & s, std::string d
 std::string concatenateString(std::vector<std::string> & vec, std::string delim);
 std::string concatenateString(std::vector<int> & vec, std::string delim);
 std::string concatenateString(std::vector<double> & vec, std::string delim);
+std::string concatenateString(double* array, int length, std::string delim);
 
 //read
 std::string readAfterLast(std::string & s, char delim);
