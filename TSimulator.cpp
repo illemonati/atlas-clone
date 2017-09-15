@@ -488,11 +488,11 @@ void TSimulator::simulateDiploidHaplotypesCurChromosome(short** haplotypes, floa
 	}
 }
 
-void TSimulator::writeInvariantSites(short** haplotypes, std::ofstream & genoFile){
+void TSimulator::writeInvariantSites(short** haplotypes, gz::ogzstream & out){
 	//0-based
 	for(int l=0; l<chrIt->length; ++l){
 		if(haplotypes[0][l] == haplotypes[1][l]){
-			genoFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
+			out << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 		}
 	}
 }
@@ -515,11 +515,11 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, double refe
 
 	//open file for true genotypes
 	filename = outname + "_trueGenotypes.txt";
-	std::ofstream genoFile(filename.c_str());
+	gz::ogzstream genoFile(filename.c_str());
 
 	//open file for invariant positions
 	filename = outname + "_invariantSites.txt";
-	std::ofstream invariantSitesFile(filename.c_str());
+	gz::ogzstream invariantSitesFile(filename.c_str());
 
 	//prepare mutation table
 	float** mutTable;
@@ -883,7 +883,7 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, double refer
 
 	//open file for true genotypes
 	filename = outname + "_trueGenotypes.txt";
-	std::ofstream genoFile(filename.c_str());
+	gz::ogzstream genoFile(filename.c_str());
 
 	//initialize genotype combination tables
 	TSimulatorGenotypeCombination genoComb(phis, baseFreq);
@@ -1078,7 +1078,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 
 	//open file for true genotypes
 	filename = outname + "_trueGenotypes.txt";
-	std::ofstream genoFile(filename.c_str());
+	gz::ogzstream genoFile(filename.c_str());
 
 	//prepare mutation table
 	float** mutTable;

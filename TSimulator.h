@@ -217,7 +217,7 @@ public:
 		return haplotypes[0];
 	};
 
-	void writeGenotypes(std::ofstream & out, std::string & chrName, char* toBase){
+	void writeGenotypes(gz::ogzstream & out, std::string & chrName, char* toBase){
 		for(int l=0; l<curLength; ++l){
 			out << chrName << "\t" << l+1;
 			for(ind=0; ind < numInd; ++ind){
@@ -315,7 +315,7 @@ private:
 	int transformQuality(int & qual, int pos, int context);
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref, const double & referenceDivergence);
-	void writeInvariantSites(short** haplotypes, std::ofstream & genoFile);
+	void writeInvariantSites(short** haplotypes, gz::ogzstream & out);
 	//void simulateReads(int & numReads, long & pos, float* & altFreq);
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	void writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile);

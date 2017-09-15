@@ -232,11 +232,13 @@ void runSimulations(TParameters & params, TLog* logfile){
 			if(sfsFileNames.size() != chrLength.size())
 				throw "List of chromosome lengths and SFS files differ in length!";
 
+			bool folded = params.parameterExists("folded");
 			//now read those files
 			std::vector<int>::iterator ploidyIt=ploidy.begin();
 			for(std::vector<std::string>::iterator it=sfsFileNames.begin(); it!=sfsFileNames.end(); ++it, ++ploidyIt){
 				logfile->listFlush("Reading the sfs from file '" + *it + "' ...");
-				sfs.push_back(new SFS(*it));
+				if(folded) sfs.push_back(new SFSfolded(*it));
+				else sfs.push_back(new SFS(*it));
 				logfile->done();
 				if((*sfs.rbegin())->numChromosomes != *ploidyIt * sampleSize)
 					throw "SFS does not match sample size! It contains data for " + toString((*sfs.rbegin())->numChromosomes) + " instead of " + toString(2*sampleSize) + " chromosomes.";
