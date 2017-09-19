@@ -435,34 +435,9 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
 		//all read groups have the same pmd
 		logfile->list("Initializing one PMD function for all read groups.");
-		if(params.parameterExists("pmd")){
-			std::string pmdString = params.getParameterString("pmd");
-			logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
-			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdString, pmdGA, logfile);
-				pmdObjects[i].initializeFunction(pmdString, pmdCT, logfile);
-			}
-			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
-			if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
-			if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
-		} else {
-			if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
-			std::string pmdStringCT = params.getParameterString("pmdCT");
-			logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
-			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdStringCT, pmdCT, logfile);
-			}
-			logfile->conclude(pmdObjects[0].getFunctionString(pmdCT));
-
-			//second G->A
-			if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdGA' has to be provided!";
-			std::string pmdStringGA = params.getParameterString("pmdGA");
-			logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
-			for(int i=0; i<readGroups.numGroups; ++i){
-				pmdObjects[i].initializeFunction(pmdStringGA, pmdGA, logfile);
-			}
-			logfile->conclude(pmdObjects[0].getFunctionString(pmdGA));
-		}
+		pmdObjects[0].initialize(params, logfile);
+		for(int i=1; i<readGroups.numGroups; ++i)
+			pmdObjects[i].initialize(pmdObjects[0]);
 		hasPMD = true;
 	} else if(params.parameterExists("pmdFile")){
 		//read from file for each read group

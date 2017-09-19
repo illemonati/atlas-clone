@@ -107,7 +107,6 @@ void TSimulatorReference::writeRefToFasta(){
 	}
 }
 
-
 void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){
 	logfile->listFlush("Simulating reference alleles ...");
 
@@ -125,43 +124,267 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 	logfile->write(" done!");
 }
 
+//---------------------------------------------------------
+//TSimulatorReadLength
+//---------------------------------------------------------
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLength(RandomGenerator){
+	parseFunctionString(s, alpha, beta);
+	if(alpha <= 0.0)
+		throw "Shape parameter alpha must be > 0.0!";
+	if(beta <= 0.0)
+		throw "Rate parameter alpha must be > 0.0!";
+
+	calculateAverageLength();
+};
+
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
+	alpha = -1.0;
+	beta = -1.0;
+	_min = -1.0;
+	_max = -1.0;
+}
+
+void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & param1, double & param2){
+	if(s[0] != '(')
+		throw "1 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	s.erase(0,1);
+
+	unsigned int pos = s.find(",");
+	if(pos == std::string::npos)
+		throw "2 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	param1 = stringToDouble(s.substr(0,pos));
+
+	s.erase(0,pos+1);
+
+	pos = s.find(")");
+	if(pos == std::string::npos)
+		throw "3 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	param2 = stringToDouble(s.substr(0,pos));
+	s.erase(0,pos+1);
+
+	if(s[0] != '[')
+		throw "4 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	s.erase(0,1);
+	pos = s.find(",");
+	if(pos == std::string::npos)
+		throw "5 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	_min = stringToDouble(s.substr(0,pos));
+	s.erase(0,pos+1);
+	pos = s.find("]");
+	if(pos == std::string::npos)
+		throw "6 Fail to understand read length function: use format function(var1,var2)[min,max].";
+	_max = stringToDouble(s.substr(0,pos));
+};
+
+void TSimulatorReadLengthGamma::calculateAverageLength(){
+	//get weighted average
+	double w;
+	double sum = 0.0;
+	meanLength = 0.0;
+	for(int i=_min; i<=_max; ++i){
+		w = randomGenerator->gammaLogDensityFunction(i, alpha, beta);
+		meanLength += w * (double) i;
+		sum += w;
+	}
+	meanLength /= sum;
+
+	//cumulative at _max
+	cumulAtMin = randomGenerator->gammaCumulativeDistributionFunction(_min-0.5, alpha, beta);
+}
+
+void TSimulatorReadLengthGamma::sample(readLengthContainer & rl){
+	rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
+	while(rl.fragmentLength < _min)
+		rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
+	rl.readLength = std::min(rl.fragmentLength, _max);
+};
+
+TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLengthGamma(RandomGenerator){
+	//here the parameters parsed are mode and variance, so adjust alpha and beta
+	parseFunctionString(s, mode, var);
+	if(mode <= 0.0)
+		throw "Mode of gamma distribution must be > 0.0!";
+	if(beta <= 0.0)
+		throw "Variance of gamma distribution must be > 0.0!";
+
+	beta = (mode + sqrt(mode*mode + 4.0*var)) / (2.0 * var);
+	alpha = mode*beta + 1.0;
+
+	if(alpha <= 0.0)
+		throw "Provided mode and variance imply a shape parameter alpha <= 0.0!";
+	if(beta <= 0.0)
+		throw "Provided mode and variance imply a rate parameter beta <= 0.0!";
+
+	calculateAverageLength();
+}
 
 //---------------------------------------------------
 //TSimulator
 //---------------------------------------------------
 
-TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & Freq){
+TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParameters & params){
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
+
+	//set basic things
 	bamFileOpen = false;
-	baseFreq = Freq;
 	qualToErroTableInitialized = false;
 	pmdInitialized = false;
 	qualTransformationInitialized = false;
+	readLengthDistInitialized = false;
 	initializeQualToErrorTable();
 
+	//read basic simulation settings
+	logfile->startIndent("Reading simulation parameters:");
+
+	//depth
+	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
+	logfile->list("Will simulate to an average depth of " + toString(depth) + ".");
+	setDepth(depth);
+
+	//read length
+	std::string tmp = params.getParameterStringWithDefault("readLength", "100");
+	setReadLength(tmp);
+	logfile->list(readLengthDist->getFunctionString());
+
+	//base frequencies
+	std::vector<float> freq;
+	tmp = params.getParameterStringWithDefault("baseFreq", "0.25,0.25,0.25,0.25");
+	fillVectorFromString(tmp, freq, ',');
+	if(freq.size() != 4) throw "baseFreq vector must have size = 4!";
+	setBaseFreq(freq);
+
+	//reference divergence
+	referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
+	logfile->list("Will simulate data with reference divergence = " + toString(referenceDivergence) + ".");
+
+	//quality distribution
+	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
+	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
+	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
+	setQualityDistribution(mQ, sdQ, maxQ);
+	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
+
+	//quality transformation
+	initializeQualityTransform(params);
+
+	//PMD
+	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
+		pmdInitialized = true;
+		pmdObject = new TPMD(params, logfile);
+	} else pmdInitialized = false;
+
+
+	//chromosomes
+	initializeChromosomes(params, logfile);
+	logfile->endIndent();
+
 	//set default parameters
-	setReadLength(100);
-	setQualityDistribution(30.0, 10.0);
-	setDepth(10.0);
 	bamAlignment.Name = "*";
 	bamAlignment.MapQuality = 50;
 	setReadGroupName("SimReadGroup");
 
 	//helper tools
 	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
-	setBaseFreq();
 };
 
-
-
-void TSimulator::setQualityDistribution(double mean, double sd){
+void TSimulator::setQualityDistribution(double mean, double sd, int MaxQual){
 	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
 	sdQual = sd;
+	maxQual = MaxQual;
+
 }
 
-void TSimulator::setMaxQual(int MaxQual){
-	maxQual = MaxQual;
+void TSimulator::initializeQualityTransform(TParameters & params){
+	std::vector<std::string> string_vec;
+
+	if(params.parameterExists("qualTransform")){
+		params.fillParameterIntoVector("qualTransform", string_vec, ',');
+		std::vector<double> beta;
+		repeatIndexes(string_vec, beta);
+		if(beta.size() != 24)
+			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+		std::string s = concatenateString(beta, ",");
+		logfile->list("Will transform qualities with beta = {" + s + "}");
+		setQualityTransformation(beta);
+	} else if(params.parameterExists("recal")){
+		std::string filename = params.getParameterString("recal");
+		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open file '" + filename + "' for reading!";
+
+		//tmp variables for reading
+		std::string tmp;
+		std::vector<std::string> vec;
+		std::vector<double> beta;
+
+		//skip header
+		std::getline(file, tmp);
+
+		//parse file to read details for each read group
+		std::getline(file, tmp);
+		fillVectorFromString(tmp, vec, "\t");
+		logfile->done();
+
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
+			for(int i=1; i < 25; ++i) beta.push_back(stringToFloat(vec[i]));
+			logfile->done();
+			if(beta.size() != 24)
+				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+			std::string s = concatenateString(beta, ",");
+			logfile->list("Will transform qualities with beta = {" + s + "}");
+			setQualityTransformation(beta);
+		}
+	}
+}
+
+void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
+	std::vector<std::string> string_vec;
+	std::vector<long> chrLength;
+	params.fillParameterIntoVectorWithDefault("chrLength", string_vec, ',', "1000000");
+	repeatIndexes(string_vec, chrLength);
+	std::vector<int> ploidy;
+	if(params.parameterExists("ploidy")){
+		params.fillParameterIntoVector("ploidy", string_vec, ',');
+		repeatIndexes(string_vec, ploidy);
+	} else {
+		for(size_t i=0; i<chrLength.size(); ++i)
+			ploidy.push_back(2);
+	}
+	if(ploidy.size() != chrLength.size())
+		throw "List of chromosome lengths and ploidies differ in length!";
+	std::vector<bool> haploid;
+	for(std::vector<int>::iterator it=ploidy.begin(); it!=ploidy.end(); ++it){
+		if(*it == 1) haploid.push_back(true);
+		else if(*it == 2) haploid.push_back(false);
+		else throw "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!";
+	}
+
+	if(chrLength.size() < 1)
+		throw "Issue understanding length of chromosomes!";
+	if(chrLength.size() == 1){
+		int numChr = params.getParameterIntWithDefault("numChr", 1);
+		std::string text = "Will simulate " + toString(numChr) ;
+		if(haploid[0]) text += " haploid";
+		else text += " diploid";
+		text += " chromosome(s) of length " + toString(chrLength[0]) + " each.";
+		logfile->list(text);
+		initializeChromosomes(numChr, chrLength[0], haploid[0]);
+	} else {
+		logfile->startIndent("Will simulate " + toString(chrLength.size()) + " chromosome(s) of the following length:");
+		std::vector<bool>::iterator hIt=haploid.begin();
+		std::string text;
+		for(std::vector<long>::iterator it=chrLength.begin(); it!=chrLength.end(); ++it, ++hIt){
+			text = toString(*it) + " (";
+			if(*hIt) text += "haploid)";
+			else text += "diploid)";
+			logfile->list(text);
+		}
+		initializeChromosomes(chrLength, haploid);
+		logfile->endIndent();
+	}
 }
 
 void TSimulator::initializeChromosomes(int numChr, long chrLength, bool haploid){
@@ -178,22 +401,45 @@ void TSimulator::initializeChromosomes(std::vector<long> & chrLength, std::vecto
 	}
 }
 
-void TSimulator::setReadLength(int length){
-	if(qualTransformationInitialized && length != readLength)
+void TSimulator::setReadLength(std::string s){
+	if(qualTransformationInitialized)
 		throw "TSimulator: Can not change read length after quality transformation was initialized!";
-	readLength = length;
-	bamAlignment.Length = readLength;
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', readLength));
+
+	if(readLengthDistInitialized)
+		delete readLengthDist;
+
+	//check if it is a specific function
+	size_t pos = s.find("(");
+	std::string tmp;
+
+	if(pos != std::string::npos){
+		//is a function
+		std::string type = s.substr(0, pos);
+		s.erase(0, pos);
+		if(type == "gamma")
+			readLengthDist = new TSimulatorReadLengthGamma(randomGenerator, s);
+		else if(type == "gammaMode")
+			readLengthDist = new TSimulatorReadLengthGammaMode(randomGenerator, s);
+		else throw "Unknown read length distribution '" + type + "'!";
+	} else {
+		//fixed length
+		readLengthDist = new TSimulatorReadLength(randomGenerator, s);
+	}
+	readLengthDistInitialized = true;
+
+	//check simulation effort
+	if(readLengthDist->probAcceptance() < 0.9)
+		logfile->warning("The chosen read length distribution will only result in " + toString(readLengthDist->probAcceptance()) + " of draws being accepted.");
 }
 
 void TSimulator::setDepth(float depth){
 	seqDepth = depth;
 }
 
-void TSimulator::setBaseFreq(){
+void TSimulator::setBaseFreq(std::vector<float> & freq){
 	float sum = 0.0;
 	for(int i=0; i<4; ++i){
+		baseFreq[i] = freq[i];
 		sum += baseFreq[i];
 	}
 	for(int i=0; i<4; ++i){
@@ -203,6 +449,8 @@ void TSimulator::setBaseFreq(){
 	cumulBaseFreq[1] = cumulBaseFreq[0] + baseFreq[1];
 	cumulBaseFreq[2] = cumulBaseFreq[1] + baseFreq[2];
 	cumulBaseFreq[3] = 1.0;
+
+	logfile->list("Simulating with base frequencies A:" + toString(baseFreq[0]) + " C:" + toString(baseFreq[1])+ " G:" + toString(baseFreq[1])+ " T:" + toString(baseFreq[1]));
 }
 
 void TSimulator::setReadGroupName(std::string name){
@@ -216,7 +464,6 @@ void TSimulator::setPMD(TPMD* PmdObject){
 	pmdObject = PmdObject;
 	pmdInitialized = true;
 }
-
 
 void TSimulator::setQualityTransformation(std::vector<double> & Betas){
 	if(Betas.size() != 24)
@@ -237,8 +484,8 @@ void TSimulator::setQualityTransformation(std::vector<double> & Betas){
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 
-	posTermForTransformation = new double[readLength];
-	for(int i=0; i<readLength; ++i){
+	posTermForTransformation = new double[readLengthDist->max()];
+	for(int i=0; i<readLengthDist->max(); ++i){
 		posTermForTransformation[i] = beta[2] * i + beta[3] * i*i;
 	}
 
@@ -340,8 +587,8 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 //simulating reads
 void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
-	long numReads = thisChr->length * seqDepth / readLength;
-	long chrLengthForStart = thisChr->length - readLength;
+	long numReads = thisChr->length * seqDepth / readLengthDist->mean();
+	long chrLengthForStart = thisChr->length - readLengthDist->max();
 	double probReadPerSite = 1.0 / (double) chrLengthForStart;
 	long numReadsSimulated = 0;
 	int numReadsHere;
@@ -384,15 +631,23 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 	static int qual;
 	static long p;
 	static int previousBase;
+	readLengthContainer rl;
+
+	//pick a fragment and read length
+	readLengthDist->sample(rl);
+
+	bamAlignment.Length = rl.readLength;
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 
 	//simulate a read starting here
 	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
 
-	//choose haployt
+	//choose haplotype
 	previousBase = 4; //means N
-	for(p=0; p<readLength; ++p){
+	for(p=0; p<rl.readLength; ++p){
 		//get true nucleotide
 		base = haplotype[p + pos];
 
@@ -402,7 +657,7 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 				if(randomGenerator->getRand() < pmdObject->getProbCT(p))
 					base = 3; //means T
 			} else if(base == 2){ //means is G
-				if(randomGenerator->getRand() < pmdObject->getProbGA(readLength - p - 1))
+				if(randomGenerator->getRand() < pmdObject->getProbGA(rl.fragmentLength - p - 1))
 					base = 0; //means A
 			}
 		}
@@ -427,7 +682,6 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 	}
 	bamFile.saveAlignment(bamAlignment);
 }
-
 
 //-------------------------------------------------------
 //Functions to simulate a single individual
@@ -457,7 +711,7 @@ void TSimulator::fillMutationTable(float** & mutTable, double theta){
 	}
 }
 
-void TSimulator::simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref, const double & referenceDivergence){
+void TSimulator::simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref){
 	//prepare cumulative probability distribution for reference
 	float cumulRef[4];
 	cumulRef[0] = 1.0 - referenceDivergence;
@@ -497,10 +751,17 @@ void TSimulator::writeInvariantSites(short** haplotypes, gz::ogzstream & out){
 	}
 }
 
-void TSimulator::simulateSingleIndividual(std::vector<double> theta, double referenceDivergence, std::string outname){
+void TSimulator::simulateSingleIndividual(double theta, std::string & outname){
+	std::vector<double> thetas;
+	for(unsigned int i=0; i<chromosomes.size(); ++i)
+		thetas.push_back(theta);
+	simulateSingleIndividual(thetas, outname);
+}
+
+void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string & outname){
 	//one thet aper chromosome
 	if(theta.size() != chromosomes.size())
-		throw "Number of theta values provded does not match number of chromosomes to simulate!";
+		throw "Number of theta values provided does not match number of chromosomes to simulate!";
 
 	//open BAM file
 	TSimulatorBamFile bamFile(outname + ".bam", readGroupName, chromosomes, logfile);
@@ -546,7 +807,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, double refe
 
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
-		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef(), referenceDivergence);
+		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef());
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
 		writeInvariantSites(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile);
 		logfile->write(" done!");
@@ -569,12 +830,10 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, double refe
 	delete[] mutTable;
 }
 
-
-
 //-------------------------------------------------------------------------------------
 //Functions to simulate a pair of individuals according to a specific genetic distance
 //-------------------------------------------------------------------------------------
-void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, std::vector<float> & baseFreq){
+void TSimulatorGenotypeCombination::fillTables(std::vector<double> & phis, float* baseFreq){
 	//file cumulative frequencies of cases (phis)
 	double sum = 0.0;
 	int genoCase = 0;
@@ -866,7 +1125,21 @@ void TSimulatorGenotypeCombination::simulateHaplotypes(short** haplotypesInd0, s
 	}
 }
 
-void TSimulator::simulateIndividualPair(std::vector<double> & phis, double referenceDivergence, std::string outname){
+void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string & outname){
+	if(phis.size() != 9)
+		throw "Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
+
+	//normalize phis
+	double sum = 0.0;
+	for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
+		sum += *it;
+	if(sum != 1.0){
+		logfile->list("Normalizing phi to sum to one (currently summing to " + toString(sum) + ").");
+		for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
+			*it /= sum;
+	}
+	logfile->list("Used phi are: " + concatenateString(phis, ", "));
+
 	//open BAM files
 	logfile->startIndent("Opening bam files for writing:");
 	TSimulatorBamFile bamFile0(outname + "_ind0.bam", readGroupName, chromosomes, logfile);
@@ -918,7 +1191,6 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, double refer
 	genoFile.close();
 }
 
-
 //--------------------------------------------------------
 //Functions to simulate multiple individuals bases on SFS
 //--------------------------------------------------------
@@ -949,7 +1221,7 @@ void TSimulator::fillMutationTable(float** & mutTable){
 
 static inline int is_odd(int x){ return x % 2 != 0; }
 
-void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, short* ref, const double & referenceDivergence){
+void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, short* ref){
 	//prepare cumulative probability distribution for reference
 	float cumulRef[4];
 	cumulRef[0] = 1.0 - referenceDivergence;
@@ -1056,7 +1328,70 @@ void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs,
 	}
 }
 
-void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, double referenceDivergence, std::string outname){
+void TSimulator::simulatePopulationFromSFS(double theta, int numIndividuals, std::string & outname){
+	std::vector<double> thetas;
+	for(unsigned int i=0; i<chromosomes.size(); ++i)
+		thetas.push_back(theta);
+
+	simulatePopulationFromSFS(thetas, numIndividuals, outname);
+}
+
+void TSimulator::simulatePopulationFromSFS(std::vector<double> & thetas, int numIndividuals, std::string & outname){
+	if(thetas.size() != chromosomes.size())
+		throw "Number of theta values does not match number of chromosomes!";
+
+	//generate SFS for each chromosome
+	std::vector<SFS*> sfs;
+	logfile->listFlush("Generating SFS from provided theta values ...");
+	int chr = 1;
+	std::string filename;
+	std::vector<double>::iterator thetaIt = thetas.begin();
+	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++thetaIt, ++chr){
+		sfs.push_back(new SFS((2 - chrIt->haploid) * numIndividuals, (float) *thetaIt));
+
+		//save true SFS
+		filename = outname + "_trueSFS_chr" + toString(chr) + ".txt";
+		(*sfs.rbegin())->writeToFile(filename);
+	}
+	logfile->done();
+	logfile->conclude("True SFS written to '" + outname + "_trueSFS_chr*.txt'.");
+
+	//Now simulate
+	simulatePopulationFromSFS(sfs, numIndividuals, outname);
+
+	//deleting SFS
+	for(std::vector<SFS*>::iterator it=sfs.begin(); it!=sfs.end(); ++it)
+		delete *it;
+}
+
+void TSimulator::simulatePopulationFromSFS(std::vector<std::string> & sfsFileNames, bool folded, int numIndividuals, std::string & outname){
+	if(sfsFileNames.size() != chromosomes.size())
+		throw "Number of SFS files does not match number of chromosomes!";
+
+	//read the SFS of each chromosome from the corresponding file
+	std::vector<SFS*> sfs;
+	std::vector<std::string>::iterator it = sfsFileNames.begin();
+	int nChr;
+	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++it){
+		logfile->listFlush("Reading the sfs of chromosome '" + chrIt->name + "' from file '" + *it + "' ...");
+		if(folded) sfs.push_back(new SFSfolded(*it));
+		else sfs.push_back(new SFS(*it));
+		logfile->done();
+
+		nChr = (2-chrIt->haploid) * numIndividuals;
+		if((*sfs.rbegin())->numChromosomes != nChr)
+			throw "SFS does not match sample size! It contains data for " + toString((*sfs.rbegin())->numChromosomes) + " instead of " + toString(nChr) + " chromosomes.";
+	}
+
+	//Now simulate
+	simulatePopulationFromSFS(sfs, numIndividuals, outname);
+
+	//deleting SFS
+	for(std::vector<SFS*>::iterator it=sfs.begin(); it!=sfs.end(); ++it)
+		delete *it;
+}
+
+void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, std::string & outname){
 	//one SFS per chromosome! Each SFS needs to have the same number of
 	if(sfs.size() != chromosomes.size())
 			throw "Number of theta values provided does not match number of chromosomes to simulate!";
@@ -1099,7 +1434,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
-		simulateHaplotypes(haplotypes, *sfsIt, mutTable, referenceObj.getPointerToRef(), referenceDivergence);
+		simulateHaplotypes(haplotypes, *sfsIt, mutTable, referenceObj.getPointerToRef());
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
 		logfile->write(" done!");
 

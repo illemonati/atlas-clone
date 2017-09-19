@@ -66,22 +66,44 @@ public:
 //---------------------------------------------------------------
 //Note: Base class is to be used when there is no PMD!
 class TPMDFunction{
+protected:
+	std::string functionName;
+
+	virtual void setName(){ functionName = "noPMD"; };
 public:
-	TPMDFunction(){};
+	TPMDFunction(){ setName(); };
+	TPMDFunction(TPMDFunction & other){
+		setName();
+	};
 	virtual ~TPMDFunction(){};
+	//	virtual void getCopy(TPMDFunction* pointer){
+	//		pointer = new TPMDFunction();
+	//	};
 	virtual double getProb(int & pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
+	virtual std::string getFunctionName(){ return functionName; };
 };
 
 class TPMDSkoglund:public TPMDFunction{
 private:
 	double lambda, c;
 
+protected:
+	virtual void setName(){ functionName = "Skoglund"; };
+
 public:
 	TPMDSkoglund(double & Lambda, double & C);
+	TPMDSkoglund(TPMDSkoglund & other){
+		setName();
+		lambda = other.lambda;
+		c = other.lambda;
+	};
 	~TPMDSkoglund(){};
+//	virtual void getCopy(TPMDFunction* pointer){
+	//		pointer = new TPMDSkoglund(lambda, c);
+	//	};
 	double getProb(int & pos);
 	std::string getString();
 };
@@ -90,8 +112,21 @@ class TPMDExponential:public TPMDFunction{
 private:
 	double a,b,c;
 
+protected:
+	void setName(){ functionName = "Exponential"; };
+
 public:
 	TPMDExponential(double & A, double & B, double & C);
+	TPMDExponential(TPMDExponential & other){
+		setName();
+		a = other.a;
+		b = other.b;
+		c = other.c;
+	};
+	~TPMDExponential(){};
+	//	void getCopy(TPMDFunction* pointer){
+	//		pointer = new TPMDExponential(a, b, c);
+	//	};
 	double getProb(int & pos);
 	std::string getString();
 };
@@ -102,8 +137,16 @@ private:
 	std::vector<double> probs;
 	double last;
 
+protected:
+	void setName(){ functionName = "Empiric"; };
+
 public:
 	TPMDEmpiric(std::string & values, std::string & example);
+	TPMDEmpiric(std::vector<double> Probs);
+	~TPMDEmpiric(){};
+//	void getCopy(TPMDFunction* pointer){
+//	pointer = new TPMDEmpiric(probs);
+//	};
 	double getProb(int & pos);
 	std::string getString();
 };
@@ -124,10 +167,14 @@ public:
 		functionsInitialized[pmdGA] = false;
 	};
 
+	TPMD(TParameters & params, TLog* logfile){initialize(params, logfile);};
+	TPMD(TPMD & other){initialize(other);};
 	~TPMD(){
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
+	void initialize(TParameters & params, TLog* logfile);
+	void initialize(TPMD & other);
 	void initializeFunction(std::string & pmdString, PMDType type, TLog* logfile);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };

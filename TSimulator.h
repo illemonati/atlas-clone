@@ -253,11 +253,11 @@ private:
 	short** orderLookup;
 	bool tablesInitialized;;
 
-	void fillTables(std::vector<double> & phis, std::vector<float> & baseFreq);
+	void fillTables(std::vector<double> & phis, float* baseFreq);
 	void deleteTables();
 
 public:
-	TSimulatorGenotypeCombination(std::vector<double> & phis, std::vector<float> & baseFreq){
+	TSimulatorGenotypeCombination(std::vector<double> & phis, float* baseFreq){
 		tablesInitialized = false;
 		fillTables(phis, baseFreq);
 	};
@@ -270,6 +270,73 @@ public:
 };
 
 //---------------------------------------------------------
+//TSimulatorReadLength
+//---------------------------------------------------------
+struct readLengthContainer{
+	int fragmentLength;
+	int readLength;
+};
+
+class TSimulatorReadLength{
+protected:
+	TRandomGenerator* randomGenerator;
+	double meanLength;
+	double cumulAtMin;
+
+public:
+	TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s){
+		randomGenerator = RandomGenerator;
+
+		//is a fixed length
+		meanLength = stringToDouble(s);
+		if(meanLength < 5 || meanLength > 10000)
+			throw "Read length must be between 5 and 10,000!";
+		cumulAtMin = 0.0;
+	};
+	TSimulatorReadLength(TRandomGenerator* RandomGenerator){
+		randomGenerator = RandomGenerator;
+		meanLength = -1;
+		cumulAtMin = 0.0;
+	};
+	virtual ~TSimulatorReadLength(){};
+
+	virtual void sample(readLengthContainer & rl){
+		rl.fragmentLength = meanLength;
+		rl.readLength = meanLength;
+	};
+	virtual int max(){return meanLength;};
+	virtual int mean(){return meanLength;};
+	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
+	virtual std::string getFunctionString(){ return "Will simulate reads of fixed length " + toString(meanLength) + ".";};
+};
+
+class TSimulatorReadLengthGamma:public TSimulatorReadLength{
+protected:
+	double alpha, beta;
+	int _min, _max;
+
+	void parseFunctionString(std::string & s, double & param1, double & param2);
+	void calculateAverageLength();
+
+public:
+	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s);
+	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
+	void sample(readLengthContainer & rl);
+	virtual int max(){return _max;};
+	virtual std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".";};
+};
+
+class TSimulatorReadLengthGammaMode:public TSimulatorReadLengthGamma{
+protected:
+	double mode, var;
+
+public:
+	TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s);
+	std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with mode=" + toString(mode) + " and variance=" + toString(var) + ".";};
+};
+
+
+//---------------------------------------------------------
 //TSimulator
 //---------------------------------------------------------
 class TSimulator{
@@ -279,10 +346,12 @@ private:
 	bool bamFileOpen;
 
 	//general simulation parameters
+	double referenceDivergence;
 	double meanQual, sdQual;
 	int maxQual;
 	float seqDepth;
-	int readLength;
+	TSimulatorReadLength* readLengthDist;
+	bool readLengthDistInitialized;
 	std::vector<TSimulatorChromosome> chromosomes;
 	std::vector<TSimulatorChromosome>::iterator chrIt;
 	std::string readGroupName;
@@ -305,16 +374,17 @@ private:
 	//helper tools
 	BamTools::BamAlignment bamAlignment;
 	char toBase[4];
-	std::vector<float> baseFreq;
+	float baseFreq[4];
 	float cumulBaseFreq[4];
 	bool refInitialized;
 
+	void initializeQualityTransform(TParameters & params);
 	int sampleQuality();
 	double dePhred(double x);
 	void initializeQualToErrorTable();
 	int transformQuality(int & qual, int pos, int context);
 	void fillMutationTable(float** & mutTable, double theta);
-	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref, const double & referenceDivergence);
+	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref);
 	void writeInvariantSites(short** haplotypes, gz::ogzstream & out);
 	//void simulateReads(int & numReads, long & pos, float* & altFreq);
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
@@ -322,31 +392,37 @@ private:
 
 	//from SFS
 	void fillMutationTable(float** & mutTable);
-	void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, short* ref, const double & referenceDivergence);
+	void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, short* ref);
 
 public:
-	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, std::vector<float> & baseFreq);
+	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParameters & params);
 	~TSimulator(){
 		if(qualToErroTableInitialized)
 			delete[] qualToErroTable;
+		if(readLengthDistInitialized)
+			delete readLengthDist;
 	}
 
 	//functions to set general parameters
-	void setQualityDistribution(double mean, double sd);
-	void setMaxQual(int maxQual);
-	void setReadLength(int length);
+	void setQualityDistribution(double mean, double sd, int maxQual);
+	void setReadLength(std::string s);
 	void setDepth(float depth);
-	void setBaseFreq();
+	void setBaseFreq(std::vector<float> & freq);
 	void setReadGroupName(std::string name);
 	void setPMD(TPMD* PmdObject);
 	void setQualityTransformation(std::vector<double> & Betas);
+	void initializeChromosomes(TParameters & params, TLog* logfile);
 	void initializeChromosomes(int numChr, long chrLength, bool haploid);
 	void initializeChromosomes(std::vector<long> & chrLength, std::vector<bool> haploid);
 
 	void simulatePooledData(int sampleSize, SFS & sfs, std::string outname);
-	void simulateSingleIndividual(std::vector<double> theta, double referenceDivergence, std::string outname);
-	void simulateIndividualPair(std::vector<double> & phis, double referenceDivergence, std::string outname);
-	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, double referenceDivergence, std::string outname);
+	void simulateSingleIndividual(double theta, std::string & outname);
+	void simulateSingleIndividual(std::vector<double> theta, std::string & outname);
+	void simulateIndividualPair(std::vector<double> & phis, std::string & outname);
+	void simulatePopulationFromSFS(double theta, int numIndividuals, std::string & outname);
+	void simulatePopulationFromSFS(std::vector<double> & thetas, int numIndividuals, std::string & outname);
+	void simulatePopulationFromSFS(std::vector<std::string> & sfsFileNames, bool folded, int numIndividuals, std::string & outname);
+	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, std::string & outname);
 };
 
 

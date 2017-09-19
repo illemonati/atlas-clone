@@ -424,6 +424,11 @@ double TRandomGenerator::getGammaRand(int ia){
   return(x);
 }
 
+//gamma log density function
+double TRandomGenerator::gammaLogDensityFunction(double x, double alpha, double beta){
+	return alpha * log(beta) - gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
+}
+
 //Functions to calculate cumulative of Gamma
 //Adapted from kfunc.c of samtools
 double TRandomGenerator::gammaCumulativeDistributionFunction(double x, double alpha, double beta){

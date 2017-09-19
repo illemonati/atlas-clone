@@ -73,6 +73,7 @@ public:
 	double getGammaRand(double a);
 	double getGammaRand(int ia);
 
+	double gammaLogDensityFunction(double x, double alpha, double beta);
 	double gammaCumulativeDistributionFunction(double x, double alpha, double beta);
 	double lowerIncompleteGamma(double alpha, double z);
 	double upperIncompleteGamma(double alpha, double z);

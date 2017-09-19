@@ -500,6 +500,13 @@ TPMDEmpiric::TPMDEmpiric(std::string & values, std::string & example){
 	last = probs[length-1];
 };
 
+TPMDEmpiric::TPMDEmpiric(std::vector<double> Probs){
+	setName();
+	probs = Probs;
+	length = probs.size();
+	last = probs[length-1];
+};
+
 double TPMDEmpiric::getProb(int & pos){
 	if(pos < length) return probs[pos];
 	else return last;
@@ -514,6 +521,40 @@ std::string TPMDEmpiric::getString(){
 //------------------------------------------------------
 //TPMD
 //------------------------------------------------------
+void TPMD::initialize(TParameters & params, TLog* logfile){
+	if(params.parameterExists("pmd")){
+		std::string pmdString = params.getParameterString("pmd");
+		logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
+		initializeFunction(pmdString, pmdGA, logfile);
+		initializeFunction(pmdString, pmdCT, logfile);
+		logfile->conclude(getFunctionString(pmdCT));
+		if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
+		if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
+	} else {
+		//first C->T
+		if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
+		std::string pmdStringCT = params.getParameterString("pmdCT");
+		logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
+		initializeFunction(pmdStringCT, pmdCT, logfile);
+		logfile->conclude(getFunctionString(pmdCT));
+
+		//second G->A
+		if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdGA' has to be provided!";
+		std::string pmdStringGA = params.getParameterString("pmdGA");
+		logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
+		initializeFunction(pmdStringGA, pmdGA, logfile);
+		logfile->conclude(getFunctionString(pmdGA));
+	}
+}
+
+void TPMD::initialize(TPMD & other){
+	for(int i=0; i<2; ++i){
+		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
+		//other.myFunctions[i]->getCopy(myFunctions[i]);
+		functionsInitialized[i] = true;
+	}
+}
+
 void TPMD::initializeFunction(std::string & pmdString, PMDType type, TLog* logfile){
 	//parse string to get model.  options are
 	// none
