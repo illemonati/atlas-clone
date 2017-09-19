@@ -550,7 +550,7 @@ void TPMD::initialize(TParameters & params, TLog* logfile){
 void TPMD::initialize(TPMD & other){
 	for(int i=0; i<2; ++i){
 		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
-		//other.myFunctions[i]->getCopy(myFunctions[i]);
+		other.myFunctions[i]->getCopy(myFunctions[i]);
 		functionsInitialized[i] = true;
 	}
 }

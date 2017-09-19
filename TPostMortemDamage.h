@@ -76,9 +76,9 @@ public:
 		setName();
 	};
 	virtual ~TPMDFunction(){};
-	//	virtual void getCopy(TPMDFunction* pointer){
-	//		pointer = new TPMDFunction();
-	//	};
+	virtual void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDFunction();
+	};
 	virtual double getProb(int & pos){
 		return 0.0;
 	};
@@ -101,9 +101,9 @@ public:
 		c = other.lambda;
 	};
 	~TPMDSkoglund(){};
-//	virtual void getCopy(TPMDFunction* pointer){
-	//		pointer = new TPMDSkoglund(lambda, c);
-	//	};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDSkoglund(lambda, c);
+	};
 	double getProb(int & pos);
 	std::string getString();
 };
@@ -124,9 +124,9 @@ public:
 		c = other.c;
 	};
 	~TPMDExponential(){};
-	//	void getCopy(TPMDFunction* pointer){
-	//		pointer = new TPMDExponential(a, b, c);
-	//	};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDExponential(a, b, c);
+	};
 	double getProb(int & pos);
 	std::string getString();
 };
@@ -144,9 +144,9 @@ public:
 	TPMDEmpiric(std::string & values, std::string & example);
 	TPMDEmpiric(std::vector<double> Probs);
 	~TPMDEmpiric(){};
-//	void getCopy(TPMDFunction* pointer){
-//	pointer = new TPMDEmpiric(probs);
-//	};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDEmpiric(probs);
+	};
 	double getProb(int & pos);
 	std::string getString();
 };
