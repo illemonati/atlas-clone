@@ -204,7 +204,7 @@ TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(TRandomGenerator* R
 	parseFunctionString(s, mode, var);
 	if(mode <= 0.0)
 		throw "Mode of gamma distribution must be > 0.0!";
-	if(beta <= 0.0)
+	if(var <= 0.0)
 		throw "Variance of gamma distribution must be > 0.0!";
 
 	beta = (mode + sqrt(mode*mode + 4.0*var)) / (2.0 * var);
