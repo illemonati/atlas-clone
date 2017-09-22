@@ -167,7 +167,14 @@ public:
 		functionsInitialized[pmdGA] = false;
 	};
 
-	TPMD(TParameters & params, TLog* logfile){initialize(params, logfile);};
+	TPMD(TParameters & params, TLog* logfile){
+		myFunctions[pmdCT] = NULL;
+		myFunctions[pmdGA] = NULL;
+		functionsInitialized[pmdCT] = false;
+		functionsInitialized[pmdGA] = false;
+
+		initialize(params, logfile);
+	};
 	TPMD(TPMD & other){initialize(other);};
 	~TPMD(){
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
