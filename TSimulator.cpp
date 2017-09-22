@@ -169,6 +169,7 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 	if(pos == std::string::npos)
 		throw "5 Fail to understand read length function: use format function(var1,var2)[min,max].";
 	_min = stringToDouble(s.substr(0,pos));
+	if(_min <= 0) throw "min read length must be > 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
