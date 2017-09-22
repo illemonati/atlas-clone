@@ -182,14 +182,19 @@ void TSimulatorReadLengthGamma::calculateAverageLength(){
 	double w;
 	double sum = 0.0;
 	meanLength = 0.0;
-	for(int i=_min; i<=_max; ++i){
-		w = randomGenerator->gammaLogDensityFunction(i, alpha, beta);
+	for(int i=_min; i<_max; ++i){
+		w = exp(randomGenerator->gammaLogDensityFunction(i, alpha, beta));
 		meanLength += w * (double) i;
 		sum += w;
 	}
+	//add area >= max
+	w = 1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta);
+	meanLength += w * _max;
+	sum += w;
+	//normalize
 	meanLength /= sum;
 
-	//cumulative at _max
+	//cumulative at _min
 	cumulAtMin = randomGenerator->gammaCumulativeDistributionFunction(_min-0.5, alpha, beta);
 }
 
@@ -588,6 +593,9 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 //simulating reads
 void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
+	std::cout << "thisChr->length " << thisChr->length << std::endl;
+	std::cout << "seqDepth " << seqDepth << std::endl;
+	std::cout << "readLengthDist->mean() " << readLengthDist->mean() << std::endl;
 	long numReads = thisChr->length * seqDepth / readLengthDist->mean();
 	long chrLengthForStart = thisChr->length - readLengthDist->max();
 	double probReadPerSite = 1.0 / (double) chrLengthForStart;
