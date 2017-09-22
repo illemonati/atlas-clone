@@ -305,7 +305,7 @@ public:
 		rl.readLength = meanLength;
 	};
 	virtual int max(){return meanLength;};
-	virtual int mean(){return meanLength;};
+	virtual double mean(){return meanLength;};
 	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
 	virtual std::string getFunctionString(){ return "Will simulate reads of fixed length " + toString(meanLength) + ".";};
 };

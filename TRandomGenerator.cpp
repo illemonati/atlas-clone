@@ -432,7 +432,7 @@ double TRandomGenerator::gammaLogDensityFunction(double x, double alpha, double 
 //Functions to calculate cumulative of Gamma
 //Adapted from kfunc.c of samtools
 double TRandomGenerator::gammaCumulativeDistributionFunction(double x, double alpha, double beta){
-	return lowerIncompleteGamma(alpha, beta * x) / exp(gammaln(alpha));
+	return lowerIncompleteGamma(alpha, beta * x); // do not need to divide by exp(gammaln(alpha)), it is already regularized;
 }
 
 /* The following computes regularized incomplete gamma functions.
