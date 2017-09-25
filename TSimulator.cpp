@@ -781,7 +781,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	TSimulatorHaplotypes haplotypes(1);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt";
+	filename = outname + "_trueGenotypes.txt.gz";
 	gz::ogzstream genoFile(filename.c_str());
 
 	//open file for invariant positions
