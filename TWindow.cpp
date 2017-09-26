@@ -382,7 +382,7 @@ void TWindow::calcCoverage(){
 	long plentyData = 0;
 	int cov;
 	for(int i=0; i<length; ++i){
-		cov = sites[i].getCoverage();
+		cov = sites[i].depth();
 		coverage += cov;
 		if(cov == 0) ++noData;
 		else if(cov > 1) ++ plentyData;
@@ -408,7 +408,7 @@ void TWindow::calcCoveragePerSite(long* siteCoverage, unsigned int maxCov){
 	int cov;
 
 	for(int i=0; i<length; ++i){
-		cov = sites[i].getCoverage();
+		cov = sites[i].depth();
 		if(cov <= maxCov)	siteCoverage[cov] += 1;
 		else siteCoverage[maxCov + 1] += 1; //else it should be in the "greater than" bin
 
@@ -911,6 +911,9 @@ void TWindowDiploid::calcLikelihoodSurface(TRecalibration* recalObject, std::ofs
 	}
 }
 
+//-----------------------------------------------------
+//Callers
+//-----------------------------------------------------
 void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
@@ -1123,13 +1126,13 @@ void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
 	if(printAll){
 		for(int i=0; i<length; ++i){
 			sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
-			writer.writeSite(start + i + 1, sites[i].getCoverage(), 0, gl, maxLL);
+			writer.writeSite(start + i + 1, sites[i].depth(), 0, gl, maxLL);
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
 				sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
-				writer.writeSite(start + i + 1, sites[i].getCoverage(), 0, gl, maxLL);
+				writer.writeSite(start + i + 1, sites[i].depth(), 0, gl, maxLL);
 			}
 		}
 	}
@@ -1181,7 +1184,7 @@ void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std
 
 void TWindowDiploid::addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec){
 	for(int i=0; i<length; ++i){
-		if(sites[i].getCoverage() > 1){
+		if(sites[i].depth() > 1){
 			siteVec.push_back(new TSiteDiploid(&sites[i]));
 		}
 	}
@@ -1234,7 +1237,7 @@ void TWindowDiploidSpecificSites::calcCoverage(){
 		long plentyData = 0;
 		int cov;
 		for(int i=0; i<length; ++i){
-			cov = bootstrappedSites[i]->getCoverage();
+			cov = bootstrappedSites[i]->depth();
 			coverage += cov;
 			if(cov == 0) ++noData;
 			else if(cov > 1) ++ plentyData;

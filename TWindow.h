@@ -19,45 +19,6 @@
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
 
-//---------------------------------------------------------------
-//EMParameters
-//---------------------------------------------------------------
-struct EMParameters{
-	int numIterations;
-	int numThetaOnlyUpdates;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	double initalTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
-
-	EMParameters();
-	EMParameters(TParameters & params, TLog* logfile);
-	~EMParameters(){};
-
-	void report(TLog* logfile);
-};
-
-//---------------------------------------------------------------
-//Theta
-//---------------------------------------------------------------
-struct Theta{
-	double theta, expTheta, thetaConfidence, LL;
-
-	Theta(){
-		theta = 0.0;
-		thetaConfidence = 0.0;
-		expTheta = 0.0;
-		LL = -9e100;
-	};
-
-	void setTheta(double val){
-		theta = val;
-		expTheta = exp(-theta);
-	}
-};
-
 
 //---------------------------------------------------------------
 //TWindow
