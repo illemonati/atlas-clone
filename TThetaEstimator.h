@@ -12,27 +12,6 @@
 
 
 //---------------------------------------------------------------
-//EMParameters
-//---------------------------------------------------------------
-struct EMParameters{
-	int numIterations;
-	int numThetaOnlyUpdates;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	double initalTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
-
-	EMParameters();
-	EMParameters(TParameters & params, TLog* logfile);
-	~EMParameters(){};
-
-	void report(TLog* logfile);
-};
-
-
-//---------------------------------------------------------------
 //Theta
 //---------------------------------------------------------------
 struct Theta{
@@ -57,10 +36,26 @@ struct Theta{
 //---------------------------------------------------------------
 class TThetaEstimator{
 private:
+	TLog* logfile;
+
+	//data
 	std::vector<double*> sites;
 	long numSitesCoveredTwiceOrMore;
 	long totNumSitesAdded;
 	long numSitesWithData;
+	double cumulativeDepth;
+
+	//EM parameters
+	int numIterations;
+	int numThetaOnlyUpdates;
+	double maxEpsilon;
+	int NewtonRaphsonNumIterations;
+	double NewtonRaphsonMaxF;
+	double initalTheta;
+	double initThetaSearchFactor;
+	int initThetaNumSearchIterations;
+
+	//estimation
 	int numGenotypes;
 	double P_G[10]; // see paper
 	double pGenotype[10]; //P(g|pi, theta)
@@ -76,25 +71,17 @@ private:
 	double sum;
 	double P_g_oneSite[10];
 
+	void init();
 	void fillPGenotype(double & expTheta);
 	void fillP_G();
 	double calcLogLikelihood();
-	void findGoodStartingTheta(EMParameters & EMParams);
-	void runEMForTheta(EMParameters & EMParams, long & lengthWithData);
+	void findGoodStartingTheta();
+	void runEMForTheta();
 	void estimateConfidenceInterval();
 
 public:
-	TThetaEstimator(){
-		numGenotypes = 10;
-		numSitesCoveredTwiceOrMore = 0;
-		totNumSitesAdded = 0;
-		numSitesWithData = 0;
-
-		//tmp stuff
-		g = 0;
-		doublePointer = NULL;
-		sum = 0.0;
-	};
+	TThetaEstimator(TParameters & params, TLog* Logfile);
+	TThetaEstimator(TLog* Logfile);
 
 	void clear(){
 		for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
@@ -104,9 +91,12 @@ public:
 		numSitesCoveredTwiceOrMore = 0;
 		totNumSitesAdded = 0;
 		numSitesWithData = 0;
+		cumulativeDepth = 0.0;
 	};
 	void add(TSite & site);
-
+	void estimateTheta();
+	void writeHeader(std::ofstream & out);
+	void writeResultsToFile(std::ofstream & out);
 	void calcLikelihoodSurface(std::ofstream & out, int & steps);
 };
 

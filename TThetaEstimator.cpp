@@ -7,9 +7,82 @@
 
 #include "TThetaEstimator.h"
 
+//-------------------------------------------------------
+//TThetaEstimator
+//-------------------------------------------------------
+TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
+	numGenotypes = 10;
+
+	//parse
+	logfile->startIndent("Parameters of EM algorithm:");
+	numIterations = params.getParameterIntWithDefault("iterations", 100);
+	logfile->list("Will run up to " + toString(numIterations) + " iterations.");
+	numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
+	logfile->list("In each iteration, theta will be updated " + toString(numThetaOnlyUpdates) + " times.");
+
+	maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	logfile->list("Will run EM until deltaLL < " + toString(maxEpsilon) + ".");
+	NewtonRaphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	logfile->list("Will run Newton-Raphson algorithm up to " + toString(NewtonRaphsonNumIterations) + " times.");
+	NewtonRaphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	logfile->list("Will run Newton-Raphson algorithm until max(F) < " + toString(NewtonRaphsonMaxF) + ".");
+
+	//params regarding initial search
+	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	logfile->list("Will start with an initial theta of " + toString(initalTheta) + ".");
+	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
+	if(initThetaNumSearchIterations > 0){
+		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
+		initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
+		logfile->list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
+	} else {
+		initThetaSearchFactor = 0;
+	}
+
+	//counters and tmp variables
+	init();
+
+	//done
+	logfile->endIndent();
+}
+
+TThetaEstimator::TThetaEstimator(TLog* Logfile){
+	logfile = Logfile;
+	numGenotypes = 10;
+
+	//set EM parameters to default
+	numIterations = -1;
+	numThetaOnlyUpdates = -1;
+	maxEpsilon = 0.0;
+	NewtonRaphsonNumIterations = -1;
+	NewtonRaphsonMaxF = 0.0;
+	initalTheta = 0.0;
+	initThetaSearchFactor = -1;
+	initThetaNumSearchIterations = -1;
+
+	init();
+}
+
+void TThetaEstimator::init(){
+	//set counters
+	numSitesCoveredTwiceOrMore = 0;
+	totNumSitesAdded = 0;
+	numSitesWithData = 0;
+	cumulativeDepth = 0.0;
+
+	//tmp stuff
+	g = 0;
+	doublePointer = NULL;
+	sum = 0.0;
+}
+
 void TThetaEstimator::add(TSite & site){
 	//assumes that emission probabilities were calculated!!
 	++totNumSitesAdded;
+	cumulativeDepth += site.depth();
+
+	//add if site has data
 	if(site.hasData){
 		//store emission probabilities
 		sites.push_back(new double[10]);
@@ -68,9 +141,9 @@ double TThetaEstimator::calcLogLikelihood(){
 	return LL;
 }
 
-void TThetaEstimator::findGoodStartingTheta(EMParameters & EMParams){
+void TThetaEstimator::findGoodStartingTheta(){
 	//assumes that initial base frequencies have been estimated
-	double initTheta = EMParams.initalTheta;
+	double initTheta = initalTheta;
 	double oldTheta = initTheta;
 	double expTheta = exp(-initTheta);
 
@@ -80,9 +153,9 @@ void TThetaEstimator::findGoodStartingTheta(EMParameters & EMParams){
 
 	//run iterations
 	double oldLL = theta.LL;
-	double factor = EMParams.initThetaSearchFactor;
+	double factor = initThetaSearchFactor;
 	int numUpdates;
-	for(int i=0; i<EMParams.initThetaNumSearchIterations; ++i){
+	for(int i=0; i<initThetaNumSearchIterations; ++i){
 		//first test increase in theta
 		numUpdates = -1;
 		do{
@@ -125,7 +198,7 @@ void TThetaEstimator::findGoodStartingTheta(EMParameters & EMParams){
 }
 
 
-void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
+void TThetaEstimator::runEMForTheta(){
 	//prepare storage
 	double tmp[4];
 	double tmpSum;
@@ -139,9 +212,9 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 	double oldLL = -9e100;
 
 	//start EM loop
-	int numThetaOnlyUpdatesDone = EMParams.numThetaOnlyUpdates; //do regular step first
+	int numThetaOnlyUpdatesDone = numThetaOnlyUpdates; //do regular step first
 	numThetaOnlyUpdatesDone = 0;
-	int totIterations = EMParams.numIterations * EMParams.numThetaOnlyUpdates;
+	int totIterations = numIterations * numThetaOnlyUpdates;
 	for(int iter = 0; iter < totIterations; ++iter){
 		//a) pre-calc expTheta
 		oldTheta = theta.theta;
@@ -154,9 +227,9 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 		fillP_G();
 
 		//d) Find new parameter estimates using Newton-Raphson
-		if(numThetaOnlyUpdatesDone < EMParams.numThetaOnlyUpdates){
+		if(numThetaOnlyUpdatesDone < numThetaOnlyUpdates){
 			//update only theta: most difficult parameter and it is much faster to update only this one alone.
-			for(int n=0; n<EMParams.NewtonRaphsonNumIterations; ++n){
+			for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 				//i) calculate F() (Note: index is zero based!)
 				F(4) = numSitesWithData;
 				for(int k=0; k<4; ++k){
@@ -174,17 +247,17 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 				rho = rho - F(4) / Jacobian(4,4);
 
 				//check if we break
-				if(F(4) < EMParams.NewtonRaphsonMaxF){
+				if(F(4) < NewtonRaphsonMaxF){
 					theta.setTheta(-log(rho / (1.0 + rho)));
 					break;
 				}
 			}
 			++numThetaOnlyUpdatesDone;
-			if(theta.theta == oldTheta) numThetaOnlyUpdatesDone = EMParams.numThetaOnlyUpdates;
+			if(theta.theta == oldTheta) numThetaOnlyUpdatesDone = numThetaOnlyUpdates;
 		} else {
 			numThetaOnlyUpdatesDone = 0;
 			//update all parameters in EM
-			for(int n=0; n<EMParams.NewtonRaphsonNumIterations; ++n){
+			for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 				//i) calculate F (Note: index is zero based!)
 				F(4) = numSitesWithData;
 				F(5) = 0.0;
@@ -233,7 +306,7 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 						if(F(i) > maxF) maxF = F(i);
 					}
 
-					if(maxF < EMParams.NewtonRaphsonMaxF || n == (EMParams.NewtonRaphsonNumIterations-1)){
+					if(maxF < NewtonRaphsonMaxF || n == (NewtonRaphsonNumIterations-1)){
 						theta.setTheta(-log(rho / (1.0 + rho)));
 						break;
 					}
@@ -241,7 +314,7 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 					++failedAttempts;
 
 					//solve did not work -> start with higher theta!
-					theta.setTheta(EMParams.initalTheta);
+					theta.setTheta(initalTheta);
 					for(int i=0; i<failedAttempts; ++i)
 						theta.theta *= 10.0;
 
@@ -256,10 +329,10 @@ void TThetaEstimator::runEMForTheta(EMParameters & EMParams){
 		}
 
 		//e) do we break EM? Check LL
-		if(iter > 0 && iter % EMParams.numThetaOnlyUpdates == 0){
+		if(iter > 0 && iter % numThetaOnlyUpdates == 0){
 			oldLL = theta.LL;
 			theta.LL = calcLogLikelihood();
-			if(theta.LL > -9e100 && (theta.LL - oldLL) < EMParams.maxEpsilon) break;
+			if(theta.LL > -9e100 && (theta.LL - oldLL) < maxEpsilon) break;
 
 			//maybe theta = 0?
 			if(theta.theta < 0.1/(double) totNumSitesAdded){
@@ -323,50 +396,42 @@ void TThetaEstimator::estimateConfidenceInterval(){
 }
 
 //------------------------------------------------------------
-//Public Functons
+//Functions to run estimation-
 //------------------------------------------------------------
-
-void TThetaEstimator::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions){
+void TThetaEstimator::estimateTheta(){
 	//estimate starting parameters
 	logfile->startIndent("Estimating initial parameters:");
 	logfile->listFlush("Initial base frequencies: Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
 
 	//set initial parameters
 	logfile->listFlush("Estimating initial theta ...");
-	findGoodStartingTheta(EMParams);
+	findGoodStartingTheta();
 	logfile->write(" done!");
 	logfile->conclude("Starting EM with theta = ", theta.theta);
 	logfile->endIndent();
 
 	//Run EM
 	logfile->listFlush("Running EM to find ML estimate ...");
-	runEMForTheta(EMParams);
+	runEMForTheta();
 	logfile->write(" done!");
-	logfile->conclude("theta was estimated at ", thetaContainer.theta);
+	logfile->conclude("theta was estimated at ", theta.theta);
 
 	//confidence intervals
 	logfile->listFlush("Estimating approximate confidence intervals from Fisher-Information ...");
 	estimateConfidenceInterval(thetaContainer);
 	logfile->write(" done!");
-	logfile->conclude("95% confidence intervals are theta +- " + toString(thetaContainer.thetaConfidence));
+	logfile->conclude("95% confidence intervals are theta +- " + toString(theta.thetaConfidence));
+}
 
-	//write results to file
-	//position
-	//TODO: think about how to treat when regions are to be considered
-	if(considerRegions) out << "givenByUser\tgivenByUser\tgivenByUser";
-	else out << start << "\t" << end-1;
-	//coverage NOTE: assumes coverage has been calculated before...
-	if(considerRegions) out << "\t" << "NA" << "\t" << "NA" << "\t" << "NA";
-	else out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
-	//estimated params
+void TThetaEstimator::writeHeader(std::ofstream & out){
+	out << "depth\tfracMissing\tfracTwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
+}
+
+void TThetaEstimator::writeResultsToFile(std::ofstream & out){
+	out << "\t" << cumulativeDepth / (double) totNumSitesAdded << "\t" << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded << "\t" << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
-	out << "\t" << thetaContainer.theta << "\t" << thetaContainer.theta - thetaContainer.thetaConfidence << "\t" << thetaContainer.theta + thetaContainer.thetaConfidence << "\t" << thetaContainer.LL << std::endl;
-
-	//finish
-	gettimeofday(&endTime, NULL);
-	logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-	logfile->endIndent();
+	out << "\t" << theta.theta << "\t" << theta.theta - theta.thetaConfidence << "\t" << theta.theta + theta.thetaConfidence << "\t" << theta.LL << std::endl;
 }
 
 void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){

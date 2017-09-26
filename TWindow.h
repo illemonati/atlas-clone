@@ -71,6 +71,7 @@ public:
 
 class TWindowDiploid:public TWindow{
 protected:
+	/*
 	Theta thetaContainer;
 
 	void fillPGenotype(double* pGenotype, double & expTheta);
@@ -79,14 +80,21 @@ protected:
 	void findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams);
 	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, long & lengthWithData);
 	void estimateConfidenceInterval(Theta & thetaContainer);
+	*/
 
 public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
+	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
+	void addSitesToThetaEstimator(TThetaEstimator & estimator);
+
+	/*
 	void estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
+	*/
+
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
 	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);

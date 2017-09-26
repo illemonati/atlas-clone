@@ -512,7 +512,7 @@ void TGenome::initializeRecalibration(TParameters & params){
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
 
-void TGenome::openThetaOutputFile(std::ofstream & out){
+void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator){
 	std::string filename = outputName + "_theta_estimates.txt";
 	logfile->list("Writing theta estimates to '" + filename + "'");
 	out.open(filename.c_str());
@@ -520,7 +520,8 @@ void TGenome::openThetaOutputFile(std::ofstream & out){
 
 	//write header
 	out << std::setprecision(9) << "Chr\t";
-	out << "start\tend\tcoverage\tmissing\ttwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
+	out << "start\tend\t";
+	estimator.writeHeader(out);
 	out << "\n";
 }
 
@@ -547,15 +548,16 @@ void TGenome::estimateTheta(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
 
-	//EM params
-	EMParameters EMParams(params, logfile);
+	//Theta estimator
+	TThetaEstimator estimator(params, logfile);
 
 	//open output
-	std::ofstream out; openThetaOutputFile(out);
+	std::ofstream out; openThetaOutputFile(out, estimator);
 
 	//prepare windows
 	TWindowPairDiploid windows;
 
+	/*
 	if(considerRegions){
 		TWindowDiploidSiteSubset* windowSitesSubset = new TWindowDiploidSiteSubset(mask);
 		while(iterateChromosome(windows)){
@@ -616,6 +618,7 @@ void TGenome::estimateTheta(TParameters & params){
 			} else throw "Number of bootstraps must be > 1!";
 		}
 	} else {
+	*/
 		//iterate through windows
 		while(iterateChromosome(windows)){
 			while(iterateWindow(windows)){
@@ -625,14 +628,33 @@ void TGenome::estimateTheta(TParameters & params){
 					} if(windows.cur->fractionRefIsN > maxRefN){
 						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
+						logfile->startIndent("Estimating Theta:");
+
+						//measure runtime
+						struct timeval startTime, endTime;
+						gettimeofday(&startTime, NULL);
+
+						//adding sites to estimator
+						logfile->listFlush("Calculating emission probabilities ...");
+						windows.cur->addSitesToThetaEstimator(recalObject, estimator);
+						logfile->write(" done!");
+
 						//estimate Theta
-						out << chrIterator->Name << "\t";
-						windows.cur->estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
+						estimator.estimateTheta();
+
+						//write results to file
+						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+						estimator.writeResultsToFile(out);
+
+						//finish
+						gettimeofday(&endTime, NULL);
+						logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+						logfile->endIndent();
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
 		}
-	}
+	//}
 
 	//clean up
 	out.close();
@@ -648,6 +670,9 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 	//prepare windows
 	TWindowPairDiploid windows;
+
+	//Theta estimator
+	TThetaEstimator estimator(logfile);
 
 	//iterate through windows
 	int windowsCalculated = 0;
@@ -668,7 +693,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 					out.open(filename.c_str());
 					if(!out) throw "Failed to open output file '" + outputName + "'!";
 
-					//calc surface
+					//calc surface for theta
 					logfile->listFlush("Calculating likelihood surface ...");
 					windows.cur->calcLikelihoodSurface(recalObject, out, steps);
 					logfile->write(" done!");
