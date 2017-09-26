@@ -812,7 +812,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		while(iterateWindow(windows)){
 			if((!limitToSitesWithKnownAlleles && !beagle) || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
-				if(readData(windows)){
+				if(readData(windows) || printIfNoData){
 					//call genotypes
 					logfile->listFlush("Calling MLE genotypes ...");
 					if(limitToSitesWithKnownAlleles || beagle){
@@ -910,7 +910,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
-				if(readData(windows)){
+				if(readData(windows) || printIfNoData){
 					//check if we have data -> can be extended to ensure
 					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
@@ -1048,7 +1048,7 @@ void TGenome::callAllelePresence(TParameters & params){
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
 				//read data for current window
 				//TODO: ask Dan if following line should actually be if(readData || printIfNoData)
-				if(readData(windows)){
+				if(readData(windows) || printIfNoData){
 					//check if we have data -> can be extended to ensure
 					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
 						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
@@ -1119,7 +1119,7 @@ void TGenome::randomBaseCaller(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			if(readData(windows) || params.parameterExists("printAll")){
+			if(readData(windows) || printIfNoData){
 				//call random allele
 				logfile->listFlush("Calling random base ...");
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
@@ -1161,7 +1161,7 @@ void TGenome::majorityBaseCaller(TParameters & params){
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
-			if(readData(windows) || params.parameterExists("printAll")){
+			if(readData(windows) || printIfNoData){
 				//call random allele
 				logfile->listFlush("Calling random base ...");
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
