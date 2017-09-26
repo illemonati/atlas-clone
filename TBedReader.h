@@ -127,8 +127,10 @@ private:
 
 	void readFile(BamTools::SamSequenceDictionary & Sequences, 	TLog* logfile){
 		//open file
-		std::ifstream bedFile(filename.c_str());
-		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
+		std::istream* myStream = NULL;
+		if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
+		else myStream = new std::ifstream(filename.c_str());
+		if(!*myStream) throw "Failed to open BED file '" + filename + "'!";
 
 		//tmp variables
 		long lineNum = 0;
@@ -136,9 +138,12 @@ private:
 		curChr = "";
 
 		//read file
-		while(bedFile.good() && !bedFile.eof()){
+		while((*myStream).good() && !(*myStream).eof()){
 			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
+			std::string line;
+			std::getline(*myStream, line);
+
+			fillVectorFromString(line, vec, "\t");
 			//skip empty lines
 			if(vec.size() > 0){
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
@@ -160,7 +165,7 @@ private:
 		}
 
 		//close file
-		bedFile.close();
+		delete myStream;
 	};
 
 public:

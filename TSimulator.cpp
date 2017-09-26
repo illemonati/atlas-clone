@@ -785,7 +785,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	gz::ogzstream genoFile(filename.c_str());
 
 	//open file for invariant positions
-	filename = outname + "_invariantSites.txt";
+	filename = outname + "_invariantSites.txt.gz";
 	gz::ogzstream invariantSitesFile(filename.c_str());
 
 	//prepare mutation table
