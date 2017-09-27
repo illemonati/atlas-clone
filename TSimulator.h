@@ -385,7 +385,7 @@ private:
 	int transformQuality(int & qual, int pos, int context);
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref);
-	void writeInvariantSites(short** haplotypes, gz::ogzstream & out);
+	void writeBEDFiles(short** haplotypes, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile);
 	//void simulateReads(int & numReads, long & pos, float* & altFreq);
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	void writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile);

@@ -748,12 +748,13 @@ void TSimulator::simulateDiploidHaplotypesCurChromosome(short** haplotypes, floa
 	}
 }
 
-void TSimulator::writeInvariantSites(short** haplotypes, gz::ogzstream & out){
+void TSimulator::writeBEDFiles(short** haplotypes, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile){
 	//0-based
 	for(int l=0; l<chrIt->length; ++l){
 		if(haplotypes[0][l] == haplotypes[1][l]){
-			out << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
-		}
+			invariantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
+		} else variantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
+
 	}
 }
 
@@ -788,6 +789,11 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	filename = outname + "_invariantSites.txt.gz";
 	gz::ogzstream invariantSitesFile(filename.c_str());
 
+	//open file for variant positions
+	filename = outname + "_variantSites.txt.gz";
+	gz::ogzstream variantSitesFile(filename.c_str());
+
+
 	//prepare mutation table
 	float** mutTable;
 	mutTable = new float*[4];
@@ -815,7 +821,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		logfile->listFlush("Simulating genotypes ...");
 		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef());
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		writeInvariantSites(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile);
+		writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
 		logfile->write(" done!");
 
 		//now simulate and write reads
