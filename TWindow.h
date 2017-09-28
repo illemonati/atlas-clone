@@ -13,7 +13,7 @@
 #include "TReadGroups.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TRecalibration.h"
-#include "TSite.h"
+#include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"

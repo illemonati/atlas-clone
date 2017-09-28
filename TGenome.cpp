@@ -650,6 +650,7 @@ void TGenome::estimateTheta(TParameters & params){
 						gettimeofday(&endTime, NULL);
 						logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
 						logfile->endIndent();
+
 					}
 				} else logfile->list("No relevant positions -> skipping this window.");
 			}
@@ -687,23 +688,34 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				} if(windows.cur->fractionRefIsN > maxRefN){
 					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 				} else {
+					logfile->startIndent("Calculatin likelihood surface for Theta:");
+
+					//measure runtime
+					struct timeval startTime, endTime;
+					gettimeofday(&startTime, NULL);
+
+					//adding sites to estimator
+					logfile->listFlush("Calculating emission probabilities ...");
+					windows.cur->addSitesToThetaEstimator(recalObject, estimator);
+					logfile->write(" done!");
+
 					//open file
 					std::ofstream out;
 					filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
 					out.open(filename.c_str());
 					if(!out) throw "Failed to open output file '" + outputName + "'!";
 
-					//calc surface for theta
+
+					//estimate Theta
 					logfile->listFlush("Calculating likelihood surface ...");
-					windows.cur->calcLikelihoodSurface(recalObject, out, steps);
+					estimator.calcLikelihoodSurface(out, steps);
 					logfile->write(" done!");
 
-					//close output
+					//finish
 					out.close();
-
-					//check if we break
-					++windowsCalculated;
-					if(windowsCalculated >= limitWindows) break;
+					gettimeofday(&endTime, NULL);
+					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+					logfile->endIndent();
 				}
 			}
 		}
@@ -863,7 +875,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//do we estimate theta or is it given?
 	double theta;
 	bool estimateTheta;
-	EMParameters* EMParams = NULL;
+	TThetaEstimator* thetaEstimator = NULL;
+
 	std::ofstream outTheta;
 	if(params.parameterExists("theta")){
 		estimateTheta = false;
@@ -871,9 +884,9 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		logfile->list("Using theta = " + toString(theta));
 	} else {
 		estimateTheta = true;
-		//read EM params
-		EMParams = new EMParameters(params, logfile);
-		openThetaOutputFile(outTheta);
+		//prepare theta estimator
+		thetaEstimator = new TThetaEstimator(params, logfile);
+		openThetaOutputFile(outTheta, *thetaEstimator);
 	}
 
 	//limit to a set of sites? Print all sites, even those without data?
@@ -944,8 +957,21 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					} else {
 						//set Theta
 						if(estimateTheta){
-							outTheta << chrIterator->Name << "\t";
-							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile, considerRegions);
+							//adding sites to estimator
+							logfile->listFlush("Calculating emission probabilities ...");
+							windows.cur->addSitesToThetaEstimator(recalObject, *thetaEstimator);
+							logfile->write(" done!");
+
+							//estimate Theta
+							thetaEstimator->estimateTheta();
+
+							//write results to file
+							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+							thetaEstimator->writeResultsToFile(outTheta);
+
+
+
+
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();

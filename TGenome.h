@@ -16,7 +16,6 @@
 #include "TBed.h"
 #include <typeinfo>
 #include <map>
-#include "TThetaEstimator.h"
 
 //---------------------------------------------------------------
 //TGenome
