@@ -526,6 +526,7 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 	static double q;
 
 	constant = posTermForTransformation[pos] + beta[context+4] - qualTermForTransformation[qual];
+	if(4.0 * beta[1] * constant > beta[0] * beta[0]) throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
 	if(beta[1] == 0.0){
 		q = -constant / beta[0];
 	} else {
@@ -535,6 +536,7 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 	}
 
 	tmp = exp(q);
+	if(tmp == 0) throw "choose different quality transformation parameters! tmp == 0";
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
@@ -782,11 +784,11 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	TSimulatorHaplotypes haplotypes(1);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt.gz";
+	filename = outname + "_trueGenotypes.bed.gz";
 	gz::ogzstream genoFile(filename.c_str());
 
 	//open file for invariant positions
-	filename = outname + "_invariantSites.txt.gz";
+	filename = outname + "_invariantSites.bed.gz";
 	gz::ogzstream invariantSitesFile(filename.c_str());
 
 	//open file for variant positions
