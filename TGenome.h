@@ -62,7 +62,7 @@ private:
 	bool doMasking, considerRegions;
 	bool doCpGMasking;
 	bool applyCoverageFilter, applyQualityFilter;
-	int minCoverage, maxCoverage;
+	size_t minCoverage, maxCoverage;
 	int minQuality, maxQuality;
 	long limitWindows;
 	int limitChr;
@@ -95,13 +95,12 @@ public:
 		if(windowsPredefined) delete predefinedWindows;
 	};
 
-
-
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
 	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
 	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out);
+	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcLikelihoodSurfaces(TParameters & params);
 
 	//callers

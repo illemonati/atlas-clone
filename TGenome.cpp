@@ -39,7 +39,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		windowsPredefined = true;
 		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
 		predefinedWindows = new TBed(tmp);
-		logfile->write(" done!");
+		logfile->done();
 		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
 	}
 	numWindowsOnChr = 0;
@@ -91,7 +91,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
 		logfile->listFlush("Reading file ...");
 		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->write(" done!");
+		logfile->done();
 		logfile->endIndent();
 		//mask->print();
 	} else doMasking = false;
@@ -110,15 +110,20 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
 		logfile->listFlush("Reading file ...");
 		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->write(" done!");
+		logfile->done();
 		logfile->endIndent();
 	} else considerRegions = false;
 
 	//filters
 	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
 		applyCoverageFilter = true;
-		minCoverage = params.getParameterIntWithDefault("minCoverage", 0);
-		maxCoverage = params.getParameterIntWithDefault("maxCoverage", 1000000);
+		int tmpInt;
+		tmpInt = params.getParameterIntWithDefault("minCoverage", 0);
+		if(tmpInt < 0) throw "minCoverage must be >= 0!";
+		minCoverage = tmpInt;
+		tmpInt = params.getParameterIntWithDefault("maxCoverage", 1000000);
+		if(tmpInt < minCoverage) throw "maxCoverage must be >= minCoverage!";
+		maxCoverage = tmpInt;
 		logfile->list("Will filter out sites with coverage < " + toString(minCoverage) + " or > " + toString(maxCoverage));
 	} else {
 		applyCoverageFilter = false;
@@ -128,7 +133,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
 		applyQualityFilter = true;
 		minQuality = params.getParameterInt("minQual") + 33; //bamAlignment.Qualities is in ascii
+		if(minQuality < 0) throw "minQuality must be >= 0!";
 		maxQuality = params.getParameterInt("maxQual") + 33;
+		if(maxQuality < minQuality) throw "maxQuality must be >= minQuality!";
 		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
 	} else {
 		applyQualityFilter = false;
@@ -394,15 +401,15 @@ bool TGenome::readData(TWindowPair & windowPair){
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
 			windowPair.curPointer->applyMask(mask, considerRegions);
-			logfile->write(" done!");
+			logfile->done();
 		} else if(considerRegions){
 			logfile->listFlush("Masking sites outside regions ...");
 			windowPair.curPointer->applyMask(mask, considerRegions);
-			logfile->write(" done!");
+			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
 			windowPair.curPointer->maskCpG(reference, chrNumber);
-			logfile->write(" done!");
+			logfile->done();
 		} if(applyCoverageFilter){
 			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
 		} if(maxRefN < 1.0 && fastaReference == true){
@@ -562,9 +569,13 @@ void TGenome::estimateTheta(TParameters & params){
 	std::ofstream out; openThetaOutputFile(out, thetaEstimator);
 
 	//check for which segements theta is to be estimated
-	if(params.parameterExists("thetaGenomeWide") || considerRegions)
+	if(params.parameterExists("thetaGenomeWide") || considerRegions){
 		estimateThetaGenomeWide(thetaEstimator, out);
-	else
+		if(params.parameterExists("bootstraps")){
+			int numBootstraps = params.getParameterInt("bootstraps");
+			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
+		}
+	} else
 		estimateThetaWindows(thetaEstimator, out);
 
 	//clean up
@@ -593,14 +604,13 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 					//adding sites to estimator
 					logfile->listFlush("Calculating emission probabilities ...");
 					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
-					logfile->write(" done!");
+					logfile->done();
 
 					//estimate Theta
-					thetaEstimator.estimateTheta();
-
-					//write results to file
-					out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
-					thetaEstimator.writeResultsToFile(out);
+					if(thetaEstimator.estimateTheta()){
+						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+						thetaEstimator.writeResultsToFile(out);
+					}
 
 					//finish
 					gettimeofday(&endTime, NULL);
@@ -648,15 +658,44 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 		out  << "\t-\t-"; //chromosome, start, end
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
+}
 
-	//check if we do bootstrapping
-	if(params.parameterExists("bootstraps")){
-		int numBootstraps = params.getParameterInt("bootstraps");
-		if(numBootstraps > 0){
-			std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
-			specificSites.bootstrapTheta(numBootstraps, EMParams, recalObject, bootstrapFilename, logfile, *randomGenerator);
-		} else throw "Number of bootstraps must be > 1!";
+void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
+	if(numBootstraps < 1) throw "Number of bootstraps must be > 1!";
+	logfile->startIndent("Generating " + toString(numBootstraps) + " bootstrap estimates of theta:");
+
+	//measure runtime
+	struct timeval startTime, endTime;
+	gettimeofday(&startTime, NULL);
+
+	//open output file
+	std::ofstream bootstrapOut;
+	std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
+	logfile->list("Writing theta bootstraps to '" + bootstrapFilename + "'");
+	bootstrapOut.open(bootstrapFilename.c_str());
+	if(!bootstrapOut) throw "Failed to open output file '" + bootstrapFilename + "'!";
+
+	//write header
+	bootstrapOut << std::setprecision(9) << "Bootstrap";
+	thetaEstimator.writeHeader(bootstrapOut);
+	bootstrapOut << "\n";
+
+	//loop over bootstraps
+	for(int s=0; s<numBootstraps; ++s){
+		logfile->startIndent("Bootstrap " + toString(s+1) + " of " + toString(numBootstraps) + ":");
+
+		//run bootstrap
+		bootstrapOut << s+1;
+		thetaEstimator.bootstrapTheta(*randomGenerator, bootstrapOut);
+		bootstrapOut << "\n";
+
+		logfile->endIndent();
 	}
+
+	//finish
+	gettimeofday(&endTime, NULL);
+	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, "min");
+	logfile->endIndent();
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
@@ -665,7 +704,6 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
-	int limitWindows = params.getParameterIntWithDefault("limitWindows", 1);
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -674,52 +712,48 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	TThetaEstimator estimator(logfile);
 
 	//iterate through windows
-	int windowsCalculated = 0;
 	std::string filename;
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows)){
 				//check if we have data -> can be extended to ensure
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} if(windows.cur->fractionRefIsN > maxRefN){
-					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				} else {
-					logfile->startIndent("Calculatin likelihood surface for Theta:");
+				logfile->startIndent("Calculating likelihood surface for Theta:");
 
-					//measure runtime
-					struct timeval startTime, endTime;
-					gettimeofday(&startTime, NULL);
+				//measure runtime
+				struct timeval startTime, endTime;
+				gettimeofday(&startTime, NULL);
 
-					//adding sites to estimator
-					logfile->listFlush("Calculating emission probabilities ...");
-					windows.cur->addSitesToThetaEstimator(recalObject, estimator);
-					logfile->write(" done!");
+				//adding sites to estimator
+				logfile->listFlush("Calculating emission probabilities ...");
+				windows.cur->addSitesToThetaEstimator(recalObject, estimator);
+				logfile->done();
 
-					//open file
-					std::ofstream out;
-					filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
-					out.open(filename.c_str());
-					if(!out) throw "Failed to open output file '" + outputName + "'!";
+				//open file
+				std::ofstream out;
+				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
+				out.open(filename.c_str());
+				if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 
-					//estimate Theta
-					logfile->listFlush("Calculating likelihood surface ...");
-					estimator.calcLikelihoodSurface(out, steps);
-					logfile->write(" done!");
+				//estimate Theta
+				logfile->listFlush("Calculating likelihood surface ...");
+				estimator.calcLikelihoodSurface(out, steps);
+				logfile->done();
 
-					//finish
-					out.close();
-					gettimeofday(&endTime, NULL);
-					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-					logfile->endIndent();
-				}
+				//finish
+				out.close();
+				gettimeofday(&endTime, NULL);
+				logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+				logfile->endIndent();
 			}
 		}
 	}
 }
 
+//------------------------------------------
+//Callers
+//------------------------------------------
 void TGenome::callMLEGenotypes(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -961,7 +995,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							//adding sites to estimator
 							logfile->listFlush("Calculating emission probabilities ...");
 							windows.cur->addSitesToThetaEstimator(recalObject, *thetaEstimator);
-							logfile->write(" done!");
+							logfile->done();
 
 							//estimate Theta
 							thetaEstimator->estimateTheta();
@@ -1034,7 +1068,6 @@ void TGenome::callAllelePresence(TParameters & params){
 		}
 	}
 
-
 	//open output: vcf or flat file?
 	bool writeVCF = false;
 	gz::ogzstream outAllelePresence;
@@ -1098,7 +1131,7 @@ void TGenome::callAllelePresence(TParameters & params){
 							//adding sites to estimator
 							logfile->listFlush("Calculating emission probabilities ...");
 							windows.cur->addSitesToThetaEstimator(recalObject, *thetaEstimator);
-							logfile->write(" done!");
+							logfile->done();
 
 							//estimate Theta
 							thetaEstimator->estimateTheta();
@@ -1121,7 +1154,7 @@ void TGenome::callAllelePresence(TParameters & params){
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 							windows.cur->callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
 						}
-						logfile->write(" done!");
+						logfile->done();
 					}
 				}
 			} else logfile->list("No positions in this window.");
@@ -1171,7 +1204,7 @@ void TGenome::randomBaseCaller(TParameters & params){
 				logfile->listFlush("Calling random base ...");
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 				windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
-				logfile->write(" done!");
+				logfile->done();
 
 			} else logfile->list("No positions in this window.");
 		}
@@ -1213,7 +1246,7 @@ void TGenome::majorityBaseCaller(TParameters & params){
 				logfile->listFlush("Calling random base ...");
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 				windows.cur->majorityCall(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
-				logfile->write(" done!");
+				logfile->done();
 
 			} else logfile->list("No positions in this window.");
 		}
@@ -2100,7 +2133,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
 		}
 	}
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("read " + toString(singleEndRG.size()) + " read groups to be split.");
 
 	//open a bam file for writing
@@ -2194,7 +2227,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	}
 	TReadGroups newReadGroupObject;
 	newReadGroupObject.fill(newHeader);
-	logfile->write(" done!");
+	logfile->done();
 
 	//report and construct map
 	int* readGroupMap = new int[bamHeader.ReadGroups.Size()];
@@ -2419,7 +2452,7 @@ void TGenome::estimatePMD(TParameters & params){
 
 			//still have old alignment to condider?
 			if(oldAlignementMustBeConsidered && bamAlignment.Position >= windows.cur->end){
-					logfile->write(" done!");
+					logfile->done();
 					logfile->conclude("No data in this window.");
 			} else {
 				if(oldAlignementMustBeConsidered){
@@ -2451,15 +2484,15 @@ void TGenome::estimatePMD(TParameters & params){
 	std::string filename = outputName + "_PMD_Table.txt";
 	logfile->listFlush("Writing PMD table to '" + filename + "' ...");
 	pmdTables.writeTable(filename);
-	logfile->write(" done!");
+	logfile->done();
 	filename = outputName + "_PMD_Table_counts.txt";
 	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
 	pmdTables.writeTableWithCounts(filename);
-	logfile->write(" done!");
+	logfile->done();
 	filename = outputName + "_PMD_input_Empiric.txt";
 	logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
 	pmdTables.writePMDFile(filename);
-	logfile->write(" done!");
+	logfile->done();
 
 	//estimate exponential model
 	filename = outputName + "_PMD_input_Exponential.txt";
@@ -2467,7 +2500,7 @@ void TGenome::estimatePMD(TParameters & params){
 	int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
 	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
 	pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
-	logfile->write(" done!");
+	logfile->done();
 }
 
 float TGenome::calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD){
@@ -3018,13 +3051,13 @@ void TGenome::generatePSMCInput(TParameters & params){
 			windows.cur->calculateEmissionProbabilities(recalObject);
 			windows.cur->estimateBaseFrequencies();
 			thetaEstimator.setBaseFreq(windows.cur->baseFreq);
-			logfile->write(" done!");
+			logfile->done();
 
 			//create PSMC input
 			logfile->listFlush("Estimating heterozygosity status ...");
 			if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 			windows.cur->generatePSMCInput(thetaEstimator, blockSize, confidence, output, nCharOnLine);
-			logfile->write(" done!");
+			logfile->done();
 		}
 	}
 
@@ -3335,7 +3368,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     float var = float(sumSquaredFragLen) / float(numProperPairs) - (mean*mean);
     fragmentStats << "mean: " << mean << "\n" << "variance: " << var << "\n";
 
-    logfile->write(" done!");
+    logfile->done();
 
     outputCoverage.close();
     outputMQ.close();
@@ -3376,7 +3409,7 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 			logfile->listFlush("Writing coverage to file ...");
 			if(windows.cur->coverage == -1.0) output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << "0" << "\n";
 			else output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
-			logfile->write(" done!");
+			logfile->done();
 		}
 	}
 
@@ -3444,7 +3477,7 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 			windows.cur->calcCoveragePerSite(siteCoverage, maxCov);
 
 			logfile->listFlush("Adding coverages to table ...");
-			logfile->write(" done!");
+			logfile->done();
 		}
 	}
 
@@ -3530,7 +3563,7 @@ void TGenome::createDepthMask(TParameters & params){
 			readData(windows);
 			logfile->listFlush("Writing sites to mask to output file ...");
 			windows.cur->createDepthMask(minDepthForMask, maxDepthForMask, output, chrIterator->Name);
-			logfile->write(" done!");
+			logfile->done();
 		}
 	}
 	output.close();

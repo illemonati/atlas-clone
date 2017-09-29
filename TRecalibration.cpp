@@ -68,7 +68,7 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 		}
 		TReadGroups ReadGroupObject;
 		ReadGroupObject.fill(*bamHeader);
-		logfile->write(" done!");
+		logfile->done();
 
 		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 		int oldId;
@@ -803,7 +803,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
 		}
 		delete[] rgFound;
-		logfile->write(" done!");
+		logfile->done();
 
 		//check if we anyway estimate things
 		if(args.parameterExists("estimateRecal")) estimatetionRequired = true;
@@ -896,7 +896,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 
 		//now solve J^-1 x F
 		if(model->solveJxF()){
-			logfile->write(" done!");
+			logfile->done();
 
 /*
 			std::cout << "----------------------------------------------" << std::endl;
@@ -966,7 +966,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model);
 		}
-		logfile->write(" done!");
+		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
 		//DEBUG--------------------------------------------------------
@@ -993,7 +993,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 			filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
 			logfile->listFlush("Writing current estimates to file '" + filename + "' ...");
 			writeCurrentEstimates(filename, LL);
-			logfile->write(" done!");
+			logfile->done();
 		}
 
 		//end loop
@@ -1007,7 +1007,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 	filename = outputName + "_recalibrationEM.txt";
 	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
 	writeCurrentEstimates(filename, LL);
-	logfile->write(" done!");
+	logfile->done();
 
 	//calc LL surface
 	//calcLikelihoodSurface(outputName + "_LLsurface.txt", 21);
@@ -1161,7 +1161,7 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 							Q += (*curWindow)->calcQ(newParams);
 						}
-						//logfile->write(" done!");
+						//logfile->done();
 						//logfile->conclude("Current Q = " + toString(Q));
 
 						//write to file
@@ -1843,7 +1843,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	}
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
 }
 
@@ -1955,7 +1955,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	considerPosition = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering positions up to " + toString(maxPos));
 }
 
@@ -2072,7 +2072,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	considerPositionReverse = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering positions reverse up to " + toString(maxPos));
 }
 
@@ -2176,7 +2176,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	considerContext = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering context");
 }
 
@@ -2266,7 +2266,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			qualityConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2334,7 +2334,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			positionConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2402,7 +2402,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			positionReverseConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2468,7 +2468,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			contextConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2570,7 +2570,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
@@ -2592,7 +2592,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
@@ -2613,7 +2613,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
@@ -2634,7 +2634,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 
@@ -2653,7 +2653,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceQuality(std::string & filenam
 		}
 	}
 	out.close();
-		logfile->write(" done!");
+		logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filenameTag){
@@ -2671,7 +2671,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filena
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string & filenameTag){
@@ -2689,7 +2689,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string &
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenameTag){
@@ -2707,7 +2707,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenam
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 bool TRecalibrationBQSR::allConverged(){

@@ -59,7 +59,7 @@ public:
 	double normalComplementaryErrorCheb(double x);
 
 	//binomial
-	double getBiomialRand(double pp, int n);
+	double getBiomialRand(double pp, long n);
 	double factorial(int n);
 	double factorialLn(int n);
 	double binomCoeffLn(int n, int k);

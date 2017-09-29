@@ -59,9 +59,9 @@ public:
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	virtual void calcCoverage();
 	void calcFracN();
-	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
-	void applyCoverageFilter(int minCoverage, int maxCoverage);
-	void createDepthMask(int minCoverage, int maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
+	void calcCoveragePerSite(long * siteCoverage, size_t maxCov);
+	void applyCoverageFilter(int minCoverage, size_t maxCoverage);
+	void createDepthMask(size_t minCoverage, size_t maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
@@ -105,39 +105,6 @@ public:
 	void addToGLF(TGlfWriter & writer, bool printAll);
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 	void addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec);
-};
-
-//decide which positions to add on the fly
-//Attention: the bootstrapping is a hack that is only implemented and tested for the theta estimation!!
-class TWindowDiploidSpecificSites:public TWindowDiploid{
-protected:
-	long nextId;
-	TSite** bootstrappedSites;
-	bool bootstrapFilled;
-
-	void fillBootstrap(TRandomGenerator & randomGenerator);
-	void clearBootstrap();
-	void calcCoverage();
-	void fillP_G(double* P_G, double* pGenotype);
-	double calcLogLikelihood(double* pGenotype);
-
-public:
-	TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec);
-	~TWindowDiploidSpecificSites(){
-		clearBootstrap();
-	};
-	void bootstrapTheta(int numBootstraps, EMParameters & EMParams, TRecalibration* recalObject, std::string filename, TLog* logfile, TRandomGenerator & randomGenerator);
-};
-
-//provide regions file with positions
-class TWindowDiploidSiteSubset:public TWindowDiploid{
-protected:
-	TBedReader* subset;
-	long nextId;
-
-public:
-	TWindowDiploidSiteSubset(TBedReader* Subset);
-	void copySites(TWindowDiploid* other);
 };
 
 class TWindowHaploid:public TWindow{

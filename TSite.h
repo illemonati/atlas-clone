@@ -27,10 +27,10 @@
 //---------------------------------------------------------------
 class TSite{
 protected:
-	std::vector<TBase*> bases;
 	short int numGenotypes;
 
 public:
+	std::vector<TBase*> bases;
 	bool hasData;
 	double* emissionProbabilities;
 	char referenceBase; //optional

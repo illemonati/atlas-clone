@@ -9,7 +9,7 @@
 #define TTHETAESTIMATOR_H_
 
 #include "TSite.h"
-
+#include "TRandomGenerator.h"
 
 //---------------------------------------------------------------
 //Theta
@@ -67,6 +67,7 @@ private:
 	//tmp variables
 	int g;
 	std::vector<double*>::iterator siteIt;
+	std::vector<double*>::reverse_iterator revSiteIt;
 	double* doublePointer;
 	double sum;
 	double P_g_oneSite[10];
@@ -74,11 +75,12 @@ private:
 	void init();
 	void fillPGenotype(double* & pGeno, double & expTheta);
 	void fillPGenotype(double & expTheta);
-	void fillP_G();
-	double calcLogLikelihood();
-	void findGoodStartingTheta();
-	void runEMForTheta();
-	void estimateConfidenceInterval();
+	void fillP_G(std::vector<double*> & theseSites);
+	double calcLogLikelihood(std::vector<double*> & theseSites);
+	void findGoodStartingTheta(std::vector<double*> & theseSites);
+	void runEMForTheta(std::vector<double*> & theseSites);
+	void estimateConfidenceInterval(std::vector<double*> & theseSites);
+	bool estimateTheta(std::vector<double*> & theseSites);
 
 public:
 	TThetaEstimator(TParameters & params, TLog* Logfile);
@@ -104,12 +106,13 @@ public:
 	void add(TSite & site);
 	long size(){ return sites.size(); };
 	void fillPGenotype(double* & pGeno);
-	void estimateTheta();
+	bool estimateTheta();
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
 	void writeHeader(std::ofstream & out);
 	void writeResultsToFile(std::ofstream & out);
 	void calcLikelihoodSurface(std::ofstream & out, int & steps);
+	void bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out);
 };
 
 

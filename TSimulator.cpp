@@ -34,7 +34,7 @@ void TSimulatorBamFile::open(std::string Filename, const std::string & readGroup
 	if (!bamWriter.Open(filename, header, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 	isOpen = true;
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TSimulatorBamFile::close(){
@@ -59,7 +59,7 @@ void TSimulatorBamFile::indexBamFile(){
 
 	//close BAM file
 	reader.Close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 //---------------------------------------------------
@@ -121,7 +121,7 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 	if(fastaOpen){
 		writeRefToFasta();
 	}
-	logfile->write(" done!");
+	logfile->done();
 }
 
 //---------------------------------------------------------
@@ -816,7 +816,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef());
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
 		writeInvariantSites(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile);
-		logfile->write(" done!");
+		logfile->done();
 
 		//now simulate and write reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesFirstIndividual(), bamFile, "");
@@ -1181,7 +1181,7 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 		logfile->listFlush("Simulating genotypes ...");
 		genoComb.simulateHaplotypes(haplotypes.getHaplotypesOfIndividual(0), haplotypes.getHaplotypesOfIndividual(1), referenceObj.getPointerToRef(), referenceDivergence, chrIt->length, randomGenerator);
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		logfile->write(" done!");
+		logfile->done();
 
 		//simulating reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(0), bamFile0, " for individual 1");
@@ -1442,7 +1442,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 		logfile->listFlush("Simulating genotypes ...");
 		simulateHaplotypes(haplotypes, *sfsIt, mutTable, referenceObj.getPointerToRef());
 		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		logfile->write(" done!");
+		logfile->done();
 
 		//now simulate and write reads
 		logfile->startIndent("Simulating reads:");
@@ -1514,7 +1514,7 @@ void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outna
 			altFreq[l] = sfs.getRandomFrequency(randomGenerator);
 			freqFile << chrIt->name << "\t" << l+1 << altFreq[l] << "\n";
 		}
-		logfile->write(" done!");
+		logfile->done();
 
 		//simulating reads
 		numReads = chrIt->length * seqDepth / readLength;
