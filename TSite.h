@@ -26,7 +26,7 @@
 //TSite
 //---------------------------------------------------------------
 class TSite{
-private:
+protected:
 	std::vector<TBase*> bases;
 	short int numGenotypes;
 

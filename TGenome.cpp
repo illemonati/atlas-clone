@@ -418,7 +418,17 @@ bool TGenome::readData(TWindowPair & windowPair){
 		logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
 		logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
 		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
-		if(maxRefN < 1.0 && fastaReference == true) logfile->conclude(toString(windowPair.curPointer->fractionRefIsN * 100) + "% of all reference bases are 'N'");
+		if(windowPair.curPointer->fractionSitesNoData > maxMissing){
+			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			return false;
+		}
+		if(maxRefN < 1.0 && fastaReference == true){
+			logfile->conclude(toString(windowPair.curPointer->fractionRefIsN * 100) + "% of all reference bases are 'N'");
+			if(windowPair.curPointer->fractionRefIsN > maxRefN){
+				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+				return false;
+			}
+		}
 		return true;
 	} else {
 		logfile->conclude("No data in this window.");
@@ -512,6 +522,21 @@ void TGenome::initializeRecalibration(TParameters & params){
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
 
+void TGenome::initializeRandomGenerator(TParameters & params){
+	logfile->listFlush("Initializing random generator ...");
+
+	if(params.parameterExists("fixedSeed")){
+		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
+	} else if(params.parameterExists("addToSeed")){
+		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
+	} else randomGenerator=new TRandomGenerator();
+	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
+	randomGeneratorInitialized = true;
+}
+
+//-----------------------------------------------------
+//Functions for theta estimation
+//-----------------------------------------------------
 void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator){
 	std::string filename = outputName + "_theta_estimates.txt";
 	logfile->list("Writing theta estimates to '" + filename + "'");
@@ -525,140 +550,113 @@ void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimat
 	out << "\n";
 }
 
-void TGenome::initializeRandomGenerator(TParameters & params){
-	logfile->listFlush("Initializing random generator ...");
-
-	if(params.parameterExists("fixedSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
-	} else if(params.parameterExists("addToSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else randomGenerator=new TRandomGenerator();
-	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
-	randomGeneratorInitialized = true;
-}
 
 void TGenome::estimateTheta(TParameters & params){
-	//read parameters
-	bool thetaGenomeWide = false;
-	if(params.parameterExists("thetaGenomeWide")){
-		if(considerRegions) throw "thetaGenomeWide can presently not be used in combination with regions!";
-		logfile->list("estimating theta for all sites with depth >= 2");
-		thetaGenomeWide = true;
-	}
 	//initialize recalibration
 	initializeRecalibration(params);
 
 	//Theta estimator
-	TThetaEstimator estimator(params, logfile);
+	TThetaEstimator thetaEstimator(params, logfile);
 
 	//open output
-	std::ofstream out; openThetaOutputFile(out, estimator);
+	std::ofstream out; openThetaOutputFile(out, thetaEstimator);
+
+	//check for which segements theta is to be estimated
+	if(params.parameterExists("thetaGenomeWide") || considerRegions)
+		estimateThetaGenomeWide(thetaEstimator, out);
+	else
+		estimateThetaWindows(thetaEstimator, out);
+
+	//clean up
+	out.close();
+}
+
+void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out){
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			if(readData(windows)){
+				if(windows.cur->fractionSitesNoData > maxMissing){
+					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+				} if(windows.cur->fractionRefIsN > maxRefN){
+					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+				} else {
+					logfile->startIndent("Estimating Theta:");
+
+					//measure runtime
+					struct timeval startTime, endTime;
+					gettimeofday(&startTime, NULL);
+
+					//adding sites to estimator
+					logfile->listFlush("Calculating emission probabilities ...");
+					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
+					logfile->write(" done!");
+
+					//estimate Theta
+					thetaEstimator.estimateTheta();
+
+					//write results to file
+					out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+					thetaEstimator.writeResultsToFile(out);
+
+					//finish
+					gettimeofday(&endTime, NULL);
+					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+					logfile->endIndent();
+
+				}
+			} else logfile->list("No relevant positions -> skipping this window.");
+		}
+	}
+}
+
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out){
+	if(considerRegions)
+		logfile->startIndent("Estimating theta at specific sites:");
+	else
+		logfile->startIndent("Estimating theta genome-wide at sites with depth >= 2:");
 
 	//prepare windows
 	TWindowPairDiploid windows;
 
-	/*
-	if(considerRegions){
-		TWindowDiploidSiteSubset* windowSitesSubset = new TWindowDiploidSiteSubset(mask);
-		while(iterateChromosome(windows)){
-			mask->setChr(chrIterator->Name);
-			while(iterateWindow(windows)){
-				if(readData(windows)){
-					if(windows.cur->fractionSitesNoData > maxMissing){
-						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-					} if(windows.cur->fractionRefIsN > maxRefN){
-						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-					} else {
-						//copy sites to a fake window
-						logfile->listFlush("Adding relevant sites to data structure ...");
-						windowSitesSubset->copySites(windows.cur);
-						logfile->done();
-					}
-				} else logfile->list("No relevant positions -> skipping this window.");
-			}
-			//estimate Theta
-			windowSitesSubset->estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
-
-		} delete windowSitesSubset;
-
-	} else if(thetaGenomeWide){
-		std::vector<TSiteDiploid*> siteVec;
-		while(iterateChromosome(windows)){
-			while(iterateWindow(windows)){
-				if(readData(windows)){
-					if(windows.cur->fractionSitesNoData > maxMissing){
-						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-					} if(windows.cur->fractionRefIsN > maxRefN){
-						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-					} else {
-						//add informative sites to siteVec
-						logfile->listFlush("Adding relevant sites to data structure ...");
-						try{
-						windows.cur->addSitesWithDepthTwoOrMoreToVector(siteVec);
-						} catch(...){
-							throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
-						}
-						logfile->done();
-					}
-				} else logfile->list("No relevant positions -> skipping this window.");
+	//add sites to estimator
+	logfile->startIndent("Adding sites to data structure:");
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			if(readData(windows)){
+				//adding sites to estimator
+				logfile->listFlush("Calculating emission probabilities ...");
+				try{
+					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
+				} catch(...){
+					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
+				}
+				logfile->done();
 			}
 		}
-		//estimate Theta
-		logfile->list("will estimate theta based on a total of " + toString(siteVec.size()) + " sites");
-		TWindowDiploidSpecificSites specificSites =  TWindowDiploidSpecificSites(siteVec);
-		out  << "0\t"; //chromosome
-		specificSites.estimateTheta(EMParams, recalObject, out, logfile, considerRegions);
+	}
+	logfile->endIndent();
 
-		//check if we do bootstrapping
-		if(params.parameterExists("bootstraps")){
-			int numBootstraps = params.getParameterInt("bootstraps");
-			if(numBootstraps > 0){
-				std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
-				specificSites.bootstrapTheta(numBootstraps, EMParams, recalObject, bootstrapFilename, logfile, *randomGenerator);
-			} else throw "Number of bootstraps must be > 1!";
-		}
-	} else {
-	*/
-		//iterate through windows
-		while(iterateChromosome(windows)){
-			while(iterateWindow(windows)){
-				if(readData(windows)){
-					if(windows.cur->fractionSitesNoData > maxMissing){
-						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-					} if(windows.cur->fractionRefIsN > maxRefN){
-						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-					} else {
-						logfile->startIndent("Estimating Theta:");
+	//estimate Theta
+	logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.size()) + " sites:");
+	thetaEstimator.estimateTheta();
 
-						//measure runtime
-						struct timeval startTime, endTime;
-						gettimeofday(&startTime, NULL);
+	if(considerRegions)
+		out  << "\t-\t-"; //chromosome, start, end
+	else
+		out  << "genome-wide\t-\t-"; //chromosome, start, end
 
-						//adding sites to estimator
-						logfile->listFlush("Calculating emission probabilities ...");
-						windows.cur->addSitesToThetaEstimator(recalObject, estimator);
-						logfile->write(" done!");
-
-						//estimate Theta
-						estimator.estimateTheta();
-
-						//write results to file
-						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
-						estimator.writeResultsToFile(out);
-
-						//finish
-						gettimeofday(&endTime, NULL);
-						logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-						logfile->endIndent();
-
-					}
-				} else logfile->list("No relevant positions -> skipping this window.");
-			}
-		}
-	//}
-
-	//clean up
-	out.close();
+	//check if we do bootstrapping
+	if(params.parameterExists("bootstraps")){
+		int numBootstraps = params.getParameterInt("bootstraps");
+		if(numBootstraps > 0){
+			std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
+			specificSites.bootstrapTheta(numBootstraps, EMParams, recalObject, bootstrapFilename, logfile, *randomGenerator);
+		} else throw "Number of bootstraps must be > 1!";
+	}
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
@@ -868,26 +866,29 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	out.close();
 }
 
+bool TGenome::initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator){
+	if(params.parameterExists("theta")){
+		double theta = params.getParameterDouble("theta");
+		logfile->list("Using theta = " + toString(theta));
+		thetaEstimator = new TThetaEstimator(logfile);
+		thetaEstimator->setTheta(theta);
+		return false;
+	} else {
+		//prepare theta estimator
+		thetaEstimator = new TThetaEstimator(params, logfile);
+		return true;
+	}
+}
+
 void TGenome::callBayesianGenotypes(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
 
 	//do we estimate theta or is it given?
-	double theta;
-	bool estimateTheta;
-	TThetaEstimator* thetaEstimator = NULL;
-
+	TThetaEstimator* thetaEstimator;
+	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
 	std::ofstream outTheta;
-	if(params.parameterExists("theta")){
-		estimateTheta = false;
-		theta = params.getParameterDouble("theta");
-		logfile->list("Using theta = " + toString(theta));
-	} else {
-		estimateTheta = true;
-		//prepare theta estimator
-		thetaEstimator = new TThetaEstimator(params, logfile);
-		openThetaOutputFile(outTheta, *thetaEstimator);
-	}
+	if(estimateTheta) openThetaOutputFile(outTheta, *thetaEstimator);
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
@@ -955,7 +956,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 					} if(windows.cur->fractionRefIsN > maxRefN && estimateTheta){
 						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
-						//set Theta
+						//estimate Theta?
 						if(estimateTheta){
 							//adding sites to estimator
 							logfile->listFlush("Calculating emission probabilities ...");
@@ -968,24 +969,20 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							//write results to file
 							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
 							thetaEstimator->writeResultsToFile(outTheta);
-
-
-
-
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
-							windows.cur->setTheta(theta);
+							thetaEstimator->setBaseFreq(windows.cur->baseFreq);
 						}
 
 						//call Bayesian genotypes
 						logfile->listFlush("Calling Bayesian Genotypes ...");
 						if(limitToSitesWithKnownAlleles){
 							windows.cur->addReferenceBaseToSites(subset);
-							windows.cur->callBayesianGenotypeKnownAlleles(subset, *randomGenerator, output, chrIterator->Name, writeVCF);
+							windows.cur->callBayesianGenotypeKnownAlleles(subset, *thetaEstimator, *randomGenerator, output, chrIterator->Name, writeVCF);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-							windows.cur->callBayesianGenotype(*randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+							windows.cur->callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
 						}
 						logfile->done();
 					}
@@ -997,7 +994,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//clean up
 	if(estimateTheta){
 		outTheta.close();
-		delete EMParams;
+		delete thetaEstimator;
 	}
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
@@ -1007,20 +1004,10 @@ void TGenome::callAllelePresence(TParameters & params){
 	initializeRecalibration(params);
 
 	//do we estimate theta or is it given?
-	double theta;
-	bool estimateTheta;
-	EMParameters* EMParams = NULL;
+	TThetaEstimator* thetaEstimator;
+	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
 	std::ofstream outTheta;
-	if(params.parameterExists("theta")){
-		estimateTheta = false;
-		theta = params.getParameterDouble("theta");
-		logfile->list("Using theta = " + toString(theta));
-	} else {
-		estimateTheta = true;
-		openThetaOutputFile(outTheta);
-		//read EM params
-		EMParams = new EMParameters(params, logfile);
-	}
+	if(estimateTheta) openThetaOutputFile(outTheta, *thetaEstimator);
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
@@ -1106,24 +1093,33 @@ void TGenome::callAllelePresence(TParameters & params){
 					} if(windows.cur->fractionRefIsN > maxRefN && estimateTheta){
 						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 					} else {
-						//set Theta
+						//estimate Theta?
 						if(estimateTheta){
-							outTheta << chrIterator->Name << "\t";
-							windows.cur->estimateTheta((*EMParams), recalObject, outTheta, logfile, considerRegions);
+							//adding sites to estimator
+							logfile->listFlush("Calculating emission probabilities ...");
+							windows.cur->addSitesToThetaEstimator(recalObject, *thetaEstimator);
+							logfile->write(" done!");
+
+							//estimate Theta
+							thetaEstimator->estimateTheta();
+
+							//write results to file
+							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+							thetaEstimator->writeResultsToFile(outTheta);
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
-							windows.cur->setTheta(theta);
+							thetaEstimator->setBaseFreq(windows.cur->baseFreq);
 						}
 
 						//call allele presence
 						logfile->listFlush("Calling allele presence ...");
 						if(limitToSitesWithKnownAlleles){
 							windows.cur->addReferenceBaseToSites(subset);
-							windows.cur->callAllelePresenceKnwonAlleles(subset, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF, noAltIfHomoRef);
+							windows.cur->callAllelePresenceKnwonAlleles(subset, *thetaEstimator, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF, noAltIfHomoRef);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-							windows.cur->callAllelePresence(*randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
+							windows.cur->callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
 						}
 						logfile->write(" done!");
 					}
@@ -1135,7 +1131,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	//clean up
 	if(estimateTheta){
 		outTheta.close();
-		delete EMParams;
+		delete thetaEstimator;
 	}
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
@@ -2988,6 +2984,9 @@ void TGenome::generatePSMCInput(TParameters & params){
 	//read in parameters required
 	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
 	logfile->list("Using theta = " + toString(theta));
+	TThetaEstimator thetaEstimator(logfile);
+	thetaEstimator.setTheta(theta);
+
 	double confidence = params.getParameterDoubleWithDefault("confidence", 0.99);
 	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence));
 	int blockSize = params.getParameterIntWithDefault("block", 100);
@@ -3013,17 +3012,18 @@ void TGenome::generatePSMCInput(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
-			//set Theta
+
+			//set base frequencies
 			logfile->listFlush("Calculating emission probabilities ...");
 			windows.cur->calculateEmissionProbabilities(recalObject);
 			windows.cur->estimateBaseFrequencies();
-			windows.cur->setTheta(theta);
+			thetaEstimator.setBaseFreq(windows.cur->baseFreq);
 			logfile->write(" done!");
 
 			//create PSMC input
 			logfile->listFlush("Estimating heterozygosity status ...");
 			if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-			windows.cur->generatePSMCInput(blockSize, confidence, output, nCharOnLine);
+			windows.cur->generatePSMCInput(thetaEstimator, blockSize, confidence, output, nCharOnLine);
 			logfile->write(" done!");
 		}
 	}

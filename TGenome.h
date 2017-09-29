@@ -94,14 +94,25 @@ public:
 		if(useChromosome) delete[] useChromosome;
 		if(windowsPredefined) delete predefinedWindows;
 	};
+
+
+
+	//theta estimation
+	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
+	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
+	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out);
 	void calcLikelihoodSurfaces(TParameters & params);
+
+	//callers
 	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
 	void randomBaseCaller(TParameters & params);
 	void majorityBaseCaller(TParameters & params);
+
+	//other
 	void writeGLF(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);

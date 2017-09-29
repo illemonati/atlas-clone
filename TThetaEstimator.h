@@ -57,21 +57,22 @@ private:
 
 	//estimation
 	int numGenotypes;
-	double P_G[10]; // see paper
-	double pGenotype[10]; //P(g|pi, theta)
-	double baseFreq[4];
+	double* P_G; // see paper
+	double* pGenotype; //P(g|pi, theta)
+	double* baseFreq;
 	TGenotypeMap genoMap;
 	TBaseFrequencies initialBaseFreq;
 	Theta theta;
 
 	//tmp variables
 	int g;
-	std::vector<double>::iterator siteIt;
+	std::vector<double*>::iterator siteIt;
 	double* doublePointer;
 	double sum;
 	double P_g_oneSite[10];
 
 	void init();
+	void fillPGenotype(double* & pGeno, double & expTheta);
 	void fillPGenotype(double & expTheta);
 	void fillP_G();
 	double calcLogLikelihood();
@@ -83,9 +84,16 @@ public:
 	TThetaEstimator(TParameters & params, TLog* Logfile);
 	TThetaEstimator(TLog* Logfile);
 
+	~TThetaEstimator(){
+		clear();
+		delete[] P_G;
+		delete[] pGenotype;
+		delete[] baseFreq;
+	};
+
 	void clear(){
 		for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
-			delete[] *siteIt;
+			delete[] (*siteIt);
 		sites.clear();
 		initialBaseFreq.clear();
 		numSitesCoveredTwiceOrMore = 0;
@@ -94,7 +102,11 @@ public:
 		cumulativeDepth = 0.0;
 	};
 	void add(TSite & site);
+	long size(){ return sites.size(); };
+	void fillPGenotype(double* & pGeno);
 	void estimateTheta();
+	void setTheta(double Theta);
+	void setBaseFreq(TBaseFrequencies & BaseFreq);
 	void writeHeader(std::ofstream & out);
 	void writeResultsToFile(std::ofstream & out);
 	void calcLikelihoodSurface(std::ofstream & out, int & steps);

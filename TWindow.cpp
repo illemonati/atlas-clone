@@ -564,10 +564,6 @@ void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* reca
 void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
-		//calc prior probabilities on Genotypes
-		double pGenotype[10];
-		fillPGenotype(pGenotype, thetaContainer.expTheta);
-
 		//now only run over sites listed in that window
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
 		int pos;
@@ -589,10 +585,10 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 	}
 }
 
-void TWindowDiploid::callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
 	//calc prior probabilities on Genotypes
-	double pGenotype[10];
-	fillPGenotype(pGenotype, thetaContainer.expTheta);
+	double* pGenotype = new double[10];
+	estimator.fillPGenotype(pGenotype);
 
 	//now call genotypes. Note: emission probabilities have already been calculated when estimating theta!
 	if(isVCF){
@@ -628,14 +624,17 @@ void TWindowDiploid::callBayesianGenotype(TRandomGenerator & randomGenerator, gz
 			}
 		}
 	}
+
+	//clean up
+	delete[] pGenotype;
 }
 
-void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
+void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
-		double pGenotype[10];
-		fillPGenotype(pGenotype, thetaContainer.expTheta);
+		double* pGenotype = new double[10];
+		estimator.fillPGenotype(pGenotype);
 
 		//now only run over sites listed in that window
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -649,13 +648,16 @@ void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRand
 				sites[pos].callBayesianGenotypeKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
 			out << "\n";
 		}
+
+		//clean up
+		delete[] pGenotype;
 	}
 }
 
-void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
+void TWindowDiploid::callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
 	//calc prior probabilities on Genotypes
-	double pGenotype[10];
-	fillPGenotype(pGenotype, thetaContainer.expTheta);
+	double* pGenotype = new double[10];
+	estimator.fillPGenotype(pGenotype);
 
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(isVCF){
@@ -693,13 +695,12 @@ void TWindowDiploid::callAllelePresence(TRandomGenerator & randomGenerator, gz::
 			}
 		}
 	}
+
+	//clean up
+	delete[] pGenotype;
 }
 
 void TWindowDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
-	//calc prior probabilities on Genotypes
-	double pGenotype[10];
-	fillPGenotype(pGenotype, thetaContainer.expTheta);
-
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(printAll){
 		for(int i=0; i<length; ++i){
@@ -719,10 +720,6 @@ void TWindowDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzs
 }
 
 void TWindowDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
-	//calc prior probabilities on Genotypes
-	double pGenotype[10];
-	fillPGenotype(pGenotype, thetaContainer.expTheta);
-
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(printAll){
 		for(int i=0; i<length; ++i){
@@ -741,12 +738,12 @@ void TWindowDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstr
 	}
 }
 
-void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
+void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
-		double pGenotype[10];
-		fillPGenotype(pGenotype, thetaContainer.expTheta);
+		double* pGenotype = new double[10];
+		estimator.fillPGenotype(pGenotype);
 
 		//now only run over sites listed in that window
 		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -763,11 +760,14 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandom
 			out << "\n";
 
 		}
+
+		//clean up
+		delete[] pGenotype;
 	}
 }
 
 void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
-	//TODO: calculate root mean squared mapping qualities for sites (now just passin g0). Would be helpful in VCFs as well
+	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	uint8_t* gl = new uint8_t[10];
 	uint32_t maxLL;
 	if(printAll){
@@ -786,10 +786,10 @@ void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
 	delete[] gl;
 }
 
-void TWindowDiploid::generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
+void TWindowDiploid::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
-	fillPGenotype(pGenotype, thetaContainer.expTheta);
+	estimator.fillPGenotype(pGenotype);
 
 	//now call heterozygosity in blocks
 	int nBlocks = length / blockSize;

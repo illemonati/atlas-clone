@@ -65,6 +65,11 @@ TThetaEstimator::TThetaEstimator(TLog* Logfile){
 }
 
 void TThetaEstimator::init(){
+	//initialize arrays
+	pGenotype = new double[10];
+	P_G = new double[10];
+	baseFreq = new double[4];
+
 	//set counters
 	numSitesCoveredTwiceOrMore = 0;
 	totNumSitesAdded = 0;
@@ -101,16 +106,24 @@ void TThetaEstimator::add(TSite & site){
 	}
 }
 
-void TThetaEstimator::fillPGenotype(double & expTheta){
+void TThetaEstimator::fillPGenotype(double* & pGeno, double & expTheta){
 	//assumes that base frequencies are set!
 	for(int i=0; i<4; ++i){
 		//homozygous genotypes
-		pGenotype[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
+		pGeno[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
 		//heterozygous genotypes
 		for(int j=i+1; j<4; ++j){
-			pGenotype[genoMap.getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
+			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
 		}
 	}
+}
+
+void TThetaEstimator::fillPGenotype(double & expTheta){
+	fillPGenotype(pGenotype, expTheta);
+}
+
+void TThetaEstimator::fillPGenotype(double* & pGeno){
+	fillPGenotype(pGeno, theta.theta);
 }
 
 void TThetaEstimator::fillP_G(){
@@ -421,6 +434,15 @@ void TThetaEstimator::estimateTheta(){
 	estimateConfidenceInterval(thetaContainer);
 	logfile->write(" done!");
 	logfile->conclude("95% confidence intervals are theta +- " + toString(theta.thetaConfidence));
+}
+
+void TThetaEstimator::setTheta(double Theta){
+	theta.setTheta(Theta);
+}
+
+void TThetaEstimator::setBaseFreq(TBaseFrequencies & BaseFreq){
+	for(int i=0; i<4; ++i)
+		baseFreq[i] = BaseFreq[i];
 }
 
 void TThetaEstimator::writeHeader(std::ofstream & out){
