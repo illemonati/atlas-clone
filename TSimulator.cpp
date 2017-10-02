@@ -25,7 +25,7 @@ void TSimulatorBamFile::open(std::string Filename, const std::string & readGroup
 	header.Version = "1.4";
 	header.GroupOrder = "none";
 	header.SortOrder = "coordinate";
-	header.ReadGroups.Add(readGroupName);
+	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
 	for(std::vector<TSimulatorChromosome>::iterator chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
 		references.push_back(BamTools::RefData(chrIt->name, chrIt->length));
 		header.Sequences.Add(BamTools::SamSequence(chrIt->name, chrIt->length));
@@ -792,7 +792,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	gz::ogzstream invariantSitesFile(filename.c_str());
 
 	//open file for variant positions
-	filename = outname + "_variantSites.txt.gz";
+	filename = outname + "_variantSites.bed.gz";
 	gz::ogzstream variantSitesFile(filename.c_str());
 
 
