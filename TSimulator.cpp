@@ -337,6 +337,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
 		setQualityTransformation(beta);
 
+
 	}
 }
 
