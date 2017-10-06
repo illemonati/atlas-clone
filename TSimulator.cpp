@@ -228,12 +228,11 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		//skip header
 		std::getline(file, tmp);
 
-		//parse file to read details for each read group
+		//parse file to read details for first read group
 		std::getline(file, tmp);
 		fillVectorFromString(tmp, vec, "\t");
 		logfile->done();
 
-		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
 			for(int i=1; i < 25; ++i) beta.push_back(stringToFloat(vec[i]));
@@ -555,26 +554,11 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 
 		//add to bam alignment
 		//int returnQual(int & qual, int & pos, TGenotypeMap & genoMap, int & previousBase, int & base);
-		std::cout << "original qual " << qual << std::endl;
 		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base));
-		std::cout << "transqual " << transQual << std::endl;
 		if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
 		else bamAlignment.Qualities += (char) transQual;
 		previousBase = base;
 		bamAlignment.QueryBases += toBase[base];
-
-
-		/*if(qualTransformationInitialized){
-			int transQual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
-			//cap at highest possible illumina score
-			if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
-			else bamAlignment.Qualities += (char) transQual;
-			previousBase = base;
-		} else {
-			if(qual > maxQual) bamAlignment.Qualities += (char) maxQual;
-			else bamAlignment.Qualities += (char) qual;
-		}
-		bamAlignment.QueryBases += toBase[base];*/
 	}
 	bamFile.saveAlignment(bamAlignment);
 }
