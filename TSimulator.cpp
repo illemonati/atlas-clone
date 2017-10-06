@@ -124,104 +124,6 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 	logfile->write(" done!");
 }
 
-//---------------------------------------------------------
-//TSimulatorReadLength
-//---------------------------------------------------------
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLength(RandomGenerator){
-	parseFunctionString(s, alpha, beta);
-	if(alpha <= 0.0)
-		throw "Shape parameter alpha must be > 0.0!";
-	if(beta <= 0.0)
-		throw "Rate parameter alpha must be > 0.0!";
-
-	calculateAverageLength();
-};
-
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
-	alpha = -1.0;
-	beta = -1.0;
-	_min = -1.0;
-	_max = -1.0;
-}
-
-void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & param1, double & param2){
-	if(s[0] != '(')
-		throw "1 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	s.erase(0,1);
-
-	unsigned int pos = s.find(",");
-	if(pos == std::string::npos)
-		throw "2 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	param1 = stringToDouble(s.substr(0,pos));
-
-	s.erase(0,pos+1);
-
-	pos = s.find(")");
-	if(pos == std::string::npos)
-		throw "3 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	param2 = stringToDouble(s.substr(0,pos));
-	s.erase(0,pos+1);
-
-	if(s[0] != '[')
-		throw "4 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	s.erase(0,1);
-	pos = s.find(",");
-	if(pos == std::string::npos)
-		throw "5 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	_min = stringToDouble(s.substr(0,pos));
-	if(_min <= 0) throw "min read length must be > 0!";
-	s.erase(0,pos+1);
-	pos = s.find("]");
-	if(pos == std::string::npos)
-		throw "6 Fail to understand read length function: use format function(var1,var2)[min,max].";
-	_max = stringToDouble(s.substr(0,pos));
-};
-
-void TSimulatorReadLengthGamma::calculateAverageLength(){
-	//get weighted average
-	double w;
-	double sum = 0.0;
-	meanLength = 0.0;
-	for(int i=_min; i<_max; ++i){
-		w = exp(randomGenerator->gammaLogDensityFunction(i, alpha, beta));
-		meanLength += w * (double) i;
-		sum += w;
-	}
-	//add area >= max
-	w = 1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta);
-	meanLength += w * _max;
-	sum += w;
-	//normalize
-	meanLength /= sum;
-	//cumulative at _min
-	cumulAtMin = randomGenerator->gammaCumulativeDistributionFunction(_min-0.5, alpha, beta);
-}
-
-void TSimulatorReadLengthGamma::sample(readLengthContainer & rl){
-	rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	while(rl.fragmentLength < _min)
-		rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	rl.readLength = std::min(rl.fragmentLength, _max);
-};
-
-TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLengthGamma(RandomGenerator){
-	//here the parameters parsed are mode and variance, so adjust alpha and beta
-	parseFunctionString(s, mode, var);
-	if(mode <= 0.0)
-		throw "Mode of gamma distribution must be > 0.0!";
-	if(var <= 0.0)
-		throw "Variance of gamma distribution must be > 0.0!";
-
-	beta = (mode + sqrt(mode*mode + 4.0*var)) / (2.0 * var);
-	alpha = mode*beta + 1.0;
-
-	if(alpha <= 0.0)
-		throw "Provided mode and variance imply a shape parameter alpha <= 0.0!";
-	if(beta <= 0.0)
-		throw "Provided mode and variance imply a rate parameter beta <= 0.0!";
-
-	calculateAverageLength();
-}
 
 //---------------------------------------------------
 //TSimulator
@@ -235,7 +137,6 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	bamFileOpen = false;
 	qualToErroTableInitialized = false;
 	pmdInitialized = false;
-	qualTransformationInitialized = false;
 	readLengthDistInitialized = false;
 	initializeQualToErrorTable();
 
@@ -312,7 +213,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 		std::string s = concatenateString(beta, ",");
 		logfile->list("Will transform qualities with beta = {" + s + "}");
-		setQualityTransformation(beta);
+		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
 	} else if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -321,6 +222,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 
 		//tmp variables for reading
 		std::string tmp;
+		std::vector<std::string> vec;
 		std::vector<double> beta;
 
 		//skip header
@@ -328,16 +230,24 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 
 		//parse file to read details for each read group
 		std::getline(file, tmp);
-		fillVectorFromString(tmp, beta, '\t');
+		fillVectorFromString(tmp, vec, "\t");
 		logfile->done();
 
-		if(beta.size() != 24) throw "Found " + toString(beta.size()) + " instead of 24 columns in '" + filename + "' on line 2!";
-		logfile->done();
-		std::string s = concatenateString(beta, ",");
-		logfile->conclude("Will transform qualities with beta = {" + s + "}");
-		setQualityTransformation(beta);
-
-
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
+			for(int i=1; i < 25; ++i) beta.push_back(stringToFloat(vec[i]));
+			logfile->done();
+			if(beta.size() != 24)
+				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+			std::string s = concatenateString(beta, ",");
+			logfile->list("Will transform qualities with beta = {" + s + "}");
+			//setQualityTransformation(beta);
+			qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
+		}
+	} else {
+		qualityTransformation = new TSimulatorQuality(readLengthDist);
+		logfile->list("Will write quality scores into BAM without distortion");
 	}
 }
 
@@ -403,8 +313,8 @@ void TSimulator::initializeChromosomes(std::vector<long> & chrLength, std::vecto
 }
 
 void TSimulator::setReadLength(std::string s){
-	if(qualTransformationInitialized)
-		throw "TSimulator: Can not change read length after quality transformation was initialized!";
+//	if(qualTransformationInitialized)
+//		throw "TSimulator: Can not change read length after quality transformation was initialized!";
 
 	if(readLengthDistInitialized)
 		delete readLengthDist;
@@ -464,33 +374,6 @@ void TSimulator::setReadGroupName(std::string name){
 void TSimulator::setPMD(TPMD* PmdObject){
 	pmdObject = PmdObject;
 	pmdInitialized = true;
-}
-
-void TSimulator::setQualityTransformation(std::vector<double> & Betas){
-	if(Betas.size() != 24)
-		throw "Wrong size of beta vector when initializing quality transformation: need 24 values (quality, quality^2, pos, pos^2 and 20 contexts).";
-
-	//copy betas
-	beta = new double[24];
-	for(int i=0; i<24; ++i)
-		beta[i] = Betas[i];
-
-	//precalculate stuff
-	qualTermForTransformation = new double[127];
-	for(int i=0; i<34; ++i)
-		qualTermForTransformation[i] = 100.0;
-	double tmp;
-	for(int i=34; i<127; ++i){
-		tmp = pow(10.0, -(double) (i - 33) / 10.0);
-		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
-	}
-
-	posTermForTransformation = new double[readLengthDist->max()];
-	for(int i=0; i<readLengthDist->max(); ++i){
-		posTermForTransformation[i] = beta[2] * i + beta[3] * i*i;
-	}
-
-	qualTransformationInitialized = true;
 }
 
 int TSimulator::sampleQuality(){
@@ -671,7 +554,17 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 			base = (base + randomGenerator->pickOne(3) + 1) % 4;
 
 		//add to bam alignment
-		if(qualTransformationInitialized){
+		//int returnQual(int & qual, int & pos, TGenotypeMap & genoMap, int & previousBase, int & base);
+		std::cout << "original qual " << qual << std::endl;
+		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base));
+		std::cout << "transqual " << transQual << std::endl;
+		if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
+		else bamAlignment.Qualities += (char) transQual;
+		previousBase = base;
+		bamAlignment.QueryBases += toBase[base];
+
+
+		/*if(qualTransformationInitialized){
 			int transQual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
 			//cap at highest possible illumina score
 			if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
@@ -681,7 +574,7 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 			if(qual > maxQual) bamAlignment.Qualities += (char) maxQual;
 			else bamAlignment.Qualities += (char) qual;
 		}
-		bamAlignment.QueryBases += toBase[base];
+		bamAlignment.QueryBases += toBase[base];*/
 	}
 	bamFile.saveAlignment(bamAlignment);
 }
