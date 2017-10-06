@@ -222,7 +222,6 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 
 		//tmp variables for reading
 		std::string tmp;
-		std::vector<std::string> vec;
 		std::vector<double> beta;
 
 		//skip header
@@ -230,23 +229,14 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 
 		//parse file to read details for first read group
 		std::getline(file, tmp);
-		fillVectorFromString(tmp, vec, "\t");
+		fillVectorFromString(tmp, beta, '\t');
 		logfile->done();
 
-		if(vec.size() > 0){
-			if(vec.size() < 25) throw "Found " + toString(vec.size()) + " instead of 25 columns in '" + filename + "' on line 2!";
-			for(int i=1; i < 25; ++i) beta.push_back(stringToFloat(vec[i]));
-			logfile->done();
-			if(beta.size() != 24)
-				throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
-			std::string s = concatenateString(beta, ",");
-			logfile->list("Will transform qualities with beta = {" + s + "}");
-			//setQualityTransformation(beta);
-			qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
-		}
-	} else {
-		qualityTransformation = new TSimulatorQuality(readLengthDist);
-		logfile->list("Will write quality scores into BAM without distortion");
+		if(beta.size() != 24) throw "Found " + toString(beta.size()) + " instead of 24 columns in '" + filename + "' on line 2!";
+		logfile->done();
+		std::string s = concatenateString(beta, ",");
+		logfile->conclude("Will transform qualities with beta = {" + s + "}");
+		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
 	}
 }
 
