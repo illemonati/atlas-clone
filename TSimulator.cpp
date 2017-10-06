@@ -237,7 +237,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		std::string s = concatenateString(beta, ",");
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
 		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
-	}
+	} else qualityTransformation = new TSimulatorQuality(readLengthDist);
 }
 
 void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
