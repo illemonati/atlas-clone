@@ -45,6 +45,7 @@ public:
 
 class TSimulatorReadLengthGamma:public TSimulatorReadLength{
 protected:
+	float meanLength;
 	double alpha, beta;
 	int _min, _max;
 
@@ -57,6 +58,7 @@ public:
 	virtual ~TSimulatorReadLengthGamma(){};
 	void sample(readLengthContainer & rl);
 	virtual int max(){return _max;};
+	virtual double mean(){return meanLength;};
 	virtual std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".";};
 };
 

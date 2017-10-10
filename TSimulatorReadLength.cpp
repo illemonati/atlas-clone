@@ -15,7 +15,7 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, st
 	randomGenerator = RandomGenerator;
 
 	//is a fixed length
-	meanLength = stringToDouble(s);
+	meanLength = stringToInt(s);
 	if(meanLength < 5 || meanLength > 10000)
 		throw "Read length must be between 5 and 10,000!";
 
@@ -58,6 +58,7 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGen
 	beta = -1.0;
 	_min = -1.0;
 	_max = -1.0;
+	meanLength = -1.0;
 }
 
 void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & param1, double & param2){
@@ -96,6 +97,9 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 void TSimulatorReadLengthGamma::initiate(){
 	cumulAtMin = randomGenerator->gammaCumulativeDistributionFunction(_min-0.5, alpha, beta);
 	double totalArea = 1 - cumulAtMin;
+
+	gammaDensity = new float[_max];
+	gammaCumulDensity = new float[_max];
 
 	//get weighted average
 	double w;

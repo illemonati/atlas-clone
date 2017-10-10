@@ -325,8 +325,10 @@ void TSimulator::setReadLength(std::string s){
 		//is a function
 		std::string type = s.substr(0, pos);
 		s.erase(0, pos);
-		if(type == "gamma")
+		if(type == "gamma"){
 			readLengthDist = new TSimulatorReadLengthGamma(randomGenerator, s);
+
+		}
 		else if(type == "gammaMode")
 			readLengthDist = new TSimulatorReadLengthGammaMode(randomGenerator, s);
 		else throw "Unknown read length distribution '" + type + "'!";
@@ -471,7 +473,9 @@ void TSimulator::simulateReads(int & numReads, long & pos, float* & altFreq){
 //simulating reads
 void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
-	long numReads = thisChr->length * seqDepth / readLengthDist->mean();
+	long numReads;
+	if(readLengthDist->mean() == 0) numReads = 0;
+	else numReads = thisChr->length * seqDepth / readLengthDist->mean();
 	long chrLengthForStart = thisChr->length - readLengthDist->max();
 	double probReadPerSite = 1.0 / (double) chrLengthForStart;
 	long numReadsSimulated = 0;
@@ -545,7 +549,6 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 					base = 0; //means A
 			}
 		}
-
 		//sample quality and add error
 		qual = sampleQuality();
 		if(randomGenerator->getRand() < qualToErroTable[qual])
