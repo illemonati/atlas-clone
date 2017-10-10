@@ -237,6 +237,15 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		std::string s = concatenateString(beta, ",");
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
 		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
+	} else if(params.parameterExists("BQSRQuality")){
+		std::string qualTransform = params.getParameterString("BQSRQuality");
+		if(qualTransform != "") qualityTransformation = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
+
+		std::string positionTransform = params.getParameterString("BQSRPosition", false);
+		std::string positionReverseTransform = params.getParameterString("BQSRPositionReverse", false);
+		std::string contextTransform = params.getParameterString("BQSRContext", false);
+		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");
+
 	} else qualityTransformation = new TSimulatorQuality(readLengthDist);
 }
 
@@ -544,7 +553,7 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 
 		//add to bam alignment
 		//int returnQual(int & qual, int & pos, TGenotypeMap & genoMap, int & previousBase, int & base);
-		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base));
+		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
 		if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
 		else bamAlignment.Qualities += (char) transQual;
 		previousBase = base;

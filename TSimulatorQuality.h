@@ -17,9 +17,8 @@ public:
 	TSimulatorReadLength* readLengthDist;
 
 	TSimulatorQuality(TSimulatorReadLength* ReadLengthDist);
-	TSimulatorQuality(){};
 	virtual ~TSimulatorQuality(){};
-	virtual int returnQual(int qual, int pos, BaseContext baseContext);
+	virtual int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 };
 
@@ -34,12 +33,30 @@ public:
 	int transformQuality(int & qual, int pos, int context);
 
 //	TSimulatorRecalTransform(std::vector<double> & Betas, TSimulatorReadLength& readLengthDist);
-	int returnQual(int qual, int pos, BaseContext baseContext);
+	int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 	~TSimulatorRecalTransform(){};
 
 };
 
+class TSimulatorBQSRTransform:public TSimulatorQuality{
+	float alpha;
+	float beta;
+	std::string readGroupName;
+
+public:
+	TSimulatorBQSRTransform(std::string qualTransform, TSimulatorReadLength* ReadLengthDist);
+	~TSimulatorBQSRTransform(){};
+	int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
+
+};
+
+class TSimulatorBQSRPositionTransform:public TSimulatorBQSRTransform{
+private:
+	float revIntercept;
+	TSimulatorBQSRPositionTransform(float positionTransform, std::string QualTransform, TSimulatorReadLength* ReadLengthDist);
+
+};
 
 
 #endif /* TSIMULATORQUALITY_H_ */

@@ -12,7 +12,7 @@ TSimulatorQuality::TSimulatorQuality(TSimulatorReadLength* ReadLengthDist){
 };
 
 
-int TSimulatorQuality::returnQual(int qual, int pos, BaseContext baseContext){
+int TSimulatorQuality::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
 	return qual;
 }
 
@@ -36,7 +36,7 @@ TSimulatorRecalTransform::TSimulatorRecalTransform(std::vector<double> Betas, TS
 
 	double tmp;
 	for(int i=34; i<127; ++i){
-		tmp = pow(10.0, -(double) (i - 33) / 10.0);
+		tmp = pow(10.0, -(double) (i - 33.0) / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 	posTermForTransformation = new double[readLengthDist->max()];
@@ -66,6 +66,45 @@ int TSimulatorRecalTransform::transformQuality(int & qual, int pos, int context)
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
-int TSimulatorRecalTransform::returnQual(int qual, int pos, BaseContext baseContext){
+int TSimulatorRecalTransform::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
 	return transformQuality(qual, pos, baseContext);
 }
+
+
+//--------------------------
+//BQSR transformation
+//-------------------------
+
+TSimulatorBQSRTransform::TSimulatorBQSRTransform(std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorQuality(ReadLengthDist){
+
+	//parse qualTransform input
+	std::string::size_type pos = QualTransform.find_first_of('[');
+	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
+	std::string name = QualTransform.substr(0,pos);
+	if(name == "logit"){
+		//prepare first value
+		std::string tmp = QualTransform.substr(pos+1, QualTransform.length() - pos - 1);
+		pos = tmp.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
+		alpha = atof(tmp.substr(0, pos).c_str());
+		beta = atof(tmp.substr(pos+1).c_str());
+	}
+}
+
+int TSimulatorBQSRTransform::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
+	double trueError = pow(10,qual/-10);
+	double inverseLogit = log((1-trueError)/trueError);
+	double fakeError = (1/(1+exp(alpha*inverseLogit*inverseLogit + beta*inverseLogit))); //logit function -> natural logarithm!
+	if(fakeError == 0) return maxQual;
+	qual = -10 * log10(fakeError);
+	return qual;
+}
+
+//--------------------------
+//BQSR transformation Position
+//-------------------------
+
+TSimulatorBQSRPositionTransform::TSimulatorBQSRPositionTransform(float PositionTransform, std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorBQSRTransform(QualTransform, ReadLengthDist){
+	revIntercept = PositionTransform;
+}
+

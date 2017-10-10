@@ -23,13 +23,18 @@ struct readLengthContainer{
 class TSimulatorReadLength{
 protected:
 	TRandomGenerator* randomGenerator;
-	double meanLength;
+	int meanLength;
 	double cumulAtMin;
+	float* gammaDensity;
+	float* gammaCumulDensity;
 
 public:
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorReadLength(){};
+	virtual ~TSimulatorReadLength(){
+		delete[] gammaDensity;
+		delete[] gammaCumulDensity;
+	};
 
 	virtual void sample(readLengthContainer & rl);
 	virtual int max(){return meanLength;};
@@ -44,11 +49,12 @@ protected:
 	int _min, _max;
 
 	void parseFunctionString(std::string & s, double & param1, double & param2);
-	void calculateAverageLength();
+	void initiate();
 
 public:
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
+	virtual ~TSimulatorReadLengthGamma(){};
 	void sample(readLengthContainer & rl);
 	virtual int max(){return _max;};
 	virtual std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".";};
@@ -60,6 +66,7 @@ protected:
 
 public:
 	TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s);
+	virtual ~TSimulatorReadLengthGammaMode(){};
 	std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with mode=" + toString(mode) + " and variance=" + toString(var) + ".";};
 };
 
