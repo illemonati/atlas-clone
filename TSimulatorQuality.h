@@ -45,8 +45,8 @@ class TSimulatorBQSRTransform:public TSimulatorQuality{
 	std::string readGroupName;
 
 public:
-	TSimulatorBQSRTransform(std::string qualTransform, TSimulatorReadLength* ReadLengthDist);
-	~TSimulatorBQSRTransform(){};
+	TSimulatorBQSRTransform(std::string qualTransform, TSimulatorReadLength* readLengthDist);
+	virtual ~TSimulatorBQSRTransform(){};
 	int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 };
@@ -54,8 +54,12 @@ public:
 class TSimulatorBQSRPositionTransform:public TSimulatorBQSRTransform{
 private:
 	float revIntercept;
-	TSimulatorBQSRPositionTransform(float positionTransform, std::string QualTransform, TSimulatorReadLength* ReadLengthDist);
-
+	float transformationSlope;
+	float calculateSum(float & curSlope, float & curIntercept, float & newSum);
+	void findTransformationSlope();
+public:
+	TSimulatorBQSRPositionTransform(float positionTransform, std::string qualTransform, TSimulatorReadLength* readLengthDist);
+	~TSimulatorBQSRPositionTransform(){};
 };
 
 

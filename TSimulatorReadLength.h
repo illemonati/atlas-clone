@@ -25,10 +25,11 @@ protected:
 	TRandomGenerator* randomGenerator;
 	int meanLength;
 	double cumulAtMin;
+
+public:
 	float* gammaDensity;
 	float* gammaCumulDensity;
 
-public:
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLength(){

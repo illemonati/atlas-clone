@@ -240,8 +240,12 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 	} else if(params.parameterExists("BQSRQuality")){
 		std::string qualTransform = params.getParameterString("BQSRQuality");
 		if(qualTransform != "") qualityTransformation = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
-
 		std::string positionTransform = params.getParameterString("BQSRPosition", false);
+		if(positionTransform != ""){
+			float revIntercept = stringToFloat(positionTransform);
+			if(revIntercept < 0.0) throw "BQSRPosition cannot be smaller than 0!";
+			qualityTransformation = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist);
+		}
 		std::string positionReverseTransform = params.getParameterString("BQSRPositionReverse", false);
 		std::string contextTransform = params.getParameterString("BQSRContext", false);
 		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");

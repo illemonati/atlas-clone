@@ -21,13 +21,15 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, st
 
 	gammaDensity = new float[meanLength];
 	gammaCumulDensity = new float[meanLength];
-	for(int i=0; i<meanLength - 1; ++i){
+	for(int i=0; i<(meanLength - 1); ++i){
 		gammaDensity[i] = 0.0;
 		gammaCumulDensity[i] = 0.0;
 	}
 	gammaDensity[meanLength - 1] = 1.0;
-	gammaCumulDensity[meanLength - 1] = 1.0;
+	gammaCumulDensity[meanLength - 1] = 0.0;
 	cumulAtMin = 0.0;
+	int test[5] = {0};
+	std::cout << "test[5] " << test[5] << std::endl;
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){

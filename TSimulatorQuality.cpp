@@ -76,7 +76,6 @@ int TSimulatorRecalTransform::returnQual(int qual, int pos, BaseContext baseCont
 //-------------------------
 
 TSimulatorBQSRTransform::TSimulatorBQSRTransform(std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorQuality(ReadLengthDist){
-
 	//parse qualTransform input
 	std::string::size_type pos = QualTransform.find_first_of('[');
 	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
@@ -106,5 +105,74 @@ int TSimulatorBQSRTransform::returnQual(int qual, int pos, BaseContext baseConte
 
 TSimulatorBQSRPositionTransform::TSimulatorBQSRPositionTransform(float PositionTransform, std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorBQSRTransform(QualTransform, ReadLengthDist){
 	revIntercept = PositionTransform;
+	findTransformationSlope();
 }
+
+float TSimulatorBQSRPositionTransform::calculateSum(float & curSlope, float & curIntercept, float & newSum){
+	//calculate sum( prob of observing given position) * log(positionBeta) -> should be 0
+	newSum = 0.0;
+	for(int p=0; p<readLengthDist->max(); ++p){
+//		std::cout << "p: " << p << " 1.0 - readLengthDist->gammaCumulDensity[p]: " << 1.0 - readLengthDist->gammaCumulDensity[p] << std::endl;
+		newSum += (1.0 - readLengthDist->gammaCumulDensity[p]) * log(curSlope * p + curIntercept);
+		if(curIntercept < 0) throw "curIntercept is smaller than 0!";
+		if((curSlope * p + curIntercept) < 0) throw "beta position is negative! curSlope * p + curIntercept: " + toString(curSlope * p + curIntercept) + ", curSlope: " + toString(curSlope) + " p: " + toString(p) + " curIntercept: " + toString(curIntercept);
+
+	}
+	return newSum;
+}
+
+void TSimulatorBQSRPositionTransform::findTransformationSlope(){
+	int numIterations = 25;
+	int x = readLengthDist->max();
+	float y = revIntercept;
+	std::cout << "revIntercept " << revIntercept << std::endl;
+	float curSlope = -1.0, curStepSize = 0.2, newSum = -1.0;
+	float curIntercept = -curSlope * x + y;
+
+	float curSum = calculateSum(curSlope, curIntercept, newSum);
+
+	for(int i=0; i<numIterations; ++i){
+		std::cout << "######### i " << i << std::endl;
+		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " curSlope: " << curSlope << std::endl;
+
+		while((curSlope + curStepSize) >= 0.0){
+			std::cout << "in while loop" << std::endl;
+			curStepSize = curStepSize / std::exp(1.0);
+		}
+		curSlope = curSlope + curStepSize;
+
+		curSum = newSum;
+		curIntercept = -curSlope * x + y;
+
+		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " curSlope: " << curSlope << std::endl;
+
+		newSum = calculateSum(curSlope, curIntercept, newSum);
+
+		if((newSum > 0.0 && curSum < 0.0) || (newSum < 0.0 && curSum > 0.0)){
+			std::cout << "changing step direction" << std::endl;
+			curStepSize = -curStepSize / std::exp(1.0);
+		}
+		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " newSum: " << newSum << " curSlope: " << curSlope << std::endl;
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
