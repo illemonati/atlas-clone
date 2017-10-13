@@ -112,11 +112,11 @@ float TSimulatorBQSRPositionTransform::calculateSum(float & curSlope, float & cu
 	//calculate sum( prob of observing given position) * log(positionBeta) -> should be 0
 	newSum = 0.0;
 	for(int p=0; p<readLengthDist->max(); ++p){
-//		std::cout << "p: " << p << " 1.0 - readLengthDist->gammaCumulDensity[p]: " << 1.0 - readLengthDist->gammaCumulDensity[p] << std::endl;
-		newSum += (1.0 - readLengthDist->gammaCumulDensity[p]) * log(curSlope * p + curIntercept);
+		std::cout << "curIntercept: " << curIntercept << std::endl;
+		std::cout << log(curSlope * p + curIntercept) << std::endl;
+		newSum *= (1.0 - readLengthDist->gammaCumulDensity[p]) * log(curSlope * p + curIntercept);
 		if(curIntercept < 0) throw "curIntercept is smaller than 0!";
 		if((curSlope * p + curIntercept) < 0) throw "beta position is negative! curSlope * p + curIntercept: " + toString(curSlope * p + curIntercept) + ", curSlope: " + toString(curSlope) + " p: " + toString(p) + " curIntercept: " + toString(curIntercept);
-
 	}
 	return newSum;
 }
@@ -126,7 +126,7 @@ void TSimulatorBQSRPositionTransform::findTransformationSlope(){
 	int x = readLengthDist->max();
 	float y = revIntercept;
 	std::cout << "revIntercept " << revIntercept << std::endl;
-	float curSlope = -1.0, curStepSize = 0.2, newSum = -1.0;
+	float curSlope = 0.00001, curStepSize = 0.2, newSum = -1.0;
 	float curIntercept = -curSlope * x + y;
 
 	float curSum = calculateSum(curSlope, curIntercept, newSum);
@@ -134,13 +134,14 @@ void TSimulatorBQSRPositionTransform::findTransformationSlope(){
 	for(int i=0; i<numIterations; ++i){
 		std::cout << "######### i " << i << std::endl;
 		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " curSlope: " << curSlope << std::endl;
-
-		while((curSlope + curStepSize) >= 0.0){
+		float a = -(curSlope + curStepSize) * x + y;
+		std::cout << "(-curSlope + curStepSize) * x + y): " << a << std::endl;
+		while((curSlope + curStepSize) <= 0.0 || a < 0.0){ //check that neither slope nor intercept become negative
 			std::cout << "in while loop" << std::endl;
 			curStepSize = curStepSize / std::exp(1.0);
+			if(curStepSize < 0.00000000000000001) break;
 		}
 		curSlope = curSlope + curStepSize;
-
 		curSum = newSum;
 		curIntercept = -curSlope * x + y;
 
@@ -153,7 +154,6 @@ void TSimulatorBQSRPositionTransform::findTransformationSlope(){
 			curStepSize = -curStepSize / std::exp(1.0);
 		}
 		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " newSum: " << newSum << " curSlope: " << curSlope << std::endl;
-
 	}
 }
 
