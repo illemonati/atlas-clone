@@ -998,6 +998,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 
 		//end loop
 		logfile->endIndent();
+		if(iter == numEMIterations - 1) logfile->warning("EM has not converged after maximum number of iterations!");
 	}
 
 	//finalize
