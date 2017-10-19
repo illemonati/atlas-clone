@@ -121,7 +121,7 @@ void TThetaEstimator::fillPGenotype(double & expTheta){
 }
 
 void TThetaEstimator::fillPGenotype(double* & pGeno){
-	fillPGenotype(pGeno, theta.theta);
+	fillPGenotype(pGeno, theta.expTheta);
 }
 
 void TThetaEstimator::fillP_G(std::vector<double*> & theseSites){
