@@ -553,6 +553,8 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 					base = 0; //means A
 			}
 		}
+
+
 		//sample quality and add error
 		qual = sampleQuality();
 		if(randomGenerator->getRand() < qualToErroTable[qual])
@@ -561,6 +563,9 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 		//add to bam alignment
 		//int returnQual(int & qual, int & pos, TGenotypeMap & genoMap, int & previousBase, int & base);
 		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
+
+
+
 		if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
 		else bamAlignment.Qualities += (char) transQual;
 		previousBase = base;

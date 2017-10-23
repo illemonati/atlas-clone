@@ -19,7 +19,7 @@ int TSimulatorQuality::returnQual(int qual, int pos, BaseContext baseContext, in
 
 //--------------------------
 //recal transformation
-//-------------------------
+//--------------------------
 TSimulatorRecalTransform::TSimulatorRecalTransform(std::vector<double> Betas, TSimulatorReadLength* ReadLengthDist): TSimulatorQuality(ReadLengthDist){
 	if(Betas.size() != 24)
 		throw "Wrong size of beta vector when initializing quality transformation: need 24 values (quality, quality^2, pos, pos^2 and 20 contexts).";
@@ -91,11 +91,11 @@ TSimulatorBQSRTransform::TSimulatorBQSRTransform(std::string QualTransform, TSim
 }
 
 int TSimulatorBQSRTransform::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
-	double trueError = pow(10,qual/-10);
-	double inverseLogit = log((1-trueError)/trueError);
-	double fakeError = (1/(1+exp(alpha*inverseLogit*inverseLogit + beta*inverseLogit))); //logit function -> natural logarithm!
+	double trueError = pow(10.0,qual/-10.0);
+	double inverseLogit = log((1.0-trueError)/trueError);
+	double fakeError = (1.0/(1.0+exp(alpha*inverseLogit*inverseLogit + beta*inverseLogit))); //logit function -> natural logarithm!
 	if(fakeError == 0) return maxQual;
-	qual = -10 * log10(fakeError);
+	qual = -10.0 * log10(fakeError);
 	return qual;
 }
 
