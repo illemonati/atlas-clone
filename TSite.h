@@ -26,10 +26,12 @@
 //TSite
 //---------------------------------------------------------------
 class TSite{
-public:
-	bool hasData;
-	std::vector<TBase*> bases;
+protected:
 	short int numGenotypes;
+
+public:
+	std::vector<TBase*> bases;
+	bool hasData;
 	double* emissionProbabilities;
 	char referenceBase; //optional
 
@@ -59,7 +61,7 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
-	int getCoverage(){return bases.size();};
+	int depth(){return bases.size();};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);
@@ -68,6 +70,7 @@ public:
 		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
 		return -10.0 * log10(epsilon);
 	};
+	void calcEmissionProbabilities(double* vec);
 	void calcEmissionProbabilities();
 	void calculateP_g(double* & genotypeProbabilities, double* & P_g);
 	double calculateWeightedSumOfEmissionProbs(double* weights);

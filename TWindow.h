@@ -13,50 +13,11 @@
 #include "TReadGroups.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TRecalibration.h"
-#include "TSite.h"
+#include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
-
-//---------------------------------------------------------------
-//EMParameters
-//---------------------------------------------------------------
-struct EMParameters{
-	int numIterations;
-	int numThetaOnlyUpdates;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	double initalTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
-
-	EMParameters();
-	EMParameters(TParameters & params, TLog* logfile);
-	~EMParameters(){};
-
-	void report(TLog* logfile);
-};
-
-//---------------------------------------------------------------
-//Theta
-//---------------------------------------------------------------
-struct Theta{
-	double theta, expTheta, thetaConfidence, LL;
-
-	Theta(){
-		theta = 0.0;
-		thetaConfidence = 0.0;
-		expTheta = 0.0;
-		LL = -9e100;
-	};
-
-	void setTheta(double val){
-		theta = val;
-		expTheta = exp(-theta);
-	}
-};
 
 
 //---------------------------------------------------------------
@@ -98,9 +59,9 @@ public:
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	virtual void calcCoverage();
 	void calcFracN();
-	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
-	void applyCoverageFilter(int minCoverage, int maxCoverage);
-	void createDepthMask(int minCoverage, int maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
+	void calcCoveragePerSite(long * siteCoverage, size_t maxCov);
+	void applyCoverageFilter(int minCoverage, size_t maxCoverage);
+	void createDepthMask(size_t minCoverage, size_t maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
@@ -110,6 +71,7 @@ public:
 
 class TWindowDiploid:public TWindow{
 protected:
+	/*
 	Theta thetaContainer;
 
 	void fillPGenotype(double* pGenotype, double & expTheta);
@@ -118,57 +80,31 @@ protected:
 	void findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams);
 	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, long & lengthWithData);
 	void estimateConfidenceInterval(Theta & thetaContainer);
+	*/
 
 public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void initSites(long newLength);
+	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
+	void addSitesToThetaEstimator(TThetaEstimator & estimator);
+
+	/*
 	void estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions);
 	void setTheta(double theta){thetaContainer.setTheta(theta);};
 	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
+	*/
+
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
-	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
-	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
-	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
-	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
+	void callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
+	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
+	void callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
+	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
 	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 	void addToGLF(TGlfWriter & writer, bool printAll);
-	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
+	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 	void addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec);
-};
-
-//decide which positions to add on the fly
-//Attention: the bootstrapping is a hack that is only implemented and tested for the theta estimation!!
-class TWindowDiploidSpecificSites:public TWindowDiploid{
-protected:
-	long nextId;
-	TSite** bootstrappedSites;
-	bool bootstrapFilled;
-
-	void fillBootstrap(TRandomGenerator & randomGenerator);
-	void clearBootstrap();
-	void calcCoverage();
-	void fillP_G(double* P_G, double* pGenotype);
-	double calcLogLikelihood(double* pGenotype);
-
-public:
-	TWindowDiploidSpecificSites(std::vector<TSiteDiploid*> & siteVec);
-	~TWindowDiploidSpecificSites(){
-		clearBootstrap();
-	};
-	void bootstrapTheta(int numBootstraps, EMParameters & EMParams, TRecalibration* recalObject, std::string filename, TLog* logfile, TRandomGenerator & randomGenerator);
-};
-
-//provide regions file with positions
-class TWindowDiploidSiteSubset:public TWindowDiploid{
-protected:
-	TBedReader* subset;
-	long nextId;
-
-public:
-	TWindowDiploidSiteSubset(TBedReader* Subset);
-	void copySites(TWindowDiploid* other);
 };
 
 class TWindowHaploid:public TWindow{
