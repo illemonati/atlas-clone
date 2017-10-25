@@ -121,7 +121,8 @@ void TThetaEstimator::fillPGenotype(double & expTheta){
 }
 
 void TThetaEstimator::fillPGenotype(double* & pGeno){
-	fillPGenotype(pGeno, theta.expTheta);
+	double expTheta = exp(-theta.theta);
+	fillPGenotype(pGeno, expTheta);
 }
 
 void TThetaEstimator::fillP_G(std::vector<double*> & theseSites){
@@ -503,14 +504,17 @@ void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::of
 
 	//prepare variables
 	std::vector<double*> bootstrappedSites;
+	int r = 0;
 
 	//how many sites with data will we have? Draw from binomial
 	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	long numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
+	long numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, sites.size());
 
 	//now pick among sites with data with replacment
 	for(long i=0; i<numBootstrappedSites; ++i){
-		bootstrappedSites.push_back(sites[randomGenerator.pickOne(numBootstrappedSites)]);
+		r = 0;
+		while(r == 0) r = randomGenerator.pickOne(numBootstrappedSites - 1);
+		bootstrappedSites.push_back(sites.at(r));
 	}
 	logfile->done();
 
