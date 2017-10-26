@@ -54,6 +54,7 @@ private:
 	double initalTheta;
 	double initThetaSearchFactor;
 	int initThetaNumSearchIterations;
+	bool extraVerbose;
 
 	//estimation
 	int numGenotypes;
@@ -110,6 +111,7 @@ public:
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
 	void writeHeader(std::ofstream & out);
+	void writeThetas(std::ofstream & out);
 	void writeResultsToFile(std::ofstream & out);
 	void calcLikelihoodSurface(std::ofstream & out, int & steps);
 	void bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out);

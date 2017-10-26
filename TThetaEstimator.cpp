@@ -39,6 +39,10 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 	} else {
 		initThetaSearchFactor = 0;
 	}
+	if(params.parameterExists("extraVerbose"))
+		extraVerbose = true;
+	else
+		extraVerbose = false;
 
 	//counters and tmp variables
 	init();
@@ -368,9 +372,12 @@ void TThetaEstimator::runEMForTheta(std::vector<double*> & theseSites){
 			}
 		}
 
+		if(extraVerbose) logfile->write("\n" + toString(iter) + ") current theta = " + toString(theta.theta));
 		//For debugging
 		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
+	if(extraVerbose) logfile->write("EM converged, current theta = " + toString(theta.theta));
+
 }
 
 void TThetaEstimator::estimateConfidenceInterval(std::vector<double*> & theseSites){
@@ -460,15 +467,19 @@ void TThetaEstimator::writeHeader(std::ofstream & out){
 	out << "depth\tfracMissing\tfracTwoOrMore\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
 }
 
+void TThetaEstimator::writeThetas(std::ofstream & out){
+	out << "\t" << theta.theta;
+	out	<< "\t" << theta.theta - theta.thetaConfidence;
+	out	<< "\t" << theta.theta + theta.thetaConfidence;
+	out	<< "\t" << theta.LL;
+	out	<< std::endl;
+}
 void TThetaEstimator::writeResultsToFile(std::ofstream & out){
 	out << "\t" << cumulativeDepth / (double) totNumSitesAdded << "\t" << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded << "\t" << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;	//estimated params
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
 
-	out << "\t" << theta.theta;
-	out << "\t" << theta.theta - theta.thetaConfidence;
-	out << "\t" << theta.theta + theta.thetaConfidence;
-	out << "\t" << theta.LL;
+	writeThetas(out);
 }
 
 void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
@@ -508,12 +519,11 @@ void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::of
 
 	//how many sites with data will we have? Draw from binomial
 	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	long numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, sites.size());
+	long numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
 
 	//now pick among sites with data with replacment
 	for(long i=0; i<numBootstrappedSites; ++i){
-		r = 0;
-		while(r == 0) r = randomGenerator.pickOne(numBootstrappedSites - 1);
+		r = randomGenerator.pickOne(numSitesWithData);
 		bootstrappedSites.push_back(sites.at(r));
 	}
 	logfile->done();
@@ -523,9 +533,10 @@ void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::of
 
 	//write output (modified from standard output
 	out << "\t" << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded;	//estimated params
+	out << "\t" << "NA";
 	for(int i=0; i<4; ++i)
 		out << "\t" << baseFreq[i];
-	out << "\t" << theta.theta << "\t" << theta.theta - theta.thetaConfidence << "\t" << theta.theta + theta.thetaConfidence << "\t" << theta.LL;
+	writeThetas(out);
 
 	//clean up
 	bootstrappedSites.clear();

@@ -608,7 +608,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 
 					//estimate Theta
 					if(thetaEstimator.estimateTheta()){
-						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
+						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end;
 						thetaEstimator.writeResultsToFile(out);
 					}
 
@@ -626,8 +626,6 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out){
 	if(considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
-	else
-		logfile->startIndent("Estimating theta genome-wide at sites with depth >= 2:");
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -689,14 +687,13 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 		//run bootstrap
 		bootstrapOut << s+1;
 		thetaEstimator.bootstrapTheta(*randomGenerator, bootstrapOut);
-		bootstrapOut << "\n";
 
 		logfile->endIndent();
 	}
 
 	//finish
 	gettimeofday(&endTime, NULL);
-	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, "min");
+	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, " min");
 	logfile->endIndent();
 }
 
