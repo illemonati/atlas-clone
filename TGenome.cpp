@@ -658,6 +658,8 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 		out  << "\t-\t-"; //chromosome, start, end
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
+	thetaEstimator.writeResultsToFile(out);
+
 }
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
