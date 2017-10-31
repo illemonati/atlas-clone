@@ -13,13 +13,13 @@
 #include "SFS.h"
 #include "TPostMortemDamage.h"
 #include "TGenotypeMap.h"
-#include "TSimulatorQuality.h"
 #include "stringFunctions.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/BamWriter.h"
 #include "bamtools/api/SamHeader.h"
 #include "bamtools/api/BamAlignment.h"
 #include <math.h>
+#include "TSimulatorRead.h"
 
 //---------------------------------------------------------
 //TSimulatorChromosome
@@ -283,8 +283,6 @@ private:
 
 	//general simulation parameters
 	double referenceDivergence;
-	double meanQual, sdQual;
-	int maxQual;
 	float seqDepth;
 	TSimulatorReadLength* readLengthDist;
 	bool readLengthDistInitialized;
@@ -293,9 +291,7 @@ private:
 	std::string readGroupName;
 
 	//Qual to error table
-	TSimulatorQuality* qualityTransformation;
-	double* qualToErroTable;
-	bool qualToErroTableInitialized;
+	TSimulatorRead* simRead;
 
 	//PMD
 	TPMD* pmdObject;
@@ -315,9 +311,7 @@ private:
 	bool refInitialized;
 
 	void initializeQualityTransform(TParameters & params);
-	int sampleQuality();
 	double dePhred(double x);
-	void initializeQualToErrorTable();
 	int transformQuality(int & qual, int pos, int context);
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref);
@@ -333,11 +327,9 @@ private:
 public:
 	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParameters & params);
 	~TSimulator(){
-		if(qualToErroTableInitialized)
-			delete[] qualToErroTable;
 		if(readLengthDistInitialized)
 			delete readLengthDist;
-		delete qualityTransformation;
+		delete simRead;
 
 	}
 

@@ -175,13 +175,6 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	//quality transformation
 	initializeQualityTransform(params);
 
-	//PMD
-	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
-		pmdInitialized = true;
-		pmdObject = new TPMD(params, logfile);
-	} else pmdInitialized = false;
-
-
 	//chromosomes
 	initializeChromosomes(params, logfile);
 	logfile->endIndent();
@@ -213,7 +206,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 		std::string s = concatenateString(beta, ",");
 		logfile->list("Will transform qualities with beta = {" + s + "}");
-		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
+		simRead = new TSimulatorReadRecal(beta, readLengthDist, pmdObject);
 	} else if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -236,21 +229,21 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		logfile->done();
 		std::string s = concatenateString(beta, ",");
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
-		qualityTransformation = new TSimulatorRecalTransform(beta, readLengthDist);
+		simRead = new TSimulatorReadRecal(beta, readLengthDist, pmdObject);
 	} else if(params.parameterExists("BQSRQuality")){
 		std::string qualTransform = params.getParameterString("BQSRQuality");
-		if(qualTransform != "") qualityTransformation = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
+		if(qualTransform != "") simRead = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
 		std::string positionTransform = params.getParameterString("BQSRPosition", false);
 		if(positionTransform != ""){
 			float revIntercept = stringToFloat(positionTransform);
 			if(revIntercept < 0.0) throw "BQSRPosition cannot be smaller than 0!";
-			qualityTransformation = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist);
+			simRead = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist);
 		}
 		std::string positionReverseTransform = params.getParameterString("BQSRPositionReverse", false);
 		std::string contextTransform = params.getParameterString("BQSRContext", false);
 		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");
 
-	} else qualityTransformation = new TSimulatorQuality(readLengthDist);
+	} else simRead = new TSimulatorRead(readLengthDist, pmdObject);
 }
 
 void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
@@ -380,27 +373,11 @@ void TSimulator::setPMD(TPMD* PmdObject){
 	pmdInitialized = true;
 }
 
-int TSimulator::sampleQuality(){
-	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
-	if(qual > 126) qual = 126;
-	if(qual < 33) qual = 33;
-	return qual;
-};
+
 
 double TSimulator::dePhred(double x){
 	return pow(10, -(x-33.0) / 10.0);
 }
-
-void TSimulator::initializeQualToErrorTable(){
-	if(!qualToErroTableInitialized){
-		qualToErroTable = new double[127];
-		for(int i=0; i<33; ++i)
-			qualToErroTable[i] = 1.0;
-		for(int i=33; i<127; ++i)
-			qualToErroTable[i] = dePhred(i);
-	}
-	qualToErroTableInitialized = true;
-};
 
 int TSimulator::transformQuality(int & qual, int pos, int context){
 	static double constant;
@@ -522,55 +499,18 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 	static short base;
 	static int qual;
 	static long p;
-	static int previousBase;
-	readLengthContainer rl;
-
-	//pick a fragment and read length
-	readLengthDist->sample(rl);
 
 	bamAlignment.Length = rl.readLength;
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 
-	//simulate a read starting here
 	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
 
-	//choose haplotype
-	previousBase = 4; //means N
-	for(p=0; p<rl.readLength; ++p){
-		//get true nucleotide
-		base = haplotype[p + pos];
+	//pick a fragment and read length
+	readLengthDist->sample(rl);
 
-		//apply PMD
-		if(pmdInitialized){
-			if(base == 1 ){ //means is C
-				if(randomGenerator->getRand() < pmdObject->getProbCT(p))
-					base = 3; //means T
-			} else if(base == 2){ //means is G
-				if(randomGenerator->getRand() < pmdObject->getProbGA(rl.fragmentLength - p - 1))
-					base = 0; //means A
-			}
-		}
-
-
-		//sample quality and add error
-		qual = sampleQuality();
-		if(randomGenerator->getRand() < qualToErroTable[qual])
-			base = (base + randomGenerator->pickOne(3) + 1) % 4;
-
-		//add to bam alignment
-		//int returnQual(int & qual, int & pos, TGenotypeMap & genoMap, int & previousBase, int & base);
-		int transQual = qualityTransformation->returnQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
-
-
-
-		if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
-		else bamAlignment.Qualities += (char) transQual;
-		previousBase = base;
-		bamAlignment.QueryBases += toBase[base];
-	}
 	bamFile.saveAlignment(bamAlignment);
 }
 

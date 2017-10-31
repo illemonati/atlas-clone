@@ -5,41 +5,62 @@
  *      Author: vivian
  */
 
-#ifndef TSIMULATORQUALITY_H_
-#define TSIMULATORQUALITY_H_
+#ifndef TSIMULATORREAD_H_
+#define TSIMULATORREAD_H_
 
 #include "TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
+#include "TPostMortemDamage.h"
 
 
-class TSimulatorQuality{
+class TSimulatorRead{
 public:
 	TSimulatorReadLength* readLengthDist;
+	TPMD* pmdObject;
+	TParameters params;
+	TLog* logfile;
+	TRandomGenerator* randomGenerator;
 
-	TSimulatorQuality(TSimulatorReadLength* ReadLengthDist);
-	virtual ~TSimulatorQuality(){};
+	double mQ;
+	double sdQ;
+	double meanQual, sdQual;
+	int maxQual;
+	bool pmdInitialized = false;
+	bool qualToErroTableInitialized = false;
+	double* qualToErroTable;
+
+
+
+	TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdObject);
+	int sampleQuality();
+	void setQualityTransformation(std::vector<double> Betas);
+	void initializeQualToErrorTable();
+
+	virtual ~TSimulatorRead(){
+		if(qualToErroTableInitialized)
+			delete[] qualToErroTable;
+	};
 	virtual int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 };
 
-class TSimulatorRecalTransform:public TSimulatorQuality{
+class TSimulatorReadRecal:public TSimulatorRead{
 public:
 	double* beta;
 	double* qualTermForTransformation;
 	double* posTermForTransformation;
 
-	TSimulatorRecalTransform(std::vector<double> Betas, TSimulatorReadLength* ReadLengthDist);
-	void setQualityTransformation(std::vector<double> Betas);
+	TSimulatorReadRecal(std::vector<double> Betas, TSimulatorReadLength* ReadLengthDist, TPMD* PmdObject);
 	int transformQuality(int & qual, int pos, int context);
 
 //	TSimulatorRecalTransform(std::vector<double> & Betas, TSimulatorReadLength& readLengthDist);
 	int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
-	~TSimulatorRecalTransform(){};
+	~TSimulatorReadRecal(){};
 
 };
 
-class TSimulatorBQSRTransform:public TSimulatorQuality{
+class TSimulatorBQSRTransform:public TSimulatorRead{
 	float alpha;
 	float beta;
 	std::string readGroupName;
@@ -63,4 +84,4 @@ public:
 };
 
 
-#endif /* TSIMULATORQUALITY_H_ */
+#endif /* TSIMULATORREAD_H_ */
