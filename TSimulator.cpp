@@ -174,6 +174,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	bamAlignment.MapQuality = 50;
 	setReadGroupName("SimReadGroup");
 
+	//helper tools
+	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
+
 };
 
 
@@ -190,7 +193,8 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		std::string s = concatenateString(beta, ",");
 		logfile->list("Will transform qualities with beta = {" + s + "}");
 		int readLenMax = readLengthDist->max();
-		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator);
+		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator, toBase);
+
 	} else if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -209,12 +213,14 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		fillVectorFromString(tmp, beta, '\t');
 		logfile->done();
 
-		if(beta.size() != 24) throw "Found " + toString(beta.size()) + " instead of 24 columns in '" + filename + "' on line 2!";
+		if(beta.size() != 26) throw "Found " + toString(beta.size()) + " instead of 26 columns in '" + filename + "' on line 2!";
 		logfile->done();
+		beta.erase(beta.begin()); beta.erase(beta.end()-1);
 		std::string s = concatenateString(beta, ",");
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
 		int readLenMax = readLengthDist->max();
-		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator);
+		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator, toBase);
+
 	} else if(params.parameterExists("BQSRQuality")){
 		std::string qualTransform = params.getParameterString("BQSRQuality");
 		//if(qualTransform != "") simRead = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
@@ -222,13 +228,13 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		if(qualTransform != ""){
 			float revIntercept = stringToFloat(positionTransform);
 			if(revIntercept < 0.0) throw "BQSRPosition cannot be smaller than 0!";
-			simRead = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist);
+		//	simRead = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist, toBase);
 		}
 		std::string positionReverseTransform = params.getParameterString("BQSRPositionReverse", false);
 		std::string contextTransform = params.getParameterString("BQSRContext", false);
 		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");
 
-	} else simRead = new TSimulatorRead(params, logfile, randomGenerator);
+	} else simRead = new TSimulatorRead(params, logfile, randomGenerator, toBase);
 }
 
 void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
@@ -475,13 +481,14 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 
-	simRead->simulate(&haplotype[pos], rl);
+	//pick a fragment and read length
+	readLengthDist->sample(rl);
+
+	simRead->simulate(&haplotype[pos], rl, genoMap);
+
 	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = simRead->getQueryBases();
 	bamAlignment.Qualities = simRead->getBamQualities();
-
-	//pick a fragment and read length
-	readLengthDist->sample(rl);
 
 	bamFile.saveAlignment(bamAlignment);
 }

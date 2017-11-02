@@ -12,20 +12,15 @@
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
 
-
-//toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
-
-
-
 class TSimulatorRead{
 private:
+	TLog* logfile;
+	TRandomGenerator* randomGenerator;
+	char* toBase;
+
 	//PMD
 	TPMD* pmdObject;
 	bool pmdInitialized = false;
-
-	TLog* logfile;
-	TRandomGenerator* randomGenerator;
-	TGenotypeMap genoMap;
 
 	//qual params
 	double mQ;
@@ -40,50 +35,62 @@ private:
 	std::string bamQualities = "";
 
 	//helper functions
-	char toBase[4] = {'A', 'C', 'G', 'T'};
 	double dePhred(double x);
 
+	//general functions
+	void setQualityDistribution(double mean, double sd, int maxQ);
+	int sampleQuality();
+	void initializeQualToErrorTable();
+
+	//virtual functions
+	virtual int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
+
+protected:
+	void applyPMD(short & base, long & posInRead, readLengthContainer & rl);
+
 public:
-	TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorRead(){
 		if(qualToErroTableInitialized)
 			delete[] qualToErroTable;
 	};
 
+	virtual void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
+
 	//getters and setters
 	std::string getQueryBases();
 	std::string getBamQualities();
 
-	//general functions
-//	void setPMD(TPMD* PmdObject);
-	void setQualityDistribution(double mean, double sd, int maxQ);
-	int sampleQuality();
-
-	//virtual functions
-	void simulate(short* posAddress, readLengthContainer & rl);
-	void setQualityTransformation(std::vector<double> Betas);
-	void initializeQualToErrorTable();
-	virtual int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
-
-	//helper tools
-
 };
 
+
+//-------------------------------
+// recal transformation
+//-------------------------------
+
 class TSimulatorReadRecal:public TSimulatorRead{
-public:
-	double* beta;
+private:
+	std::vector<double> betas;
 	double* qualTermForTransformation;
 	double* posTermForTransformation;
 
-	TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	//private functions
 	int transformQuality(int & qual, int & pos, int & context);
 
 //	TSimulatorRecalTransform(std::vector<double> & Betas, TSimulatorReadLength& readLengthDist);
+
+	//derived functions
 	int returnQual(int & qual, int & pos, int & context);
 
+public:
+	TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	~TSimulatorReadRecal(){};
-
 };
+
+
+//-------------------------------
+// BQSR transformation
+//-------------------------------
 
 class TSimulatorBQSRTransform:public TSimulatorRead{
 	float alpha;

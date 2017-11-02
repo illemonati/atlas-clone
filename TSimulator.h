@@ -11,7 +11,6 @@
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "SFS.h"
-#include "TPostMortemDamage.h"
 #include "TGenotypeMap.h"
 #include "stringFunctions.h"
 #include "bamtools/api/BamReader.h"
@@ -52,6 +51,7 @@ private:
 	long oldOffset;
 	bool fastaOpen;
 	std::string filename;
+	char* toBase;
 
 	//reference storage
 	short* ref;
@@ -292,12 +292,14 @@ private:
 	TSimulatorRead* simRead;
 
 	//Quality transformation
+	TGenotypeMap genoMap;
 	double* beta;
 	double* qualTermForTransformation;
 	double* posTermForTransformation;
 
 	//helper tools
 	BamTools::BamAlignment bamAlignment;
+	char toBase[4];
 	float baseFreq[4];
 	float cumulBaseFreq[4];
 	bool refInitialized;

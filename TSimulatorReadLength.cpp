@@ -29,7 +29,6 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, st
 	gammaCumulDensity[meanLength - 1] = 0.0;
 	cumulAtMin = 0.0;
 	int test[5] = {0};
-	std::cout << "test[5] " << test[5] << std::endl;
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
