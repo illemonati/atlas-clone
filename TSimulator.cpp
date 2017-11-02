@@ -222,7 +222,9 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator, toBase);
 
 	} else if(params.parameterExists("BQSRQuality")){
-		std::string qualTransform = params.getParameterString("BQSRQuality");
+		if(params.parameterExists("BQSRPosition")) simRead = new TSimulatorReadBQSRPos(readLengthDist, params, logfile, randomGenerator, toBase);
+		else simRead = new TSimulatorReadBQSRQual(readLengthDist, params, logfile, randomGenerator, toBase);
+		/*std::string qualTransform = params.getParameterString("BQSRQuality");
 		//if(qualTransform != "") simRead = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
 		std::string positionTransform = params.getParameterString("BQSRPosition", false);
 		if(qualTransform != ""){
@@ -233,7 +235,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		std::string positionReverseTransform = params.getParameterString("BQSRPositionReverse", false);
 		std::string contextTransform = params.getParameterString("BQSRContext", false);
 		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");
-
+*/
 	} else simRead = new TSimulatorRead(params, logfile, randomGenerator, toBase);
 }
 

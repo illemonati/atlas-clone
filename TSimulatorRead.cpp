@@ -8,8 +8,16 @@
 #include "TSimulatorRead.h"
 #include "TParameters.h"
 
-double TSimulatorRead::dePhred(double x){
+double TSimulatorRead::dePhredAscii(double x){
 	return pow(10, -(x-33.0) / 10.0);
+}
+
+double TSimulatorRead::dePhred(double x){
+	return pow(10, -(x) / 10.0);
+}
+
+int TSimulatorRead::phred(double x){
+	return(round(-10.0 * log10(x)));
 }
 
 TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase){
@@ -26,9 +34,9 @@ TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGener
 	//qual params
 	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
 	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
-	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
+	int maxQual = params.getParameterDoubleWithDefault("maxQual", 127);
 
-	setQualityDistribution(mQ, sdQ, maxQ);
+	setTrueQualityDistribution(mQ, sdQ);
 	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
 
 	initializeQualToErrorTable();
@@ -42,13 +50,12 @@ std::string TSimulatorRead::getBamQualities(){
 	return(bamQualities);
 }
 
-void TSimulatorRead::setQualityDistribution(double mean, double sd, int maxQ){
+void TSimulatorRead::setTrueQualityDistribution(double mean, double sd){
 	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
 	sdQual = sd;
-	maxQual = maxQ;
 }
 
-int TSimulatorRead::sampleQuality(){
+int TSimulatorRead::sampleTrueQuality(){
 	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
 	if(qual > 126) qual = 126;
 	if(qual < 33) qual = 33;
@@ -60,13 +67,13 @@ void TSimulatorRead::initializeQualToErrorTable(){
 		qualToErroTable = new double[127];
 		for(int i=0; i<33; ++i)
 			qualToErroTable[i] = 1.0;
-		for(int i=33; i<127; ++i)
-			qualToErroTable[i] = dePhred(i);
+		for(int i=33; i<maxQual+33; ++i)
+			qualToErroTable[i] = dePhredAscii(i);
 	}
 	qualToErroTableInitialized = true;
 };
 
-int TSimulatorRead::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
+int TSimulatorRead::returnBamQual(int qual, int pos, BaseContext baseContext, int maxQual){
 	return qual;
 }
 
@@ -99,12 +106,12 @@ void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGeno
 			applyPMD(base, p, rl);
 		}
 		//sample quality and add error
-		qual = sampleQuality();
+		qual = sampleTrueQuality();
 		if(randomGenerator->getRand() < qualToErroTable[qual]){
 			base = (base + randomGenerator->pickOne(3) + 1) % 4;
 		}
 		//add to bam alignment
-		int transQual = returnQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
+		int transQual = returnBamQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
 		if(transQual > maxQual)	bamQualities += (char) maxQual;
 		else bamQualities += (char) transQual;
 		previousBase = base;
@@ -162,52 +169,157 @@ int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
 	return transformQuality(qual, pos, baseContext);
 }
 
-/*
-//--------------------------
-//BQSR transformation
-//-------------------------
-TSimulatorBQSRTransform::TSimulatorBQSRTransform(int & maxReadLen, TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator): TSimulatorRead(Params, Logfile, RandomGenerator){
-	//parse qualTransform input
-	std::string::size_type pos = QualTransform.find_first_of('[');
-	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
-	std::string name = QualTransform.substr(0,pos);
-	if(name == "logit"){
-		//prepare first value
-		std::string tmp = QualTransform.substr(pos+1, QualTransform.length() - pos - 1);
-		pos = tmp.find_first_of(',');
-		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
-		alpha = atof(tmp.substr(0, pos).c_str());
-		beta = atof(tmp.substr(pos+1).c_str());
-	}
-}
-
-int TSimulatorBQSRTransform::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
-	double trueError = pow(10,qual/-10);
-	double inverseLogit = log((1-trueError)/trueError);
-	double fakeError = (1/(1+exp(alpha*inverseLogit*inverseLogit + beta*inverseLogit))); //logit function -> natural logarithm!
-	if(fakeError == 0) return maxQual;
-	qual = -10 * log10(fakeError);
-	return qual;
-}
 
 //--------------------------
 //BQSR transformation Position
 //-------------------------
 
-TSimulatorBQSRPositionTransform::TSimulatorBQSRPositionTransform(float PositionTransform, std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorBQSRTransform(QualTransform, ReadLengthDist){
-	revIntercept = PositionTransform;
-	findTransformationSlope();
+TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
+	//position parameters
+	readLengthDist = ReadLengthDist;
+	revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
+	logfile->list("ReverseIntercept is set to " + toString(revIntercept));
+	calculateSlopeIntercept();
+	logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
+
+	//quality parameters
+	parseBQSRQualInput(params);
+	setFakeQualityDistribution(); //first find kappa and lambda
+	initializeFakeQualToTrueQualTable();
+
+}
+
+void TSimulatorReadBQSRPos::parseBQSRQualInput(TParameters & params){
+	//parse qualTransform input
+	std::string transParams = params.getParameterString("BQSRQuality");
+	std::string::size_type pos = transParams.find_first_of('[');
+	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
+	std::string name = transParams.substr(0,pos);
+	if(name == "f"){
+		//prepare first value
+		std::string tmp = transParams.substr(pos+1, transParams.length() - pos - 1);
+		pos = tmp.find_first_of(',');
+		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
+		phi1 = atof(tmp.substr(0, pos).c_str());
+		phi2 = atof(tmp.substr(pos+1).c_str());
+	}
+
+	logfile->list("Simulating a quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+}
+
+int TSimulatorReadBQSRPos::sampleFakeQuality(){
+	int qual = round(randomGenerator->getNormalRandom(kappa, lambda));
+	if(qual > 126) qual = 126;
+	if(qual < 33) qual = 33;
+	return qual;
+}
+
+void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
+	double kappa = -1;
+	double lambda = -1;
+}
+
+int TSimulatorReadBQSRPos::returnTrueQual(int & fakeQual){
+	double fakeError = dePhred(fakeQual);
+	return(pow(10, -1/10 * phi2 * fakeError) + phred(phi1));
+}
+
+void TSimulatorReadBQSRPos::initializeFakeQualToTrueQualTable(){
+	if(!fakeQualToTrueQualTableInitialized){
+		fakeQualToTrueQual = new double[127];
+		for(int i=0; i<33; ++i)
+			fakeQualToTrueQual[i] = 1.0;
+		for(int i=33; i<maxQual+33; ++i)
+			fakeQualToTrueQual[i] = returnTrueQual(i);
+	}
+	fakeQualToTrueQualTableInitialized = true;
+};
+
+void TSimulatorReadBQSRPos::calculateSlopeIntercept(){
+	double sum = 0.0;
+	for(int p=0; p<readLengthDist->max(); ++p){
+		sum += (double) p * readLengthDist->gammaCumulDensity[p];
+	}
+	m = (1.0 - revIntercept) / sum;
+	intercept = revIntercept - m * readLengthDist->max();
+}
+
+double TSimulatorReadBQSRPos::returnBetaPp(int pos){
+	return(m * (double) pos + intercept);
+}
+
+void TSimulatorReadBQSRPos::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
+	static short base;
+	static int fakeQual, trueQual;
+	static long p;
+	queryBases = "";
+	bamQualities = "";
+
+	for(p=0; p<rl.readLength; ++p){
+		//get true nucleotide
+		base = *(posAddress + p);
+
+		//apply PMD
+		if(pmdInitialized){
+			applyPMD(base, p, rl);
+		}
+		//sample quality and add error
+		fakeQual = sampleFakeQuality();
+		if(fakeQual > 127)	fakeQual = (char) maxQual;
+
+		trueQual = fakeQualToTrueQual[fakeQual];
+		if(randomGenerator->getRand() < (qualToErroTable[trueQual] * returnBetaPp(p))){ //qualToError knows that quals are in ascii
+			base = (base + randomGenerator->pickOne(3) + 1) % 4;
+		}
+		//add to bam alignment
+		bamQualities += (char) fakeQual;
+		queryBases += toBase[base];
+	}
+};
+
+//--------------------------
+//BQSR transformation
+//-------------------------
+TSimulatorReadBQSRQual::TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSRPos(ReadLengthDist, params, Logfile, RandomGenerator, ToBase){
+	//set position parameters to 0
+	intercept = 0.0;
+	revIntercept = 0.0;
+	m = 1.0;
+}
+
+/*
+void TSimulatorReadBQSRQual::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
+	static short base;
+	static int fakeQual, trueQual;
+	static long p;
+	queryBases = "";
+	bamQualities = "";
+
+	for(p=0; p<rl.readLength; ++p){
+		//get true nucleotide
+		base = *(posAddress + p);
+
+		//apply PMD
+		if(pmdInitialized){
+			applyPMD(base, p, rl);
+		}
+		//sample quality and add error
+		fakeQual = sampleFakeQuality();
+		if(fakeQual > 127)	fakeQual = (char) maxQual;
+
+		trueQual = fakeQualToTrueQual[fakeQual];
+		if(randomGenerator->getRand() < qualToErroTable[trueQual]){ //qualToError knows that quals are in ascii
+			base = (base + randomGenerator->pickOne(3) + 1) % 4;
+		}
+		//add to bam alignment
+		bamQualities += (char) fakeQual;
+		queryBases += toBase[base];
+	}
 }
 
 
 
-void TSimulatorBQSRPositionTransform::findTransformationSlope(){
-}*/
-
-
-
-
-
+*/
 
 
 

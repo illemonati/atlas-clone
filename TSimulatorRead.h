@@ -13,7 +13,8 @@
 #include "TPostMortemDamage.h"
 
 class TSimulatorRead{
-private:
+
+protected:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
 	char* toBase;
@@ -22,30 +23,28 @@ private:
 	TPMD* pmdObject;
 	bool pmdInitialized = false;
 
-	//qual params
-	double mQ;
-	double sdQ;
-	double meanQual, sdQual;
-	int maxQual;
-	bool qualToErroTableInitialized = false;
-	double* qualToErroTable;
-
 	//final read params
 	std::string queryBases = "";
 	std::string bamQualities = "";
 
 	//helper functions
+	double dePhredAscii(double x);
 	double dePhred(double x);
-
-	//general functions
-	void setQualityDistribution(double mean, double sd, int maxQ);
-	int sampleQuality();
-	void initializeQualToErrorTable();
+	int phred(double x);
 
 	//virtual functions
-	virtual int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
+	virtual int returnBamQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
-protected:
+	//qual params
+	double meanQual, sdQual;
+	int maxQual;
+	bool qualToErroTableInitialized = false;
+	double* qualToErroTable;
+
+	//general functions
+	void setTrueQualityDistribution(double mean, double sd);
+	virtual int sampleTrueQuality();
+	void initializeQualToErrorTable();
 	void applyPMD(short & base, long & posInRead, readLengthContainer & rl);
 
 public:
@@ -77,42 +76,53 @@ private:
 	//private functions
 	int transformQuality(int & qual, int & pos, int & context);
 
-//	TSimulatorRecalTransform(std::vector<double> & Betas, TSimulatorReadLength& readLengthDist);
-
 	//derived functions
 	int returnQual(int & qual, int & pos, int & context);
 
 public:
 	TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	~TSimulatorReadRecal(){};
+	virtual ~TSimulatorReadRecal(){};
 };
 
-
 //-------------------------------
-// BQSR transformation
+// BQSR transformation pos
 //-------------------------------
 
-class TSimulatorBQSRTransform:public TSimulatorRead{
-	float alpha;
-	float beta;
-	std::string readGroupName;
-
-public:
-	TSimulatorBQSRTransform(int & maxReadLen, TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorBQSRTransform(){};
-	int returnQual(int qual, int pos, BaseContext baseContext, int maxQual);
-
-};
-
-class TSimulatorBQSRPositionTransform:public TSimulatorBQSRTransform{
+class TSimulatorReadBQSRPos:public TSimulatorRead{
 private:
-	float revIntercept;
-	float transformationSlope;
-	float calculateSum(float & curSlope, float & curIntercept, float & newSum);
-	void findTransformationSlope();
+
+protected:
+	double revIntercept;
+	double intercept;
+	double m;
+	TSimulatorReadLength* readLengthDist;
+
+	double phi1, phi2;
+	bool fakeQualToTrueQualTableInitialized = false;
+	double* fakeQualToTrueQual;
+	double lambda, kappa;
+	void parseBQSRQualInput(TParameters & params);
+	int returnTrueQual(int & fakeQual);
+	void setFakeQualityDistribution();
+	int sampleFakeQuality();
+	void initializeFakeQualToTrueQualTable();
+	void calculateSlopeIntercept();
+	double returnBetaPp(int pos);
+	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
+
 public:
-	TSimulatorBQSRPositionTransform(float positionTransform, std::string qualTransform, TSimulatorReadLength* readLengthDist);
-	~TSimulatorBQSRPositionTransform(){};
+	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	virtual ~TSimulatorReadBQSRPos(){};
+};
+
+//-------------------------------
+// BQSR transformation qual
+//-------------------------------
+
+class TSimulatorReadBQSRQual:public TSimulatorReadBQSRPos{
+public:
+	TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	virtual ~TSimulatorReadBQSRQual(){};
 };
 
 
