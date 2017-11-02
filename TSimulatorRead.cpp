@@ -6,6 +6,30 @@
  */
 
 #include "TSimulatorRead.h"
+#include "TParameters.h"
+
+std::string TSimulatorRead::getQueryBases(){
+	return(queryBases);
+}
+std::string TSimulatorRead::getBamQualities(){
+	return(bamQualities);
+}
+
+double TSimulatorRead::dePhred(double x){
+	return pow(10, -(x-33.0) / 10.0);
+}
+
+
+/*void TSimulatorRead::setPMD(TPMD* PmdObject){
+	pmdObject = PmdObject;
+	pmdInitialized = true;
+}*/
+
+void TSimulatorRead::setQualityDistribution(double mean, double sd, int maxQ){
+	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
+	sdQual = sd;
+	maxQual = maxQ;
+}
 
 int TSimulatorRead::sampleQuality(){
 	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
@@ -25,10 +49,7 @@ void TSimulatorRead::initializeQualToErrorTable(){
 	qualToErroTableInitialized = true;
 };
 
-TSimulatorRead::TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdObject, short* posAddress, TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator){
-	readLengthDist = ReadLengthDist;
-	pmdObject = PmdObject;
-	params = Params;
+TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
 
@@ -36,8 +57,8 @@ TSimulatorRead::TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdOb
 	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
 	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
 
-	readLengthContainer rl;
-
+	setQualityDistribution(mQ, sdQ, maxQ);
+	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
 
 	//PMD
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
@@ -45,11 +66,19 @@ TSimulatorRead::TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdOb
 		pmdObject = new TPMD(params, logfile);
 	} else pmdInitialized = false;
 
+	initializeQualToErrorTable();
 
+};
+
+
+int TSimulatorRead::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
+	return qual;
+}
+
+void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl){
 	static short base;
 	static int qual;
 	static long p;
-
 
 	//simulate a read starting here
 	std::string queryBases = "";
@@ -58,7 +87,7 @@ TSimulatorRead::TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdOb
 	static int previousBase = 4; //means N
 	for(p=0; p<rl.readLength; ++p){
 		//get true nucleotide
-		base = posAddress + p;
+		base = *(posAddress + p);
 
 		//apply PMD
 		if(pmdInitialized){
@@ -84,18 +113,13 @@ TSimulatorRead::TSimulatorRead(TSimulatorReadLength* ReadLengthDist, TPMD* PmdOb
 		queryBases += toBase[base];
 	}
 
-};
-
-
-int TSimulatorRead::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
-	return qual;
 }
-
 
 //--------------------------
 //recal transformation
 //-------------------------
-TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, TSimulatorReadLength* ReadLengthDist): TSimulatorRead(ReadLengthDist, PmdObject){
+
+TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator): TSimulatorRead(params, Logfile, RandomGenerator){
 	if(Betas.size() != 24)
 		throw "Wrong size of beta vector when initializing quality transformation: need 24 values (quality, quality^2, pos, pos^2 and 20 contexts).";
 
@@ -114,14 +138,14 @@ TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, TSimulatorRe
 		tmp = pow(10.0, -(double) (i - 33.0) / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
-	posTermForTransformation = new double[readLengthDist->max()];
+	posTermForTransformation = new double[maxReadLen];
 
-	for(int i=0; i<readLengthDist->max(); ++i){
+	for(int i=0; i<maxReadLen; ++i){
 		posTermForTransformation[i] = beta[2] * i + beta[3] * i*i;
 	}
 }
 
-int TSimulatorReadRecal::transformQuality(int & qual, int pos, int context){
+int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 	static double constant;
 	static double tmp;
 	static double q;
@@ -141,16 +165,15 @@ int TSimulatorReadRecal::transformQuality(int & qual, int pos, int context){
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
-int TSimulatorReadRecal::returnQual(int qual, int pos, BaseContext baseContext, int maxQual){
+int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
 	return transformQuality(qual, pos, baseContext);
 }
 
-
+/*
 //--------------------------
 //BQSR transformation
 //-------------------------
-
-TSimulatorBQSRTransform::TSimulatorBQSRTransform(std::string QualTransform, TSimulatorReadLength* ReadLengthDist): TSimulatorRead(ReadLengthDist, PmdObject){
+TSimulatorBQSRTransform::TSimulatorBQSRTransform(int & maxReadLen, TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator): TSimulatorRead(Params, Logfile, RandomGenerator){
 	//parse qualTransform input
 	std::string::size_type pos = QualTransform.find_first_of('[');
 	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + QualTransform + "': wrong format!\n" + "logit[alpha,beta]";
@@ -183,59 +206,10 @@ TSimulatorBQSRPositionTransform::TSimulatorBQSRPositionTransform(float PositionT
 	findTransformationSlope();
 }
 
-float TSimulatorBQSRPositionTransform::calculateSum(float & curSlope, float & curIntercept, float & newSum){
-	//calculate sum( prob of observing given position) * log(positionBeta) -> should be 0
-	newSum = 1.0;
-	for(int p=0; p<readLengthDist->max(); ++p){
-//		std::cout << "curIntercept: " << curIntercept << std::endl;
-//		std::cout << log(curSlope * p + curIntercept) << std::endl;
-		newSum *= (1.0 - readLengthDist->gammaCumulDensity[p]) * log(curSlope * p + curIntercept);
-//		std::cout << "newSum = " << newSum << ", curSlope: " << curSlope << "; curIntercept: " << curIntercept << std::endl ;
-		if(curIntercept < 0) throw "curIntercept is smaller than 0!";
-		if((curSlope * p + curIntercept) < 0) throw "beta position is negative! curSlope * p + curIntercept: " + toString(curSlope * p + curIntercept) + ", curSlope: " + toString(curSlope) + " p: " + toString(p) + " curIntercept: " + toString(curIntercept);
-	}
-	return newSum;
-}
+
 
 void TSimulatorBQSRPositionTransform::findTransformationSlope(){
-	int numIterations = 25;
-	int x = readLengthDist->max();
-	float y = revIntercept;
-	float curSlope = 0.001, curStepSize = 0.2, newSum = -1.0;
-	float curIntercept = -curSlope * x + y;
-
-	float curSum = calculateSum(curSlope, curIntercept, newSum);
-
-	for(int i=0; i<numIterations; ++i){
-		std::cout << "######### i " << i << std::endl;
-		if(curSum == 0){
-			std::cout << "curSum = 0" << std::endl;
-			break;
-		}
-
-		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " curSlope: " << curSlope << std::endl;
-		float a = -(curSlope + curStepSize) * x + y;
-		std::cout << "(-curSlope + curStepSize) * x + y): " << a << std::endl;
-		while((curSlope + curStepSize) < 0.0 || a < 0.0){ //check that neither slope nor intercept become negative
-			std::cout << "in while loop" << std::endl;
-			curStepSize = curStepSize / std::exp(1.0);
-			if(curStepSize < 0.00000000000000001) break;
-		}
-		curSlope = curSlope + curStepSize;
-		curSum = newSum;
-		curIntercept = -curSlope * x + y;
-
-		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " curSlope: " << curSlope << std::endl;
-
-		newSum = calculateSum(curSlope, curIntercept, newSum);
-
-		if((newSum > 0.0 && curSum < 0.0) || (newSum < 0.0 && curSum > 0.0)){
-			std::cout << "changing step direction" << std::endl;
-			curStepSize = -curStepSize / std::exp(1.0);
-		}
-		std::cout << "stepSize: " << curStepSize << " curIntercept: " << curIntercept << " curSum: " << curSum << " newSum: " << newSum << " curSlope: " << curSlope << std::endl;
-	}
-}
+}*/
 
 
 

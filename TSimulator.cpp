@@ -135,10 +135,7 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 
 	//set basic things
 	bamFileOpen = false;
-	qualToErroTableInitialized = false;
-	pmdInitialized = false;
 	readLengthDistInitialized = false;
-	initializeQualToErrorTable();
 
 	//read basic simulation settings
 	logfile->startIndent("Reading simulation parameters:");
@@ -165,13 +162,6 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
 	logfile->list("Will simulate data with reference divergence = " + toString(referenceDivergence) + ".");
 
-	//quality distribution
-	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
-	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
-	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
-	setQualityDistribution(mQ, sdQ, maxQ);
-	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
-
 	//quality transformation
 	initializeQualityTransform(params);
 
@@ -184,16 +174,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	bamAlignment.MapQuality = 50;
 	setReadGroupName("SimReadGroup");
 
-	//helper tools
-	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
 };
 
-void TSimulator::setQualityDistribution(double mean, double sd, int MaxQual){
-	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
-	sdQual = sd;
-	maxQual = MaxQual;
 
-}
 
 void TSimulator::initializeQualityTransform(TParameters & params){
 	std::vector<std::string> string_vec;
@@ -206,7 +189,8 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 			throw "Wrong number of beta values for quality transformation (" + toString(beta.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 		std::string s = concatenateString(beta, ",");
 		logfile->list("Will transform qualities with beta = {" + s + "}");
-		simRead = new TSimulatorReadRecal(beta, readLengthDist, pmdObject);
+		int readLenMax = readLengthDist->max();
+		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator);
 	} else if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -229,12 +213,13 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		logfile->done();
 		std::string s = concatenateString(beta, ",");
 		logfile->conclude("Will transform qualities with beta = {" + s + "}");
-		simRead = new TSimulatorReadRecal(beta, readLengthDist, pmdObject);
+		int readLenMax = readLengthDist->max();
+		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator);
 	} else if(params.parameterExists("BQSRQuality")){
 		std::string qualTransform = params.getParameterString("BQSRQuality");
-		if(qualTransform != "") simRead = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
+		//if(qualTransform != "") simRead = new TSimulatorBQSRTransform(qualTransform, readLengthDist);
 		std::string positionTransform = params.getParameterString("BQSRPosition", false);
-		if(positionTransform != ""){
+		if(qualTransform != ""){
 			float revIntercept = stringToFloat(positionTransform);
 			if(revIntercept < 0.0) throw "BQSRPosition cannot be smaller than 0!";
 			simRead = new TSimulatorBQSRPositionTransform(revIntercept, qualTransform, readLengthDist);
@@ -243,7 +228,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		std::string contextTransform = params.getParameterString("BQSRContext", false);
 		std::string readGroupName = params.getParameterStringWithDefault("readGroupName", "SimReadGroup");
 
-	} else simRead = new TSimulatorRead(readLengthDist, pmdObject);
+	} else simRead = new TSimulatorRead(params, logfile, randomGenerator);
 }
 
 void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
@@ -313,7 +298,6 @@ void TSimulator::setReadLength(std::string s){
 
 	if(readLengthDistInitialized)
 		delete readLengthDist;
-
 	//check if it is a specific function
 	size_t pos = s.find("(");
 	std::string tmp;
@@ -366,17 +350,6 @@ void TSimulator::setReadGroupName(std::string name){
 		throw "Can not change read group name after opening BAM file!";
 	readGroupName = name;
 	bamAlignment.AddTag("RG", "Z", readGroupName);
-}
-
-void TSimulator::setPMD(TPMD* PmdObject){
-	pmdObject = PmdObject;
-	pmdInitialized = true;
-}
-
-
-
-double TSimulator::dePhred(double x){
-	return pow(10, -(x-33.0) / 10.0);
 }
 
 int TSimulator::transformQuality(int & qual, int pos, int context){
@@ -496,17 +469,16 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 }
 
 void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile){
-	static short base;
-	static int qual;
-	static long p;
+	readLengthContainer rl;
 
 	bamAlignment.Length = rl.readLength;
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 
+	simRead->simulate(&haplotype[pos], rl);
 	bamAlignment.Position = pos;
-	bamAlignment.QueryBases = "";
-	bamAlignment.Qualities = "";
+	bamAlignment.QueryBases = simRead->getQueryBases();
+	bamAlignment.Qualities = simRead->getBamQualities();
 
 	//pick a fragment and read length
 	readLengthDist->sample(rl);

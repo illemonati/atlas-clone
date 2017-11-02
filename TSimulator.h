@@ -52,7 +52,6 @@ private:
 	long oldOffset;
 	bool fastaOpen;
 	std::string filename;
-	char* toBase;
 
 	//reference storage
 	short* ref;
@@ -84,7 +83,6 @@ public:
 	TSimulatorReference(std::string Filename, char* ToBase, TLog* Logfile){
 		filename = Filename;
 		logfile = Logfile;
-		toBase = ToBase;
 		chrName = "";
 		ref = NULL;
 		storageInitialized = false;
@@ -293,25 +291,18 @@ private:
 	//Qual to error table
 	TSimulatorRead* simRead;
 
-	//PMD
-	TPMD* pmdObject;
-	bool pmdInitialized;
-
 	//Quality transformation
-	TGenotypeMap genoMap;
 	double* beta;
 	double* qualTermForTransformation;
 	double* posTermForTransformation;
 
 	//helper tools
 	BamTools::BamAlignment bamAlignment;
-	char toBase[4];
 	float baseFreq[4];
 	float cumulBaseFreq[4];
 	bool refInitialized;
 
 	void initializeQualityTransform(TParameters & params);
-	double dePhred(double x);
 	int transformQuality(int & qual, int pos, int context);
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(short** haplotypes, float** & mutTable, short* ref);
@@ -339,7 +330,6 @@ public:
 	void setDepth(float depth);
 	void setBaseFreq(std::vector<float> & freq);
 	void setReadGroupName(std::string name);
-	void setPMD(TPMD* PmdObject);
 	void setQualityTransformation(std::vector<double> & Betas);
 	void initializeChromosomes(TParameters & params, TLog* logfile);
 	void initializeChromosomes(int numChr, long chrLength, bool haploid);
