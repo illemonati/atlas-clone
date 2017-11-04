@@ -28,14 +28,16 @@ protected:
 	std::string bamQualities = "";
 
 	//helper functions
-	double dePhredAscii(double x);
-	double dePhred(double x);
+//	double dePhredAscii(int x);
+	double dePhred(int x);
 	int phred(double x);
 
 	//virtual functions
 	virtual int returnBamQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 	//qual params
+	bool dePhredTableInitialized = false;
+	double* dePhredTable;
 	double meanQual, sdQual;
 	int maxQual;
 	bool qualToErroTableInitialized = false;
@@ -44,6 +46,7 @@ protected:
 	//general functions
 	void setTrueQualityDistribution(double mean, double sd);
 	virtual int sampleTrueQuality();
+	void initializeDePhredTable();
 	void initializeQualToErrorTable();
 	void applyPMD(short & base, long & posInRead, readLengthContainer & rl);
 
@@ -52,6 +55,8 @@ public:
 	virtual ~TSimulatorRead(){
 		if(qualToErroTableInitialized)
 			delete[] qualToErroTable;
+		if(dePhredTableInitialized)
+			delete[] dePhredTable;
 	};
 
 	virtual void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
@@ -92,27 +97,39 @@ class TSimulatorReadBQSRPos:public TSimulatorRead{
 private:
 
 protected:
-	double revIntercept;
-	double intercept;
-	double m;
 	TSimulatorReadLength* readLengthDist;
 
-	double phi1, phi2;
+	//quality params
+	int phi1;
+	double phi2;
 	bool fakeQualToTrueQualTableInitialized = false;
 	double* fakeQualToTrueQual;
 	double lambda, kappa;
+
+	//position params
+	double revIntercept;
+	double intercept;
+	double m;
+
+	//quality functions
 	void parseBQSRQualInput(TParameters & params);
 	int returnTrueQual(int & fakeQual);
 	void setFakeQualityDistribution();
-	int sampleFakeQuality();
 	void initializeFakeQualToTrueQualTable();
+	int sampleFakeQuality();
+
+	//position functions
 	void calculateSlopeIntercept();
 	double returnBetaPp(int pos);
+
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
 	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadBQSRPos(){};
+	virtual ~TSimulatorReadBQSRPos(){
+		if(fakeQualToTrueQualTableInitialized)
+			delete[] fakeQualToTrueQual;
+	};
 };
 
 //-------------------------------
