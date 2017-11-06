@@ -23,9 +23,7 @@ int TSimulatorRead::phred(double x){
 void TSimulatorRead::initializeDePhredTable(){
 	if(!dePhredTableInitialized){
 		dePhredTable = new double[maxQual];
-		for(int i=0; i<33; ++i)
-			dePhredTable[i] = 0.0;
-		for(int i=33; i<maxQual; ++i)
+		for(int i=0; i<maxQual; ++i)
 			dePhredTable[i] = dePhred(i);
 	}
 	dePhredTableInitialized = true;
@@ -45,12 +43,14 @@ TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGener
 	//qual params
 	double mQ = params.getParameterDoubleWithDefault("meanQual", 30.0);
 	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10.0);
-	int maxQual = params.getParameterDoubleWithDefault("maxQual", 127);
+	int maxQ = params.getParameterIntWithDefault("maxQual", 93);
 
-	setTrueQualityDistribution(mQ, sdQ);
+	setTrueQualityDistribution(mQ, sdQ, maxQ);
 	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
 
+	initializeDePhredTable();
 	initializeQualToErrorTable();
+	std::cout << "initialized initializeQualToErrorTable" << std::endl;
 
 };
 
@@ -61,25 +61,26 @@ std::string TSimulatorRead::getBamQualities(){
 	return(bamQualities);
 }
 
-void TSimulatorRead::setTrueQualityDistribution(double mean, double sd){
-	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
+void TSimulatorRead::setTrueQualityDistribution(double mean, double sd, int maxQ){
+	meanQual = mean; //add 33 later to get quality to get in in char
 	sdQual = sd;
+	maxQual = maxQ;
 }
 
 int TSimulatorRead::sampleTrueQuality(){
 	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
-	if(qual > 126) qual = 126;
-	if(qual < 33) qual = 33;
+	if(qual > 93) qual = 93;
+	if(qual < 0) qual = 0;
 	return qual;
 };
 
 void TSimulatorRead::initializeQualToErrorTable(){
+	if(!dePhredTableInitialized) throw("Cannot initialize qualToErrorTable without dePhredTable!");
 	if(!qualToErroTableInitialized){
 		qualToErroTable = new double[maxQual];
-		for(int i=0; i<33; ++i)
-			qualToErroTable[i] = 1.0;
-		for(int i=33; i<maxQual+33; ++i)
-			qualToErroTable[i] = dePhredTable[i-33];
+		for(int i=0; i<maxQual; ++i){
+			qualToErroTable[i] = 1; //dePhredTable[i];
+		}
 	}
 	qualToErroTableInitialized = true;
 };
@@ -124,7 +125,7 @@ void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGeno
 		//add to bam alignment
 		int transQual = returnBamQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
 		if(transQual > maxQual)	bamQualities += (char) maxQual;
-		else bamQualities += (char) transQual;
+		else bamQualities += (char) transQual + 33;
 		previousBase = base;
 		queryBases += toBase[base];
 	}
@@ -141,12 +142,9 @@ TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, int & maxRea
 
 	//precalculate stuff
 	qualTermForTransformation = new double[127];
-	for(int i=0; i<34; ++i)
-		qualTermForTransformation[i] = 100.0;
-
 	double tmp;
-	for(int i=34; i<127; ++i){
-		tmp = pow(10.0, -(double) (i - 33.0) / 10.0);
+	for(int i=0; i<93.0; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 	posTermForTransformation = new double[maxReadLen];
@@ -173,12 +171,12 @@ int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 
 	tmp = exp(q);
 	if(tmp == 0) throw "choose different quality transformation parameters! tmp == 0";
-	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
+	return -10.0 * log10(tmp / (1.0 + tmp));
 }
 
-int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
+/*int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
 	return transformQuality(qual, pos, baseContext);
-}
+}*/
 
 
 //--------------------------
@@ -199,7 +197,6 @@ TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDis
 	setFakeQualityDistribution(); //first find kappa and lambda
 	initializeDePhredTable();
 	initializeFakeQualToTrueQualTable();
-
 }
 
 void TSimulatorReadBQSRPos::parseBQSRQualInput(TParameters & params){
@@ -222,8 +219,8 @@ void TSimulatorReadBQSRPos::parseBQSRQualInput(TParameters & params){
 
 int TSimulatorReadBQSRPos::sampleFakeQuality(){
 	int qual = round(randomGenerator->getNormalRandom(kappa, lambda));
-	if(qual > 126) qual = 126;
-	if(qual < 33) qual = 33;
+	if(qual > 93) qual = 93;
+	if(qual < 0) qual = 0;
 	return qual;
 }
 
@@ -232,8 +229,8 @@ int TSimulatorReadBQSRPos::sampleFakeQuality(){
 //---------------------------------
 
 void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
-	int num_of_row = maxQual- minQual;
-	int num_of_col = maxPos;
+	int num_of_row = maxPos;
+	int num_of_col = maxQual- minQual + 1;
 	double init_value = -1.0;
 
 	//now we have an empty 2D-matrix of size (0,0). Resizing it with one single command:
@@ -247,7 +244,7 @@ void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
 }
 
 void TSimulatorReadBQSRPos::fillWeights(double & kappa_cur, double & lambda_cur){
-	w = new double[maxQual - minQual];
+	w = new double[maxQual - minQual + 1];
 
 	//w at minQual
 	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
@@ -343,9 +340,7 @@ int TSimulatorReadBQSRPos::returnTrueQual(int & fakeQual){
 void TSimulatorReadBQSRPos::initializeFakeQualToTrueQualTable(){
 	if(!fakeQualToTrueQualTableInitialized){
 		fakeQualToTrueQual = new double[maxQual];
-		for(int i=0; i<33; ++i)
-			fakeQualToTrueQual[i] = 1.0;
-		for(int i=33; i<maxQual+33; ++i)
+		for(int i=0; i<maxQual; ++i)
 			fakeQualToTrueQual[i] = returnTrueQual(i);
 	}
 	fakeQualToTrueQualTableInitialized = true;
@@ -381,14 +376,14 @@ void TSimulatorReadBQSRPos::simulate(short* posAddress, readLengthContainer & rl
 		}
 		//sample quality and add error
 		fakeQual = sampleFakeQuality();
-		if(fakeQual > 127)	fakeQual = (char) maxQual;
+		if(fakeQual > maxQual) fakeQual = (char) maxQual;
 
 		trueQual = fakeQualToTrueQual[fakeQual];
 		if(randomGenerator->getRand() < (qualToErroTable[trueQual] * returnBetaPp(p))){ //qualToError knows that quals are in ascii
 			base = (base + randomGenerator->pickOne(3) + 1) % 4;
 		}
 		//add to bam alignment
-		bamQualities += (char) fakeQual;
+		bamQualities += (char) (fakeQual + 33);
 		queryBases += toBase[base];
 	}
 };

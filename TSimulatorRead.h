@@ -44,7 +44,7 @@ protected:
 	double* qualToErroTable;
 
 	//general functions
-	void setTrueQualityDistribution(double mean, double sd);
+	void setTrueQualityDistribution(double mean, double sd, int maxQ);
 	virtual int sampleTrueQuality();
 	void initializeDePhredTable();
 	void initializeQualToErrorTable();
@@ -82,7 +82,7 @@ private:
 	int transformQuality(int & qual, int & pos, int & context);
 
 	//derived functions
-	int returnQual(int & qual, int & pos, int & context);
+//	int returnQual(int & qual, int & pos, int & context);
 
 public:
 	TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
