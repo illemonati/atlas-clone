@@ -43,8 +43,8 @@ TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGener
 	} else pmdInitialized = false;
 
 	//qual params
-	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
-	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
+	double mQ = params.getParameterDoubleWithDefault("meanQual", 30.0);
+	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10.0);
 	int maxQual = params.getParameterDoubleWithDefault("maxQual", 127);
 
 	setTrueQualityDistribution(mQ, sdQ);
@@ -188,6 +188,7 @@ int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
 TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
 	//position parameters
 	readLengthDist = ReadLengthDist;
+	maxPos = readLengthDist->max();
 	revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
 	logfile->list("ReverseIntercept is set to " + toString(revIntercept));
 	calculateSlopeIntercept();
@@ -226,9 +227,112 @@ int TSimulatorReadBQSRPos::sampleFakeQuality(){
 	return qual;
 }
 
+//---------------------------------
+// optimization functions
+//---------------------------------
+
+void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
+	int num_of_row = maxQual- minQual;
+	int num_of_col = maxPos;
+	double init_value = -1.0;
+
+	//now we have an empty 2D-matrix of size (0,0). Resizing it with one single command:
+	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
+	for(int q = minQual; q < (maxQual+1); ++ q){
+		for(int p = 0; p<readLengthDist->max(); ++p){
+			QBetaQBetaP[q][p] = phred(dePhredTable[q] * returnBetaPp(p));
+		}
+	}
+	BetaQBetaPInitialized = true;
+}
+
+void TSimulatorReadBQSRPos::fillWeights(double & kappa_cur, double & lambda_cur){
+	w = new double[maxQual - minQual];
+
+	//w at minQual
+	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
+	//w at intermediate Q
+	for(int q = (minQual + 1) + 0.5; q < maxQual - 1; ++q){
+		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
+		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
+		w[q-minQual] = end - start;
+	}
+	//w at maxQual
+	w[(maxQual - minQual) - 1] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
+
+	weightsInitialized = true;
+}
+
+double TSimulatorReadBQSRPos::returnCurKappa(){
+	kappa_cur = 0.0;
+	for(int q = minQual; q < (maxQual+1); ++ q){
+		for(int p = 0; p<readLengthDist->max(); ++p){
+			kappa_cur += QBetaQBetaP[q][p]* readLengthDist->gammaCumulDensity[p] ; //* w[q]);
+		}
+	}
+	return(kappa_cur);
+}
+
+double TSimulatorReadBQSRPos::returnCurLambda(){
+	lambda_cur = 0;
+	for(int q = minQual; q < (maxQual+1); ++ q){
+		for(int p = 0; p<readLengthDist->max(); ++p){
+			lambda_cur += ((QBetaQBetaP[q][p] - kappa_cur) * (QBetaQBetaP[q][p] - kappa_cur) * readLengthDist->gammaCumulDensity[p] * w[q]);
+		}
+	}
+	return lambda_cur;
+}
+
+double TSimulatorReadBQSRPos::returnDelta(){
+	kappa_cur = returnCurKappa();
+	lambda_cur = returnCurLambda();
+
+	delta = (kappa_cur - meanQual)*(kappa_cur - meanQual) + (lambda_cur - sdQual)*(lambda_cur - sdQual);
+	return(delta);
+}
+
+
+//---------------------------------
+
+
 void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
-	double kappa = -1;
-	double lambda = -1;
+	kappa_cur = meanQual;
+	lambda_cur = sdQual;
+
+	fillQBetaQBetaP();
+	fillWeights(kappa_cur, lambda_cur);
+
+	delta = returnDelta();
+
+	int nTurns = 10;
+	int nIter = 50;
+
+	for(int t=0; t<nTurns; ++t){
+		//update kappa
+		float stepSize = 5.0;
+		for(int i=0; i<nIter; ++i){
+			//move and calc error
+			delta_old = delta;
+			kappa_cur += stepSize;
+			delta = returnDelta();
+			if(delta > delta_old)
+				delta = -delta/exp(1);
+		}
+
+		//update lambda
+		stepSize = 1.0;
+		for(int i=0; i<nIter; ++i){
+			//move and calc error
+			delta_old = delta;
+			lambda_cur += stepSize;
+			delta = returnDelta();
+			if(delta > delta_old)
+				delta = -delta/exp(1);
+		}
+	}
+
+	kappa = kappa_cur;
+	lambda = lambda_cur;
 }
 
 int TSimulatorReadBQSRPos::returnTrueQual(int & fakeQual){

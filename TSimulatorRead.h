@@ -98,18 +98,28 @@ private:
 
 protected:
 	TSimulatorReadLength* readLengthDist;
+	int maxPos;
 
 	//quality params
 	int phi1;
 	double phi2;
 	bool fakeQualToTrueQualTableInitialized = false;
 	double* fakeQualToTrueQual;
-	double lambda, kappa;
+	double kappa, lambda;
 
 	//position params
 	double revIntercept;
 	double intercept;
 	double m;
+
+	//optimization algorithm params
+	int minQual = 0;
+	double* w;
+	bool weightsInitialized;
+	double kappa_cur = -1.0, lambda_cur = -1.0;
+	double delta, delta_old;
+	std::vector< std::vector<double> > QBetaQBetaP;
+	bool BetaQBetaPInitialized = false;
 
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
@@ -122,6 +132,12 @@ protected:
 	void calculateSlopeIntercept();
 	double returnBetaPp(int pos);
 
+	//optimization algorithm functions
+	void fillWeights(double & kappa_cur, double & lambda_cur);
+	void fillQBetaQBetaP();
+	double returnCurKappa();
+	double returnCurLambda();
+	double returnDelta();
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
@@ -129,6 +145,8 @@ public:
 	virtual ~TSimulatorReadBQSRPos(){
 		if(fakeQualToTrueQualTableInitialized)
 			delete[] fakeQualToTrueQual;
+		if(weightsInitialized)
+			delete[] w;
 	};
 };
 
