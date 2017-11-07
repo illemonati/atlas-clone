@@ -32,18 +32,82 @@ struct Theta{
 
 
 //---------------------------------------------------------------
+//TThetaEstimatorDataStorage
+//---------------------------------------------------------------
+class TThetaEstimatorDataStorage{
+private:
+	std::vector<double*> sites;
+	std::vector<double*>* useTheseSites;
+	std::vector<double*>::iterator siteIt;
+	std::vector<double*>::reverse_iterator revSiteIt;
+	double* doublePointer;
+
+	std::vector<double*> bootstrappedSites;
+
+protected:
+	int numGenotypes;
+	long numSitesCoveredTwiceOrMore;
+	long totNumSitesAdded;
+	long numSitesWithData;
+	double cumulativeDepth;
+
+	TBaseFrequencies initialBaseFreq;
+	bool isBootstrapped;
+	long numBootstrappedSites;
+
+	//tmp variables
+	int g;
+	double sum;
+	double* P_g_oneSite;
+
+public:
+	TThetaEstimatorDataStorage(int NumGenotypes);
+	virtual ~TThetaEstimatorDataStorage(){
+		clear();
+		delete[] P_g_oneSite;
+	}
+
+	virtual void add(TSite & site);
+	virtual void bootstrap(TRandomGenerator & randomGenerator);
+	virtual void clearBootstrap();
+	virtual void clear();
+
+	long size(){return totNumSitesAdded;};
+	long sizeWithData(){return numSitesWithData;};
+
+	void writeHeader(std::ofstream & out);
+	void writeSize(std::ofstream & out);
+
+	void fillBaseFreq(double* baseFreq);
+	void fillP_G(double* P_G, double* pGenotype);
+	double calcLogLikelihood(double* pGenotype);
+	double calcFisherInfo(double* pGenotype, double* deriv_pGenotype);
+};
+
+/*
+class TThetaEstimatorDataStorageFile:public TThetaEstimatorDataStorage{
+private:
+	bool dataStoredInFile;
+	std::string dataFileName;
+	gzFile fp;
+	bool dataFileOpen;
+
+public:
+	TThetaEstimatorDataStorageFile();
+	~TThetaEstimatorDataStorageFile();
+	void add(TSite & site);
+	void clear();
+};
+*/
+
+//---------------------------------------------------------------
 //TThetaEstimator
 //---------------------------------------------------------------
 class TThetaEstimator{
 private:
 	TLog* logfile;
 
-	//data
-	std::vector<double*> sites;
-	long numSitesCoveredTwiceOrMore;
-	long totNumSitesAdded;
-	long numSitesWithData;
-	double cumulativeDepth;
+	TThetaEstimatorDataStorage* data;
 
 	//EM parameters
 	int numIterations;
@@ -62,50 +126,34 @@ private:
 	double* pGenotype; //P(g|pi, theta)
 	double* baseFreq;
 	TGenotypeMap genoMap;
-	TBaseFrequencies initialBaseFreq;
 	Theta theta;
 
 	//tmp variables
 	int g;
-	std::vector<double*>::iterator siteIt;
-	std::vector<double*>::reverse_iterator revSiteIt;
-	double* doublePointer;
+
 	double sum;
 	double P_g_oneSite[10];
 
 	void init();
 	void fillPGenotype(double* & pGeno, double & expTheta);
 	void fillPGenotype(double & expTheta);
-	void fillP_G(std::vector<double*> & theseSites);
-	double calcLogLikelihood(std::vector<double*> & theseSites);
-	void findGoodStartingTheta(std::vector<double*> & theseSites);
-	void runEMForTheta(std::vector<double*> & theseSites);
-	void estimateConfidenceInterval(std::vector<double*> & theseSites);
-	bool estimateTheta(std::vector<double*> & theseSites);
+	void findGoodStartingTheta();
+	void runEMForTheta();
+	void estimateConfidenceInterval();
 
 public:
 	TThetaEstimator(TParameters & params, TLog* Logfile);
 	TThetaEstimator(TLog* Logfile);
 
 	~TThetaEstimator(){
-		clear();
 		delete[] P_G;
 		delete[] pGenotype;
 		delete[] baseFreq;
 	};
 
-	void clear(){
-		for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
-			delete[] (*siteIt);
-		sites.clear();
-		initialBaseFreq.clear();
-		numSitesCoveredTwiceOrMore = 0;
-		totNumSitesAdded = 0;
-		numSitesWithData = 0;
-		cumulativeDepth = 0.0;
-	};
 	void add(TSite & site);
-	long size(){ return sites.size(); };
+	//long size(){ return data->size();};
+	long sizeWithData(){ return data->sizeWithData();};
 	void fillPGenotype(double* & pGeno);
 	bool estimateTheta();
 	void setTheta(double Theta);
