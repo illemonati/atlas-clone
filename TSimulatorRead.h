@@ -93,7 +93,7 @@ public:
 // BQSR transformation pos
 //-------------------------------
 
-class TSimulatorReadBQSRPos:public TSimulatorRead{
+class TSimulatorReadBQSR:public TSimulatorRead{
 private:
 
 protected:
@@ -142,8 +142,8 @@ protected:
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
-	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadBQSRPos(){
+	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	virtual ~TSimulatorReadBQSR(){
 		if(fakeQualToTrueQualTableInitialized)
 			delete[] fakeQualToTrueQual;
 		if(weightsInitialized)
@@ -155,10 +155,16 @@ public:
 // BQSR transformation qual
 //-------------------------------
 
-class TSimulatorReadBQSRQual:public TSimulatorReadBQSRPos{
+class TSimulatorReadBQSRQual:public TSimulatorReadBQSR{
 public:
 	TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorReadBQSRQual(){};
+};
+
+class TSimulatorReadBQSRPos:public TSimulatorReadBQSR{
+public:
+	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	virtual ~TSimulatorReadBQSRPos(){};
 };
 
 

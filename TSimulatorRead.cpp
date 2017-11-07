@@ -22,7 +22,7 @@ int TSimulatorRead::phred(double x){
 
 void TSimulatorRead::initializeDePhredTable(){
 	if(!dePhredTableInitialized){
-		dePhredTable = new double[maxQualPlusOne - minQuality];
+		dePhredTable = new double[maxQualPlusOne]; //-minQual
 		for(int i=0; i<maxQualPlusOne; ++i)
 			dePhredTable[i] = dePhred(i);
 	}
@@ -179,17 +179,13 @@ int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 
 
 //--------------------------
-//BQSR Position transformation
+//BQSR base transformation
 //-------------------------
 
-TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
+TSimulatorReadBQSR::TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
 	//position parameters
 	readLengthDist = ReadLengthDist;
 	maxPos = readLengthDist->max();
-	revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
-	logfile->list("ReverseIntercept is set to " + toString(revIntercept));
-	calculateSlopeIntercept();
-	logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
 
 	//quality parameters
 	parseBQSRQualInput(params);
@@ -198,7 +194,7 @@ TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDis
 	initializeFakeQualToTrueQualTable();
 }
 
-void TSimulatorReadBQSRPos::parseBQSRQualInput(TParameters & params){
+void TSimulatorReadBQSR::parseBQSRQualInput(TParameters & params){
 	//parse qualTransform input
 	std::string transParams = params.getParameterString("BQSRQuality");
 	std::string::size_type pos = transParams.find_first_of('[');
@@ -216,7 +212,7 @@ void TSimulatorReadBQSRPos::parseBQSRQualInput(TParameters & params){
 	logfile->list("Simulating a quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
 }
 
-int TSimulatorReadBQSRPos::sampleFakeQuality(){
+int TSimulatorReadBQSR::sampleFakeQuality(){
 	int qual = round(randomGenerator->getNormalRandom(kappa, lambda));
 	if(qual > 93) qual = 93;
 	if(qual < 0) qual = 0;
@@ -227,7 +223,7 @@ int TSimulatorReadBQSRPos::sampleFakeQuality(){
 // optimization functions
 //---------------------------------
 
-void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
+void TSimulatorReadBQSR::fillQBetaQBetaP(){
 	int num_of_row = maxPos;
 	int num_of_col = maxQualPlusOne - minQual;
 	double init_value = -1.0;
@@ -242,7 +238,7 @@ void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
 	BetaQBetaPInitialized = true;
 }
 
-void TSimulatorReadBQSRPos::fillWeights(double & kappa_cur, double & lambda_cur){
+void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
 	w = new double[maxQualPlusOne - minQual];
 
 	//w at minQual
@@ -260,7 +256,7 @@ void TSimulatorReadBQSRPos::fillWeights(double & kappa_cur, double & lambda_cur)
 	weightsInitialized = true;
 }
 
-double TSimulatorReadBQSRPos::returnCurKappa(){
+double TSimulatorReadBQSR::returnCurKappa(){
 	float kappa = 0.0;
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
@@ -270,7 +266,7 @@ double TSimulatorReadBQSRPos::returnCurKappa(){
 	return(kappa);
 }
 
-double TSimulatorReadBQSRPos::returnCurLambda(double & kappa){
+double TSimulatorReadBQSR::returnCurLambda(double & kappa){
 	float lambda = 0.0;
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
@@ -280,7 +276,7 @@ double TSimulatorReadBQSRPos::returnCurLambda(double & kappa){
 	return lambda;
 }
 
-double TSimulatorReadBQSRPos::returnDelta(double & kappa, double & lambda){
+double TSimulatorReadBQSR::returnDelta(double & kappa, double & lambda){
 //	kappa = returnCurKappa();
 //	lambda = returnCurLambda();
 
@@ -288,11 +284,11 @@ double TSimulatorReadBQSRPos::returnDelta(double & kappa, double & lambda){
 	return(delta);
 }
 
-double TSimulatorReadBQSRPos::updateParam(double & param, float & stepSize, int & nIter){
+double TSimulatorReadBQSR::updateParam(double & param, float & stepSize, int & nIter){
 	for(int i=0; i<nIter; ++i){
 		delta_old = delta;
 		param += stepSize;
-		delta = returnDelta();
+//		delta = returnDelta();
 		if(delta > delta_old)
 		delta = -delta/exp(1);
 	}
@@ -301,7 +297,7 @@ double TSimulatorReadBQSRPos::updateParam(double & param, float & stepSize, int 
 
 //---------------------------------
 
-void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
+void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	double kappa_cur = meanQual;
 	double lambda_cur = sdQual;
 
@@ -327,12 +323,12 @@ void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
 	lambda = lambda_cur;
 }
 
-int TSimulatorReadBQSRPos::returnTrueQual(int & fakeQual){
+int TSimulatorReadBQSR::returnTrueQual(int & fakeQual){
 	double fakeError = dePhredTable[fakeQual];
 	return(pow(10, -1/10 * phi2 * fakeError) + dePhredTable[phi1]);
 }
 
-void TSimulatorReadBQSRPos::initializeFakeQualToTrueQualTable(){
+void TSimulatorReadBQSR::initializeFakeQualToTrueQualTable(){
 	if(!fakeQualToTrueQualTableInitialized){
 		fakeQualToTrueQual = new double[maxQualPlusOne];
 		for(int i=0; i<maxQualPlusOne; ++i)
@@ -341,20 +337,24 @@ void TSimulatorReadBQSRPos::initializeFakeQualToTrueQualTable(){
 	fakeQualToTrueQualTableInitialized = true;
 };
 
-void TSimulatorReadBQSRPos::calculateSlopeIntercept(){
+void TSimulatorReadBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
-	for(int p=0; p<readLengthDist->max(); ++p){
-		sum += (double) p * readLengthDist->gammaCumulDensity[p];
+	double normalization_sum = 0.0;
+	//gamma density starts at 0 but p at 1!
+
+	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
+		sum += (double) p * (1 - readLengthDist->gammaCumulDensity[p-1]);
+//		std::cout << "p " << p << " (1 - readLengthDist->gammaCumulDensity[p-1]) / normalization_sum " << (1 - readLengthDist->gammaCumulDensity[p-1]) / normalization_sum << std::endl;
 	}
 	m = (1.0 - revIntercept) / sum;
 	intercept = revIntercept - m * readLengthDist->max();
 }
 
-double TSimulatorReadBQSRPos::returnBetaPp(int pos){
+double TSimulatorReadBQSR::returnBetaPp(int pos){
 	return(m * (double) pos + intercept);
 }
 
-void TSimulatorReadBQSRPos::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
+void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
 	static short base;
 	static int fakeQual, trueQual;
 	static long p;
@@ -386,18 +386,21 @@ void TSimulatorReadBQSRPos::simulate(short* posAddress, readLengthContainer & rl
 //--------------------------
 //BQSR quality transformation
 //-------------------------
-TSimulatorReadBQSRQual::TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSRPos(ReadLengthDist, params, Logfile, RandomGenerator, ToBase){
-	//set position parameters to 0
-	intercept = 0.0;
-	revIntercept = 0.0;
+TSimulatorReadBQSRQual::TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSR(ReadLengthDist, params, Logfile, RandomGenerator, ToBase){
+	//all beta_p should be 1
+	intercept = 1.0;
+	revIntercept = 1.0;
 	m = 1.0;
 }
 
-
-
-
-
-
+TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSR(ReadLengthDist, params, Logfile, RandomGenerator, ToBase){
+	revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
+	if(revIntercept < 0) throw("BQSRPosition cannot be negative!");
+	logfile->list("ReverseIntercept is set to " + toString(revIntercept));
+	calculateSlopeIntercept();
+	logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
+	if(intercept < 0) throw("Intercept for position transformation is negative -> choose higher value for BQSRPosition!");
+}
 
 
 

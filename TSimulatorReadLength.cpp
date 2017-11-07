@@ -19,16 +19,15 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, st
 	if(meanLength < 5 || meanLength > 10000)
 		throw "Read length must be between 5 and 10,000!";
 
-	gammaDensity = new float[meanLength];
-	gammaCumulDensity = new float[meanLength];
-	for(int i=0; i<(meanLength - 1); ++i){
+	gammaDensity = new float[meanLength + 1];
+	gammaCumulDensity = new float[meanLength + 1];
+	for(int i=0; i<(meanLength); ++i){
 		gammaDensity[i] = 0.0;
 		gammaCumulDensity[i] = 0.0;
 	}
 	gammaDensity[meanLength - 1] = 1.0;
-	gammaCumulDensity[meanLength - 1] = 0.0;
+	gammaCumulDensity[meanLength] = 1.0;
 	cumulAtMin = 0.0;
-	int test[5] = {0};
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
