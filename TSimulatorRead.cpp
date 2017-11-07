@@ -22,8 +22,8 @@ int TSimulatorRead::phred(double x){
 
 void TSimulatorRead::initializeDePhredTable(){
 	if(!dePhredTableInitialized){
-		dePhredTable = new double[maxQual];
-		for(int i=0; i<maxQual; ++i)
+		dePhredTable = new double[maxQualPlusOne - minQuality];
+		for(int i=0; i<maxQualPlusOne; ++i)
 			dePhredTable[i] = dePhred(i);
 	}
 	dePhredTableInitialized = true;
@@ -50,8 +50,6 @@ TSimulatorRead::TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGener
 
 	initializeDePhredTable();
 	initializeQualToErrorTable();
-	std::cout << "initialized initializeQualToErrorTable" << std::endl;
-
 };
 
 std::string TSimulatorRead::getQueryBases(){
@@ -65,6 +63,7 @@ void TSimulatorRead::setTrueQualityDistribution(double mean, double sd, int maxQ
 	meanQual = mean; //add 33 later to get quality to get in in char
 	sdQual = sd;
 	maxQual = maxQ;
+	maxQualPlusOne = maxQual + 1;
 }
 
 int TSimulatorRead::sampleTrueQuality(){
@@ -77,8 +76,8 @@ int TSimulatorRead::sampleTrueQuality(){
 void TSimulatorRead::initializeQualToErrorTable(){
 	if(!dePhredTableInitialized) throw("Cannot initialize qualToErrorTable without dePhredTable!");
 	if(!qualToErroTableInitialized){
-		qualToErroTable = new double[maxQual];
-		for(int i=0; i<maxQual; ++i){
+		qualToErroTable = new double[maxQualPlusOne];
+		for(int i=0; i<maxQualPlusOne; ++i){
 			qualToErroTable[i] = 1; //dePhredTable[i];
 		}
 	}
@@ -230,12 +229,12 @@ int TSimulatorReadBQSRPos::sampleFakeQuality(){
 
 void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
 	int num_of_row = maxPos;
-	int num_of_col = maxQual- minQual + 1;
+	int num_of_col = maxQualPlusOne - minQual;
 	double init_value = -1.0;
 
 	//now we have an empty 2D-matrix of size (0,0). Resizing it with one single command:
 	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
-	for(int q = minQual; q < (maxQual+1); ++ q){
+	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
 			QBetaQBetaP[q][p] = phred(dePhredTable[q] * returnBetaPp(p));
 		}
@@ -244,62 +243,72 @@ void TSimulatorReadBQSRPos::fillQBetaQBetaP(){
 }
 
 void TSimulatorReadBQSRPos::fillWeights(double & kappa_cur, double & lambda_cur){
-	w = new double[maxQual - minQual + 1];
+	w = new double[maxQualPlusOne - minQual];
 
 	//w at minQual
 	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
+
 	//w at intermediate Q
 	for(int q = (minQual + 1) + 0.5; q < maxQual - 1; ++q){
 		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
 		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q-minQual] = end - start;
 	}
-	//w at maxQual
-	w[(maxQual - minQual) - 1] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
 
+	//w at maxQual
+	w[(maxQual - minQual)] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 
 double TSimulatorReadBQSRPos::returnCurKappa(){
-	kappa_cur = 0.0;
-	for(int q = minQual; q < (maxQual+1); ++ q){
+	float kappa = 0.0;
+	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			kappa_cur += QBetaQBetaP[q][p]* readLengthDist->gammaCumulDensity[p] ; //* w[q]);
+			kappa += QBetaQBetaP[q][p]* readLengthDist->gammaCumulDensity[p] ; //* w[q]);
 		}
 	}
-	return(kappa_cur);
+	return(kappa);
 }
 
-double TSimulatorReadBQSRPos::returnCurLambda(){
-	lambda_cur = 0;
-	for(int q = minQual; q < (maxQual+1); ++ q){
+double TSimulatorReadBQSRPos::returnCurLambda(double & kappa){
+	float lambda = 0.0;
+	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			lambda_cur += ((QBetaQBetaP[q][p] - kappa_cur) * (QBetaQBetaP[q][p] - kappa_cur) * readLengthDist->gammaCumulDensity[p] * w[q]);
+			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->gammaCumulDensity[p] * w[q]);
 		}
 	}
-	return lambda_cur;
+	return lambda;
 }
 
-double TSimulatorReadBQSRPos::returnDelta(){
-	kappa_cur = returnCurKappa();
-	lambda_cur = returnCurLambda();
+double TSimulatorReadBQSRPos::returnDelta(double & kappa, double & lambda){
+//	kappa = returnCurKappa();
+//	lambda = returnCurLambda();
 
-	delta = (kappa_cur - meanQual)*(kappa_cur - meanQual) + (lambda_cur - sdQual)*(lambda_cur - sdQual);
+	delta = (kappa - meanQual)*(kappa - meanQual) + (lambda - sdQual)*(lambda - sdQual);
 	return(delta);
 }
 
+double TSimulatorReadBQSRPos::updateParam(double & param, float & stepSize, int & nIter){
+	for(int i=0; i<nIter; ++i){
+		delta_old = delta;
+		param += stepSize;
+		delta = returnDelta();
+		if(delta > delta_old)
+		delta = -delta/exp(1);
+	}
+	return(param);
+}
 
 //---------------------------------
 
-
 void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
-	kappa_cur = meanQual;
-	lambda_cur = sdQual;
+	double kappa_cur = meanQual;
+	double lambda_cur = sdQual;
 
 	fillQBetaQBetaP();
 	fillWeights(kappa_cur, lambda_cur);
 
-	delta = returnDelta();
+	delta = returnDelta(kappa_cur, lambda_cur);
 
 	int nTurns = 10;
 	int nIter = 50;
@@ -307,25 +316,11 @@ void TSimulatorReadBQSRPos::setFakeQualityDistribution(){
 	for(int t=0; t<nTurns; ++t){
 		//update kappa
 		float stepSize = 5.0;
-		for(int i=0; i<nIter; ++i){
-			//move and calc error
-			delta_old = delta;
-			kappa_cur += stepSize;
-			delta = returnDelta();
-			if(delta > delta_old)
-				delta = -delta/exp(1);
-		}
+		kappa_cur = updateParam(kappa_cur, stepSize, nIter);
 
 		//update lambda
 		stepSize = 1.0;
-		for(int i=0; i<nIter; ++i){
-			//move and calc error
-			delta_old = delta;
-			lambda_cur += stepSize;
-			delta = returnDelta();
-			if(delta > delta_old)
-				delta = -delta/exp(1);
-		}
+		lambda_cur = updateParam(lambda_cur, stepSize, nIter);
 	}
 
 	kappa = kappa_cur;
@@ -339,8 +334,8 @@ int TSimulatorReadBQSRPos::returnTrueQual(int & fakeQual){
 
 void TSimulatorReadBQSRPos::initializeFakeQualToTrueQualTable(){
 	if(!fakeQualToTrueQualTableInitialized){
-		fakeQualToTrueQual = new double[maxQual];
-		for(int i=0; i<maxQual; ++i)
+		fakeQualToTrueQual = new double[maxQualPlusOne];
+		for(int i=0; i<maxQualPlusOne; ++i)
 			fakeQualToTrueQual[i] = returnTrueQual(i);
 	}
 	fakeQualToTrueQualTableInitialized = true;

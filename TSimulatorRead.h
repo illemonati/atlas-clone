@@ -39,7 +39,7 @@ protected:
 	bool dePhredTableInitialized = false;
 	double* dePhredTable;
 	double meanQual, sdQual;
-	int maxQual;
+	int maxQual, maxQualPlusOne;
 	bool qualToErroTableInitialized = false;
 	double* qualToErroTable;
 
@@ -116,7 +116,7 @@ protected:
 	int minQual = 0;
 	double* w;
 	bool weightsInitialized;
-	double kappa_cur = -1.0, lambda_cur = -1.0;
+//	double kappa_cur = -1.0, lambda_cur = -1.0;
 	double delta, delta_old;
 	std::vector< std::vector<double> > QBetaQBetaP;
 	bool BetaQBetaPInitialized = false;
@@ -136,8 +136,9 @@ protected:
 	void fillWeights(double & kappa_cur, double & lambda_cur);
 	void fillQBetaQBetaP();
 	double returnCurKappa();
-	double returnCurLambda();
-	double returnDelta();
+	double returnCurLambda(double & kappa);
+	double returnDelta(double & kappa, double & lambda);
+	double updateParam(double & param, float & stepSize, int & nIter);
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
