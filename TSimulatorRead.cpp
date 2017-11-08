@@ -8,9 +8,6 @@
 #include "TSimulatorRead.h"
 #include "TParameters.h"
 
-/*double TSimulatorRead::dePhredAscii(int x){
-	return pow(10, -((double) x-33.0) / 10.0);
-}*/
 
 double TSimulatorRead::dePhred(int x){
 	return pow(10, -((double) x) / 10.0);
@@ -23,8 +20,9 @@ int TSimulatorRead::phred(double x){
 void TSimulatorRead::initializeDePhredTable(){
 	if(!dePhredTableInitialized){
 		dePhredTable = new double[maxQualPlusOne]; //-minQual
-		for(int i=0; i<maxQualPlusOne; ++i)
+		for(int i=0; i<maxQualPlusOne; ++i){
 			dePhredTable[i] = dePhred(i);
+		}
 	}
 	dePhredTableInitialized = true;
 };
@@ -78,7 +76,7 @@ void TSimulatorRead::initializeQualToErrorTable(){
 	if(!qualToErroTableInitialized){
 		qualToErroTable = new double[maxQualPlusOne];
 		for(int i=0; i<maxQualPlusOne; ++i){
-			qualToErroTable[i] = 1; //dePhredTable[i];
+			qualToErroTable[i] = dePhredTable[i];
 		}
 	}
 	qualToErroTableInitialized = true;
@@ -257,11 +255,13 @@ void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
 }
 
 double TSimulatorReadBQSR::returnCurKappa(){
-	float kappa = 0.0;
+	double kappa = 0.0;
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
+		double sumP = 0.0;
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			kappa += QBetaQBetaP[q][p]* readLengthDist->gammaCumulDensity[p] ; //* w[q]);
+			sumP += QBetaQBetaP[q][p]* readLengthDist->gammaCumulDensity[p];
 		}
+		kappa += sumP * w[q];
 	}
 	return(kappa);
 }
@@ -284,22 +284,16 @@ double TSimulatorReadBQSR::returnDelta(double & kappa, double & lambda){
 	return(delta);
 }
 
-double TSimulatorReadBQSR::updateParam(double & param, float & stepSize, int & nIter){
-	for(int i=0; i<nIter; ++i){
-		delta_old = delta;
-		param += stepSize;
-//		delta = returnDelta();
-		if(delta > delta_old)
-		delta = -delta/exp(1);
-	}
-	return(param);
-}
-
 //---------------------------------
 
 void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	double kappa_cur = meanQual;
 	double lambda_cur = sdQual;
+
+	std::ofstream out;
+	std::string filename = "path_simulation.txt";
+	out.open(filename.c_str());
+	out << "kappa\tlambda\tdelta\n";
 
 	fillQBetaQBetaP();
 	fillWeights(kappa_cur, lambda_cur);
@@ -312,11 +306,27 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	for(int t=0; t<nTurns; ++t){
 		//update kappa
 		float stepSize = 5.0;
-		kappa_cur = updateParam(kappa_cur, stepSize, nIter);
+		for(int i=0; i<nIter; ++i){
+			//move and calc error
+			delta_old = delta;
+			kappa_cur += stepSize;
+			delta = returnDelta(kappa_cur, lambda_cur);
+			if(delta > delta_old)
+				delta = -delta/exp(1);
+		}
 
 		//update lambda
 		stepSize = 1.0;
-		lambda_cur = updateParam(lambda_cur, stepSize, nIter);
+		for(int i=0; i<nIter; ++i){
+			//move and calc error
+			delta_old = delta;
+			lambda_cur += stepSize;
+			delta = returnDelta(kappa_cur, lambda_cur);
+			if(delta > delta_old)
+				delta = -delta/exp(1);
+		}
+
+		out << kappa_cur << "\t" << lambda_cur << "\t" << delta << std::endl;
 	}
 
 	kappa = kappa_cur;
@@ -324,24 +334,22 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 }
 
 int TSimulatorReadBQSR::returnTrueQual(int & fakeQual){
-	double fakeError = dePhredTable[fakeQual];
-	return(pow(10, -1/10 * phi2 * fakeError) + dePhredTable[phi1]);
+	return(round(phred(pow(10, -1/10.0 * phi2 * fakeQual) + dePhredTable[phi1])));
 }
 
 void TSimulatorReadBQSR::initializeFakeQualToTrueQualTable(){
 	if(!fakeQualToTrueQualTableInitialized){
 		fakeQualToTrueQual = new double[maxQualPlusOne];
-		for(int i=0; i<maxQualPlusOne; ++i)
+		for(int i=0; i<maxQualPlusOne; ++i){
 			fakeQualToTrueQual[i] = returnTrueQual(i);
+		}
 	}
 	fakeQualToTrueQualTableInitialized = true;
 };
 
 void TSimulatorReadBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
-	double normalization_sum = 0.0;
 	//gamma density starts at 0 but p at 1!
-
 	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
 		sum += (double) p * (1 - readLengthDist->gammaCumulDensity[p-1]);
 //		std::cout << "p " << p << " (1 - readLengthDist->gammaCumulDensity[p-1]) / normalization_sum " << (1 - readLengthDist->gammaCumulDensity[p-1]) / normalization_sum << std::endl;
@@ -356,7 +364,7 @@ double TSimulatorReadBQSR::returnBetaPp(int pos){
 
 void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
 	static short base;
-	static int fakeQual, trueQual;
+	static int fakeQual, QBetaQq;
 	static long p;
 	queryBases = "";
 	bamQualities = "";
@@ -373,8 +381,8 @@ void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, T
 		fakeQual = sampleFakeQuality();
 		if(fakeQual > maxQual) fakeQual = (char) maxQual;
 
-		trueQual = fakeQualToTrueQual[fakeQual];
-		if(randomGenerator->getRand() < (qualToErroTable[trueQual] * returnBetaPp(p))){ //qualToError knows that quals are in ascii
+		QBetaQq = fakeQualToTrueQual[fakeQual];
+		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * returnBetaPp(p))){ //qualToError knows that quals are in ascii
 			base = (base + randomGenerator->pickOne(3) + 1) % 4;
 		}
 		//add to bam alignment

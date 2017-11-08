@@ -138,7 +138,6 @@ protected:
 	double returnCurKappa();
 	double returnCurLambda(double & kappa);
 	double returnDelta(double & kappa, double & lambda);
-	double updateParam(double & param, float & stepSize, int & nIter);
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
