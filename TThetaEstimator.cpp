@@ -8,12 +8,100 @@
 #include "TThetaEstimator.h"
 
 //-------------------------------------------------------
+//TThetaEstimatorTemporaryFile
+//-------------------------------------------------------
+TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename, int numGenotypes){
+	filename = Filename;
+	fp = NULL;
+	sizeOfData = sizeof(double) * numGenotypes;
+
+	isOpen = false;
+	isOpenForReading = false;
+	isOpenForWriting = false;
+	wasWritten = false;
+};
+
+void TThetaEstimatorTemporaryFile::openForWriting(){
+	//if file was written, remove it
+	clean();
+
+	//now open
+	fp = gzopen(filename.c_str(),"wb");
+	isOpenForWriting = true;
+	isOpenForReading = false;
+	wasWritten = true;
+
+	isOpen = true;
+};
+
+void TThetaEstimatorTemporaryFile::openForReading(){
+	if(!wasWritten)
+		throw "Can not parse temporary file: file was never written!";
+
+	//make sure file is closed
+	close();
+
+	//now open
+	fp = gzopen(filename.c_str(),"rb");
+	isOpenForWriting = false;
+	isOpenForReading = true;
+
+	isOpen = true;
+};
+
+void TThetaEstimatorTemporaryFile::close(){
+	if(isOpen){
+		gzclose(fp);
+		isOpen = false;
+		isOpenForWriting = false;
+		isOpenForReading = false;
+	}
+};
+
+void TThetaEstimatorTemporaryFile::clean(){
+	close();
+	if(wasWritten){
+		remove(filename.c_str());
+		wasWritten = false;
+	}
+};
+
+bool TThetaEstimatorTemporaryFile::isEOF(){
+	if(!isOpenForReading) return true;
+	return gzeof(fp);
+}
+
+void TThetaEstimatorTemporaryFile::save(double* data){
+	if(!isOpenForWriting) throw "Can not add data to '" + filename + "': file is closed!";
+
+	gzwrite(fp, data, sizeOfData);
+};
+
+bool TThetaEstimatorTemporaryFile::read(double* data){
+	if(!isOpenForReading) throw "Can not read data from '" + filename + "': file is closed!";
+	if(gzread(fp, data, sizeOfData)!=sizeOfData){
+		//is end-of-file?
+		if(gzeof(fp)) return false;
+
+		//is error
+		throw "Failed to read data from temporary file!";
+	}
+	return true;
+};
+
+//-------------------------------------------------------
 //TThetaEstimatorData
 //-------------------------------------------------------
 TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
 	numGenotypes = NumGenotypes;
-	clear();
-	doublePointer = NULL;
+	pointerToData = NULL;
+	numSitesCoveredTwiceOrMore = 0;
+	totNumSitesAdded = 0;
+	numSitesWithData = 0;
+	cumulativeDepth = 0.0;
+
+	isBootstrapped = false;
+	numBootstrappedSites = false;
 };
 
 void TThetaEstimatorData::clear(){
@@ -24,21 +112,6 @@ void TThetaEstimatorData::clear(){
 	cumulativeDepth = 0.0;
 	emptyStorage();
 	clearBootstrap();
-};
-
-void TThetaEstimatorData::emptyStorage(){
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
-		delete[] (*siteIt);
-	sites.clear();
-}
-
-void TThetaEstimatorData::saveSite(TSite & site){
-	//store emission probabilities
-	sites.push_back(new double[10]);
-	doublePointer = *sites.rbegin();
-
-	for(g=0; g<numGenotypes; ++g)
-		doublePointer[g] = site.emissionProbabilities[g];
 };
 
 void TThetaEstimatorData::add(TSite & site){
@@ -67,53 +140,6 @@ void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
 };
 
 
-bool TThetaEstimatorData::begin(){
-	siteIt = useTheseSites->begin();
-	return siteIt != useTheseSites->end();
-};
-
-bool TThetaEstimatorData::next(){
-	++siteIt;
-	return siteIt != useTheseSites->end();
-};
-
-bool TThetaEstimatorData::isEnd(){
-	return siteIt == useTheseSites->end();
-};
-
-double* TThetaEstimatorData::curGenotypeLikelihoods(){
-	return *siteIt;
-}
-
-void TThetaEstimatorData::bootstrap(TRandomGenerator & randomGenerator){
-	//prepare variables
-	clearBootstrap();
-	int r = 0;
-
-	//how many sites with data will we have? Draw from binomial
-	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	long numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
-
-	//now pick among sites with data with replacment
-	for(long i=0; i<numBootstrappedSites; ++i){
-		r = randomGenerator.pickOne(numSitesWithData);
-		bootstrappedSites.push_back(sites.at(r));
-	}
-
-	//set pointer
-	useTheseSites = &bootstrappedSites;
-	isBootstrapped = true;
-};
-
-
-void TThetaEstimatorData::clearBootstrap(){
-	useTheseSites = &sites;
-	bootstrappedSites.clear();
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
-
 void TThetaEstimatorData::writeHeader(std::ofstream & out){
 	out << "\tdepth\tfracMissing\tfracTwoOrMore";
 };
@@ -127,43 +153,197 @@ void TThetaEstimatorData::writeSize(std::ofstream & out){
 	}
 };
 
+
+//-------------------------------------------------------
+//TThetaEstimatorDataVector
+//-------------------------------------------------------
+TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){
+	useTheseSites = &sites;
+};
+
+void TThetaEstimatorDataVector::saveSite(TSite & site){
+	//store emission probabilities
+	sites.push_back(new double[10]);
+	pointerToData = *sites.rbegin();
+
+	for(int g=0; g<numGenotypes; ++g)
+		pointerToData[g] = site.emissionProbabilities[g];
+};
+
+
+void TThetaEstimatorDataVector::emptyStorage(){
+	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
+		delete[] (*siteIt);
+	sites.clear();
+};
+
+
+bool TThetaEstimatorDataVector::begin(){
+	siteIt = useTheseSites->begin();
+	return siteIt != useTheseSites->end();
+};
+
+bool TThetaEstimatorDataVector::next(){
+	++siteIt;
+	return siteIt != useTheseSites->end();
+};
+
+bool TThetaEstimatorDataVector::isEnd(){
+	return siteIt == useTheseSites->end();
+};
+
+double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
+	return *siteIt;
+}
+
+void TThetaEstimatorDataVector::bootstrap(TRandomGenerator & randomGenerator){
+	//prepare variables
+	clearBootstrap();
+	int r = 0;
+
+	//how many sites with data will we have? Draw from binomial
+	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
+	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
+
+	//now pick among sites with data with replacement
+	for(long i=0; i<numBootstrappedSites; ++i){
+		r = randomGenerator.pickOne(numSitesWithData);
+		bootstrappedSites.push_back(sites.at(r));
+	}
+
+	//set pointer
+	useTheseSites = &bootstrappedSites;
+	isBootstrapped = true;
+};
+
+
+void TThetaEstimatorDataVector::clearBootstrap(){
+	useTheseSites = &sites;
+	bootstrappedSites.clear();
+	numBootstrappedSites = 0;
+	isBootstrapped = false;
+};
+
+
 //-------------------------------------------------------
 //TThetaEstimatorDataFile
 //-------------------------------------------------------
-/*
-TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes){
-	TThetaEstimatorData::TThetaEstimatorData(NumGenotypes);
-	dataFileName = "thetaEstimator_dataStorage.tmp.gz";
-	dataFileOpen = false;
-	fp = NULL;
+TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName):TThetaEstimatorData(NumGenotypes){
+	dataFileName = TmpFileName;
+	sites = new TThetaEstimatorTemporaryFile(dataFileName, numGenotypes);
+	sites->openForWriting();
+
+	pointerToData = new double[numGenotypes];
+
+	bootstrapFileName = "bootstrap_" + dataFileName;
+	bootstrappedSites = new TThetaEstimatorTemporaryFile(bootstrapFileName, numGenotypes);
+	maxKforPoissonPlusOne = 100; //maximum number of bootstrapping copies to consider.
+	poissonProb = new double[maxKforPoissonPlusOne];
+
+	useTheseSites = sites;
 };
 
-void TThetaEstimatorDataFile::openTmpFile(){
-	if(dataFileOpen)
-		 throw "Can not open temprary file  '" + dataFileName + "': file already open!";
-
-	//if file was written, remove it
-
-
-	//reopen file
+void TThetaEstimatorDataFile::emptyStorage(){
+	sites->clean();
 };
 
-void TThetaEstimatorDataFile::closeTmpFile(){
-	if(dataFileOpen){
+void TThetaEstimatorDataFile::saveSite(TSite & site){
+	useTheseSites->save(site.emissionProbabilities);
+};
 
-		dataFileOpen = close;
+bool TThetaEstimatorDataFile::begin(){
+	useTheseSites->openForReading();
+
+	return(useTheseSites->read(pointerToData));
+};
+
+bool TThetaEstimatorDataFile::next(){
+	return(useTheseSites->read(pointerToData));
+};
+
+bool TThetaEstimatorDataFile::isEnd(){
+	return useTheseSites->isEOF();
+};
+
+double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
+	return pointerToData;
+};
+
+void TThetaEstimatorDataFile::fillPoissonForBootstrap(const long toPick, const long remaining){
+	double lambda = toPick / remaining;
+
+	if(lambda < 1.0){
+		double tmp = exp(-lambda);
+		poissonProb[0] = tmp;
+		for(int k=1; k<maxKforPoissonPlusOne; ++k){
+			tmp = tmp * lambda / (double) k;
+			poissonProb[k] = poissonProb[k-1] + tmp;
+		}
+	} else {
+		//we need to accept!
+		int n = round(lambda);
+		for(int k=0; k<n; ++k)
+			poissonProb[k] = 0.0;
+
+		for(int k=n; k<maxKforPoissonPlusOne; ++k)
+			poissonProb[k] = 1.0;
 	}
+}
+
+void TThetaEstimatorDataFile::bootstrap(TRandomGenerator & randomGenerator){
+	//make sure we start empty
+	clearBootstrap();
+
+	//how many sites with data will we have? Draw from binomial
+	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
+	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
+
+	//open temporary file for bootstrap
+	bootstrappedSites->openForWriting();
+
+	//now pick among sites with data with replacement
+	//For this wee need to go through the temporary file and decide for each site how many times it will be selected.
+	//This is given by a Poisson distribution where lambda = n / N
+	//where n = is the number of bootstrapped sites that still need to be picked and N the number of remaining sites in the file.
+
+	//variables
+	int r,i;
+	long toPick = numBootstrappedSites;
+
+	//and go...
+	sites->openForReading();
+	for(long l=0; l<numSitesWithData; ++l){
+		sites->read(pointerToData);
+
+		//calculate bootstrapping probabilities
+		fillPoissonForBootstrap(toPick, numSitesWithData - l);
+
+		//do we use this site in the bootstrap?
+		r = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
+		if(r > 0){
+			//save site
+			for(i=0; i<r; ++i)
+				bootstrappedSites->save(pointerToData);
+
+			toPick -= r;
+		}
+	}
+
+	//set pointer
+	useTheseSites = bootstrappedSites;
+	isBootstrapped = true;
 };
 
 
+void TThetaEstimatorDataFile::clearBootstrap(){
+	useTheseSites = sites;
+	bootstrappedSites->clean();
 
-void TThetaEstimatorDataFile::save(TSite & site){
-	if(!dataFileOpen) throw "Can not add data to '" + dataFileName + "': file closed!";
-
-	gzwrite(fp, (void*) (&site.emissionProbabilities), sizeof(double)*10);
+	numBootstrappedSites = 0;
+	isBootstrapped = false;
 };
 
-*/
+
 //-------------------------------------------------------
 //TThetaEstimator
 //-------------------------------------------------------
@@ -199,17 +379,11 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 	}
 
 	//storing data in file?
-	/*
-	dataStoredInFile = params.parameterExists("tmpToFile");
-	dataFileName = "temporaryDataForThetaEstimation.tmp.gz";
-	logfile->list("Will write temporary data to file '" + dataFileName + "'.");
-	//open file
-	fp = gzopen(dataFileName.c_str(),"wb");
-	if(!fp) throw "Failed to open file '" + dataFileName + "' for writing.";
-	dataFileOpen = true;
-	*/
-
-	data = new TThetaEstimatorData(numGenotypes);
+	if(params.parameterExists("useTmpFile")){
+		std::string dataFileName = params.getParameterStringWithDefault("useTmpFile", "temporaryDataForThetaEstimation.tmp.gz");
+		logfile->list("Will write temporary data to file '" + dataFileName + "'.");
+		data = new TThetaEstimatorDataFile(numGenotypes, dataFileName);
+	} else data = new TThetaEstimatorDataVector(numGenotypes);
 
 	//extra verbosity
 	extraVerbose = params.parameterExists("extraVerbose");
