@@ -108,6 +108,7 @@ protected:
 	double kappa, lambda;
 
 	//position params
+	//position params
 	double revIntercept;
 	double intercept;
 	double m;
@@ -117,7 +118,6 @@ protected:
 	double* w;
 	bool weightsInitialized;
 //	double kappa_cur = -1.0, lambda_cur = -1.0;
-	double delta, delta_old;
 	std::vector< std::vector<double> > QBetaQBetaP;
 	bool BetaQBetaPInitialized = false;
 
@@ -129,19 +129,18 @@ protected:
 	int sampleFakeQuality();
 
 	//position functions
-	void calculateSlopeIntercept();
-	double returnBetaPp(int pos);
+	double returnBetaPp(int & pos);
 
 	//optimization algorithm functions
 	void fillWeights(double & kappa_cur, double & lambda_cur);
 	void fillQBetaQBetaP();
-	double returnCurKappa();
-	double returnCurLambda(double & kappa);
-	double returnDelta(double & kappa, double & lambda);
+	double returnCurMean();
+	double returnCurSD(double & kappa);
+	double returnDelta(double & kappa);
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
-	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase, double & intercept, double & m);
 	virtual ~TSimulatorReadBQSR(){
 		if(fakeQualToTrueQualTableInitialized)
 			delete[] fakeQualToTrueQual;
@@ -155,12 +154,16 @@ public:
 //-------------------------------
 
 class TSimulatorReadBQSRQual:public TSimulatorReadBQSR{
+
 public:
 	TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorReadBQSRQual(){};
 };
 
 class TSimulatorReadBQSRPos:public TSimulatorReadBQSR{
+private:
+	void calculateSlopeIntercept();
+
 public:
 	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorReadBQSRPos(){};
