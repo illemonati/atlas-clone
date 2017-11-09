@@ -180,12 +180,19 @@ int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 //BQSR base transformation
 //-------------------------
 
-TSimulatorReadBQSR::TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase, double & Intercept, double & M): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
+TSimulatorReadBQSR::TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
 	//position parameters
 	readLengthDist = ReadLengthDist;
 	maxPos = readLengthDist->max();
-	intercept = Intercept;
-	m = M;
+	if(params.getParameterString("BQSRPosition", false) != ""){
+		revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
+		std::cout << "revIntercept " << revIntercept << std::endl;
+		if(revIntercept < 0) throw("BQSRPosition cannot be negative!");
+		logfile->list("ReverseIntercept is set to " + toString(revIntercept));
+		calculateSlopeIntercept();
+		logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
+		if(intercept < 0) throw("Intercept for position transformation is negative -> choose higher value for BQSRPosition!");
+	} else logfile->list("BQSRPosition parameter not found. Simulating only BQSR quality effect.");
 
 	//quality parameters
 	parseBQSRQualInput(params);
@@ -209,7 +216,18 @@ void TSimulatorReadBQSR::parseBQSRQualInput(TParameters & params){
 		phi2 = atof(tmp.substr(pos+1).c_str());
 	}
 
-	logfile->list("Simulating a quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+}
+
+
+void TSimulatorReadBQSR::calculateSlopeIntercept(){
+	double sum = 0.0;
+	//gamma density starts at 0 but p at 1!
+	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
+		sum += (double) p * (1 - readLengthDist->gammaCumulDensity[p-1]);
+	}
+	m = (1.0 - revIntercept) / sum;
+	intercept = revIntercept - m * readLengthDist->max();
 }
 
 int TSimulatorReadBQSR::sampleFakeQuality(){
@@ -228,14 +246,9 @@ void TSimulatorReadBQSR::fillQBetaQBetaP(){
 	int num_of_col = maxQualPlusOne - minQual;
 	double init_value = -1.0;
 
-	std::cout << "intercept in fillbetap " << intercept << std::endl;
-
-	//now we have an empty 2D-matrix of size (0,0). Resizing it with one single command:
 	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
 	for(int q = minQual; q < 1; ++ q){
-		std::cout << "######q " << q << std::endl;
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			std::cout << "returnBetaPp(p) " << returnBetaPp(p) << std::endl;
 			QBetaQBetaP[q][p] = phred(dePhredTable[q] * returnBetaPp(p));
 		}
 	}
@@ -244,7 +257,6 @@ void TSimulatorReadBQSR::fillQBetaQBetaP(){
 
 void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
 	w = new double[maxQualPlusOne - minQual];
-	std::cout << randomGenerator->normalCumulativeDistributionFunction(1.5, kappa_cur, lambda_cur) << std::endl;
 	//w at minQual
 	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
 
@@ -373,11 +385,6 @@ void TSimulatorReadBQSR::initializeFakeQualToTrueQualTable(){
 
 
 double TSimulatorReadBQSR::returnBetaPp(int & pos){
-	if((intercept) == 0){
-		std::cout << "m " << m << std::endl;
-		std::cout << "intercept " << intercept << std::endl;
-
-	}
 	return(m * (double) pos + intercept);
 }
 
@@ -385,6 +392,7 @@ void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, T
 	static short base;
 	static int fakeQual, QBetaQq;
 	static long p;
+	int pInt;
 	queryBases = "";
 	bamQualities = "";
 
@@ -401,7 +409,10 @@ void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, T
 		if(fakeQual > maxQual) fakeQual = (char) maxQual;
 
 		QBetaQq = fakeQualToTrueQual[fakeQual];
-		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * returnBetaPp(p))){ //qualToError knows that quals are in ascii
+		double BetaQp;
+		pInt = (int) p;
+		BetaQp = returnBetaPp(pInt);
+		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * BetaQp)){ //qualToError knows that quals are in ascii
 			base = (base + randomGenerator->pickOne(3) + 1) % 4;
 		}
 		//add to bam alignment
@@ -410,35 +421,7 @@ void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, T
 	}
 };
 
-//--------------------------
-//BQSR quality transformation
-//-------------------------
-TSimulatorReadBQSRQual::TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSR(ReadLengthDist, params, Logfile, RandomGenerator, ToBase, intercept, m){
-	//all beta_p should be 1
-	intercept = 1.0;
-	revIntercept = 1.0;
-	m = 0.0;
-}
 
-TSimulatorReadBQSRPos::TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorReadBQSR(ReadLengthDist, params, Logfile, RandomGenerator, ToBase, intercept, m){
-	revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
-	if(revIntercept < 0) throw("BQSRPosition cannot be negative!");
-	logfile->list("ReverseIntercept is set to " + toString(revIntercept));
-	calculateSlopeIntercept();
-	logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
-	if(intercept < 0) throw("Intercept for position transformation is negative -> choose higher value for BQSRPosition!");
-}
-
-void TSimulatorReadBQSRPos::calculateSlopeIntercept(){
-	double sum = 0.0;
-	//gamma density starts at 0 but p at 1!
-	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
-		sum += (double) p * (1 - readLengthDist->gammaCumulDensity[p-1]);
-//		std::cout << "p " << p << " (1 -l readLengthDist->gammaCumulDensity[p-1]) / normalization_sum " << (1 - readLengthDist->gammaCumulDensity[p-1]) / normalization_sum << std::endl;
-	}
-	m = (1.0 - revIntercept) / sum;
-	intercept = revIntercept - m * readLengthDist->max();
-}
 
 
 

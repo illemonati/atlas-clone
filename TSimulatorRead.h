@@ -108,10 +108,9 @@ protected:
 	double kappa, lambda;
 
 	//position params
-	//position params
-	double revIntercept;
-	double intercept;
-	double m;
+	double revIntercept = 1.0;
+	double intercept = 1.0;
+	double m = 0.0;
 
 	//optimization algorithm params
 	int minQual = 0;
@@ -129,6 +128,7 @@ protected:
 	int sampleFakeQuality();
 
 	//position functions
+	void calculateSlopeIntercept();
 	double returnBetaPp(int & pos);
 
 	//optimization algorithm functions
@@ -140,33 +140,13 @@ protected:
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:
-	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase, double & intercept, double & m);
+	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorReadBQSR(){
 		if(fakeQualToTrueQualTableInitialized)
 			delete[] fakeQualToTrueQual;
 		if(weightsInitialized)
 			delete[] w;
 	};
-};
-
-//-------------------------------
-// BQSR transformation qual
-//-------------------------------
-
-class TSimulatorReadBQSRQual:public TSimulatorReadBQSR{
-
-public:
-	TSimulatorReadBQSRQual(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadBQSRQual(){};
-};
-
-class TSimulatorReadBQSRPos:public TSimulatorReadBQSR{
-private:
-	void calculateSlopeIntercept();
-
-public:
-	TSimulatorReadBQSRPos(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadBQSRPos(){};
 };
 
 
