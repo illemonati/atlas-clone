@@ -36,6 +36,7 @@ protected:
 	virtual int returnBamQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
 	//qual params
+	int minQual = 0;
 	bool dePhredTableInitialized = false;
 	double* dePhredTable;
 	double meanQual, sdQual;
@@ -113,16 +114,15 @@ protected:
 	double m = 0.0;
 
 	//optimization algorithm params
-	int minQual = 0;
 	double* w;
 	bool weightsInitialized;
 //	double kappa_cur = -1.0, lambda_cur = -1.0;
-	std::vector< std::vector<double> > QBetaQBetaP;
-	bool BetaQBetaPInitialized = false;
+	std::vector< std::vector<double> > QEpsQBetaP;
+	bool EpsQBetaPInitialized = false;
 
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
-	int returnTrueQual(int & fakeQual);
+	double returnTrueError(int & fakeQual);
 	void setFakeQualityDistribution();
 	void initializeFakeQualToTrueQualTable();
 	int sampleFakeQuality();
@@ -133,7 +133,7 @@ protected:
 
 	//optimization algorithm functions
 	void fillWeights(double & kappa_cur, double & lambda_cur);
-	void fillQBetaQBetaP();
+	void fillQEpsQBetaP();
 	double returnCurMean();
 	double returnCurSD(double & kappa);
 	double returnDelta(double & kappa);

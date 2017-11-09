@@ -222,6 +222,7 @@ void TSimulator::initializeQualityTransform(TParameters & params){
 		simRead = new TSimulatorReadRecal(beta, readLenMax, params, logfile, randomGenerator, toBase);
 
 	} else if(params.parameterExists("BQSRQuality")){
+		std::cout << "found param BQSRQuality" << std::endl;
 		simRead = new TSimulatorReadBQSR(readLengthDist, params, logfile, randomGenerator, toBase);
 	} else simRead = new TSimulatorRead(params, logfile, randomGenerator, toBase);
 }
