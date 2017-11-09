@@ -3251,8 +3251,9 @@ void TGenome::diagnoseBamFile(TParameters & params){
     if(!fragmentStats) throw "Failed to open output file '" + outputFileNameFL + "'!";
 
     double totLength = 0.0;
-    for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator)
-        totLength += stringToLong(chrIterator->Length);
+    int chrNum = 0;
+    for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator, ++chrNum)
+        if(useChromosome[chrNum]) totLength += stringToLong(chrIterator->Length);
 
     //prepare reporting
     logfile->startIndent("Parsing through BAM file:");
@@ -3317,7 +3318,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
     logfile->list("Reached end of BAM file!");
     logfile->removeIndent();
-    logfile->list("Approximate coverage was estimated at " + toString(totCov/totLength));
+    logfile->list("Approximate sequencing depth was estimated at " + toString(totCov/totLength));
 
     logfile->listFlush("Writing to output files ...");
 
