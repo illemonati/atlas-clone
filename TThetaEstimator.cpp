@@ -454,11 +454,13 @@ void TThetaEstimator::fillP_G(){
 		P_G[g] = 0.0;
 
 	//calculate P_g for each site
+	double* d;
 	data->begin();
 	do{
 		sum = 0.0;
+		d = data->curGenotypeLikelihoods();
 		for(g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  data->curGenotypeLikelihoods()[g] * pGenotype[g];
+			P_g_oneSite[g] =  d[g] * pGenotype[g];
 			sum += P_g_oneSite[g];
 		}
 		for(g=0; g<numGenotypes; ++g)
@@ -469,11 +471,13 @@ void TThetaEstimator::fillP_G(){
 
 double TThetaEstimator::calcLogLikelihood(){
 	double LL = 0.0;
+	double* d;
 	data->begin();
 	do{
 		sum = 0.0;
+		d = data->curGenotypeLikelihoods();
 		for(g=0; g<numGenotypes; ++g)
-			sum +=  data->curGenotypeLikelihoods()[g] * pGenotype[g];
+			sum +=  d[g] * pGenotype[g];
 		LL += log(sum);
 	} while(data->next());
 
@@ -484,14 +488,16 @@ double TThetaEstimator::calcFisherInfo(double* deriv_pGenotype){
 //sum Ri over all sites
 	double FisherInfo = 0.0;
 	double Ri, Ri_a, Ri_b;
+	double* d;
 
 	data->begin();
 	do{
 		//calc Ri
 		Ri_a = 0.0; Ri_b = 0.0;
+		d = data->curGenotypeLikelihoods();
 		for(g=0; g<numGenotypes; ++g){
-			Ri_a += data->curGenotypeLikelihoods()[g] * deriv_pGenotype[g];
-			Ri_b += data->curGenotypeLikelihoods()[g] * pGenotype[g];
+			Ri_a += d[g] * deriv_pGenotype[g];
+			Ri_b += d[g] * pGenotype[g];
 		}
 		Ri = Ri_a / Ri_b;
 
