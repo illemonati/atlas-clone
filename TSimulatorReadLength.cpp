@@ -19,14 +19,16 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, st
 	if(meanLength < 5 || meanLength > 10000)
 		throw "Read length must be between 5 and 10,000!";
 
-	gammaDensity = new float[meanLength + 1];
-	gammaCumulDensity = new float[meanLength + 1];
+	gammaDensity = new float[meanLength];
+	gammaCumulDensity = new float[meanLength];
+	positionProbs = new float[meanLength];
 	for(int i=0; i<(meanLength); ++i){
 		gammaDensity[i] = 0.0;
 		gammaCumulDensity[i] = 0.0;
+		positionProbs[i] = 1.0 / meanLength;
 	}
 	gammaDensity[meanLength - 1] = 1.0;
-	gammaCumulDensity[meanLength] = 1.0;
+
 	cumulAtMin = 0.0;
 };
 
@@ -36,6 +38,7 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 	cumulAtMin = 0.0;
 	gammaDensity = NULL;
 	gammaCumulDensity = NULL;
+	positionProbs = NULL;
 };
 
 void TSimulatorReadLength::sample(readLengthContainer & rl){
@@ -100,6 +103,7 @@ void TSimulatorReadLengthGamma::initiate(){
 
 	gammaDensity = new float[_max];
 	gammaCumulDensity = new float[_max];
+	positionProbs = new float[_max];
 
 	//get weighted average
 	double w;
@@ -125,9 +129,19 @@ void TSimulatorReadLengthGamma::initiate(){
 	sum += w;
 	meanLength /= sum; 	//normalize
 
-	//make table for cumulative gamma distribution
+	//make table for cumulative gamma distribution and distribution of position probabilities (=normalized 1 - cumul)
+	sum = 1.0; //1-cumul of positon 1  = 1
+	gammaCumulDensity[0] = gammaDensity[0];
 	for(int i=1; i < _max; ++i){
 		gammaCumulDensity[i] = gammaDensity[i-1] + gammaDensity[i];
+		sum += (1 - gammaCumulDensity[i-1]);
+	}
+	positionProbs[0] = 1.0 / sum; //position 1 is always present in read
+	for(int i=1; i < _max; ++i){
+		positionProbs[i] = (1.0 -  gammaCumulDensity[i-1]) / sum;
+	}
+	for(int i = 1; i < _max; ++i){
+		std::cout << "i " << positionProbs[i] << std::endl;
 	}
 }
 

@@ -29,12 +29,14 @@ protected:
 public:
 	float* gammaDensity;
 	float* gammaCumulDensity;
+	float* positionProbs; //normalized (1 - cumulDensity)
 
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLength(){
 		delete[] gammaDensity;
 		delete[] gammaCumulDensity;
+		delete[] positionProbs;
 	};
 
 	virtual void sample(readLengthContainer & rl);

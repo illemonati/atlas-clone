@@ -104,8 +104,8 @@ protected:
 	//quality params
 	int phi1;
 	double phi2;
-	bool fakeQualToTrueQualTableInitialized = false;
-	double* fakeQualToTrueQual;
+	bool trueQualToFakeQualTableInitialized = false;
+	double* trueQualToFakeQual;
 	double kappa, lambda;
 
 	//position params
@@ -117,14 +117,14 @@ protected:
 	double* w;
 	bool weightsInitialized;
 //	double kappa_cur = -1.0, lambda_cur = -1.0;
-	std::vector< std::vector<double> > QEpsQBetaP;
-	bool EpsQBetaPInitialized = false;
+	std::vector< std::vector<double> > QBetaQBetaP;
+	bool betaQBetaPInitialized = false;
 
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
-	double returnTrueError(int & fakeQual);
+	double returnFakeError(int & trueQual);
 	void setFakeQualityDistribution();
-	void initializeFakeQualToTrueQualTable();
+	void initializeTrueQualToFakeQualTable();
 	int sampleFakeQuality();
 
 	//position functions
@@ -133,7 +133,7 @@ protected:
 
 	//optimization algorithm functions
 	void fillWeights(double & kappa_cur, double & lambda_cur);
-	void fillQEpsQBetaP();
+	void fillQBetaQBetaP();
 	double returnCurMean();
 	double returnCurSD(double & kappa);
 	double returnDelta(double & kappa);
@@ -142,8 +142,8 @@ protected:
 public:
 	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
 	virtual ~TSimulatorReadBQSR(){
-		if(fakeQualToTrueQualTableInitialized)
-			delete[] fakeQualToTrueQual;
+		if(trueQualToFakeQualTableInitialized)
+			delete[] trueQualToFakeQual;
 		if(weightsInitialized)
 			delete[] w;
 	};

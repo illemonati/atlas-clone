@@ -198,7 +198,7 @@ TSimulatorReadBQSR::TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TPa
 	parseBQSRQualInput(params);
 	setFakeQualityDistribution(); //first find kappa and lambda
 	initializeDePhredTable();
-	initializeFakeQualToTrueQualTable();
+	initializeTrueQualToFakeQualTable();
 }
 
 void TSimulatorReadBQSR::parseBQSRQualInput(TParameters & params){
@@ -241,20 +241,20 @@ int TSimulatorReadBQSR::sampleFakeQuality(){
 // optimization functions
 //---------------------------------
 
-void TSimulatorReadBQSR::fillQEpsQBetaP(){
+void TSimulatorReadBQSR::fillQBetaQBetaP(){
 	int num_of_row = maxPos;
 	int num_of_col = maxQualPlusOne - minQual;
 	double init_value = -1.0;
-	double epsQ;
+	double betaQq;
 
-	QEpsQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
+	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
-		epsQ = returnTrueError(q);
+		betaQq = returnFakeError(q);
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			QEpsQBetaP[q][p] = phred(dePhredTable[phred(epsQ)] * returnBetaPp(p));
+			QBetaQBetaP[q][p] = phred(dePhredTable[phred(betaQq)] * returnBetaPp(p));
 		}
 	}
-	EpsQBetaPInitialized = true;
+	betaQBetaPInitialized = true;
 }
 
 void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
@@ -280,12 +280,11 @@ double TSimulatorReadBQSR::returnCurMean(){
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		double sumP = 0.0;
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			sumP += QEpsQBetaP[q][p] * (1 - readLengthDist->gammaCumulDensity[p]);
+			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
 		}
 		curMean += sumP * w[q];
-		std::cout << "q " << q << " sumP " << sumP << std::endl;
 	}
-	std::cout << "curMean " << curMean << std::endl;
+//	std::cout << "curMean " << curMean << std::endl;
 	return(curMean);
 }
 
@@ -293,7 +292,7 @@ double TSimulatorReadBQSR::returnCurSD(double & kappa){
 	float lambda = 0.0;
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			lambda += ((QEpsQBetaP[q][p] - kappa) * (QEpsQBetaP[q][p] - kappa) * readLengthDist->gammaCumulDensity[p] * w[q]);
+			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->gammaCumulDensity[p] * w[q]);
 		}
 	}
 	return lambda;
@@ -326,7 +325,7 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	out.open(filename.c_str());
 	out << "kappa\tlambda\tdelta\n";
 
-	fillQEpsQBetaP();
+	fillQBetaQBetaP();
 	fillWeights(kappa_cur, lambda_cur);
 
 	delta = returnDelta(kappa_cur);
@@ -378,18 +377,18 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	logfile->endIndent();
 }
 
-double TSimulatorReadBQSR::returnTrueError(int & fakeQual){
-	return(pow(10, -1/10.0 * phi2 * fakeQual) + dePhredTable[phi1]);
+double TSimulatorReadBQSR::returnFakeError(int & trueQual){
+	return(pow(10, -1/10.0 * phi2 * trueQual) + dePhredTable[phi1]);
 }
 
-void TSimulatorReadBQSR::initializeFakeQualToTrueQualTable(){
-	if(!fakeQualToTrueQualTableInitialized){
-		fakeQualToTrueQual = new double[maxQualPlusOne];
+void TSimulatorReadBQSR::initializeTrueQualToFakeQualTable(){
+	if(!trueQualToFakeQualTableInitialized){
+		trueQualToFakeQual = new double[maxQualPlusOne];
 		for(int i=0; i<maxQualPlusOne; ++i){
-			fakeQualToTrueQual[i] = round(phred(returnTrueError(i)));
+			trueQualToFakeQual[i] = round(phred(returnFakeError(i)));
 		}
 	}
-	fakeQualToTrueQualTableInitialized = true;
+	trueQualToFakeQualTableInitialized = true;
 };
 
 
@@ -418,7 +417,7 @@ void TSimulatorReadBQSR::simulate(short* posAddress, readLengthContainer & rl, T
 		fakeQual = sampleFakeQuality();
 		if(fakeQual > maxQual) fakeQual = (char) maxQual;
 
-		QBetaQq = fakeQualToTrueQual[fakeQual];
+		QBetaQq = trueQualToFakeQual[fakeQual];
 		double BetaQp;
 		pInt = (int) p;
 		BetaQp = returnBetaPp(pInt);
