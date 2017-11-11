@@ -552,7 +552,7 @@ void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimat
 
 	//write header
 	out << std::setprecision(9) << "Chr\t";
-	out << "start\tend\t";
+	out << "start\tend";
 	estimator.writeHeader(out);
 	out << "\n";
 }
@@ -649,7 +649,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	logfile->endIndent();
 
 	//estimate Theta
-	logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.size()) + " sites:");
+	logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.sizeWithData()) + " sites:");
 	thetaEstimator.estimateTheta();
 
 	if(considerRegions)
