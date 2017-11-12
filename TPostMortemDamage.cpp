@@ -147,112 +147,69 @@ std::string TPMDTable::getPMDStringGA(){
 	return s + "]";
 };
 
-//function to fit an exponential model
-void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams){
-	F.zeros();
-	J.zeros();
-
-	double weight, weightJ, tmp;
-	double expMinusAlphaP;
-	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
-		//exp
-		expMinusAlphaP = exp(-oldParams[2] * p);
-		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
-
-		//first term
-		//----------
-		tmp = oldParams[0] + dExpMinusAlphaP;
-		weight = counts[p][from][to] / tmp;
-		weightJ = weight / tmp;
-
-		//add to F
-		F(0) += weight;
-		F(1) += weight * expMinusAlphaP;
-		F(2) -= weight * p * dExpMinusAlphaP;
-
-		//add to J -> only upper triangle, as it is symmetric
-		J(0,0) -= weightJ;
-		J(0,1) -= weightJ * expMinusAlphaP;
-		J(0,2) += weightJ * p * dExpMinusAlphaP;
-		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
-		J(1,2) -= weightJ * p * oldParams[0] * expMinusAlphaP;
-		J(2,2) += weightJ * p * p * oldParams[0] * dExpMinusAlphaP;
-
-		//second term
-		//-----------
-		tmp = (1.0 - oldParams[0] - dExpMinusAlphaP);
-		weight = (sums[p][from] - counts[p][from][to]) / tmp;
-		weightJ = weight / tmp;
-
-		//add to F
-		F(0) -= weight;
-		F(1) -= weight * expMinusAlphaP;
-		F(2) += weight * p * dExpMinusAlphaP;
-
-		//add to J -> only upper triangle, as it is symmetric
-		J(0,0) -= weightJ;
-		J(0,1) -= weightJ * expMinusAlphaP;
-		J(0,2) += weightJ * p * dExpMinusAlphaP;
-		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
-		J(1,2) += weightJ * p * (1.0 - oldParams[0]) * expMinusAlphaP;
-		J(2,2) -= weightJ * p * p * (1.0 - oldParams[0]) * dExpMinusAlphaP;
-	}
-
-	//now fill in lower triangle of J
-	J(1,0) = J(0,1);
-	J(2,0) = J(0,2);
-	J(2,1) = J(1,2);
+long*** TPMDTable::getPointerToCounts(){
+	return counts;
 }
 
-void TPMDTable::fillF(arma::vec & F, Base & from, Base & to, double* oldParams){
-	F.zeros();
-
-	double weight;
-	double expMinusAlphaP;
-	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
-		//exp
-		expMinusAlphaP = exp(-oldParams[2] * (double) p);
-		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
-
-		//first term
-		//----------
-		weight = counts[p][from][to] / (oldParams[0] + dExpMinusAlphaP);
-		weight -= (sums[p][from] - counts[p][from][to]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
-
-		//add to F
-		F(0) += weight;
-		F(1) += weight * expMinusAlphaP;
-		F(2) -= weight * (double) p * dExpMinusAlphaP;
-	}
+long** TPMDTable::getPointerToSums(){
+	calculateSums();
+	return sums;
 }
 
-double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
-	double LL = 0.0;
-	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
-		dExpMinusAlphaP = oldParams[1] * exp(-oldParams[2] * p);
-		LL += counts[p][from][to] * log(oldParams[0] + dExpMinusAlphaP)
-			+ (sums[p][from] - counts[p][from][to]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
-	}
-	return LL;
-}
+//---------------------------------------------------------------
+//TPMDFitModel
+//---------------------------------------------------------------
+TPMDFitModel::TPMDFitModel(int NumNRIterations, double Eps, TLog* Logfile){
+	numNRIterations = NumNRIterations;
+	eps = Eps;
+	logfile = Logfile;
+	numParams = 0;
 
-std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile){
-	//variables
-	arma::mat J(3,3);
-	arma::vec F(3);
-	arma::vec oldF(3);
-	arma::mat JxF;
+	clear();
+};
+
+
+void TPMDFitModel::clear(){
+	maxLength = -1;
+	counts = NULL;
+	sums = NULL;
+	readGroupName.clear();
+};
+
+void TPMDFitModel::setData(TPMDTable* table, std::string ReadGroupName){
+	counts = table->getPointerToCounts();
+	sums = table->getPointerToSums();
+	maxLength = table->getMaxLength();
+	readGroupName = ReadGroupName;
+};
+
+std::string TPMDFitModel::fit(Base From, Base To){
+	//store for internal access
+	from = From;
+	to = To;
 
 	//set starting values
-	double oldParams[3]; //exponential parameters alpha + beta exp(-gamma * position);
-	double newParams[3];
-	double LL, oldLL;
+	double params[numParams]; //exponential parameters alpha + beta exp(-gamma * position);
 
+	findLastPositionToConsider();
+
+	//use OLS to find starting point
+	fitWithOLS(params);
+
+	//refine with Newton-Raphson
+	runNewtonRaphson(params);
+
+	//calculate variance of estimator
+	//arma::mat Fisher = inv(J);
+
+	//return model string
+	return assembleModelString(params);
+}
+
+
+void TPMDFitModel::findLastPositionToConsider(){
 	//find last entry with counts
-	int lastPositionToConsiderPlusOne = -1;
+	lastPositionToConsiderPlusOne = -1;
 	for(int p=maxLength-1; p >= 0; --p){
 		if(sums[p][from] > 100){
 			lastPositionToConsiderPlusOne = p;
@@ -261,16 +218,24 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	}
 	++lastPositionToConsiderPlusOne;
 
-	if(lastPositionToConsiderPlusOne < 10) throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': less than the ten first positions have > 100 data points!";
+	//check if we have sufficient data
+	if(lastPositionToConsiderPlusOne < 10)
+		throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': less than the ten first positions have > 100 data points!";
 	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
 		if(sums[p][from] == 0){
 			throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': no observations for some reference alleles! Consider reducing the considered length.";
 		}
 	}
+}
 
+//---------------------------------------------------------------
+//TPMDFitExponentialModel();
+//---------------------------------------------------------------
+TPMDFitExponentialModel::TPMDFitExponentialModel(int NumNRIterations, double Eps, TLog* Logfile):TPMDFitModel(NumNRIterations, Eps, Logfile){
+	numParams = 3;
+};
 
-	//use OLS to find starting point
-	//------------------------------
+void TPMDFitExponentialModel::fitWithOLS(double* params){
 	//some variables
 	double gammaStep = 0.01;
 	double gammaTmp = -gammaStep + 0.00000001;
@@ -280,7 +245,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 	arma::mat X(lastPositionToConsiderPlusOne, 2);
 	X.ones();
-	arma::mat XtX;
+	//arma::mat XtX;
 	arma::mat betaHat;
 
 	//fill vector y to fit using OLS
@@ -316,29 +281,57 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	}
 
 	//store params
-	oldParams[0] = betaHat(0);
-	oldParams[1] = betaHat(1);
-	oldParams[2] = gammaTmp;
+	params[0] = betaHat(0);
+	params[1] = betaHat(1);
+	params[2] = gammaTmp;
+};
+
+double TPMDFitExponentialModel::calcLL(double* params){
+	double LL = 0.0;
+	double dExpMinusAlphaP;
+	for(int p=0; p<maxLength; ++p){
+		dExpMinusAlphaP = params[1] * exp(-params[2] * p);
+		LL += counts[p][from][to] * log(params[0] + dExpMinusAlphaP)
+			+ (sums[p][from] - counts[p][from][to]) * log(1.0 - params[0] - dExpMinusAlphaP);
+	}
+	return LL;
+}
+
+void TPMDFitExponentialModel::runNewtonRaphson(double* params){
+	//variables
+	arma::mat J(3,3);
+	arma::vec F(3);
+	arma::vec oldF(3);
+	arma::mat JxF;
+
+	//set starting values
+	double newParams[3];
+	double LL, oldLL;
+
+	arma::mat X(lastPositionToConsiderPlusOne, 2);
+	X.ones();
+	arma::mat XtX;
+	arma::mat betaHat;
 
 	//Conduct Newton-Raphson to refine
 	//----------------------------------
-	oldLL = calcLL(from, to, oldParams);
+	oldLL = calcLL(params);
 
 	for(int i = 0; i<numNRIterations; ++i){
-		fillFAndJacobian(F, J, from, to, oldParams);
+		fillFAndJacobian(F, J, params);
 		if(solve(JxF, J, F)){
 			//estimate new params
 			for(int x=0; x<3; ++x)
-				newParams[x] = oldParams[x] - JxF(x);
+				newParams[x] = params[x] - JxF(x);
 
 			//calculate LL at new location
-			LL = calcLL(from, to, newParams);
+			LL = calcLL(newParams);
 
 			//check if we accept or backtrack
 			if(LL > oldLL){
 				//store new params
 				for(int x=0; x<3; ++x){
-					oldParams[x] = newParams[x];
+					params[x] = newParams[x];
 				}
 
 				//check if we stop NR
@@ -350,11 +343,71 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 			}
 		} else {
 			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
-			throw "Issue solving JxF in TPMDTable::fitExponentialModel!";
+			throw "Issue solving JxF in TPMDFitExponentialModel::runNewtonRaphson!";
 		}
 	}
+}
 
-	//writing to file -> first need to "decode" the parameters
+//function to fit an exponential model
+void TPMDFitExponentialModel::fillFAndJacobian(arma::vec & F, arma::mat & J, double* params){
+	F.zeros();
+	J.zeros();
+
+	double weight, weightJ, tmp;
+	double expMinusAlphaP;
+	double dExpMinusAlphaP;
+	for(int p=0; p<maxLength; ++p){
+		//exp
+		expMinusAlphaP = exp(-params[2] * p);
+		dExpMinusAlphaP = params[1] * expMinusAlphaP;
+
+		//first term
+		//----------
+		tmp = params[0] + dExpMinusAlphaP;
+		weight = counts[p][from][to] / tmp;
+		weightJ = weight / tmp;
+
+		//add to F
+		F(0) += weight;
+		F(1) += weight * expMinusAlphaP;
+		F(2) -= weight * p * dExpMinusAlphaP;
+
+		//add to J -> only upper triangle, as it is symmetric
+		J(0,0) -= weightJ;
+		J(0,1) -= weightJ * expMinusAlphaP;
+		J(0,2) += weightJ * p * dExpMinusAlphaP;
+		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
+		J(1,2) -= weightJ * p * params[0] * expMinusAlphaP;
+		J(2,2) += weightJ * p * p * params[0] * dExpMinusAlphaP;
+
+		//second term
+		//-----------
+		tmp = (1.0 - params[0] - dExpMinusAlphaP);
+		weight = (sums[p][from] - counts[p][from][to]) / tmp;
+		weightJ = weight / tmp;
+
+		//add to F
+		F(0) -= weight;
+		F(1) -= weight * expMinusAlphaP;
+		F(2) += weight * p * dExpMinusAlphaP;
+
+		//add to J -> only upper triangle, as it is symmetric
+		J(0,0) -= weightJ;
+		J(0,1) -= weightJ * expMinusAlphaP;
+		J(0,2) += weightJ * p * dExpMinusAlphaP;
+		J(1,1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
+		J(1,2) += weightJ * p * (1.0 - params[0]) * expMinusAlphaP;
+		J(2,2) -= weightJ * p * p * (1.0 - params[0]) * dExpMinusAlphaP;
+	}
+
+	//now fill in lower triangle of J
+	J(1,0) = J(0,1);
+	J(2,0) = J(0,2);
+	J(2,1) = J(1,2);
+}
+
+std::string TPMDFitExponentialModel::assembleModelString(double* params){
+	//first need to "decode" the parameters
 	//the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
 	//but we fitted f(C->T) = alpha + beta * exp(-gamma * position).
 	//Hence we have:
@@ -369,12 +422,9 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	}
 	mu = mu / sum;
 
-	double a = oldParams[1] / (1.0 - mu);
-	double b = oldParams[2];
-	double c = (oldParams[0] - mu) / (1.0 - mu);
-
-	//calculate variance of estimator
-	arma::mat Fisher = inv(J);
+	double a = params[1] / (1.0 - mu);
+	double b = params[2];
+	double c = (params[0] - mu) / (1.0 - mu);
 
 	//now return string
 	if(a < 0) logfile->warning("Read group " + readGroupName + " was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
@@ -450,17 +500,31 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	out.close();
 };
 
-void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile){
+void TPMDTables::fitModel(TPMDFitModel & model, std::string & filename){
 	std::ofstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "'!";
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[i]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
-			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
+		if(readGroups->inUse[i]){
+			//C->T
+			model.setData(forward[i], readGroups->getName(i));
+			out << readGroups->getName(i) << "\t" << model.fit(C, T);
+
+			//G->A
+			model.setData(reverse[i], readGroups->getName(i));
+			out << "\t" << model.fit(G, A) << "\n";
+		}
 	}
 	out.close();
 }
+
+void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile){
+	TPMDFitExponentialModel model(numNRIterations, eps, logfile);
+
+	fitModel(model, filename);
+}
+
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------

@@ -15,6 +15,7 @@
 #include <algorithm>
 
 enum PMDType {pmdCT=0, pmdGA};
+
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
@@ -28,9 +29,6 @@ private:
 
 	void calculateSums();
 	void deleteSums();
-	void fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams);
-	void fillF(arma::vec & F, Base & from, Base & to, double* oldParams);
-	double calcLL(Base & from, Base & to, double* oldParams);
 
 public:
 	TPMDTable(int MaxLength);
@@ -41,10 +39,65 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile);
+	long*** getPointerToCounts();
+	long** getPointerToSums();
+	int getMaxLength(){return maxLength;};
 };
 
+//---------------------------------------------------------------
+//TPMDFitModel
+//---------------------------------------------------------------
+class TPMDFitModel{
+protected:
+	TLog* logfile;
+	int numNRIterations;
+	double eps;
+	Base from, to;
+	int numParams;
+
+	//data
+	std::string readGroupName;
+	long*** counts;
+	long** sums;
+	int maxLength;
+	int lastPositionToConsiderPlusOne;
+
+	void findLastPositionToConsider();
+	virtual void fitWithOLS(double* params){ throw "Not implemente din base class TPMDFitModel!"; };
+	virtual void fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams){ throw "Not implemente din base class TPMDFitModel!"; };
+	virtual double calcLL(double* oldParams){ throw "Not implemente din base class TPMDFitModel!"; };
+	virtual void runNewtonRaphson(double* params){ throw "Not implemente din base class TPMDFitModel!"; };
+	virtual std::string assembleModelString(double* params){ throw "Not implemente din base class TPMDFitModel!"; };
+
+public:
+	TPMDFitModel(int NumNRIterations, double Eps, TLog* Logfile);
+	virtual ~TPMDFitModel(){
+		clear();
+	};
+	void clear();
+	void setData(TPMDTable* table, std::string ReadGroupName);
+	std::string fit(Base From, Base To);
+};
+
+class TPMDFitExponentialModel:public TPMDFitModel{
+protected:
+	void fitWithOLS(double* params);
+	void fillFAndJacobian(arma::vec & F, arma::mat & J, double* oldParams);
+	double calcLL(double* oldParams);
+	void runNewtonRaphson(double* params);
+	std::string assembleModelString(double* params);
+
+public:
+	TPMDFitExponentialModel(int NumNRIterations, double Eps, TLog* Logfile);
+};
+
+//---------------------------------------------------------------
+//TPMDTables
+//---------------------------------------------------------------
 class TPMDTables{
+private:
+	void fitModel(TPMDFitModel & model, std::string & filename);
+
 public:
 	TReadGroups* readGroups;
 	TPMDTable** forward;
@@ -59,7 +112,6 @@ public:
 	void writeTableWithCounts(std::string filename);
 	void fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile);
 };
-
 
 //---------------------------------------------------------------
 //TPMDFunction
