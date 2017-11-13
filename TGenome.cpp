@@ -1691,7 +1691,7 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-	char qual = recalObject->getQualityAsChar(basePointer); //is in ascii, already has filter
+	char qual = recalObject->getQualityAsChar(basePointer, minOutQuality, maxOutQuality); //is in ascii, already has filter
 
 	delete basePointer;
 	return qual;

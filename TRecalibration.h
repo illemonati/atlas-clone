@@ -162,10 +162,10 @@ public:
 		return base->quality;
 	};
 
-	char getQualityAsChar(TBase* base){
+	char getQualityAsChar(TBase* base, int & minOutQuality, int & maxOutQuality){
 		int qual = getQuality(base) + 33;
-		if(qual > 126) qual = 126;
-		if(qual < 33) qual = 33;
+		if(qual > maxOutQuality) qual = maxOutQuality;
+		if(qual < minOutQuality) qual = minOutQuality;
 		return qual;
 	};
 
