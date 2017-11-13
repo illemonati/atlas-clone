@@ -223,9 +223,11 @@ public:
 class TBaseFrequencies{
 public:
 	double freq[4];
+	bool wasNormalized;
 
 	TBaseFrequencies(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
 	};
 	void add(Base B, double & weight){
 		freq[B] += weight;
@@ -234,13 +236,17 @@ public:
 		freq[B] += weight;
 	};
 	void normalize(){
-		double sum = 0.0;
-		for(int i = 0; i < 4; ++i) sum += freq[i];
-		sum += 4.0;
-		for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
+		if(!wasNormalized){
+			double sum = 0.0;
+			for(int i = 0; i < 4; ++i) sum += freq[i];
+			sum += 4.0;
+			for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
+			wasNormalized = true;
+		}
 	};
 	void clear(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
 	};
 	void print(){
 		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;

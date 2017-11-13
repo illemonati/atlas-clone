@@ -10,7 +10,15 @@
 //-------------------------------------------------------
 //TThetaEstimatorTemporaryFile
 //-------------------------------------------------------
+TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(){
+	init("", 0);
+};
+
 TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename, int numGenotypes){
+	init(Filename, numGenotypes);
+};
+
+void TThetaEstimatorTemporaryFile::init(std::string Filename, int numGenotypes){
 	filename = Filename;
 	fp = NULL;
 	sizeOfData = sizeof(double) * numGenotypes;
@@ -19,9 +27,12 @@ TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename,
 	isOpenForReading = false;
 	isOpenForWriting = false;
 	wasWritten = false;
-};
+}
 
 void TThetaEstimatorTemporaryFile::openForWriting(){
+	if(sizeOfData == 0)
+		throw "Can not open temporary data file for theta: file was not initialized!";
+
 	//if file was written, remove it
 	clean();
 
@@ -102,6 +113,14 @@ TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
 
 	isBootstrapped = false;
 	numBootstrappedSites = false;
+	maxKforPoissonPlusOne = 16; //maximum number of bootstrapping copies to consider.
+	poissonProb = new double[maxKforPoissonPlusOne];
+
+	readState = false;
+	curSite = 0;
+	curRep = 0;
+	numBootstrapRepsPerEntry = NULL;
+	numBootstrapRepsPerEntryInitialized = false;
 };
 
 void TThetaEstimatorData::clear(){
@@ -153,13 +172,84 @@ void TThetaEstimatorData::writeSize(std::ofstream & out){
 	}
 };
 
+void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda){
+	double tmp = exp(-lambda);
+	poissonProb[0] = tmp;
+	for(int k=1; k<maxKforPoissonPlusOne; ++k){
+		tmp = tmp * lambda / (double) k;
+		poissonProb[k] = poissonProb[k-1] + tmp;
+	}
+
+	//make sure last of cumulative is 1.0
+	if(poissonProb[maxKforPoissonPlusOne-1] < 0.99999)
+		throw "Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!";
+	poissonProb[maxKforPoissonPlusOne-1] = 1.0;
+}
+
+void TThetaEstimatorData::bootstrap(TRandomGenerator & randomGenerator){
+	//make sure we start empty
+	clearBootstrap();
+
+	if(!numBootstrapRepsPerEntryInitialized){
+		numBootstrapRepsPerEntry = new uint8_t[numSitesWithData];
+		numBootstrapRepsPerEntryInitialized = true;
+	}
+
+	fillPoissonForBootstrap(1.0);
+
+	//now pick among sites with data with replacement and store for each entry how many times it was chosen
+	numBootstrappedSites = 0.0;
+	for(long l=0; l<numSitesWithData; ++l){
+		//do we use this site in the bootstrap?
+		numBootstrapRepsPerEntry[l] = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
+		numBootstrappedSites += numBootstrapRepsPerEntry[l];
+	}
+
+	//set pointer
+	isBootstrapped = true;
+};
+
+void TThetaEstimatorData::clearBootstrap(){
+	numBootstrappedSites = 0;
+	isBootstrapped = false;
+};
+
+bool TThetaEstimatorData::begin(){
+	curSite = 0; //first site is at index zero
+	curRep = 1; //index starts at one
+
+	_begin();
+
+	if(isBootstrapped){
+		while(readState && numBootstrapRepsPerEntry[curSite] == 0){
+			readNext();
+		}
+	}
+
+	return(readState);
+};
+
+bool TThetaEstimatorData::next(){
+	if(isBootstrapped){
+		if(curRep < numBootstrapRepsPerEntry[curSite]){
+			++curRep;
+			return true;
+		} else {
+			curRep = 1;
+			readNext();
+			while(readState && numBootstrapRepsPerEntry[curSite] == 0){
+				readNext();
+			}
+		}
+	} else readNext();
+
+	return(readState);
+};
 
 //-------------------------------------------------------
 //TThetaEstimatorDataVector
 //-------------------------------------------------------
-TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){
-	useTheseSites = &sites;
-};
+TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){};
 
 void TThetaEstimatorDataVector::saveSite(TSite & site){
 	//store emission probabilities
@@ -177,172 +267,67 @@ void TThetaEstimatorDataVector::emptyStorage(){
 	sites.clear();
 };
 
-
-bool TThetaEstimatorDataVector::begin(){
-	siteIt = useTheseSites->begin();
-	return siteIt != useTheseSites->end();
-};
-
-bool TThetaEstimatorDataVector::next(){
+void TThetaEstimatorDataVector::readNext(){
 	++siteIt;
-	return siteIt != useTheseSites->end();
+	++curSite;
+	if(siteIt == sites.end())
+		readState = false;
+	else
+		readState = true;
+}
+
+void TThetaEstimatorDataVector::_begin(){
+	siteIt = sites.begin();
 };
 
 bool TThetaEstimatorDataVector::isEnd(){
-	return siteIt == useTheseSites->end();
+	return siteIt == sites.end();
 };
 
 double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
 	return *siteIt;
 }
 
-void TThetaEstimatorDataVector::bootstrap(TRandomGenerator & randomGenerator){
-	//prepare variables
-	clearBootstrap();
-	int r = 0;
-
-	//how many sites with data will we have? Draw from binomial
-	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
-
-	//now pick among sites with data with replacement
-	for(long i=0; i<numBootstrappedSites; ++i){
-		r = randomGenerator.pickOne(numSitesWithData);
-		bootstrappedSites.push_back(sites.at(r));
-	}
-
-	//set pointer
-	useTheseSites = &bootstrappedSites;
-	isBootstrapped = true;
-};
-
-
-void TThetaEstimatorDataVector::clearBootstrap(){
-	useTheseSites = &sites;
-	bootstrappedSites.clear();
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
-
 //-------------------------------------------------------
 //TThetaEstimatorDataFile
 //-------------------------------------------------------
 TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName):TThetaEstimatorData(NumGenotypes){
 	dataFileName = TmpFileName;
-	sites = new TThetaEstimatorTemporaryFile(dataFileName, numGenotypes);
-	sites->openForWriting();
+	sites.init(dataFileName, numGenotypes);
+	sites.openForWriting();
 
 	pointerToData = new double[numGenotypes];
-
-	bootstrapFileName = "bootstrap_" + dataFileName;
-	bootstrappedSites = new TThetaEstimatorTemporaryFile(bootstrapFileName, numGenotypes);
-	maxKforPoissonPlusOne = 100; //maximum number of bootstrapping copies to consider.
-	poissonProb = new double[maxKforPoissonPlusOne];
-
-	useTheseSites = sites;
 };
 
 void TThetaEstimatorDataFile::emptyStorage(){
-	sites->clean();
+	sites.clean();
 };
 
 void TThetaEstimatorDataFile::saveSite(TSite & site){
-	useTheseSites->save(site.emissionProbabilities);
+	sites.save(site.emissionProbabilities);
 };
 
-bool TThetaEstimatorDataFile::begin(){
-	useTheseSites->openForReading();
+void TThetaEstimatorDataFile::readNext(){
+	++curSite;
+	if(curSite >= numSitesWithData)
+		readState = false;
+	else
+		readState = sites.read(pointerToData);
+}
 
-	return(useTheseSites->read(pointerToData));
-};
-
-bool TThetaEstimatorDataFile::next(){
-	return(useTheseSites->read(pointerToData));
-};
+void TThetaEstimatorDataFile::_begin(){
+	sites.openForReading();
+	--curSite;
+	readNext(); //read first! This is required to match begin() of a vector
+}
 
 bool TThetaEstimatorDataFile::isEnd(){
-	return useTheseSites->isEOF();
+	return sites.isEOF();
 };
 
 double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
 	return pointerToData;
 };
-
-void TThetaEstimatorDataFile::fillPoissonForBootstrap(const long toPick, const long remaining){
-	double lambda = toPick / remaining;
-
-	if(lambda < 1.0){
-		double tmp = exp(-lambda);
-		poissonProb[0] = tmp;
-		for(int k=1; k<maxKforPoissonPlusOne; ++k){
-			tmp = tmp * lambda / (double) k;
-			poissonProb[k] = poissonProb[k-1] + tmp;
-		}
-	} else {
-		//we need to accept!
-		int n = round(lambda);
-		for(int k=0; k<n; ++k)
-			poissonProb[k] = 0.0;
-
-		for(int k=n; k<maxKforPoissonPlusOne; ++k)
-			poissonProb[k] = 1.0;
-	}
-}
-
-void TThetaEstimatorDataFile::bootstrap(TRandomGenerator & randomGenerator){
-	//make sure we start empty
-	clearBootstrap();
-
-	//how many sites with data will we have? Draw from binomial
-	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
-
-	//open temporary file for bootstrap
-	bootstrappedSites->openForWriting();
-
-	//now pick among sites with data with replacement
-	//For this wee need to go through the temporary file and decide for each site how many times it will be selected.
-	//This is given by a Poisson distribution where lambda = n / N
-	//where n = is the number of bootstrapped sites that still need to be picked and N the number of remaining sites in the file.
-
-	//variables
-	int r,i;
-	long toPick = numBootstrappedSites;
-
-	//and go...
-	sites->openForReading();
-	for(long l=0; l<numSitesWithData; ++l){
-		sites->read(pointerToData);
-
-		//calculate bootstrapping probabilities
-		fillPoissonForBootstrap(toPick, numSitesWithData - l);
-
-		//do we use this site in the bootstrap?
-		r = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
-		if(r > 0){
-			//save site
-			for(i=0; i<r; ++i)
-				bootstrappedSites->save(pointerToData);
-
-			toPick -= r;
-		}
-	}
-
-	//set pointer
-	useTheseSites = bootstrappedSites;
-	isBootstrapped = true;
-};
-
-
-void TThetaEstimatorDataFile::clearBootstrap(){
-	useTheseSites = sites;
-	bootstrappedSites->clean();
-
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
 
 //-------------------------------------------------------
 //TThetaEstimator
@@ -465,6 +450,7 @@ void TThetaEstimator::fillP_G(){
 		}
 		for(g=0; g<numGenotypes; ++g)
 			P_G[g] += P_g_oneSite[g] / sum;
+
 	} while(data->next());
 };
 
@@ -721,11 +707,11 @@ void TThetaEstimator::runEMForTheta(){
 			}
 		}
 
-		if(extraVerbose) logfile->write("\n" + toString(iter) + ") current theta = " + toString(theta.theta));
+		if(extraVerbose) logfile->list(toString(iter) + ") current theta = " + toString(theta.theta));
 		//For debugging
 		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
-	if(extraVerbose) logfile->write("EM converged, current theta = " + toString(theta.theta));
+	if(extraVerbose) logfile->list("EM converged, current theta = " + toString(theta.theta));
 
 }
 
@@ -771,9 +757,15 @@ bool TThetaEstimator::estimateTheta(){
 	logfile->conclude("Starting EM with theta = ", theta.theta);
 
 	//Run EM
-	logfile->listFlush("Running EM to find ML estimate ...");
-	runEMForTheta();
-	logfile->done();
+	if(extraVerbose){
+		logfile->startIndent("Running EM to find ML estimate:");
+		runEMForTheta();
+		logfile->endIndent();
+	} else {
+		logfile->listFlush("Running EM to find ML estimate ...");
+		runEMForTheta();
+		logfile->done();
+	}
 	logfile->conclude("theta was estimated at ", theta.theta);
 
 	//confidence intervals

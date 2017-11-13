@@ -570,7 +570,12 @@ void TGenome::estimateTheta(TParameters & params){
 
 	//check for which segements theta is to be estimated
 	if(params.parameterExists("thetaGenomeWide") || considerRegions){
+		if(params.parameterExists("thetaGenomeWide"))
+			logfile->startIndent("Estimating theta genome-wide:");
+		else logfile->startIndent("Estimating theta at specific sites:");
+
 		estimateThetaGenomeWide(thetaEstimator, out);
+		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
 			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
