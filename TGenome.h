@@ -64,6 +64,7 @@ private:
 	bool applyCoverageFilter, applyQualityFilter;
 	size_t minCoverage, maxCoverage;
 	int minQuality, maxQuality;
+	int minOutQuality, maxOutQuality;
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
