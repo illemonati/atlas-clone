@@ -140,7 +140,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else {
 		applyQualityFilter = false;
 		minQuality = 34; //filter out quality 0 by default
-		maxQuality = 1000000;
+		maxQuality = 75;
 	}
 
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
