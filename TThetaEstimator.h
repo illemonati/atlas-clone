@@ -100,6 +100,7 @@ public:
 	TThetaEstimatorData(int NumGenotypes);
 	virtual ~TThetaEstimatorData(){
 		clear();
+		delete[] poissonProb;
 		if(numBootstrapRepsPerEntryInitialized)
 			delete[] numBootstrapRepsPerEntry;
 	};
@@ -162,7 +163,6 @@ public:
 	TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName);
 	~TThetaEstimatorDataFile(){
 		delete[] pointerToData;
-		delete[] poissonProb;
 		clear();
 	};
 
