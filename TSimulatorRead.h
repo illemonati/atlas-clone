@@ -136,7 +136,7 @@ protected:
 	void fillQBetaQBetaP();
 	double returnCurMean();
 	double returnCurSD(double & kappa);
-	double returnDelta(double & kappa);
+	double returnDelta(double & curMean, double & curSD);
 	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 public:

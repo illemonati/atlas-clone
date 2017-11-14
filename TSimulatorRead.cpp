@@ -263,7 +263,7 @@ void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
 	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
 
 	//w at intermediate Q
-	for(int q = (minQual + 1) + 0.5; q < maxQual - 1; ++q){
+	for(int q = (minQual + 1); q < maxQual; ++q){
 		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
 		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q-minQual] = end - start;
@@ -283,8 +283,13 @@ double TSimulatorReadBQSR::returnCurMean(){
 			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
 		}
 		curMean += sumP * w[q];
+//		if(q == maxQual){
+//			std::cout << "curMean " << curMean << std::endl;
+//			std::cout << "sumP " << sumP << std::endl;
+//			std::cout << "w[q] " << w[q] << std::endl;
+//		}
 	}
-//	std::cout << "curMean " << curMean << std::endl;
+
 	return(curMean);
 }
 
@@ -292,20 +297,16 @@ double TSimulatorReadBQSR::returnCurSD(double & kappa){
 	float lambda = 0.0;
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->gammaCumulDensity[p] * w[q]);
+			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->positionProbs[p] * w[q]);
 		}
 	}
-	return lambda;
+	return(sqrt(lambda));
 }
 
-double TSimulatorReadBQSR::returnDelta(double & kappa){
-	double curMean = returnCurMean();
-//	std::cout << "curMean " << curMean << std::endl;
-	double curSD = returnCurSD(kappa);
-//	std::cout << "curSD " << curSD << std::endl;
-
+double TSimulatorReadBQSR::returnDelta(double & curMean, double & curSD){
 	double delta;
 	delta = (curMean - meanQual)*(curMean - meanQual) + (curSD - sdQual)*(curSD - sdQual);
+	std::cout << "delta in returnDelta: " << delta << std::endl;
 	return(delta);
 }
 
@@ -314,11 +315,9 @@ double TSimulatorReadBQSR::returnDelta(double & kappa){
 void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	double kappa_cur = meanQual;
 	double lambda_cur = sdQual;
-	double delta, delta_old;
-
-	std::cout << "cappa cur " << kappa_cur << std::endl;
-	std::cout << "lambda_cur " << lambda_cur << std::endl;
-
+	double delta_cur, delta_old;
+	double mean_cur, sd_cur;
+	float stepSize;
 
 	std::ofstream out;
 	std::string filename = "path_simulation.txt";
@@ -327,10 +326,13 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 
 	fillQBetaQBetaP();
 	fillWeights(kappa_cur, lambda_cur);
+	mean_cur = returnCurMean();
+	sd_cur = returnCurSD(mean_cur);
 
-	delta = returnDelta(kappa_cur);
+	delta_cur = returnDelta(mean_cur, sd_cur);
+	std::cout << "initial values: kappa lambda error:  "<< kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
 
-	out << kappa_cur << "\t" << lambda_cur << "\t" << delta << std::endl;
+	out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
 
 	int nTurns = 10;
 	int nIter = 50;
@@ -339,38 +341,47 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 
 	//optimize one param at a time, update, optimize again
 
-/*	for(int t=0; t<nTurns; ++t){
+	for(int t=0; t<nTurns; ++t){
+		std::cout << "####### new turn" << std::endl;
 		//update kappa
-		float stepSize = 5.0;
+		stepSize = 5.0;
 		for(int i=0; i<nIter; ++i){
+			std::cout << "####### new iter kappa" << std::endl;
+
 			//move and calc error
-			delta_old = delta;
+			delta_old = delta_cur;
 			kappa_cur += stepSize;
 			fillWeights(kappa_cur, lambda_cur);
-			delta = returnDelta(kappa_cur);
-			if(delta > delta_old)
-				delta = -delta/exp(1);
+			mean_cur = returnCurMean();
+			sd_cur = returnCurSD(mean_cur);
+			delta_cur = returnDelta(mean_cur, sd_cur);
+			if(delta_cur > delta_old)
+				stepSize = -stepSize/exp(1);
 		}
 
 		//update lambda
 		stepSize = 1.0;
 		for(int i=0; i<nIter; ++i){
+			std::cout << "####### new iter lambda" << std::endl;
+
 			//move and calc error
-			delta_old = delta;
+			delta_old = delta_cur;
 			lambda_cur += stepSize;
 			fillWeights(kappa_cur, lambda_cur);
-			delta = returnDelta(kappa_cur);
-			if(delta > delta_old)
-				delta = -delta/exp(1);
+			mean_cur = returnCurMean();
+			sd_cur = returnCurSD(mean_cur);
+			delta_cur = returnDelta(kappa_cur, sd_cur);
+			if(delta_cur > delta_old)
+				stepSize = -stepSize/exp(1);
 		}
 
 
-		logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda) + ", delta = " + toString(delta));
-		out << kappa_cur << "\t" << lambda_cur << "\t" << delta << std::endl;
-	}*/
+		logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur));
+		out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
+	}
 
-	logfile->conclude("The final estimates for kappa and lambda result in a true quality score being simulated according to N(" + toString(returnCurMean()) + "," + toString(returnCurSD(kappa_cur)) + "). This corresponds to a delta of " + toString(delta) + ".");
-	if(delta >= 0.25) logfile->warning("Current parameter values for phi1, meanQual and sdQual do not allow for accurate estimation of kappa and lambda!");
+	logfile->conclude("The final estimates for kappa and lambda result in a true quality score being simulated according to N(" + toString(returnCurMean()) + "," + toString(returnCurSD(kappa_cur)) + "). This corresponds to a delta of " + toString(delta_cur) + ".");
+	if(delta_cur >= 0.25) logfile->warning("Current parameter values for phi1, meanQual and sdQual do not allow for accurate estimation of kappa and lambda!");
 	kappa = kappa_cur;
 	lambda = lambda_cur;
 
