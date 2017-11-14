@@ -99,7 +99,7 @@ public:
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
 	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
-	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out);
+	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcLikelihoodSurfaces(TParameters & params);
 

@@ -574,7 +574,10 @@ void TGenome::estimateTheta(TParameters & params){
 			logfile->startIndent("Estimating theta genome-wide:");
 		else logfile->startIndent("Estimating theta at specific sites:");
 
-		estimateThetaGenomeWide(thetaEstimator, out);
+		//HACK!!
+		bool onlyBootstrap = params.parameterExists("onlyBootstrap");
+
+		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
 		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
@@ -628,7 +631,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 }
 
-void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out){
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
 	if(considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -654,8 +657,11 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	logfile->endIndent();
 
 	//estimate Theta
-	logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.sizeWithData()) + " sites:");
-	thetaEstimator.estimateTheta();
+	//HACK!!!!
+	if(!onlyReadData){
+		logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.sizeWithData()) + " sites:");
+		thetaEstimator.estimateTheta();
+	}
 
 	if(considerRegions)
 		out  << "\t-\t-"; //chromosome, start, end
