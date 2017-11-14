@@ -97,6 +97,14 @@ public:
 		return N;
 	};
 
+	Base getBaseOnlyCapitals(char & base){
+		if(base == 'A') return A;
+		if(base == 'C') return C;
+		if(base == 'G') return G;
+		if(base == 'T') return T;
+		return N;
+	};
+
 	char getBaseAsChar(Base base){
 		if(base == A) return 'A';
 		if(base == C) return 'C';

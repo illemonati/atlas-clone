@@ -14,6 +14,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	initializeRandomGenerator(params);
 
+	//initialize iterators
+	chrNumber = -1;
+	chrLength = -1;
+	curStart = -1;
+	curEnd = -1;
+	oldPos = -1;
+	oldAlignementMustBeConsidered = false;
+
 	//open BAM file
 	filename = params.getParameterString("bam");
 	logfile->list("Reading data from BAM file '" + filename + "'.");
@@ -23,8 +31,16 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	if(!bamReader.LocateIndex())
 		throw "No index file found for BAM file '" + filename + "'!";
 
+	//read header
+	bamHeader = bamReader.GetHeader();
+	readGroups.fill(bamHeader);
+	chrIterator = bamHeader.Sequences.End();
+
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
+
+	//initialize alignment parser
+	alignmentParser.init(&readGroups, maxReadLength);
 
 	//read window parameter
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
@@ -52,19 +68,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		outputName = extractBeforeLast(outputName, ".");
 	}
 	logfile->list("Writing output files with prefix '" + outputName + "'.");
-
-	//initialize iterators
-	chrNumber = -1;
-	chrLength = -1;
-	curStart = -1;
-	curEnd = -1;
-	oldPos = -1;
-	oldAlignementMustBeConsidered = false;
-
-	//read header
-	bamHeader = bamReader.GetHeader();
-	readGroups.fill(bamHeader);
-	chrIterator = bamHeader.Sequences.End();
 
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
@@ -339,6 +342,31 @@ bool TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindo
 			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality)){
 				//add also to next window in case reads overhangs current window -> function returns true
 				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality);
+			}
+		}
+	}
+	return true; //continue
+}
+
+bool TGenome::addAlignementToWindowsTest(BamTools::BamAlignment & alignement, TWindowPair & windowPair){
+	//std::cout << "REF ID = " << bamAlignement.RefID << "\tpos = " << bamAlignement.Position << std::endl;
+	//only take those reads that pass QC
+	if(!alignement.IsFailedQC() && !alignement.IsDuplicate() && alignement.Position >= curStart){
+		//check if bam file is sorted
+		if(alignement.Position < oldPos){
+			throw "BAM file must be sorted by position!";
+		}
+		oldPos = alignement.Position;
+
+		//check if still within current window and add to window
+		if(alignement.Position >= curEnd) return false;
+		else {
+			//parse alignment
+			alignmentParser.parse(alignement);
+
+			if(windowPair.curPointer->addFromRead(alignmentParser, pmdObjects, &readGroups, minQuality, maxQuality)){
+				//add also to next window in case reads overhangs current window -> function returns true
+				windowPair.nextPointer->addFromRead(alignmentParser, pmdObjects, &readGroups, minQuality, maxQuality);
 			}
 		}
 	}

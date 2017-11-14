@@ -12,6 +12,7 @@
 #include "TParameters.h"
 #include "TReadGroups.h"
 #include "bamtools/utils/bamtools_fasta.h"
+#include "TAlignmentParser.h"
 #include "TRecalibration.h"
 #include "TThetaEstimator.h"
 #include "TBedReader.h"
@@ -49,6 +50,7 @@ public:
 	void clear();
 	void move(long Start, long End);
 	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQuality, int & maxQuality);
+	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQuality, int & maxQuality);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);

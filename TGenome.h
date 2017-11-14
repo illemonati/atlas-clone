@@ -35,6 +35,7 @@ private:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignment;
+ 	TAlignmentParser alignmentParser;
 	bool oldAlignementMustBeConsidered;
 	BamTools::Fasta reference;
 	bool fastaReference;
@@ -76,7 +77,11 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
+
 	bool addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+	bool addAlignementToWindowsTest(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+
+
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
@@ -87,7 +92,10 @@ private:
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-		if(doMasking) delete mask;
+		if(doMasking){
+			std::cout << "----------------------__> DELETE!!!!" << std::endl;
+			delete mask;
+		}
 		if(fastaReference) reference.Close();
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;

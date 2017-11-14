@@ -191,6 +191,52 @@ bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObject
 	else return true;
 }
 
+
+bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
+	/* Note:
+	 * Function returns true if read also maps to next window and
+	 * returns false if end of read is within this (or a previous) window
+	 */
+
+	//check if alignment is inside window
+	if(alignemntParser.position >= end) return true;
+	if(alignemntParser.position + alignemntParser.length < start) return false;
+
+	//find which position to consider first
+	++numReadsInWindow;
+	int firstPos = start - alignemntParser.position;
+	int p = 0;
+	if(firstPos < 0){
+		firstPos = 0;
+		while(p < alignemntParser.length && alignemntParser.alignedPos[p] < start)
+			++p;
+		if(p == alignemntParser.length)
+			return false;
+	}
+	int internalPos;
+
+	/* Note:
+	 *  1) Reference is 5' -> 3'
+	 *  2) distance is 0-based!
+	 *  3) Ignoring indels in other mate when calculating distances
+	 *  4) Function add needs first P(C->T), then P(G->A)
+	 */
+
+	for(; p<alignemntParser.length; ++p){
+		if(alignemntParser.aligned[p] && alignemntParser.base[p] != N){
+			if(minQuality <= alignemntParser.quality[p] && alignemntParser.quality[p] <= maxQuality){ //skip if quality does not make sense
+				internalPos = alignemntParser.alignedPos[p] + firstPos;
+				if(internalPos >= end)
+					return true; //since part of the read maps to next window
+				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], alignemntParser.distFrom5Prime[p], alignemntParser.distFrom3Prime[p], pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
+			}
+		}
+	}
+
+	return false;
+}
+
+
 void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
