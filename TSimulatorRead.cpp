@@ -224,9 +224,9 @@ void TSimulatorReadBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
 	//gamma density starts at 0 but p at 1!
 	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
-		sum += (double) p * (1 - readLengthDist->gammaCumulDensity[p-1]);
+		sum += (double) p * readLengthDist->positionProbs[p];
 	}
-	m = (1.0 - revIntercept) / sum;
+	m = (1.0 - revIntercept) / (sum - readLengthDist->max());
 	intercept = revIntercept - m * readLengthDist->max();
 }
 
@@ -250,9 +250,12 @@ void TSimulatorReadBQSR::fillQBetaQBetaP(){
 	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
+		float a = 0;
 		for(int p = 0; p<readLengthDist->max(); ++p){
 			QBetaQBetaP[q][p] = phred(dePhredTable[phred(betaQq)] * returnBetaPp(p));
+			a += returnBetaPp(p);
 		}
+		std::cout << "a " << a << std::endl;
 	}
 	betaQBetaPInitialized = true;
 }
@@ -306,7 +309,6 @@ double TSimulatorReadBQSR::returnCurSD(double & kappa){
 double TSimulatorReadBQSR::returnDelta(double & curMean, double & curSD){
 	double delta;
 	delta = (curMean - meanQual)*(curMean - meanQual) + (curSD - sdQual)*(curSD - sdQual);
-	std::cout << "delta in returnDelta: " << delta << std::endl;
 	return(delta);
 }
 
@@ -342,12 +344,9 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	//optimize one param at a time, update, optimize again
 
 	for(int t=0; t<nTurns; ++t){
-		std::cout << "####### new turn" << std::endl;
 		//update kappa
 		stepSize = 5.0;
 		for(int i=0; i<nIter; ++i){
-			std::cout << "####### new iter kappa" << std::endl;
-
 			//move and calc error
 			delta_old = delta_cur;
 			kappa_cur += stepSize;
@@ -362,8 +361,6 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 		//update lambda
 		stepSize = 1.0;
 		for(int i=0; i<nIter; ++i){
-			std::cout << "####### new iter lambda" << std::endl;
-
 			//move and calc error
 			delta_old = delta_cur;
 			lambda_cur += stepSize;
@@ -405,6 +402,7 @@ void TSimulatorReadBQSR::initializeTrueQualToFakeQualTable(){
 
 
 double TSimulatorReadBQSR::returnBetaPp(int & pos){
+//	std::cout << "m: " << m << " intercept " << intercept << std::endl;
 	return(m * (double) pos + intercept);
 }
 
