@@ -2570,9 +2570,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	logfile->removeIndent();
 }
 
-
-
-
 void TGenome::downSampleBamFile(TParameters & params){
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");

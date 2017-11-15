@@ -317,6 +317,8 @@ void TAlignmentParser::print(){
 	std::cout << std::endl;
 }
 
+void TAlignmentParser::recalibrate(TRecalibration & recalObject){
 
+};
 
 

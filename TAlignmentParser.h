@@ -76,6 +76,7 @@ public:
 
 	//functions to access data
 	std::string& name(){return bamAlignment.Filename;};
+	void recalibrate(TRecalibration & recalObject);
 };
 
 
