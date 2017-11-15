@@ -72,7 +72,7 @@ inline int TAlignmentParser::toQual(const char & q){
 	//TODO: switch to already parsing quality here. Will need to adjust filters in TGenome!!!!
 	//return (int) q - 33;
 	return (int) q;
-}
+};
 
 void TAlignmentParser::parseBasesQualities(BamTools::BamAlignment & bamAlignment){
 	// iterate over CigarOps

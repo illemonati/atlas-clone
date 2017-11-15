@@ -90,13 +90,6 @@ public:
 	void initSites(long newLength);
 	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
 	void addSitesToThetaEstimator(TThetaEstimator & estimator);
-
-	/*
-	void estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions);
-	void setTheta(double theta){thetaContainer.setTheta(theta);};
-	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
-	*/
-
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
 	void callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
@@ -106,7 +99,6 @@ public:
 	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 	void addToGLF(TGlfWriter & writer, bool printAll);
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
-	void addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec);
 };
 
 class TWindowHaploid:public TWindow{

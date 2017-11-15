@@ -339,28 +339,6 @@ bool TGenome::addAlignementToWindows(BamTools::BamAlignment & alignement, TWindo
 		//check if still within current window and add to window
 		if(alignement.Position >= curEnd) return false;
 		else {
-			if(windowPair.curPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality)){
-				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.nextPointer->addFromRead(alignement, pmdObjects, &readGroups, minQuality, maxQuality);
-			}
-		}
-	}
-	return true; //continue
-}
-
-bool TGenome::addAlignementToWindowsTest(BamTools::BamAlignment & alignement, TWindowPair & windowPair){
-	//std::cout << "REF ID = " << bamAlignement.RefID << "\tpos = " << bamAlignement.Position << std::endl;
-	//only take those reads that pass QC
-	if(!alignement.IsFailedQC() && !alignement.IsDuplicate() && alignement.Position >= curStart){
-		//check if bam file is sorted
-		if(alignement.Position < oldPos){
-			throw "BAM file must be sorted by position!";
-		}
-		oldPos = alignement.Position;
-
-		//check if still within current window and add to window
-		if(alignement.Position >= curEnd) return false;
-		else {
 			//parse alignment
 			alignmentParser.parse(alignement);
 

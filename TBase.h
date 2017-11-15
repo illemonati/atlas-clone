@@ -71,7 +71,7 @@ public:
 	};
 
 	TBase(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		quality = Quality;
+		quality = Quality - 33;
 		//errorRate = pow(10.0, (double) quality / -10.0);
 		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
@@ -88,6 +88,11 @@ public:
 	virtual void fillEmissionProbabilitiesCore(double thisErrorRate){
 		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
 	};
+
+	virtual void printEmissionProbs(){
+		throw "Function 'printEmissionProbs' Not implemented for base class TBase!";
+	};
+
 	virtual char getBase(){ return '?'; };
 	virtual Base getBaseAsEnum(){ return N;};
 	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
@@ -113,6 +118,9 @@ public:
 		return emissionProbabilities.get(genotype);
 	};
 
+	void printEmissionProbs(){
+		emissionProbabilities.print();
+	}
 };
 
 class TBaseHaploid:public TBase{

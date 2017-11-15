@@ -204,11 +204,11 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 
 	//find which position to consider first
 	++numReadsInWindow;
-	int firstPos = start - alignemntParser.position;
+	int firstPos = alignemntParser.position - start;
 	int p = 0;
 	if(firstPos < 0){
 		firstPos = 0;
-		while(p < alignemntParser.length && alignemntParser.alignedPos[p] < start)
+		while(p < alignemntParser.length && (firstPos + alignemntParser.alignedPos[p]) > 0)
 			++p;
 		if(p == alignemntParser.length)
 			return false;
@@ -222,11 +222,11 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 	 *  4) Function add needs first P(C->T), then P(G->A)
 	 */
 
-	for(; p<alignemntParser.length; ++p){
+	for(; p < alignemntParser.length; ++p){
 		if(alignemntParser.aligned[p] && alignemntParser.base[p] != N){
 			if(minQuality <= alignemntParser.quality[p] && alignemntParser.quality[p] <= maxQuality){ //skip if quality does not make sense
-				internalPos = alignemntParser.alignedPos[p] + firstPos;
-				if(internalPos >= end)
+				internalPos = firstPos + alignemntParser.alignedPos[p];
+				if(internalPos >= length)
 					return true; //since part of the read maps to next window
 				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], alignemntParser.distFrom5Prime[p], alignemntParser.distFrom3Prime[p], pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
 			}
@@ -544,69 +544,6 @@ void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimator & estimator){
 	}
 }
 
-/*
-void TWindowDiploid::estimateTheta(EMParameters & EMParams, TRecalibration* recalObject, std::ofstream & out, TLog* logfile, bool & considerRegions){
-	logfile->startIndent("Estimating Theta:");
-
-	//measure runtime
-	struct timeval startTime, endTime;
-	gettimeofday(&startTime, NULL);
-
-	//estimate initial base frequencies
-	//calculate per site emission probabilities
-	logfile->listFlush("Calculating emission probabilities ...");
-	calculateEmissionProbabilities(recalObject);
-	logfile->done();
-
-	//get num sites with data
-	calcCoverage();
-
-	//estimate starting parameters
-	logfile->startIndent("Estimating initial parameters:");
-	logfile->listFlush("Estimating initial base frequencies ...");
-	estimateBaseFrequencies();
-	logfile->done();
-	logfile->conclude("Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
-
-	//set initial parameters
-	logfile->listFlush("Estimating initial theta ...");
-	findGoodStartingTheta(thetaContainer, EMParams);
-	logfile->done();
-	logfile->conclude("Starting EM with theta = ", thetaContainer.theta);
-	logfile->endIndent();
-
-	//Run EM
-	logfile->listFlush("Running EM to find ML estimations ...");
-	runEMForTheta(thetaContainer, EMParams, numSitesWithData);
-	logfile->done();
-	logfile->conclude("theta was estimated at ", thetaContainer.theta);
-
-	//confidence intervals
-	logfile->listFlush("Estimating approximate confidence intervals from Fisher-Information ...");
-	estimateConfidenceInterval(thetaContainer);
-	logfile->done();
-	logfile->conclude("95% confidence intervals are theta +- " + toString(thetaContainer.thetaConfidence));
-
-	//write results to file
-	//position
-	//TODO: think about how to treat when regions are to be considered
-	if(considerRegions) out << "givenByUser\tgivenByUser\tgivenByUser";
-	else out << start << "\t" << end-1;
-	//coverage NOTE: assumes coverage has been calculated before...
-	if(considerRegions) out << "\t" << "NA" << "\t" << "NA" << "\t" << "NA";
-	else out << "\t" << coverage << "\t" << fractionSitesNoData << "\t" << fractionsitesCoverageAtLeastTwo;
-	//estimated params
-	for(int i=0; i<4; ++i)
-		out << "\t" << baseFreq[i];
-	out << "\t" << thetaContainer.theta << "\t" << thetaContainer.theta - thetaContainer.thetaConfidence << "\t" << thetaContainer.theta + thetaContainer.thetaConfidence << "\t" << thetaContainer.LL << std::endl;
-
-	//finish
-	gettimeofday(&endTime, NULL);
-	logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-	logfile->endIndent();
-}
-*/
-
 void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
@@ -873,14 +810,6 @@ void TWindowDiploid::generatePSMCInput(TThetaEstimator & estimator, int & blockS
 		} else ++nCharOnLine;
 	}
 	delete[] pGenotype;
-}
-
-void TWindowDiploid::addSitesWithDepthTwoOrMoreToVector(std::vector<TSiteDiploid*> & siteVec){
-	for(int i=0; i<length; ++i){
-		if(sites[i].depth() > 1){
-			siteVec.push_back(new TSiteDiploid(&sites[i]));
-		}
-	}
 }
 
 //-------------------------------------------------------

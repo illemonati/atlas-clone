@@ -174,6 +174,7 @@ public:
 		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 			(*it)->fillEmissionProbabilitiesCore(getErrorRate(*it));
 		}
+
 		//then for the site
 		site.calcEmissionProbabilities();
 	};
