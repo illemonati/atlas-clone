@@ -106,6 +106,9 @@ void TSite::calcEmissionProbabilities(double* vec){
 			vec[i] = exp(vec[i] - max);
 		}
 	}
+
+	//for(int i=0; i<numGenotypes; ++i)
+//		std::cout << " " << vec[i];
 }
 
 void TSite::calcEmissionProbabilities(){

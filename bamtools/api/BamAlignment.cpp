@@ -184,6 +184,8 @@ bool BamAlignment::BuildCharData(void) {
         }
     }
 
+    //mod wegmann: we now do this in TAlignmentParser!
+
     // clear previous AlignedBases
     AlignedBases.clear();
     AlignedQualities.clear();
@@ -251,6 +253,7 @@ bool BamAlignment::BuildCharData(void) {
             }
         }
     }
+
 
     // save tag data
     TagData.clear();

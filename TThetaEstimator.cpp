@@ -117,11 +117,12 @@ void TThetaEstimatorData::clear(){
 void TThetaEstimatorData::add(TSite & site){
 	//assumes that emission probabilities were calculated!!
 	++totNumSitesAdded;
-	cumulativeDepth += site.depth();
 
 	//add if site has data
 	if(site.hasData){
 		++numSitesWithData;
+		cumulativeDepth += site.depth();
+
 		saveSite(site);
 
 		//add site to base frequency estimation
@@ -166,8 +167,9 @@ void TThetaEstimatorDataVector::saveSite(TSite & site){
 	sites.push_back(new double[10]);
 	pointerToData = *sites.rbegin();
 
-	for(int g=0; g<numGenotypes; ++g)
+	for(int g=0; g<numGenotypes; ++g){
 		pointerToData[g] = site.emissionProbabilities[g];
+	}
 };
 
 

@@ -12,32 +12,42 @@
 #include "bamtools/api/SamSequenceDictionary.h"
 #include "TGenotypeMap.h"
 #include "TReadGroups.h"
+#include "TLog.h"
 
 class TAlignmentParser{
 private:
-	int maxSize;
+	//variables
+	unsigned int maxSize;
 	TGenotypeMap genoMap;
 	TReadGroups* readGroupTable;
+	TLog* logfile;
+	bool _keepDuplicates;
 	bool initialized;
-
-	std::string name;
 
 	//tmp variables
 	unsigned int i;
 	int d, k, p;
 
+	//functions
 	inline int toQual(const char & q);
-	void parseBasesQualities(BamTools::BamAlignment & bamAlignment);
-	void setDistancesFromEnds(BamTools::BamAlignment & bamAlignment);
+	void parseBasesQualities();
+	void setDistancesFromEnds();
 	void fillContext();
 
 public:
+	//alignment: goal is to make this private!
+	BamTools::BamAlignment bamAlignment;
+
 	//details
 	int length;
+	int chrNumber;
 	std::string readGroup;
 	int readGroupId;
+
 	int32_t position;
 	bool isReverseStrand;
+	bool passedFilters;
+	bool parsed;
 
 	//per base data
 	Base* base;
@@ -51,16 +61,21 @@ public:
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(TReadGroups* readGroupTable, int Size);
+	TAlignmentParser(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
 	~TAlignmentParser(){
 		clear();
 	}
-	void init(TReadGroups* readGroupTable, int MaxSize);
+	void init(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
+	void keepDuplicates(){_keepDuplicates = true;};
 	void clear();
 
-	//functions
-	void parse(BamTools::BamAlignment & bamAlignment);
+	//functions to read and parse
+	bool readAlignment(BamTools::BamReader & bamReader);
+	void parse();
 	void print();
+
+	//functions to access data
+	std::string& name(){return bamAlignment.Filename;};
 };
 
 

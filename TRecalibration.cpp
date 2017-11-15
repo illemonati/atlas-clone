@@ -113,6 +113,17 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 	}
 }
 
+
+void TRecalibration::calcEmissionProbabilities(TSite & site){
+	//first calculate for each base
+	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+		(*it)->fillEmissionProbabilitiesCore(getErrorRate(*it));
+	}
+
+	//then for the site
+	site.calcEmissionProbabilities();
+};
+
 //---------------------------------------------------------------
 //TRecalibrationEMModel
 //---------------------------------------------------------------

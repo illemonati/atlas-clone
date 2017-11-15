@@ -10,6 +10,7 @@
 TAlignmentParser::TAlignmentParser(){
 	maxSize = 0;
 	readGroupTable = NULL;
+	_keepDuplicates = false;
 
 	//data
 	initialized = false;
@@ -25,6 +26,10 @@ TAlignmentParser::TAlignmentParser(){
 	alignedPos = NULL;
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
+	parsed = false;
+	passedFilters = false;
+	logfile = NULL;
+	chrNumber = -1;
 
 	//tmp variables
 	i = 0;
@@ -33,16 +38,17 @@ TAlignmentParser::TAlignmentParser(){
 	p = 0;
 }
 
-TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, int MaxSize){
+TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
 	TAlignmentParser();
-	init(ReadGroupTable, MaxSize);
+	init(ReadGroupTable, MaxSize, Logfile);
 };
 
-void TAlignmentParser::init(TReadGroups* ReadGroupTable, int MaxSize){
+void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
 	clear();
 
 	maxSize = MaxSize;
 	readGroupTable = ReadGroupTable;
+	logfile = Logfile;
 
 	base = new Base[maxSize];
 	baseAsChar = new char[maxSize];
@@ -74,7 +80,7 @@ inline int TAlignmentParser::toQual(const char & q){
 	return (int) q;
 };
 
-void TAlignmentParser::parseBasesQualities(BamTools::BamAlignment & bamAlignment){
+void TAlignmentParser::parseBasesQualities(){
 	// iterate over CigarOps
 	d = 0; //index regarding data structures
 	k = 0; //index inside read
@@ -159,12 +165,7 @@ void TAlignmentParser::parseBasesQualities(BamTools::BamAlignment & bamAlignment
 		throw "Length mismatch!";
 };
 
-void TAlignmentParser::setDistancesFromEnds(BamTools::BamAlignment & bamAlignment){
-	//first parse bases and qualities
-	parseBasesQualities(bamAlignment);
-
-	//now calculate distances from 3 and 5 prime ends
-
+void TAlignmentParser::setDistancesFromEnds(){
 	//is it paired-end?
 	if(bamAlignment.IsProperPair()){
 		if(bamAlignment.IsReverseStrand()){
@@ -227,25 +228,53 @@ void TAlignmentParser::fillContext(){
 	}
 };
 
-void TAlignmentParser::parse(BamTools::BamAlignment & bamAlignment){
+//------------------------------
+//public functions
+//------------------------------
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
+	if(!bamReader.GetNextAlignment(bamAlignment))
+		return false;
+
 	//add basic info
+	parsed = false;
+	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
-	name = bamAlignment.Name; //to be removed, if possible
 	isReverseStrand = bamAlignment.IsReverseStrand();
 
 	//Extract Read Group Info
 	bamAlignment.GetTag("RG", readGroup);
 	readGroupId = readGroupTable->find(readGroup);
 
+
+	//check if read passes basic QC
+	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+
+	//check read length
+	if(bamAlignment.AlignedBases.size() > maxSize)
+		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+
+	//check if insert size is shorter than read, this means we are reading the adaptor sequence
+	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
+		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+		passedFilters = false;
+	}
+
+	return true;
+}
+
+
+void TAlignmentParser::parse(){
 	//first parse bases and qualities
-	parseBasesQualities(bamAlignment);
+	parseBasesQualities();
 
 	//then update distances from ends
-	setDistancesFromEnds(bamAlignment);
+	setDistancesFromEnds();
+
+	parsed = true;
 };
 
 void TAlignmentParser::print(){
-	std::cout << "NAME:\t" << name << std::endl;
+	std::cout << "NAME:\t" << bamAlignment.Name << std::endl;
 	std::cout << "LEN:\t" << length << std::endl;
 
 	//print bases

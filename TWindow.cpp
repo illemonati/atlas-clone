@@ -205,15 +205,20 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 	//find which position to consider first
 	++numReadsInWindow;
 	int firstPos = alignemntParser.position - start;
+
+	//std::cout << "[" << start << "," << end <<  "]: firstPos = " << firstPos;
+
 	int p = 0;
+
 	if(firstPos < 0){
-		firstPos = 0;
-		while(p < alignemntParser.length && (firstPos + alignemntParser.alignedPos[p]) > 0)
+		while(p < alignemntParser.length && (firstPos + alignemntParser.alignedPos[p]) < 0)
 			++p;
 		if(p == alignemntParser.length)
 			return false;
 	}
 	int internalPos;
+
+	//std::cout << " -> firstPos = " << firstPos << ", p = " << p << std::endl;
 
 	/* Note:
 	 *  1) Reference is 5' -> 3'
@@ -229,6 +234,8 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 				if(internalPos >= length)
 					return true; //since part of the read maps to next window
 				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], alignemntParser.distFrom5Prime[p], alignemntParser.distFrom3Prime[p], pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
+
+				//std::cout << alignemntParser.position << "[" << p << "] -> " << internalPos + start << std::endl;
 			}
 		}
 	}
@@ -321,9 +328,12 @@ void TWindow::estimateBaseFrequencies(){
 
 void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
+		//std::cout << start + i << ":";
+
+		if(sites[i].hasData)
 			recalObject->calcEmissionProbabilities(sites[i]);
-		}
+
+		//std::cout << std::endl;
 	}
 }
 

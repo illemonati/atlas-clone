@@ -100,9 +100,13 @@ public:
 		return false;
 	};
 
+	bool readGroupInUse(int & readGroupId){
+		return inUse[readGroupId];
+	};
+
 	bool readGroupInUse(BamTools::BamAlignment & alignment){
 		return inUse[find(alignment)];
-	}
+	};
 
 	std::string getName(int num){
 		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
