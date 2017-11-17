@@ -297,8 +297,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 void TSimulator::setQualityDistribution(double mean, double sd, int MaxQual){
 	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
 	sdQual = sd;
-	maxQual = MaxQual;
-
+	maxQual = MaxQual + 33;
+	if(maxQual > 127)
+		logfile->warning("maxQual is larger than 94, which may pose issues with other software reading BAM files.");
 }
 
 void TSimulator::initializeQualityTransform(TParameters & params){
@@ -494,7 +495,7 @@ void TSimulator::setQualityTransformation(std::vector<double> & Betas){
 
 int TSimulator::sampleQuality(){
 	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
-	if(qual > 126) qual = 126;
+	if(qual > maxQual) qual = maxQual;
 	if(qual < 33) qual = 33;
 	return qual;
 };
