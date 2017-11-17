@@ -520,7 +520,19 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 	static double q;
 
 	constant = posTermForTransformation[pos] + beta[context+4] - qualTermForTransformation[qual];
-	if(4.0 * beta[1] * constant > beta[0] * beta[0]) throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
+	if(4.0 * beta[1] * constant > beta[0] * beta[0]){
+
+		std::cout << "qual = " << qual << ", pos= " << pos << ", context = " << context << std::endl;
+		std::cout << "posTermForTransformation[pos] = " << posTermForTransformation[pos] << std::endl;
+		std::cout << "beta[context+4] = " << beta[context+4] << std::endl;
+		std::cout << "qualTermForTransformation[qual] = " << qualTermForTransformation[qual] << std::endl;
+		std::cout << "beta = " << beta[0] << ", " << beta[1] << ", " << beta[2] << ", " << beta[4] << std::endl;
+		std::cout << "4.0 * beta[1] * constant = " << 4.0 * beta[1] * constant  << std::endl;
+		std::cout << "beta[0] * beta[0] = " << beta[0] * beta[0] << std::endl;
+
+
+		throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
+	}
 	if(beta[1] == 0.0){
 		q = -constant / beta[0];
 	} else {
@@ -530,7 +542,12 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 	}
 
 	tmp = exp(q);
-	if(tmp == 0) throw "choose different quality transformation parameters! tmp == 0";
+	if(tmp == 0){
+
+		std::cout << "q = " << q << ", beta[0] * beta[0] - 4.0 * beta[1] * constant = " << beta[0] * beta[0] - 4.0 * beta[1] * constant << ", sqrt() = " << sqrt(beta[0] * beta[0] - 4.0 * beta[1] * constant) << std::endl;
+
+		throw "choose different quality transformation parameters! tmp == 0";
+	}
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 

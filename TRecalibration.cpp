@@ -113,16 +113,23 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 	}
 }
 
-
 void TRecalibration::calcEmissionProbabilities(TSite & site){
 	//first calculate for each base
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-		(*it)->fillEmissionProbabilitiesCore(getErrorRate(*it));
+		(*it)->fillEmissionProbabilitiesCore(getErrorRateFromBase(**it));
 	}
 
 	//then for the site
 	site.calcEmissionProbabilities();
 };
+
+double TRecalibration::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	return dePhred(quality);
+}
+
+double TRecalibration::getErrorRateFromBase(const TBase & base){
+	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
+}
 
 //---------------------------------------------------------------
 //TRecalibrationEMModel
@@ -858,10 +865,6 @@ void TRecalibrationEM::addSite(TSite & site){
 	++numSitesAdded;
 }
 
-double TRecalibrationEM::getErrorRate(TBase* base){
-	return model->getErrorRate(readGroupMap[base->readGroup], dePhred(base->quality), base->posInRead, base->context);
-}
-
 void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
 	//variables
 	double maxF;
@@ -1191,11 +1194,22 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 */
 
-int TRecalibrationEM::getQuality(TBase* base){
-	double q = getErrorRate(base);
+double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	return model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
+}
+
+int TRecalibrationEM::getQuality(const TBase & base){
+	double q = getErrorRateFromBase(base);
 	//transform to quality
 	return makePhredInt(q);
 }
+
+int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
+	//transform to quality
+	return makePhredInt(q);
+}
+
 //---------------------------------------------------------------
 //TBQSR_cell_base BQSR
 //---------------------------------------------------------------
@@ -2772,17 +2786,23 @@ void TRecalibrationBQSR::reopenEstimation(){
 	}
 }
 
-double TRecalibrationBQSR::getErrorRate(TBase* base){
-	double q = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
-	if(considerPosition) q *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
-	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[base->readGroup][base->posInReadRev].curEstimate;
-	if(considerContext) q *= BQSR_cells_readGroup_context[base->readGroup][base->context].curEstimate;
+double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = BQSR_cells_readGroup_quality[readGroupId][qualityIndex->getIndex(quality)].curEstimate;
+	if(considerPosition) q *= BQSR_cells_readGroup_position[readGroupId][pos].curEstimate;
+	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[readGroupId][posRev].curEstimate;
+	if(considerContext) q *= BQSR_cells_readGroup_context[readGroupId][context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
 }
 
-int TRecalibrationBQSR::getQuality(TBase* base){
-	double q = getErrorRate(base);
+int TRecalibrationBQSR::getQuality(const TBase & base){
+	double q = getErrorRateFromBase(base);
+	//transform to quality
+	return makePhredInt(q);
+}
+
+int TRecalibrationBQSR::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = getErrorRate(readGroupId, quality, pos, posRev, context);
 	//transform to quality
 	return makePhredInt(q);
 }

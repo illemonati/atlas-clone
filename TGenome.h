@@ -120,9 +120,11 @@ public:
 	void writeGLF(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
+
+
+	//recalibration
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
-	//void fillSequence(std::vector<double> & vec, std::string & str);
 	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
@@ -132,6 +134,7 @@ public:
 	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	double returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
 	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, int & begin, std::string & ref, std::map <std::string, int> & mateTooLong);
+	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 	void assessSoftClipping(TParameters & params);

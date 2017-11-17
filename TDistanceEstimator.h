@@ -70,7 +70,7 @@ private:
 	TGenotypeMap genoMap;
 	TGenoToPhiMap genoToPhiMap;
 	TGenocombinationToBaseMap genoToBaseMap;
-	TPhredToLikelihood phredToLik;
+	TQualityMap phredToLik;
 	double old_LL;
 	double* K; //normalizing constant
 	double** probGeno;

@@ -24,6 +24,7 @@ public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
 	Base** genotypeToBase; //mapping genotypes to bases
+	char* baseToChar;
 	int numContexts;
 
 	TGenotypeMap(){
@@ -69,6 +70,14 @@ public:
 				++context;
 			}
 		}
+
+		//fill base to char map
+		baseToChar = new char[5];
+		baseToChar[A] = 'A';
+		baseToChar[C] = 'C';
+		baseToChar[G] = 'G';
+		baseToChar[T] = 'T';
+		baseToChar[N] = 'N';
 	};
 
 	~TGenotypeMap(){
@@ -83,6 +92,7 @@ public:
 			delete[] genotypeToBase[i];
 		delete[] genotypeToBase;
 		delete[] contextMap;
+		delete[] baseToChar;
 	};
 
 	Base getBase(char & base){
@@ -259,35 +269,55 @@ public:
 };
 
 //---------------------------------------------------------------
-//TPhredToLikelihood
+//TQualityMap
 //---------------------------------------------------------------
-class TPhredToLikelihood{
+class TQualityMap{
 public:
-	double* phredToLikelihood;
+	double* phredToErrorMap;
+	double* charToErrorMap;
 	double min;
+	int size;
 
-	TPhredToLikelihood(){
+	TQualityMap(){
 		//only up to phred = 255, else always return 256
-		phredToLikelihood = new double[256];
-		phredToLikelihood[0] = 1.0;
-		for(int i=0; i<256; ++i)
-			phredToLikelihood[i] = pow(10.0, (double) -i/10.0);
+		size = 256;
+		phredToErrorMap = new double[size];
+		charToErrorMap = new double[size + 33];
+
+		//initialize quality <= 0
+		for(int i=0; i<33; ++i)
+			charToErrorMap[i] = 1.0;
+		phredToErrorMap[0] = 1.0;
+
+		//and now others
+		for(int i=0; i<256; ++i){
+			phredToErrorMap[i] = pow(10.0, (double) -i/10.0);
+			charToErrorMap[i+33] = phredToErrorMap[i];
+		}
 		min = pow(10.0, (double) -256/10.0);
 	};
 
-	~TPhredToLikelihood(){
-		delete[] phredToLikelihood;
+	~TQualityMap(){
+		delete[] phredToErrorMap;
 	};
 
-	double getLikelihood(int phred){
+	double phredToError(int phred){
 		if(phred>255)
 			return min;
-		else return phredToLikelihood[phred];
+		else return phredToErrorMap[phred];
+	};
+
+	inline int errorToPhred(const double & errorRate){
+		return round(-10.0 * log10(errorRate));
+	};
+
+	inline int errorToQuality(const double & errorRate){
+		return round(-10.0 * log10(errorRate)) + 33;
 	};
 
 	double& operator[](int phred){
 		//Note: no check on range!
-		return phredToLikelihood[phred];
+		return phredToErrorMap[phred];
 	};
 };
 

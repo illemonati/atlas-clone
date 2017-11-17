@@ -10,26 +10,39 @@
 TAlignmentParser::TAlignmentParser(){
 	maxSize = 0;
 	readGroupTable = NULL;
+	logfile = NULL;
 	_keepDuplicates = false;
-
-	//data
 	initialized = false;
+
+	//details
 	length = 0;
+	chrNumber = -1;
 	readGroupId = -1;
 	position = 0;
 	isReverseStrand = false;
+	passedFilters = false;
+	parsed = false;
+	changed = false;
+
+	//per base data
 	base = NULL;
 	baseAsChar = NULL;
 	context = NULL;
 	quality = NULL;
+	qualityOriginal = NULL;
+	errorRates = NULL;
+	recalibrated = false;
+	qualityRecalibrated = NULL;
 	aligned = NULL;
 	alignedPos = NULL;
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
-	parsed = false;
-	passedFilters = false;
-	logfile = NULL;
-	chrNumber = -1;
+
+	//soft clipped data
+	softClippedEntry = 0;
+	softClippedLength = NULL;
+	softClippedBase = NULL;
+	softClippedQuality = NULL;
 
 	//tmp variables
 	i = 0;
@@ -50,14 +63,26 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, T
 	readGroupTable = ReadGroupTable;
 	logfile = Logfile;
 
+	//data
 	base = new Base[maxSize];
 	baseAsChar = new char[maxSize];
 	context = new BaseContext[maxSize];
-	quality = new int[maxSize];
+	qualityOriginal = new int[maxSize];
+	qualityRecalibrated = new int[maxSize];
+	errorRates = new double[maxSize];
 	aligned = new bool[maxSize];
 	alignedPos = new int[maxSize];
 	distFrom3Prime = new int[maxSize];
 	distFrom5Prime = new int[maxSize];
+
+	//soft clipped data
+	softClippedLength = new int[2];
+	softClippedBase = new char*[2];
+	softClippedQuality = new char*[2];
+	softClippedBase[0] = new char[maxSize];
+	softClippedBase[1] = new char[maxSize];
+	softClippedQuality[0] = new char[maxSize];
+	softClippedQuality[1] = new char[maxSize];
 
 	initialized = true;
 };
@@ -65,19 +90,24 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, T
 void TAlignmentParser::clear(){
 	if(initialized){
 		delete[] base;
-		delete[] quality;
+		delete[] qualityOriginal;
+		delete[] qualityRecalibrated;
+		delete[] errorRates;
 		delete[] aligned;
 		delete[] alignedPos;
 		delete[] distFrom3Prime;
 		delete[] distFrom5Prime;
+
+		delete[] softClippedLength;
+		delete[] softClippedBase[0];
+		delete[] softClippedBase[1];
+		delete[] softClippedBase;
+		delete[] softClippedQuality[0];
+		delete[] softClippedQuality[1];
+		delete[] softClippedQuality;
+
 		initialized = false;
 	}
-};
-
-inline int TAlignmentParser::toQual(const char & q){
-	//TODO: switch to already parsing quality here. Will need to adjust filters in TGenome!!!!
-	//return (int) q - 33;
-	return (int) q;
 };
 
 void TAlignmentParser::parseBasesQualities(){
@@ -85,6 +115,8 @@ void TAlignmentParser::parseBasesQualities(){
 	d = 0; //index regarding data structures
 	k = 0; //index inside read
 	p = 0; //index regarding reference position (!= k for indels)
+	softClippedEntry = 0; //softclipped bases to be added
+	softClippedLength[0] = 0; softClippedLength[1] = 0;
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
@@ -100,41 +132,42 @@ void TAlignmentParser::parseBasesQualities(){
 				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
-					quality[d] = toQual(bamAlignment.Qualities[k]);
+					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
+					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
 				}
+				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			//for 'S' - soft clip: ignore bases, but increase k
 			case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
-				k += op.Length;
-				break;
-
+				//add bases to softclipped entries
 				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
-					baseAsChar[d] = bamAlignment.QueryBases[k];
-					quality[d] = toQual(bamAlignment.Qualities[k]);
-					aligned[d] = false;
-					alignedPos[d] = p;
+					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
+					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
+					++softClippedLength[softClippedEntry];
 				}
 				break;
-
 
 			//for 'I' - insertion: copy bases, but put aligned pos to
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(i=0; i<op.Length; ++i, ++d, ++k){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
-					quality[d] = toQual(bamAlignment.Qualities[k]);
+					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
+					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = -1;
 				}
+				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
+
 
 			// for 'D' - deletion: just add to postion
 			case (BamTools::Constants::BAM_CIGAR_DEL_CHAR) :
 				p += op.Length;
+				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			// for 'N' - skipped region: copy but say that bases were not aligned
@@ -142,10 +175,12 @@ void TAlignmentParser::parseBasesQualities(){
 				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
-					quality[d] = toQual(bamAlignment.Qualities[k]);
+					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
+					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = p;
 				}
+				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			// for 'H' - hard clip: do nothing as these bases are not present in SEQ
@@ -218,13 +253,13 @@ void TAlignmentParser::fillContext(){
 	if(isReverseStrand){
 		//reverse
 		for(d=0; d<(length-1); ++d)
-			context[d] = genoMap.getContextReverseRead(base[d+1], base[d]);
-		context[d] = genoMap.getContext(N, base[d]);
+			context[d] = genoMap.contextMap[base[d+1]][base[d]];
+		context[d] = genoMap.contextMap[N][base[d]];
 	} else {
 		//forward
-		context[0] = genoMap.getContext(N, base[0]);
+		context[0] = genoMap.contextMap[N][base[d]];
 		for(d=1; d<length; ++d)
-			context[d] = genoMap.getContext(base[d-1], base[d]);
+			context[d] = genoMap.contextMap[base[d-1]][base[d]];
 	}
 };
 
@@ -237,6 +272,9 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 
 	//add basic info
 	parsed = false;
+	recalibrated = false;
+	changed = false;
+	quality = qualityOriginal;
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
 	isReverseStrand = bamAlignment.IsReverseStrand();
@@ -244,7 +282,6 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	//Extract Read Group Info
 	bamAlignment.GetTag("RG", readGroup);
 	readGroupId = readGroupTable->find(readGroup);
-
 
 	//check if read passes basic QC
 	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && (_keepDuplicates || !bamAlignment.IsDuplicate());
@@ -264,13 +301,89 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 
 
 void TAlignmentParser::parse(){
-	//first parse bases and qualities
-	parseBasesQualities();
+	if(!parsed){
+		//first parse bases and qualities
+		parseBasesQualities();
 
-	//then update distances from ends
-	setDistancesFromEnds();
+		//then update distances from ends
+		setDistancesFromEnds();
 
-	parsed = true;
+		parsed = true;
+	}
+};
+
+void TAlignmentParser::recalibrate(TRecalibration & recalObject){
+	//make sure read is parsed
+	parse();
+
+	if(recalObject.recalibrationChangesQualities()){
+		//recalibrate quality scores
+		for(d=0; d<length; ++d){
+			k = length - d - 1;
+			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
+			qualityRecalibrated[d] = qualityMap.errorToPhred(errorRates[d]);
+		}
+		quality = qualityRecalibrated;
+		changed = true;
+	} else changed = false;
+	recalibrated = true;
+
+};
+
+void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, BamTools::Fasta & reference){
+	//make sure read is parsed
+	parse();
+
+	//get reference sequence
+	reference.GetSequence(chrNumber, position, alignedPos[length-1], tmpString);
+
+	//recalibrate quality scores
+	for(d=0; d<length; ++d){
+		k = length - d - 1;
+		if(recalObject.recalibrationChangesQualities())
+			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
+
+		//now add effect of PMD
+		if(aligned[d]){
+			if(base[d] == T && tmpString[alignedPos[d]] == 'C')
+				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]))); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+			else if(base[d] == A && tmpString[alignedPos[d]] == 'G')
+				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]))); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+		}
+
+		qualityRecalibrated[d] = qualityMap.errorToPhred(errorRates[d]);
+	}
+
+	//set pointer to recalibrated scores
+	quality = qualityRecalibrated;
+	recalibrated = true;
+	changed = true;
+};
+
+void TAlignmentParser::save(BamTools::BamWriter & bamWriter){
+	if(!changed){
+		if(!bamWriter.SaveAlignment(bamAlignment))
+			throw "Read '" + bamAlignment.Name + "' could not be written!";
+	}
+	else {
+		//means that read has been modified.
+		//Currently quality recalibration is the only possible change.
+		//But will need to think how to deal with merging and such...
+
+		//assume that only bases and quality scores where changed
+		tmpString.clear();
+		tmpString2.clear();
+		for(d=0; d<length; ++d){
+			tmpString += genoMap.baseToChar[base[d]];
+			tmpString2 += (char) quality[d];
+		}
+
+		bamAlignment.QueryBases = tmpString;
+		bamAlignment.Qualities = tmpString2;
+
+		if(!bamWriter.SaveAlignment(bamAlignment))
+			throw "Read '" + bamAlignment.Name + "' could not be written!";
+	}
 };
 
 void TAlignmentParser::print(){
@@ -317,8 +430,6 @@ void TAlignmentParser::print(){
 	std::cout << std::endl;
 }
 
-void TAlignmentParser::recalibrate(TRecalibration & recalObject){
 
-};
 
 

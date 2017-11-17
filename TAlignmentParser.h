@@ -9,24 +9,38 @@
 #define TALIGNMENTPARSER_H_
 
 #include "bamtools/api/BamReader.h"
+#include "bamtools/api/BamWriter.h"
 #include "bamtools/api/SamSequenceDictionary.h"
+#include "bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
 #include "TReadGroups.h"
 #include "TLog.h"
+#include "TRecalibration.h"
+#include "TPostMortemDamage.h"
 
 class TAlignmentParser{
 private:
 	//variables
 	unsigned int maxSize;
 	TGenotypeMap genoMap;
+	TQualityMap qualityMap;
 	TReadGroups* readGroupTable;
 	TLog* logfile;
 	bool _keepDuplicates;
+
+	//data
 	bool initialized;
+	bool parsed;
+	bool changed;
+	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
+	int* qualityRecalibrated;
+	double* errorRates;
 
 	//tmp variables
 	unsigned int i;
 	int d, k, p;
+	std::string tmpString;
+	std::string tmpString2;
 
 	//functions
 	inline int toQual(const char & q);
@@ -47,17 +61,23 @@ public:
 	int32_t position;
 	bool isReverseStrand;
 	bool passedFilters;
-	bool parsed;
+	bool recalibrated;
 
 	//per base data
 	Base* base;
 	char* baseAsChar; //to be removed, if possible
 	BaseContext* context;
-	int* quality;
+	int* quality; //pointer to qualities ot be used
 	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
 	int* alignedPos;
 	int* distFrom3Prime;
 	int* distFrom5Prime;
+
+	//soft clipped data
+	uint8_t softClippedEntry; //0 means start, 1 means end of read
+	int* softClippedLength;
+	char** softClippedBase;
+	char** softClippedQuality;
 
 	//construction
 	TAlignmentParser();
@@ -72,11 +92,13 @@ public:
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
 	void parse();
-	void print();
 
 	//functions to access data
 	std::string& name(){return bamAlignment.Filename;};
 	void recalibrate(TRecalibration & recalObject);
+	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, BamTools::Fasta & reference);
+	void save(BamTools::BamWriter & bamWriter);
+	void print();
 };
 
 

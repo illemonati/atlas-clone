@@ -41,13 +41,13 @@ public:
 		delete[] index;
 	};
 
-	int& getIndex(int & quality){
+	int& getIndex(const int & quality){
 		if(quality < 0) throw "Quality is negative!";
 		if(quality > maxQ) return last;
 		return index[quality];
 	};
 
-	int getQuality(int & index){
+	int getQuality(const int & index){
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
@@ -133,6 +133,9 @@ public:
 		if(readGroupMapInitialized) delete[] readGroupMap;
 	};
 
+	virtual bool recalibrationChangesQualities(){
+		return false;
+	};
 
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
@@ -154,15 +157,7 @@ public:
 		return pow(10.0, quality / -10.0);
 	};
 
-	virtual double getErrorRate(TBase* base){
-		return dePhred(base->quality);
-	};
-
-	virtual int getQuality(TBase* base){
-		return base->quality;
-	};
-
-	char getQualityAsChar(TBase* base, int & minOutQuality, int & maxOutQuality){
+	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
 		int qual = getQuality(base) + 33;
 		if(qual > maxOutQuality) qual = maxOutQuality;
 		if(qual < minOutQuality) qual = minOutQuality;
@@ -170,6 +165,14 @@ public:
 	};
 
 	void calcEmissionProbabilities(TSite & site);
+	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	double getErrorRateFromBase(const TBase & base);
+	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+		return quality;
+	};
+	virtual int getQuality(const TBase & base){
+		return base.quality;
+	};
 
 	virtual bool requiresEstimation(){ return false;};
 	int findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups);
@@ -316,10 +319,10 @@ public:
 		windows.clear();
 		delete model;
 	};
+	bool recalibrationChangesQualities(){ return true; };
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
-	double getErrorRate(TBase* base);
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename, double & LL);
@@ -328,7 +331,9 @@ public:
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
-	int getQuality(TBase* base);
+	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	int getQuality(const TBase & base);
+	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
 //---------------------------------------------------------------
@@ -540,6 +545,7 @@ public:
 		}
 	};
 
+	bool recalibrationChangesQualities(){ return true; };
 	bool dataHasBeenStored(){ return dataStored; };
 	void addSite(TSite & site);
 	void recalculateDerivativesFromDataInMemory();
@@ -556,8 +562,9 @@ public:
 	void calculateAndPrintLLSurfaceContext(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
-	double getErrorRate(TBase* base);
-	int getQuality(TBase* base);
+	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	int getQuality(const TBase & base);
+	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
 

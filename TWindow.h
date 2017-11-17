@@ -11,7 +11,6 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "bamtools/utils/bamtools_fasta.h"
 #include "TAlignmentParser.h"
 #include "TRecalibration.h"
 #include "TThetaEstimator.h"

@@ -1709,8 +1709,9 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 
 
-
-
+/*
+TO BE REMOVED ONCE ALSO PMDS WAS TRANSFERRED TO NEW WAY OF PARSING ALIGNMENTS
+*/
 void TGenome::createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	if(base == 'A') *basePointer = new TBaseDiploidA(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
 	else if(base == 'C') *basePointer = new TBaseDiploidC(quality, posInRead, revPosInRead,  pmdCT, pmdGA, context, readGroupId);
@@ -1722,7 +1723,7 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-	char qual = recalObject->getQualityAsChar(basePointer, minOutQuality, maxOutQuality); //is in ascii, already has filter
+	char qual = recalObject->getQualityAsChar(*basePointer, minOutQuality, maxOutQuality); //is in ascii, already has filter
 
 	delete basePointer;
 	return qual;
@@ -1751,7 +1752,7 @@ double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & ref
 double TGenome::returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId){
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
-	double qual = recalObject->getErrorRate(basePointer);
+	double qual = recalObject->getErrorRateFromBase(*basePointer);
 	delete basePointer;
 	return qual;
 }
@@ -1769,11 +1770,7 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 
 	int len = bases.size();
 
-	/*if(withPMD){
-		//withPMD requires knowledge about distance from read ends. If there are indels, these distances can only be calculated by
-		//taking cigar string into account. Since
-		if(alignment.AlignedBases.size() != alignment.QueryBases.size()) withPMD = false;
-	}*/
+
 	int readGroupId = readGroups.find(alignment);
 
 	//parse into bases
@@ -1908,6 +1905,16 @@ bool TGenome::recalibrateAlignment(BamTools::BamAlignment & alignment, std::stri
 	return true;
 }
 
+
+void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
+	if(counter % 1000000 == 0){
+		static struct timeval end;
+		gettimeofday(&end, NULL);
+		static float runtime = (end.tv_sec  - start.tv_sec)/60.0;
+		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	}
+}
+
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -1920,21 +1927,18 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	//other temp variables
-	TGenotypeMap genoMap;
-	std::string qual;
-	long counter = 0;
-	std::map <std::string, int> mateTooLong;
+	//do we also account for PMD?
 	bool withPMD = params.parameterExists("withPMD");
-
 	if(!withPMD && hasPMD) logfile->list("Note: PMD will not be reflected in the quality scores (preferred option when using ATLAS). If you want the quality scores to reflect pmd, use \"withPMD\"!");
 	else if(withPMD && hasPMD) logfile->list("Probability of PMD will be reflected in new quality scores");
 	else if(withPMD && !hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
 	if(withPMD && !fastaReference) throw "Cannot run recalBAM withPMD without reference!";
 
-	//declare reference (this is necessary for withPMD option)
+	//other tmp variables
+	long counter = 0;
 	int curChr = -1;
-	int len, begin = 0, windowSize = 1000000;
+	int len, begin = 0;
+	int windowSize = 1000000;
 	int stop = begin + windowSize; //note that end is last position + 1
 	std::string ref; //fasta object fills string
 
@@ -1945,32 +1949,23 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	float runtime;
 
     //now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
-		len = bamAlignment.AlignedBases.size();
-		if(withPMD && (bamAlignment.Position + len >= stop || curChr!=bamAlignment.RefID)){
-			curChr = bamAlignment.RefID;
-			begin = bamAlignment.Position;
-			stop = begin + windowSize;
-			reference.GetSequence(curChr, begin, stop, ref);
+	if(withPMD){
+		while(alignmentParser.readAlignment(bamReader)){
+			++counter;
+
+			alignmentParser.recalibrate(*recalObject, pmdObjects, reference);
+			alignmentParser.save(bamWriter);
+
+			reportProgressParsingBamFile(counter, start);
 		}
+	} else {
+		while(alignmentParser.readAlignment(bamReader)){
+			++counter;
 
-		++counter;
-		//update and write (only if alignment qualities could be calculated)
-		if(recalibrateAlignment(bamAlignment, qual, genoMap, withPMD, begin, ref, mateTooLong)){
-			bamAlignment.Qualities = qual;
-			eraseAllOccurences(bamAlignment.AlignedBases, "-");
-			bamAlignment.QueryBases = bamAlignment.AlignedBases;
-			bamAlignment.CigarData.clear();
-			bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, bamAlignment.Qualities.size()));
+			alignmentParser.recalibrate(*recalObject);
+			alignmentParser.save(bamWriter);
 
-			if(!bamWriter.SaveAlignment(bamAlignment)) throw bamAlignment.Name + " read not printed";
-
-		}
-		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+			reportProgressParsingBamFile(counter, start);
 		}
 	}
 
@@ -1978,9 +1973,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
