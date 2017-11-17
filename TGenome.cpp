@@ -620,6 +620,9 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 						thetaEstimator.writeResultsToFile(out);
 					}
 
+					//clear theta estimator
+					thetaEstimator.clear();
+
 					//finish
 					gettimeofday(&endTime, NULL);
 					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");

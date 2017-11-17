@@ -227,8 +227,8 @@ public:
 		delete data;
 	};
 
+	void clear();
 	void add(TSite & site);
-	//long size(){ return data->size();};
 	long sizeWithData(){ return data->sizeWithData();};
 	void fillPGenotype(double* & pGeno);
 	bool estimateTheta();

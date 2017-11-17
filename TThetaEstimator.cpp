@@ -230,7 +230,9 @@ bool TThetaEstimatorData::begin(){
 };
 
 bool TThetaEstimatorData::next(){
-	if(isBootstrapped){
+	if(!isBootstrapped)
+		readNext();
+	else {
 		if(curRep < numBootstrapRepsPerEntry[curSite]){
 			++curRep;
 			return true;
@@ -241,7 +243,7 @@ bool TThetaEstimatorData::next(){
 				readNext();
 			}
 		}
-	} else readNext();
+	}
 
 	return(readState);
 };
@@ -270,14 +272,16 @@ void TThetaEstimatorDataVector::emptyStorage(){
 void TThetaEstimatorDataVector::readNext(){
 	++siteIt;
 	++curSite;
+
+	//readState = (siteIt == sites.end())
+
 	if(siteIt == sites.end())
 		readState = false;
-	else
-		readState = true;
 }
 
 void TThetaEstimatorDataVector::_begin(){
 	siteIt = sites.begin();
+	readState = true;
 };
 
 bool TThetaEstimatorDataVector::isEnd(){
@@ -335,7 +339,6 @@ double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
 TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 	numGenotypes = 10;
-	P_g_oneSite = new double[numGenotypes];
 
 	//parse
 	logfile->startIndent("Parameters of EM algorithm:");
@@ -363,6 +366,9 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 		initThetaSearchFactor = 0;
 	}
 
+	//counters and tmp variables
+	init();
+
 	//storing data in file?
 	if(params.parameterExists("useTmpFile")){
 		std::string dataFileName = params.getParameterStringWithDefault("useTmpFile", "temporaryDataForThetaEstimation.tmp.gz");
@@ -372,9 +378,6 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 
 	//extra verbosity
 	extraVerbose = params.parameterExists("extraVerbose");
-
-	//counters and tmp variables
-	init();
 
 	//done
 	logfile->endIndent();
@@ -401,6 +404,7 @@ void TThetaEstimator::init(){
 	//initialize arrays
 	pGenotype = new double[numGenotypes];
 	P_G = new double[numGenotypes];
+	P_g_oneSite = new double[numGenotypes];
 	baseFreq = new double[4];
 
 	//tmp stuff
@@ -408,12 +412,18 @@ void TThetaEstimator::init(){
 	sum = 0.0;
 }
 
+void TThetaEstimator::clear(){
+	data->clear();
+};
+
 void TThetaEstimator::add(TSite & site){
 	data->add(site);
-}
+};
 
 void TThetaEstimator::fillPGenotype(double* & pGeno, double & expTheta){
 	//assumes that base frequencies are set!
+	static int i;
+	static int j;
 	for(int i=0; i<4; ++i){
 		//homozygous genotypes
 		pGeno[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
