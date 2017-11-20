@@ -90,6 +90,11 @@ protected:
 	uint8_t curRep;
 	double* pointerToData;
 
+	//tmp variables
+	int g;
+	double sum;
+	double* P_g_oneSite;
+
 	virtual void saveSite(TSite & site){ throw "Not available in TThetaEstimatorData base class!"; };
 	virtual void emptyStorage(){};
 	void fillPoissonForBootstrap(const double lambda);
@@ -101,6 +106,7 @@ public:
 	virtual ~TThetaEstimatorData(){
 		clear();
 		delete[] poissonProb;
+		delete[] P_g_oneSite;
 		if(numBootstrapRepsPerEntryInitialized)
 			delete[] numBootstrapRepsPerEntry;
 	};
@@ -125,6 +131,8 @@ public:
 	void writeHeader(std::ofstream & out);
 	void writeSize(std::ofstream & out);
 	void fillBaseFreq(double* baseFreq);
+	virtual void fillP_G(double* & P_G, double* & pGenotype);
+	virtual double calcLogLikelihood(double* & pGenotype);
 };
 
 
@@ -146,6 +154,8 @@ public:
 	void _begin();
 	bool isEnd();
 	double* curGenotypeLikelihoods();
+	void fillP_G(double* & P_G, double* & pGenotype);
+	double calcLogLikelihood(double* & pGenotype);
 };
 
 

@@ -136,7 +136,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		if(minQuality < 0) throw "minQuality must be >= 0!";
 		maxQuality = params.getParameterInt("maxQual") + 33;
 		if(maxQuality < minQuality) throw "maxQuality must be >= minQuality!";
-		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
+		logfile->list("Win schwiez invasiv"
+				"ll filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
 	} else {
 		applyQualityFilter = false;
 		minQuality = 34; //filter out quality 0 by default

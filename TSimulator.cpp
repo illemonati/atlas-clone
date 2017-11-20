@@ -267,7 +267,7 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	//quality distribution
 	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
 	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
-	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
+	int maxQ = params.getParameterDoubleWithDefault("maxQual", 94);
 	setQualityDistribution(mQ, sdQ, maxQ);
 	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual-33) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual-33) + ".");
 

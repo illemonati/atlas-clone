@@ -110,6 +110,9 @@ TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
 	totNumSitesAdded = 0;
 	numSitesWithData = 0;
 	cumulativeDepth = 0.0;
+	sum = 0.0;
+	g = 0;
+	P_g_oneSite = new double[numGenotypes];
 
 	isBootstrapped = false;
 	numBootstrappedSites = false;
@@ -158,6 +161,41 @@ void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
 		baseFreq[i] = initialBaseFreq[i];
 };
 
+void TThetaEstimatorData::fillP_G(double* & P_G, double* & pGenotype){
+	//assumes that pGenotype is set!
+	for(g=0; g<numGenotypes; ++g)
+		P_G[g] = 0.0;
+
+	//calculate P_g for each site
+	double* d;
+	begin();
+	do{
+		sum = 0.0;
+		d = curGenotypeLikelihoods();
+		for(g=0; g<numGenotypes; ++g){
+			P_g_oneSite[g] =  d[g] * pGenotype[g];
+			sum += P_g_oneSite[g];
+		}
+		for(g=0; g<numGenotypes; ++g)
+			P_G[g] += P_g_oneSite[g] / sum;
+
+	} while(next());
+};
+
+double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
+	double LL = 0.0;
+	double* d;
+	begin();
+	do{
+		sum = 0.0;
+		d = curGenotypeLikelihoods();
+		for(g=0; g<numGenotypes; ++g)
+			sum +=  d[g] * pGenotype[g];
+		LL += log(sum);
+	} while(next());
+
+	return LL;
+};
 
 void TThetaEstimatorData::writeHeader(std::ofstream & out){
 	out << "\tdepth\tfracMissing\tfracTwoOrMore";
@@ -292,6 +330,37 @@ double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
 	return *siteIt;
 }
 
+void TThetaEstimatorDataVector::fillP_G(double* & P_G, double* & pGenotype){
+	//assumes that pGenotype is set!
+	for(g=0; g<numGenotypes; ++g)
+		P_G[g] = 0.0;
+
+	//calculate P_g for each site
+	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
+		sum = 0.0;
+		for(g=0; g<numGenotypes; ++g){
+			P_g_oneSite[g] =  (*siteIt)[g] * pGenotype[g];
+			sum += P_g_oneSite[g];
+		}
+		for(g=0; g<numGenotypes; ++g)
+			P_G[g] += P_g_oneSite[g] / sum;
+
+	}
+};
+
+double TThetaEstimatorDataVector::calcLogLikelihood(double* & pGenotype){
+	double LL = 0.0;
+
+	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
+		sum = 0.0;
+		for(g=0; g<numGenotypes; ++g)
+			sum +=  (*siteIt)[g] * pGenotype[g];
+		LL += log(sum);
+	}
+
+	return LL;
+};
+
 //-------------------------------------------------------
 //TThetaEstimatorDataFile
 //-------------------------------------------------------
@@ -424,11 +493,11 @@ void TThetaEstimator::fillPGenotype(double* & pGeno, double & expTheta){
 	//assumes that base frequencies are set!
 	static int i;
 	static int j;
-	for(int i=0; i<4; ++i){
+	for(i=0; i<4; ++i){
 		//homozygous genotypes
 		pGeno[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
 		//heterozygous genotypes
-		for(int j=i+1; j<4; ++j){
+		for(j=i+1; j<4; ++j){
 			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
 		}
 	}
@@ -516,6 +585,8 @@ void TThetaEstimator::findGoodStartingTheta(){
 	//calc initial LL
 	fillPGenotype(expTheta);
 	theta.LL = calcLogLikelihood();
+	//theta.LL = data->calcLogLikelihood(pGenotype);
+
 
 	//run iterations
 	double oldLL = theta.LL;
@@ -532,6 +603,7 @@ void TThetaEstimator::findGoodStartingTheta(){
 			expTheta = exp(-initTheta);
 			fillPGenotype(expTheta);
 			theta.LL = calcLogLikelihood();
+			//theta.LL = data->calcLogLikelihood(pGenotype);
 		} while(oldLL < theta.LL);
 		if(numUpdates == 0){
 			//then test decrease in theta
@@ -545,6 +617,7 @@ void TThetaEstimator::findGoodStartingTheta(){
 				expTheta = exp(-initTheta);
 				fillPGenotype(expTheta);
 				theta.LL = calcLogLikelihood();
+				//theta.LL = data->calcLogLikelihood(pGenotype);
 			} while(oldLL < theta.LL);
 		}
 		factor = sqrt(factor);
@@ -590,6 +663,7 @@ void TThetaEstimator::runEMForTheta(){
 
 		//c) Calculate all genotype probabilities for all sites
 		fillP_G();
+		//data->fillP_G(P_G, pGenotype);
 
 		//d) Find new parameter estimates using Newton-Raphson
 		if(numThetaOnlyUpdatesDone < numThetaOnlyUpdates){
@@ -696,7 +770,7 @@ void TThetaEstimator::runEMForTheta(){
 		//e) do we break EM? Check LL
 		if(iter > 0 && iter % numThetaOnlyUpdates == 0){
 			oldLL = theta.LL;
-			theta.LL = calcLogLikelihood();
+			theta.LL = data->calcLogLikelihood(pGenotype);
 			if(theta.LL > -9e100 && (theta.LL - oldLL) < maxEpsilon) break;
 
 			//maybe theta = 0?
@@ -708,6 +782,7 @@ void TThetaEstimator::runEMForTheta(){
 				theta.setTheta(0.0);
 				fillPGenotype(theta.expTheta);
 				theta.LL = calcLogLikelihood();
+				//theta.LL = data->calcLogLikelihood(pGenotype);
 
 				if(theta.LL < oldLL){
 					theta.setTheta(oldTheta);
@@ -838,7 +913,7 @@ void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
 
 		//calculate	substitution probabilities and Likelihood
 		fillPGenotype(expTheta);
-		LL = calcLogLikelihood();
+		LL = data->calcLogLikelihood(pGenotype);
 
 		//write results
 		out << std::setprecision(12) << logTheta << "\t" << theta << "\t" << LL << "\n";
