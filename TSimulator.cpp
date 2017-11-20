@@ -267,9 +267,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 	//quality distribution
 	double mQ = params.getParameterDoubleWithDefault("meanQual", 30);
 	double sdQ = params.getParameterDoubleWithDefault("sdQual", 10);
-	int maxQ = params.getParameterDoubleWithDefault("maxQual", 500);
+	int maxQ = params.getParameterDoubleWithDefault("maxQual", 94);
 	setQualityDistribution(mQ, sdQ, maxQ);
-	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual) + ".");
+	logfile->list("Will simulate normal distributed quality scores with mean = " + toString(meanQual-33) + " and sd = " + toString(sdQual) + ", capped at " + toString(maxQual-33) + ".");
 
 	//quality transformation
 	initializeQualityTransform(params);
@@ -280,9 +280,11 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 		pmdObject = new TPMD(params, logfile);
 	} else pmdInitialized = false;
 
-
 	//chromosomes
 	initializeChromosomes(params, logfile);
+
+	//extra output on sites
+	writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
 	logfile->endIndent();
 
 	//set default parameters
@@ -297,8 +299,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 void TSimulator::setQualityDistribution(double mean, double sd, int MaxQual){
 	meanQual = mean + 33.0; //add 33 to mean quality to get in in char
 	sdQual = sd;
-	maxQual = MaxQual;
-
+	maxQual = MaxQual + 33;
+	if(maxQual > 127)
+		logfile->warning("maxQual is larger than 94, which may pose issues with other software reading BAM files.");
 }
 
 void TSimulator::initializeQualityTransform(TParameters & params){
@@ -494,7 +497,7 @@ void TSimulator::setQualityTransformation(std::vector<double> & Betas){
 
 int TSimulator::sampleQuality(){
 	int qual = round(randomGenerator->getNormalRandom(meanQual, sdQual));
-	if(qual > 126) qual = 126;
+	if(qual > maxQual) qual = maxQual;
 	if(qual < 33) qual = 33;
 	return qual;
 };
@@ -794,18 +797,24 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(1);
 
-	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt.gz";
-	gz::ogzstream genoFile(filename.c_str());
+	//open files to store extra info on sites
+	gz::ogzstream genoFile;
+	gz::ogzstream invariantSitesFile;
+	gz::ogzstream variantSitesFile;
 
-	//open file for invariant positions
-	filename = outname + "_invariantSites.bed.gz";
-	gz::ogzstream invariantSitesFile(filename.c_str());
+	if(writeTrueGenotypes){
+		//open file for true genotypes
+		filename = outname + "_trueGenotypes.txt.gz";
+		genoFile.open(filename.c_str());
 
-	//open file for variant positions
-	filename = outname + "_variantSites.bed.gz";
-	gz::ogzstream variantSitesFile(filename.c_str());
+		//open file for invariant positions
+		filename = outname + "_invariantSites.bed.gz";
+		invariantSitesFile.open(filename.c_str());
 
+		//open file for variant positions
+		filename = outname + "_variantSites.bed.gz";
+		variantSitesFile.open(filename.c_str());
+	}
 
 	//prepare mutation table
 	float** mutTable;
@@ -833,9 +842,15 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
 		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef());
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
 		logfile->done();
+
+		//write true genotypes and position of variant and invariant sites
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
+			logfile->done();
+		}
 
 		//now simulate and write reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesFirstIndividual(), bamFile, "");
@@ -848,6 +863,8 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	bamFile.close();
 	bamFileOpen = false;
 	genoFile.close();
+	invariantSitesFile.close();
+	variantSitesFile.close();
 
 	//clear memory
 	for(int i=0; i<4; ++i)
@@ -1180,8 +1197,11 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 	TSimulatorHaplotypes haplotypes(2);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt";
-	gz::ogzstream genoFile(filename.c_str());
+	gz::ogzstream genoFile;
+	if(writeTrueGenotypes){
+		filename = outname + "_trueGenotypes.txt";
+		genoFile.open(filename.c_str());
+	}
 
 	//initialize genotype combination tables
 	TSimulatorGenotypeCombination genoComb(phis, baseFreq);
@@ -1199,8 +1219,15 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 		//TODO: add functionality for haploid chromosomes!
 		logfile->listFlush("Simulating genotypes ...");
 		genoComb.simulateHaplotypes(haplotypes.getHaplotypesOfIndividual(0), haplotypes.getHaplotypesOfIndividual(1), referenceObj.getPointerToRef(), referenceDivergence, chrIt->length, randomGenerator);
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
 		logfile->done();
+
+		//writing true genotypes
+		//TODO: also write variant and invariant sites!
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			logfile->done();
+		}
 
 		//simulating reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(0), bamFile0, " for individual 1");
@@ -1437,8 +1464,11 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 	TSimulatorHaplotypes haplotypes(numIndividuals);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt";
-	gz::ogzstream genoFile(filename.c_str());
+	gz::ogzstream genoFile;
+	if(writeTrueGenotypes){
+		filename = outname + "_trueGenotypes.txt";
+		genoFile.open(filename.c_str());
+	}
 
 	//prepare mutation table
 	float** mutTable;
@@ -1460,8 +1490,15 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
 		simulateHaplotypes(haplotypes, *sfsIt, mutTable, referenceObj.getPointerToRef());
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
 		logfile->done();
+
+		//write true genotypes
+		//TODO: also write variant and invariant sites!
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			logfile->done();
+		}
 
 		//now simulate and write reads
 		logfile->startIndent("Simulating reads:");

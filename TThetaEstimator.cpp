@@ -10,7 +10,15 @@
 //-------------------------------------------------------
 //TThetaEstimatorTemporaryFile
 //-------------------------------------------------------
+TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(){
+	init("", 0);
+};
+
 TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename, int numGenotypes){
+	init(Filename, numGenotypes);
+};
+
+void TThetaEstimatorTemporaryFile::init(std::string Filename, int numGenotypes){
 	filename = Filename;
 	fp = NULL;
 	sizeOfData = sizeof(double) * numGenotypes;
@@ -19,9 +27,12 @@ TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename,
 	isOpenForReading = false;
 	isOpenForWriting = false;
 	wasWritten = false;
-};
+}
 
 void TThetaEstimatorTemporaryFile::openForWriting(){
+	if(sizeOfData == 0)
+		throw "Can not open temporary data file for theta: file was not initialized!";
+
 	//if file was written, remove it
 	clean();
 
@@ -99,9 +110,20 @@ TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
 	totNumSitesAdded = 0;
 	numSitesWithData = 0;
 	cumulativeDepth = 0.0;
+	sum = 0.0;
+	g = 0;
+	P_g_oneSite = new double[numGenotypes];
 
 	isBootstrapped = false;
 	numBootstrappedSites = false;
+	maxKforPoissonPlusOne = 16; //maximum number of bootstrapping copies to consider.
+	poissonProb = new double[maxKforPoissonPlusOne];
+
+	readState = false;
+	curSite = 0;
+	curRep = 0;
+	numBootstrapRepsPerEntry = NULL;
+	numBootstrapRepsPerEntryInitialized = false;
 };
 
 void TThetaEstimatorData::clear(){
@@ -140,6 +162,41 @@ void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
 		baseFreq[i] = initialBaseFreq[i];
 };
 
+void TThetaEstimatorData::fillP_G(double* & P_G, double* & pGenotype){
+	//assumes that pGenotype is set!
+	for(g=0; g<numGenotypes; ++g)
+		P_G[g] = 0.0;
+
+	//calculate P_g for each site
+	double* d;
+	begin();
+	do{
+		sum = 0.0;
+		d = curGenotypeLikelihoods();
+		for(g=0; g<numGenotypes; ++g){
+			P_g_oneSite[g] =  d[g] * pGenotype[g];
+			sum += P_g_oneSite[g];
+		}
+		for(g=0; g<numGenotypes; ++g)
+			P_G[g] += P_g_oneSite[g] / sum;
+
+	} while(next());
+};
+
+double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
+	double LL = 0.0;
+	double* d;
+	begin();
+	do{
+		sum = 0.0;
+		d = curGenotypeLikelihoods();
+		for(g=0; g<numGenotypes; ++g)
+			sum +=  d[g] * pGenotype[g];
+		LL += log(sum);
+	} while(next());
+
+	return LL;
+};
 
 void TThetaEstimatorData::writeHeader(std::ofstream & out){
 	out << "\tdepth\tfracMissing\tfracTwoOrMore";
@@ -154,13 +211,86 @@ void TThetaEstimatorData::writeSize(std::ofstream & out){
 	}
 };
 
+void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda){
+	double tmp = exp(-lambda);
+	poissonProb[0] = tmp;
+	for(int k=1; k<maxKforPoissonPlusOne; ++k){
+		tmp = tmp * lambda / (double) k;
+		poissonProb[k] = poissonProb[k-1] + tmp;
+	}
+
+	//make sure last of cumulative is 1.0
+	if(poissonProb[maxKforPoissonPlusOne-1] < 0.99999)
+		throw "Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!";
+	poissonProb[maxKforPoissonPlusOne-1] = 1.0;
+}
+
+void TThetaEstimatorData::bootstrap(TRandomGenerator & randomGenerator){
+	//make sure we start empty
+	clearBootstrap();
+
+	if(!numBootstrapRepsPerEntryInitialized){
+		numBootstrapRepsPerEntry = new uint8_t[numSitesWithData];
+		numBootstrapRepsPerEntryInitialized = true;
+	}
+
+	fillPoissonForBootstrap(1.0);
+
+	//now pick among sites with data with replacement and store for each entry how many times it was chosen
+	numBootstrappedSites = 0.0;
+	for(long l=0; l<numSitesWithData; ++l){
+		//do we use this site in the bootstrap?
+		numBootstrapRepsPerEntry[l] = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
+		numBootstrappedSites += numBootstrapRepsPerEntry[l];
+	}
+
+	//set pointer
+	isBootstrapped = true;
+};
+
+void TThetaEstimatorData::clearBootstrap(){
+	numBootstrappedSites = 0;
+	isBootstrapped = false;
+};
+
+bool TThetaEstimatorData::begin(){
+	curSite = 0; //first site is at index zero
+	curRep = 1; //index starts at one
+
+	_begin();
+
+	if(isBootstrapped){
+		while(readState && numBootstrapRepsPerEntry[curSite] == 0){
+			readNext();
+		}
+	}
+
+	return(readState);
+};
+
+bool TThetaEstimatorData::next(){
+	if(!isBootstrapped)
+		readNext();
+	else {
+		if(curRep < numBootstrapRepsPerEntry[curSite]){
+			++curRep;
+			return true;
+		} else {
+			curRep = 1;
+			readNext();
+			while(readState && numBootstrapRepsPerEntry[curSite] == 0){
+				readNext();
+			}
+		}
+	}
+
+	return(readState);
+};
 
 //-------------------------------------------------------
 //TThetaEstimatorDataVector
 //-------------------------------------------------------
-TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){
-	useTheseSites = &sites;
-};
+TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){};
 
 void TThetaEstimatorDataVector::saveSite(TSite & site){
 	//store emission probabilities
@@ -179,172 +309,100 @@ void TThetaEstimatorDataVector::emptyStorage(){
 	sites.clear();
 };
 
-
-bool TThetaEstimatorDataVector::begin(){
-	siteIt = useTheseSites->begin();
-	return siteIt != useTheseSites->end();
-};
-
-bool TThetaEstimatorDataVector::next(){
+void TThetaEstimatorDataVector::readNext(){
 	++siteIt;
-	return siteIt != useTheseSites->end();
+	++curSite;
+
+	//readState = (siteIt == sites.end())
+
+	if(siteIt == sites.end())
+		readState = false;
+}
+
+void TThetaEstimatorDataVector::_begin(){
+	siteIt = sites.begin();
+	readState = true;
 };
 
 bool TThetaEstimatorDataVector::isEnd(){
-	return siteIt == useTheseSites->end();
+	return siteIt == sites.end();
 };
 
 double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
 	return *siteIt;
 }
 
-void TThetaEstimatorDataVector::bootstrap(TRandomGenerator & randomGenerator){
-	//prepare variables
-	clearBootstrap();
-	int r = 0;
+void TThetaEstimatorDataVector::fillP_G(double* & P_G, double* & pGenotype){
+	//assumes that pGenotype is set!
+	for(g=0; g<numGenotypes; ++g)
+		P_G[g] = 0.0;
 
-	//how many sites with data will we have? Draw from binomial
-	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
+	//calculate P_g for each site
+	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
+		sum = 0.0;
+		for(g=0; g<numGenotypes; ++g){
+			P_g_oneSite[g] =  (*siteIt)[g] * pGenotype[g];
+			sum += P_g_oneSite[g];
+		}
+		for(g=0; g<numGenotypes; ++g)
+			P_G[g] += P_g_oneSite[g] / sum;
 
-	//now pick among sites with data with replacement
-	for(long i=0; i<numBootstrappedSites; ++i){
-		r = randomGenerator.pickOne(numSitesWithData);
-		bootstrappedSites.push_back(sites.at(r));
+	}
+};
+
+double TThetaEstimatorDataVector::calcLogLikelihood(double* & pGenotype){
+	double LL = 0.0;
+
+	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
+		sum = 0.0;
+		for(g=0; g<numGenotypes; ++g)
+			sum +=  (*siteIt)[g] * pGenotype[g];
+		LL += log(sum);
 	}
 
-	//set pointer
-	useTheseSites = &bootstrappedSites;
-	isBootstrapped = true;
+	return LL;
 };
-
-
-void TThetaEstimatorDataVector::clearBootstrap(){
-	useTheseSites = &sites;
-	bootstrappedSites.clear();
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
 
 //-------------------------------------------------------
 //TThetaEstimatorDataFile
 //-------------------------------------------------------
 TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName):TThetaEstimatorData(NumGenotypes){
 	dataFileName = TmpFileName;
-	sites = new TThetaEstimatorTemporaryFile(dataFileName, numGenotypes);
-	sites->openForWriting();
+	sites.init(dataFileName, numGenotypes);
+	sites.openForWriting();
 
 	pointerToData = new double[numGenotypes];
-
-	bootstrapFileName = "bootstrap_" + dataFileName;
-	bootstrappedSites = new TThetaEstimatorTemporaryFile(bootstrapFileName, numGenotypes);
-	maxKforPoissonPlusOne = 100; //maximum number of bootstrapping copies to consider.
-	poissonProb = new double[maxKforPoissonPlusOne];
-
-	useTheseSites = sites;
 };
 
 void TThetaEstimatorDataFile::emptyStorage(){
-	sites->clean();
+	sites.clean();
 };
 
 void TThetaEstimatorDataFile::saveSite(TSite & site){
-	useTheseSites->save(site.emissionProbabilities);
+	sites.save(site.emissionProbabilities);
 };
 
-bool TThetaEstimatorDataFile::begin(){
-	useTheseSites->openForReading();
+void TThetaEstimatorDataFile::readNext(){
+	++curSite;
+	if(curSite >= numSitesWithData)
+		readState = false;
+	else
+		readState = sites.read(pointerToData);
+}
 
-	return(useTheseSites->read(pointerToData));
-};
-
-bool TThetaEstimatorDataFile::next(){
-	return(useTheseSites->read(pointerToData));
-};
+void TThetaEstimatorDataFile::_begin(){
+	sites.openForReading();
+	--curSite;
+	readNext(); //read first! This is required to match begin() of a vector
+}
 
 bool TThetaEstimatorDataFile::isEnd(){
-	return useTheseSites->isEOF();
+	return sites.isEOF();
 };
 
 double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
 	return pointerToData;
 };
-
-void TThetaEstimatorDataFile::fillPoissonForBootstrap(const long toPick, const long remaining){
-	double lambda = toPick / remaining;
-
-	if(lambda < 1.0){
-		double tmp = exp(-lambda);
-		poissonProb[0] = tmp;
-		for(int k=1; k<maxKforPoissonPlusOne; ++k){
-			tmp = tmp * lambda / (double) k;
-			poissonProb[k] = poissonProb[k-1] + tmp;
-		}
-	} else {
-		//we need to accept!
-		int n = round(lambda);
-		for(int k=0; k<n; ++k)
-			poissonProb[k] = 0.0;
-
-		for(int k=n; k<maxKforPoissonPlusOne; ++k)
-			poissonProb[k] = 1.0;
-	}
-}
-
-void TThetaEstimatorDataFile::bootstrap(TRandomGenerator & randomGenerator){
-	//make sure we start empty
-	clearBootstrap();
-
-	//how many sites with data will we have? Draw from binomial
-	double probHasData = (double) numSitesWithData / (double) totNumSitesAdded;
-	numBootstrappedSites = randomGenerator.getBiomialRand(probHasData, totNumSitesAdded);
-
-	//open temporary file for bootstrap
-	bootstrappedSites->openForWriting();
-
-	//now pick among sites with data with replacement
-	//For this wee need to go through the temporary file and decide for each site how many times it will be selected.
-	//This is given by a Poisson distribution where lambda = n / N
-	//where n = is the number of bootstrapped sites that still need to be picked and N the number of remaining sites in the file.
-
-	//variables
-	int r,i;
-	long toPick = numBootstrappedSites;
-
-	//and go...
-	sites->openForReading();
-	for(long l=0; l<numSitesWithData; ++l){
-		sites->read(pointerToData);
-
-		//calculate bootstrapping probabilities
-		fillPoissonForBootstrap(toPick, numSitesWithData - l);
-
-		//do we use this site in the bootstrap?
-		r = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
-		if(r > 0){
-			//save site
-			for(i=0; i<r; ++i)
-				bootstrappedSites->save(pointerToData);
-
-			toPick -= r;
-		}
-	}
-
-	//set pointer
-	useTheseSites = bootstrappedSites;
-	isBootstrapped = true;
-};
-
-
-void TThetaEstimatorDataFile::clearBootstrap(){
-	useTheseSites = sites;
-	bootstrappedSites->clean();
-
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
 
 //-------------------------------------------------------
 //TThetaEstimator
@@ -352,7 +410,6 @@ void TThetaEstimatorDataFile::clearBootstrap(){
 TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 	numGenotypes = 10;
-	P_g_oneSite = new double[numGenotypes];
 
 	//parse
 	logfile->startIndent("Parameters of EM algorithm:");
@@ -380,6 +437,9 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 		initThetaSearchFactor = 0;
 	}
 
+	//counters and tmp variables
+	init();
+
 	//storing data in file?
 	if(params.parameterExists("useTmpFile")){
 		std::string dataFileName = params.getParameterStringWithDefault("useTmpFile", "temporaryDataForThetaEstimation.tmp.gz");
@@ -389,9 +449,6 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 
 	//extra verbosity
 	extraVerbose = params.parameterExists("extraVerbose");
-
-	//counters and tmp variables
-	init();
 
 	//done
 	logfile->endIndent();
@@ -418,6 +475,7 @@ void TThetaEstimator::init(){
 	//initialize arrays
 	pGenotype = new double[numGenotypes];
 	P_G = new double[numGenotypes];
+	P_g_oneSite = new double[numGenotypes];
 	baseFreq = new double[4];
 
 	//tmp stuff
@@ -425,17 +483,23 @@ void TThetaEstimator::init(){
 	sum = 0.0;
 }
 
+void TThetaEstimator::clear(){
+	data->clear();
+};
+
 void TThetaEstimator::add(TSite & site){
 	data->add(site);
-}
+};
 
 void TThetaEstimator::fillPGenotype(double* & pGeno, double & expTheta){
 	//assumes that base frequencies are set!
-	for(int i=0; i<4; ++i){
+	static int i;
+	static int j;
+	for(i=0; i<4; ++i){
 		//homozygous genotypes
 		pGeno[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
 		//heterozygous genotypes
-		for(int j=i+1; j<4; ++j){
+		for(j=i+1; j<4; ++j){
 			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
 		}
 	}
@@ -467,6 +531,7 @@ void TThetaEstimator::fillP_G(){
 		}
 		for(g=0; g<numGenotypes; ++g)
 			P_G[g] += P_g_oneSite[g] / sum;
+
 	} while(data->next());
 };
 
@@ -522,6 +587,8 @@ void TThetaEstimator::findGoodStartingTheta(){
 	//calc initial LL
 	fillPGenotype(expTheta);
 	theta.LL = calcLogLikelihood();
+	//theta.LL = data->calcLogLikelihood(pGenotype);
+
 
 	//run iterations
 	double oldLL = theta.LL;
@@ -538,6 +605,7 @@ void TThetaEstimator::findGoodStartingTheta(){
 			expTheta = exp(-initTheta);
 			fillPGenotype(expTheta);
 			theta.LL = calcLogLikelihood();
+			//theta.LL = data->calcLogLikelihood(pGenotype);
 		} while(oldLL < theta.LL);
 		if(numUpdates == 0){
 			//then test decrease in theta
@@ -551,6 +619,7 @@ void TThetaEstimator::findGoodStartingTheta(){
 				expTheta = exp(-initTheta);
 				fillPGenotype(expTheta);
 				theta.LL = calcLogLikelihood();
+				//theta.LL = data->calcLogLikelihood(pGenotype);
 			} while(oldLL < theta.LL);
 		}
 		factor = sqrt(factor);
@@ -596,6 +665,7 @@ void TThetaEstimator::runEMForTheta(){
 
 		//c) Calculate all genotype probabilities for all sites
 		fillP_G();
+		//data->fillP_G(P_G, pGenotype);
 
 		//d) Find new parameter estimates using Newton-Raphson
 		if(numThetaOnlyUpdatesDone < numThetaOnlyUpdates){
@@ -702,7 +772,7 @@ void TThetaEstimator::runEMForTheta(){
 		//e) do we break EM? Check LL
 		if(iter > 0 && iter % numThetaOnlyUpdates == 0){
 			oldLL = theta.LL;
-			theta.LL = calcLogLikelihood();
+			theta.LL = data->calcLogLikelihood(pGenotype);
 			if(theta.LL > -9e100 && (theta.LL - oldLL) < maxEpsilon) break;
 
 			//maybe theta = 0?
@@ -714,6 +784,7 @@ void TThetaEstimator::runEMForTheta(){
 				theta.setTheta(0.0);
 				fillPGenotype(theta.expTheta);
 				theta.LL = calcLogLikelihood();
+				//theta.LL = data->calcLogLikelihood(pGenotype);
 
 				if(theta.LL < oldLL){
 					theta.setTheta(oldTheta);
@@ -723,11 +794,11 @@ void TThetaEstimator::runEMForTheta(){
 			}
 		}
 
-		if(extraVerbose) logfile->write("\n" + toString(iter) + ") current theta = " + toString(theta.theta));
+		if(extraVerbose) logfile->list(toString(iter) + ") current theta = " + toString(theta.theta));
 		//For debugging
 		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
-	if(extraVerbose) logfile->write("EM converged, current theta = " + toString(theta.theta));
+	if(extraVerbose) logfile->list("EM converged, current theta = " + toString(theta.theta));
 
 }
 
@@ -773,9 +844,15 @@ bool TThetaEstimator::estimateTheta(){
 	logfile->conclude("Starting EM with theta = ", theta.theta);
 
 	//Run EM
-	logfile->listFlush("Running EM to find ML estimate ...");
-	runEMForTheta();
-	logfile->done();
+	if(extraVerbose){
+		logfile->startIndent("Running EM to find ML estimate:");
+		runEMForTheta();
+		logfile->endIndent();
+	} else {
+		logfile->listFlush("Running EM to find ML estimate ...");
+		runEMForTheta();
+		logfile->done();
+	}
 	logfile->conclude("theta was estimated at ", theta.theta);
 
 	//confidence intervals
@@ -838,7 +915,7 @@ void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
 
 		//calculate	substitution probabilities and Likelihood
 		fillPGenotype(expTheta);
-		LL = calcLogLikelihood();
+		LL = data->calcLogLikelihood(pGenotype);
 
 		//write results
 		out << std::setprecision(12) << logTheta << "\t" << theta << "\t" << LL << "\n";

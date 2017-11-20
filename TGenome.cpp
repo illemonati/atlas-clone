@@ -140,7 +140,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		if(minQuality < 0) throw "minQuality must be >= 0!";
 		maxQuality = params.getParameterInt("maxQual") + 33;
 		if(maxQuality < minQuality) throw "maxQuality must be >= minQuality!";
-		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
+		logfile->list("Win schwiez invasiv"
+				"ll filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
 	} else {
 		applyQualityFilter = false;
 		minQuality = 34; //filter out quality 0 by default
@@ -562,7 +563,15 @@ void TGenome::estimateTheta(TParameters & params){
 
 	//check for which segements theta is to be estimated
 	if(params.parameterExists("thetaGenomeWide") || considerRegions){
-		estimateThetaGenomeWide(thetaEstimator, out);
+		if(params.parameterExists("thetaGenomeWide"))
+			logfile->startIndent("Estimating theta genome-wide:");
+		else logfile->startIndent("Estimating theta at specific sites:");
+
+		//HACK!!
+		bool onlyBootstrap = params.parameterExists("onlyBootstrap");
+
+		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
+		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
 			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
@@ -604,6 +613,9 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 						thetaEstimator.writeResultsToFile(out);
 					}
 
+					//clear theta estimator
+					thetaEstimator.clear();
+
 					//finish
 					gettimeofday(&endTime, NULL);
 					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
@@ -615,7 +627,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 }
 
-void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out){
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
 	if(considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -641,8 +653,11 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	logfile->endIndent();
 
 	//estimate Theta
-	logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.sizeWithData()) + " sites:");
-	thetaEstimator.estimateTheta();
+	//HACK!!!!
+	if(!onlyReadData){
+		logfile->startIndent("Estimate theta based on a total of " + toString(thetaEstimator.sizeWithData()) + " sites:");
+		thetaEstimator.estimateTheta();
+	}
 
 	if(considerRegions)
 		out  << "\t-\t-"; //chromosome, start, end
