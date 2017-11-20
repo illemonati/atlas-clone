@@ -141,8 +141,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else {
 		applyQualityFilter = false;
 		minQuality = 34; //filter out quality 0 by default
-		maxQuality = 1000000;
+		maxQuality = 126;
 	}
+
+	minOutQuality = params.getParameterIntWithDefault("minOutQuality", 33);
+	maxOutQuality = params.getParameterIntWithDefault("maxOutQuality", 126);
 
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
@@ -1703,7 +1706,7 @@ char TGenome::returnBaseQualityAsChar(char & base, char & quality, int & posInRe
 	TBase* basePointer;
 	createBase(&basePointer, base, quality, posInRead, revPosInRead, pmdCT, pmdGA, context, readGroupId);
 
-	char qual = recalObject->getQualityAsChar(basePointer); //is in ascii, already has filter
+	char qual = recalObject->getQualityAsChar(basePointer, minOutQuality, maxOutQuality); //is in ascii, already has filter
 
 	delete basePointer;
 	return qual;
@@ -1714,8 +1717,8 @@ double TGenome::returnBaseQualityWithPMDAsCharRevMapping(char & base, char & ref
 	if(base == 'T' && refBase == 'C') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdGA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 	else if(base == 'A' && refBase == 'G') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdCT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
 	qual = round(-10.0 * log10(qual)) + 33.0; //cutoffs are in ascii
-	if(qual < 33.0) qual = 33.0;
-	else if(qual > 126.0) qual = 126.0;
+	if(qual < (double) minOutQuality) qual = (double) minOutQuality;
+	else if(qual > (double) maxOutQuality) qual = (double) maxOutQuality;
 	return qual;
 }
 
@@ -1724,8 +1727,8 @@ double TGenome::returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & ref
 	if(base == 'T' && refBase == 'C') qual = 1.0 - ((1.0 - qual)*(1.0 - pmdCT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
 	else if(base == 'A' && refBase == 'G')	qual = 1.0 - ((1.0 - qual)*(1.0 - pmdGA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 	qual = round(-10.0 * log10(qual)) + 33.0; //cutoffs are in ascii
-	if(qual < 33.0) qual = 33.0;
-	else if(qual > 126.0) qual = 126.0;
+	if(qual < (double) minOutQuality) qual = (double) minOutQuality;
+	else if(qual > (double) maxOutQuality) qual = (double) maxOutQuality;
 	return qual;
 }
 
@@ -3394,8 +3397,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     	delete MQ[i];
     	delete RL[i];
     }
-    delete MQ;
-    delete RL;
+    delete [] MQ;
+    delete [] RL;
 }
 
 void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
