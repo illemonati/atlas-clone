@@ -13,7 +13,7 @@
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
-enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT}; //N means "nothing", i.e. end of read or del
+enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap
@@ -60,16 +60,26 @@ public:
 		genotypeToBase[9][0] = T; genotypeToBase[9][1] = T;
 
 		//create and fill context map
-		numContexts = 20;
+		numContexts = 25;
 		contextMap = new BaseContext*[5];
+
+		//now fill regular context
 		int context = 0;
 		for(int i=0; i<5; ++i){
-			contextMap[i] = new BaseContext[4];
+			contextMap[i] = new BaseContext[5];
 			for(int j=0; j<4; ++j){
 				contextMap[i][j] = static_cast<BaseContext>(context);
 				++context;
 			}
 		}
+
+		//Now add those that should not occur, but sometimes do in bam files
+		//Note that these should never occur in our data processing as they imply the base is N
+		contextMap[0][4] = cAN;
+		contextMap[1][4] = cCN;
+		contextMap[2][4] = cGN;
+		contextMap[3][4] = cTN;
+		contextMap[4][4] = cNN;
 
 		//fill base to char map
 		baseToChar = new char[5];
@@ -112,6 +122,7 @@ public:
 		if(base == 'C') return C;
 		if(base == 'G') return G;
 		if(base == 'T') return T;
+
 		return N;
 	};
 

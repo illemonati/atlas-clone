@@ -254,14 +254,20 @@ void TAlignmentParser::setDistancesFromEnds(){
 void TAlignmentParser::fillContext(){
 	if(isReverseStrand){
 		//reverse
-		for(d=0; d<(length-1); ++d)
+		for(d=0; d<(length-1); ++d){
+//			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
+			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
 			context[d] = genoMap.contextMap[base[d+1]][base[d]];
+		}
 		context[d] = genoMap.contextMap[N][base[d]];
 	} else {
 		//forward
 		context[0] = genoMap.contextMap[N][base[0]];
-		for(d=1; d<length; ++d)
+		for(d=1; d<length; ++d){
+//			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
+			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
 			context[d] = genoMap.contextMap[base[d-1]][base[d]];
+		}
 	}
 };
 
