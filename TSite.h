@@ -28,6 +28,7 @@
 class TSite{
 protected:
 	short int numGenotypes;
+	std::vector<TBase*>::iterator baseIterator;
 
 public:
 	std::vector<TBase*> bases;

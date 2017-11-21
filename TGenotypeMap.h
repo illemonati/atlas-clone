@@ -305,6 +305,7 @@ public:
 
 	~TQualityMap(){
 		delete[] phredToErrorMap;
+		delete[] charToErrorMap;
 	};
 
 	double phredToError(int phred){

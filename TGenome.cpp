@@ -1951,17 +1951,11 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 	//other tmp variables
 	long counter = 0;
-	int curChr = -1;
-	int len, begin = 0;
-	int windowSize = 1000000;
-	int stop = begin + windowSize; //note that end is last position + 1
-	std::string ref; //fasta object fills string
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 
     //now parse through bam file and write alignments
 	if(withPMD){
@@ -1991,6 +1985,19 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
+
+	//create index of new bam file
+	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	//close BAM file
+	reader.Close();
+	logfile->done();
 }
 
 void TGenome::binQualityScores(TParameters & params){

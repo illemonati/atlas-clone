@@ -540,7 +540,7 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 		q = -constant / beta[0];
 	} else {
 		tmp = sqrt(beta[0] * beta[0] - 4.0 * beta[1] * constant);
-		q = (-tmp - beta[0]) / 2.0 / beta[1];
+		q = (tmp - beta[0]) / 2.0 / beta[1];
 		//if(q < 0) q = (-tmp - beta[0]) / 2.0 / beta[1];
 	}
 
@@ -551,6 +551,7 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 
 		throw "choose different quality transformation parameters! tmp == 0";
 	}
+
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
@@ -691,15 +692,14 @@ void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bam
 
 		//add to bam alignment
 		if(qualTransformationInitialized){
-			int transQual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
-			//cap at highest possible illumina score
-			if(transQual > maxQual)	bamAlignment.Qualities += (char) maxQual;
-			else bamAlignment.Qualities += (char) transQual;
+			qual = transformQuality(qual, p, genoMap.getContext(previousBase, base));
 			previousBase = base;
-		} else {
-			if(qual > maxQual) bamAlignment.Qualities += (char) maxQual;
-			else bamAlignment.Qualities += (char) qual;
 		}
+
+		//cap at maxQual
+		if(qual > maxQual)	bamAlignment.Qualities += (char) maxQual;
+		else bamAlignment.Qualities += (char) qual;
+
 		bamAlignment.QueryBases += toBase[base];
 	}
 	bamFile.saveAlignment(bamAlignment);

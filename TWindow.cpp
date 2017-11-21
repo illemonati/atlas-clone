@@ -233,9 +233,10 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 				internalPos = firstPos + alignemntParser.alignedPos[p];
 				if(internalPos >= length)
 					return true; //since part of the read maps to next window
-				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], alignemntParser.distFrom5Prime[p], alignemntParser.distFrom3Prime[p], pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
 
-				//std::cout << alignemntParser.position << "[" << p << "] -> " << internalPos + start << std::endl;
+				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], p, alignemntParser.length-p, pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
+
+				//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
 			}
 		}
 	}
@@ -319,16 +320,14 @@ void TWindow::estimateBaseFrequencies(){
 	//estimate initial base frequencies
 	baseFreq.clear();
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			sites[i].addToBaseFrequencies(baseFreq);
-		}
+		sites[i].addToBaseFrequencies(baseFreq);
 	}
 	baseFreq.normalize();
 }
 
 void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	for(int i=0; i<length; ++i){
-		//std::cout << start + i << ":";
+		//std::cout << start + i << ": ";
 
 		if(sites[i].hasData)
 			recalObject->calcEmissionProbabilities(sites[i]);

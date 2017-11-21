@@ -46,9 +46,9 @@ void TSiteDiploid::add(Base & base, int & quality, int PosInRead, int PosInReadR
 	hasData = true;
 };
 void TSiteHaploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	if(base == A) bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else bases.push_back(new TBaseHaploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
@@ -69,9 +69,11 @@ void TSiteHaploid::add(char & base, char & quality, int PosInRead, int PosInRead
 };
 
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
-	double weight = 1.0 / bases.size();
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->addToBaseFrequencies(frequencies, weight);
+	if(hasData){
+		static double weight = 1.0 / bases.size();
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+			(*baseIterator)->addToBaseFrequencies(frequencies, weight);
+		}
 	}
 };
 
@@ -83,18 +85,18 @@ void TSite::calcEmissionProbabilities(double* vec){
 		for(int i=0; i<numGenotypes; ++i){
 			vec[i] = 1.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				vec[i] *= (*it)->getEmissionProbability(i);
+				vec[i] *= (*baseIterator)->getEmissionProbability(i);
 			}
 		}
 	} else {
 		for(int i=0; i<numGenotypes; ++i){
 			vec[i] = 0.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				vec[i] += log((*it)->getEmissionProbability(i));
+				vec[i] += log((*baseIterator)->getEmissionProbability(i));
 			}
 		}
 		//now standardize before delog
@@ -118,8 +120,8 @@ void TSite::calcEmissionProbabilities(){
 std::string TSite::getBases(){
 	if(bases.size()==0) return "-";
 	std::string b = "";
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		b += (*it)->getBase();
+	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+		b += (*baseIterator)->getBase();
 	}
 	return b;
 }

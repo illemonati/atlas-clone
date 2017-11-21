@@ -402,6 +402,11 @@ public:
 			delete[] qualToErroTable;
 		if(readLengthDistInitialized)
 			delete readLengthDist;
+		if(qualTransformationInitialized){
+			delete[] beta;
+			delete[] qualTermForTransformation;
+			delete[] posTermForTransformation;
+		}
 	}
 
 	//functions to set general parameters

@@ -90,6 +90,8 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, T
 void TAlignmentParser::clear(){
 	if(initialized){
 		delete[] base;
+		delete[] baseAsChar;
+		delete[] context;
 		delete[] qualityOriginal;
 		delete[] qualityRecalibrated;
 		delete[] errorRates;
@@ -257,7 +259,7 @@ void TAlignmentParser::fillContext(){
 		context[d] = genoMap.contextMap[N][base[d]];
 	} else {
 		//forward
-		context[0] = genoMap.contextMap[N][base[d]];
+		context[0] = genoMap.contextMap[N][base[0]];
 		for(d=1; d<length; ++d)
 			context[d] = genoMap.contextMap[base[d-1]][base[d]];
 	}
@@ -307,6 +309,9 @@ void TAlignmentParser::parse(){
 
 		//then update distances from ends
 		setDistancesFromEnds();
+
+		//fill context for each base
+		fillContext();
 
 		parsed = true;
 	}
