@@ -89,7 +89,6 @@ public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
 		if(doMasking){
-			std::cout << "----------------------__> DELETE!!!!" << std::endl;
 			delete mask;
 		}
 		if(fastaReference) reference.Close();
@@ -136,6 +135,7 @@ public:
 	void mergeReadGroups(TParameters & params);
 	void addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables);
 	void estimatePMD(TParameters & params);
+	void estimatePMD_NEW(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);

@@ -49,7 +49,6 @@ private:
 	void setDistancesFromEnds();
 	void fillContext();
 	void fillPmdProbabilities(TPMD* pmdObjects);
-	void getReferenceSequence(BamTools::Fasta & reference);
 
 public:
 	//alignment: goal is to make this private!
@@ -98,11 +97,14 @@ public:
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
 	void parse();
+	void fillReferenceSequence(BamTools::Fasta & reference);
 
-	//functions to access data
+	//functions to access and modify data
 	std::string& name(){return bamAlignment.Filename;};
 	void recalibrate(TRecalibration & recalObject);
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, BamTools::Fasta & reference);
+	void binQualityScores();
+	void addToPMDTables(TPMDTables & pmdTables);
 	double calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference);
 
 	//functions to modify alignment

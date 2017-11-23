@@ -296,14 +296,16 @@ public:
 	//quality is (int) phred + 33
 	double* phredToErrorMap;
 	double* qualityToErrorMap;
+	int* illuminaQualityBins;
 	double min;
-	int size;
+	int sizePhred, sizeQual;
 
 	TQualityMap(){
 		//only up to phred = 255, else always return 256
-		size = 256;
-		phredToErrorMap = new double[size];
-		qualityToErrorMap = new double[size + 33];
+		sizePhred = 256;
+		sizeQual = sizePhred + 33;
+		phredToErrorMap = new double[sizePhred];
+		qualityToErrorMap = new double[sizeQual];
 
 		//initialize quality <= 0
 		for(int i=0; i<33; ++i)
@@ -316,6 +318,25 @@ public:
 			qualityToErrorMap[i+33] = phredToErrorMap[i];
 		}
 		min = pow(10.0, (double) -256/10.0);
+
+		//Create map of illumina quality bins
+		illuminaQualityBins = new int[sizeQual];
+		for(int i=0; i<35; ++i)
+			illuminaQualityBins[i] = 33;
+		for(int i=35; i<43; ++i)
+			illuminaQualityBins[i] = 39;
+		for(int i=43; i<53; ++i)
+			illuminaQualityBins[i] = 48;
+		for(int i=53; i<58; ++i)
+			illuminaQualityBins[i] = 55;
+		for(int i=58; i<63; ++i)
+			illuminaQualityBins[i] = 60;
+		for(int i=63; i<68; ++i)
+			illuminaQualityBins[i] = 66;
+		for(int i=68; i<72; ++i)
+			illuminaQualityBins[i] = 70;
+		for(int i=72; i<sizeQual; ++i)
+			illuminaQualityBins[i] = 73;
 	};
 
 	~TQualityMap(){

@@ -134,14 +134,15 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		minCoverage = 0;
 		maxCoverage = 1000000;
 	}
+
+	//TODO: add quality filter to alignment parser
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
 		applyQualityFilter = true;
 		minQuality = params.getParameterInt("minQual") + 33; //bamAlignment.Qualities is in ascii
 		if(minQuality < 0) throw "minQuality must be >= 0!";
 		maxQuality = params.getParameterInt("maxQual") + 33;
 		if(maxQuality < minQuality) throw "maxQuality must be >= minQuality!";
-		logfile->list("Win schwiez invasiv"
-				"ll filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
+		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
 	} else {
 		applyQualityFilter = false;
 		minQuality = 34; //filter out quality 0 by default
@@ -1813,57 +1814,29 @@ void TGenome::binQualityScores(TParameters & params){
 	//other temp variables
 	TGenotypeMap genoMap;
 	long counter = 0;
-	int len;
-	int q;
-	char qChar;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 
     //now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
-		std::string qual;
-
+	while(alignmentParser.readAlignment(bamReader)){
 		++counter;
-		len = bamAlignment.Qualities.size();
-		for(int i=0; i<len; ++i){
-			q = (int) bamAlignment.Qualities[i] - 33;
-			if(q >= 2 && q <= 9) qChar = 6 + 33;
-			else if(q >= 10 && q <= 19) qChar = 15 + 33;
-			else if(q >= 20 && q <= 24) qChar = 22 + 33;
-			else if(q >= 25 && q <= 29) qChar = 27 + 33;
-			else if(q >= 30 && q <= 34) qChar = 33 + 33;
-			else if(q >= 35 && q <= 39) qChar = 37 + 33;
-			else if(q >= 40) qChar = 40 + 33;
-			else {
-				logfile->warning("Quality in alignment " + bamAlignment.Name + " has quality " + toString(q) + ". Will keep it as is.");
-				qChar = q + 33;
-			}
-			qual += qChar;
-		}
 
 		//update and write (only if alignment qualities could be calculated)
-		bamAlignment.Qualities = qual;
-		bamWriter.SaveAlignment(bamAlignment);
+		alignmentParser.binQualityScores();
+		alignmentParser.save(bamWriter);
 
 		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -1889,9 +1862,8 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
 	gettimeofday(&start, NULL);
-	float runtime;
 
 	//now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
@@ -1916,20 +1888,15 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 		//report
 		++counter;
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		//report
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close output file
 	out.close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -2450,28 +2417,23 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 
     //now parse through bam file and write alignments
-	while(bamReader.GetNextAlignment(bamAlignment)){
+	while(alignmentParser.readAlignment(bamReader)){
 		++counter;
 
 		//accept read or not?
 		r = randomGenerator->getRand();
 		for(i=0; i<numProbs; ++i){
 			if(r < downSampleProb[i]){
-				bamWriter[i].SaveAlignment(bamAlignment);
+				alignmentParser.save(bamWriter[i]);
 			}
 		}
 
 		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer and clean up memory
@@ -2482,9 +2444,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	delete[] bamWriter;
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -3050,6 +3010,62 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->done();
 }
 
+/*
+void TGenome::estimatePMD_NEW(TParameters & params){
+	//make sure FASTA is open
+	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
+
+	//prepare PMD table
+	int maxLength = params.getParameterIntWithDefault("length", 50);
+	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
+	TPMDTables pmdTables(&readGroups, maxLength);
+
+	//measure runtime
+	struct timeval start;
+
+	//tmp variables
+	int fastaEnd;
+	std::string ref;
+	TGenotypeMap genoMap;
+	long numreadsAdded;
+
+	gettimeofday(&start, NULL);
+
+	//iterate through BAM file
+	while(alignmentParser.readAlignment(bamReader)){
+		alignmentParser.parse();
+		alignmentParser.fillReferenceSequence(reference);
+
+
+		addReadToPMD(windows.cur, genoMap, ref, pmdTables);
+		++numreadsAdded;
+
+
+	}
+
+	//print tables and data
+	std::string filename = outputName + "_PMD_Table.txt";
+	logfile->listFlush("Writing PMD table to '" + filename + "' ...");
+	pmdTables.writeTable(filename);
+	logfile->done();
+	filename = outputName + "_PMD_Table_counts.txt";
+	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
+	pmdTables.writeTableWithCounts(filename);
+	logfile->done();
+	filename = outputName + "_PMD_input_Empiric.txt";
+	logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
+	pmdTables.writePMDFile(filename);
+	logfile->done();
+
+	//estimate exponential model
+	filename = outputName + "_PMD_input_Exponential.txt";
+	logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
+	int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
+	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
+	pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
+	logfile->done();
+}
+*/
 
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)

@@ -174,7 +174,7 @@ public:
 		return quality;
 	}
 	virtual int getQuality(const TBase & base){
-		return base.quality;
+		return base.phredError;
 	};
 
 	virtual bool requiresEstimation(){ return false;};

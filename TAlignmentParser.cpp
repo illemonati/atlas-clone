@@ -284,7 +284,7 @@ void TAlignmentParser::fillPmdProbabilities(TPMD* pmdObjects){
 	}
 }
 
-void TAlignmentParser::getReferenceSequence(BamTools::Fasta & reference){
+void TAlignmentParser::fillReferenceSequence(BamTools::Fasta & reference){
 	reference.GetSequence(chrNumber, position, position + alignedPos[length-1], referenceSequence);
 }
 
@@ -365,7 +365,7 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 	parse();
 
 	//get reference sequence
-	getReferenceSequence(reference);
+	fillReferenceSequence(reference);
 
 	//get PMD probs
 	fillPmdProbabilities(pmdObjects);
@@ -393,6 +393,54 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 	changed = true;
 };
 
+void TAlignmentParser::binQualityScores(){
+	//make sure read is parsed
+	parse();
+
+	//bin quality scores as done by Illumina
+	for(d=0; d<length; ++d){
+		quality[d] = qualityMap.illuminaQualityBins[quality[d]];
+	}
+	changed = true;
+};
+
+/*
+void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables, BamTools::Fasta & reference){
+	//get reference sequence
+	fillReferenceSequence(reference);
+
+	//tmp variables
+	Base ref;
+
+	//check if it is forward or reverse strand!
+	if(isReverseStrand){
+		for(d=0; d<length; ++d){
+			if(aligned[d]){
+				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
+				pmdTables.addForward(readGroupId, d, ref, base[d]);
+				pmdTables.addForward(readGroupId, length - d - 1, ref, base[d]);
+			}
+		}
+	} else {
+		for(d=0; d<length; ++d){
+			if(aligned[d]){
+				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
+				pmdTables.addForward(readGroupId, d, ref, base[d]);
+				pmdTables.addForward(readGroupId, length - d - 1, ref, base[d]);
+			}
+		}
+	}
+
+
+
+	readBase = genoMap.flipBase(base);
+	//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
+	refBase = genoMap.flipBase(ref[internalPos]);
+
+	pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
+	pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+};
+*/
 
 double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference){
 	//make sure read is parsed
@@ -405,7 +453,7 @@ double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::
 	double fourEpsThird;
 
 	//get reference
-	getReferenceSequence(reference);
+	fillReferenceSequence(reference);
 
 	//get PMD probs
 	fillPmdProbabilities(pmdObjects);
