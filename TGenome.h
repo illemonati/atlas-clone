@@ -128,12 +128,6 @@ public:
 	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
-	void createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	char returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, int & begin, std::string & ref, std::map <std::string, int> & mateTooLong);
 	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
@@ -150,7 +144,7 @@ public:
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
-	void estimateCoveragePerSite(TParameters & params);
+	void estimateDepthPerSite(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
 };

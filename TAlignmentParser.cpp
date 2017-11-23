@@ -37,6 +37,8 @@ TAlignmentParser::TAlignmentParser(){
 	alignedPos = NULL;
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
+	pmdCT = NULL;
+	pmdGA = NULL;
 
 	//soft clipped data
 	softClippedEntry = 0;
@@ -74,6 +76,8 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, T
 	alignedPos = new int[maxSize];
 	distFrom3Prime = new int[maxSize];
 	distFrom5Prime = new int[maxSize];
+	pmdCT = new double[maxSize];
+	pmdGA = new double[maxSize];
 
 	//soft clipped data
 	softClippedLength = new int[2];
@@ -99,6 +103,8 @@ void TAlignmentParser::clear(){
 		delete[] alignedPos;
 		delete[] distFrom3Prime;
 		delete[] distFrom5Prime;
+		delete[] pmdCT;
+		delete[] pmdGA;
 
 		delete[] softClippedLength;
 		delete[] softClippedBase[0];
@@ -212,8 +218,8 @@ void TAlignmentParser::setDistancesFromEnds(){
 			k = abs(bamAlignment.InsertSize) - length;
 			p = length - 1;
 			for(d=0; d<length; ++d){
-				distFrom3Prime[d] = k + d;
 				distFrom5Prime[d] = p - d;
+				distFrom3Prime[d] = k + d;
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -223,8 +229,8 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			p = abs(bamAlignment.InsertSize) - 1;
 			for(d=0; d<length; ++d){
-				distFrom3Prime[d] = d;
-				distFrom5Prime[d] = p - d;
+				distFrom5Prime[d] = d;
+				distFrom3Prime[d] = p - d;
 			}
 		}
 	} else {
@@ -232,20 +238,20 @@ void TAlignmentParser::setDistancesFromEnds(){
 		p = length - 1;
 		if(bamAlignment.IsReverseStrand()){
 			//not in pair & reverse
-			//Hence distance from 5' is just pos
-			//And distance from 3' is just len - pos - 1
+			//Hence distance from 3' is just pos
+			//And distance from 5' is just len - pos - 1
 			for(d=0; d<length; ++d){
-				distFrom3Prime[d] = p - d;
-				distFrom5Prime[d] = d;
+				distFrom5Prime[d] = p - d;
+				distFrom3Prime[d] = d;
 			}
 
 		} else {
 			//not in pair & forward
-			//Hence distance from 3' is given as a function of pos
-			//And distance from 5' is given by len - pos - 1
+			//Hence distance from 5' is given as a function of pos
+			//And distance from 3' is given by len - pos - 1
 			for(d=0; d<length; ++d){
-				distFrom3Prime[d] = d;
-				distFrom5Prime[d] = p - d;
+				distFrom5Prime[d] = d;
+				distFrom3Prime[d] = p - d;
 			}
 		}
 	}
@@ -270,6 +276,18 @@ void TAlignmentParser::fillContext(){
 		}
 	}
 };
+
+void TAlignmentParser::fillPmdProbabilities(TPMD* pmdObjects){
+	for(d=0; d<length; ++d){
+		pmdCT[d] = pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]);
+		pmdGA[d] = pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]);
+	}
+}
+
+void TAlignmentParser::getReferenceSequence(BamTools::Fasta & reference){
+	reference.GetSequence(chrNumber, position, position + alignedPos[length-1], referenceSequence);
+}
+
 
 //------------------------------
 //public functions
@@ -346,7 +364,10 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 	parse();
 
 	//get reference sequence
-	reference.GetSequence(chrNumber, position, alignedPos[length-1], tmpString);
+	getReferenceSequence(reference);
+
+	//get PMD probs
+	fillPmdProbabilities(pmdObjects);
 
 	//recalibrate quality scores
 	for(d=0; d<length; ++d){
@@ -356,10 +377,10 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 
 		//now add effect of PMD
 		if(aligned[d]){
-			if(base[d] == T && tmpString[alignedPos[d]] == 'C')
-				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]))); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(base[d] == A && tmpString[alignedPos[d]] == 'G')
-				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]))); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+			if(base[d] == T && referenceSequence[alignedPos[d]] == 'C')
+				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdCT[d])); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+			else if(base[d] == A && referenceSequence[alignedPos[d]] == 'G')
+				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdGA[d])); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		}
 
 		qualityRecalibrated[d] = qualityMap.errorToPhred(errorRates[d]);
@@ -371,6 +392,124 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 	changed = true;
 };
 
+
+double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference){
+	//make sure read is parsed
+	parse();
+
+	//variables
+	double PMDS = 0.0;
+	double probPMD, probNoPMD;
+	double epsThird;
+	double fourEpsThird;
+
+	//get reference
+	getReferenceSequence(reference);
+
+	//get PMD probs
+	fillPmdProbabilities(pmdObjects);
+
+	//go over all bases in read
+	for(d=0; d<length; ++d){
+		//limit to aligned positions
+		if(aligned[d]){
+			//Prepare variables
+			epsThird = errorRates[d] / 3.0;
+			fourEpsThird = 4.0 * epsThird;
+
+			//calc likelihoods
+			if(referenceSequence[alignedPos[d]] == 'A'){
+				if(base[d] == A){
+					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + pmdGA[d]*pi/3.0*(1.0-fourEpsThird);
+					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				}
+				else if(base[d] == C){ //ok
+					probPMD = errorRates[d] - fourEpsThird*pi + pi - pi*pmdCT[d]*(fourEpsThird-1.0);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == G){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdGA[d]*(fourEpsThird-1.0);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == T){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(1.0-fourEpsThird);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+			}
+			else if (referenceSequence[alignedPos[d]] == 'C'){
+				if(base[d] == A){
+					probPMD = errorRates[d] + pi - 2.0*errorRates[d]*pi + pi*pmdGA[d]*(1.0-fourEpsThird);
+					probNoPMD = errorRates[d] + pi - 2.0*errorRates[d]*pi;
+				}
+				else if(base[d] == C){
+					probPMD = 1.0 - pi - errorRates[d] + fourEpsThird*pi + (1.0-pi)*pmdCT[d]*(fourEpsThird-1.0);
+					probNoPMD = 1.0 - pi - errorRates[d] + fourEpsThird*pi;
+				}
+				else if(base[d] == G){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pmdGA[d]*(fourEpsThird*pi - pi);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == T){
+					probPMD = epsThird + (1.0-pi)*pmdCT[d]*(1.0-fourEpsThird);
+					probNoPMD = epsThird;
+				}
+			}
+			else if (referenceSequence[alignedPos[d]] == 'G'){
+				if(base[d] == A){
+					probPMD = pmdGA[d]*(3.0-3.0*pi+4.0*errorRates[d]+4.0*errorRates[d]*pi) + errorRates[d] - fourEpsThird*pi + pi;
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == C){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(fourEpsThird - 1.0);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == G){
+					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + (1.0-pi)*pmdGA[d]*(fourEpsThird-1.0);
+					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				}
+				else if(base[d] == T){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(1.0-fourEpsThird);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+			}
+			else if(referenceSequence[alignedPos[d]] == 'T'){
+				if(base[d] == A){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi - epsThird*pi*pmdCT[d] + pi*pmdGA[d]*(1.0-errorRates[d]);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == C){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(fourEpsThird - 1.0);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == G){
+					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdGA[d]*(fourEpsThird - 1.0);
+					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				}
+				else if(base[d] == T){
+					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + pmdCT[d]*(pi/3.0-fourEpsThird*pi/3.0);
+					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				}
+			}
+
+			//now add to PMDS
+			PMDS += log(probPMD/probNoPMD);
+		}
+	}
+
+	return PMDS;
+}
+
+//--------------------------------------------
+//functions to modify alignment
+//--------------------------------------------
+void TAlignmentParser::updateOptionalSamField(std::string tag, float value){
+	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
+	else bamAlignment.EditTag(tag, "f", value);
+}
+
+//--------------------------------------------
+//functions to write / print alignment
+//--------------------------------------------
 void TAlignmentParser::save(BamTools::BamWriter & bamWriter){
 	if(!changed){
 		if(!bamWriter.SaveAlignment(bamAlignment))

@@ -414,7 +414,7 @@ void TWindow::calcFracN(){
 	fractionRefIsN = numN / (double) length;
 }
 
-void TWindow::calcCoveragePerSite(long* siteCoverage, size_t maxCov){
+void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 	//calculate and return coverage
 	coverage = 0.0;
 	long noData = 0;

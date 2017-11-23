@@ -41,12 +41,15 @@ private:
 	int d, k, p;
 	std::string tmpString;
 	std::string tmpString2;
+	std::string referenceSequence;
 
 	//functions
 	inline int toQual(const char & q);
 	void parseBasesQualities();
 	void setDistancesFromEnds();
 	void fillContext();
+	void fillPmdProbabilities(TPMD* pmdObjects);
+	void getReferenceSequence(BamTools::Fasta & reference);
 
 public:
 	//alignment: goal is to make this private!
@@ -64,14 +67,17 @@ public:
 	bool recalibrated;
 
 	//per base data
+	//TODO: try to move to private if possible
 	Base* base;
-	char* baseAsChar; //to be removed, if possible
+	char* baseAsChar; //TODO: to be removed, if possible
 	BaseContext* context;
-	int* quality; //pointer to qualities ot be used
+	int* quality; //pointer to qualities to be used
 	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
 	int* alignedPos;
 	int* distFrom3Prime;
 	int* distFrom5Prime;
+	double* pmdCT;
+	double* pmdGA;
 
 	//soft clipped data
 	uint8_t softClippedEntry; //0 means start, 1 means end of read
@@ -97,6 +103,12 @@ public:
 	std::string& name(){return bamAlignment.Filename;};
 	void recalibrate(TRecalibration & recalObject);
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, BamTools::Fasta & reference);
+	double calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference);
+
+	//functions to modify alignment
+	void updateOptionalSamField(std::string tag, float value);
+
+	//functions to write / print alignment
 	void save(BamTools::BamWriter & bamWriter);
 	void print();
 };

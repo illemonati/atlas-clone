@@ -60,7 +60,7 @@ public:
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
 	virtual void calcCoverage();
 	void calcFracN();
-	void calcCoveragePerSite(long * siteCoverage, size_t maxCov);
+	void calcDepthPerSite(long * siteCoverage, size_t maxCov);
 	void applyCoverageFilter(int minCoverage, size_t maxCoverage);
 	void createDepthMask(size_t minCoverage, size_t maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
