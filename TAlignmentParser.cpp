@@ -141,7 +141,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
 				}
@@ -164,7 +164,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = -1;
 				}
@@ -184,7 +184,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.charToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = p;
 				}
@@ -350,8 +350,9 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject){
 		for(d=0; d<length; ++d){
 			k = length - d - 1;
 			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
-			qualityRecalibrated[d] = qualityMap.errorToPhred(errorRates[d]);
+			qualityRecalibrated[d] = qualityMap.errorToQuality(errorRates[d]);
 		}
+
 		quality = qualityRecalibrated;
 		changed = true;
 	} else changed = false;
@@ -383,7 +384,7 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdGA[d])); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		}
 
-		qualityRecalibrated[d] = qualityMap.errorToPhred(errorRates[d]);
+		qualityRecalibrated[d] = qualityMap.errorToQuality(errorRates[d]);
 	}
 
 	//set pointer to recalibrated scores
@@ -549,7 +550,7 @@ void TAlignmentParser::print(){
 	//print qualities
 	std::cout << "QUAL:\t";
 	for(d=0; d<length; ++d)
-		std::cout << (char) (quality[d]+33);
+		std::cout << (char) quality[d];
 	std::cout << std::endl;
 
 	//print aligned pos

@@ -124,7 +124,7 @@ void TRecalibration::calcEmissionProbabilities(TSite & site){
 };
 
 double TRecalibration::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return dePhred(quality);
+	return qualityMap.qualityToErrorMap[quality];
 }
 
 double TRecalibration::getErrorRateFromBase(const TBase & base){
@@ -1195,19 +1195,19 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 */
 
 double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
+	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
 int TRecalibrationEM::getQuality(const TBase & base){
 	double q = getErrorRateFromBase(base);
 	//transform to quality
-	return makePhredInt(q);
+	return qualityMap.errorToQuality(q);
 }
 
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 	double q = model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
 	//transform to quality
-	return makePhredInt(q);
+	return qualityMap.errorToQuality(q);
 }
 
 //---------------------------------------------------------------
@@ -2798,12 +2798,12 @@ double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & qua
 int TRecalibrationBQSR::getQuality(const TBase & base){
 	double q = getErrorRateFromBase(base);
 	//transform to quality
-	return makePhredInt(q);
+	return qualityMap.errorToQuality(q);
 }
 
 int TRecalibrationBQSR::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 	double q = getErrorRate(readGroupId, quality, pos, posRev, context);
 	//transform to quality
-	return makePhredInt(q);
+	return qualityMap.errorToQuality(q);
 }
 

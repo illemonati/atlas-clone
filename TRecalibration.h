@@ -120,13 +120,16 @@ public:
 //TRecalibration: default = no recalibration
 //---------------------------------------------------------------
 class TRecalibration{
-public:
+protected:
 	bool mergedInd;
 	int* readGroupMap;
 	int numReadGroups;
 	int origNumReadGroups;
 	bool readGroupMapInitialized;
 
+	TQualityMap qualityMap;
+
+public:
 	TRecalibration();
 
 	virtual ~TRecalibration(){
@@ -169,7 +172,7 @@ public:
 	double getErrorRateFromBase(const TBase & base);
 	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 		return quality;
-	};
+	}
 	virtual int getQuality(const TBase & base){
 		return base.quality;
 	};

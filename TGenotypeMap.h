@@ -290,8 +290,12 @@ public:
 //---------------------------------------------------------------
 class TQualityMap{
 public:
+	//IMPORTANT NOMENCLATURE
+	//error is erro rate between 0 and 1
+	//phred is phred-scaled error as phred = -10 * log10(error)
+	//quality is (int) phred + 33
 	double* phredToErrorMap;
-	double* charToErrorMap;
+	double* qualityToErrorMap;
 	double min;
 	int size;
 
@@ -299,24 +303,24 @@ public:
 		//only up to phred = 255, else always return 256
 		size = 256;
 		phredToErrorMap = new double[size];
-		charToErrorMap = new double[size + 33];
+		qualityToErrorMap = new double[size + 33];
 
 		//initialize quality <= 0
 		for(int i=0; i<33; ++i)
-			charToErrorMap[i] = 1.0;
+			qualityToErrorMap[i] = 1.0;
 		phredToErrorMap[0] = 1.0;
 
 		//and now others
 		for(int i=0; i<256; ++i){
 			phredToErrorMap[i] = pow(10.0, (double) -i/10.0);
-			charToErrorMap[i+33] = phredToErrorMap[i];
+			qualityToErrorMap[i+33] = phredToErrorMap[i];
 		}
 		min = pow(10.0, (double) -256/10.0);
 	};
 
 	~TQualityMap(){
 		delete[] phredToErrorMap;
-		delete[] charToErrorMap;
+		delete[] qualityToErrorMap;
 	};
 
 	double phredToError(int phred){
