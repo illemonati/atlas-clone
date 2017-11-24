@@ -52,7 +52,7 @@ public:
 	};
 
 	int getQuality(const int & index){
-		if(index < 33) throw "Quality index is negative!";
+		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
 	};
@@ -358,8 +358,8 @@ public:
 	float firstDerivativeSave, secondDerivativeSave;
 	float numObservations;
 	float numObservationsTmp;
-	float F;
-	float LL;
+	double F, oldF;
+	double LL;
 	int myReadGroup;
 	//for storage
 	bool store;

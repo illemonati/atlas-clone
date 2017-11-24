@@ -1223,7 +1223,8 @@ TBQSR_cell_base::TBQSR_cell_base(){
 	secondDerivativeSave = 0.0;
 	numObservations = 0.0;
 	numObservationsTmp = 0.0;
-	F = 0.0;
+	F = 999999999999.0;
+	oldF = 999999999999.0;
 	LL = 0.0;
 	myReadGroup = -1;
 	store = false;
@@ -1283,11 +1284,14 @@ float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
 
 void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold){
 	if(F != F) throw "F is not a number!";
+	oldF = F;
 
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
+
 	if(F < convergenceThreshold) estimationConverged = true;
+	if(oldF < F) estimationConverged = true;
 }
 
 
