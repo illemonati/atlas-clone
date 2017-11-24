@@ -98,7 +98,7 @@ void TSimulatorRead::applyPMD(short & base, long & posInRead, readLengthContaine
 	}
 }
 
-void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
+void TSimulatorRead::simulate(short* haplotype, const long & pos, readLengthContainer & rl, TGenotypeMap & genoMap){
 	static short base;
 	static int qual;
 	static long p;
@@ -108,7 +108,7 @@ void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGeno
 
 	for(p=0; p<rl.readLength; ++p){
 		//get true nucleotide
-		base = *(posAddress + p);
+		base = haplotype[pos + p];
 
 		//apply PMD
 		if(pmdInitialized){
@@ -121,7 +121,7 @@ void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGeno
 		}
 		//add to bam alignment
 		int transQual = returnBamQual(qual, p, genoMap.getContext(previousBase, base), maxQual);
-		if(transQual > maxQual)	bamQualities += (char) maxQual;
+		if(transQual > maxQual)	bamQualities += (char) maxQual + 33;
 		else bamQualities += (char) transQual + 33;
 		previousBase = base;
 		queryBases += toBase[base];
@@ -131,7 +131,6 @@ void TSimulatorRead::simulate(short* posAddress, readLengthContainer & rl, TGeno
 //--------------------------
 //recal transformation
 //-------------------------
-
 TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
 	betas = Betas;
 	if(betas.size() != 24)
@@ -151,7 +150,7 @@ TSimulatorReadRecal::TSimulatorReadRecal(std::vector<double> Betas, int & maxRea
 	}
 }
 
-int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
+int TSimulatorReadRecal::returnBamQual(int & qual, int & pos, int & context){
 	static double constant;
 	static double tmp;
 	static double q;
@@ -162,7 +161,7 @@ int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 		q = -constant / betas[0];
 	} else {
 		tmp = sqrt(betas[0] * betas[0] - 4.0 * betas[1] * constant);
-		q = (-tmp - betas[0]) / 2.0 / betas[1];
+		q = (tmp - betas[0]) / 2.0 / betas[1];
 		//if(q < 0) q = (-tmp - beta[0]) / 2.0 / beta[1];
 	}
 
@@ -170,10 +169,6 @@ int TSimulatorReadRecal::transformQuality(int & qual, int & pos, int & context){
 	if(tmp == 0) throw "choose different quality transformation parameters! tmp == 0";
 	return -10.0 * log10(tmp / (1.0 + tmp));
 }
-
-/*int TSimulatorReadRecal::returnQual(int & qual, int & pos, int & baseContext){
-	return transformQuality(qual, pos, baseContext);
-}*/
 
 
 //--------------------------
@@ -192,7 +187,12 @@ TSimulatorReadBQSR::TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TPa
 		calculateSlopeIntercept();
 		logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
 		if(intercept < 0) throw("Intercept for position transformation is negative -> choose higher value for BQSRPosition!");
-	} else logfile->list("BQSRPosition parameter not found. Simulating only BQSR quality effect.");
+	} else {
+		revIntercept = 1.0;
+		intercept = 1.0;
+		m = 0.0;
+		logfile->list("BQSRPosition parameter not found. Simulating only BQSR quality effect.");
+	}
 
 	//quality parameters
 	parseBQSRQualInput(params);
@@ -243,11 +243,12 @@ int TSimulatorReadBQSR::sampleFakeQuality(){
 
 void TSimulatorReadBQSR::fillQBetaQBetaP(){
 	int num_of_row = maxPos;
-	int num_of_col = maxQualPlusOne - minQual;
+	int num_of_col = maxQualPlusOne;
 	double init_value = -1.0;
 	double betaQq;
 
 	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
+
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
 		float a = 0;
@@ -255,25 +256,25 @@ void TSimulatorReadBQSR::fillQBetaQBetaP(){
 			QBetaQBetaP[q][p] = phred(dePhredTable[phred(betaQq)] * returnBetaPp(p));
 			a += returnBetaPp(p);
 		}
-		std::cout << "a " << a << std::endl;
 	}
 	betaQBetaPInitialized = true;
 }
 
 void TSimulatorReadBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
-	w = new double[maxQualPlusOne - minQual];
+	w = new double[maxQualPlusOne];
+
 	//w at minQual
-	w[0] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
+	w[minQual] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
 
 	//w at intermediate Q
 	for(int q = (minQual + 1); q < maxQual; ++q){
 		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
 		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
-		w[q-minQual] = end - start;
+		w[q] = end - start;
 	}
 
 	//w at maxQual
-	w[(maxQual - minQual)] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
+	w[maxQual] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 
@@ -319,7 +320,7 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 	double lambda_cur = sdQual;
 	double delta_cur, delta_old;
 	double mean_cur, sd_cur;
-	float stepSize;
+	double stepSize;
 
 	std::ofstream out;
 	std::string filename = "path_simulation.txt";
@@ -355,7 +356,7 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 			sd_cur = returnCurSD(mean_cur);
 			delta_cur = returnDelta(mean_cur, sd_cur);
 			if(delta_cur > delta_old)
-				stepSize = -stepSize/exp(1);
+				stepSize = -stepSize/exp(1.0);
 		}
 
 		//update lambda
@@ -367,9 +368,9 @@ void TSimulatorReadBQSR::setFakeQualityDistribution(){
 			fillWeights(kappa_cur, lambda_cur);
 			mean_cur = returnCurMean();
 			sd_cur = returnCurSD(mean_cur);
-			delta_cur = returnDelta(kappa_cur, sd_cur);
+			delta_cur = returnDelta(mean_cur, sd_cur);
 			if(delta_cur > delta_old)
-				stepSize = -stepSize/exp(1);
+				stepSize = -stepSize/exp(1.0);
 		}
 
 
@@ -393,7 +394,7 @@ void TSimulatorReadBQSR::initializeTrueQualToFakeQualTable(){
 	if(!trueQualToFakeQualTableInitialized){
 		trueQualToFakeQual = new double[maxQualPlusOne];
 		for(int i=0; i<maxQualPlusOne; ++i){
-			trueQualToFakeQual[i] = round(phred(returnFakeError(i)));
+			trueQualToFakeQual[i] = phred(returnFakeError(i));
 		}
 	}
 	trueQualToFakeQualTableInitialized = true;

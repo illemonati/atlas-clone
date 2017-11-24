@@ -80,16 +80,7 @@ private:
 	void writeRefToFasta();
 
 public:
-	TSimulatorReference(std::string Filename, char* ToBase, TLog* Logfile){
-		filename = Filename;
-		logfile = Logfile;
-		chrName = "";
-		ref = NULL;
-		storageInitialized = false;
-		storageLength = 0;
-
-		openFastaFile();
-	};
+	TSimulatorReference(std::string Filename, char* ToBase, TLog* Logfile);
 	~TSimulatorReference(){
 		if(chrName != "")
 			writeRefToFasta();
@@ -311,7 +302,7 @@ private:
 	void writeBEDFiles(short** haplotypes, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile);
 	//void simulateReads(int & numReads, long & pos, float* & altFreq);
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, short** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
-	void writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile);
+	void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
 
 	//from SFS
 	void fillMutationTable(float** & mutTable);

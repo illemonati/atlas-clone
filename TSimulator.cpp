@@ -65,6 +65,18 @@ void TSimulatorBamFile::indexBamFile(){
 //---------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------
+TSimulatorReference::TSimulatorReference(std::string Filename, char* ToBase, TLog* Logfile){
+	filename = Filename;
+	logfile = Logfile;
+	chrName = "";
+	ref = NULL;
+	storageInitialized = false;
+	storageLength = 0;
+	toBase = ToBase;
+
+	openFastaFile();
+};
+
 void TSimulatorReference::openFastaFile(){
 	//open FASTA file for reference sequences
 	logfile->list("Will write reference sequence to '" + filename + "'.");
@@ -95,6 +107,9 @@ void TSimulatorReference::writeRefToFasta(){
 			if(l % 70 == 0)
 				fasta << "\n";
 			fasta << toBase[ref[l]];
+
+			//std::cout << "Writing base " << ref[l] << " -> " << toBase[ref[l]] << " to fasta..." << std::endl;
+
 		}
 		fasta << "\n";
 
@@ -176,10 +191,7 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 
 	//helper tools
 	toBase[0] = 'A'; toBase[1] = 'C'; toBase[2] = 'G'; toBase[3] = 'T';
-
 };
-
-
 
 void TSimulator::initializeQualityTransform(TParameters & params){
 	std::vector<std::string> string_vec;
@@ -463,22 +475,24 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
 }
 
-void TSimulator::writeRead(long & pos, short* haplotype, TSimulatorBamFile & bamFile){
+void TSimulator::writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile){
 	readLengthContainer rl;
-
-	bamAlignment.Length = rl.readLength;
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 
 	//pick a fragment and read length
 	readLengthDist->sample(rl);
 
-	simRead->simulate(&haplotype[pos], rl, genoMap);
+	//simulate read
+	simRead->simulate(haplotype, pos, rl, genoMap);
 
+	//fill bam alignment
+	bamAlignment.Length = rl.readLength;
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', rl.readLength));
 	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = simRead->getQueryBases();
 	bamAlignment.Qualities = simRead->getBamQualities();
 
+	//save
 	bamFile.saveAlignment(bamAlignment);
 }
 

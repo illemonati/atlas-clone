@@ -12,8 +12,11 @@
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
 
-class TSimulatorRead{
 
+//-------------------------------
+//TSimulatorRead
+//-------------------------------
+class TSimulatorRead{
 protected:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
@@ -60,7 +63,7 @@ public:
 			delete[] dePhredTable;
 	};
 
-	virtual void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
+	virtual void simulate(short* haplotype, const long & pos, readLengthContainer & rl, TGenotypeMap & genoMap);
 
 	//getters and setters
 	std::string getQueryBases();
@@ -70,7 +73,7 @@ public:
 
 
 //-------------------------------
-// recal transformation
+//TSimulatorReadRecal
 //-------------------------------
 
 class TSimulatorReadRecal:public TSimulatorRead{
@@ -80,7 +83,7 @@ private:
 	double* posTermForTransformation;
 
 	//private functions
-	int transformQuality(int & qual, int & pos, int & context);
+	int returnBamQual(int & qual, int & pos, int & context);
 
 	//derived functions
 //	int returnQual(int & qual, int & pos, int & context);
