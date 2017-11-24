@@ -136,23 +136,23 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		maxCoverage = 1000000;
 	}
 
-	//TODO: add quality filter to alignment parser
-	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
-		applyQualityFilter = true;
-		minQuality = params.getParameterInt("minQual") + 33; //bamAlignment.Qualities is in ascii
-		if(minQuality < 0) throw "minQuality must be >= 0!";
-		maxQuality = params.getParameterInt("maxQual") + 33;
-		if(maxQuality < minQuality) throw "maxQuality must be >= minQuality!";
-		logfile->list("Will filter out bases with quality <= " + toString(minQuality-33) + " or >= " + toString(maxQuality-33));
-	} else {
-		applyQualityFilter = false;
-		minQuality = 34; //filter out quality 0 by default
-		maxQuality = 126;
-	}
+	//quality filters
+	int minQuality = params.getParameterIntWithDefault("minQual", 1);
+	if(minQuality < 0) throw "minQual must be >= 0!";
+	int maxQuality = params.getParameterIntWithDefault("maxQual", 93);
+	if(maxQuality < minQuality) throw "maxQual must be >= minQual!";
+	alignmentParser.setQualityFilters(minQuality+33, maxQuality+33);
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minQuality) + ", " + toString(maxQuality) + "]");
 
-	minOutQuality = params.getParameterIntWithDefault("minOutQuality", 33);
-	maxOutQuality = params.getParameterIntWithDefault("maxOutQuality", 126);
+	//quality filters for printing
+	minQuality = params.getParameterIntWithDefault("minOutQual", 1);
+	if(minQuality < 0) throw "minOutQual must be >= 0!";
+	maxQuality = params.getParameterIntWithDefault("maxOutQual", 93);
+	if(maxQuality < minQuality) throw "maxOutQual must be >= minOutQual!";
+	alignmentParser.setQualityRangeForPrinting(minQuality+33, maxQuality+33);
+	logfile->list("Will print qualities truncated to [" + toString(minQuality) + ", " + toString(maxQuality) + "]");
 
+	//other filters
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
 
@@ -345,9 +345,9 @@ bool TGenome::addAlignementToWindows(TAlignmentParser & alignment, TWindowPair &
 		//check if still within current window and add to window
 		if(alignment.position >= curEnd) return false;
 		else {
-			if(windowPair.curPointer->addFromRead(alignmentParser, pmdObjects, &readGroups, minQuality, maxQuality)){
+			if(windowPair.addToCur(alignmentParser, pmdObjects)){
 				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.nextPointer->addFromRead(alignmentParser, pmdObjects, &readGroups, minQuality, maxQuality);
+				windowPair.addToNext(alignmentParser, pmdObjects);
 			}
 		}
 	}
@@ -1852,13 +1852,12 @@ void TGenome::assessSoftClipping(TParameters & params){
 	std::string filename = outputName + "_clippingStats.txt.gz";
 	gz::ogzstream out(filename.c_str());
 	if(!out)
-		throw "Failed ot open file '" + filename + "' for writing!";
+		throw "Failed to open file '" + filename + "' for writing!";
 	out << "Read\tposition\tClippedLeft\tnNotClipped\tnClippedRight\n";
 
 	//other temp variables
 	std::vector<BamTools::CigarOp>::iterator it;
 	int S_left, S_right, middle;
-	bool reachedMiddle;
 	long counter = 0;
 
 	//prepare reporting
@@ -1867,29 +1866,14 @@ void TGenome::assessSoftClipping(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
-
-		//count S, not S, S pattern from cigar string
-		S_left = 0;
-		S_right = 0;
-		middle = 0;
-		reachedMiddle = false;
-		for(it = bamAlignment.CigarData.begin(); it != bamAlignment.CigarData.end(); ++it){
-			if(it->Type == 'S'){
-				if(reachedMiddle) S_right += it->Length;
-				else S_left += it->Length;
-			} else {
-				reachedMiddle = true;
-				middle += it->Length;
-			}
-		}
+	while(alignmentParser.readAlignment(bamReader)){
+		alignmentParser.assessSoftClipping(S_left, middle, S_right);
 
 		//report
 		out << bamAlignment.Name << "\t" << bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
 
 		//report
 		++counter;
-		//report
 		reportProgressParsingBamFile(counter, start);
 	}
 
@@ -1922,6 +1906,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	BamTools::SamReadGroupIterator trunc, orig;
 	std::string readGroup;
 
+	//parse read groups
 	while(file.good() && !file.eof()){
 		++lineNum;
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
@@ -1949,7 +1934,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			trunc->SequencingCenter = orig->SequencingCenter;
 			trunc->SequencingTechnology = orig->SequencingTechnology;
 
-			//ad to map
+			//add to map
 			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
 		}
 	}
@@ -1969,19 +1954,13 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
-		++counter;
-		//get read group info
-		bamAlignment.GetTag("RG", readGroup);
-		readGroupId = readGroups.find(readGroup);
-
-		//check if this RG needs to be parse
+		//check if this RG needs to be parsed
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
@@ -1994,20 +1973,15 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		bamWriter.SaveAlignment(bamAlignment);
 
 		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		++counter;
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -2100,15 +2074,12 @@ void TGenome::mergeReadGroups(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
-		++counter;
-
 		//get read group info
 		bamAlignment.GetTag("RG", readGroup);
 		oldId = readGroups.find(readGroup);
@@ -2118,26 +2089,22 @@ void TGenome::mergeReadGroups(TParameters & params){
 		bamWriter.SaveAlignment(bamAlignment);
 
 		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		++counter;
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
 
 
 void TGenome::mergePairedEndReads(TParameters & params){
+	//TODO: make merge function that accounts for indels!
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	filename = outputName + "_mergedReads.bam";
@@ -2185,14 +2152,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 	int curChr = -1;
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
-		++counter;
 		if((readsToOmit.count(bamAlignment.Name) > 0)){
 			continue;
 
@@ -2336,20 +2301,15 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		}
 
 		//report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		++counter;
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -2451,7 +2411,6 @@ void TGenome::downSampleBamFile(TParameters & params){
 }
 
 void TGenome::downSampleReads(TParameters & params){
-
 	double fraction = params.getParameterDoubleWithDefault("fraction", 0.1);
 	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked.");
 
@@ -2470,13 +2429,12 @@ void TGenome::downSampleReads(TParameters & params){
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
+	struct timeval start;
     gettimeofday(&start, NULL);
-	float runtime;
 
     //now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
-		++counter;
+	while(alignmentParser.readAlignment(bamReader)){
+
 		for(int i=0; i<bamAlignment.Length; ++i){
 			r = randomGenerator->getRand();
 			if(r < fraction){
@@ -2486,21 +2444,16 @@ void TGenome::downSampleReads(TParameters & params){
 		}
 		bamWriter.SaveAlignment(bamAlignment);
 
-		// intermetiate report report
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-		}
+		//report
+		++counter;
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
@@ -2538,9 +2491,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //prepare reporting
     logfile->startIndent("Parsing through BAM file:");
-    struct timeval start, end;
+    struct timeval start;
     gettimeofday(&start, NULL);
-    float runtime;
 
     //other temp variables
     long counter = 0;
@@ -2576,7 +2528,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
         	}
         } else if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
 
-        ++counter;
         RGInd = readGroups.find(bamAlignment);
         totCov += bamAlignment.AlignedBases.length();
         cov[RGInd] += bamAlignment.AlignedBases.length();
@@ -2584,18 +2535,12 @@ void TGenome::diagnoseBamFile(TParameters & params){
         ++RL[RGInd][bamAlignment.Length];
 
         //report
-        if(counter % 1000000 == 0){
-            gettimeofday(&end, NULL);
-            runtime = (end.tv_sec  - start.tv_sec)/60.0;
-            logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-        }
+        ++counter;
+        reportProgressParsingBamFile(counter, start);
     }
 
     //report
-    gettimeofday(&end, NULL);
-    runtime = (end.tv_sec  - start.tv_sec)/60.0;
-    logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-    logfile->list("Reached end of BAM file!");
+    reportProgressParsingBamFile(counter, start);logfile->list("Reached end of BAM file!");
     logfile->removeIndent();
     logfile->list("Approximate sequencing depth was estimated at " + toString(totCov/totLength));
 

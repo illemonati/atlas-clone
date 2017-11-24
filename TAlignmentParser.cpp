@@ -46,6 +46,11 @@ TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
 	initialized = false;
+	applyQualityFilter = false;
+	minQual = 33;
+	maxQual = 126;
+	minQualForPrinting = 33;
+	maxQualForPrinting = 126;
 
 	//details
 	length = 0;
@@ -88,7 +93,7 @@ TAlignmentParser::TAlignmentParser(){
 	d = 0;
 	k = 0;
 	p = 0;
-}
+};
 
 TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
 	TAlignmentParser();
@@ -155,6 +160,17 @@ void TAlignmentParser::clear(){
 	}
 };
 
+void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
+	applyQualityFilter = true;
+	minQual = MinQual;
+	maxQual = MaxQual;
+};
+
+void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
+	minQualForPrinting = minQual;
+	maxQualForPrinting = maxQual;
+};
+
 void TAlignmentParser::parseBasesQualities(){
 	// iterate over CigarOps
 	d = 0; //index regarding data structures
@@ -163,10 +179,10 @@ void TAlignmentParser::parseBasesQualities(){
 	softClippedEntry = 0; //softclipped bases to be added
 	softClippedLength[0] = 0; softClippedLength[1] = 0;
 
-	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
-	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
+	cigarIter = bamAlignment.CigarData.begin();
+	cigarEnd  = bamAlignment.CigarData.end();
 
-	for ( ; cigarIter != cigarEnd; ++cigarIter ) {
+	for( ; cigarIter != cigarEnd; ++cigarIter ){
 		const BamTools::CigarOp& op = (*cigarIter);
 		switch ( op.Type ) {
 
@@ -178,7 +194,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
 				}
@@ -201,7 +217,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = -1;
 				}
@@ -221,7 +237,7 @@ void TAlignmentParser::parseBasesQualities(){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
+					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = p;
 				}
@@ -240,10 +256,33 @@ void TAlignmentParser::parseBasesQualities(){
 
 	//update length
 	length = k;
-
 	if(length != bamAlignment.Length)
 		throw "Length mismatch!";
+
+	//apply filters
+	if(applyQualityFilter)
+		filterForBaseQuality();
 };
+
+void TAlignmentParser::filterForBaseQuality(){
+	//set base to N if outside quality filter
+	for(d=0; d<length; ++d){
+		if(qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual)
+			base[d] = N;
+	}
+};
+
+void TAlignmentParser::filterForPrintingBaseQuality(std::string & qual){
+	//set base to N if outside quality filter
+	for(stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt){
+
+		if((int) *stringIt < minQualForPrinting)
+			*stringIt = (char) minQualForPrinting;
+		else if((int) *stringIt > maxQualForPrinting)
+			*stringIt = (char) maxQualForPrinting;
+	}
+};
+
 
 void TAlignmentParser::setDistancesFromEnds(){
 	//is it paired-end?
@@ -327,7 +366,7 @@ void TAlignmentParser::addReference(BamTools::Fasta* reference){
 };
 
 void TAlignmentParser::fillReferenceSequence(){
-	if(!hasReference) //is thsi check really necessary?
+	if(!hasReference) //is this check really necessary?
 		throw "No reference provided!";
 
 	fastaBuffer->fill(chrNumber, position, position + alignedPos[length-1], referenceSequence);
@@ -463,7 +502,7 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables){
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(d=0; d<length; ++d){
-			if(aligned[d]){
+			if(aligned[d] && base[d] != N){
 				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
 				read = genoMap.baseToFlippedBase[base[d]];
 				pmdTables.addForward(readGroupId, distFrom3Prime[d], ref, read);
@@ -472,7 +511,7 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables){
 		}
 	} else {
 		for(d=0; d<length; ++d){
-			if(aligned[d]){
+			if(aligned[d] && base[d] != N){
 				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
 				pmdTables.addForward(readGroupId, distFrom5Prime[d], ref, base[d]);
 				pmdTables.addReverse(readGroupId, distFrom3Prime[d], ref, base[d]);
@@ -480,7 +519,6 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables){
 		}
 	}
 };
-
 
 double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//make sure read is parsed
@@ -588,23 +626,40 @@ double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 }
 
+void TAlignmentParser::assessSoftClipping(int & S_left, int & middle, int & S_right){
+	//count S, not S, S pattern from cigar string
+	S_left = 0;
+	S_right = 0;
+	middle = 0;
+	static bool reachedMiddle = false;
+
+	cigarIter = bamAlignment.CigarData.begin();
+	cigarEnd  = bamAlignment.CigarData.end();
+
+	for( ; cigarIter != cigarEnd; ++cigarIter ){
+		if(cigarIter->Type == 'S'){
+			if(reachedMiddle) S_right += cigarIter->Length;
+			else S_left += cigarIter->Length;
+		} else {
+			reachedMiddle = true;
+			middle += cigarIter->Length;
+		}
+	}
+};
+
 //--------------------------------------------
 //functions to modify alignment
 //--------------------------------------------
 void TAlignmentParser::updateOptionalSamField(std::string tag, float value){
 	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
 	else bamAlignment.EditTag(tag, "f", value);
-}
+};
 
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
 void TAlignmentParser::save(BamTools::BamWriter & bamWriter){
-	if(!changed){
-		if(!bamWriter.SaveAlignment(bamAlignment))
-			throw "Read '" + bamAlignment.Name + "' could not be written!";
-	}
-	else {
+	if(changed){
 		//means that read has been modified.
 		//Currently quality recalibration is the only possible change.
 		//But will need to think how to deal with merging and such...
@@ -619,10 +674,14 @@ void TAlignmentParser::save(BamTools::BamWriter & bamWriter){
 
 		bamAlignment.QueryBases = tmpString;
 		bamAlignment.Qualities = tmpString2;
-
-		if(!bamWriter.SaveAlignment(bamAlignment))
-			throw "Read '" + bamAlignment.Name + "' could not be written!";
 	}
+
+	//make sure quality are printed within range
+	filterForPrintingBaseQuality(bamAlignment.Qualities);
+
+	//now write alignment
+	if(!bamWriter.SaveAlignment(bamAlignment))
+		throw "Read '" + bamAlignment.Name + "' could not be written!";
 };
 
 void TAlignmentParser::print(){

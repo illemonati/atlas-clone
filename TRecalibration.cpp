@@ -128,7 +128,7 @@ double TRecalibration::getErrorRate(const int & readGroupId, const int & quality
 }
 
 double TRecalibration::getErrorRateFromBase(const TBase & base){
-	return getErrorRate(base.readGroup, base.phredError, base.posInRead, base.posInReadRev, base.context);
+	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
 //---------------------------------------------------------------
@@ -477,7 +477,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 	numReads = 0;
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQualityMap & qualiMap){
 	numReads = site.bases.size();
 	q = new float*[numReads];
 	D = new float*[4];
@@ -503,7 +503,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
 		//we will work with the following q_ikl:
 		// - transformed quality
 		// - square of transformed quality
-		eps = dePhred((*it)->phredError);
+
+		eps = qualiMap.qualityToErrorMap[(*it)->quality];
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
@@ -711,8 +712,8 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int*
 	readGroupMap = ReadGroupMap;
 }
 
-void TRecalibrationEMWindow::addSite(TSite & site){
-	sites.push_back(new TRecalibrationEMSite(site, readGroupMap));
+void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
+	sites.push_back(new TRecalibrationEMSite(site, readGroupMap, qualiMap));
 }
 
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model){
@@ -861,7 +862,7 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 }
 
 void TRecalibrationEM::addSite(TSite & site){
-	(*curWindow)->addSite(site);
+	(*curWindow)->addSite(site, qualityMap);
 	++numSitesAdded;
 }
 
@@ -1540,7 +1541,7 @@ void TBQSR_cellPosition::addToLL(float & D, float & epsilon){
 }
 
 float TBQSR_cellPosition::getEpsilon(TBase* base){
-	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredError)].curEstimate;
+	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 }
 
 void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
@@ -1683,7 +1684,7 @@ void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualit
 }
 
 float TBQSR_cellPositionRev::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredError)].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	return  epsilonAlpha;
 }
@@ -1717,7 +1718,7 @@ void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityInd
 }
 
 float TBQSR_cellContext::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredError)].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->posInReadRev].curEstimate;
 	return  epsilonAlpha;
@@ -2211,7 +2212,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->phredError)].addBase(*it, refBase);
+					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
 			}
 		}
 		else if(considerPosition && !positionConverged){

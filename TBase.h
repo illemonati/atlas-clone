@@ -49,7 +49,7 @@ public:
 //---------------------------------------------------------------
 class TBase{
 public:
-	int phredError;
+	int quality;
 	//double errorRate;
 	//double transformedLogError;
 	int posInRead; //zero based!
@@ -59,7 +59,7 @@ public:
 	BaseContext context;
 
 	TBase(char & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		phredError = (int) Quality - 33;
+		quality = (int) Quality;
 		//errorRate = pow(10.0, (double) quality / -10.0);
 		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
@@ -71,7 +71,7 @@ public:
 	};
 
 	TBase(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		phredError = Quality - 33;
+		quality = Quality;
 		//errorRate = pow(10.0, (double) quality / -10.0);
 		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;

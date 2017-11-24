@@ -109,8 +109,6 @@ void TSite::calcEmissionProbabilities(double* vec){
 		}
 	}
 
-	//for(int i=0; i<numGenotypes; ++i)
-//		std::cout << " " << vec[i];
 }
 
 void TSite::calcEmissionProbabilities(){

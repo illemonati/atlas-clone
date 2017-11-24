@@ -56,143 +56,7 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(BamTools::BamAlignment & bamAlignment, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
-	/* Note:
-	 * Function returns true if read also maps to next window and
-	 * returns false if end of read is within this (or a previous) window
-	 */
-	if(bamAlignment.Position >= end) return true;
-
-	//find first position to be within window
-	double len = bamAlignment.AlignedBases.length();
-	if(bamAlignment.Position + len < start) return false;
-
-	//find which position to consider first
-	++numReadsInWindow;
-	int firstPos = start - bamAlignment.Position;
-	if(firstPos < 0) firstPos = 0;
-	int lastPos = len;
-	if(bamAlignment.Position + lastPos > end) lastPos = end - bamAlignment.Position;
-
-	//find relevant 3' end
-	int distFrom5Prime, distFrom3Prime;
-
-	//Extract Read Group Info
-	std::string readGroup;
-	bamAlignment.GetTag("RG", readGroup);
-	int readGroupId = readGroups->find(readGroup);
-
-	//add sites
-	int internalPos = bamAlignment.Position + firstPos - start;
-	char base; BaseContext context;
-	char quality;
-	int secondLastPos = lastPos - 1;
-	double pmdCT, pmdGA;
-
-	/* Note:
-	 *  1) Reference is 5' -> 3'
-	 *  2) distance is 1-based!
-	 *  3) Ignoring indels when calculating distances
-	 *  4) Function add needs first P(C->T), then P(G->A)
-	 */
-
-	if(bamAlignment.IsProperPair()){
-		if(bamAlignment.IsReverseStrand()){
-			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
-			//hence P(C->T) is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			//and P(G->A) is given as f(end of fragment) = f(len - pos - 1)
-			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-						//get context: flip bases!
-						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
-						//set distances
-						distFrom3Prime = abs(bamAlignment.InsertSize) - len + pos;
-						distFrom5Prime = len - pos - 1;
-						pmdCT = pmdObjects[readGroupId].getProbGA(distFrom3Prime); //get flipped pmd pattern instead of flipping bases
-						pmdGA = pmdObjects[readGroupId].getProbCT(distFrom5Prime);
-						//add base
-						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdCT, pmdGA, context, readGroupId);
-					}
-				}
-			}
-		} else {
-			//forward (can be either first or second mate, but it's the one that comes first in bam file)
-			//Hence P(C->T) is given as a function of pos
-			//And P(G->A) is given by (length of fragment) - pos -1
-			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-						//get context
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
-						//set distances
-						distFrom5Prime = pos;
-						distFrom3Prime = bamAlignment.InsertSize - pos - 1;
-						//add base
-						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5Prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
-					}
-				}
-			}
-		}
-	} else {
-		//treat as single end
-		if(bamAlignment.IsReverseStrand()){
-			//not in pair & reverse
-			//Hence P(C->T) from 5' is just as P(G->A) from 3' in forward: f(pos)
-			//And P(G->A) from 3' is just as P(C->T) from 5' in forward: f(len - pos - 1)
-			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-						//get context: flip bases!
-						if(pos == secondLastPos) context = genoMap.getContextReverseRead('N', base);
-						else context = genoMap.getContextReverseRead(bamAlignment.AlignedBases.at(pos + 1), base);
-
-						//set distances
-						distFrom5Prime = len - pos - 1;
-						distFrom3Prime = pos;
-						//add base
-						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdObjects[readGroupId].getProbGA(distFrom3Prime), pmdObjects[readGroupId].getProbCT(distFrom5Prime), context, readGroupId);
-					}
-				}
-			}
-		} else {
-			//not in pair & forward
-			//Hence P(C->T) is given as a function of pos
-			//And P(G->A) is given by len - pos -1
-			for(int pos = firstPos; pos < lastPos; ++pos, ++internalPos){
-				base = bamAlignment.AlignedBases.at(pos);
-				if(base == 'A' || base == 'C' || base == 'G' || base == 'T'){ //skip any other
-					quality = bamAlignment.AlignedQualities.at(pos);
-					if(minQuality <= (int) quality && (int) quality <= maxQuality){ //skip if quality does not make sense
-						//get context
-						if(pos == 0) context = genoMap.getContext('N', base);
-						else context = genoMap.getContext(bamAlignment.AlignedBases.at(pos - 1), base);
-						//set distances
-						distFrom5Prime = pos;
-						distFrom3Prime = len - pos - 1;
-						//add base
-						sites[internalPos].add(base, quality, distFrom5Prime, distFrom3Prime, pmdObjects[readGroupId].getProbCT(distFrom5Prime), pmdObjects[readGroupId].getProbGA(distFrom3Prime), context, readGroupId);
-					}
-				}
-			}
-		}
-	}
-
-	//return if part of the read maps to next window
-	if(lastPos == len) return false;
-	else return true;
-}
-
-
-bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
+bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
@@ -229,15 +93,13 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, 
 
 	for(; p < alignemntParser.length; ++p){
 		if(alignemntParser.aligned[p] && alignemntParser.base[p] != N){
-			if(minQuality <= alignemntParser.quality[p] && alignemntParser.quality[p] <= maxQuality){ //skip if quality does not make sense
-				internalPos = firstPos + alignemntParser.alignedPos[p];
-				if(internalPos >= length)
-					return true; //since part of the read maps to next window
+			internalPos = firstPos + alignemntParser.alignedPos[p];
+			if(internalPos >= length)
+				return true; //since part of the read maps to next window
 
-				sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], p, alignemntParser.length-p, pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
+			sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], p, alignemntParser.length-p, pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
 
-				//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
-			}
+			//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
 		}
 	}
 
@@ -486,8 +348,8 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-				QTtables.at((*it)->readGroup)->add((*it)->phredError, recalObject->getQuality(**it));
-				QTtables.at(QTtables.size() - 1)->add((*it)->phredError, recalObject->getQuality(**it));
+				QTtables.at((*it)->readGroup)->add((*it)->quality, recalObject->getQuality(**it));
+				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQuality(**it));
 			}
 		}
 	}

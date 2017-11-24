@@ -54,6 +54,9 @@ private:
 	TReadGroups* readGroupTable;
 	TLog* logfile;
 	bool _keepDuplicates;
+	bool applyQualityFilter;
+	int minQual, maxQual;
+	int minQualForPrinting, maxQualForPrinting;
 
 	//data
 	bool initialized;
@@ -66,9 +69,13 @@ private:
 	//tmp variables
 	unsigned int i;
 	int d, k, p;
+	std::vector<BamTools::CigarOp>::const_iterator cigarIter;
+	std::vector<BamTools::CigarOp>::const_iterator cigarEnd;
 	std::string tmpString;
 	std::string tmpString2;
 	std::string referenceSequence;
+	std::string::iterator stringIt;
+
 
 	//reference
 	bool hasReference;
@@ -78,6 +85,8 @@ private:
 	inline int toQual(const char & q);
 	void parseBasesQualities();
 	void setDistancesFromEnds();
+	void filterForBaseQuality();
+	void filterForPrintingBaseQuality(std::string & qual);
 	void fillContext();
 	void fillPmdProbabilities(TPMD* pmdObjects);
 
@@ -126,6 +135,8 @@ public:
 	void init(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
 	void clear();
 	void keepDuplicates(){_keepDuplicates = true;};
+	void setQualityFilters(int minQual, int maxQual);
+	void setQualityRangeForPrinting(int minQual, int maxQual);
 
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
@@ -139,6 +150,7 @@ public:
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects);
 	void binQualityScores();
 	void addToPMDTables(TPMDTables & pmdTables);
+	void assessSoftClipping(int & S_left, int & middle, int & S_right);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
 
 	//functions to modify alignment

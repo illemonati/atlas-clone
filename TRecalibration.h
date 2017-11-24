@@ -18,22 +18,26 @@
 //TQualityIndex
 //---------------------------------------------------------------
 class TQualityIndex{
+	//Note: quality as stored in bases ranges from 33 to max!
 public:
 	int minQ, maxQ, numQ, last, first;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
-		minQ= MinQ;
+		minQ = MinQ;
 		maxQ = MaxQ;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
 		first = 0;
 
 		//fill index
-		index = new int[maxQ + 1];
+		index = new int[maxQ + 34];
+		for(int i=0; i < 34; ++i){
+			index[i] = 0;
+		}
 		for(int i=0; i < maxQ + 1; ++i){
-			if(i < minQ) index[i] = 0;
-			else index[i] = i - minQ;
+			if(i < minQ) index[i+33] = 0;
+			else index[i+33] = i - minQ;
 		}
 	};
 
@@ -42,13 +46,13 @@ public:
 	};
 
 	int& getIndex(const int & quality){
-		if(quality < 0) throw "Quality is negative!";
+		if(quality < 33) throw "Quality is negative!";
 		if(quality > maxQ) return last;
 		return index[quality];
 	};
 
 	int getQuality(const int & index){
-		if(index < 0) throw "Quality index is negative!";
+		if(index < 33) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
 	};
@@ -174,7 +178,7 @@ public:
 		return quality;
 	}
 	virtual int getQuality(const TBase & base){
-		return base.phredError;
+		return base.quality;
 	};
 
 	virtual bool requiresEstimation(){ return false;};
@@ -257,7 +261,7 @@ public:
 	bool initialized;
 
 	TRecalibrationEMSite();
-	TRecalibrationEMSite(TSite & site, int* readGroupMap);
+	TRecalibrationEMSite(TSite & site, int* readGroupMap, TQualityMap & qualiMap);
 	double dePhred(double quality){
 		double tmp = pow(10.0, quality / -10.0);
 		if(tmp < 0.0000000001) return 0.0000000001;
@@ -286,7 +290,7 @@ public:
 		}
 		sites.clear();
 	};
-	virtual void addSite(TSite & site);
+	virtual void addSite(TSite & site, TQualityMap & qualiMap);
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model);
 	double calcLL(TRecalibrationEMModel* & model);
 	double calcQ(TRecalibrationEMModel* & model);
