@@ -104,7 +104,7 @@ public:
 	void recalibrate(TRecalibration & recalObject);
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, BamTools::Fasta & reference);
 	void binQualityScores();
-	void addToPMDTables(TPMDTables & pmdTables);
+	void addToPMDTables(TPMDTables & pmdTables, BamTools::Fasta & reference);
 	double calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference);
 
 	//functions to modify alignment

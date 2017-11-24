@@ -25,6 +25,7 @@ public:
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
 	Base** genotypeToBase; //mapping genotypes to bases
 	char* baseToChar;
+	Base* baseToFlippedBase;
 	int numContexts;
 
 	TGenotypeMap(){
@@ -88,6 +89,14 @@ public:
 		baseToChar[G] = 'G';
 		baseToChar[T] = 'T';
 		baseToChar[N] = 'N';
+
+		//fill baseToFlippedBase map
+		baseToFlippedBase = new Base[5];
+		baseToFlippedBase[A] = T;
+		baseToFlippedBase[C] = G;
+		baseToFlippedBase[G] = C;
+		baseToFlippedBase[T] = A;
+		baseToFlippedBase[N] = N;
 	};
 
 	~TGenotypeMap(){
@@ -103,8 +112,10 @@ public:
 		delete[] genotypeToBase;
 		delete[] contextMap;
 		delete[] baseToChar;
+		delete[] baseToFlippedBase;
 	};
 
+	//TODO: also make an array to speed up?
 	Base getBase(char & base){
 		if(base == 'A') return A;
 		if(base == 'C') return C;
@@ -122,7 +133,6 @@ public:
 		if(base == 'C') return C;
 		if(base == 'G') return G;
 		if(base == 'T') return T;
-
 		return N;
 	};
 

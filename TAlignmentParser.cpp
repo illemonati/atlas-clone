@@ -138,7 +138,7 @@ void TAlignmentParser::parseBasesQualities(){
 			case (BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR) :
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
 				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
+					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
@@ -161,7 +161,7 @@ void TAlignmentParser::parseBasesQualities(){
 			//for 'I' - insertion: copy bases, but put aligned pos to
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(i=0; i<op.Length; ++i, ++d, ++k){
-					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
+					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
 					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
@@ -181,7 +181,7 @@ void TAlignmentParser::parseBasesQualities(){
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					base[d] = genoMap.getBaseOnlyCapitals(bamAlignment.QueryBases[k]);
+					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					errorRates[d] = qualityMap.qualityToErrorMap[bamAlignment.Qualities[k]];
@@ -404,21 +404,23 @@ void TAlignmentParser::binQualityScores(){
 	changed = true;
 };
 
-/*
+
 void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables, BamTools::Fasta & reference){
 	//get reference sequence
 	fillReferenceSequence(reference);
 
 	//tmp variables
-	Base ref;
+	Base ref, read;
 
+	/*
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(d=0; d<length; ++d){
 			if(aligned[d]){
-				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
-				pmdTables.addForward(readGroupId, d, ref, base[d]);
-				pmdTables.addForward(readGroupId, length - d - 1, ref, base[d]);
+				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
+				read = genoMap.baseToFlippedBase[base[d]];
+				pmdTables.addForward(readGroupId, d, ref, read);
+				pmdTables.addForward(readGroupId, length - d - 1, ref, read);
 			}
 		}
 	} else {
@@ -430,17 +432,9 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables, BamTools::Fasta & 
 			}
 		}
 	}
-
-
-
-	readBase = genoMap.flipBase(base);
-	//std::cout << " " << internalPos << "," << ref[internalPos] << std::flush;
-	refBase = genoMap.flipBase(ref[internalPos]);
-
-	pmdTables.addForward(readGroupId, length - pos - 1, refBase, readBase);
-	pmdTables.addReverse(readGroupId, abs(bamAlignment.InsertSize)-length+pos, refBase, readBase);
+	*/
 };
-*/
+
 
 double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects, BamTools::Fasta & reference){
 	//make sure read is parsed

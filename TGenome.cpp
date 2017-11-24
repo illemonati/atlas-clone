@@ -3010,7 +3010,7 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->done();
 }
 
-/*
+
 void TGenome::estimatePMD_NEW(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
@@ -3020,28 +3020,25 @@ void TGenome::estimatePMD_NEW(TParameters & params){
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
 	TPMDTables pmdTables(&readGroups, maxLength);
 
-	//measure runtime
+	//measure progress and runtime
 	struct timeval start;
-
-	//tmp variables
-	int fastaEnd;
-	std::string ref;
-	TGenotypeMap genoMap;
-	long numreadsAdded;
+	long numreadsAdded = 0;
 
 	gettimeofday(&start, NULL);
 
 	//iterate through BAM file
 	while(alignmentParser.readAlignment(bamReader)){
-		alignmentParser.parse();
-		alignmentParser.fillReferenceSequence(reference);
+		alignmentParser.addToPMDTables(pmdTables, reference);
 
-
-		addReadToPMD(windows.cur, genoMap, ref, pmdTables);
+		//report
 		++numreadsAdded;
-
-
+		reportProgressParsingBamFile(numreadsAdded, start);
 	}
+
+	//report
+	reportProgressParsingBamFile(numreadsAdded, start);
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
 
 	//print tables and data
 	std::string filename = outputName + "_PMD_Table.txt";
@@ -3065,7 +3062,7 @@ void TGenome::estimatePMD_NEW(TParameters & params){
 	pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
 	logfile->done();
 }
-*/
+
 
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
