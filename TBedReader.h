@@ -143,11 +143,11 @@ private:
 			std::string line;
 			std::getline(*myStream, line);
 
-			fillVectorFromString(line, vec, "\t");
+
+			fillVectorFromStringAny(line, vec, "\t ");
 			//skip empty lines
 			if(vec.size() > 0){
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
-
 				//get chromosome
 				if(!Sequences.Contains(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 				if(vec[0] != curChr){

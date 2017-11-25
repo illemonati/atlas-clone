@@ -38,6 +38,21 @@ void TSite::stealFromOther(TSite* other){
 	}
 }
 
+void TSiteDiploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == A) bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else bases.push_back(new TBaseDiploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	hasData = true;
+};
+void TSiteHaploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == A) bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else bases.push_back(new TBaseHaploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	hasData = true;
+};
+
 void TSiteDiploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
 	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
@@ -54,50 +69,57 @@ void TSiteHaploid::add(char & base, char & quality, int PosInRead, int PosInRead
 };
 
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
-	double weight = 1.0 / bases.size();
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->addToBaseFrequencies(frequencies, weight);
+	if(hasData){
+		static double weight = 1.0 / bases.size();
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+			(*baseIterator)->addToBaseFrequencies(frequencies, weight);
+		}
 	}
 };
 
-void TSite::calcEmissionProbabilities(){
+void TSite::calcEmissionProbabilities(double* vec){
 	//assumes that emission probabilities were calculated for TBase!
 
 	//do in log if coverage is high
 	if(bases.size() < 50){
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = 1.0;
+			vec[i] = 1.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
+				vec[i] *= (*baseIterator)->getEmissionProbability(i);
 			}
 		}
 	} else {
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = 0.0;
+			vec[i] = 0.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				emissionProbabilities[i] += log((*it)->getEmissionProbability(i));
+				vec[i] += log((*baseIterator)->getEmissionProbability(i));
 			}
 		}
 		//now standardize before delog
-		double max = emissionProbabilities[0];
+		double max = vec[0];
 		for(int i=1; i<numGenotypes; ++i){
-			if(emissionProbabilities[i] > max) max = emissionProbabilities[i];
+			if(vec[i] > max) max = vec[i];
 		}
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = exp(emissionProbabilities[i] - max);
+			vec[i] = exp(vec[i] - max);
 		}
 	}
+
+}
+
+void TSite::calcEmissionProbabilities(){
+	calcEmissionProbabilities(emissionProbabilities);
 }
 
 std::string TSite::getBases(){
 	if(bases.size()==0) return "-";
 	std::string b = "";
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		b += (*it)->getBase();
+	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+		b += (*baseIterator)->getBase();
 	}
 	return b;
 }

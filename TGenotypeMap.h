@@ -13,7 +13,7 @@
 
 enum Base {A=0, C, G, T, N};
 enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
-enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT}; //N means "nothing", i.e. end of read or del
+enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap
@@ -24,6 +24,8 @@ public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
 	Base** genotypeToBase; //mapping genotypes to bases
+	char* baseToChar;
+	Base* baseToFlippedBase;
 	int numContexts;
 
 	TGenotypeMap(){
@@ -59,16 +61,42 @@ public:
 		genotypeToBase[9][0] = T; genotypeToBase[9][1] = T;
 
 		//create and fill context map
-		numContexts = 20;
+		numContexts = 25;
 		contextMap = new BaseContext*[5];
+
+		//now fill regular context
 		int context = 0;
 		for(int i=0; i<5; ++i){
-			contextMap[i] = new BaseContext[4];
+			contextMap[i] = new BaseContext[5];
 			for(int j=0; j<4; ++j){
 				contextMap[i][j] = static_cast<BaseContext>(context);
 				++context;
 			}
 		}
+
+		//Now add those that should not occur, but sometimes do in bam files
+		//Note that these should never occur in our data processing as they imply the base is N
+		contextMap[0][4] = cAN;
+		contextMap[1][4] = cCN;
+		contextMap[2][4] = cGN;
+		contextMap[3][4] = cTN;
+		contextMap[4][4] = cNN;
+
+		//fill base to char map
+		baseToChar = new char[5];
+		baseToChar[A] = 'A';
+		baseToChar[C] = 'C';
+		baseToChar[G] = 'G';
+		baseToChar[T] = 'T';
+		baseToChar[N] = 'N';
+
+		//fill baseToFlippedBase map
+		baseToFlippedBase = new Base[5];
+		baseToFlippedBase[A] = T;
+		baseToFlippedBase[C] = G;
+		baseToFlippedBase[G] = C;
+		baseToFlippedBase[T] = A;
+		baseToFlippedBase[N] = N;
 	};
 
 	~TGenotypeMap(){
@@ -83,8 +111,11 @@ public:
 			delete[] genotypeToBase[i];
 		delete[] genotypeToBase;
 		delete[] contextMap;
+		delete[] baseToChar;
+		delete[] baseToFlippedBase;
 	};
 
+	//TODO: also make an array to speed up?
 	Base getBase(char & base){
 		if(base == 'A') return A;
 		if(base == 'C') return C;
@@ -94,6 +125,14 @@ public:
 		if(base == 'c') return C;
 		if(base == 'g') return G;
 		if(base == 't') return T;
+		return N;
+	};
+
+	Base getBaseOnlyCapitals(char & base){
+		if(base == 'A') return A;
+		if(base == 'C') return C;
+		if(base == 'G') return G;
+		if(base == 'T') return T;
 		return N;
 	};
 
@@ -223,9 +262,11 @@ public:
 class TBaseFrequencies{
 public:
 	double freq[4];
+	bool wasNormalized;
 
 	TBaseFrequencies(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
 	};
 	void add(Base B, double & weight){
 		freq[B] += weight;
@@ -234,13 +275,17 @@ public:
 		freq[B] += weight;
 	};
 	void normalize(){
-		double sum = 0.0;
-		for(int i = 0; i < 4; ++i) sum += freq[i];
-		sum += 4.0;
-		for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
+		if(!wasNormalized){
+			double sum = 0.0;
+			for(int i = 0; i < 4; ++i) sum += freq[i];
+			sum += 4.0;
+			for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
+			wasNormalized = true;
+		}
 	};
 	void clear(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
 	};
 	void print(){
 		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
@@ -251,35 +296,81 @@ public:
 };
 
 //---------------------------------------------------------------
-//TPhredToLikelihood
+//TQualityMap
 //---------------------------------------------------------------
-class TPhredToLikelihood{
+class TQualityMap{
 public:
-	double* phredToLikelihood;
+	//IMPORTANT NOMENCLATURE
+	//error is erro rate between 0 and 1
+	//phred is phred-scaled error as phred = -10 * log10(error)
+	//quality is (int) phred + 33
+	double* phredToErrorMap;
+	double* qualityToErrorMap;
+	int* illuminaQualityBins;
 	double min;
+	int sizePhred, sizeQual;
 
-	TPhredToLikelihood(){
+	TQualityMap(){
 		//only up to phred = 255, else always return 256
-		phredToLikelihood = new double[256];
-		phredToLikelihood[0] = 1.0;
-		for(int i=0; i<256; ++i)
-			phredToLikelihood[i] = pow(10.0, (double) -i/10.0);
+		sizePhred = 256;
+		sizeQual = sizePhred + 33;
+		phredToErrorMap = new double[sizePhred];
+		qualityToErrorMap = new double[sizeQual];
+
+		//initialize quality <= 0
+		for(int i=0; i<33; ++i)
+			qualityToErrorMap[i] = 1.0;
+		phredToErrorMap[0] = 1.0;
+
+		//and now others
+		for(int i=0; i<256; ++i){
+			phredToErrorMap[i] = pow(10.0, (double) -i/10.0);
+			qualityToErrorMap[i+33] = phredToErrorMap[i];
+		}
 		min = pow(10.0, (double) -256/10.0);
+
+		//Create map of illumina quality bins
+		illuminaQualityBins = new int[sizeQual];
+		for(int i=0; i<35; ++i)
+			illuminaQualityBins[i] = 33;
+		for(int i=35; i<43; ++i)
+			illuminaQualityBins[i] = 39;
+		for(int i=43; i<53; ++i)
+			illuminaQualityBins[i] = 48;
+		for(int i=53; i<58; ++i)
+			illuminaQualityBins[i] = 55;
+		for(int i=58; i<63; ++i)
+			illuminaQualityBins[i] = 60;
+		for(int i=63; i<68; ++i)
+			illuminaQualityBins[i] = 66;
+		for(int i=68; i<72; ++i)
+			illuminaQualityBins[i] = 70;
+		for(int i=72; i<sizeQual; ++i)
+			illuminaQualityBins[i] = 73;
 	};
 
-	~TPhredToLikelihood(){
-		delete[] phredToLikelihood;
+	~TQualityMap(){
+		delete[] phredToErrorMap;
+		delete[] qualityToErrorMap;
 	};
 
-	double getLikelihood(int phred){
+	double phredToError(int phred){
 		if(phred>255)
 			return min;
-		else return phredToLikelihood[phred];
+		else return phredToErrorMap[phred];
+	};
+
+	inline int errorToPhred(const double & errorRate){
+		return round(-10.0 * log10(errorRate));
+	};
+
+	inline int errorToQuality(const double & errorRate){
+		return round(-10.0 * log10(errorRate)) + 33;
 	};
 
 	double& operator[](int phred){
 		//Note: no check on range!
-		return phredToLikelihood[phred];
+		return phredToErrorMap[phred];
 	};
 };
 

@@ -67,7 +67,7 @@ void TParameters::readInputfile(std::string fileName){
 			}
 		}
 		inputFileRead=true;
-		logfile->write(" done!");
+		logfile->done();
 	}
 }
 //---------------------------------------------------------------------------

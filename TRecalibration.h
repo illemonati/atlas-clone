@@ -18,22 +18,26 @@
 //TQualityIndex
 //---------------------------------------------------------------
 class TQualityIndex{
+	//Note: quality as stored in bases ranges from 33 to max!
 public:
 	int minQ, maxQ, numQ, last, first;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
-		minQ= MinQ;
+		minQ = MinQ;
 		maxQ = MaxQ;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
 		first = 0;
 
 		//fill index
-		index = new int[maxQ + 1];
+		index = new int[maxQ + 34];
+		for(int i=0; i < 34; ++i){
+			index[i] = 0;
+		}
 		for(int i=0; i < maxQ + 1; ++i){
-			if(i < minQ) index[i] = 0;
-			else index[i] = i - minQ;
+			if(i < minQ) index[i+33] = 0;
+			else index[i+33] = i - minQ;
 		}
 	};
 
@@ -41,13 +45,13 @@ public:
 		delete[] index;
 	};
 
-	int& getIndex(int & quality){
-		if(quality < 0) throw "Quality is negative!";
+	int& getIndex(const int & quality){
+		if(quality < 33) throw "Quality is negative!";
 		if(quality > maxQ) return last;
 		return index[quality];
 	};
 
-	int getQuality(int & index){
+	int getQuality(const int & index){
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
@@ -120,19 +124,25 @@ public:
 //TRecalibration: default = no recalibration
 //---------------------------------------------------------------
 class TRecalibration{
-public:
+protected:
 	bool mergedInd;
 	int* readGroupMap;
 	int numReadGroups;
 	int origNumReadGroups;
 	bool readGroupMapInitialized;
 
+	TQualityMap qualityMap;
+
+public:
 	TRecalibration();
 
 	virtual ~TRecalibration(){
 		if(readGroupMapInitialized) delete[] readGroupMap;
 	};
 
+	virtual bool recalibrationChangesQualities(){
+		return false;
+	};
 
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
@@ -154,28 +164,21 @@ public:
 		return pow(10.0, quality / -10.0);
 	};
 
-	virtual double getErrorRate(TBase* base){
-		return dePhred(base->quality);
-	};
-
-	virtual int getQuality(TBase* base){
-		return base->quality;
-	};
-
-	char getQualityAsChar(TBase* base){
+	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
 		int qual = getQuality(base) + 33;
-		if(qual > 126) qual = 126;
-		if(qual < 33) qual = 33;
+		if(qual > maxOutQuality) qual = maxOutQuality;
+		if(qual < minOutQuality) qual = minOutQuality;
 		return qual;
 	};
 
-	void calcEmissionProbabilities(TSite & site){
-		//first calculate for each base
-		for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-			(*it)->fillEmissionProbabilitiesCore(getErrorRate(*it));
-		}
-		//then for the site
-		site.calcEmissionProbabilities();
+	void calcEmissionProbabilities(TSite & site);
+	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	double getErrorRateFromBase(const TBase & base);
+	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+		return quality;
+	}
+	virtual int getQuality(const TBase & base){
+		return base.quality;
 	};
 
 	virtual bool requiresEstimation(){ return false;};
@@ -258,7 +261,7 @@ public:
 	bool initialized;
 
 	TRecalibrationEMSite();
-	TRecalibrationEMSite(TSite & site, int* readGroupMap);
+	TRecalibrationEMSite(TSite & site, int* readGroupMap, TQualityMap & qualiMap);
 	double dePhred(double quality){
 		double tmp = pow(10.0, quality / -10.0);
 		if(tmp < 0.0000000001) return 0.0000000001;
@@ -287,7 +290,7 @@ public:
 		}
 		sites.clear();
 	};
-	virtual void addSite(TSite & site);
+	virtual void addSite(TSite & site, TQualityMap & qualiMap);
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model);
 	double calcLL(TRecalibrationEMModel* & model);
 	double calcQ(TRecalibrationEMModel* & model);
@@ -323,10 +326,10 @@ public:
 		windows.clear();
 		delete model;
 	};
+	bool recalibrationChangesQualities(){ return true; };
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
-	double getErrorRate(TBase* base);
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename, double & LL);
@@ -335,7 +338,9 @@ public:
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
-	int getQuality(TBase* base);
+	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	int getQuality(const TBase & base);
+	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
 //---------------------------------------------------------------
@@ -353,8 +358,8 @@ public:
 	float firstDerivativeSave, secondDerivativeSave;
 	float numObservations;
 	float numObservationsTmp;
-	float F;
-	float LL;
+	double F, oldF;
+	double LL;
 	int myReadGroup;
 	//for storage
 	bool store;
@@ -547,6 +552,7 @@ public:
 		}
 	};
 
+	bool recalibrationChangesQualities(){ return true; };
 	bool dataHasBeenStored(){ return dataStored; };
 	void addSite(TSite & site);
 	void recalculateDerivativesFromDataInMemory();
@@ -563,8 +569,9 @@ public:
 	void calculateAndPrintLLSurfaceContext(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
-	double getErrorRate(TBase* base);
-	int getQuality(TBase* base);
+	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	int getQuality(const TBase & base);
+	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
 

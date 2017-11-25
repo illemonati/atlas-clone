@@ -81,7 +81,7 @@ void TPMDTable::empty(){
 	}
 };
 
-void TPMDTable::add(int & pos, Base & ref, Base & read){
+void TPMDTable::add(const int & pos, const Base & ref, const Base & read){
 	if(pos < 0) throw "position in TPMDTable add function is < 0!";
 	if(pos < maxLength)
 		++counts[pos][ref][read];
@@ -403,11 +403,11 @@ TPMDTables::~TPMDTables(){
 	delete[] reverse;
 };
 
-void TPMDTables::addForward(int readGroup, int pos, Base & ref, Base & read){
+void TPMDTables::addForward(const int readGroup, const int pos, const Base & ref, const Base & read){
 	forward[readGroup]->add(pos, ref, read);
 };
 
-void TPMDTables::addReverse(int readGroup, int pos, Base & ref, Base & read){
+void TPMDTables::addReverse(const int readGroup, const int pos, const Base & ref, const Base & read){
 	reverse[readGroup]->add(pos, ref, read);
 };
 

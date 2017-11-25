@@ -26,10 +26,13 @@
 //TSite
 //---------------------------------------------------------------
 class TSite{
-public:
-	bool hasData;
-	std::vector<TBase*> bases;
+protected:
 	short int numGenotypes;
+	std::vector<TBase*>::iterator baseIterator;
+
+public:
+	std::vector<TBase*> bases;
+	bool hasData;
 	double* emissionProbabilities;
 	char referenceBase; //optional
 
@@ -46,6 +49,7 @@ public:
 	void stealFromOther(TSite* other);
 
 	virtual void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
+	virtual void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){
 		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T')
 			referenceBase = Base;
@@ -59,7 +63,7 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
-	int getCoverage(){return bases.size();};
+	int depth(){return bases.size();};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);
@@ -68,6 +72,7 @@ public:
 		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
 		return -10.0 * log10(epsilon);
 	};
+	void calcEmissionProbabilities(double* vec);
 	void calcEmissionProbabilities();
 	void calculateP_g(double* & genotypeProbabilities, double* & P_g);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
@@ -115,6 +120,8 @@ public:
 		delete[] emissionProbabilities;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+
 	//MLE callers
 	void calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* phredEmissionProbs, double & quality, double & maxGenotypeProb, int & MLGenotype);
 	void calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & sumEmissionProbs, int & pos);
@@ -149,6 +156,7 @@ public:
 		delete[] emissionProbabilities;
 	};
 	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
 	void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out);
 };

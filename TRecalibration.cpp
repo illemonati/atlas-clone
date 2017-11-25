@@ -68,7 +68,7 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 		}
 		TReadGroups ReadGroupObject;
 		ReadGroupObject.fill(*bamHeader);
-		logfile->write(" done!");
+		logfile->done();
 
 		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 		int oldId;
@@ -111,6 +111,24 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 			readGroupMap[i] = i;
 		}
 	}
+}
+
+void TRecalibration::calcEmissionProbabilities(TSite & site){
+	//first calculate for each base
+	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
+		(*it)->fillEmissionProbabilitiesCore(getErrorRateFromBase(**it));
+	}
+
+	//then for the site
+	site.calcEmissionProbabilities();
+};
+
+double TRecalibration::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	return qualityMap.qualityToErrorMap[quality];
+}
+
+double TRecalibration::getErrorRateFromBase(const TBase & base){
+	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
 //---------------------------------------------------------------
@@ -459,7 +477,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 	numReads = 0;
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQualityMap & qualiMap){
 	numReads = site.bases.size();
 	q = new float*[numReads];
 	D = new float*[4];
@@ -485,7 +503,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap){
 		//we will work with the following q_ikl:
 		// - transformed quality
 		// - square of transformed quality
-		eps = dePhred((*it)->quality);
+
+		eps = qualiMap.qualityToErrorMap[(*it)->quality];
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
@@ -693,8 +712,8 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int*
 	readGroupMap = ReadGroupMap;
 }
 
-void TRecalibrationEMWindow::addSite(TSite & site){
-	sites.push_back(new TRecalibrationEMSite(site, readGroupMap));
+void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
+	sites.push_back(new TRecalibrationEMSite(site, readGroupMap, qualiMap));
 }
 
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model){
@@ -803,7 +822,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
 		}
 		delete[] rgFound;
-		logfile->write(" done!");
+		logfile->done();
 
 		//check if we anyway estimate things
 		if(args.parameterExists("estimateRecal")) estimatetionRequired = true;
@@ -843,12 +862,8 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 }
 
 void TRecalibrationEM::addSite(TSite & site){
-	(*curWindow)->addSite(site);
+	(*curWindow)->addSite(site, qualityMap);
 	++numSitesAdded;
-}
-
-double TRecalibrationEM::getErrorRate(TBase* base){
-	return model->getErrorRate(readGroupMap[base->readGroup], dePhred(base->quality), base->posInRead, base->context);
 }
 
 void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
@@ -896,7 +911,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 
 		//now solve J^-1 x F
 		if(model->solveJxF()){
-			logfile->write(" done!");
+			logfile->done();
 
 /*
 			std::cout << "----------------------------------------------" << std::endl;
@@ -966,7 +981,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model);
 		}
-		logfile->write(" done!");
+		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
 		//DEBUG--------------------------------------------------------
@@ -993,11 +1008,12 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 			filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
 			logfile->listFlush("Writing current estimates to file '" + filename + "' ...");
 			writeCurrentEstimates(filename, LL);
-			logfile->write(" done!");
+			logfile->done();
 		}
 
 		//end loop
 		logfile->endIndent();
+		if(iter == numEMIterations - 1) logfile->warning("EM has not converged after maximum number of iterations!");
 	}
 
 	//finalize
@@ -1007,7 +1023,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 	filename = outputName + "_recalibrationEM.txt";
 	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
 	writeCurrentEstimates(filename, LL);
-	logfile->write(" done!");
+	logfile->done();
 
 	//calc LL surface
 	//calcLikelihoodSurface(outputName + "_LLsurface.txt", 21);
@@ -1161,7 +1177,7 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 							Q += (*curWindow)->calcQ(newParams);
 						}
-						//logfile->write(" done!");
+						//logfile->done();
 						//logfile->conclude("Current Q = " + toString(Q));
 
 						//write to file
@@ -1179,11 +1195,22 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 */
 
-int TRecalibrationEM::getQuality(TBase* base){
-	double q = getErrorRate(base);
-	//transform to quality
-	return makePhredInt(q);
+double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
+
+int TRecalibrationEM::getQuality(const TBase & base){
+	double q = getErrorRateFromBase(base);
+	//transform to quality
+	return qualityMap.errorToQuality(q);
+}
+
+int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
+	//transform to quality
+	return qualityMap.errorToQuality(q);
+}
+
 //---------------------------------------------------------------
 //TBQSR_cell_base BQSR
 //---------------------------------------------------------------
@@ -1196,7 +1223,8 @@ TBQSR_cell_base::TBQSR_cell_base(){
 	secondDerivativeSave = 0.0;
 	numObservations = 0.0;
 	numObservationsTmp = 0.0;
-	F = 0.0;
+	F = 999999999999.0;
+	oldF = 999999999999.0;
 	LL = 0.0;
 	myReadGroup = -1;
 	store = false;
@@ -1256,11 +1284,14 @@ float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
 
 void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold){
 	if(F != F) throw "F is not a number!";
+	oldF = F;
 
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
 	F = fabs(firstDerivative / numObservations);
+
 	if(F < convergenceThreshold) estimationConverged = true;
+	if(oldF < F) estimationConverged = true;
 }
 
 
@@ -1843,7 +1874,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	}
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering qualities between " + toString(minQ) + " and " + toString(maxQ));
 }
 
@@ -1955,7 +1986,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	considerPosition = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering positions up to " + toString(maxPos));
 }
 
@@ -2072,7 +2103,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	considerPositionReverse = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering positions reverse up to " + toString(maxPos));
 }
 
@@ -2176,7 +2207,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	considerContext = true;
 
 	//done!
-	logfile->write(" done!");
+	logfile->done();
 	logfile->conclude("Considering context");
 }
 
@@ -2266,7 +2297,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			qualityConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2334,7 +2365,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			positionConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2402,7 +2433,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			positionReverseConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2468,7 +2499,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//report
-		logfile->write(" done!");
+		logfile->done();
 		if(numCellsNotConverged == 0){
 			contextConverged = true;
 			logfile->list("Estimation converged in all cells!");
@@ -2570,7 +2601,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
@@ -2592,7 +2623,7 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
@@ -2613,7 +2644,7 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
@@ -2634,7 +2665,7 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 
@@ -2653,7 +2684,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceQuality(std::string & filenam
 		}
 	}
 	out.close();
-		logfile->write(" done!");
+		logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filenameTag){
@@ -2671,7 +2702,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filena
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string & filenameTag){
@@ -2689,7 +2720,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string &
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenameTag){
@@ -2707,7 +2738,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenam
 		}
 	}
 	out.close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 bool TRecalibrationBQSR::allConverged(){
@@ -2760,18 +2791,24 @@ void TRecalibrationBQSR::reopenEstimation(){
 	}
 }
 
-double TRecalibrationBQSR::getErrorRate(TBase* base){
-	double q = BQSR_cells_readGroup_quality[base->readGroup][qualityIndex->getIndex(base->quality)].curEstimate;
-	if(considerPosition) q *= BQSR_cells_readGroup_position[base->readGroup][base->posInRead].curEstimate;
-	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[base->readGroup][base->posInReadRev].curEstimate;
-	if(considerContext) q *= BQSR_cells_readGroup_context[base->readGroup][base->context].curEstimate;
+double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = BQSR_cells_readGroup_quality[readGroupId][qualityIndex->getIndex(quality)].curEstimate;
+	if(considerPosition) q *= BQSR_cells_readGroup_position[readGroupId][pos].curEstimate;
+	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[readGroupId][posRev].curEstimate;
+	if(considerContext) q *= BQSR_cells_readGroup_context[readGroupId][context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
 }
 
-int TRecalibrationBQSR::getQuality(TBase* base){
-	double q = getErrorRate(base);
+int TRecalibrationBQSR::getQuality(const TBase & base){
+	double q = getErrorRateFromBase(base);
 	//transform to quality
-	return makePhredInt(q);
+	return qualityMap.errorToQuality(q);
+}
+
+int TRecalibrationBQSR::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	double q = getErrorRate(readGroupId, quality, pos, posRev, context);
+	//transform to quality
+	return qualityMap.errorToQuality(q);
 }
 

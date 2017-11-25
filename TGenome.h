@@ -17,8 +17,6 @@
 #include <typeinfo>
 #include <map>
 
-#include "TBase.h"
-
 //---------------------------------------------------------------
 //TGenome
 //---------------------------------------------------------------
@@ -37,6 +35,7 @@ private:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::BamAlignment bamAlignment;
+ 	TAlignmentParser alignmentParser;
 	bool oldAlignementMustBeConsidered;
 	BamTools::Fasta reference;
 	bool fastaReference;
@@ -63,9 +62,8 @@ private:
 	TBedReader* mask;
 	bool doMasking, considerRegions;
 	bool doCpGMasking;
-	bool applyCoverageFilter, applyQualityFilter;
-	int minCoverage, maxCoverage;
-	int minQuality, maxQuality;
+	bool applyCoverageFilter;
+	size_t minCoverage, maxCoverage;
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
@@ -77,18 +75,20 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
-	bool addAlignementToWindows(BamTools::BamAlignment & alignement, TWindowPair & windowPair);
+	bool addAlignementToWindows(TAlignmentParser & alignment, TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
-	void openThetaOutputFile(std::ofstream & out);
+	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-		if(doMasking) delete mask;
+		if(doMasking){
+			delete mask;
+		}
 		if(fastaReference) reference.Close();
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;
@@ -96,29 +96,36 @@ public:
 		if(useChromosome) delete[] useChromosome;
 		if(windowsPredefined) delete predefinedWindows;
 	};
+
+	//theta estimation
+	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
+	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
+	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData);
+	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcLikelihoodSurfaces(TParameters & params);
+
+	//callers
 	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
 	void randomBaseCaller(TParameters & params);
 	void majorityBaseCaller(TParameters & params);
+
+	//other
 	void writeGLF(TParameters & params);
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
+
+
+	//recalibration
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
-	//void fillSequence(std::vector<double> & vec, std::string & str);
 	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
 	void printQualityTransformation(TParameters & params);
-	void createBase(TBase** basePointer, char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	char returnBaseQualityAsChar(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharFwdMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQuality(char & base, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	double returnBaseQualityWithPMDAsCharRevMapping(char & base, char & refBase, char & quality, int & posInRead, int & revPosInRead, double & pmdCT, double & pmdGA, BaseContext & context, int & readGroupId);
-	bool recalibrateAlignment(BamTools::BamAlignment & alignment, std::string & qual, TGenotypeMap & genoMap, bool withPMD, int & begin, std::string & ref, std::map <std::string, int> & mateTooLong);
+	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 	void assessSoftClipping(TParameters & params);
@@ -126,6 +133,7 @@ public:
 	void mergeReadGroups(TParameters & params);
 	void addReadToPMD(TWindowDiploid* window, TGenotypeMap & genoMap, std::string & ref, TPMDTables & pmdTables);
 	void estimatePMD(TParameters & params);
+	void estimatePMD_NEW(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
 	void mergePairedEndReads(TParameters & params);
@@ -134,7 +142,7 @@ public:
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
-	void estimateCoveragePerSite(TParameters & params);
+	void estimateDepthPerSite(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
 };

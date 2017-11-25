@@ -34,7 +34,7 @@ void TSimulatorBamFile::open(std::string Filename, const std::string & readGroup
 	if (!bamWriter.Open(filename, header, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 	isOpen = true;
-	logfile->write(" done!");
+	logfile->done();
 }
 
 void TSimulatorBamFile::close(){
@@ -59,7 +59,7 @@ void TSimulatorBamFile::indexBamFile(){
 
 	//close BAM file
 	reader.Close();
-	logfile->write(" done!");
+	logfile->done();
 }
 
 //---------------------------------------------------
@@ -136,7 +136,7 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 	if(fastaOpen){
 		writeRefToFasta();
 	}
-	logfile->write(" done!");
+	logfile->done();
 }
 
 
@@ -182,6 +182,9 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParame
 
 	//chromosomes
 	initializeChromosomes(params, logfile);
+
+	//extra output on sites
+	writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
 	logfile->endIndent();
 
 	//set default parameters
@@ -313,10 +316,8 @@ void TSimulator::setReadLength(std::string s){
 		//is a function
 		std::string type = s.substr(0, pos);
 		s.erase(0, pos);
-		if(type == "gamma"){
+		if(type == "gamma")
 			readLengthDist = new TSimulatorReadLengthGamma(randomGenerator, s);
-
-		}
 		else if(type == "gammaMode")
 			readLengthDist = new TSimulatorReadLengthGammaMode(randomGenerator, s);
 		else throw "Unknown read length distribution '" + type + "'!";
@@ -365,17 +366,35 @@ int TSimulator::transformQuality(int & qual, int pos, int context){
 	static double q;
 
 	constant = posTermForTransformation[pos] + beta[context+4] - qualTermForTransformation[qual];
-	if(4.0 * beta[1] * constant > beta[0] * beta[0]) throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
+	if(4.0 * beta[1] * constant > beta[0] * beta[0]){
+
+		std::cout << "qual = " << qual << ", pos= " << pos << ", context = " << context << std::endl;
+		std::cout << "posTermForTransformation[pos] = " << posTermForTransformation[pos] << std::endl;
+		std::cout << "beta[context+4] = " << beta[context+4] << std::endl;
+		std::cout << "qualTermForTransformation[qual] = " << qualTermForTransformation[qual] << std::endl;
+		std::cout << "beta = " << beta[0] << ", " << beta[1] << ", " << beta[2] << ", " << beta[4] << std::endl;
+		std::cout << "4.0 * beta[1] * constant = " << 4.0 * beta[1] * constant  << std::endl;
+		std::cout << "beta[0] * beta[0] = " << beta[0] * beta[0] << std::endl;
+
+
+		throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
+	}
 	if(beta[1] == 0.0){
 		q = -constant / beta[0];
 	} else {
 		tmp = sqrt(beta[0] * beta[0] - 4.0 * beta[1] * constant);
-		q = (-tmp - beta[0]) / 2.0 / beta[1];
+		q = (tmp - beta[0]) / 2.0 / beta[1];
 		//if(q < 0) q = (-tmp - beta[0]) / 2.0 / beta[1];
 	}
 
 	tmp = exp(q);
-	if(tmp == 0) throw "choose different quality transformation parameters! tmp == 0";
+	if(tmp == 0){
+
+		std::cout << "q = " << q << ", beta[0] * beta[0] - 4.0 * beta[1] * constant = " << beta[0] * beta[0] - 4.0 * beta[1] * constant << ", sqrt() = " << sqrt(beta[0] * beta[0] - 4.0 * beta[1] * constant) << std::endl;
+
+		throw "choose different quality transformation parameters! tmp == 0";
+	}
+
 	return -10.0 * log10(tmp / (1.0 + tmp)) + 33.0;
 }
 
@@ -588,18 +607,24 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(1);
 
-	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt.gz";
-	gz::ogzstream genoFile(filename.c_str());
+	//open files to store extra info on sites
+	gz::ogzstream genoFile;
+	gz::ogzstream invariantSitesFile;
+	gz::ogzstream variantSitesFile;
 
-	//open file for invariant positions
-	filename = outname + "_invariantSites.bed.gz";
-	gz::ogzstream invariantSitesFile(filename.c_str());
+	if(writeTrueGenotypes){
+		//open file for true genotypes
+		filename = outname + "_trueGenotypes.txt.gz";
+		genoFile.open(filename.c_str());
 
-	//open file for variant positions
-	filename = outname + "_variantSites.bed.gz";
-	gz::ogzstream variantSitesFile(filename.c_str());
+		//open file for invariant positions
+		filename = outname + "_invariantSites.bed.gz";
+		invariantSitesFile.open(filename.c_str());
 
+		//open file for variant positions
+		filename = outname + "_variantSites.bed.gz";
+		variantSitesFile.open(filename.c_str());
+	}
 
 	//prepare mutation table
 	float** mutTable;
@@ -627,9 +652,15 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
 		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), mutTable, referenceObj.getPointerToRef());
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
-		logfile->write(" done!");
+		logfile->done();
+
+		//write true genotypes and position of variant and invariant sites
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
+			logfile->done();
+		}
 
 		//now simulate and write reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesFirstIndividual(), bamFile, "");
@@ -642,6 +673,8 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	bamFile.close();
 	bamFileOpen = false;
 	genoFile.close();
+	invariantSitesFile.close();
+	variantSitesFile.close();
 
 	//clear memory
 	for(int i=0; i<4; ++i)
@@ -974,8 +1007,11 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 	TSimulatorHaplotypes haplotypes(2);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt";
-	gz::ogzstream genoFile(filename.c_str());
+	gz::ogzstream genoFile;
+	if(writeTrueGenotypes){
+		filename = outname + "_trueGenotypes.txt";
+		genoFile.open(filename.c_str());
+	}
 
 	//initialize genotype combination tables
 	TSimulatorGenotypeCombination genoComb(phis, baseFreq);
@@ -993,8 +1029,15 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 		//TODO: add functionality for haploid chromosomes!
 		logfile->listFlush("Simulating genotypes ...");
 		genoComb.simulateHaplotypes(haplotypes.getHaplotypesOfIndividual(0), haplotypes.getHaplotypesOfIndividual(1), referenceObj.getPointerToRef(), referenceDivergence, chrIt->length, randomGenerator);
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		logfile->write(" done!");
+		logfile->done();
+
+		//writing true genotypes
+		//TODO: also write variant and invariant sites!
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			logfile->done();
+		}
 
 		//simulating reads
 		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(0), bamFile0, " for individual 1");
@@ -1231,8 +1274,11 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 	TSimulatorHaplotypes haplotypes(numIndividuals);
 
 	//open file for true genotypes
-	filename = outname + "_trueGenotypes.txt";
-	gz::ogzstream genoFile(filename.c_str());
+	gz::ogzstream genoFile;
+	if(writeTrueGenotypes){
+		filename = outname + "_trueGenotypes.txt";
+		genoFile.open(filename.c_str());
+	}
 
 	//prepare mutation table
 	float** mutTable;
@@ -1254,8 +1300,15 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 		//simulate genotypes
 		logfile->listFlush("Simulating genotypes ...");
 		simulateHaplotypes(haplotypes, *sfsIt, mutTable, referenceObj.getPointerToRef());
-		haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
-		logfile->write(" done!");
+		logfile->done();
+
+		//write true genotypes
+		//TODO: also write variant and invariant sites!
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeGenotypes(genoFile, chrIt->name, toBase);
+			logfile->done();
+		}
 
 		//now simulate and write reads
 		logfile->startIndent("Simulating reads:");
@@ -1327,7 +1380,7 @@ void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outna
 			altFreq[l] = sfs.getRandomFrequency(randomGenerator);
 			freqFile << chrIt->name << "\t" << l+1 << altFreq[l] << "\n";
 		}
-		logfile->write(" done!");
+		logfile->done();
 
 		//simulating reads
 		numReads = chrIt->length * seqDepth / readLength;

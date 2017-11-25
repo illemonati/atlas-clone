@@ -241,7 +241,7 @@ private:
 	double** cumulGenoCombinationFreq;
 	short*** genoTrans;
 	short** orderLookup;
-	bool tablesInitialized;;
+	bool tablesInitialized;
 
 	void fillTables(std::vector<double> & phis, float* baseFreq);
 	void deleteTables();
@@ -278,6 +278,7 @@ private:
 	std::vector<TSimulatorChromosome> chromosomes;
 	std::vector<TSimulatorChromosome>::iterator chrIt;
 	std::string readGroupName;
+	bool writeTrueGenotypes;
 
 	//Qual to error table
 	TSimulatorRead* simRead;
