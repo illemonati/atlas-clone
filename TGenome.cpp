@@ -454,7 +454,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 	} else if(params.parameterExists("pmdFile")){
 		//read from file for each read group
 		std::string filename = params.getParameterString("pmdFile");
-		logfile->list("Reading PMD from  from file '" + filename + "'.");
+		logfile->list("Reading PMD from file '" + filename + "'.");
 		std::ifstream file(filename.c_str());
 		if(!file) throw "Failed to open PMD file '" + filename + "'!";
 
@@ -476,9 +476,9 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
 					readGroupId = readGroups.find(vec[0]);
 					//initialize functions
-					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT, logfile);
+					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
 				//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
-					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA, logfile);
+					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
 				//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
 				}
 			}
@@ -498,8 +498,8 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		logfile->list("Assuming there is no PMD in the data.");
 		std::string pmdString = "none";
 		for(int i=0; i<readGroups.numGroups; ++i){
-			pmdObjects[i].initializeFunction(pmdString, pmdGA, logfile);
-			pmdObjects[i].initializeFunction(pmdString, pmdCT, logfile);
+			pmdObjects[i].initializeFunction(pmdString, pmdGA);
+			pmdObjects[i].initializeFunction(pmdString, pmdCT);
 		}
 	}
 	logfile->endIndent();

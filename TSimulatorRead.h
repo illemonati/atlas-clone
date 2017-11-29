@@ -11,6 +11,8 @@
 #include "TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
+#include "TSimulatorAuxiliaryTools.h"
+#include "TSimulatorQualityTransformation.h"
 
 
 //-------------------------------
@@ -18,139 +20,73 @@
 //-------------------------------
 class TSimulatorRead{
 protected:
-	TLog* logfile;
 	TRandomGenerator* randomGenerator;
-	char* toBase;
+	int maxPrintQual;
 
-	//PMD
-	TPMD* pmdObject;
-	bool pmdInitialized = false;
+	TSimulatorReadLength* readLengthDist;
+	bool readLengthInitialized;
+	TSimulatorQualityDist* qualityDist;
+	bool qualityDistInitialized;
+	TSimulatorQualityTransformation* qualityTransform;
+	bool qualityTransformInitialized;
+	TPMD pmdObject;
+	bool hasPMD;
+	bool isInitialized;
 
-	//final read params
-	std::string queryBases = "";
-	std::string bamQualities = "";
+	TGenotypeMap genoMap;
+	TQualityMap qualityMap;
 
-	//helper functions
-//	double dePhredAscii(int x);
-	double dePhred(int x);
-	int phred(double x);
+	//alignment
+	BamTools::BamAlignment bamAlignment;
+	int fragmentLength;
+	Base* bases;
+	int* qualities;
 
-	//virtual functions
-	virtual int returnBamQual(int qual, int pos, BaseContext baseContext, int maxQual);
 
-	//qual params
-	int minQual = 0;
-	bool dePhredTableInitialized = false;
-	double* dePhredTable;
-	double meanQual, sdQual;
-	int maxQual, maxQualPlusOne;
-	bool qualToErroTableInitialized = false;
-	double* qualToErroTable;
+	//tmp variables
+	int p;
+	Base previousBase;
+	int tmp_qual;
 
 	//general functions
-	void setTrueQualityDistribution(double mean, double sd, int maxQ);
-	virtual int sampleTrueQuality();
-	void initializeDePhredTable();
-	void initializeQualToErrorTable();
-	void applyPMD(short & base, long & posInRead, readLengthContainer & rl);
+	void simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
+	void applyPMD(Base* _bases, int & len, int & fragmentLength);
 
 public:
-	TSimulatorRead(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorRead(){
-		if(qualToErroTableInitialized)
-			delete[] qualToErroTable;
-		if(dePhredTableInitialized)
-			delete[] dePhredTable;
+	TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRandomGenerator* RandomGenerator);
+	~TSimulatorRead(){
+		if(readLengthInitialized){
+			delete readLengthDist;
+			delete[] bases;
+			delete[] qualities;
+		}
+		if(qualityDistInitialized)
+			delete qualityDist;
+		if(qualityTransformInitialized)
+			delete qualityTransform;
 	};
 
-	virtual void simulate(short* haplotype, const long & pos, readLengthContainer & rl, TGenotypeMap & genoMap);
+	bool checkInitialization();
+	void setReadLengthDistribution(std::string s);
+	void setQualityDistribution(std::string s);
+	void setQualityTransformation(const std::string & type, const std::string & arg);
+	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 
-	//getters and setters
-	std::string getQueryBases();
-	std::string getBamQualities();
-
-};
-
-
-//-------------------------------
-//TSimulatorReadRecal
-//-------------------------------
-
-class TSimulatorReadRecal:public TSimulatorRead{
-private:
-	std::vector<double> betas;
-	double* qualTermForTransformation;
-	double* posTermForTransformation;
-
-	//private functions
-	int returnBamQual(int & qual, int & pos, int & context);
-
-	//derived functions
-//	int returnQual(int & qual, int & pos, int & context);
-
-public:
-	TSimulatorReadRecal(std::vector<double> Betas, int & maxReadLen, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadRecal(){};
-};
-
-//-------------------------------
-// BQSR transformation pos
-//-------------------------------
-
-class TSimulatorReadBQSR:public TSimulatorRead{
-private:
-
-protected:
-	TSimulatorReadLength* readLengthDist;
-	int maxPos;
-
-	//quality params
-	int phi1;
-	double phi2;
-	bool trueQualToFakeQualTableInitialized = false;
-	double* trueQualToFakeQual;
-	double kappa, lambda;
-
-	//position params
-	double revIntercept = 1.0;
-	double intercept = 1.0;
-	double m = 0.0;
-
-	//optimization algorithm params
-	double* w;
-	bool weightsInitialized;
-//	double kappa_cur = -1.0, lambda_cur = -1.0;
-	std::vector< std::vector<double> > QBetaQBetaP;
-	bool betaQBetaPInitialized = false;
-
-	//quality functions
-	void parseBQSRQualInput(TParameters & params);
-	double returnFakeError(int & trueQual);
-	void setFakeQualityDistribution();
-	void initializeTrueQualToFakeQualTable();
-	int sampleFakeQuality();
-
-	//position functions
-	void calculateSlopeIntercept();
-	double returnBetaPp(int & pos);
-
-	//optimization algorithm functions
-	void fillWeights(double & kappa_cur, double & lambda_cur);
-	void fillQBetaQBetaP();
-	double returnCurMean();
-	double returnCurSD(double & kappa);
-	double returnDelta(double & curMean, double & curSD);
-	void simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap);
-
-public:
-	TSimulatorReadBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
-	virtual ~TSimulatorReadBQSR(){
-		if(trueQualToFakeQualTableInitialized)
-			delete[] trueQualToFakeQual;
-		if(weightsInitialized)
-			delete[] w;
+	double meanReadLength(){
+		if(!readLengthInitialized) throw "Read length distribution not initialized!";
+		return readLengthDist->mean();
 	};
+	double maxReadLength(){
+		if(!readLengthInitialized) throw "Read length distribution not initialized!";
+		return readLengthDist->max();
+	};
+
+	void setRefId(int refId){bamAlignment.RefID = refId; };
+	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
+
+	void printDetails(TLog* logfile);
 };
+
 
 
 #endif /* TSIMULATORREAD_H_ */

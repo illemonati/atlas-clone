@@ -11,7 +11,7 @@
 //---------------------------------------------------------
 //TSimulatorReadLength
 //---------------------------------------------------------
-TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s){
+TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 
 	//is a fixed length
@@ -41,12 +41,19 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 	positionProbs = NULL;
 };
 
-void TSimulatorReadLength::sample(readLengthContainer & rl){
-	rl.fragmentLength = meanLength;
-	rl.readLength = meanLength;
+void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){
+	fragmentLength = meanLength;
+	readLength = meanLength;
 };
 
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLength(RandomGenerator){
+void TSimulatorReadLength::printDetails(TLog* logfile){
+	logfile->list("Will simulate reads of fixed length " + toString(meanLength) + ".");
+};
+
+//--------------------------------------------------
+//TSimulatorReadLengthGamma
+//--------------------------------------------------
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
 	parseFunctionString(s, alpha, beta);
 	if(alpha <= 0.0)
 		throw "Shape parameter alpha must be > 0.0!";
@@ -65,36 +72,41 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGen
 }
 
 void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & param1, double & param2){
+	std::string orig = s;
+
 	if(s[0] != '(')
-		throw "1 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	s.erase(0,1);
 
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
-		throw "2 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	param1 = stringToDouble(s.substr(0,pos));
 
 	s.erase(0,pos+1);
 
 	pos = s.find(")");
 	if(pos == std::string::npos)
-		throw "3 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	param2 = stringToDouble(s.substr(0,pos));
 	s.erase(0,pos+1);
 
 	if(s[0] != '[')
-		throw "4 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	s.erase(0,1);
 	pos = s.find(",");
 	if(pos == std::string::npos)
-		throw "5 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	_min = stringToDouble(s.substr(0,pos));
-	if(_min <= 0) throw "min read length must be > 0!";
+	if(_min <= 0)
+		throw "Fail to understand function '" + orig + "': min read length must be > 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
-		throw "6 Fail to understand read length function: use format function(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	_max = stringToDouble(s.substr(0,pos));
+	if(_max <= _min)
+			throw "Fail to understand function '" + orig + "': max must be > min!";
 };
 
 void TSimulatorReadLengthGamma::initiate(){
@@ -145,14 +157,24 @@ void TSimulatorReadLengthGamma::initiate(){
 	}
 }
 
-void TSimulatorReadLengthGamma::sample(readLengthContainer & rl){
-	rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	while(rl.fragmentLength < _min)
-		rl.fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	rl.readLength = std::min(rl.fragmentLength, _max);
+void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
+	fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
+	while(fragmentLength < _min)
+		fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
+	readLength = std::min(fragmentLength, _max);
+}
+
+void TSimulatorReadLengthGamma::printDetails(TLog* logfile){
+	logfile->list("Gamma distributed fragment length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".");
+	if(probAcceptance() < 0.9)
+		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };
 
-TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s):TSimulatorReadLengthGamma(RandomGenerator){
+
+//--------------------------------------------------
+//TSimulatorReadLengthGammaMode
+//--------------------------------------------------
+TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorReadLengthGamma(RandomGenerator){
 	//here the parameters parsed are mode and variance, so adjust alpha and beta
 	parseFunctionString(s, mode, var);
 	if(mode <= 0.0)
@@ -170,3 +192,9 @@ TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(TRandomGenerator* R
 
 	initiate();
 }
+
+void TSimulatorReadLengthGammaMode::printDetails(TLog* logfile){
+	logfile->list("Gamma distributed fragment length with mode=" + toString(mode) + " and variance=" + toString(var) + ".");
+	if(probAcceptance() < 0.9)
+		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
+};

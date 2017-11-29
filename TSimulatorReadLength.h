@@ -10,16 +10,11 @@
 
 #include "stringFunctions.h"
 #include "TRandomGenerator.h"
-
+#include "TLog.h"
 
 //---------------------------------------------------------
 //TSimulatorReadLength
 //---------------------------------------------------------
-struct readLengthContainer{
-	int fragmentLength;
-	int readLength;
-};
-
 class TSimulatorReadLength{
 protected:
 	TRandomGenerator* randomGenerator;
@@ -31,7 +26,7 @@ public:
 	float* gammaCumulDensity;
 	float* positionProbs; //normalized (1 - cumulDensity)
 
-	TSimulatorReadLength(TRandomGenerator* RandomGenerator, std::string & s);
+	TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLength(){
 		delete[] gammaDensity;
@@ -39,11 +34,12 @@ public:
 		delete[] positionProbs;
 	};
 
-	virtual void sample(readLengthContainer & rl);
+	virtual void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return meanLength;};
 	virtual double mean(){return meanLength;};
 	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
-	virtual std::string getFunctionString(){ return "Will simulate reads of fixed length " + toString(meanLength) + ".";};
+	virtual void printDetails(TLog* logfile);
+
 };
 
 class TSimulatorReadLengthGamma:public TSimulatorReadLength{
@@ -56,13 +52,13 @@ protected:
 	void initiate();
 
 public:
-	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator, std::string & s);
+	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLengthGamma(){};
-	void sample(readLengthContainer & rl);
+	void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return _max;};
 	virtual double mean(){return meanLength;};
-	virtual std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".";};
+	virtual void printDetails(TLog* logfile);
 };
 
 class TSimulatorReadLengthGammaMode:public TSimulatorReadLengthGamma{
@@ -70,9 +66,9 @@ protected:
 	double mode, var;
 
 public:
-	TSimulatorReadLengthGammaMode(TRandomGenerator* RandomGenerator, std::string & s);
-	virtual ~TSimulatorReadLengthGammaMode(){};
-	std::string getFunctionString(){ return "Will simulate reads of gamma distributed length with mode=" + toString(mode) + " and variance=" + toString(var) + ".";};
+	TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator);
+	~TSimulatorReadLengthGammaMode(){};
+	void printDetails(TLog* logfile);
 };
 
 

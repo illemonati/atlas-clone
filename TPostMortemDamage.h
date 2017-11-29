@@ -84,6 +84,7 @@ public:
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
 	virtual std::string getFunctionName(){ return functionName; };
+	virtual bool hasDamage(){ return false; };
 };
 
 class TPMDSkoglund:public TPMDFunction{
@@ -91,7 +92,7 @@ private:
 	double lambda, c;
 
 protected:
-	virtual void setName(){ functionName = "Skoglund"; };
+	void setName(){ functionName = "Skoglund"; };
 
 public:
 	TPMDSkoglund(double & Lambda, double & C);
@@ -106,6 +107,7 @@ public:
 	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 class TPMDExponential:public TPMDFunction{
@@ -129,6 +131,7 @@ public:
 	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 class TPMDEmpiric:public TPMDFunction{
@@ -149,6 +152,7 @@ public:
 	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 //------------------------------------------------------
@@ -182,7 +186,7 @@ public:
 	};
 	void initialize(TParameters & params, TLog* logfile);
 	void initialize(TPMD & other);
-	void initializeFunction(std::string & pmdString, PMDType type, TLog* logfile);
+	void initializeFunction(std::string pmdString, PMDType type);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
 	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };
@@ -191,6 +195,11 @@ public:
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];
 	};
+	bool hasDamage(){ return myFunctions[pmdCT]->hasDamage() & myFunctions[pmdGA]->hasDamage(); };
+	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
+	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
+
+
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 };

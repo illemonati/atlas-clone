@@ -11,9 +11,9 @@
 #include "stringFunctions.h"
 #include <math.h>
 
-enum Base {A=0, C, G, T, N};
-enum Genotype {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
-enum BaseContext {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
+enum Base : uint8_t {A=0, C, G, T, N};
+enum Genotype : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
+enum BaseContext : uint8_t {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
 //GenotypeMap

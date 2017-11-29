@@ -460,6 +460,9 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
 	}
 	out.close();
+
+
+
 }
 //---------------------------------------------------------------
 //TPMDFunction
@@ -525,25 +528,27 @@ void TPMD::initialize(TParameters & params, TLog* logfile){
 	if(params.parameterExists("pmd")){
 		std::string pmdString = params.getParameterString("pmd");
 		logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
-		initializeFunction(pmdString, pmdGA, logfile);
-		initializeFunction(pmdString, pmdCT, logfile);
+		initializeFunction(pmdString, pmdGA);
+		initializeFunction(pmdString, pmdCT);
 		logfile->conclude(getFunctionString(pmdCT));
 		if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
 		if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
 	} else {
 		//first C->T
-		if(!params.parameterExists("pmdCT")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdCT' has to be provided!";
-		std::string pmdStringCT = params.getParameterString("pmdCT");
-		logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
-		initializeFunction(pmdStringCT, pmdCT, logfile);
-		logfile->conclude(getFunctionString(pmdCT));
+		if(params.parameterExists("pmdCT")){
+			std::string pmdStringCT = params.getParameterString("pmdCT");
+			logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
+			initializeFunction(pmdStringCT, pmdCT);
+			logfile->conclude(getFunctionString(pmdCT));
+		} else myFunctions[pmdCT] = new TPMDFunction();
 
 		//second G->A
-		if(!params.parameterExists("pmdGA")) throw "Problem initializing post mortem damage: argument 'pmd' or 'pmdGA' has to be provided!";
-		std::string pmdStringGA = params.getParameterString("pmdGA");
-		logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
-		initializeFunction(pmdStringGA, pmdGA, logfile);
-		logfile->conclude(getFunctionString(pmdGA));
+		if(params.parameterExists("pmdGA")){
+			std::string pmdStringGA = params.getParameterString("pmdGA");
+			logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
+			initializeFunction(pmdStringGA, pmdGA);
+			logfile->conclude(getFunctionString(pmdGA));
+		} else myFunctions[pmdGA] = new TPMDFunction();
 	}
 }
 
@@ -555,7 +560,7 @@ void TPMD::initialize(TPMD & other){
 	}
 }
 
-void TPMD::initializeFunction(std::string & pmdString, PMDType type, TLog* logfile){
+void TPMD::initializeFunction(std::string pmdString, PMDType type){
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]
@@ -594,9 +599,6 @@ void TPMD::initializeFunction(std::string & pmdString, PMDType type, TLog* logfi
 				if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
 				myFunctions[type] = new TPMDSkoglund(first, c);
 			} else if(name == "Exponential"){
-				//get a, b and c
-				if(first < 0.0)  logfile->warning("At least one read group was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
-
 				//get b
 				tmp = tmp.substr(pos+1);
 				pos = tmp.find_first_of(',');
