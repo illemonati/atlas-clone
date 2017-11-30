@@ -79,6 +79,9 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	_max = stringToDouble(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand function '" + orig + "': max must be >= min!";
+
+	std::cout << "-------------------------------____> MAX = " << _max << " =?= " << max() << std::endl;
+
 };
 
 void TSimulatorQualityDistNormal::fillDensities(){
@@ -175,7 +178,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 	//set size
 	maxReadLengthPlusOne = maxReadLength + 1;
 	maxQualPlusOne = qualityDist->max() + 1;
-	numContextPlusOne = genoMap.numContexts + 1;
+	numContext = genoMap.numContextsNotN;
 
 	//quality term
 	double* qualTermForTransformation = new double[maxQualPlusOne];
@@ -201,11 +204,11 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 	for(q=0; q<maxQualPlusOne; ++q){
 		transformedQuality[q] = new int*[maxReadLengthPlusOne];
 		for(p=0; p<maxReadLengthPlusOne; ++p){
-			transformedQuality[q][p] = new int[numContextPlusOne];
-			for(c=0; c<numContextPlusOne; ++c){
-
+			transformedQuality[q][p] = new int[numContext];
+			for(c=0; c<numContext; ++c){
 				//now calc transformed quality
 				constant = posTermForTransformation[p] + betas[c+4] - qualTermForTransformation[q];
+
 				if(4.0 * betas[1] * constant > betas[0] * betas[0]) throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
 				if(betas[1] == 0.0){
 					transQual = -constant / betas[0];
@@ -222,6 +225,9 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 		}
 	}
 
+	//clean up
+	delete[] qualTermForTransformation;
+	delete[] posTermForTransformation;
 };
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){

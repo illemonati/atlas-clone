@@ -27,6 +27,7 @@ public:
 	char* baseToChar;
 	Base* baseToFlippedBase;
 	int numContexts;
+	int numContextsNotN;
 
 	TGenotypeMap(){
 		//create genotype map
@@ -62,6 +63,7 @@ public:
 
 		//create and fill context map
 		numContexts = 25;
+		numContextsNotN = 20;
 		contextMap = new BaseContext*[5];
 
 		//now fill regular context

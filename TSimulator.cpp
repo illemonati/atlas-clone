@@ -144,7 +144,7 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 		perReadGroup = true;
 	} else {
 		//is a function on the command line
-		logfile->list("Will use '" + s + " for all read groups.");
+		logfile->list("Will use '" + s + "' for all read groups.");
 		qualityDistMap.insert(std::pair<std::string,std::string>("-", s));
 		perReadGroup = false;
 	}
@@ -188,11 +188,8 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 
 			recalString.erase(pos, 1);
 
-			//TODO: debug!!!
-			std::cout << std::endl << "recal string = '" << recalString << "'" << std::endl;
-
 			//save to map
-			logfile->list("Will use '" + recalString + " for all read groups.");
+			logfile->list("Will use '" + recalString + "' for all read groups.");
 			qualTransformMap["-"] = std::pair<std::string, std::string>("recal", recalString);
 			perReadGroup = false;
 		}

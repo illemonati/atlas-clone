@@ -39,7 +39,7 @@ public:
 class TSimulatorQualityDistNormal:public TSimulatorQualityDist{
 private:
 	double mean, sd;
-	int _max, _maxPlusOne;
+	int _maxPlusOne;
 	int _min;
 
 	//densities
@@ -93,7 +93,7 @@ private:
 	std::vector<double> betas;
 	int maxReadLengthPlusOne;
 	int maxQualPlusOne;
-	int numContextPlusOne;
+	int numContext;
 	int*** transformedQuality; //index are [qual][pos][context]
 	Base previousBase;
 	TGenotypeMap genoMap;
