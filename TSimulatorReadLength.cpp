@@ -58,6 +58,12 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGen
 	_min = -1.0;
 	_max = -1.0;
 	meanLength = -1.0;
+
+	gammaDensity = NULL;
+	gammaCumulDensity = NULL;
+	positionProbs = NULL;
+
+	initialized = false;
 }
 
 void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & param1, double & param2){
@@ -102,9 +108,10 @@ void TSimulatorReadLengthGamma::initiate(){
 	cumulAtMin = randomGenerator->gammaCumulativeDistributionFunction(_min-0.5, alpha, beta);
 	double totalArea = 1 - cumulAtMin;
 
-	gammaDensity = new float[_max];
-	gammaCumulDensity = new float[_max];
-	positionProbs = new float[_max];
+	gammaDensity = new double[_max];
+	gammaCumulDensity = new double[_max];
+	positionProbs = new double[_max];
+	initialized = true;
 
 	//get weighted average
 	double w;

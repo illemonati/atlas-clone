@@ -36,13 +36,14 @@ public:
 
 class TSimulatorReadLengthGamma:public TSimulatorReadLength{
 protected:
-	float meanLength;
+	double meanLength;
 	double alpha, beta;
 	int _min, _max;
+	bool initialized;
 
-	float* gammaDensity;
-	float* gammaCumulDensity;
-	float* positionProbs; //normalized (1 - cumulDensity)
+	double* gammaDensity;
+	double* gammaCumulDensity;
+	double* positionProbs; //normalized (1 - cumulDensity)
 
 	void parseFunctionString(std::string & s, double & param1, double & param2);
 	void initiate();
@@ -51,9 +52,11 @@ public:
 	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLengthGamma(){
-		delete[] gammaDensity;
-		delete[] gammaCumulDensity;
-		delete[] positionProbs;
+		if(initialized){
+			delete[] gammaDensity;
+			delete[] gammaCumulDensity;
+			delete[] positionProbs;
+		}
 	};
 	void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return _max;};

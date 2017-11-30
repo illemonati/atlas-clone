@@ -747,8 +747,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		//move to new chromosome
 		curChr = g1.chr();
 		curChrLen = g1.chrLength();
-		long windowStart = 1;
-		long windowEnd = windowLen+1;
+		windowStart = 1;
+		windowEnd = windowLen+1;
 
 		logfile->startNumbering("Chromosome " + curChr + ":");
 
