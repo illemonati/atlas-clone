@@ -22,17 +22,9 @@ protected:
 	double cumulAtMin;
 
 public:
-	float* gammaDensity;
-	float* gammaCumulDensity;
-	float* positionProbs; //normalized (1 - cumulDensity)
-
 	TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorReadLength(){
-		delete[] gammaDensity;
-		delete[] gammaCumulDensity;
-		delete[] positionProbs;
-	};
+	virtual ~TSimulatorReadLength(){};
 
 	virtual void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return meanLength;};
@@ -48,13 +40,21 @@ protected:
 	double alpha, beta;
 	int _min, _max;
 
+	float* gammaDensity;
+	float* gammaCumulDensity;
+	float* positionProbs; //normalized (1 - cumulDensity)
+
 	void parseFunctionString(std::string & s, double & param1, double & param2);
 	void initiate();
 
 public:
 	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorReadLengthGamma(){};
+	virtual ~TSimulatorReadLengthGamma(){
+		delete[] gammaDensity;
+		delete[] gammaCumulDensity;
+		delete[] positionProbs;
+	};
 	void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return _max;};
 	virtual double mean(){return meanLength;};

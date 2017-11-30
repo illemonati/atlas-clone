@@ -76,7 +76,6 @@ private:
 	std::string referenceSequence;
 	std::string::iterator stringIt;
 
-
 	//reference
 	bool hasReference;
 	TFastaBuffer* fastaBuffer;
@@ -150,8 +149,9 @@ public:
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects);
 	void binQualityScores();
 	void addToPMDTables(TPMDTables & pmdTables);
-	void assessSoftClipping(int & S_left, int & middle, int & S_right);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
+	void assessSoftClipping(int & S_left, int & middle, int & S_right);
+	void addToQualityTable(TQualityTable & qualTable);
 
 	//functions to modify alignment
 	void updateOptionalSamField(std::string tag, float value);

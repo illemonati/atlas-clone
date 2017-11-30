@@ -62,12 +62,12 @@ private:
 	//chromosomes
 	std::vector<TSimulatorChromosome> chromosomes;
 	std::vector<TSimulatorChromosome>::iterator chrIt;
-	std::string readGroupName;
 	bool writeTrueGenotypes;
 
 	//read simulator
 	std::vector<TSimulatorRead*> readSimulators;
 	std::vector<TSimulatorRead*>::iterator readSimsIt;
+	std::vector<std::string> readGroupNames;
 	std::vector<double> simGroupFrequencies;
 	std::vector<double> cumulSimGroupFrequenies;
 
@@ -91,6 +91,7 @@ private:
 	void initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
 	void addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
 	void initializeReadSimulator(TParameters & params);
+	void initializeReadGroupFrequencies(TParameters & params);
 
 	//function sto simulate
 	void fillMutationTable(float** & mutTable, double theta);

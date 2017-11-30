@@ -1641,9 +1641,65 @@ void TGenome::BQSR(TParameters & params){
 			break;
 		}
 	}
+};
+
+void TGenome::printQualityDistribution(TParameters & params){
+	//Assemble quality distribution
+	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
+	maxQ += 33; //internally, quality is phred(error) + 33!
+	logfile->list("Will assemble quality distribution up to a quality of " + toString(maxQ-33) + " (" + (char) maxQ + ").");
+
+	//initialize tables: one overall, one per read group
+	std::vector<TQualityTable> qualDist;
+	for(int i=0; i<readGroups.numGroups; ++i)
+		qualDist.emplace_back(maxQ);
+
+	//vars
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start;
+    gettimeofday(&start, NULL);
+    long counter = 0;
+
+    //now parse through bam file and write alignments
+	while(alignmentParser.readAlignment(bamReader)){
+		++counter;
+
+		//update and write (only if alignment qualities could be calculated)
+		alignmentParser.addToQualityTable(qualDist[alignmentParser.readGroupId]);
+
+		//report
+		reportProgressParsingBamFile(counter, start);
+	}
+
+	//report
+	reportProgressParsingBamFile(counter, start);
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+
+	//print per read group table
+	logfile->startIndent("Writing distributions:");
+	std::string outFileName;
+	for(int i=0; i<readGroups.numGroups; ++i){
+		//open output file
+		outFileName = outputName + "_" + readGroups.getName(i) + "_qualityDistribution.txt";
+		logfile->listFlush("Writing distribution for read group '" + readGroups.getName(i) + "' to '" + outFileName + "' ...");
+		qualDist[i].write(outFileName);
+		logfile->done();
+	}
+
+	//print overall table
+	outFileName = outputName + "_total_qualityDistribution.txt";
+	logfile->listFlush("Writing total distribution to '" + outFileName + " ...");
+	TQualityTable allQualDist(maxQ);
+	for(int i=0; i<readGroups.numGroups; ++i)
+		allQualDist.add(qualDist[i]);
+	allQualDist.write(outFileName);
+	logfile->done();
+	logfile->endIndent();
 }
 
 void TGenome::printQualityTransformation(TParameters & params){
+	//TODO: use TAlignmentParser. No need to use windows!
 	//initialize recalibration
 	//compare to a second recalibration definition?
 	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";

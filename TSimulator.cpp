@@ -346,10 +346,6 @@ void TSimulator::addToReadGroupVector(std::vector<std::string> & vec, const std:
 }
 
 void TSimulator::initializeReadSimulator(TParameters & params){
-
-
-	std::vector<std::string> readGroupNames;
-
 	// A) read length
 	//---------------
 	std::map<std::string, std::string> readLengthMap;
@@ -390,7 +386,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	//------------------
 	std::map<std::string, std::pair<std::string, std::string> > pmdMap;
 	bool pmdPerReadGroup = false;
-	initializeQualityTransformations(params, pmdPerReadGroup, pmdMap);
+	initializePMD(params, pmdPerReadGroup, pmdMap);
 
 	//add read group names to list
 	if(quailtyPerReadGroup){
@@ -402,6 +398,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	//----------------
 	int maxPrintQual = params.getParameterIntWithDefault("maxPrintQual", 93);
 	logfile->list("Will print quality scores up to " + toString(maxPrintQual) + ".");
+	logfile->endIndent();
 
 	//now check for read groups: which ones do we simulate?
 	//-----------------------------------------------------
@@ -459,11 +456,10 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
 
 			//check and print
-			if(!(*readSimsIt)->checkInitialization())
-				throw "Initialization failed!";
 			(*readSimsIt)->printDetails(logfile);
 			logfile->endIndent();
 		}
+		logfile->endIndent();
 	}
 
 	//Option 2: everything provided on command line
@@ -471,11 +467,12 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		//If everything was provided on the command line, allow for replicate read groups
 		int numRG = params.getParameterIntWithDefault("numReadGroups", 1);
 		std::string name;
-		logfile->startIndent("Initializing " + toString(numRG) + " identical read groups:");
+		logfile->startIndent("Initializing " + toString(numRG) + " identical read group(s):");
 
 		//now initialize
 		for(int i=0; i<numRG; ++i){
-			name = "SimReadGroup" + toString(i);
+			name = "SimReadGroup" + toString(i+1);
+			readGroupNames.push_back(name);
 			logfile->startIndent("Initializing readgroup '" + name + "':");
 			readSimulators.push_back(new TSimulatorRead(name, maxPrintQual, randomGenerator));
 			readSimsIt = readSimulators.end() - 1;
@@ -483,15 +480,18 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second);
 			(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
-			if(!(*readSimsIt)->checkInitialization())
-				throw "Initialization failed!";
+
+			//check and print
 			(*readSimsIt)->printDetails(logfile);
 			logfile->endIndent();
 		}
 	}
 
+	//initialize read group frequencies frequencies
+	initializeReadGroupFrequencies(params);
+}
 
-	//initialize frequencies
+void TSimulator::initializeReadGroupFrequencies(TParameters & params){
 	cumulSimGroupFrequenies.reserve(readSimulators.size());
 	simGroupFrequencies.reserve(readSimulators.size());
 	if(params.parameterExists("readGroupFreq")){
@@ -511,7 +511,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		logfile->startIndent("Will simulate read groups with the following frequencies:");
 		for(size_t i=1; i<readSimulators.size(); ++i){
 			simGroupFrequencies[i] = freq[i] / sum;
-			logfile->list(toString(simGroupFrequencies[i]) + " " + readGroupNames[i]);
+			logfile->list(toString(simGroupFrequencies[i]) + " " + readSimulators[i]->name());
 		}
 		logfile->endIndent();
 
@@ -523,8 +523,10 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	} else{
 		//equal frequencies
 		logfile->list("Will simulate reads equally distributed among read groups.");
-		for(size_t i=0; i<readSimulators.size(); ++i)
+		for(size_t i=0; i<readSimulators.size(); ++i){
+			simGroupFrequencies[i] = (double) 1.0 / (double) readSimulators.size();
 			cumulSimGroupFrequenies[i] = (double) (i+1) / (double) readSimulators.size();
+		}
 	}
 
 	//precalculate some stuff
@@ -750,7 +752,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
 
 	//open BAM file
-	TSimulatorBamFile bamFile(outname + ".bam", readGroupName, chromosomes, logfile);
+	TSimulatorBamFile bamFile(outname + ".bam", readGroupNames, chromosomes, logfile);
 	bamFileOpen = true;
 
 	//open FASTA file for reference sequences
@@ -1147,8 +1149,8 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 
 	//open BAM files
 	logfile->startIndent("Opening bam files for writing:");
-	TSimulatorBamFile bamFile0(outname + "_ind0.bam", readGroupName, chromosomes, logfile);
-	TSimulatorBamFile bamFile1(outname + "_ind1.bam", readGroupName, chromosomes, logfile);
+	TSimulatorBamFile bamFile0(outname + "_ind0.bam", readGroupNames, chromosomes, logfile);
+	TSimulatorBamFile bamFile1(outname + "_ind1.bam", readGroupNames, chromosomes, logfile);
 	bamFileOpen = true;
 	logfile->endIndent();
 
@@ -1415,7 +1417,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 	logfile->startIndent("Opening BAM files:");
 	TSimulatorBamFile** bamFiles = new TSimulatorBamFile*[numIndividuals];
 	for(int i=0; i<numIndividuals; ++i)
-		bamFiles[i] = new TSimulatorBamFile(outname + "_ind" + toString(i+1) + ".bam", readGroupName, chromosomes, logfile);
+		bamFiles[i] = new TSimulatorBamFile(outname + "_ind" + toString(i+1) + ".bam", readGroupNames, chromosomes, logfile);
 	bamFileOpen = true;
 	logfile->endIndent();
 

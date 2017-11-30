@@ -14,20 +14,12 @@
 TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 
-	//is a fixed length
+	//expect string (x) -> remov ( and )!
+	s.erase(0, 1);
+	s.erase(s.length()-1, 1);
 	meanLength = stringToInt(s);
 	if(meanLength < 5 || meanLength > 10000)
 		throw "Read length must be between 5 and 10,000!";
-
-	gammaDensity = new float[meanLength];
-	gammaCumulDensity = new float[meanLength];
-	positionProbs = new float[meanLength];
-	for(int i=0; i<(meanLength); ++i){
-		gammaDensity[i] = 0.0;
-		gammaCumulDensity[i] = 0.0;
-		positionProbs[i] = 1.0 / meanLength;
-	}
-	gammaDensity[meanLength - 1] = 1.0;
 
 	cumulAtMin = 0.0;
 };
@@ -36,9 +28,6 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 	meanLength = -1;
 	cumulAtMin = 0.0;
-	gammaDensity = NULL;
-	gammaCumulDensity = NULL;
-	positionProbs = NULL;
 };
 
 void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){
@@ -47,7 +36,7 @@ void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){
 };
 
 void TSimulatorReadLength::printDetails(TLog* logfile){
-	logfile->list("Will simulate reads of fixed length " + toString(meanLength) + ".");
+	logfile->list("Reads of fixed length " + toString(meanLength) + ".");
 };
 
 //--------------------------------------------------
@@ -165,7 +154,8 @@ void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
 }
 
 void TSimulatorReadLengthGamma::printDetails(TLog* logfile){
-	logfile->list("Gamma distributed fragment length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + ".");
+	logfile->list("Gamma distributed fragment length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + " of at least " + toString(_min) + ".");
+	logfile->list("Fragments  > " + toString(_max) + " will result in reads of length " + toString(_max) + ".");
 	if(probAcceptance() < 0.9)
 		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };
@@ -194,7 +184,8 @@ TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string & s, TR
 }
 
 void TSimulatorReadLengthGammaMode::printDetails(TLog* logfile){
-	logfile->list("Gamma distributed fragment length with mode=" + toString(mode) + " and variance=" + toString(var) + ".");
+	logfile->list("Gamma distributed fragment length with mode=" + toString(mode) + " and variance=" + toString(var) + " of at least " + toString(_min) + ".");
+	logfile->list("Fragments  > " + toString(_max) + " will result in reads of length " + toString(_max) + ".");
 	if(probAcceptance() < 0.9)
 		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };

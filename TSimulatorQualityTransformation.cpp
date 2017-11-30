@@ -70,15 +70,15 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
 	_min = stringToDouble(s.substr(0,pos));
-	if(_min <= 0)
-		throw "Fail to understand function '" + orig + "': min must be > 0!";
+	if(_min < 0)
+		throw "Fail to understand function '" + orig + "': min must be >= 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
 	_max = stringToDouble(s.substr(0,pos));
-	if(_max <= _min)
-			throw "Fail to understand function '" + orig + "': max must be > min!";
+	if(_max < _min)
+			throw "Fail to understand function '" + orig + "': max must be >= min!";
 };
 
 void TSimulatorQualityDistNormal::fillDensities(){
@@ -87,10 +87,13 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	densities = new double[size];
 	cumulDensities = new double[size];
 
-	densities[0] = randomGenerator->normalCumulativeDistributionFunction(_min+0.5, mean, sd) - randomGenerator->normalCumulativeDistributionFunction(_min-0.5, mean, sd);
-	double sum = densities[0];
-	for(int i=1; i<size; ++i){
-		densities[i] = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, mean, sd) - densities[i-1];
+	double nextDens = randomGenerator->normalCumulativeDistributionFunction(_min-0.5, mean, sd);
+	double prevDens;
+	double sum = 0;
+	for(int i=0; i<size; ++i){
+		prevDens = nextDens;
+		nextDens = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, mean, sd);
+		densities[i] =  nextDens - prevDens;
 		sum += densities[i];
 	}
 
@@ -113,8 +116,9 @@ int TSimulatorQualityDistNormal::sample(){
 };
 
 void TSimulatorQualityDistNormal::sample(int* qualities, int & len){
-	for(tmpInt=0; tmpInt<len; ++tmpInt)
+	for(tmpInt=0; tmpInt<len; ++tmpInt){
 		qualities[tmpInt] = randomGenerator->pickOne(size, cumulDensities) + _min;
+	}
 };
 
 void TSimulatorQualityDistNormal::printDetails(TLog* logfile){
@@ -144,8 +148,7 @@ void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, in
 };
 
 void TSimulatorQualityTransformation::printDetails(TLog* logfile){
-	qualityDist->printDetails(logfile);
-	logfile->list("Will write original qualities to BAm file (no transformation).");
+	logfile->list("Will write original qualities to BAM file (no transformation).");
 };
 
 
@@ -231,7 +234,6 @@ void TSimulatorQualityTransformationRecal::clearTransformationTable(){
 };
 
 void TSimulatorQualityTransformationRecal::printDetails(TLog* logfile){
-	qualityDist->printDetails(logfile);
 	std::string s = concatenateString(betas, ",");
 	logfile->list("Will transform qualities using the recal model with beta = [" + s + "]");
 };

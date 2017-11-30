@@ -118,12 +118,12 @@ public:
 	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
 
-
 	//recalibration
 	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
 	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);
+	void printQualityDistribution(TParameters & params);
 	void printQualityTransformation(TParameters & params);
 	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);

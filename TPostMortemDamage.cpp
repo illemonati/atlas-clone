@@ -460,10 +460,8 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 			<< "\t" << reverse[i]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
 	}
 	out.close();
-
-
-
 }
+
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------

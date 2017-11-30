@@ -22,6 +22,7 @@ class TSimulatorRead{
 protected:
 	TRandomGenerator* randomGenerator;
 	int maxPrintQual;
+	std::string _name;
 
 	TSimulatorReadLength* readLengthDist;
 	bool readLengthInitialized;
@@ -72,6 +73,7 @@ public:
 	void setQualityTransformation(const std::string & type, const std::string & arg);
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 
+	std::string name(){ return _name; }
 	double meanReadLength(){
 		if(!readLengthInitialized) throw "Read length distribution not initialized!";
 		return readLengthDist->mean();

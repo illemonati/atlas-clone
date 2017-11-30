@@ -13,6 +13,7 @@
 #include <omp.h>
 #include "TReadGroups.h"
 #include "bamtools/api/SamHeader.h"
+#include "QualityTables.h"
 
 //---------------------------------------------------------------
 //TQualityIndex
@@ -55,68 +56,6 @@ public:
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
-	};
-};
-
-//---------------------------------------------------------------
-//TQualityTransformTable
-//---------------------------------------------------------------
-class TQualityTransformTable{
-public:
-	int maxQ;
-	double** table; //old qual / new qual
-
-	TQualityTransformTable(int MaxQ){
-		maxQ = MaxQ;
-		table = new double*[maxQ];
-		for(int i=0; i<maxQ; ++i){
-			table[i] = new double[maxQ];
-			for(int j=0; j<maxQ; ++j){
-				table[i][j] = 0;
-			}
-		}
-	};
-
-	~TQualityTransformTable(){
-		for(int i=0; i<maxQ; ++i){
-			delete[] table[i];
-		}
-		delete[] table;
-	};
-
-	void add(int oldQ, int newQ){
-		if(oldQ < maxQ && newQ < maxQ){
-			table[oldQ][newQ] += 1.0;
-		}
-	};
-
-	double size(){
-		double size = 0;
-		for(int i=0; i<maxQ; ++i){
-			for(int j=0; j<maxQ; ++j){
-				size += table[i][j];
-			}
-		}
-		return size;
-	};
-
-	void printTable(std::ofstream & out){
-		//print header
-		out << "oldQ/newQ";
-		for(int i=0; i<maxQ; ++i) out << "\t" << i;
-		out << "\n";
-
-		//get total
-		double sum = size();
-
-		//print rows
-		for(int i=0; i<maxQ; ++i){
-			out << i;
-			for(int j=0; j<maxQ; ++j){
-				out << "\t" << table[i][j] / sum;
-			}
-			out << "\n";
-		}
 	};
 };
 

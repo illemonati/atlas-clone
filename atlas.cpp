@@ -102,6 +102,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "combineBeagleFiles"){
 				logfile.startIndent("combining beagle files (task = combineBeagleFiles):");
 				genome.combineBeagleFiles(myParameters);
+			} else if(task == "qualityDist"){
+				logfile.startIndent("Printing Quality Distribution (task = qualityDist):");
+				genome.printQualityDistribution(myParameters);
 			} else if(task == "qualityTransformation"){
 				logfile.startIndent("Printing Quality Transformation (task = qualityTransformation):");
 				genome.printQualityTransformation(myParameters);

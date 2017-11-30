@@ -116,7 +116,7 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 //---------------------------------------------------
 //TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(std::string Filename, const std::string & readGroupName, std::vector<TSimulatorChromosome> & chromosomes){
+void TSimulatorBamFile::open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes){
 	logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if(isOpen)
@@ -131,7 +131,11 @@ void TSimulatorBamFile::open(std::string Filename, const std::string & readGroup
 	header.Version = "1.4";
 	header.GroupOrder = "none";
 	header.SortOrder = "coordinate";
-	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+
+	//add read group names
+	for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it)
+		header.ReadGroups.Add(*it + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+
 	for(std::vector<TSimulatorChromosome>::iterator chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
 		references.push_back(BamTools::RefData(chrIt->name, chrIt->length));
 		header.Sequences.Add(BamTools::SamSequence(chrIt->name, chrIt->length));

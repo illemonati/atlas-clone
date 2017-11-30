@@ -30,8 +30,10 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRan
 	isInitialized = false;
 
 	//initialize bamAlignment
-	bamAlignment.AddTag("RG", "Z", readGroupName);
+	_name = readGroupName;
+	bamAlignment.AddTag("RG", "Z", _name);
 	bamAlignment.MapQuality = 50;
+	bamAlignment.Name = "*";
 	bases = NULL;
 	qualities = NULL;
 	fragmentLength = 0;
@@ -57,6 +59,7 @@ void TSimulatorRead::setReadLengthDistribution(std::string s){
 	//initialize appropriate function
 	std::string type = s.substr(0, pos);
 	s.erase(0, pos);
+
 	if(type == "gamma")
 		readLengthDist = new TSimulatorReadLengthGamma(s, randomGenerator);
 	else if(type == "gammaMode")
@@ -173,12 +176,10 @@ void TSimulatorRead::printDetails(TLog* logfile){
 		readLengthDist->printDetails(logfile);
 	else throw "Read length distribution not initialized!";
 
-	qualityDist = NULL;
 	if(qualityDistInitialized)
 		qualityDist->printDetails(logfile);
 	else throw "Read quality distribution not initialized!";
 
-	qualityTransform = NULL;
 	if(qualityTransformInitialized)
 		qualityTransform->printDetails(logfile);
 	else throw "Quality transformation not initialized!";

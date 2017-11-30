@@ -18,7 +18,6 @@
 #include "stringFunctions.h"
 #include "gzstream.h"
 
-
 //---------------------------------------------------------
 //TSimulatorChromosome
 //---------------------------------------------------------
@@ -99,15 +98,15 @@ private:
 	};
 
 public:
-	TSimulatorBamFile(std::string Filename, const std::string & readGroupName, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
+	TSimulatorBamFile(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
 		init(Logfile);
-		open(Filename, readGroupName, chromosomes);
+		open(Filename, readGroupNames, chromosomes);
 	};
 	~TSimulatorBamFile(){
 		close();
 	};
 
-	void open(std::string Filename, const std::string & readGroupName, std::vector<TSimulatorChromosome> & chromosomes);
+	void open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes);
 	bool saveAlignment(const BamTools::BamAlignment & bamAlignment){
 		return bamWriter.SaveAlignment(bamAlignment);
 	};

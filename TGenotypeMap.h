@@ -352,6 +352,7 @@ public:
 	~TQualityMap(){
 		delete[] phredToErrorMap;
 		delete[] qualityToErrorMap;
+		delete[] illuminaQualityBins;
 	};
 
 	double phredToError(int phred){

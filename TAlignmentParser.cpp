@@ -260,6 +260,7 @@ void TAlignmentParser::parseBasesQualities(){
 		throw "Length mismatch!";
 
 	//apply filters
+	//TODO: should that be on the recalibrated quality scores instead???
 	if(applyQualityFilter)
 		filterForBaseQuality();
 };
@@ -645,6 +646,11 @@ void TAlignmentParser::assessSoftClipping(int & S_left, int & middle, int & S_ri
 			middle += cigarIter->Length;
 		}
 	}
+};
+
+void TAlignmentParser::addToQualityTable(TQualityTable & qualTable){
+	parse();
+	qualTable.add(quality, length);
 };
 
 //--------------------------------------------
