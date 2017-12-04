@@ -24,6 +24,7 @@ protected:
 public:
 	TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
+	double* positionProbs; //normalized (1 - cumulDensity)
 	virtual ~TSimulatorReadLength(){};
 
 	virtual void sample(int & readLength, int & fragmentLength);
@@ -43,7 +44,6 @@ protected:
 
 	double* gammaDensity;
 	double* gammaCumulDensity;
-	double* positionProbs; //normalized (1 - cumulDensity)
 
 	void parseFunctionString(std::string & s, double & param1, double & param2);
 	void initiate();

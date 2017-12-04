@@ -13,6 +13,7 @@
 #include "TRandomGenerator.h"
 #include "TGenotypeMap.h"
 #include "TParameters.h"
+#include "TSimulatorReadLength.h"
 
 //-------------------------------
 //TSimulatorQualityDist
@@ -20,7 +21,11 @@
 //Class of a fixed quality
 class TSimulatorQualityDist{
 protected:
+	int _min;
 	int _max;
+	int _maxPlusOne;
+	double _mean, _sd;
+
 
 	//tmp variables
 	int tmpInt;
@@ -29,7 +34,10 @@ public:
 	TSimulatorQualityDist();
 	TSimulatorQualityDist(std::string & s);
 	virtual ~TSimulatorQualityDist(){};
+	int min(){ return _min; };
 	int max(){ return _max; };
+	double mean(){return _mean; };
+	double sd(){return _sd; };
 	virtual int sample(){ return _max; };
 	virtual void sample(int* qualities, int & len);
 	virtual void printDetails(TLog* logfile);
@@ -38,10 +46,6 @@ public:
 //Class of a normal distribution
 class TSimulatorQualityDistNormal:public TSimulatorQualityDist{
 private:
-	double mean, sd;
-	int _maxPlusOne;
-	int _min;
-
 	//densities
 	int size;
 	double* densities;
@@ -102,7 +106,6 @@ private:
 	void fillTransformationTable(int maxReadLength);
 	void clearTransformationTable();
 	void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
-	inline int transformQual(const int & qual, const int & pos, const int & context);
 
 public:
 	TSimulatorQualityTransformationRecal(const std::string & s, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
@@ -112,25 +115,27 @@ public:
 	void printDetails(TLog* logfile);
 };
 
-/*
+
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
 class TSimulatorQualityTransformationBQSR:public TSimulatorQualityTransformation{
 private:
-	int maxPos;
-
 	//quality params
+	TSimulatorReadLength* readLengthDist;
 	int phi1;
 	double phi2;
+	int maxReadLength;
+	int minQual, maxQual, maxQualPlusOne;
+	double meanQual, sdQual;
 	bool trueQualToFakeQualTableInitialized = false;
 	double* trueQualToFakeQual;
 	double kappa, lambda;
 
 	//position params
-	double revIntercept = 1.0;
-	double intercept = 1.0;
-	double m = 0.0;
+	double revIntercept;
+	double intercept;
+	double m;
 
 	//optimization algorithm params
 	double* w;
@@ -141,7 +146,7 @@ private:
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
 	double returnFakeError(int & trueQual);
-	void setFakeQualityDistribution();
+	void setFakeQualityDistribution(TLog* logfile);
 	void initializeTrueQualToFakeQualTable();
 	int sampleFakeQuality();
 
@@ -156,8 +161,11 @@ private:
 	double returnCurSD(double & kappa);
 	double returnDelta(double & curMean, double & curSD);
 
+	void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
+
+
 public:
-	TSimulatorQualityTransformationBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase);
+	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformationBQSR(){
 		if(trueQualToFakeQualTableInitialized)
 			delete[] trueQualToFakeQual;
@@ -165,7 +173,7 @@ public:
 			delete[] w;
 	};
 };
-*/
+
 
 
 #endif /* TSIMULATORQUALITYTRANSFORMATION_H_ */

@@ -22,12 +22,23 @@ TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* Ra
 		throw "Read length must be between 5 and 10,000!";
 
 	cumulAtMin = 0.0;
+
+	positionProbs = new double[meanLength];
+	for(int i=0; i<meanLength; ++i){
+		positionProbs[i] = 1.0 / meanLength;
+	}
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 	meanLength = -1;
 	cumulAtMin = 0.0;
+
+	positionProbs = new double[meanLength];
+	for(int i=0; i<meanLength; ++i){
+		positionProbs[i] = 0.0;
+	}
+
 };
 
 void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){

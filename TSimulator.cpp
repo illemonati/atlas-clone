@@ -249,7 +249,26 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 	//BQSR
 	//****
 	else if(params.parameterExists("BQSR")){
-		throw "Not yet implemented!";
+		std::string BQSRString = params.getParameterString("BQSR");
+		pos = BQSRString.find_first_of('[');
+
+		//Option 1: BQSR from numbers: a single one valid for all read groups.
+		//---------------------------------------------------------------------
+		if(pos != std::string::npos){
+			BQSRString.erase(0, pos+1);
+			pos = BQSRString.find_first_of(']');
+			if(pos == std::string::npos)
+				throw "Failed to understand BQSR string: missing ']'!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
+
+			BQSRString.erase(pos, 1);
+
+			//save to map
+			logfile->list("Will use '" + BQSRString + "' for all read groups.");
+			qualTransformMap["-"] = std::pair<std::string, std::string>("BQSR", BQSRString);
+			perReadGroup = false;
+		}
+
+
 	}
 
 	//No transformation
@@ -358,11 +377,11 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	// B) initialize quality distribution
 	//-----------------------------------
 	std::map<std::string, std::string> qualityMap;
-	bool quailtyPerReadGroup = false;
-	initializeQualityDistribution(params, quailtyPerReadGroup, qualityMap);
+	bool qualityPerReadGroup = false;
+	initializeQualityDistribution(params, qualityPerReadGroup, qualityMap);
 
 	//add read group names to list
-	if(quailtyPerReadGroup){
+	if(qualityPerReadGroup){
 		for(std::map<std::string, std::string>::iterator it=qualityMap.begin(); it!=qualityMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
@@ -374,7 +393,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	initializeQualityTransformations(params, qualTransformPerReadGroup, qualTransformMap);
 
 	//add read group names to list
-	if(quailtyPerReadGroup){
+	if(qualityPerReadGroup){
 		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=qualTransformMap.begin(); it!=qualTransformMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
@@ -386,7 +405,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	initializePMD(params, pmdPerReadGroup, pmdMap);
 
 	//add read group names to list
-	if(quailtyPerReadGroup){
+	if(qualityPerReadGroup){
 		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=pmdMap.begin(); it!=pmdMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
@@ -420,7 +439,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second);
 
 			//quality dist
-			if(quailtyPerReadGroup){
+			if(qualityPerReadGroup){
 				std::map<std::string, std::string>::iterator qIt = qualityMap.find(*it);
 				if(qIt == qualityMap.end())
 					throw "Read quality distribution not specified for read group '" + *it + "'!";
@@ -434,11 +453,11 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				if(qtIt == qualTransformMap.end()){
 					//initialize without transformation
 					std::string type="none"; std::string args="";
-					(*readSimsIt)->setQualityTransformation(type, args);
+					(*readSimsIt)->setQualityTransformation(type, args, logfile);
 				} else
-					(*readSimsIt)->setQualityTransformation(qtIt->second.first, qtIt->second.second);
+					(*readSimsIt)->setQualityTransformation(qtIt->second.first, qtIt->second.second, logfile);
 			} else
-				(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second);
+				(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
 
 			//PMD
 			if(pmdPerReadGroup){
@@ -475,7 +494,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			readSimsIt = readSimulators.end() - 1;
 			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second);
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
-			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second);
+			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
 			(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
 
 			//check and print

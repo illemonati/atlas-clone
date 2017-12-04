@@ -97,7 +97,7 @@ void TSimulatorRead::setQualityDistribution(std::string s){
 	checkInitialization();
 };
 
-void TSimulatorRead::setQualityTransformation(const std::string & type, const std::string & args){
+void TSimulatorRead::setQualityTransformation(const std::string & type, const std::string & args, TLog* logfile){
 	if(!qualityDistInitialized)
 		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
 
@@ -106,7 +106,8 @@ void TSimulatorRead::setQualityTransformation(const std::string & type, const st
 	else if(type == "recal")
 		qualityTransform = new TSimulatorQualityTransformationRecal(args, readLengthDist->max(), qualityDist, randomGenerator);
 	else if(type == "BQSR")
-		throw "BQSR not yet implemented in TSimulatorRead::setQualityTransformation!";
+		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
+		//throw "BQSR not yet implemented in TSimulatorRead::setQualityTransformation!";
 	else throw "Unknown quality transformation type '" + type + "'!";
 
 	qualityTransformInitialized = true;

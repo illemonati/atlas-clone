@@ -70,7 +70,7 @@ public:
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s);
 	void setQualityDistribution(std::string s);
-	void setQualityTransformation(const std::string & type, const std::string & arg);
+	void setQualityTransformation(const std::string & type, const std::string & arg, TLog* logfile);
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 
 	std::string name(){ return _name; }

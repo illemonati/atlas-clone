@@ -14,11 +14,19 @@
 //----------------------------------
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 	_max = stringToIntCheck(s);
+	_min = -1;
 	tmpInt = 0;
+	_maxPlusOne = -1;
+	_mean = -1.0;
+	_sd = -1.0;
 };
 TSimulatorQualityDist::TSimulatorQualityDist(){
 	_max = 30;
+	_min = -1;
 	tmpInt = 0;
+	_maxPlusOne = -1;
+	_mean = -1.0;
+	_sd = -1.0;
 }
 
 void TSimulatorQualityDist::sample(int* qualities, int & len){
@@ -50,16 +58,16 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
-	mean = stringToDouble(s.substr(0,pos));
-	if(mean < 0)
+	_mean = stringToDouble(s.substr(0,pos));
+	if(_mean < 0)
 		throw "Fail to understand function '" + orig + "': mean must be > 0.";
 	s.erase(0,pos+1);
 
 	pos = s.find(")");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
-	sd = stringToDouble(s.substr(0,pos));
-	if(sd < 0)
+	_sd = stringToDouble(s.substr(0,pos));
+	if(_sd < 0)
 			throw "Fail to understand function '" + orig + "': sd must be > 0.";
 	s.erase(0,pos+1);
 
@@ -90,12 +98,12 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	densities = new double[size];
 	cumulDensities = new double[size];
 
-	double nextDens = randomGenerator->normalCumulativeDistributionFunction(_min-0.5, mean, sd);
+	double nextDens = randomGenerator->normalCumulativeDistributionFunction(_min-0.5, _mean, _sd);
 	double prevDens;
 	double sum = 0;
 	for(int i=0; i<size; ++i){
 		prevDens = nextDens;
-		nextDens = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, mean, sd);
+		nextDens = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, _mean, _sd);
 		densities[i] =  nextDens - prevDens;
 		sum += densities[i];
 	}
@@ -125,7 +133,7 @@ void TSimulatorQualityDistNormal::sample(int* qualities, int & len){
 };
 
 void TSimulatorQualityDistNormal::printDetails(TLog* logfile){
-	logfile->list("Normally distributed quality scores with mean=" + toString(mean) + " and sd=" + toString(sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].");
+	logfile->list("Normally distributed quality scores with mean=" + toString(_mean) + " and sd=" + toString(_sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].");
 };
 
 
@@ -261,63 +269,67 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 };
 
 
-/*
+
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
-TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(TSimulatorReadLength* ReadLengthDist, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator, char* ToBase): TSimulatorRead(params, Logfile, RandomGenerator, ToBase){
-	//position parameters
+TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 	readLengthDist = ReadLengthDist;
-	maxPos = readLengthDist->max();
-	if(params.getParameterString("BQSRPosition", false) != ""){
-		revIntercept = params.getParameterDoubleWithDefault("BQSRPosition", 2.0);
-		std::cout << "revIntercept " << revIntercept << std::endl;
-		if(revIntercept < 0) throw("BQSRPosition cannot be negative!");
-		logfile->list("ReverseIntercept is set to " + toString(revIntercept));
+	maxReadLength = readLengthDist->max();
+	minQual = qualityDist->min();
+	maxQual = qualityDist->max();
+	maxQualPlusOne = maxQual + 1;
+	meanQual = qualityDist->mean();
+	sdQual = qualityDist->sd();
+	std::vector<std::string> vec;
+	fillVectorFromStringAnySkipEmpty(s, vec, ",");
+	phi1 = stringToInt(vec[0]);
+	phi2 = stringToDouble(vec[1]);
+	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+
+	revIntercept = stringToDouble(vec[2]);
+	if(revIntercept < 0.0) throw("revIntercept cannot be negative!");
+	else if(revIntercept == 1.0){
+		m = 0.0;
+		intercept = 1.0;
+		logfile->list("revIntercept is set to 1 -> Simulating only BQSR quality effect.");
+	} else {
 		calculateSlopeIntercept();
 		logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
-		if(intercept < 0) throw("Intercept for position transformation is negative -> choose higher value for BQSRPosition!");
-	} else {
-		revIntercept = 1.0;
-		intercept = 1.0;
-		m = 0.0;
-		logfile->list("BQSRPosition parameter not found. Simulating only BQSR quality effect.");
 	}
 
-	//quality parameters
-	parseBQSRQualInput(params);
-	setFakeQualityDistribution(); //first find kappa and lambda
-	initializeDePhredTable();
+//	parseBQSRQualInput(params);
+	setFakeQualityDistribution(logfile); //first find kappa and lambda
 	initializeTrueQualToFakeQualTable();
 }
 
-void TSimulatorQualityTransformationBQSR::parseBQSRQualInput(TParameters & params){
-	//parse qualTransform input
-	std::string transParams = params.getParameterString("BQSRQuality");
-	std::string::size_type pos = transParams.find_first_of('[');
-	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
-	std::string name = transParams.substr(0,pos);
-	if(name == "f"){
-		//prepare first value
-		std::string tmp = transParams.substr(pos+1, transParams.length() - pos - 1);
-		pos = tmp.find_first_of(',');
-		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
-		phi1 = atof(tmp.substr(0, pos).c_str());
-		phi2 = atof(tmp.substr(pos+1).c_str());
-	}
-
-	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
-}
+//void TSimulatorQualityTransformationBQSR::parseBQSRQualInput(TParameters & params, TLog* logfile){
+//	//parse qualTransform input
+//	std::string transParams = params.getParameterString("BQSRQuality");
+//	std::string::size_type pos = transParams.find_first_of('[');
+//	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
+//	std::string name = transParams.substr(0,pos);
+//	if(name == "f"){
+//		//prepare first value
+//		std::string tmp = transParams.substr(pos+1, transParams.length() - pos - 1);
+//		pos = tmp.find_first_of(',');
+//		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
+//		phi1 = atof(tmp.substr(0, pos).c_str());
+//		phi2 = atof(tmp.substr(pos+1).c_str());
+//	}
+//
+//	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+//}
 
 
 void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
 	//gamma density starts at 0 but p at 1!
-	for(int p=1; p<(readLengthDist->max() + 1) ; ++p){
+	for(int p=1; p<(maxReadLength + 1) ; ++p){
 		sum += (double) p * readLengthDist->positionProbs[p];
 	}
-	m = (1.0 - revIntercept) / (sum - readLengthDist->max());
-	intercept = revIntercept - m * readLengthDist->max();
+	m = (1.0 - revIntercept) / (sum - maxReadLength);
+	intercept = revIntercept - m * maxReadLength;
 }
 
 int TSimulatorQualityTransformationBQSR::sampleFakeQuality(){
@@ -332,7 +344,7 @@ int TSimulatorQualityTransformationBQSR::sampleFakeQuality(){
 //---------------------------------
 
 void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
-	int num_of_row = maxPos;
+	int num_of_row = maxReadLength;
 	int num_of_col = maxQualPlusOne;
 	double init_value = -1.0;
 	double betaQq;
@@ -342,8 +354,8 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
 		float a = 0;
-		for(int p = 0; p<readLengthDist->max(); ++p){
-			QBetaQBetaP[q][p] = phred(dePhredTable[phred(betaQq)] * returnBetaPp(p));
+		for(int p = 0; p<maxReadLength; ++p){
+			QBetaQBetaP[q][p] = qualityMap.errorToPhred(qualityMap.phredToErrorMap[qualityMap.errorToPhred(betaQq)] * returnBetaPp(p));
 			a += returnBetaPp(p);
 		}
 	}
@@ -373,7 +385,7 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		double sumP = 0.0;
-		for(int p = 0; p<readLengthDist->max(); ++p){
+		for(int p = 0; p<maxReadLength; ++p){
 			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
 		}
 		curMean += sumP * w[q];
@@ -405,7 +417,7 @@ double TSimulatorQualityTransformationBQSR::returnDelta(double & curMean, double
 
 //---------------------------------
 
-void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(){
+void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfile){
 	double kappa_cur = meanQual;
 	double lambda_cur = sdQual;
 	double delta_cur, delta_old;
@@ -477,14 +489,14 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(){
 }
 
 double TSimulatorQualityTransformationBQSR::returnFakeError(int & trueQual){
-	return(pow(10, -1/10.0 * phi2 * trueQual) + dePhredTable[phi1]);
+	return(pow(10, -1/10.0 * phi2 * trueQual) + qualityMap.phredToErrorMap[phi1]);
 }
 
 void TSimulatorQualityTransformationBQSR::initializeTrueQualToFakeQualTable(){
 	if(!trueQualToFakeQualTableInitialized){
 		trueQualToFakeQual = new double[maxQualPlusOne];
 		for(int i=0; i<maxQualPlusOne; ++i){
-			trueQualToFakeQual[i] = phred(returnFakeError(i));
+			trueQualToFakeQual[i] = qualityMap.errorToPhred((returnFakeError(i)));
 		}
 	}
 	trueQualToFakeQualTableInitialized = true;
@@ -497,40 +509,48 @@ double TSimulatorQualityTransformationBQSR::returnBetaPp(int & pos){
 	return(m * (double) pos + intercept);
 }
 
-void TSimulatorQualityTransformationBQSR::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
-	static short base;
-	static int fakeQual, QBetaQq;
-	static long p;
-	int pInt;
-	queryBases = "";
-	bamQualities = "";
 
-	for(p=0; p<rl.readLength; ++p){
-		//get true nucleotide
-		base = *(posAddress + p);
+void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, int & len){
+	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
+}
 
-		//apply PMD
-		if(pmdInitialized){
-			applyPMD(base, p, rl);
-		}
-		//sample quality and add error
-		fakeQual = sampleFakeQuality();
-		if(fakeQual > maxQual) fakeQual = (char) maxQual;
 
-		QBetaQq = trueQualToFakeQual[fakeQual];
-		double BetaQp;
-		pInt = (int) p;
-		BetaQp = returnBetaPp(pInt);
-		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * BetaQp)){ //qualToError knows that quals are in ascii
-			base = (base + randomGenerator->pickOne(3) + 1) % 4;
-		}
-		//add to bam alignment
-		bamQualities += (char) (fakeQual + 33);
-		queryBases += toBase[base];
-	}
-};
 
-*/
+
+//void TSimulatorQualityTransformationBQSR::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
+//	static short base;
+//	static int fakeQual, QBetaQq;
+//	static long p;
+//	int pInt;
+//	queryBases = "";
+//	bamQualities = "";
+//
+//	for(p=0; p<rl.readLength; ++p){
+//		//get true nucleotide
+//		base = *(posAddress + p);
+//
+//		//apply PMD
+//		if(pmdInitialized){
+//			applyPMD(base, p, rl);
+//		}
+//		//sample quality and add error
+//		fakeQual = sampleFakeQuality();
+//		if(fakeQual > maxQual) fakeQual = (char) maxQual;
+//
+//		QBetaQq = trueQualToFakeQual[fakeQual];
+//		double BetaQp;
+//		pInt = (int) p;
+//		BetaQp = returnBetaPp(pInt);
+//		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * BetaQp)){ //qualToError knows that quals are in ascii
+//			base = (base + randomGenerator->pickOne(3) + 1) % 4;
+//		}
+//		//add to bam alignment
+//		bamQualities += (char) (fakeQual + 33);
+//		queryBases += toBase[base];
+//	}
+//};
+
+
 
 
 
