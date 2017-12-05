@@ -48,6 +48,20 @@ TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRando
 	fillDensities();
 };
 
+TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
+	densitiesInitialized = false;
+	randomGenerator = RandomGenerator;
+
+	_mean = mean;
+	_sd = sd;
+	_min = min;
+	_max = max;
+	_maxPlusOne = _max + 1;
+
+	fillDensities();
+};
+
+
 void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	std::string orig = s;
 
@@ -300,6 +314,7 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 
 //	parseBQSRQualInput(params);
 	setFakeQualityDistribution(logfile); //first find kappa and lambda
+	fakeQualityDist = TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
 	initializeTrueQualToFakeQualTable();
 }
 
@@ -512,8 +527,22 @@ double TSimulatorQualityTransformationBQSR::returnBetaPp(int & pos){
 
 void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, int & len){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
+	fakeQualityDist.sample(qualities,len);
 }
 
+////simulate qualities
+//qualityDist->sample(qualities, len);
+//
+////add errors and transform qualities
+//previousBase = N;
+//for(p=0; p<len; ++p){
+//	if(randomGenerator->getRand() < qualityMap.phredToErrorMap[qualities[p]])
+//		bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+//
+//	//transform qualities
+//	qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
+//	previousBase = bases[p];
+//}
 
 
 

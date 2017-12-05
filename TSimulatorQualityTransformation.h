@@ -56,6 +56,7 @@ private:
 
 public:
 	TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator);;
 	~TSimulatorQualityDistNormal(){
 		if(densitiesInitialized){
 			delete[] densities;
@@ -128,6 +129,7 @@ private:
 	int maxReadLength;
 	int minQual, maxQual, maxQualPlusOne;
 	double meanQual, sdQual;
+	TSimulatorQualityDistNormal fakeQualityDist;
 	bool trueQualToFakeQualTableInitialized = false;
 	double* trueQualToFakeQual;
 	double kappa, lambda;
