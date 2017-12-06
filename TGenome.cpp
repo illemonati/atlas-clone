@@ -3563,7 +3563,7 @@ void TGenome::estimateCoveragePerSite(TParameters & params){
 void TGenome::createDepthMask(TParameters & params){
 	int minDepthForMask = params.getParameterInt("minDepthForMask");
 	int maxDepthForMask = params.getParameterInt("maxDepthForMask");
-	if(params.parameterExists("maxCoverage") || params.parameterExists("minCoverage")) throw "Cannot mask sites for sequencing depth while creating the mask!";
+	if(params.parameterExists("maxDepth") || params.parameterExists("minDepth")) throw "Cannot mask sites for sequencing depth while creating the mask!";
 
 	std::ofstream output;
 	std::string outputFileName = outputName + "_minDepth"+ toString(minDepthForMask) + "_maxDepth" + toString(maxDepthForMask) + "_depthMask.bed";
