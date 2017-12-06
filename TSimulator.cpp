@@ -235,7 +235,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 							vec.pop_back();
 
 						//save to map
-						concatenateString(vec, tmpString, 1);
+						concatenateString(vec, tmpString, ",");
 						qualTransformMap[vec[0]] = std::pair<std::string,std::string>("recal", tmpString);
 					}
 				}

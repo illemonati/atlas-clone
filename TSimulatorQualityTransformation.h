@@ -129,7 +129,8 @@ private:
 	int maxReadLength;
 	int minQual, maxQual, maxQualPlusOne;
 	double meanQual, sdQual;
-	TSimulatorQualityDistNormal fakeQualityDist;
+	int trueQual;
+	TSimulatorQualityDistNormal* fakeQualityDist;
 	bool trueQualToFakeQualTableInitialized = false;
 	double* trueQualToFakeQual;
 	double kappa, lambda;
@@ -169,6 +170,7 @@ private:
 public:
 	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformationBQSR(){
+		delete fakeQualityDist;
 		if(trueQualToFakeQualTableInitialized)
 			delete[] trueQualToFakeQual;
 		if(weightsInitialized)
