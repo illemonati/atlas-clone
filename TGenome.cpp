@@ -115,14 +115,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else considerRegions = false;
 
 	//filters
-	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
+	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
 		applyCoverageFilter = true;
 		int tmpInt;
-		tmpInt = params.getParameterIntWithDefault("minCoverage", 0);
+		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
 		if(tmpInt < 0) throw "minCoverage must be >= 0!";
 		minCoverage = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxCoverage", 1000000);
-		if(tmpInt < minCoverage) throw "maxCoverage must be >= minCoverage!";
+		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
+		if(tmpInt < minCoverage) throw "maxDepth must be >= minDepth!";
 		maxCoverage = tmpInt;
 		logfile->list("Will filter out sites with coverage < " + toString(minCoverage) + " or > " + toString(maxCoverage));
 	} else {
