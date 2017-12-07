@@ -314,7 +314,7 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 
 //	parseBQSRQualInput(params);
 	setFakeQualityDistribution(logfile); //first find kappa and lambda
-	fakeQualityDist = TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
+	fakeQualityDist = new TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
 	initializeTrueQualToFakeQualTable();
 }
 
@@ -368,10 +368,8 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 
 	for(int q = minQual; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
-		float a = 0;
 		for(int p = 0; p<maxReadLength; ++p){
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred(qualityMap.phredToErrorMap[qualityMap.errorToPhred(betaQq)] * returnBetaPp(p));
-			a += returnBetaPp(p);
 		}
 	}
 	betaQBetaPInitialized = true;
@@ -527,7 +525,14 @@ double TSimulatorQualityTransformationBQSR::returnBetaPp(int & pos){
 
 void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, int & len){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
-	fakeQualityDist.sample(qualities,len);
+	fakeQualityDist->sample(qualities,len);
+	for(p=0; p<len; ++p){
+		trueQual = QBetaQBetaP[qualities[p]][p];
+		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[trueQual]){
+			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+		}
+
+	}
 }
 
 ////simulate qualities
