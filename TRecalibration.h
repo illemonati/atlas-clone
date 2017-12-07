@@ -165,25 +165,25 @@ public:
 	bool setParams(std::vector<std::string> & vec, int & rg);
 	void initializeEMParams();
 	void setEMParamsToZero();
-	virtual double calcEpsilon(const short & readGroup, float* & q, const short & context);
-	virtual void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
+	virtual double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
+	virtual void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	void rejectProposedParameters();
 	double getSteepestGradient();
-	virtual void writeParametersToFile(std::ofstream & out, const int & readGroup);
+	virtual void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
 	void printJacobianToStdOut();
-	virtual double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context);
+	virtual double getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context);
 };
 
 class TRecalibrationEMModelNoContext:public TRecalibrationEMModel{
 public:
 	TRecalibrationEMModelNoContext(int NumReadGroups);
 
-	double calcEpsilon(const short & readGroup, float* & q, const short & context);
-	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context);
-	void writeParametersToFile(std::ofstream & out, const int & readGroup);
-	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context);
+	double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
+	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
+	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
 };
 
 class TRecalibrationEMSite{
@@ -191,10 +191,8 @@ public:
 	float** q; //covariates such as quality, position etc.
 	float** D; //D for the emission probabilities: depends on genotype and base!
 	float** B; //B = 4/3 D - 1
-	short* context;
-	short* readGroup;
-	short* readGroupShifts;
-	float* epsilon;
+	uint8_t* context;
+	uint8_t* readGroup;
 	float* P_g_given_d_oldBeta;
 	int numReads;
 	bool initialized;
@@ -208,11 +206,11 @@ public:
 		return tmp;
 	};
 	virtual ~TRecalibrationEMSite();
-	virtual void calcEpsilon(TRecalibrationEMModel* & model);
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* freqs);
-	double calcLL(TRecalibrationEMModel* & model, double* freqs);
-	double calcQ(TRecalibrationEMModel* & model);
-	virtual void addToJacobianAndF(TRecalibrationEMModel* & model);
+	virtual void calcEpsilon(TRecalibrationEMModel* & model, float* & epsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon);
+	double calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon);
+	double calcQ(TRecalibrationEMModel* & model, float* & epsilon);
+	virtual void addToJacobianAndF(TRecalibrationEMModel* & model, float* & epsilon);
 };
 
 class TRecalibrationEMWindow{
@@ -229,11 +227,12 @@ public:
 		}
 		sites.clear();
 	};
+	int getMaxDepth();
 	virtual void addSite(TSite & site, TQualityMap & qualiMap);
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model);
-	double calcLL(TRecalibrationEMModel* & model);
-	double calcQ(TRecalibrationEMModel* & model);
-	void addToJacobianAndF(TRecalibrationEMModel* & model);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon);
+	double calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon);
+	double calcQ(TRecalibrationEMModel* & model, float* & tmpEpsilon);
+	void addToJacobianAndF(TRecalibrationEMModel* & model, float* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };
 
@@ -255,6 +254,8 @@ public:
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
 	int maxCoverage; //sites with higher coverage will be ignored
+	float* tmpEpsilon;
+	bool tmpEpsilonInitialized;
 
 	TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & params, TLog* Logfile);
 	~TRecalibrationEM(){
@@ -264,11 +265,14 @@ public:
 		}
 		windows.clear();
 		delete model;
+		if(tmpEpsilonInitialized)
+			delete[] tmpEpsilon;
 	};
 	bool recalibrationChangesQualities(){ return true; };
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
+	void prepareWindowsforEM();
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename, double & LL);

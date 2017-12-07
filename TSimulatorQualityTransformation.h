@@ -116,7 +116,7 @@ public:
 	void printDetails(TLog* logfile);
 };
 
-
+/*
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
@@ -175,7 +175,7 @@ public:
 			delete[] w;
 	};
 };
-
+*/
 
 
 #endif /* TSIMULATORQUALITYTRANSFORMATION_H_ */

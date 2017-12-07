@@ -217,7 +217,7 @@ void TRecalibrationEMModel::setEMParamsToZero(){
 	numSitesAdded = 0;
 }
 
-double TRecalibrationEMModel::calcEpsilon(const short & readGroup, float* & q, const short & context){
+double TRecalibrationEMModel::calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context){
 	//eta = params[readGroup[k]][0];
 	tmp = 0.0;
 	for(int p=0; p<4; ++p){ //loop over all parameters except context
@@ -233,7 +233,7 @@ double TRecalibrationEMModel::calcEpsilon(const short & readGroup, float* & q, c
 	return tmp / (1.0 + tmp);
 };
 
-void TRecalibrationEMModel::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context){
+void TRecalibrationEMModel::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context){
 	//add to F
 	//--------
 	int m;
@@ -321,7 +321,7 @@ double TRecalibrationEMModel::getSteepestGradient(){
 	return maxF;
 }
 
-void TRecalibrationEMModel::writeParametersToFile(std::ofstream & out, const int & readGroup){
+void TRecalibrationEMModel::writeParametersToFile(std::ofstream & out, const uint8_t & readGroup){
 	for(int i=0; i<numParams; ++i){
 		out << "\t" << betas[readGroup][i];
 	}
@@ -331,7 +331,7 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
 }
 
-double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
 	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
@@ -372,7 +372,7 @@ TRecalibrationEMModelNoContext::TRecalibrationEMModelNoContext(int NumReadGroups
 	initialize(NumReadGroups);
 }
 
- double TRecalibrationEMModelNoContext::calcEpsilon(const short & readGroup, float* & q, const short & context){
+ double TRecalibrationEMModelNoContext::calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context){
 	//eta = params[readGroup[k]][0];
 	tmp = 0.0;
 	for(int p=0; p<4; ++p){ //loop over all parameters except context
@@ -388,7 +388,7 @@ TRecalibrationEMModelNoContext::TRecalibrationEMModelNoContext(int NumReadGroups
 	return tmp / (1.0 + tmp);
 };
 
-void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, short* & readGroup, short* & context){
+void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context){
 	//add to F
 	//--------
 	int m;
@@ -426,7 +426,7 @@ void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, dou
 	++numSitesAdded;
 }
 
-void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, const int & readGroup){
+void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, const uint8_t & readGroup){
 	//write q, q2, p and p2
 	for(int i=0; i<4; ++i)
 		out << "\t" << betas[readGroup][i];
@@ -435,7 +435,7 @@ void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, 
 		out << "\t" << betas[readGroup][4];
 }
 
-double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const int & context){
+double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
 	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
@@ -469,10 +469,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 	q = NULL;
 	context = NULL;
 	readGroup = NULL;
-	readGroupShifts = NULL;
 	D = NULL;
 	B = NULL;
-	epsilon = NULL;
 	P_g_given_d_oldBeta = NULL;
 	numReads = 0;
 };
@@ -487,17 +485,14 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 		B[g] = new float[numReads];
 	}
 
-	context = new short[numReads];
-	epsilon = new float[numReads];
-	readGroup = new short[numReads];
-	readGroupShifts = new short[numReads];
+	context = new uint8_t[numReads];
+	readGroup = new uint8_t[numReads];
 	P_g_given_d_oldBeta = new float[4];
 	initialized = true;
 	int k=0;
 	double eps;
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++k){
 		readGroup[k] = readGroupMap[(*it)->readGroup];
-		readGroupShifts[k] = readGroup[k] * 24; //shift by num params per read group!
 		q[k] = new float[4];
 
 		//we will work with the following q_ikl:
@@ -571,20 +566,18 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 		delete[] B;
 		delete[] context;
 		delete[] readGroup;
-		delete[] readGroupShifts;
-		delete[] epsilon;
 		delete[] P_g_given_d_oldBeta;
 	}
 }
 
-void TRecalibrationEMSite::calcEpsilon(TRecalibrationEMModel* & model){
-	//calc epsilon using parameter estimates provided
+void TRecalibrationEMSite::calcEpsilon(TRecalibrationEMModel* & model, float* & epsilon){
+	//calc tmpEpsilon using parameter estimates provided
 	for(int k=0; k<numReads; ++k)
 		epsilon[k] = model->calcEpsilon(readGroup[k], q[k], context[k]);
 }
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* freqs){
-	calcEpsilon(model);
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon){
+	calcEpsilon(model, epsilon);
 
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
@@ -630,8 +623,8 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 	return log(P_g_given_d_theta_denominator);
 }
 
-double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, double* freqs){
-	calcEpsilon(model);
+double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon){
+	calcEpsilon(model, epsilon);
 
 	//over all genotypes
 	double LL = 0.0;
@@ -649,8 +642,8 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, double* freq
 	return log(LL);
 }
 
-double TRecalibrationEMSite::calcQ(TRecalibrationEMModel* & model){
-	calcEpsilon(model);
+double TRecalibrationEMSite::calcQ(TRecalibrationEMModel* & model, float* & epsilon){
+	calcEpsilon(model, epsilon);
 
 	//now calculate P(d, g, new params)
 	double P_d_given_g_beta;
@@ -670,9 +663,9 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModel* & model){
 	return Q;
 }
 
-void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel* & model){
-	//calculate epsilon with current parameters
-	calcEpsilon(model);
+void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel* & model, float* & epsilon){
+	//calculate tmpEpsilon with current parameters
+	calcEpsilon(model, epsilon);
 
 	//tmp variables
 	double* weights = new double[numReads];
@@ -712,37 +705,46 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int*
 	readGroupMap = ReadGroupMap;
 }
 
+int TRecalibrationEMWindow::getMaxDepth(){
+	int maxDepth = 0;
+	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
+		if(maxDepth < (*site)->numReads)
+			maxDepth = (*site)->numReads;
+	}
+	return maxDepth;
+};
+
 void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
 	sites.push_back(new TRecalibrationEMSite(site, readGroupMap, qualiMap));
 }
 
-double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model){
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double LL = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->fill_P_g_given_d_beta_AND_calcLL(model, freqs);
+		LL += (*site)->fill_P_g_given_d_beta_AND_calcLL(model, freqs, tmpEpsilon);
 	}
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcLL(TRecalibrationEMModel* & model){
+double TRecalibrationEMWindow::calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double LL = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->calcLL(model, freqs);
+		LL += (*site)->calcLL(model, freqs, tmpEpsilon);
 	}
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcQ(TRecalibrationEMModel* & model){
+double TRecalibrationEMWindow::calcQ(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double Q = 0.0;
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		Q += (*site)->calcQ(model);
+		Q += (*site)->calcQ(model, tmpEpsilon);
 	}
 	return Q;
 }
 
-void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel* & model){
+void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		(*site)->addToJacobianAndF(model);
+		(*site)->addToJacobianAndF(model, tmpEpsilon);
 	}
 }
 
@@ -766,6 +768,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		readGroupNames[r] = it->ID;
 	}
 	logfile = Logfile;
+	tmpEpsilon = NULL;
+	tmpEpsilonInitialized = false;
 
 	//initialize model
 	//which model to run?
@@ -866,6 +870,21 @@ void TRecalibrationEM::addSite(TSite & site){
 	++numSitesAdded;
 }
 
+void TRecalibrationEM::prepareWindowsforEM(){
+	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
+
+	int maxDepth = 0;
+	int tmp;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		tmp = (*curWindow)->getMaxDepth();
+		if(tmp > maxDepth)
+			maxDepth = tmp;
+	}
+
+	//now crate array
+	tmpEpsilon = new float[maxDepth];
+}
+
 void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
 	//variables
 	double maxF;
@@ -877,7 +896,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 	double Q;
 	double curQ = 0.0;
 	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		curQ += (*curWindow)->calcQ(model);
+		curQ += (*curWindow)->calcQ(model, tmpEpsilon);
 	}
 
 	std::ofstream* myStream = NULL;
@@ -906,7 +925,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 
 		//fill Jacobin and F: loop over all sites
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			(*curWindow)->addToJacobianAndF(model);
+			(*curWindow)->addToJacobianAndF(model, tmpEpsilon);
 		}
 
 		//now solve J^-1 x F
@@ -929,7 +948,7 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 				//calculate Q at new location
 				Q = 0.0;
 				for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-					Q += (*curWindow)->calcQ(model);
+					Q += (*curWindow)->calcQ(model, tmpEpsilon);
 				}
 
 				//check if we accept or backtrack
@@ -967,6 +986,9 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 	if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
+	//initialize tmp variable sin windows
+	prepareWindowsforEM();
+
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
 	std::string filename;
@@ -979,7 +1001,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		LL = 0.0;
 		logfile->listFlush("Calculating P(g|d, beta') ...");
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model);
+			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model, tmpEpsilon);
 		}
 		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
@@ -994,7 +1016,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 			deltaLL = LL - oldLL;
 			logfile->conclude("Epsilon = " + toString(deltaLL));
 			if(iter > 0 && deltaLL < maxEpsilon){
-				logfile->conclude("EM has converged (epsilon < " + toString(maxEpsilon) + ")");
+				logfile->conclude("EM has converged (tmpEpsilon < " + toString(maxEpsilon) + ")");
 				break;
 			} else oldLL = LL;
 		} else oldLL = LL;
@@ -1057,7 +1079,7 @@ void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 double TRecalibrationEM::calcLL(){
 	double LL = 0.0;
 	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		LL += (*curWindow)->calcLL(model);
+		LL += (*curWindow)->calcLL(model, tmpEpsilon);
 	}
 	return LL;
 }
@@ -1437,7 +1459,7 @@ void TBQSR_cell::recalculateLLFromDataInMemory(){
 }
 
 void TBQSR_cell::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
-	//need Newton-Raphson to estimate epsilon
+	//need Newton-Raphson to estimate tmpEpsilon
 	float oldEstimate = curEstimate;
 
 	runNewtonRaphson(convergenceThreshold);
@@ -1473,15 +1495,15 @@ bool TBQSR_cell::estimate(float & convergenceThreshold, float & minEpsilon, long
 
 		if(numObservations < minObservations){ //keep current estimate
 			estimationConverged = true;
-		} else if(numMatches >= numObservations){ //epsilon = 0
+		} else if(numMatches >= numObservations){ //tmpEpsilon = 0
 			curEstimate = 0.0;
 			estimationConverged = true;
-		} else if(numMatches < 1.0){ // epsilon = 1.0
+		} else if(numMatches < 1.0){ // tmpEpsilon = 1.0
 			std::cout << "numMatches < 1" << std::endl;
 			curEstimate = 1.0;
 			estimationConverged = true;
 		} else {
-			//need Newton-Raphson to estimate epsilon
+			//need Newton-Raphson to estimate tmpEpsilon
 			runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
 		}
 	}
@@ -1617,7 +1639,7 @@ void TBQSR_cellPosition::recalculateLLFromDataInMemory(){
 }
 
 void TBQSR_cellPosition::runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon){
-	//need Newton-Raphson to estimate epsilon
+	//need Newton-Raphson to estimate tmpEpsilon
 	float oldEstimate = curEstimate;
 	runNewtonRaphson(convergenceThreshold);
 
@@ -1647,7 +1669,7 @@ bool TBQSR_cellPosition::estimate(float & convergenceThreshold, float & minEpsil
 		if(numObservations < minObservations){ //keep current estimate
 			estimationConverged = true;
 		} else {
-			//need Newton-Raphson to estimate epsilon
+			//need Newton-Raphson to estimate tmpEpsilon
 			runNewtonRaphsonAndCheck(convergenceThreshold, minEpsilon);
 		}
 	}
@@ -2272,7 +2294,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 	//recalc derivatives if data is in memory. Otherwise, derivatives were calculated when data was added.
 	if(dataStored) recalculateDerivativesFromDataInMemory();
 
-	//estimate epsilon, if not yet done
+	//estimate tmpEpsilon, if not yet done
 	estimationConverged = true;
 	int numCellsNotConverged = 0;
 	double maxF = 0.0;
@@ -2286,7 +2308,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			LLSurfacePrinted = true;
 		}
 		//now do estimation
-		logfile->listFlush("Estimating epsilon for readGroup x quality table ...");
+		logfile->listFlush("Estimating tmpEpsilon for readGroup x quality table ...");
 		for(int i=0; i<numReadGroups; ++i){
 			for(int j=0; j<qualityIndex->numQ; ++j){
 				if(!BQSR_cells_readGroup_quality[i][j].estimate(convergenceThreshold_F, minEpsilonQuality, minObservations)){
@@ -2342,7 +2364,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		return estimationConverged;
 	}
 
-	//estimate epsilon for position, if not yet done
+	//estimate tmpEpsilon for position, if not yet done
 	//-------------------------------------------------------
 	if(considerPosition && !positionConverged){
 		//do we print LL surface? Only print once!
@@ -2352,7 +2374,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//now do estimation
-		logfile->listFlush("Estimating epsilon for readGroup x position table ...");
+		logfile->listFlush("Estimating tmpEpsilon for readGroup x position table ...");
 		numCellsNotConverged = 0;
 
 		for(int i=0; i<numReadGroups; ++i){
@@ -2410,7 +2432,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		return estimationConverged;
 	}
 
-	//estimate epsilon for position reverse, if not yet done
+	//estimate tmpEpsilon for position reverse, if not yet done
 	//-------------------------------------------------------
 	if(considerPositionReverse && !positionReverseConverged){
 		//do we print LL surface? Only print once!
@@ -2420,7 +2442,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//now do estimation
-		logfile->listFlush("Estimating epsilon for readGroup x position reverse table ...");
+		logfile->listFlush("Estimating tmpEpsilon for readGroup x position reverse table ...");
 		numCellsNotConverged = 0;
 
 		for(int i=0; i<numReadGroups; ++i){
@@ -2478,7 +2500,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		return estimationConverged;
 	}
 
-	//estimate epsilon for context
+	//estimate tmpEpsilon for context
 	//-------------------------------------------------------
 	if(considerContext && !contextConverged){
 		//do we print LL surface? Only print once!
@@ -2488,7 +2510,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 
 		//now do estimation
-		logfile->listFlush("Estimating epsilon for quality x context table ...");
+		logfile->listFlush("Estimating tmpEpsilon for quality x context table ...");
 		for(int r=0; r<numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
 				if(!BQSR_cells_readGroup_context[r][c].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations)){

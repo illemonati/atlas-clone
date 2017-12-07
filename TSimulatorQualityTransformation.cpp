@@ -283,7 +283,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 };
 
 
-
+/*
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
@@ -581,5 +581,5 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 
 
 
-
+*/
 
