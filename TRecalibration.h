@@ -190,11 +190,11 @@ class TRecalibrationEMSite{
 public:
 	float** q; //covariates such as quality, position etc.
 	float** D; //D for the emission probabilities: depends on genotype and base!
-	float** B; //B = 4/3 D - 1
+	//float** B; //B = 4/3 D - 1
 	uint8_t* context;
 	uint8_t* readGroup;
 	float* P_g_given_d_oldBeta;
-	int numReads;
+	uint8_t numReads;
 	bool initialized;
 
 	TRecalibrationEMSite();
@@ -207,8 +207,8 @@ public:
 	};
 	virtual ~TRecalibrationEMSite();
 	virtual void calcEpsilon(TRecalibrationEMModel* & model, float* & epsilon);
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon);
-	double calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon);
+	double calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon);
 	double calcQ(TRecalibrationEMModel* & model, float* & epsilon);
 	virtual void addToJacobianAndF(TRecalibrationEMModel* & model, float* & epsilon);
 };
@@ -216,7 +216,7 @@ public:
 class TRecalibrationEMWindow{
 public:
 	std::vector<TRecalibrationEMSite*> sites;
-	double* freqs; //base frequencies
+	float* freqs; //base frequencies
 	int* readGroupMap;
 
 	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int* ReadGroupMap);

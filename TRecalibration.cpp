@@ -470,7 +470,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(){
 	context = NULL;
 	readGroup = NULL;
 	D = NULL;
-	B = NULL;
+//	B = NULL;
 	P_g_given_d_oldBeta = NULL;
 	numReads = 0;
 };
@@ -479,10 +479,10 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 	numReads = site.bases.size();
 	q = new float*[numReads];
 	D = new float*[4];
-	B = new float*[4];
+//	B = new float*[4];
 	for(int g=0; g<4; ++g){
 		D[g] = new float[numReads];
-		B[g] = new float[numReads];
+//		B[g] = new float[numReads];
 	}
 
 	context = new uint8_t[numReads];
@@ -547,7 +547,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 
 		//now store B
 		for(int g=0; g<4; ++g){
-			B[g][k] = 4.0 / 3.0 * D[g][k] - 1.0;
+//			B[g][k] = 4.0 / 3.0 * D[g][k] - 1.0;
 		}
 	}
 };
@@ -556,14 +556,14 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 	if(initialized){
 		for(int i=0; i<4; ++i){
 			delete[] D[i];
-			delete[] B[i];
+//			delete[] B[i];
 		}
 		for(int i=0; i<numReads; ++i){
 			delete[] q[i];
 		}
 		delete[] q;
 		delete[] D;
-		delete[] B;
+//		delete[] B;
 		delete[] context;
 		delete[] readGroup;
 		delete[] P_g_given_d_oldBeta;
@@ -576,17 +576,20 @@ void TRecalibrationEMSite::calcEpsilon(TRecalibrationEMModel* & model, float* & 
 		epsilon[k] = model->calcEpsilon(readGroup[k], q[k], context[k]);
 }
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon){
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon){
 	calcEpsilon(model, epsilon);
 
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
 	double tmp;
+	float B;
 	for(int g=0; g<4; ++g){
 		tmp = 1.0;
 		//loop over all reads
 		for(int k=0; k<numReads; ++k){
-			tmp *= B[g][k] * epsilon[k] - D[g][k] + 1.0;
+			B = 4.0 / 3.0 * D[g][k] - 1.0;
+			tmp *= B * epsilon[k] - D[g][k] + 1.0;
+//			tmp *= B[g][k] * epsilon[k] - D[g][k] + 1.0;
 		}
 		P_g_given_d_oldBeta[g] = tmp * freqs[g];
 		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
@@ -599,7 +602,9 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 			tmp = 0.0;
 			//loop over all reads
 			for(int k=0; k<numReads; ++k){
-				tmp += log(B[g][k] * epsilon[k] - D[g][k] + 1.0);
+				B = 4.0 / 3.0 * D[g][k] - 1.0;
+				tmp += log(B * epsilon[k] - D[g][k] + 1.0);
+//				tmp += log(B[g][k] * epsilon[k] - D[g][k] + 1.0);
 			}
 			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
 			if(g==0) max = P_g_given_d_oldBeta[g];
@@ -623,17 +628,20 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 	return log(P_g_given_d_theta_denominator);
 }
 
-double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, double* & freqs, float* & epsilon){
+double TRecalibrationEMSite::calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon){
 	calcEpsilon(model, epsilon);
 
 	//over all genotypes
 	double LL = 0.0;
 	double tmp;
+	float B;
 	for(int g=0; g<4; ++g){
 		tmp = 1.0;
 		//loop over all reads
 		for(int k=0; k<numReads; ++k){
-			tmp *= B[g][k] * epsilon[k] - D[g][k] + 1.0;
+			B = 4.0 / 3.0 * D[g][k] - 1.0;
+			tmp *= B * epsilon[k] - D[g][k] + 1.0;
+//			tmp *= B[g][k] * epsilon[k] - D[g][k] + 1.0;
 		}
 		LL += tmp * freqs[g];
 	}
@@ -648,12 +656,15 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModel* & model, float* & epsi
 	//now calculate P(d, g, new params)
 	double P_d_given_g_beta;
 	double Q = 0.0;
+	float B;
 
 	for(int g=0; g<4; ++g){
 		P_d_given_g_beta = 1.0;
 		//loop over all reads
 		for(int k=0; k<numReads; ++k){
-			P_d_given_g_beta *= B[g][k] * epsilon[k] - D[g][k] + 1;
+			B = 4.0 / 3.0 * D[g][k] - 1.0;
+			P_d_given_g_beta *= B * epsilon[k] - D[g][k] + 1;
+//			P_d_given_g_beta *= B[g][k] * epsilon[k] - D[g][k] + 1;
 		}
 
 		if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
@@ -677,12 +688,16 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel* & model, flo
 		oneMinus2Eps[k] = 1.0 - 2.0 * epsilon[k];
 	}
 
+	float B;
+
 	//fill F and Jacobian
 	for(int g=0; g<4; ++g){
 		//calc weights
 		//------------
 		for(int k=0; k<numReads; ++k){
-			weights[k] = B[g][k] / (1.0 - D[g][k] + B[g][k] * epsilon[k]) * eps1MinusEps[k];
+			B = 4.0 / 3.0 * D[g][k] - 1.0;
+			weights[k] = B / (1.0 - D[g][k] + B * epsilon[k]) * eps1MinusEps[k];
+//			weights[k] = B[g][k] / (1.0 - D[g][k] + B[g][k] * epsilon[k]) * eps1MinusEps[k];
 			weightJacobian[k] = P_g_given_d_oldBeta[g] * weights[k] * (oneMinus2Eps[k] - weights[k]);
 		}
 

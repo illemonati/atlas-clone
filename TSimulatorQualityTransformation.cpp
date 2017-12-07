@@ -101,9 +101,6 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	_max = stringToDouble(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand function '" + orig + "': max must be >= min!";
-
-	std::cout << "-------------------------------____> MAX = " << _max << " =?= " << max() << std::endl;
-
 };
 
 void TSimulatorQualityDistNormal::fillDensities(){
