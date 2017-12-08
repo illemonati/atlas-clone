@@ -143,6 +143,7 @@ public:
 	void diagnoseBamFile(TParameters & params);
 	void estimateApproximateCoveragePerWindow(TParameters & params);
 	void estimateDepthPerSite(TParameters & params);
+	void writeDepthPerSite(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
 };

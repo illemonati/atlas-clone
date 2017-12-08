@@ -715,7 +715,7 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel* & model, flo
 //TRecalibrationEMWindow
 //---------------------------------------------------------------
 TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int* ReadGroupMap){
-	freqs = new double[4];
+	freqs = new float[4];
 	for(int i=0; i<4; ++i) freqs[i] = (*baseFreqs)[i];
 	readGroupMap = ReadGroupMap;
 }

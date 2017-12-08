@@ -2821,6 +2821,39 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 
 }
 
+
+void TGenome::writeDepthPerSite(TParameters & params){
+	gz::ogzstream out;
+
+	std::string outputFileName = outputName + "_depthPerSite.txt.gz";
+	logfile->list("Writing per site depth to '" + outputFileName + "'");
+
+	out.open(outputFileName.c_str());
+	if(!out) throw "Failed to open output file '" + outputFileName + "'!";
+
+	//write header
+	out << "chr\tpos\tdepth" << std::endl;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			logfile->listFlush("Writing depth per size ...");
+			windows.cur->printDepthPerSite(out, chrIterator->Name);
+			logfile->done();
+		}
+	}
+
+	//clean up
+	out.close();
+}
+
+
 //---------------------------------------------------
 //PMD
 //---------------------------------------------------

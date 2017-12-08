@@ -297,6 +297,13 @@ void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
 
+void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
+	//print depth for each site to file
+	for(int i=0; i<length; ++i){
+		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth() << "\n";
+	}
+}
+
 void TWindow::applyCoverageFilter(int minCoverage, size_t maxCoverage){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){

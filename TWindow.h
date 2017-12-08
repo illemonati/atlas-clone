@@ -60,6 +60,7 @@ public:
 	virtual void calcCoverage();
 	void calcFracN();
 	void calcDepthPerSite(long * siteCoverage, size_t maxCov);
+	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
 	void applyCoverageFilter(int minCoverage, size_t maxCoverage);
 	void createDepthMask(size_t minCoverage, size_t maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);

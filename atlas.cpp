@@ -150,6 +150,9 @@ int main(int argc, char* argv[]){
 			} else if(task == "coveragePerSite"){
 				logfile.startIndent("Estimating coverage per site (task = coveragePerSite):");
 				genome.estimateDepthPerSite(myParameters);
+			} else if(task == "writeDepthPerSite"){
+				logfile.startIndent("Writing depth per site (task = writeDepthPerSite):");
+				genome.writeDepthPerSite(myParameters);
 			} else if(task=="createDepthMask"){
 				logfile.startIndent("Creating depth mask BED file (task=createDepthMask:");
 				genome.createDepthMask(myParameters);
