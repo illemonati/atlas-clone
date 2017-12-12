@@ -105,8 +105,8 @@ void TSimulatorRead::setQualityTransformation(const std::string & type, const st
 		qualityTransform = new TSimulatorQualityTransformation(qualityDist, randomGenerator);
 	else if(type == "recal")
 		qualityTransform = new TSimulatorQualityTransformationRecal(args, readLengthDist->max(), qualityDist, randomGenerator);
-//	else if(type == "BQSR")
-//		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
+	else if(type == "BQSR")
+		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
 		//throw "BQSR not yet implemented in TSimulatorRead::setQualityTransformation!";
 	else throw "Unknown quality transformation type '" + type + "'!";
 
