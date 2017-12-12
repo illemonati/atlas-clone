@@ -10,6 +10,7 @@
 #include "TGenome.h"
 #include "runSimulations.h"
 #include "TDistanceEstimator.h"
+#include "TAtlasTesting.h"
 
 //---------------------------------------------------------------------------
 //Main function
@@ -49,14 +50,18 @@ int main(int argc, char* argv[]){
 		std::string task = myParameters.getParameterString("task");
 
 		//first all task that do not require TGenome
-		if(task=="simulate"){
+		if(task == "test"){
+			logfile.startIndent("Unit testing of atlas functionalities:");
+			TAtlasTesting test(myParameters, &logfile);
+			test.runTests();
+		} else if(task == "simulate"){
 			logfile.startIndent("Generating simulations (task = simulate):");
 			runSimulations(myParameters, &logfile);
-		} else if(task=="printGLF"){
+		} else if(task == "printGLF"){
 			logfile.startIndent("Printing a GLF file to screen (task=printGLF):");
 			TDistanceEstimator distEst(&logfile);
 			distEst.printGLF(myParameters);
-		} else if(task=="estimateDist"){
+		} else if(task == "estimateDist"){
 			logfile.startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
 			TDistanceEstimator distEst(&logfile);
 			distEst.estimateDistances(myParameters);

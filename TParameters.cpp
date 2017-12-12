@@ -2,24 +2,34 @@
 #include "TParameters.h"
 #include <sstream>
 //---------------------------------------------------------------------------
-TParameters::TParameters(std::vector<std::string> & commandLineParams, TLog* Logfile){
-	logfile=Logfile;
-	initialize(commandLineParams);
-}
-TParameters::TParameters(int & argc, char** argv, TLog* Logfile){
-	logfile=Logfile;
-	std::vector<std::string> commandLineParams;
-	//skip first: it is name of executable
-	for(int i=1;i<argc;++i)  commandLineParams.push_back(argv[i]);
-	initialize(commandLineParams);
+TParameters::TParameters(){
+	inputFileRead = false;
 }
 
-void TParameters::initialize(std::vector<std::string> & commandLineParams){
+TParameters::TParameters(std::vector<std::string> & commandLineParams, TLog* logfile){
+	inputFileRead = false;
+	initialize(commandLineParams, logfile);
+}
+TParameters::TParameters(int & argc, char** argv, TLog* logfile){
+	inputFileRead = false;
+	std::vector<std::string> commandLineParams;
+
+	//skip first: it is name of executable
+	for(int i=1;i<argc;++i)  commandLineParams.push_back(argv[i]);
+	initialize(commandLineParams, logfile);
+}
+
+void TParameters::addParameter(std::string name, std::string value){
+	//check if parameter already exists
+	mapParameter[name]  = value;
+	parameterUsed[name] = false;
+}
+
+void TParameters::initialize(std::vector<std::string> & commandLineParams, TLog* logfile){
 	std::string my_name;
-	inputFileRead=false;
 	//check if first is name of an input file which means no '='!
 	if(!commandLineParams.empty() && !stringContains(commandLineParams[0], '=')){
-		readInputfile(commandLineParams[0]);
+		readInputfile(commandLineParams[0], logfile);
 	}
 
 	//parse command line params and overwrite input file
@@ -42,7 +52,7 @@ void TParameters::initialize(std::vector<std::string> & commandLineParams){
 
 
 //---------------------------------------------------------------------------
-void TParameters::readInputfile(std::string fileName){
+void TParameters::readInputfile(std::string fileName, TLog* logfile){
 	inputFileName=fileName;
 	logfile->listFlush("Reading inputfile '" + (std::string) inputFileName + "' ...");
 	std::ifstream is (fileName.c_str());
@@ -62,7 +72,7 @@ void TParameters::readInputfile(std::string fileName){
 				trimString(line);
 				my_value=extractBeforeDoubleSlash(line);
 				if(!my_name.empty()){
-					mapParameter[my_name]= my_value;
+					mapParameter[my_name] = my_value;
 				}
 			}
 		}
