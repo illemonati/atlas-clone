@@ -398,7 +398,6 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 		double sumP = 0.0;
 		for(int p = 0; p<maxReadLength; ++p){
 			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
-			if(readLengthDist->positionProbs[p] != 0.01) std::cout << "readLengthDist->positionProbs[p] " << readLengthDist->positionProbs[p] << std::endl;
 		}
 		curMean += sumP * w[q];
 //		if(q == maxQual){

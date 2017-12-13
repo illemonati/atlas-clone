@@ -12,6 +12,7 @@
 //TSimulatorReadLength
 //---------------------------------------------------------
 TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator){
+	std::cout << "in TsimulatorReadLen cstr with s" << std::endl;
 	randomGenerator = RandomGenerator;
 
 	//expect string (x) -> remov ( and )!
@@ -30,14 +31,13 @@ TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* Ra
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
+	std::cout << "in TsimulatorReadLen cstr without s" << std::endl;
+
 	randomGenerator = RandomGenerator;
 	meanLength = -1;
 	cumulAtMin = 0.0;
 
-	positionProbs = new double[meanLength];
-	for(int i=0; i<meanLength; ++i){
-		positionProbs[i] = 0.0;
-	}
+	positionProbs = NULL;
 
 };
 
@@ -54,6 +54,7 @@ void TSimulatorReadLength::printDetails(TLog* logfile){
 //TSimulatorReadLengthGamma
 //--------------------------------------------------
 TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
+	std::cout << "in gamma cstr with s" << std::endl;
 	parseFunctionString(s, alpha, beta);
 	if(alpha <= 0.0)
 		throw "Shape parameter alpha must be > 0.0!";
@@ -64,6 +65,8 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGen
 };
 
 TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
+	std::cout << "in gamma cstr without s" << std::endl;
+
 	alpha = -1.0;
 	beta = -1.0;
 	_min = -1.0;
@@ -159,9 +162,9 @@ void TSimulatorReadLengthGamma::initiate(){
 	for(int i=1; i < _max; ++i){
 		positionProbs[i] = (1.0 -  gammaCumulDensity[i-1]) / sum;
 	}
-	for(int i = 1; i < _max; ++i){
-		std::cout << "i " << positionProbs[i] << std::endl;
-	}
+//	for(int i = 1; i < _max; ++i){
+//		std::cout << "i " << positionProbs[i] << std::endl;
+//	}
 }
 
 void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
@@ -184,6 +187,7 @@ void TSimulatorReadLengthGamma::printDetails(TLog* logfile){
 //--------------------------------------------------
 TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorReadLengthGamma(RandomGenerator){
 	//here the parameters parsed are mode and variance, so adjust alpha and beta
+	std::cout << "in cstr gamma mode" << std::endl;
 	parseFunctionString(s, mode, var);
 	if(mode <= 0.0)
 		throw "Mode of gamma distribution must be > 0.0!";
