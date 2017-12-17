@@ -61,7 +61,7 @@ void TAtlasTesting::runTests(){
 	for(size_t testNum=0; testNum<testList.size(); ++testNum){
 		//report test number and name
 		logfile->numberWithIndent("Running test '" + testList[testNum]->name() + "' (test " + toString(testNum+1) + " of " + toString(testList.size()) + "):");
-		out << testNum << '\t' << testList[testNum]->name() << '\t';
+		out << testNum+1 << '\t' << testList[testNum]->name() << '\t';
 
 		//run test
 		success = testList[testNum]->run();

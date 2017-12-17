@@ -12,10 +12,33 @@
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
-bool TAtlasTest::runTGenomeFromInputfile(){
-
-}
-
+bool TAtlasTest::runTGenomeFromInputfile(std::string task){
+	logfile->startIndent("Running task '" + task + "':");
+	_testParams.addParameter("task", task);
+	atlasTaskSwitcher taskSwitcher(&_testParams, logfile);
+	bool returnVal = true;
+	try{
+		taskSwitcher.runTask("pileup");
+	}
+	catch (std::string & error){
+		logfile->conclude(error);
+		returnVal = false;
+	}
+	catch (const char* error){
+		logfile->conclude(error);
+		returnVal = false;
+	}
+	catch(std::exception & error){
+		logfile->conclude(error.what());
+		returnVal = false;
+	}
+	catch (...){
+		logfile->conclude("unhandeled error!");
+		returnVal = false;
+	}
+	logfile->endIndent();
+	return returnVal;
+};
 
 //------------------------------------------
 //TAtlasTest_pileup
@@ -42,16 +65,13 @@ bool TAtlasTest_pileup::run(){
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
-	logfile->startIndent("Running task 'pileup':");
-	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("verbose", "");
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
-	atlasTaskSwitcher taskSwitcher(&_testParams, logfile);
-	taskSwitcher.runTask("pileup");
-	logfile->endIndent();
+	if(!runTGenomeFromInputfile("pileup"))
+		return false;
 
 	//3) check if results are OK
 	//--------------------------

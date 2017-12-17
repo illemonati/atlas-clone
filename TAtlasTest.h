@@ -29,7 +29,7 @@ protected:
 	TParameters _testParams;
 	std::string _name;
 
-	bool runTGenomeFromInputfile();
+	bool runTGenomeFromInputfile(std::string task);
 
 public:
 	TAtlasTest(TParameters & params, TLog* Logfile){
