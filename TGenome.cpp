@@ -314,21 +314,21 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
 			int nextEnd = predefinedWindows->curWindowEnd();
-			if(nextEnd > chrLength) nextEnd = chrLength + 1;
+			if(nextEnd > chrLength) nextEnd = chrLength;
 			windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
 		} else {
-			windowPair.nextPointer->move(chrLength + 1, chrLength + 2);
+			windowPair.nextPointer->move(chrLength, chrLength+1);
 		}
 	} else {
 		long nextEnd = curEnd + windowSize;
-		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		if(nextEnd > chrLength) nextEnd = chrLength;
 		windowPair.nextPointer->move(curEnd, nextEnd);
 	}
 
 	++windowNumber;
 
 	//report
-	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 
 	return true;
@@ -531,7 +531,9 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
 	} else if(params.parameterExists("addToSeed")){
 		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else randomGenerator=new TRandomGenerator();
+	} else {
+		randomGenerator=new TRandomGenerator();
+	}
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 	randomGeneratorInitialized = true;
 }
@@ -1371,7 +1373,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//write header
 	TGenotypeMap genoMap;
-	out << "Chr\tposition\tcoverage\tbases";
+	out << "Chr\tposition\tdepth\tbases";
 	for(int i=0; i<10; ++i)
 		out << "\tPem(" << genoMap.getGenotypeString(i) << ")";
 	out << "\n";

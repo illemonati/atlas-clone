@@ -5,12 +5,8 @@
  *      Author: wegmannd
  */
 
-#include "TLog.h"
-#include "TParameters.h"
-#include "TGenome.h"
-#include "runSimulations.h"
-#include "TDistanceEstimator.h"
 #include "TAtlasTesting.h"
+#include "atlasTaskSwitcher.h"
 
 //---------------------------------------------------------------------------
 //Main function
@@ -48,120 +44,15 @@ int main(int argc, char* argv[]){
 
 		//what to do?
 		std::string task = myParameters.getParameterString("task");
-
-		//first all task that do not require TGenome
 		if(task == "test"){
+			//run testing utilities
 			logfile.startIndent("Unit testing of atlas functionalities:");
 			TAtlasTesting test(myParameters, &logfile);
 			test.runTests();
-		} else if(task == "simulate"){
-			logfile.startIndent("Generating simulations (task = simulate):");
-			runSimulations(myParameters, &logfile);
-		} else if(task == "printGLF"){
-			logfile.startIndent("Printing a GLF file to screen (task=printGLF):");
-			TDistanceEstimator distEst(&logfile);
-			distEst.printGLF(myParameters);
-		} else if(task == "estimateDist"){
-			logfile.startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
-			TDistanceEstimator distEst(&logfile);
-			distEst.estimateDistances(myParameters);
 		} else {
-			//now all task that DO require TGenome
-			TGenome genome(&logfile, myParameters);
-			if(task == "estimateTheta"){
-				logfile.startIndent("Running an EM algorithm to estimate heterozygosity (task = estimateTheta):");
-				genome.estimateTheta(myParameters);
-			} else if(task == "LLsurface"){
-				logfile.startIndent("Calculating the LL surface for each window (task = LLSurface):");
-				genome.calcLikelihoodSurfaces(myParameters);
-			} else if(task == "pileup"){
-				logfile.startIndent("Printing pileup for each window (task = pileup):");
-				genome.printPileup(myParameters);
-			} else if(task == "recal"){
-				logfile.startIndent("Estimating error calibration function with EM (task = recal):");
-				genome.estimateErrorCalibrationEM(myParameters);
-			} else if(task == "recalLL"){
-				logfile.startIndent("Calculating LL for error calibration function (task = recalLL):");
-				genome.calculateLikelihoodErrorCalibrationEM(myParameters);
-			} else if(task == "BQSR"){
-				logfile.startIndent("Estimating recalibration parameters (task = BQSR):");
-				genome.BQSR(myParameters);
-			} else if(task == "callMLE"){
-				logfile.startIndent("Calling MLE Genotypes (task = callMLE):");
-				genome.callMLEGenotypes(myParameters);
-			} else if(task == "callBayes"){
-				logfile.startIndent("Calling Bayesian Genotypes (task = callBayes):");
-				genome.callBayesianGenotypes(myParameters);
-			} else if(task == "allelePresence"){
-				logfile.startIndent("Calling Allele Presence (task = allelePresence):");
-				genome.callAllelePresence(myParameters);
-			} else if(task == "randomBaseCaller"){
-				logfile.startIndent("Calling random bases (task = randomBaseCaller");
-				genome.randomBaseCaller(myParameters);
-			} else if(task == "majorityBaseCaller"){
-				logfile.startIndent("Calling random bases (task = majorityBaseCaller");
-				genome.majorityBaseCaller(myParameters);
-			} else if(task == "glf"){
-				logfile.startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
-				genome.writeGLF(myParameters);
-			} else if(task == "combineBeagleFiles"){
-				logfile.startIndent("combining beagle files (task = combineBeagleFiles):");
-				genome.combineBeagleFiles(myParameters);
-			} else if(task == "qualityDist"){
-				logfile.startIndent("Printing Quality Distribution (task = qualityDist):");
-				genome.printQualityDistribution(myParameters);
-			} else if(task == "qualityTransformation"){
-				logfile.startIndent("Printing Quality Transformation (task = qualityTransformation):");
-				genome.printQualityTransformation(myParameters);
-			} else if(task == "recalBAM"){
-				logfile.startIndent("Recalibrating a BAM file (task = recalBAM):");
-				genome.recalibrateBamFile(myParameters);
-			} else if(task == "binQualityScores"){
-				logfile.startIndent("Binning quality scores (task = binQualityScores");
-				genome.binQualityScores(myParameters);
-			} else if(task == "assessSoftClipping"){
-				logfile.startIndent("Assessing level of soft clipping in BAM file:");
-				genome.assessSoftClipping(myParameters);
-			} else if(task == "splitRGbyLength"){
-				logfile.startIndent("Splitting single end read groups in a BAM file (task = splitRGbyLength):");
-				genome.splitSingleEndReadGroups(myParameters);
-			} else if(task == "mergeReadGroups"){
-				logfile.startIndent("Merging read groups in a BAM file (task = mergeReadGroups):");
-				genome.mergeReadGroups(myParameters);
-			} else if(task == "estimatePMD"){
-				logfile.startIndent("Estimating Post-Mortem Damage (PMD) patterns (task = estimatePMD):");
-				genome.estimatePMD(myParameters);
-			} else if(task == "PMDS"){
-				logfile.startIndent("Filtering for ancient reads using PMDS (Skoglund et al. 2014, task = PMDS):");
-				genome.runPMDS(myParameters);
-			} else if(task == "mergeReads"){
-				logfile.startIndent("Merging paired-end reads (task = mergeReads):");
-				genome.mergePairedEndReads(myParameters);
-			} else if(task == "PSMC"){
-				logfile.startIndent("Generating a PSMC Input file probabilistically (task = PSMC):");
-				genome.generatePSMCInput(myParameters);
-			} else if(task == "downsample"){
-				logfile.startIndent("Downsampling a bam file (task = downsample):");
-				genome.downSampleBamFile(myParameters);
-			} else if(task == "downSampleReads"){
-				logfile.startIndent("Downsampling a bam file (task = downSampleReads):");
-				genome.downSampleReads(myParameters);
-			} else if(task == "BAMDiagnostics"){
-				logfile.startIndent("Estimating approximate coverage, read length frequencies and mapping quality frequencies (task = BAMDiagnostics):");
-				genome.diagnoseBamFile(myParameters);
-			} else if(task == "coveragePerWindow"){
-				logfile.startIndent("Estimating coverage per window (task = coveragePerWindow):");
-				genome.estimateApproximateCoveragePerWindow(myParameters);
-			} else if(task == "coveragePerSite"){
-				logfile.startIndent("Estimating coverage per site (task = coveragePerSite):");
-				genome.estimateDepthPerSite(myParameters);
-			} else if(task == "writeDepthPerSite"){
-				logfile.startIndent("Writing depth per site (task = writeDepthPerSite):");
-				genome.writeDepthPerSite(myParameters);
-			} else if(task=="createDepthMask"){
-				logfile.startIndent("Creating depth mask BED file (task=createDepthMask:");
-				genome.createDepthMask(myParameters);
-			} else throw "Unknown task '" + task + "'!";
+			//run requested task
+			atlasTaskSwitcher taskSwitcher(&myParameters, &logfile);
+			taskSwitcher.runTask(task);
 		}
 		logfile.clearIndent();
 

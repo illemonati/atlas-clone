@@ -9,6 +9,8 @@
 
 #include "TAtlasTesting.h"
 
+
+
 TAtlasTesting::TAtlasTesting(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
@@ -17,16 +19,25 @@ TAtlasTesting::TAtlasTesting(TParameters & params, TLog* Logfile){
 	logfile->list("Writing testing report to '" + outputName + "'.");
 
 	//add tests
-	tests.emplace_back(logfile);
+	testList.parseSuites(params, logfile);
+	testList.parseTests(params, logfile);
+	printTests();
 };
 
-void TAtlasTesting::parseTests(TParameters & params){
+void TAtlasTesting::printTests(){
+	if(testList.size() > 1)
+		logfile->startIndent("Will run the following " + toString(testList.size()) + " tests:");
+	else if(testList.size() == 1)
+		logfile->startIndent("Will run the following test:");
+	else throw "No tests requested!";
 
-}
+	testList.printTestToLogfile(logfile);
+	logfile->endIndent();
+};
 
-void TAtlasTesting::addTest(std::string & name){
-	//check if test already exists
-
+void TAtlasTesting::addTest(std::string & name, TParameters & params){
+	if(!testList.initializeTest(name, params, logfile))
+		throw "Failed to initialize test '" + name + "': test does not exist!";
 };
 
 void TAtlasTesting::runTests(){
@@ -36,36 +47,37 @@ void TAtlasTesting::runTests(){
 		throw "Failed to open file '" + outputName + "' for writing!";
 
 	//prepare test runs
-	int testNum = 1;
 	int numSuccess = 0;
 	bool success;
-	if(tests.size() > 1)
-		logfile->startNumbering("Running " + toString(tests.size()) + " tests:");
-	else if(tests.size() == 1)
-		logfile->startNumbering("Running " + toString(tests.size()) + " test:");
-	else throw "No tests requested!";
+	if(testList.size() < 1)
+		throw "No tests requested!";
 
 	//now run all tests
-	for(std::vector<TAtlasTest>::iterator t=tests.begin(); t!=tests.end(); ++t, ++testNum){
+	if(testList.size() > 1)
+		logfile->startNumbering("Running " + toString(testList.size()) + " tests:");
+	else
+		logfile->startNumbering("Running 1 test:");
+
+	for(size_t testNum=0; testNum<testList.size(); ++testNum){
 		//report test number and name
-		logfile->startIndent("Running test '" + t->name() + "' (test " + toString(testNum) + " of " + toString(tests.size()) + "):");
-		out << testNum << '\t' << t->name() << '\t';
+		logfile->numberWithIndent("Running test '" + testList[testNum]->name() + "' (test " + toString(testNum+1) + " of " + toString(testList.size()) + "):");
+		out << testNum << '\t' << testList[testNum]->name() << '\t';
 
 		//run test
-		success = t->run();
-		numSuccess += t->run();
+		success = testList[testNum]->run();
+		numSuccess += success;
 
 		//report
 		logfile->removeIndent();
 		if(success){
-			logfile->conclude("Test passed!");
+			logfile->conclude("Test '" +testList[testNum]->name()  + "' passed!");
 			out << "passed\n";
 		} else {
-			logfile->conclude("Test failed!");
+			logfile->conclude("Test '" +testList[testNum]->name()  + "' failed!");
 			out << "failed\n";
 		}
 	}
-	logfile->endIndent();
+	logfile->endNumbering();
 
 	//close report file
 	out.close();

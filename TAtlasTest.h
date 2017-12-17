@@ -8,8 +8,14 @@
 #ifndef TATLASTEST_H_
 #define TATLASTEST_H_
 
-#include "TLog.h"
-#include "TParameters.h"
+#include "atlasTaskSwitcher.h"
+
+#include <vector>
+#include <map>
+
+#include "bamtools/api/BamWriter.h"
+#include "bamtools/api/SamHeader.h"
+#include "bamtools/api/BamAlignment.h"
 
 //------------------------------------------
 //TAtlasTest
@@ -20,11 +26,13 @@
 class TAtlasTest{
 protected:
 	TLog* logfile;
-	TParameters params;
+	TParameters _testParams;
 	std::string _name;
 
+	bool runTGenomeFromInputfile();
+
 public:
-	TAtlasTest(TLog* Logfile){
+	TAtlasTest(TParameters & params, TLog* Logfile){
 		logfile = Logfile;
 		_name = "empty";
 	};
@@ -36,6 +44,30 @@ public:
 		return true;
 	};
 };
+
+//------------------------------------------
+//TAtlasTest_pileup
+//------------------------------------------
+class TAtlasTest_pileup:public TAtlasTest{
+private:
+	int qual;
+	int readLength;
+	int chrLength;
+	std::vector<int> depths;
+	std::vector<char> base;
+	std::string filenameTag;
+	std::string bamFileName;
+	std::string readGroupName;
+
+	void writeBAM(BamTools::BamWriter & bamWriter);
+	bool checkPileupFile();
+
+public:
+	TAtlasTest_pileup(TParameters & params, TLog* logfile);
+
+	bool run();
+};
+
 
 
 #endif /* TATLASTEST_H_ */

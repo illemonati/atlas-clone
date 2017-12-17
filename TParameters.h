@@ -18,13 +18,14 @@ class TParameters{
 
 		std::map<std::string, std::string> mapParameter;
 		std::map<std::string, bool> parameterUsed;
-		std::map<std::string, std::string>::iterator curParameter, endParameter;
+		std::map<std::string, std::string>::iterator curParameter;
 
 	public:
 		~TParameters(){ mapParameter.clear(); parameterUsed.clear(); };
 		TParameters();
 		TParameters(std::vector<std::string> & commandLineParams, TLog* Logfile);
 		TParameters(int & argc, char** argv, TLog* Logfile);
+		void clear();
 
 		//read parameters
 		void addParameter(std::string name, std::string value);

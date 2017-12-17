@@ -205,6 +205,12 @@ public:
 	};
 
 	template<typename T>
+	void numberWithIndent(T out){
+		number(out);
+		addIndent();
+	};
+
+	template<typename T>
 	void numberFlush(T out){
 		if(numberingLevel<0) addNumberingLevel();
 		if(isFile){

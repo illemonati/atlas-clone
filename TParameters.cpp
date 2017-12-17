@@ -19,6 +19,13 @@ TParameters::TParameters(int & argc, char** argv, TLog* logfile){
 	initialize(commandLineParams, logfile);
 }
 
+void TParameters::clear(){
+	inputFileRead = false;
+	inputFileName = "";
+	mapParameter.clear();
+	parameterUsed.clear();
+}
+
 void TParameters::addParameter(std::string name, std::string value){
 	//check if parameter already exists
 	mapParameter[name]  = value;
@@ -43,11 +50,9 @@ void TParameters::initialize(std::vector<std::string> & commandLineParams, TLog*
 
 	//prepare map to store if a parameter was used
 	curParameter=mapParameter.begin();
-	endParameter=mapParameter.end();
-	for(;curParameter!=endParameter;++curParameter){
-		parameterUsed[curParameter->first]=false;
+	for(;curParameter!=mapParameter.end();++curParameter){
+		parameterUsed[curParameter->first] = false;
 	}
-	endParameter=mapParameter.end();
 }
 
 
@@ -80,10 +85,11 @@ void TParameters::readInputfile(std::string fileName, TLog* logfile){
 		logfile->done();
 	}
 }
+
 //---------------------------------------------------------------------------
 bool TParameters::parameterExists(std::string my_name){
 	curParameter=mapParameter.begin();
-	for(;curParameter!=endParameter;++curParameter){
+	for(; curParameter!=mapParameter.end(); ++curParameter){
 		if(curParameter->first==my_name){
 			parameterUsed[curParameter->first]=true;
 			return true;
@@ -91,10 +97,11 @@ bool TParameters::parameterExists(std::string my_name){
 	}
     return false;
 }
+
 //---------------------------------------------------------------------------
 std::string TParameters::getParameter(std::string & my_name, bool mandatory){
 	curParameter=mapParameter.begin();
-	for(;curParameter!=endParameter;++curParameter){
+	for(; curParameter!=mapParameter.end(); ++curParameter){
 		if(curParameter->first==my_name){
 			parameterUsed[curParameter->first]=true;
 			return curParameter->second.c_str();
@@ -107,7 +114,7 @@ std::string TParameters::getParameter(std::string & my_name, bool mandatory){
 //---------------------------------------------------------------------------
 std::string TParameters::getParameterString(std::string my_name, bool mandatory){
 	curParameter=mapParameter.begin();
-	for(;curParameter!=endParameter;++curParameter){
+	for(; curParameter!=mapParameter.end(); ++curParameter){
 		if(curParameter->first==my_name){
 			parameterUsed[curParameter->first]=true;
 			return curParameter->second.c_str();
@@ -157,6 +164,7 @@ long TParameters::getParameterLongWithDefault(std::string my_name, long def){
 	if(str.empty()) return def;
 	else return stringToLong(str);
 }
+
 //---------------------------------------------------------------------------
 //WHY DOES TEMPLATE NOT WORK???
 //---------------------------------------------------------------------------
@@ -216,7 +224,7 @@ std::string TParameters::getListOfUnusedParameters(){
 	std::map<std::string, bool>::iterator cur;
 	cur=parameterUsed.begin();
 	curParameter=mapParameter.begin();
-	for(;cur!=parameterUsed.end() && curParameter!=endParameter;++cur, ++curParameter){
+	for(; cur!=parameterUsed.end() && curParameter!=mapParameter.end(); ++cur, ++curParameter){
 		if(!cur->second){
 			if(parameterList!="") parameterList+=", ";
 			parameterList+=curParameter->first;

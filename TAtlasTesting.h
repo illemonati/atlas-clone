@@ -8,8 +8,7 @@
 #ifndef TATLASTESTING_H_
 #define TATLASTESTING_H_
 
-#include "TAtlasTest.h"
-#include <vector>
+#include "TAtlasTestList.h"
 
 //-----------------------------------
 //TAtlasTesting
@@ -18,15 +17,16 @@ class TAtlasTesting{
 private:
 	TLog* logfile;
 	std::string outputName;
-
-	std::vector<TAtlasTest> tests;
+	TAtlasTestList testList;
+	TParameters* params;
 
 	void parseTests(TParameters & params);
-	void addTest(std::string & name);
 
 public:
 	TAtlasTesting(TParameters & params, TLog* Logfile);
-
+	~TAtlasTesting(){};
+	void printTests();
+	void addTest(std::string & name, TParameters & params);
 	void runTests();
 };
 
