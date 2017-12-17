@@ -280,7 +280,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 };
 
 
-/*
+
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
@@ -342,6 +342,7 @@ void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	}
 	m = (1.0 - revIntercept) / (sum - maxReadLength);
 	intercept = revIntercept - m * maxReadLength;
+	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
 }
 
 int TSimulatorQualityTransformationBQSR::sampleFakeQuality(){
@@ -486,11 +487,11 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfi
 		}
 
 
-		logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur));
+		logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur) + "corresponding to a true qual dist = N(" + toString(mean_cur) + "," + toString(sd_cur) + ")");
 		out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
 	}
 
-	logfile->conclude("The final estimates for kappa and lambda result in a true quality score being simulated according to N(" + toString(returnCurMean()) + "," + toString(returnCurSD(kappa_cur)) + "). This corresponds to a delta of " + toString(delta_cur) + ".");
+	logfile->conclude("The final estimates for kappa and lambda result in a true quality score distribution = N(" + toString(mean_cur) + "," + toString(sd_cur) + "). This corresponds to a delta of " + toString(delta_cur) + ".");
 	if(delta_cur >= 0.25) logfile->warning("Current parameter values for phi1, meanQual and sdQual do not allow for accurate estimation of kappa and lambda!");
 	kappa = kappa_cur;
 	lambda = lambda_cur;
@@ -583,5 +584,5 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 
 
 
-*/
+
 

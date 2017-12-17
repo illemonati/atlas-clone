@@ -62,8 +62,10 @@ void TSimulatorRead::setReadLengthDistribution(std::string s){
 
 	if(type == "gamma")
 		readLengthDist = new TSimulatorReadLengthGamma(s, randomGenerator);
-	else if(type == "gammaMode")
+	else if(type == "gammaMode"){
 		readLengthDist = new TSimulatorReadLengthGammaMode(s, randomGenerator);
+
+	}
 	else if(type == "fixed")
 		readLengthDist = new TSimulatorReadLength(s, randomGenerator);
 	else throw "Unknown read length distribution '" + type + "'!";
@@ -105,8 +107,8 @@ void TSimulatorRead::setQualityTransformation(const std::string & type, const st
 		qualityTransform = new TSimulatorQualityTransformation(qualityDist, randomGenerator);
 	else if(type == "recal")
 		qualityTransform = new TSimulatorQualityTransformationRecal(args, readLengthDist->max(), qualityDist, randomGenerator);
-//	else if(type == "BQSR")
-//		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
+	else if(type == "BQSR")
+		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
 		//throw "BQSR not yet implemented in TSimulatorRead::setQualityTransformation!";
 	else throw "Unknown quality transformation type '" + type + "'!";
 
