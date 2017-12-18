@@ -27,15 +27,13 @@ class TAtlasTest{
 protected:
 	TLog* logfile;
 	TParameters _testParams;
+	std::string _testingPrefix;
 	std::string _name;
 
 	bool runTGenomeFromInputfile(std::string task);
 
 public:
-	TAtlasTest(TParameters & params, TLog* Logfile){
-		logfile = Logfile;
-		_name = "empty";
-	};
+	TAtlasTest(TParameters & params, TLog* Logfile);
 	virtual ~TAtlasTest(){};
 
 	std::string name(){return _name;};
@@ -59,13 +57,14 @@ private:
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string readGroupName;
+	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
 	void writeBAM(BamTools::BamWriter & bamWriter);
 	bool checkPileupFile();
 
 public:
 	TAtlasTest_pileup(TParameters & params, TLog* logfile);
-
+	~TAtlasTest_pileup(){};
 	bool run();
 };
 

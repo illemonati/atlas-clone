@@ -12,6 +12,13 @@
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
+TAtlasTest::TAtlasTest(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
+	_name = "empty";
+	_testingPrefix = params.getParameterStringWithDefault("prefix", "ATLAS_testing_");
+	logfile->list("Will use prefix '" + _testingPrefix + "' for all testing files.");
+};
+
 bool TAtlasTest::runTGenomeFromInputfile(std::string task){
 	logfile->startIndent("Running task '" + task + "':");
 	_testParams.addParameter("task", task);
@@ -48,13 +55,18 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 
 	//variables
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
+	logfile->list("Will simulate reads of length " + toString(readLength) + ".");
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
 	logfile->list("Will test with quality " + toString(phredError) + ".");
 	params.fillParameterIntoVectorWithDefault("pileupTest_depths", depths, ',', "2,4,10,20,40");
+	logfile->list("Will test the following depths: " + concatenateString(depths, ", ") + ".");
 	chrLength = readLength * 5;
-	filenameTag = "ATLAS_test_" + _name;
+	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	readGroupName = "TestReadGroup";
+
+	emissionTolerance = params.getParameterDoubleWithDefault("pileupTest_qual", 0.0001);
+	logfile->list("Will allow for a relative error in emission probabilities up to " + toString(emissionTolerance) + ".");
 };
 
 bool TAtlasTest_pileup::run(){
@@ -181,7 +193,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	std::string chr = "Chr1";
 	int truePos = 0;
 	std::vector<size_t> baseCounts  = {0, 0, 0, 0};
-	int firstBase;
+	int firstBase, secondBase;
 	int depthFirstBase, depthSecondBase;
 	int b;
 	double error = qualMap.phredToError(phredError);
@@ -261,24 +273,46 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			//all heterozygous that contain the correct base
 			for(b=1; b<4; ++b)
 				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 - error/3.0, trueDepth);
-
-			//now check
-			for(b=0; b<genoMap.numGenotypes; ++b){
-				relDiff = (stringToDouble(line[b+4]) - emissionProbs[b]) / emissionProbs[b];
-				if(relDiff > 0.00001){
-					logfile->newLine();
-					logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + "!");
-					return false;
-				}
-			}
-
 		} else {
 			//heterozygous case
+			//bases
 			depthFirstBase = trueDepth / 2;
 			depthSecondBase = trueDepth - depthFirstBase;
-			if(baseCounts[firstBase] != depthFirstBase || baseCounts[(firstBase + 1) % 4] != depthSecondBase){
+			secondBase = (firstBase + 1) % 4;
+			if(baseCounts[firstBase] != depthFirstBase || baseCounts[secondBase] != depthSecondBase){
 				logfile->newLine();
 				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+
+			//calc emission probs
+			//set all to full error
+			for(b=0; b<genoMap.numGenotypes; ++b)
+				emissionProbs[b] = pow(error/3.0, trueDepth);
+
+			//all heterozygous with one correct base
+			for(b=1; b<4; ++b){
+				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 * (1.0 - error), depthFirstBase);
+				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] *= pow(error / 3.0, depthSecondBase);
+
+				emissionProbs[genoMap.getGenotype(secondBase,(secondBase + b) % 4)] = pow(0.5 * (1.0 - error), depthSecondBase);
+				emissionProbs[genoMap.getGenotype(secondBase,(secondBase + b) % 4)] *= pow(error / 3.0, depthFirstBase);
+			}
+
+			//all homozygous that contain a correct base
+			emissionProbs[genoMap.getGenotype(firstBase,firstBase)] = pow(0.5 * (1.0 - error), trueDepth);
+			emissionProbs[genoMap.getGenotype(secondBase,secondBase)] = pow(0.5 * (1.0 - error), trueDepth);
+
+			//correct heterozygous genotype
+			emissionProbs[genoMap.getGenotype(firstBase,secondBase)] = pow(1.0-error, trueDepth);
+		}
+
+		//now check emission probabilities
+		for(b=0; b<genoMap.numGenotypes; ++b){
+			relDiff = (stringToDouble(line[b+4]) - emissionProbs[b]) / emissionProbs[b];
+			if(relDiff > emissionTolerance){
+				logfile->newLine();
+				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + "!");
 				return false;
 			}
 		}
