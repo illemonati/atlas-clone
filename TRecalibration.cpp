@@ -1325,7 +1325,7 @@ void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold){
 
 	curEstimate = curEstimate - firstDerivative / secondDerivative;
 	//decide on convergence
-	F = fabs(firstDerivative / numObservations);
+	F = fabs(firstDerivative / (float) numObservations);
 
 	if(F < convergenceThreshold) estimationConverged = true;
 	if(oldF < F) estimationConverged = true;
@@ -1507,11 +1507,10 @@ bool TBQSR_cell::estimate(float & convergenceThreshold, float & minEpsilon, long
 		if(store){
 			numObservations = (D_storage.size() - 1) * batchSize + next;
 		} else numObservations = numObservationsTmp;
-
 		if(numObservations < minObservations){ //keep current estimate
 			estimationConverged = true;
 		} else if(numMatches >= numObservations){ //tmpEpsilon = 0
-			curEstimate = 0.0;
+			curEstimate = 1.0 / (double) (numObservations + 1.0);
 			estimationConverged = true;
 		} else if(numMatches < 1.0){ // tmpEpsilon = 1.0
 			std::cout << "numMatches < 1" << std::endl;

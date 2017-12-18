@@ -13,7 +13,18 @@
 //TSimulatorQualityDist
 //----------------------------------
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
-	_max = stringToIntCheck(s);
+	size_t pos = s.find("(");
+	if(pos == std::string::npos)
+		_max = stringToIntCheck(s);
+	else if(pos == 0){
+		pos = s.find(')');
+		if(pos == std::string::npos || pos != s.size() - 1)
+			throw "Failed to understand fixed quality '" + s + "'!";
+		_max = stringToIntCheck(s.substr(1,pos - 1));
+	} else
+		throw "Failed to understand fixed quality '" + s + "'!";
+
+
 	_min = -1;
 	tmpInt = 0;
 	_maxPlusOne = -1;
@@ -296,7 +307,7 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	fillVectorFromStringAnySkipEmpty(s, vec, ",");
 	phi1 = stringToInt(vec[0]);
 	phi2 = stringToDouble(vec[1]);
-	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
+	logfile->list("Simulating BQSR quality effect with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
 
 	revIntercept = stringToDouble(vec[2]);
 	if(revIntercept < 0.0) throw("revIntercept cannot be negative!");
@@ -306,7 +317,7 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 		logfile->list("revIntercept is set to 1 -> Simulating only BQSR quality effect.");
 	} else {
 		calculateSlopeIntercept();
-		logfile->conclude("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
+		logfile->list("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
 	}
 
 //	parseBQSRQualInput(params);
@@ -314,25 +325,6 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	fakeQualityDist = new TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
 	initializeTrueQualToFakeQualTable();
 }
-
-//void TSimulatorQualityTransformationBQSR::parseBQSRQualInput(TParameters & params, TLog* logfile){
-//	//parse qualTransform input
-//	std::string transParams = params.getParameterString("BQSRQuality");
-//	std::string::size_type pos = transParams.find_first_of('[');
-//	if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
-//	std::string name = transParams.substr(0,pos);
-//	if(name == "f"){
-//		//prepare first value
-//		std::string tmp = transParams.substr(pos+1, transParams.length() - pos - 1);
-//		pos = tmp.find_first_of(',');
-//		if(pos == std::string::npos) throw "Can not initialize quality transformation function '" + transParams + "': wrong format!\n" + "f[alpha,beta]";
-//		phi1 = atof(tmp.substr(0, pos).c_str());
-//		phi2 = atof(tmp.substr(pos+1).c_str());
-//	}
-//
-//	logfile->conclude("Will simulate quality distortion with alpha1 = " + toString(phi1) + " and alpha2 = " + toString(phi2));
-//}
-
 
 void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
@@ -446,14 +438,12 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfi
 	sd_cur = returnCurSD(mean_cur);
 
 	delta_cur = returnDelta(mean_cur, sd_cur);
-	std::cout << "initial values: kappa lambda error:  "<< kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
-
 	out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
 
 	int nTurns = 10;
 	int nIter = 50;
 
-	logfile->startIndent("Estimating mean (kappa) and sd (lambda) for distorted quality score distribution:");
+	logfile->startIndent("Estimating mean (kappa) and sd (lambda) for distorted quality score distribution");
 
 	//optimize one param at a time, update, optimize again
 
@@ -487,16 +477,18 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfi
 		}
 
 
-		logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur) + "corresponding to a true qual dist = N(" + toString(mean_cur) + "," + toString(sd_cur) + ")");
+	//	logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur) + " corresponding to a true qual dist = N(" + toString(mean_cur) + "," + toString(sd_cur) + ")");
 		out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
+
 	}
 
-	logfile->conclude("The final estimates for kappa and lambda result in a true quality score distribution = N(" + toString(mean_cur) + "," + toString(sd_cur) + "). This corresponds to a delta of " + toString(delta_cur) + ".");
+	logfile->endIndent();
+
+	logfile->conclude("The final estimates for kappa = " + toString(kappa_cur) + " and lambda = " + toString(lambda_cur) + ". This result in a true quality score distribution = N(" + toString(mean_cur) + "," + toString(sd_cur) + ") with delta = " + toString(delta_cur) + ".");
 	if(delta_cur >= 0.25) logfile->warning("Current parameter values for phi1, meanQual and sdQual do not allow for accurate estimation of kappa and lambda!");
 	kappa = kappa_cur;
 	lambda = lambda_cur;
 
-	logfile->endIndent();
 }
 
 double TSimulatorQualityTransformationBQSR::returnFakeError(int & trueQual){
@@ -526,61 +518,12 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 	fakeQualityDist->sample(qualities,len);
 	for(p=0; p<len; ++p){
 		trueQual = QBetaQBetaP[qualities[p]][p];
+//		std::cout << qualities[p] <<  " " << trueQual << std::endl;
 		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[trueQual]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 		}
-
 	}
 }
-
-////simulate qualities
-//qualityDist->sample(qualities, len);
-//
-////add errors and transform qualities
-//previousBase = N;
-//for(p=0; p<len; ++p){
-//	if(randomGenerator->getRand() < qualityMap.phredToErrorMap[qualities[p]])
-//		bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-//
-//	//transform qualities
-//	qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
-//	previousBase = bases[p];
-//}
-
-
-
-//void TSimulatorQualityTransformationBQSR::simulate(short* posAddress, readLengthContainer & rl, TGenotypeMap & genoMap){
-//	static short base;
-//	static int fakeQual, QBetaQq;
-//	static long p;
-//	int pInt;
-//	queryBases = "";
-//	bamQualities = "";
-//
-//	for(p=0; p<rl.readLength; ++p){
-//		//get true nucleotide
-//		base = *(posAddress + p);
-//
-//		//apply PMD
-//		if(pmdInitialized){
-//			applyPMD(base, p, rl);
-//		}
-//		//sample quality and add error
-//		fakeQual = sampleFakeQuality();
-//		if(fakeQual > maxQual) fakeQual = (char) maxQual;
-//
-//		QBetaQq = trueQualToFakeQual[fakeQual];
-//		double BetaQp;
-//		pInt = (int) p;
-//		BetaQp = returnBetaPp(pInt);
-//		if(randomGenerator->getRand() < (qualToErroTable[QBetaQq] * BetaQp)){ //qualToError knows that quals are in ascii
-//			base = (base + randomGenerator->pickOne(3) + 1) % 4;
-//		}
-//		//add to bam alignment
-//		bamQualities += (char) (fakeQual + 33);
-//		queryBases += toBase[base];
-//	}
-//};
 
 
 

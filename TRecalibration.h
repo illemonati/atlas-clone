@@ -22,11 +22,13 @@ class TQualityIndex{
 	//Note: quality as stored in bases ranges from 33 to max!
 public:
 	int minQ, maxQ, numQ, last, first;
+	int maxQPlus33;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
 		minQ = MinQ;
 		maxQ = MaxQ;
+		maxQPlus33 = maxQ + 33;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
 		first = 0;
@@ -48,7 +50,7 @@ public:
 
 	int& getIndex(const int & quality){
 		if(quality < 33) throw "Quality is negative!";
-		if(quality > maxQ) return last;
+		if(quality > maxQPlus33) return last;
 		return index[quality];
 	};
 
@@ -299,8 +301,8 @@ public:
 	bool estimationConverged;
 	float firstDerivative, secondDerivative;
 	float firstDerivativeSave, secondDerivativeSave;
-	float numObservations;
-	float numObservationsTmp;
+	uint64_t numObservations;
+	uint64_t numObservationsTmp;
 	double F, oldF;
 	double LL;
 	int myReadGroup;
@@ -330,7 +332,7 @@ public:
 
 class TBQSR_cell:public TBQSR_cell_base{
 public:
-	float numMatches;
+	uint64_t numMatches;
 	//for storage
 	std::vector<float*> D_storage;
 	std::vector<float*>::reverse_iterator batchIt;

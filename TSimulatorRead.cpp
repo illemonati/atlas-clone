@@ -167,7 +167,7 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 	bamAlignment.Qualities = "";
 	for(p=0; p<bamAlignment.Length; ++p){
 		bamAlignment.QueryBases += genoMap.baseToChar[bases[p]];
-		bamAlignment.Qualities += (char) std::min(qualities[p], maxPrintQual) + 33;
+		bamAlignment.Qualities += (char) (std::min(qualities[p], maxPrintQual) + 33);
 	}
 
 	//save
