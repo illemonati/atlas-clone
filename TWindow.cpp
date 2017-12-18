@@ -247,7 +247,8 @@ void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std:
 	}
 	//print pileup
 	for(int i=0; i<length; ++i){
-		out << chr << "\t" << start + i + 1 << "\t" << sites[i].bases.size() << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
+		out << chr << "\t" << start + i + 1 << "\t" << sites[i].bases.size();
+		out << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
 	}
 }
 

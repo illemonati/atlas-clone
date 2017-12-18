@@ -50,11 +50,12 @@ public:
 //------------------------------------------
 class TAtlasTest_pileup:public TAtlasTest{
 private:
-	int qual;
+	int phredError;
 	int readLength;
 	int chrLength;
 	std::vector<int> depths;
-	std::vector<char> base;
+	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string readGroupName;

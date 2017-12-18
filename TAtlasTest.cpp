@@ -48,9 +48,9 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 
 	//variables
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
-	qual = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	logfile->list("Will test with quality " + toString(phredError) + ".");
 	params.fillParameterIntoVectorWithDefault("pileupTest_depths", depths, ',', "2,4,10,20,40");
-	base = {'A', 'C', 'G', 'T'};
 	chrLength = readLength * 5;
 	filenameTag = "ATLAS_test_" + _name;
 	bamFileName = filenameTag + ".bam";
@@ -110,13 +110,13 @@ void TAtlasTest_pileup::writeBAM(BamTools::BamWriter & bamWriter){
 	bamAlignment.Name = "*";
 	bamAlignment.RefID = 0;
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) qual + 33);
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredToQuality(phredError));
 	bamAlignment.Position = 0;
 
 	//homozygous
 	int i;
 	for(size_t d=0; d<depths.size(); ++d){
-		bamAlignment.QueryBases = std::string(readLength, base[d % 4]);
+		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		for(i=0; i<depths[d]; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 		bamAlignment.Position += readLength;
@@ -128,13 +128,13 @@ void TAtlasTest_pileup::writeBAM(BamTools::BamWriter & bamWriter){
 	int m;
 	for(size_t d=0; d<depths.size(); ++d){
 		//firts base
-		bamAlignment.QueryBases = std::string(readLength, base[d % 4]);
+		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		m = depths[d]/2;
 		for(i=0; i<m; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 
 		//second base
-		bamAlignment.QueryBases = std::string(readLength, base[(d+1) % 4]);
+		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar((d+1) % 4));
 		for(i=m; i<depths[d]; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 
@@ -183,6 +183,11 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	std::vector<size_t> baseCounts  = {0, 0, 0, 0};
 	int firstBase;
 	int depthFirstBase, depthSecondBase;
+	int b;
+	double error = qualMap.phredToError(phredError);
+	double relDiff;
+
+	std::vector<double> emissionProbs(genoMap.numGenotypes, 0.0);
 
 	//parse file line by line check contents
 	logfile->listFlush("Parsing file ...");
@@ -197,10 +202,10 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//check columns
 		if(line.size() != 14){
+			logfile->newLine();
 			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 			return false;
 		}
-
 
 		//already on second chromosome?
 		if(truePos > chrLength){
@@ -210,12 +215,14 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//check chr
 		if(line[0] != chr){
+			logfile->newLine();
 			logfile->conclude("Wrong chromosome in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 			return false;
 		}
 
 		//check position
 		if(stringToInt(line[1]) != truePos){
+			logfile->newLine();
 			logfile->conclude("Wrong position in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(truePos) + ", found " + line[1] + "!");
 			return false;
 		}
@@ -223,29 +230,54 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		//check depth
 		trueDepth = depths[(truePos-1) / readLength];
 		if(stringToInt(line[2]) != trueDepth){
+			logfile->newLine();
 			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 			return false;
 		}
 
-		//check bases
-		baseCounts[0] = std::count(line[3].begin(), line[3].end(), 'A');
-		baseCounts[1] = std::count(line[3].begin(), line[3].end(), 'C');
-		baseCounts[2] = std::count(line[3].begin(), line[3].end(), 'G');
-		baseCounts[3] = std::count(line[3].begin(), line[3].end(), 'T');
+		//check bases and emission probabilities
+		for(b=0; b<4; ++b)
+			baseCounts[b] = std::count(line[3].begin(), line[3].end(), genoMap.getBaseAsChar(b));
 
 		firstBase = (int) ((truePos-1) / readLength) % 4;
 
 		if(chr == "Chr1"){
-			//is homozygous
+			//homozgous case
+			//bases
 			if(baseCounts[firstBase] != trueDepth){
+				logfile->newLine();
 				logfile->conclude("Wrong homozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 				return false;
 			}
+
+			//calc emission probs
+			//set all to full error
+			for(b=0; b<genoMap.numGenotypes; ++b)
+				emissionProbs[b] = pow(error/3.0, trueDepth);
+
+			//correct homozygous genotype
+			emissionProbs[genoMap.getGenotype(firstBase,firstBase)] = pow(1.0-error, trueDepth);
+
+			//all heterozygous that contain the correct base
+			for(b=1; b<4; ++b)
+				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 - error/3.0, trueDepth);
+
+			//now check
+			for(b=0; b<genoMap.numGenotypes; ++b){
+				relDiff = (stringToDouble(line[b+4]) - emissionProbs[b]) / emissionProbs[b];
+				if(relDiff > 0.00001){
+					logfile->newLine();
+					logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + "!");
+					return false;
+				}
+			}
+
 		} else {
-			//is heterozygous
+			//heterozygous case
 			depthFirstBase = trueDepth / 2;
 			depthSecondBase = trueDepth - depthFirstBase;
 			if(baseCounts[firstBase] != depthFirstBase || baseCounts[(firstBase + 1) % 4] != depthSecondBase){
+				logfile->newLine();
 				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 				return false;
 			}

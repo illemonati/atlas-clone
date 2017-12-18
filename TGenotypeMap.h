@@ -16,7 +16,7 @@ enum Genotype : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};
 enum BaseContext : uint8_t {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
 
 //---------------------------------------------------------------
-//GenotypeMap
+//TGenotypeMap
 //---------------------------------------------------------------
 //genotype map for enum type
 class TGenotypeMap{
@@ -26,6 +26,7 @@ public:
 	Base** genotypeToBase; //mapping genotypes to bases
 	char* baseToChar;
 	Base* baseToFlippedBase;
+	int numGenotypes;
 	int numContexts;
 	int numContextsNotN;
 
@@ -46,7 +47,8 @@ public:
 		}
 
 		//create and fill genotypeToBase
-		genotypeToBase = new Base*[10];
+		numGenotypes = 10;
+		genotypeToBase = new Base*[numGenotypes];
 		for(int i=0; i<10; ++i){
 			genotypeToBase[i] = new Base[2];
 		}
@@ -361,6 +363,14 @@ public:
 		if(phred>255)
 			return min;
 		else return phredToErrorMap[phred];
+	};
+
+	double qualityToError(int qual){
+		return phredToError(qual - 33);
+	};
+
+	int phredToQuality(int phred){
+		return phred + 33;
 	};
 
 	inline int errorToPhred(const double & errorRate){
