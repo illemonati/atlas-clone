@@ -51,18 +51,17 @@ void TSimulatorQualityDist::printDetails(TLog* logfile){
 
 TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
 	size_t pos = s.find("(");
-	if(pos == std::string::npos)
-		_max = stringToIntCheck(s);
-	else if(pos == 0){
+	if(pos == 0){
+		s.erase(0,1);
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
+		s.erase(pos,1);
 		fillVectorFromString(s, qualBins, ',');
 	} else
 		throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
 
 	numQualBins = qualBins.size();
-
 	randomGenerator = RandomGenerator;
 
 }
