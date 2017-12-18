@@ -49,7 +49,38 @@ void TSimulatorQualityDist::printDetails(TLog* logfile){
 	logfile->list("Fixed quality of " + toString(_max));
 };
 
+TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
+	size_t pos = s.find("(");
+	if(pos == std::string::npos)
+		_max = stringToIntCheck(s);
+	else if(pos == 0){
+		pos = s.find(')');
+		if(pos == std::string::npos || pos != s.size() - 1)
+			throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
+		fillVectorFromString(s, qualBins, ',');
+	} else
+		throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
 
+	numQualBins = qualBins.size();
+
+	randomGenerator = RandomGenerator;
+
+}
+
+void TSimulatorQualityDistBinned::sample(int* qualities, int & len){
+	for(int i=0; i<len; ++i){
+		qualities[i] = randomGenerator->pickOne(numQualBins);
+	}
+}
+
+void TSimulatorQualityDistBinned::printDetails(TLog* logfile){
+	std::string tmpS;
+	concatenateString(qualBins, tmpS);
+	for(int i=0; i<numQualBins; ++i){
+		std::cout << "qualBins[i] " << qualBins[i] << std::endl;
+	}
+	logfile->list("Quality scores uniformly distributed among the following bins: " + tmpS);
+};
 
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
 	densitiesInitialized = false;

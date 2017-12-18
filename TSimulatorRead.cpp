@@ -93,6 +93,8 @@ void TSimulatorRead::setQualityDistribution(std::string s){
 		qualityDist = new TSimulatorQualityDist(s);
 	else if(type == "normal")
 		qualityDist = new TSimulatorQualityDistNormal(s, randomGenerator);
+	else if(type == "binned")
+		qualityDist = new TSimulatorQualityDistBinned(s, randomGenerator);
 	else throw "Unknown read quality distribution '" + type + "'!";
 
 	qualityDistInitialized = true;

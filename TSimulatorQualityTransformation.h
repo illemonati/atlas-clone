@@ -43,6 +43,20 @@ public:
 	virtual void printDetails(TLog* logfile);
 };
 
+//Class of a binned distribution
+class TSimulatorQualityDistBinned:public TSimulatorQualityDist{
+private:
+	TRandomGenerator* randomGenerator;
+	std::vector<int> qualBins;
+	int numQualBins;
+
+public:
+	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
+	void sample(int* qualities, int & len);
+	void printDetails(TLog* logfile);
+};
+
+
 //Class of a normal distribution
 class TSimulatorQualityDistNormal:public TSimulatorQualityDist{
 private:
