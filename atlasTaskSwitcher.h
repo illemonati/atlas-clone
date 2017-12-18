@@ -141,6 +141,11 @@ public:
 		}
 		logfile->endIndent();
 	};
+
+	void runTask(){
+		std::string task = parameters->getParameterString("task");
+		runTask(task);
+	};
 };
 
 

@@ -45,7 +45,7 @@ public:
 		testMap.emplace_back("pileup", &createInstance<TAtlasTest_pileup>);
 
 		//fill map of test suites
-		//Note: suites and tests withon suites will be initialized in this order!
+		//Note: suites and tests within suites will be initialized in this order!
 		testSuites["exampleSuite"] = {"empty", "pileup"};
 
 		//automatically create a test suite "all"

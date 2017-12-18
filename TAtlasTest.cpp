@@ -22,10 +22,13 @@ TAtlasTest::TAtlasTest(TParameters & params, TLog* Logfile){
 bool TAtlasTest::runTGenomeFromInputfile(std::string task){
 	logfile->startIndent("Running task '" + task + "':");
 	_testParams.addParameter("task", task);
+	_testParams.addParameter("verbose", "");
+
+	//open task switcher and run task
 	atlasTaskSwitcher taskSwitcher(&_testParams, logfile);
 	bool returnVal = true;
 	try{
-		taskSwitcher.runTask("pileup");
+		taskSwitcher.runTask();
 	}
 	catch (std::string & error){
 		logfile->conclude(error);
@@ -72,13 +75,11 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 bool TAtlasTest_pileup::run(){
 	//1) create a bam file with known pileup results
 	//----------------------------------------------
-	BamTools::BamWriter bamWriter;
-	writeBAM(bamWriter);
+	writeBAM();
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("verbose", "");
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
@@ -90,7 +91,7 @@ bool TAtlasTest_pileup::run(){
 	return checkPileupFile();
 };
 
-void TAtlasTest_pileup::writeBAM(BamTools::BamWriter & bamWriter){
+void TAtlasTest_pileup::writeBAM(){
 	//create a bam file with known pileup results
 	logfile->startIndent("Writing a test BAM file:");
 	logfile->listFlush("Opening bam file '" + bamFileName + "' for writing ...");
@@ -109,6 +110,7 @@ void TAtlasTest_pileup::writeBAM(BamTools::BamWriter & bamWriter){
 	references.push_back(BamTools::RefData("Chr2", chrLength));
 
 	//now open file
+	BamTools::BamWriter bamWriter;
 	if (!bamWriter.Open(bamFileName, header, references))
 		throw "Failed to open BAM file '" + bamFileName + "'!";
 	logfile->done();

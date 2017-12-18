@@ -59,7 +59,7 @@ private:
 	std::string readGroupName;
 	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
-	void writeBAM(BamTools::BamWriter & bamWriter);
+	void writeBAM();
 	bool checkPileupFile();
 
 public:
@@ -67,7 +67,5 @@ public:
 	~TAtlasTest_pileup(){};
 	bool run();
 };
-
-
 
 #endif /* TATLASTEST_H_ */

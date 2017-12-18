@@ -49,6 +49,8 @@ void TSimulatorQualityDist::printDetails(TLog* logfile){
 	logfile->list("Fixed quality of " + toString(_max));
 };
 
+
+
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
 	densitiesInitialized = false;
 	randomGenerator = RandomGenerator;

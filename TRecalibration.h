@@ -298,7 +298,7 @@ class TBQSR_cell_base{
 public:
  //	TReadGroups newReadGroupObject;
 	float curEstimate;
-	bool estimationConverged;
+	bool estimationConverged, hasData;
 	float firstDerivative, secondDerivative;
 	float firstDerivativeSave, secondDerivativeSave;
 	uint64_t numObservations;
@@ -323,7 +323,7 @@ public:
 	virtual void recalculateDerivativesFromDataInMemory(){throw "TBQSR_cell_base::recalculateDerivativesFromDataInMemory() not defined for base class!";};
 	virtual void recalculateLLFromDataInMemory(){throw "TBQSR_cell_base::recalculateLLFromDataInMemory() not defined for base class!";};
 	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
-	void runNewtonRaphson(float & convergenceThreshold);
+	void runNewtonRaphson(float & convergenceThreshold, bool & allowIncreaseInF);
 	std::string getNumObsForPrinting();
 	void calcLikelihoodSurfaceAt(int numPositions, double* positions, std::string & tag, std::ofstream & out);
 	virtual void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out){throw "TBQSR_cell_base::calcLikelihoodSurface(int numPositions, std::ofstream & out) not defined for base class!";};;
@@ -350,8 +350,8 @@ public:
 	void addToLL(float & D);
 	void recalculateDerivativesFromDataInMemory();
 	void recalculateLLFromDataInMemory();
-	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
-	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon, bool & allowIncreaseInF);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF);
 	float makePhred(float & epsilon){
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
@@ -387,8 +387,8 @@ public:
 	void addToLL(float & D, float & epsilon);
 	void recalculateDerivativesFromDataInMemory();
 	void recalculateLLFromDataInMemory();
-	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon);
-	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations);
+	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon, bool & allowIncreaseInF);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF);
 	void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out);
 };
 
@@ -433,6 +433,8 @@ private:
 	bool estimatetionRequired;
 	float convergenceThreshold_F;
 	float minEpsilonQuality, minEpsilonFactors;
+	int numLoopIncreaseFAllowed;
+	int curNewtonRaphsonLoop;
 	bool estimationConverged;
 	int maxPos;
 	int numContexts;
