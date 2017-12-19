@@ -68,4 +68,20 @@ public:
 	bool run();
 };
 
+//------------------------------------------
+//TAtlasTest_BQSRSimulation
+//------------------------------------------
+class TAtlasTest_BQSRSimulation:public TAtlasTest{
+private:
+	std::string filenameTag;
+	std::string bamFileName;
+
+public:
+	TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile);
+	~TAtlasTest_BQSRSimulation(){};
+	bool run();
+	bool checkBQSRFile();
+
+};
+
 #endif /* TATLASTEST_H_ */

@@ -325,3 +325,88 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	return true;
 }
 
+//------------------------------------------
+//TAtlasTest_BQSRSimulation
+//------------------------------------------
+
+TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+	_name = "BQSRSimulation";
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + ".bam";
+
+}
+
+bool TAtlasTest_BQSRSimulation::run(){
+
+	//1) Run ATLAS to simulate BAM file
+	//-----------------------------
+	_testParams.addParameter("out", filenameTag);
+	_testParams.addParameter("qualityDist", "binned(1,5,10,20,30,40)");
+	_testParams.addParameter("chrLength", "5000000");
+	_testParams.addParameter("refDiv", "0.0");
+	_testParams.addParameter("ploidy", "1");
+
+
+	if(!runTGenomeFromInputfile("simulate"))
+		return false;
+
+	//1) Run BQSR
+	//-----------------------------
+	_testParams.addParameter("estimateBQSRPosition", "");
+	_testParams.addParameter("bam", "ATLAS_simulations.bam");
+	_testParams.addParameter("fasta", "ATLAS_simulations.fasta");
+	_testParams.addParameter("maxPos", "110");
+
+
+	if(!runTGenomeFromInputfile("BQSR"))
+		return false;
+
+
+	//3) check if results are OK
+	//--------------------------
+	return checkBQSRFile();
+};
+
+bool TAtlasTest_BQSRSimulation::checkBQSRFile(){
+	logfile->startIndent("Checking BQSR Quality table:");
+
+	//open quality file
+	std::string filename = filenameTag + "_pileup.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//skip header
+	std::string tmp;
+	getline(in, tmp);
+
+	//some variables
+	std::vector<std::string> line;
+	unsigned int trueDepth;
+
+
+
+	return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
