@@ -68,16 +68,12 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 
 void TSimulatorQualityDistBinned::sample(int* qualities, int & len){
 	for(int i=0; i<len; ++i){
-		qualities[i] = randomGenerator->pickOne(numQualBins);
+		qualities[i] = qualBins[randomGenerator->pickOne(numQualBins)];
 	}
 }
 
 void TSimulatorQualityDistBinned::printDetails(TLog* logfile){
-	std::string tmpS;
-	concatenateString(qualBins, tmpS);
-	for(int i=0; i<numQualBins; ++i){
-		std::cout << "qualBins[i] " << qualBins[i] << std::endl;
-	}
+	std::string tmpS = concatenateString(qualBins, ",");
 	logfile->list("Quality scores uniformly distributed among the following bins: " + tmpS);
 };
 
