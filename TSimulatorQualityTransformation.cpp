@@ -358,6 +358,7 @@ void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
 	//gamma density starts at 0 but p at 1!
 	for(int p=1; p<(maxReadLength + 1) ; ++p){
+		std::cout << p << " positionProbs[p] "<< readLengthDist->positionProbs[p] << std::endl;
 		sum += (double) p * readLengthDist->positionProbs[p];
 	}
 	m = (1.0 - revIntercept) / (sum - maxReadLength);
