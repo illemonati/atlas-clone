@@ -334,7 +334,11 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
-	qualityDist = params.getParameterStringWithDefault("phi1", "binned(1,5,10,20,30,40)");
+	meanQual = params.getParameterIntWithDefault("meanQual", 30);
+	sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
+	minQual = params.getParameterIntWithDefault("minQual", 0);
+	maxQual = params.getParameterIntWithDefault("maxQual", 93);
+	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdQual) + ")[" + toString(minQual) + "," + toString(maxQual) + "]");
 	phi1 = params.getParameterIntWithDefault("phi1", 40);
 	phi2 = params.getParameterDoubleWithDefault("phi2", 1.2);
 	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 1.5);
@@ -367,8 +371,8 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("estimateBQSRPosition", "");
 	_testParams.addParameter("maxPos", "110");
 
-	if(!runTGenomeFromInputfile("BQSR"))
-		return false;
+//	if(!runTGenomeFromInputfile("BQSR"))
+//		return false;
 
 
 	//3) check if results are OK
@@ -413,10 +417,10 @@ bool TAtlasTest_BQSRSimulation::checkBQSRFile(){
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
 		QualityScore = stringToInt(line[1]);
-		EmpiricalQuality = stringToInt(line[3]);
+		EmpiricalQuality = stringToFloat(line[3]);
 		Log10Observations = stringToFloat(line[4]);
 		if(Log10Observations >= 4.5 && abs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta){
-			std::cout << EmpiricalQuality << " " << QualityScore << std::endl;
+			std::cout << EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
 			++unacceptablesCount;
 		}
 		if(unacceptablesCount > 0){
