@@ -337,7 +337,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	qualityDist = params.getParameterStringWithDefault("phi1", "binned(1,5,10,20,30,40)");
 	phi1 = params.getParameterIntWithDefault("phi1", 40);
 	phi2 = params.getParameterDoubleWithDefault("phi2", 1.2);
-	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 2);
+	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 1.5);
 	acceptedDelta = params.getParameterDoubleWithDefault("acceptedDelta", 0.1);
 
 }
