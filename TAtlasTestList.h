@@ -43,6 +43,8 @@ public:
 		//NOTE: order will be the order in which test will be run if initialized from TParameters
 		testMap.emplace_back("empty", &createInstance<TAtlasTest>);
 		testMap.emplace_back("pileup", &createInstance<TAtlasTest_pileup>);
+		testMap.emplace_back("BQSRSimulation", &createInstance<TAtlasTest_BQSRSimulation>);
+
 
 		//fill map of test suites
 		//Note: suites and tests within suites will be initialized in this order!

@@ -68,4 +68,32 @@ public:
 	bool run();
 };
 
+//------------------------------------------
+//TAtlasTest_BQSRSimulation
+//------------------------------------------
+class TAtlasTest_BQSRSimulation:public TAtlasTest{
+private:
+	std::string filenameTag;
+	std::string bamFileName;
+	std::string fastaFileName;
+	std::string qualityDist;
+	int meanQual;
+	double sdQual;
+	int minQual;
+	int maxQual;
+	int phi1;
+	double phi2;
+	double revIntercept;
+	double acceptedDelta;
+
+
+public:
+	TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile);
+	~TAtlasTest_BQSRSimulation(){};
+	bool run();
+	int trueQual(int & phi1, double & phi2, int & fakeQual);
+	bool checkBQSRFile();
+
+};
+
 #endif /* TATLASTEST_H_ */

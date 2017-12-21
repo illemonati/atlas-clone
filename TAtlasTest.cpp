@@ -325,3 +325,132 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	return true;
 }
 
+//------------------------------------------
+//TAtlasTest_BQSRSimulation
+//------------------------------------------
+
+TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+	_name = "BQSRSimulation";
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + ".bam";
+	fastaFileName = filenameTag + ".fasta";
+	meanQual = params.getParameterIntWithDefault("meanQual", 30);
+	sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
+	minQual = params.getParameterIntWithDefault("minQual", 0);
+	maxQual = params.getParameterIntWithDefault("maxQual", 93);
+	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdQual) + ")[" + toString(minQual) + "," + toString(maxQual) + "]");
+	phi1 = params.getParameterIntWithDefault("phi1", 40);
+	phi2 = params.getParameterDoubleWithDefault("phi2", 1.2);
+	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 1.5);
+	acceptedDelta = params.getParameterDoubleWithDefault("acceptedDelta", 0.1);
+
+}
+
+bool TAtlasTest_BQSRSimulation::run(){
+
+	//1) Run ATLAS to simulate BAM file
+	//-----------------------------
+	_testParams.addParameter("out", filenameTag);
+	_testParams.addParameter("qualityDist", qualityDist);
+	_testParams.addParameter("chrLength", "5000000");
+	_testParams.addParameter("refDiv", "0.0");
+	_testParams.addParameter("ploidy", "1");
+	_testParams.addParameter("BQSR", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
+	std::cout << "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]" << std::endl;
+
+	if(!runTGenomeFromInputfile("simulate"))
+		return false;
+
+	logfile->newLine();
+
+	//1) Run BQSR
+	//-----------------------------
+	_testParams.addParameter("bam", bamFileName);
+	_testParams.addParameter("fasta", fastaFileName);
+	_testParams.addParameter("storeInMemory", "");
+	_testParams.addParameter("estimateBQSRPosition", "");
+	_testParams.addParameter("maxPos", "110");
+
+//	if(!runTGenomeFromInputfile("BQSR"))
+//		return false;
+
+
+	//3) check if results are OK
+	//--------------------------
+	return checkBQSRFile();
+};
+
+int TAtlasTest_BQSRSimulation::trueQual(int & phi1, double & phi2, int & fakeQual){
+	int trueQual = pow(10,-1/10*phi2*fakeQual) + pow(10,-phi1/10);
+
+	return trueQual;
+}
+
+bool TAtlasTest_BQSRSimulation::checkBQSRFile(){
+	logfile->startIndent("Checking BQSR Quality table:");
+
+	//open quality file
+	std::string filename = filenameTag + "_BQSR_ReadGroup_Quality_Table.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//skip header and quality 0
+	std::string tmp;
+	getline(in, tmp);
+	getline(in, tmp);
+
+	//some variables
+	std::vector<std::string> line;
+	int numLines = 0;
+	int QualityScore;
+	float EmpiricalQuality;
+	float Log10Observations;
+	int unacceptablesCount = 0;
+
+	//parse file line by line check contents
+	logfile->listFlush("Parsing file ...");
+	while(in.good() && !in.eof()){
+		//read line into vector
+		++numLines;
+		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		QualityScore = stringToInt(line[1]);
+		EmpiricalQuality = stringToFloat(line[3]);
+		Log10Observations = stringToFloat(line[4]);
+		if(Log10Observations >= 4.5 && abs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta){
+			std::cout << EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
+			++unacceptablesCount;
+		}
+		if(unacceptablesCount > 0){
+			logfile->newLine();
+			logfile->conclude("There were " + toString(unacceptablesCount) + " empirical quality scores that did not match.");
+			return false;
+		}
+	}
+	logfile->done();
+	logfile->endIndent();
+
+	return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -28,6 +28,7 @@ protected:
 	bool readLengthInitialized;
 	TSimulatorQualityDist* qualityDist;
 	bool qualityDistInitialized;
+	std::string qualDistType;
 	TSimulatorQualityTransformation* qualityTransform;
 	bool qualityTransformInitialized;
 	TPMD pmdObject;

@@ -22,6 +22,7 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRan
 
 	qualityDist = NULL;
 	qualityDistInitialized = false;
+	qualDistType = "";
 
 	qualityTransform = NULL;
 	qualityTransformInitialized = false;
@@ -97,6 +98,8 @@ void TSimulatorRead::setQualityDistribution(std::string s){
 		qualityDist = new TSimulatorQualityDistBinned(s, randomGenerator);
 	else throw "Unknown read quality distribution '" + type + "'!";
 
+	qualDistType = type;
+
 	qualityDistInitialized = true;
 	checkInitialization();
 };
@@ -109,9 +112,10 @@ void TSimulatorRead::setQualityTransformation(const std::string & type, const st
 		qualityTransform = new TSimulatorQualityTransformation(qualityDist, randomGenerator);
 	else if(type == "recal")
 		qualityTransform = new TSimulatorQualityTransformationRecal(args, readLengthDist->max(), qualityDist, randomGenerator);
-	else if(type == "BQSR")
+	else if(type == "BQSR"){
+		if(qualDistType != "normal") throw "Cannot apply BQSR transformation to any quality distribution besides 'normal'!";
 		qualityTransform = new TSimulatorQualityTransformationBQSR(args, readLengthDist, logfile, qualityDist, randomGenerator);
-		//throw "BQSR not yet implemented in TSimulatorRead::setQualityTransformation!";
+	}
 	else throw "Unknown quality transformation type '" + type + "'!";
 
 	qualityTransformInitialized = true;

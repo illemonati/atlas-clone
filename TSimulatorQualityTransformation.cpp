@@ -357,11 +357,12 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
 	//gamma density starts at 0 but p at 1!
-	for(int p=1; p<(maxReadLength + 1) ; ++p){
-		sum += (double) p * readLengthDist->positionProbs[p];
-	}
+	for(int p=1; p<(maxReadLength + 1) ; ++p)
+		sum += (double) p * readLengthDist->positionProbs[p-1];
+
 	m = (1.0 - revIntercept) / (sum - maxReadLength);
 	intercept = revIntercept - m * maxReadLength;
+
 	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
 }
 
@@ -384,7 +385,7 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 
 	QBetaQBetaP.resize( num_of_col , std::vector<double>( num_of_row , init_value ) );
 
-	for(int q = minQual; q < maxQualPlusOne; ++ q){
+	for(int q = 0; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
 		for(int p = 0; p<maxReadLength; ++p){
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred(qualityMap.phredToErrorMap[qualityMap.errorToPhred(betaQq)] * returnBetaPp(p));
