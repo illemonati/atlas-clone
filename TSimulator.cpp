@@ -333,7 +333,7 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 	else {
 		if(params.parameterExists("pmd")){
 			std::string pmdString = params.getParameterString("pmd");
-			pmdMap["-"] = std::pair<std::string, std::string>("pmdString", "pmdString");
+			pmdMap["-"] = std::pair<std::string, std::string>(pmdString, pmdString);
 		} else {
 			std::string pmdCTString;
 			std::string pmdGAString;
