@@ -76,7 +76,6 @@ private:
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string fastaFileName;
-	std::string qualityDist;
 	int meanQual;
 	double sdQual;
 	int minQual;
@@ -85,14 +84,25 @@ private:
 	double phi2;
 	double revIntercept;
 	double acceptedDelta;
+	std::string qualityDist;
+	double alpha;
+	double beta;
+	int minReadLen;
+	int maxReadLen;
+//	std::string readLengthDist;
+	double positionEffectSlope;
+	double positionEffectIntercept;
 
 
 public:
 	TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile);
 	~TAtlasTest_BQSRSimulation(){};
 	bool run();
-	int trueQual(int & phi1, double & phi2, int & fakeQual);
-	bool checkBQSRFile();
+	double trueQual(int & phi1, double & phi2, int & fakeQual);
+	bool checkBQSRQualityFile();
+	bool checkBQSRPositionFile();
+	void calculateSlopeIntercept();
+	double trueScaling(int & pos);
 
 };
 

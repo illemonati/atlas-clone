@@ -339,10 +339,17 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	minQual = params.getParameterIntWithDefault("minQual", 0);
 	maxQual = params.getParameterIntWithDefault("maxQual", 93);
 	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdQual) + ")[" + toString(minQual) + "," + toString(maxQual) + "]");
+	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
+	beta = params.getParameterDoubleWithDefault("beta", 0.2);
+	minReadLen = params.getParameterIntWithDefault("minReadLen", 30);
+	maxReadLen = params.getParameterIntWithDefault("maxReadLen", 101);
+//	readLengthDist = params.getParameterStringWithDefault("readLength", "gamma(alpha,beta)[min,max]");
+	positionEffectSlope = params.getParameterDoubleWithDefault("positionEffectSlope", 0.01010101);
+	positionEffectIntercept = params.getParameterDoubleWithDefault("positionEffectIntercept", 0.489899);
 	phi1 = params.getParameterIntWithDefault("phi1", 40);
 	phi2 = params.getParameterDoubleWithDefault("phi2", 1.2);
 	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 1.5);
-	acceptedDelta = params.getParameterDoubleWithDefault("acceptedDelta", 0.1);
+	acceptedDelta = params.getParameterDoubleWithDefault("acceptedDelta", 1);
 
 }
 
@@ -356,10 +363,11 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("refDiv", "0.0");
 	_testParams.addParameter("ploidy", "1");
 	_testParams.addParameter("BQSR", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
-	std::cout << "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]" << std::endl;
+	_testParams.addParameter("gamma", "(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 
-	if(!runTGenomeFromInputfile("simulate"))
-		return false;
+
+//	if(!runTGenomeFromInputfile("simulate"))
+//		return false;
 
 	logfile->newLine();
 
@@ -368,7 +376,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("fasta", fastaFileName);
 	_testParams.addParameter("storeInMemory", "");
-	_testParams.addParameter("estimateBQSRPosition", "");
+//	_testParams.addParameter("estimateBQSRPosition", "");
 	_testParams.addParameter("maxPos", "110");
 
 //	if(!runTGenomeFromInputfile("BQSR"))
@@ -377,16 +385,23 @@ bool TAtlasTest_BQSRSimulation::run(){
 
 	//3) check if results are OK
 	//--------------------------
-	return checkBQSRFile();
+	return checkBQSRQualityFile();
+	return checkBQSRPositionFile();
+
 };
 
-int TAtlasTest_BQSRSimulation::trueQual(int & phi1, double & phi2, int & fakeQual){
-	int trueQual = pow(10,-1/10*phi2*fakeQual) + pow(10,-phi1/10);
+double TAtlasTest_BQSRSimulation::trueQual(int & phi1, double & phi2, int & fakeQual){
+	double tmpPhi1 = (double) phi1;
+	double tmpFakeQual = (double) fakeQual;
+	double exp1, exp2;
+	exp1 = pow(10.0,-1.0/10.0*phi2*tmpFakeQual);
+	exp2 = pow(10.0, -tmpPhi1/10.0);
 
+	double trueQual = -10.0 * log10(exp1 + exp2);
 	return trueQual;
 }
 
-bool TAtlasTest_BQSRSimulation::checkBQSRFile(){
+bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	logfile->startIndent("Checking BQSR Quality table:");
 
 	//open quality file
@@ -406,36 +421,104 @@ bool TAtlasTest_BQSRSimulation::checkBQSRFile(){
 	std::vector<std::string> line;
 	int numLines = 0;
 	int QualityScore;
-	float EmpiricalQuality;
-	float Log10Observations;
+	double EmpiricalQuality;
+	double Log10Observations;
 	int unacceptablesCount = 0;
+	double maxEmpiricQual = 0;
 
 	//parse file line by line check contents
 	logfile->listFlush("Parsing file ...");
+	std::cout << std::endl;
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
 		QualityScore = stringToInt(line[1]);
-		EmpiricalQuality = stringToFloat(line[3]);
-		Log10Observations = stringToFloat(line[4]);
-		if(Log10Observations >= 4.5 && abs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta){
-			std::cout << EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
-			++unacceptablesCount;
-		}
-		if(unacceptablesCount > 0){
-			logfile->newLine();
-			logfile->conclude("There were " + toString(unacceptablesCount) + " empirical quality scores that did not match.");
-			return false;
+		EmpiricalQuality = stringToDouble(line[3]);
+		Log10Observations = stringToDouble(line[4]);
+//		std::cout << QualityScore << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
+		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta)	++unacceptablesCount;
+		if(Log10Observations >= 5.5 && (EmpiricalQuality > maxEmpiricQual)){
+			maxEmpiricQual = EmpiricalQuality;
 		}
 	}
+	if(unacceptablesCount > 0){
+		logfile->newLine();
+		logfile->conclude("There were " + toString(unacceptablesCount) + " empirical quality scores that did not match.");
+		return false;
+	}
+	if(fabs(maxEmpiricQual - phi1) > acceptedDelta){
+		logfile->newLine();
+		logfile->conclude("There is at least one empirical quality scores that was estimated to be larger than phi1.");
+		std::cout << maxEmpiricQual << std::endl;
+		return false;
+	}
+
 	logfile->done();
 	logfile->endIndent();
 
 	return true;
 }
 
+//void TAtlasTest_BQSRSimulation::calculateSlopeIntercept(){
+//	std::map<std::string, std::string> readLengthMap;
+//
+//	double sum = 0.0;
+//	//gamma density starts at 0 but p at 1!
+//	for(int p=1; p<(maxReadLen + 1) ; ++p)
+//		sum += (double) p * readLengthDist->positionProbs[p-1];
+//
+//	m = (1.0 - revIntercept) / (sum - maxReadLength);
+//	intercept = revIntercept - m * maxReadLength;
+//
+//	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
+//}
 
+double TAtlasTest_BQSRSimulation::trueScaling(int & pos){
+	double trueScaling = positionEffectIntercept + positionEffectSlope * pos;
+	return trueScaling;
+}
+
+bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
+	logfile->startIndent("Checking BQSR Position table:");
+
+	//open quality file
+	std::string filename = filenameTag + "_BQSR_ReadGroup_Position_Table.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//skip header and quality 0
+	std::string tmp;
+	getline(in, tmp);
+	getline(in, tmp);
+
+	//some variables
+	std::vector<std::string> line;
+	int numLines = 0;
+	int Position;
+	double Scaling;
+	double Log10Observations;
+	int unacceptablesCount = 0;
+
+	//parse file line by line check contents
+	logfile->listFlush("Parsing file ...");
+	std::cout << std::endl;
+	while(in.good() && !in.eof()){
+		//read line into vector
+		++numLines;
+		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		Position = stringToInt(line[1]);
+		Scaling = stringToDouble(line[3]);
+
+		if(Log10Observations > 4.5 && fabs(trueScaling(Position) - Scaling) >= 0.1) ++unacceptablesCount;
+
+	}
+
+	return true;
+}
 
 
 
