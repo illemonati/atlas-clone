@@ -366,8 +366,8 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("gamma", "(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 
 
-//	if(!runTGenomeFromInputfile("simulate"))
-//		return false;
+	if(!runTGenomeFromInputfile("simulate"))
+		return false;
 
 	logfile->newLine();
 
@@ -376,11 +376,11 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("fasta", fastaFileName);
 	_testParams.addParameter("storeInMemory", "");
-//	_testParams.addParameter("estimateBQSRPosition", "");
+	_testParams.addParameter("estimateBQSRPosition", "");
 	_testParams.addParameter("maxPos", "110");
 
-//	if(!runTGenomeFromInputfile("BQSR"))
-//		return false;
+	if(!runTGenomeFromInputfile("BQSR"))
+		return false;
 
 
 	//3) check if results are OK
@@ -436,8 +436,10 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		QualityScore = stringToInt(line[1]);
 		EmpiricalQuality = stringToDouble(line[3]);
 		Log10Observations = stringToDouble(line[4]);
-//		std::cout << QualityScore << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
-		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta)	++unacceptablesCount;
+		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta){
+			std::cout << QualityScore << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
+			++unacceptablesCount;
+		}
 		if(Log10Observations >= 5.5 && (EmpiricalQuality > maxEmpiricQual)){
 			maxEmpiricQual = EmpiricalQuality;
 		}
@@ -453,7 +455,6 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		std::cout << maxEmpiricQual << std::endl;
 		return false;
 	}
-
 	logfile->done();
 	logfile->endIndent();
 
@@ -512,10 +513,16 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
 		Position = stringToInt(line[1]);
 		Scaling = stringToDouble(line[3]);
-
+		Log10Observations = stringToDouble(line[4]);
 		if(Log10Observations > 4.5 && fabs(trueScaling(Position) - Scaling) >= 0.1) ++unacceptablesCount;
-
 	}
+	if(unacceptablesCount > 0){
+		logfile->newLine();
+		logfile->conclude("There were " + toString(unacceptablesCount) + " scaling factor estimates that did not match.");
+		return false;
+	}
+	logfile->done();
+	logfile->endIndent();
 
 	return true;
 }
