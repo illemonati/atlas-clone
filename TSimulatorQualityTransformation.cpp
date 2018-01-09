@@ -351,7 +351,6 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 //	parseBQSRQualInput(params);
 	setFakeQualityDistribution(logfile); //first find kappa and lambda
 	fakeQualityDist = new TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
-	initializeTrueQualToFakeQualTable();
 }
 
 void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
@@ -361,7 +360,7 @@ void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 		sum += (double) p * readLengthDist->positionProbs[p-1];
 
 	m = (1.0 - revIntercept) / (sum - maxReadLength);
-	intercept = revIntercept - m * maxReadLength;
+	intercept = revIntercept - m * (double) maxReadLength;
 
 	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
 }
@@ -373,12 +372,9 @@ int TSimulatorQualityTransformationBQSR::sampleFakeQuality(){
 	return qual;
 }
 
-//---------------------------------
-// optimization functions
-//---------------------------------
 
 void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
-	int num_of_row = maxReadLength;
+	int num_of_row = maxReadLength+1;
 	int num_of_col = maxQualPlusOne;
 	double init_value = -1.0;
 	double betaQq;
@@ -387,11 +383,12 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 
 	for(int q = 0; q < maxQualPlusOne; ++ q){
 		betaQq = returnFakeError(q);
-		for(int p = 0; p<maxReadLength; ++p){
-			QBetaQBetaP[q][p] = qualityMap.errorToPhred(qualityMap.phredToErrorMap[qualityMap.errorToPhred(betaQq)] * returnBetaPp(p));
+		for(int p = 1; p<num_of_row; ++p){
+			QBetaQBetaP[q][p] = qualityMap.errorToPhred((betaQq) * returnBetaPp(p));
+			if(q == 0) std::cout << p << " " <<  (betaQq) * returnBetaPp(p) << " " << (betaQq) << " " << returnBetaPp(p) << " " << QBetaQBetaP[q][p] << std::endl;
+
 		}
 	}
-	betaQBetaPInitialized = true;
 }
 
 void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
@@ -408,7 +405,7 @@ void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double
 	}
 
 	//w at maxQual
-	w[maxQual] = 1 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
+	w[maxQual] = 1.0 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 
@@ -521,33 +518,19 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfi
 }
 
 double TSimulatorQualityTransformationBQSR::returnFakeError(int & trueQual){
-	return(pow(10, -1/10.0 * phi2 * trueQual) + qualityMap.phredToErrorMap[phi1]);
+	return(pow(10.0, -1.0/10.0 * phi2 * (double) trueQual) + qualityMap.phredToErrorMap[phi1]);
 }
-
-void TSimulatorQualityTransformationBQSR::initializeTrueQualToFakeQualTable(){
-	if(!trueQualToFakeQualTableInitialized){
-		trueQualToFakeQual = new double[maxQualPlusOne];
-		for(int i=0; i<maxQualPlusOne; ++i){
-			trueQualToFakeQual[i] = qualityMap.errorToPhred((returnFakeError(i)));
-		}
-	}
-	trueQualToFakeQualTableInitialized = true;
-};
-
-
 
 double TSimulatorQualityTransformationBQSR::returnBetaPp(int & pos){
-//	std::cout << "m: " << m << " intercept " << intercept << std::endl;
 	return(m * (double) pos + intercept);
 }
-
 
 void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, int & len){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
 	fakeQualityDist->sample(qualities,len);
-	for(p=0; p<len; ++p){
+	//positions start at 1, important for calculation of betaP
+	for(p=1; p<(len+1); ++p){
 		trueQual = QBetaQBetaP[qualities[p]][p];
-//		std::cout << qualities[p] <<  " " << trueQual << std::endl;
 		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[trueQual]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 		}

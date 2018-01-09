@@ -145,8 +145,6 @@ private:
 	double meanQual, sdQual;
 	int trueQual;
 	TSimulatorQualityDistNormal* fakeQualityDist;
-	bool trueQualToFakeQualTableInitialized = false;
-	double* trueQualToFakeQual;
 	double kappa, lambda;
 
 	//position params
@@ -158,13 +156,11 @@ private:
 	double* w;
 	bool weightsInitialized;
 	std::vector< std::vector<double> > QBetaQBetaP;
-	bool betaQBetaPInitialized = false;
 
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
 	double returnFakeError(int & trueQual);
 	void setFakeQualityDistribution(TLog* logfile);
-	void initializeTrueQualToFakeQualTable();
 	int sampleFakeQuality();
 
 	//position functions
@@ -177,7 +173,6 @@ private:
 	double returnCurMean();
 	double returnCurSD(double & kappa);
 	double returnDelta(double & curMean, double & curSD);
-
 	void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
 
 
@@ -185,8 +180,6 @@ public:
 	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformationBQSR(){
 		delete fakeQualityDist;
-		if(trueQualToFakeQualTableInitialized)
-			delete[] trueQualToFakeQual;
 		if(weightsInitialized)
 			delete[] w;
 	};
