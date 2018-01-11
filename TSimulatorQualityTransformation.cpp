@@ -385,7 +385,7 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 		betaQq = returnFakeError(q);
 		for(int p = 1; p<num_of_row; ++p){
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred((betaQq) * returnBetaPp(p));
-			if(q == 0) std::cout << p << " " <<  (betaQq) * returnBetaPp(p) << " " << (betaQq) << " " << returnBetaPp(p) << " " << QBetaQBetaP[q][p] << std::endl;
+			if(q == 30) std::cout << p << " " <<  (betaQq) * returnBetaPp(p) << " " << (betaQq) << " " << returnBetaPp(p) << " " << QBetaQBetaP[q][p] << std::endl;
 
 		}
 	}
@@ -528,9 +528,10 @@ double TSimulatorQualityTransformationBQSR::returnBetaPp(int & pos){
 void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, int & len){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
 	fakeQualityDist->sample(qualities,len);
-	//positions start at 1, important for calculation of betaP
-	for(p=1; p<(len+1); ++p){
-		trueQual = QBetaQBetaP[qualities[p]][p];
+	for(p=0; p<len; ++p){
+		//positions should start at 1 for lookup in QBetaQBetaP table
+		trueQual = QBetaQBetaP[qualities[p]][p+1];
+//		if(qualities[p] == 30 && p == 14) std::cout << "p: " << p << " " << QBetaQBetaP[qualities[p]][p+1] << std::endl;
 		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[trueQual]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 		}

@@ -141,7 +141,7 @@ public:
 	void downSampleBamFile(TParameters & params);
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
-	void estimateApproximateCoveragePerWindow(TParameters & params);
+	void estimateApproximateDepthPerWindow(TParameters & params);
 	void estimateDepthPerSite(TParameters & params);
 	void writeDepthPerSite(TParameters & params);
 	void createDepthMask(TParameters & params);

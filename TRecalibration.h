@@ -255,7 +255,7 @@ public:
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
-	int maxCoverage; //sites with higher coverage will be ignored
+	int maxDepth; //sites with higher depth will be ignored
 	float* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 

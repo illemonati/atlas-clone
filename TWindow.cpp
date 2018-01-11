@@ -17,7 +17,7 @@ TWindow::TWindow(){
 	length = -1;
 	sites = NULL;
 	sitesInitialized = false;
-	coverage = -1.0;
+	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
@@ -35,7 +35,7 @@ TWindow::TWindow(long Start, long End){
 
 void TWindow::clear(){
 	for(int i=0; i<length; ++i) sites[i].clear();
-	coverage = -1.0;
+	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
@@ -56,28 +56,28 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
+bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
 	 */
 
 	//check if alignment is inside window
-	if(alignemntParser.position >= end) return true;
-	if(alignemntParser.position + alignemntParser.length < start) return false;
+	if(alignmentParser.position >= end) return true;
+	if(alignmentParser.position + alignmentParser.length < start) return false;
 
 	//find which position to consider first
 	++numReadsInWindow;
-	int firstPos = alignemntParser.position - start;
+	int firstPos = alignmentParser.position - start;
 
 	//std::cout << "[" << start << "," << end <<  "]: firstPos = " << firstPos;
 
 	int p = 0;
 
 	if(firstPos < 0){
-		while(p < alignemntParser.length && (firstPos + alignemntParser.alignedPos[p]) < 0)
+		while(p < alignmentParser.length && (firstPos + alignmentParser.alignedPos[p]) < 0)
 			++p;
-		if(p == alignemntParser.length)
+		if(p == alignmentParser.length)
 			return false;
 	}
 	int internalPos;
@@ -91,13 +91,12 @@ bool TWindow::addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
 	 *  4) Function add needs first P(C->T), then P(G->A)
 	 */
 
-	for(; p < alignemntParser.length; ++p){
-		if(alignemntParser.aligned[p] && alignemntParser.base[p] != N){
-			internalPos = firstPos + alignemntParser.alignedPos[p];
+	for(; p < alignmentParser.length; ++p){
+		if(alignmentParser.aligned[p] && alignmentParser.base[p] != N){
+			internalPos = firstPos + alignmentParser.alignedPos[p];
 			if(internalPos >= length)
 				return true; //since part of the read maps to next window
-
-			sites[internalPos].add(alignemntParser.base[p], alignemntParser.quality[p], p, alignemntParser.length-p, pmdObjects[alignemntParser.readGroupId].getProbCT(alignemntParser.distFrom5Prime[p]), pmdObjects[alignemntParser.readGroupId].getProbGA(alignemntParser.distFrom3Prime[p]), alignemntParser.context[p], alignemntParser.readGroupId);
+			sites[internalPos].add(alignmentParser.base[p], alignmentParser.quality[p], p, alignmentParser.length-p, pmdObjects[alignmentParser.readGroupId].getProbCT(alignmentParser.distFrom5Prime[p]), pmdObjects[alignmentParser.readGroupId].getProbGA(alignmentParser.distFrom3Prime[p]), alignmentParser.context[p], alignmentParser.readGroupId);
 
 			//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
 		}
@@ -254,18 +253,18 @@ void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std:
 
 void TWindow::calcCoverage(){
 	//calculate and return coverage
-	coverage = 0.0;
+	depth = 0.0;
 	long noData = 0;
 	long plentyData = 0;
 	int cov;
 	for(int i=0; i<length; ++i){
 		cov = sites[i].depth();
-		coverage += cov;
+		depth += cov;
 		if(cov == 0) ++noData;
 		else if(cov > 1) ++ plentyData;
 	}
 
-	coverage = coverage / (double) length;
+	depth = depth / (double) length;
 	numSitesWithData = length - noData;
 	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
@@ -279,7 +278,7 @@ void TWindow::calcFracN(){
 
 void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 	//calculate and return coverage
-	coverage = 0.0;
+	depth = 0.0;
 	long noData = 0;
 	long plentyData = 0;
 	size_t cov;
@@ -293,7 +292,7 @@ void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 		else if(cov > 1) ++ plentyData;
 	}
 
-	coverage = coverage / (double) length;
+	depth = depth / (double) length;
 	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
 }
@@ -392,16 +391,19 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 //TwindowDiploid
 //-------------------------------------------------------
 void TWindowDiploid::initSites(long newLength){
+	std::cout << "########### initializing sites!" << std::endl;
 	if(sitesInitialized)
 		delete[] sites;
 	length = newLength;
+	std::cout << "length " << length << std::endl;
 	try{
 		sites = new TSiteDiploid[length];
 	} catch(...){
 		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
 	}
+
 	sitesInitialized = true;
-	coverage = -1.0;
+	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
@@ -704,8 +706,9 @@ void TWindowHaploid::initSites(long newLength){
 	} catch(...){
 		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
 	}
+
 	sitesInitialized = true;
-	coverage = -1.0;
+	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesCoverageAtLeastTwo = -1.0;
 	numReadsInWindow = 0;

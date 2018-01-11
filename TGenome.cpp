@@ -417,7 +417,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 
 		//report
 		logfile->conclude("read data from " + toString(windowPair.curPointer->numReadsInWindow) + " reads.");
-		logfile->conclude("coverage is " + toString(windowPair.curPointer->coverage));
+		logfile->conclude("sequencing depth is " + toString(windowPair.curPointer->depth));
 		logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
 		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
 		if(windowPair.curPointer->fractionSitesNoData > maxMissing){
@@ -878,8 +878,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//write header
 		out << "chr\tpos\tRef";
-		if(limitToSitesWithKnownAlleles) out << "\tAlt\tcoverage\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
-		else out << "\tcoverage\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
+		if(limitToSitesWithKnownAlleles) out << "\tAlt\tdepth\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
+		else out << "\tdepth\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 	}
 
 	//prepare windows
@@ -980,8 +980,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		//write header
 		output << "chr\tpos";
 		if(fastaReference) output << "\tRef";
-		if(limitToSitesWithKnownAlleles) output << "\talt\tcoverage\tP(RR|D)\tP(RA|D)\tP(AA|D)\tMAP\tQ\n";
-		else output << "\tcoverage\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
+		if(limitToSitesWithKnownAlleles) output << "\talt\tdepth\tP(RR|D)\tP(RA|D)\tP(AA|D)\tMAP\tQ\n";
+		else output << "\tdepth\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
 	}
 
 	//prepare windows
@@ -1112,10 +1112,10 @@ void TGenome::callAllelePresence(TParameters & params){
 
 		//write header
 		outAllelePresence << "chr\tpos";
-		if(limitToSitesWithKnownAlleles) outAllelePresence << "\tRef\tAlt\tcoverage\tP(Ref|D)\tP(Alt|D)\tMAP\tQ\n";
+		if(limitToSitesWithKnownAlleles) outAllelePresence << "\tRef\tAlt\tdepth\tP(Ref|D)\tP(Alt|D)\tMAP\tQ\n";
 		else {
 			if(fastaReference) outAllelePresence << "\tRef";
-			outAllelePresence << "\tcoverage\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
+			outAllelePresence << "\tdepth\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
 		}
 	}
 
@@ -1200,7 +1200,7 @@ void TGenome::randomBaseCaller(TParameters & params){
 	if(!randomBases) throw "Failed to open output file '" + outputFileName + "'!";
 
 	//write header
-	randomBases << "chr\tpos\tref\tcoverage\tpileup\trandom_base\n";
+	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -1242,7 +1242,7 @@ void TGenome::majorityBaseCaller(TParameters & params){
 	if(!randomBases) throw "Failed to open output file '" + outputFileName + "'!";
 
 	//write header
-	randomBases << "chr\tpos\tref\tcoverage\tpileup\trandom_base\n";
+	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -2520,7 +2520,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     //open output files
     std::ofstream outputCoverage;
     std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
-    logfile->list("Writing coverage estimates to '" + outputFileNameCov + "'");
+    logfile->list("Writing sequencing depth estimates to '" + outputFileNameCov + "'");
     outputCoverage.open(outputFileNameCov.c_str());
     if(!outputCoverage) throw "Failed to open output file '" + outputFileNameCov + "'!";
 
@@ -2605,7 +2605,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     logfile->listFlush("Writing to output files ...");
 
     //cov
-    outputCoverage << "RG\tApproximate_coverage";
+    outputCoverage << "RG\tApproximate_depth";
     outputCoverage << "\nallReadGroups\t" << totCov/totLength;
     for(int r=0; r<readGroups.numGroups; ++r){
         outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
@@ -2665,17 +2665,17 @@ void TGenome::diagnoseBamFile(TParameters & params){
     delete [] RL;
 }
 
-void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
+void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	//open output file
 	std::ofstream output;
-	std::string outputFileName = outputName + "_coverage.txt";
-	logfile->list("Writing coverage estimates to '" + outputFileName + "'");
+	std::string outputFileName = outputName + "_depthPerWindow.txt";
+	logfile->list("Writing sequencing depth estimates to '" + outputFileName + "'");
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	int nCharOnLine = 0;
 
 	//write header
-	output << "chr\tstart\tend\tcoverage" << std::endl;
+	output << "chr\tstart\tend\tdepth" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -2688,9 +2688,9 @@ void TGenome::estimateApproximateCoveragePerWindow(TParameters & params){
 			readData(windows);
 
 			//write to file
-			logfile->listFlush("Writing coverage to file ...");
-			if(windows.cur->coverage == -1.0) output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << "0" << "\n";
-			else output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->coverage << "\n";
+			logfile->listFlush("Writing sequencing depth estimates to file ...");
+			if(windows.cur->depth == -1.0) output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << "0" << "\n";
+			else output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->depth << "\n";
 			logfile->done();
 		}
 	}

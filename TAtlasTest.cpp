@@ -342,7 +342,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 	beta = params.getParameterDoubleWithDefault("beta", 0.2);
 	minReadLen = params.getParameterIntWithDefault("minReadLen", 30);
-	maxReadLen = params.getParameterIntWithDefault("maxReadLen", 101);
+	maxReadLen = params.getParameterIntWithDefault("maxReadLen", 100);
 //	readLengthDist = params.getParameterStringWithDefault("readLength", "gamma(alpha,beta)[min,max]");
 	positionEffectSlope = params.getParameterDoubleWithDefault("positionEffectSlope", 0.01010101);
 	positionEffectIntercept = params.getParameterDoubleWithDefault("positionEffectIntercept", 0.489899);
@@ -363,7 +363,8 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("refDiv", "0.0");
 	_testParams.addParameter("ploidy", "1");
 	_testParams.addParameter("BQSR", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
-	_testParams.addParameter("gamma", "(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
+	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
+//	_testParams.addParameter("readLength", "fixed(70)");
 
 
 	if(!runTGenomeFromInputfile("simulate"))

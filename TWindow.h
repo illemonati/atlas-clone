@@ -31,7 +31,7 @@ public:
 	TSite* sites;
 	bool sitesInitialized;
 	int numReadsInWindow;
-	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
+	double depth, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
 	double fractionRefIsN;
 	long numSitesWithData;
 	TBaseFrequencies baseFreq;

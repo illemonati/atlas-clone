@@ -869,7 +869,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		maxEpsilon = 0.0;
 		NewtonRaphsonNumIterations = -1;
 		NewtonRaphsonMaxF = 0.0;
-		maxCoverage = -1;
+		maxDepth = -1;
 	}
 }
 
