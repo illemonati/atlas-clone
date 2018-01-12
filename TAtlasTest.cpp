@@ -124,7 +124,7 @@ void TAtlasTest_pileup::writeBAM(){
 	bamAlignment.Name = "*";
 	bamAlignment.RefID = 0;
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredToQuality(phredError));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(phredError));
 	bamAlignment.Position = 0;
 
 	//homozygous
@@ -198,7 +198,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	int firstBase, secondBase;
 	int depthFirstBase, depthSecondBase;
 	int b;
-	double error = qualMap.phredToError(phredError);
+	double error = qualMap.phredIntToError(phredError);
 	double relDiff;
 
 	std::vector<double> emissionProbs(genoMap.numGenotypes, 0.0);
@@ -335,9 +335,9 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterIntWithDefault("meanQual", 30);
-	sdQual = params.getParameterDoubleWithDefault("sdQual", 10);
+	sdQual = params.getParameterDoubleWithDefault("sdQual", 20);
 	minQual = params.getParameterIntWithDefault("minQual", 0);
-	maxQual = params.getParameterIntWithDefault("maxQual", 93);
+	maxQual = params.getParameterIntWithDefault("maxQual", 60);
 	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdQual) + ")[" + toString(minQual) + "," + toString(maxQual) + "]");
 	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 	beta = params.getParameterDoubleWithDefault("beta", 0.2);
@@ -355,6 +355,8 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 
 bool TAtlasTest_BQSRSimulation::run(){
 
+	//TODO: find minimal data necessary to run test in order to speed up
+
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
@@ -363,8 +365,8 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("refDiv", "0.0");
 	_testParams.addParameter("ploidy", "1");
 	_testParams.addParameter("BQSR", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
-	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
-//	_testParams.addParameter("readLength", "fixed(70)");
+//	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
+	_testParams.addParameter("readLength", "fixed(70)");
 
 
 	if(!runTGenomeFromInputfile("simulate"))

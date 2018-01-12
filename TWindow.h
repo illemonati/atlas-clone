@@ -43,7 +43,8 @@ public:
 	virtual ~TWindow(){
 		if(sitesInitialized) delete[] sites;
 	};
-	virtual void initSites(long newLength){
+	virtual void initSites(long newLength);
+	virtual void _initSites(){
 		throw "Function 'initSites' not implemented for base class TWindow!";
 	};
 	void clear();
@@ -86,7 +87,7 @@ protected:
 public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
-	void initSites(long newLength);
+	void _initSites();
 	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
 	void addSitesToThetaEstimator(TThetaEstimator & estimator);
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
@@ -107,7 +108,7 @@ private:
 public:
 	TWindowHaploid():TWindow(){};
 	TWindowHaploid(long Start, long End):TWindow(Start, End){};
-	void initSites(long newLength);
+	void _initSites();
 	double calcLogLikelihood();
 	void addToRecalibrationEM(TRecalibrationEM & recalObject);
 	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset);

@@ -898,6 +898,7 @@ void TRecalibrationEM::prepareWindowsforEM(){
 
 	//now crate array
 	tmpEpsilon = new float[maxDepth];
+	tmpEpsilonInitialized = true;
 }
 
 void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
@@ -1335,7 +1336,7 @@ void TBQSR_cell_base::runNewtonRaphson(float & convergenceThreshold, bool & allo
 
 std::string TBQSR_cell_base::getNumObsForPrinting(){
 	if(numObservations == 0) return "-";
-	else return toString(log10(numObservations));
+	else return toString(log10((double) numObservations));
 }
 
 void TBQSR_cell_base::calcLikelihoodSurfaceAt(int numPositions, double* positions, std::string & tag, std::ofstream & out){

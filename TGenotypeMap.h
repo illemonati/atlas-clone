@@ -305,9 +305,10 @@ public:
 class TQualityMap{
 public:
 	//IMPORTANT NOMENCLATURE
-	//error is erro rate between 0 and 1
+	//error is error rate between 0 and 1
 	//phred is phred-scaled error as phred = -10 * log10(error)
-	//quality is (int) phred + 33
+	//phredInt is (int) phred
+	//quality is phredInt + 33
 	double* phredToErrorMap;
 	double* qualityToErrorMap;
 	int* illuminaQualityBins;
@@ -328,10 +329,10 @@ public:
 
 		//and now others
 		for(int i=0; i<256; ++i){
-			phredToErrorMap[i] = pow(10.0, (double) -i/10.0);
+			phredToErrorMap[i] = phredToError(i);
 			qualityToErrorMap[i+33] = phredToErrorMap[i];
 		}
-		min = pow(10.0, (double) -256/10.0);
+		min = phredToError(256);
 
 		//Create map of illumina quality bins
 		illuminaQualityBins = new int[sizeQual];
@@ -359,22 +360,30 @@ public:
 		delete[] illuminaQualityBins;
 	};
 
-	double phredToError(int phred){
-		if(phred>255)
+	double phredIntToError(int phredInt){
+		if(phredInt>255)
 			return min;
-		else return phredToErrorMap[phred];
+		else return phredToErrorMap[phredInt];
+	};
+
+	inline double phredToError(double phred){
+		return pow(10.0, -phred/10.0);
 	};
 
 	double qualityToError(int qual){
-		return phredToError(qual - 33);
+		return phredIntToError(qual - 33);
 	};
 
-	int phredToQuality(int phred){
-		return phred + 33;
+	int phredIntToQuality(int phredInt){
+		return phredInt + 33;
 	};
 
-	inline int errorToPhred(const double & errorRate){
-		return round(-10.0 * log10(errorRate));
+	inline int errorToPhredInt(const double & errorRate){
+		return round(errorToPhred(errorRate));
+	};
+
+	inline double errorToPhred(const double & errorRate){
+		return -10.0 * log10(errorRate);
 	};
 
 	inline int errorToQuality(const double & errorRate){

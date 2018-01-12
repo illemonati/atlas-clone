@@ -32,6 +32,24 @@ TWindow::TWindow(long Start, long End){
 	initSites(end - start); //end NOT in window!
 };
 
+void TWindow::initSites(long newLength){
+	if(sitesInitialized)
+		delete[] sites;
+	length = newLength;
+	if(length > 0){
+		try{
+			_initSites();
+		} catch(...){
+			throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
+		}
+	} else sites = NULL;
+
+	sitesInitialized = true;
+	depth = -1.0;
+	fractionSitesNoData = -1.0;
+	fractionsitesCoverageAtLeastTwo = -1.0;
+	numReadsInWindow = 0;
+}
 
 void TWindow::clear(){
 	for(int i=0; i<length; ++i) sites[i].clear();
@@ -390,25 +408,9 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
-void TWindowDiploid::initSites(long newLength){
-	std::cout << "########### initializing sites!" << std::endl;
-	if(sitesInitialized)
-		delete[] sites;
-	length = newLength;
-	std::cout << "length " << length << std::endl;
-	try{
-		sites = new TSiteDiploid[length];
-	} catch(...){
-		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
-	}
-
-	sitesInitialized = true;
-	depth = -1.0;
-	fractionSitesNoData = -1.0;
-	fractionsitesCoverageAtLeastTwo = -1.0;
-	numReadsInWindow = 0;
-	referenceBaseAdded = false;
-}
+void TWindowDiploid::_initSites(){
+	sites = new TSiteDiploid[length];
+};
 
 void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator){
 	//first calculate emission probabilities
@@ -696,22 +698,8 @@ void TWindowDiploid::generatePSMCInput(TThetaEstimator & estimator, int & blockS
 //-------------------------------------------------------
 //TWindowHaploid
 //-------------------------------------------------------
-
-void TWindowHaploid::initSites(long newLength){
-	if(sitesInitialized)
-		delete[] sites;
-	length = newLength;
-	try{
-		sites = new TSiteHaploid[length];
-	} catch(...){
-		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
-	}
-
-	sitesInitialized = true;
-	depth = -1.0;
-	fractionSitesNoData = -1.0;
-	fractionsitesCoverageAtLeastTwo = -1.0;
-	numReadsInWindow = 0;
+void TWindowHaploid::_initSites(){
+	sites = new TSiteHaploid[length];
 }
 
 void TWindowHaploid::fillPGenotype(double* pGenotype){

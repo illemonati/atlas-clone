@@ -127,7 +127,7 @@ public:
 				genome.diagnoseBamFile(*parameters);
 			} else if(task == "coveragePerWindow"){
 				logfile->startIndent("Estimating coverage per window (task = coveragePerWindow):");
-				genome.estimateApproximateCoveragePerWindow(*parameters);
+				genome.estimateApproximateDepthPerWindow(*parameters);
 			} else if(task == "coveragePerSite"){
 				logfile->startIndent("Estimating coverage per site (task = coveragePerSite):");
 				genome.estimateDepthPerSite(*parameters);

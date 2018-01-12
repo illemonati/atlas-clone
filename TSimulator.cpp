@@ -194,7 +194,6 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 			perReadGroup = false;
 		}
 
-
 		//Option 2: a recal input file
 		//----------------------------
 		else {
@@ -266,9 +265,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 			logfile->list("Will use '" + BQSRString + "' for all read groups.");
 			qualTransformMap["-"] = std::pair<std::string, std::string>("BQSR", BQSRString);
 			perReadGroup = false;
-		}
-
-
+		} else throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
 	}
 
 	//No transformation

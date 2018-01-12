@@ -278,7 +278,7 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
-		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		if(nextEnd > chrLength) nextEnd = chrLength; //!!! removed +1 because we are zero-based. Chedk if true!
 		windowPair.nextPointer->move(0, nextEnd);
 	}
 

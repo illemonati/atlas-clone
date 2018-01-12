@@ -39,7 +39,7 @@ public:
 	double mean(){return _mean; };
 	double sd(){return _sd; };
 	virtual int sample(){ return _max; };
-	virtual void sample(int* qualities, int & len);
+	virtual void sample(int* qualities, const int & len);
 	virtual void printDetails(TLog* logfile);
 };
 
@@ -52,14 +52,15 @@ private:
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
-	void sample(int* qualities, int & len);
+	void sample(int* qualities, const int & len);
 	void printDetails(TLog* logfile);
 };
 
 
 //Class of a normal distribution
 class TSimulatorQualityDistNormal:public TSimulatorQualityDist{
-private:
+public:
+//private:
 	//densities
 	int size;
 	double* densities;
@@ -68,7 +69,7 @@ private:
 
 	TRandomGenerator* randomGenerator;
 
-public:
+//public:
 	TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator);;
 	~TSimulatorQualityDistNormal(){
@@ -80,7 +81,7 @@ public:
 	void parseFunctionString(std::string & s);
 	void fillDensities();
 	int sample();
-	void sample(int* qualities, int & len);
+	void sample(int* qualities, const int & len);
 	void printDetails(TLog* logfile);
 };
 
@@ -99,7 +100,7 @@ protected:
 public:
 	TSimulatorQualityTransformation(TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformation(){};
-	virtual void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
+	virtual void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
 	virtual void printDetails(TLog* logfile);
 };
 
@@ -120,7 +121,7 @@ private:
 	//private functions
 	void fillTransformationTable(int maxReadLength);
 	void clearTransformationTable();
-	void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
+	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
 
 public:
 	TSimulatorQualityTransformationRecal(const std::string & s, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
@@ -143,7 +144,7 @@ private:
 	int maxReadLength;
 	int minQual, maxQual, maxQualPlusOne;
 	double meanQual, sdQual;
-	int trueQual;
+	double trueQual;
 	TSimulatorQualityDistNormal* fakeQualityDist;
 	double kappa, lambda;
 
@@ -155,17 +156,18 @@ private:
 	//optimization algorithm params
 	double* w;
 	bool weightsInitialized;
+	std::vector< std::vector<double> > errorBetaQBetaP;
 	std::vector< std::vector<double> > QBetaQBetaP;
 
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
-	double returnFakeError(int & trueQual);
+	double returnTrueError(const int & trueQual);
 	void setFakeQualityDistribution(TLog* logfile);
 	int sampleFakeQuality();
 
 	//position functions
 	void calculateSlopeIntercept();
-	double returnBetaPp(int & pos);
+	double returnBetaPp(const int & pos);
 
 	//optimization algorithm functions
 	void fillWeights(double & kappa_cur, double & lambda_cur);
@@ -173,7 +175,7 @@ private:
 	double returnCurMean();
 	double returnCurSD(double & kappa);
 	double returnDelta(double & curMean, double & curSD);
-	void simulateQualitiesAndErrors(Base* bases, int* qualities, int & len);
+	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
 
 
 public:
