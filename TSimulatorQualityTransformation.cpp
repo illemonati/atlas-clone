@@ -528,9 +528,17 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 	fakeQualityDist->sample(qualities,len);
 
 	for(p=0; p<len; ++p){
+		//positions should start at 1 for lookup in QBetaQBetaP table
+//		if(qualities[p] == 30 && p == 14) std::cout << "p: " << p << " " << QBetaQBetaP[qualities[p]][p+1] << std::endl;
+
+		std::cout << ">>\t" << p << "\t" << qualities[p] << "\t" << errorBetaQBetaP[qualities[p]][p] << "\t" << QBetaQBetaP[qualities[p]][p];
+
 		if(randomGenerator->getRand() < errorBetaQBetaP[qualities[p]][p]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-		}
+			std::cout << "\t1" << std::endl;
+		} else std::cout << "\t0" << std::endl;
+
+
 	}
 }
 
