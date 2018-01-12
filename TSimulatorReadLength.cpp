@@ -143,7 +143,7 @@ void TSimulatorReadLengthGamma::initiate(){
 
 	//add area >= max and 0's for < min to table
 	for(int i=0; i < _min; ++i)	gammaDensity[i] = 0;
-	gammaDensity[_max - 1] = 1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta) / totalArea;
+	gammaDensity[_max - 1] = (1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta)) / totalArea;
 
 	//add area >= max to average calculation
 	w = 1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta);
@@ -156,6 +156,7 @@ void TSimulatorReadLengthGamma::initiate(){
 	sum = 1 - gammaDensity[0];
 	for(int i=1; i < _max; ++i){
 		gammaCumulDensity[i] = gammaCumulDensity[i-1] + gammaDensity[i];
+		std::cout << i << " gammaCumulDensity[i] " << gammaCumulDensity[i] << " gammaDensity[i-1] "<< gammaDensity[i-1] << " gammaDensity[i] " << gammaDensity[i]<< std::endl;
 		sum += (1 - gammaCumulDensity[i-1]);
 	}
 	//distribution of position probabilities (=normalized 1 - cumul)
@@ -163,9 +164,6 @@ void TSimulatorReadLengthGamma::initiate(){
 	for(int i=1; i < _max; ++i){
 		positionProbs[i] = (1.0 -  gammaCumulDensity[i-1]) / sum;
 	}
-//	for(int i = 1; i < _max; ++i){
-//		std::cout << "i " << positionProbs[i] << std::endl;
-//	}
 }
 
 void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
