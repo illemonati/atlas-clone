@@ -326,11 +326,11 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 	readLengthDist = ReadLengthDist;
 	maxReadLength = readLengthDist->max();
-	minQual = qualityDist->min();
-	maxQual = qualityDist->max();
-	maxQualPlusOne = maxQual + 1;
-	meanQual = qualityDist->mean();
-	sdQual = qualityDist->sd();
+	minPhredInt = qualityDist->min();
+	maxPhredInt = qualityDist->max();
+	maxPhredIntPlusOne = maxPhredInt + 1;
+	meanPhred = qualityDist->mean();
+	sdPhred = qualityDist->sd();
 	std::vector<std::string> vec;
 	fillVectorFromStringAnySkipEmpty(s, vec, ",");
 	phi1 = stringToInt(vec[0]);
@@ -349,8 +349,8 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	}
 
 //	parseBQSRQualInput(params);
-	setFakeQualityDistribution(logfile); //first find kappa and lambda
-	fakeQualityDist = new TSimulatorQualityDistNormal(kappa, lambda, minQual, maxQual, RandomGenerator);
+	setFakePhredDistribution(logfile); //first find kappa and lambda
+	fakePhredDist = new TSimulatorQualityDistNormal(kappa, lambda, minPhredInt, maxPhredInt, RandomGenerator);
 
 }
 
@@ -366,11 +366,11 @@ void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
 }
 
-int TSimulatorQualityTransformationBQSR::sampleFakeQuality(){
-	int qual = round(randomGenerator->getNormalRandom(kappa, lambda));
-	if(qual > 93) qual = 93;
-	if(qual < 0) qual = 0;
-	return qual;
+int TSimulatorQualityTransformationBQSR::sampleFakePhredInt(){
+	int qualPhredInt = round(randomGenerator->getNormalRandom(kappa, lambda));
+	if(qualPhredInt > 93) qualPhredInt = 93;
+	if(qualPhredInt < 0) qualPhredInt = 0;
+	return qualPhredInt;
 }
 
 
@@ -378,10 +378,10 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 	double init_value = -1.0;
 	double betaQq;
 
-	QBetaQBetaP.resize( maxQualPlusOne , std::vector<double>( maxReadLength , init_value ) );
-	errorBetaQBetaP.resize( maxQualPlusOne , std::vector<double>( maxReadLength , init_value ) );
+	QBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
+	errorBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
 
-	for(int q = 0; q < maxQualPlusOne; ++ q){
+	for(int q = 0; q < maxPhredIntPlusOne; ++ q){
 		betaQq = returnTrueError(q);
 		for(int p = 0; p<maxReadLength; ++p){
 			errorBetaQBetaP[q][p] = (betaQq) * returnBetaPp(p);
@@ -391,27 +391,27 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 }
 
 void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
-	w = new double[maxQualPlusOne];
+	w = new double[maxPhredIntPlusOne];
 
 	//w at minQual
-	w[minQual] = randomGenerator->normalCumulativeDistributionFunction(((double) minQual + 0.5), kappa_cur, lambda_cur);
+	w[minPhredInt] = randomGenerator->normalCumulativeDistributionFunction(((double) minPhredInt + 0.5), kappa_cur, lambda_cur);
 
 	//w at intermediate Q
-	for(int q = (minQual + 1); q < maxQual; ++q){
+	for(int q = (minPhredInt + 1); q < maxPhredInt; ++q){
 		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
 		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q] = end - start;
 	}
 
 	//w at maxQual
-	w[maxQual] = 1.0 - randomGenerator->normalCumulativeDistributionFunction(((double) maxQual - 0.5), kappa_cur, lambda_cur);
+	w[maxPhredInt] = 1.0 - randomGenerator->normalCumulativeDistributionFunction(((double) maxPhredInt - 0.5), kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 
 double TSimulatorQualityTransformationBQSR::returnCurMean(){
 	double curMean = 0.0;
 
-	for(int q = minQual; q < maxQualPlusOne; ++ q){
+	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
 		double sumP = 0.0;
 		for(int p = 0; p<maxReadLength; ++p){
 			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
@@ -429,7 +429,7 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 
 double TSimulatorQualityTransformationBQSR::returnCurSD(double & kappa){
 	float lambda = 0.0;
-	for(int q = minQual; q < maxQualPlusOne; ++ q){
+	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
 			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->positionProbs[p] * w[q]);
 		}
@@ -439,15 +439,15 @@ double TSimulatorQualityTransformationBQSR::returnCurSD(double & kappa){
 
 double TSimulatorQualityTransformationBQSR::returnDelta(double & curMean, double & curSD){
 	double delta;
-	delta = (curMean - meanQual)*(curMean - meanQual) + (curSD - sdQual)*(curSD - sdQual);
+	delta = (curMean - meanPhred)*(curMean - meanPhred) + (curSD - sdPhred)*(curSD - sdPhred);
 	return(delta);
 }
 
 //---------------------------------
 
-void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfile){
-	double kappa_cur = meanQual;
-	double lambda_cur = sdQual;
+void TSimulatorQualityTransformationBQSR::setFakePhredDistribution(TLog* logfile){
+	double kappa_cur = meanPhred;
+	double lambda_cur = sdPhred;
 	double delta_cur, delta_old;
 	double mean_cur, sd_cur;
 	double stepSize;
@@ -515,25 +515,25 @@ void TSimulatorQualityTransformationBQSR::setFakeQualityDistribution(TLog* logfi
 	lambda = lambda_cur;
 }
 
-double TSimulatorQualityTransformationBQSR::returnTrueError(const int & fakeQual){
-	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakeQual) + qualityMap.phredToErrorMap[phi1]);
+double TSimulatorQualityTransformationBQSR::returnTrueError(const int & fakePhredInt){
+	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakePhredInt) + qualityMap.phredToErrorMap[phi1]);
 }
 
 double TSimulatorQualityTransformationBQSR::returnBetaPp(const int & pos){
 	return(m * (double) (pos+1) + intercept);
 }
 
-void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len){
+void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* phredIntQualities, const int & len){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
-	fakeQualityDist->sample(qualities,len);
+	fakePhredDist->sample(phredIntQualities,len);
 
 	for(p=0; p<len; ++p){
 		//positions should start at 1 for lookup in QBetaQBetaP table
 //		if(qualities[p] == 30 && p == 14) std::cout << "p: " << p << " " << QBetaQBetaP[qualities[p]][p+1] << std::endl;
 
-		std::cout << ">>\t" << p << "\t" << qualities[p] << "\t" << errorBetaQBetaP[qualities[p]][p] << "\t" << QBetaQBetaP[qualities[p]][p];
+		std::cout << ">>\t" << p << "\t" << phredIntQualities[p] << "\t" << errorBetaQBetaP[phredIntQualities[p]][p] << "\t" << QBetaQBetaP[phredIntQualities[p]][p];
 
-		if(randomGenerator->getRand() < errorBetaQBetaP[qualities[p]][p]){
+		if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 			std::cout << "\t1" << std::endl;
 		} else std::cout << "\t0" << std::endl;

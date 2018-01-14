@@ -21,7 +21,7 @@
 class TSimulatorRead{
 protected:
 	TRandomGenerator* randomGenerator;
-	int maxPrintQual;
+	int maxPrintPhredInt;
 	std::string _name;
 
 	TSimulatorReadLength* readLengthDist;
@@ -42,7 +42,7 @@ protected:
 	BamTools::BamAlignment bamAlignment;
 	int fragmentLength;
 	Base* bases;
-	int* qualities;
+	int* phredIntQualities;
 
 
 	//tmp variables
@@ -60,7 +60,7 @@ public:
 		if(readLengthInitialized){
 			delete readLengthDist;
 			delete[] bases;
-			delete[] qualities;
+			delete[] phredIntQualities;
 		}
 		if(qualityDistInitialized)
 			delete qualityDist;

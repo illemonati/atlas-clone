@@ -142,10 +142,10 @@ private:
 	int phi1;
 	double phi2;
 	int maxReadLength;
-	int minQual, maxQual, maxQualPlusOne;
-	double meanQual, sdQual;
+	int minPhredInt, maxPhredInt, maxPhredIntPlusOne;
+	double meanPhred, sdPhred;
 	double trueQual;
-	TSimulatorQualityDistNormal* fakeQualityDist;
+	TSimulatorQualityDistNormal* fakePhredDist;
 	double kappa, lambda;
 
 	//position params
@@ -162,8 +162,8 @@ private:
 	//quality functions
 	void parseBQSRQualInput(TParameters & params);
 	double returnTrueError(const int & trueQual);
-	void setFakeQualityDistribution(TLog* logfile);
-	int sampleFakeQuality();
+	void setFakePhredDistribution(TLog* logfile);
+	int sampleFakePhredInt();
 
 	//position functions
 	void calculateSlopeIntercept();
@@ -181,7 +181,7 @@ private:
 public:
 	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformationBQSR(){
-		delete fakeQualityDist;
+		delete fakePhredDist;
 		if(weightsInitialized)
 			delete[] w;
 	};

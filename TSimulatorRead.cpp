@@ -12,10 +12,10 @@
 //----------------------------------
 //TSimulatorRead
 //----------------------------------
-TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRandomGenerator* RandomGenerator){
+TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator){
 	//set variables
 	randomGenerator = RandomGenerator;
-	maxPrintQual = MaxPrintQual;
+	maxPrintPhredInt = MaxPrintPhredInt;
 
 	readLengthDist = NULL;
 	readLengthInitialized = false;
@@ -36,7 +36,7 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRan
 	bamAlignment.MapQuality = 50;
 	bamAlignment.Name = "*";
 	bases = NULL;
-	qualities = NULL;
+	phredIntQualities = NULL;
 	fragmentLength = 0;
 
 	//tmp variables
@@ -73,7 +73,7 @@ void TSimulatorRead::setReadLengthDistribution(std::string s){
 
 	//initialize bases and qualities
 	bases = new Base[readLengthDist->max()];
-	qualities = new int[readLengthDist->max()];
+	phredIntQualities = new int[readLengthDist->max()];
 
 	//update status
 	readLengthInitialized = true;
@@ -166,14 +166,14 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 	applyPMD(bases, bamAlignment.Length, fragmentLength);
 
 	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(bases, qualities, bamAlignment.Length);
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
 
 	//add to alignment
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
 	for(p=0; p<bamAlignment.Length; ++p){
 		bamAlignment.QueryBases += genoMap.baseToChar[bases[p]];
-		bamAlignment.Qualities += (char) (std::min(qualities[p], maxPrintQual) + 33);
+		bamAlignment.Qualities += (char) (std::min(phredIntQualities[p], maxPrintPhredInt) + 33);
 	}
 
 	//save
