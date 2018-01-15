@@ -85,8 +85,8 @@ private:
 	double revIntercept;
 	double acceptedDelta;
 	std::string qualityDist;
-	double alpha;
-	double beta;
+//	double alpha;
+//	double beta;
 	int minReadLen;
 	int maxReadLen;
 //	std::string readLengthDist;

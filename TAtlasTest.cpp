@@ -339,8 +339,8 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	minPhredInt = params.getParameterIntWithDefault("minQual", 0);
 	maxPhredInt = params.getParameterIntWithDefault("maxQual", 60);
 	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
-	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
-	beta = params.getParameterDoubleWithDefault("beta", 0.2);
+//	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
+//	beta = params.getParameterDoubleWithDefault("beta", 0.2);
 	minReadLen = params.getParameterIntWithDefault("minReadLen", 30);
 	maxReadLen = params.getParameterIntWithDefault("maxReadLen", 100);
 //	readLengthDist = params.getParameterStringWithDefault("readLength", "gamma(alpha,beta)[min,max]");

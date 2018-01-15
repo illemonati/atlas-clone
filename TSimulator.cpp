@@ -257,7 +257,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 			BQSRString.erase(0, pos+1);
 			pos = BQSRString.find_first_of(']');
 			if(pos == std::string::npos)
-				throw "Failed to understand BQSR string: missing ']'!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
+				throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
 
 			BQSRString.erase(pos, 1);
 

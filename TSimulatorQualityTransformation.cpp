@@ -55,11 +55,11 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 		s.erase(0,1);
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
-			throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
+			throw "Failed to understand binned quality '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 		s.erase(pos,1);
 		fillVectorFromString(s, qualBins, ',');
 	} else
-		throw "Failed to understand binned quality '" + s + "'! Use binned(2,4,..,20).";
+		throw "Failed to understand binned quality '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 
 	numQualBins = qualBins.size();
 	randomGenerator = RandomGenerator;
@@ -105,12 +105,12 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	std::string orig = s;
 
 	if(s[0] != '(')
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	s.erase(0,1);
 
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	_mean = stringToDouble(s.substr(0,pos));
 	if(_mean < 0)
 		throw "Fail to understand function '" + orig + "': mean must be > 0.";
@@ -118,25 +118,25 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 
 	pos = s.find(")");
 	if(pos == std::string::npos)
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	_sd = stringToDouble(s.substr(0,pos));
 	if(_sd < 0)
 			throw "Fail to understand function '" + orig + "': sd must be > 0.";
 	s.erase(0,pos+1);
 
 	if(s[0] != '[')
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	s.erase(0,1);
 	pos = s.find(",");
 	if(pos == std::string::npos)
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	_min = stringToDouble(s.substr(0,pos));
 	if(_min < 0)
 		throw "Fail to understand function '" + orig + "': min must be >= 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
-		throw "Fail to understand function '" + orig + "': use format normal(var1,var2)[min,max].";
+		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
 	_max = stringToDouble(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand function '" + orig + "': max must be >= min!";
