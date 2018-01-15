@@ -148,10 +148,7 @@ void TSimulatorReadLengthGamma::initiate(){
 
 	//2) make table for cumulative gamma distribution
 	gammaCumulDensity[0] = gammaDensity[0];
-	for(int i=1; i < _max; ++i){
-		gammaCumulDensity[i] = gammaCumulDensity[i-1] + gammaDensity[i];
-		std::cout << i << " gammaCumulDensity[i] " << gammaCumulDensity[i] << " gammaDensity[i-1] "<< gammaDensity[i-1] << " gammaDensity[i] " << gammaDensity[i]<< std::endl;
-	}
+	for(int i=1; i < _max; ++i)	gammaCumulDensity[i] = gammaCumulDensity[i-1] + gammaDensity[i];
 
 	//3) distribution of position probabilities (=normalized 1 - cumul)
 	positionProbs[0] = 1.0; //position 1 is always present in read
