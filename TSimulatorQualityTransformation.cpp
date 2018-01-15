@@ -326,8 +326,8 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 	readLengthDist = ReadLengthDist;
 	maxReadLength = readLengthDist->max();
-	minPhredInt = qualityDist->min();
-	maxPhredInt = qualityDist->max();
+	minPhredInt = 0;
+	maxPhredInt = 42;
 	maxPhredIntPlusOne = maxPhredInt + 1;
 	meanPhred = qualityDist->mean();
 	sdPhred = qualityDist->sd();
@@ -345,6 +345,16 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 		logfile->list("revIntercept is set to 1 -> Simulating only BQSR quality effect.");
 	} else {
 		calculateSlopeIntercept();
+
+		//check if beta_q * beta_p ever results in error > 1 (if yes increase minPhredInt)
+		double betaQq = returnTrueError(minPhredInt);
+		while (betaQq * revIntercept > 1.0){
+			++minPhredInt;
+			betaQq = returnTrueError(minPhredInt);
+		}
+
+		//report
+		logfile->list("Simulating BQSR fake qualities to range from " + toString(minPhredInt) + " to " + toString(maxPhredInt));
 		logfile->list("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
 	}
 
@@ -386,6 +396,7 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 		for(int p = 0; p<maxReadLength; ++p){
 			errorBetaQBetaP[q][p] = (betaQq) * returnBetaPp(p);
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred(errorBetaQBetaP[q][p]);
+			if(q ==0) std::cout << "errorBetaQBetaP[q][p] " << errorBetaQBetaP[q][p] << std::endl;
 		}
 	}
 }
@@ -417,11 +428,6 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
 		}
 		curMean += sumP * w[q];
-//		if(q == maxQual){
-//			std::cout << "curMean " << curMean << std::endl;
-//			std::cout << "sumP " << sumP << std::endl;
-//			std::cout << "w[q] " << w[q] << std::endl;
-//		}
 	}
 
 	return(curMean);
@@ -528,17 +534,9 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 	fakePhredDist->sample(phredIntQualities,len);
 
 	for(p=0; p<len; ++p){
-		//positions should start at 1 for lookup in QBetaQBetaP table
-//		if(qualities[p] == 30 && p == 14) std::cout << "p: " << p << " " << QBetaQBetaP[qualities[p]][p+1] << std::endl;
-
-		std::cout << ">>\t" << p << "\t" << phredIntQualities[p] << "\t" << errorBetaQBetaP[phredIntQualities[p]][p] << "\t" << QBetaQBetaP[phredIntQualities[p]][p];
-
 		if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-			std::cout << "\t1" << std::endl;
-		} else std::cout << "\t0" << std::endl;
-
-
+		}
 	}
 }
 
