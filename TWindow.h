@@ -31,7 +31,7 @@ public:
 	TSite* sites;
 	bool sitesInitialized;
 	int numReadsInWindow;
-	double depth, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
+	double depth, fractionSitesNoData, fractionsitesDepthAtLeastTwo;
 	double fractionRefIsN;
 	long numSitesWithData;
 	TBaseFrequencies baseFreq;
@@ -58,12 +58,12 @@ public:
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
-	virtual void calcCoverage();
+	virtual void calcDepth();
 	void calcFracN();
-	void calcDepthPerSite(long * siteCoverage, size_t maxCov);
+	void calcDepthPerSite(long * siteDepth, size_t maxCov);
 	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
-	void applyCoverageFilter(int minCoverage, size_t maxCoverage);
-	void createDepthMask(size_t minCoverage, size_t maxCoverage, std::ofstream & outputMaskFile, std::string & chr);
+	void applyDepthFilter(int minDepth, size_t maxDepth);
+	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);

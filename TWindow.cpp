@@ -20,7 +20,7 @@ TWindow::TWindow(){
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
-	fractionsitesCoverageAtLeastTwo = -1.0;
+	fractionsitesDepthAtLeastTwo = -1.0;
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
@@ -47,7 +47,7 @@ void TWindow::initSites(long newLength){
 	sitesInitialized = true;
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
-	fractionsitesCoverageAtLeastTwo = -1.0;
+	fractionsitesDepthAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
 }
 
@@ -56,7 +56,7 @@ void TWindow::clear(){
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
-	fractionsitesCoverageAtLeastTwo = -1.0;
+	fractionsitesDepthAtLeastTwo = -1.0;
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
@@ -269,7 +269,7 @@ void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std:
 	}
 }
 
-void TWindow::calcCoverage(){
+void TWindow::calcDepth(){
 	//calculate and return coverage
 	depth = 0.0;
 	long noData = 0;
@@ -285,7 +285,7 @@ void TWindow::calcCoverage(){
 	depth = depth / (double) length;
 	numSitesWithData = length - noData;
 	fractionSitesNoData = (double) noData / (double) length;
-	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
+	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
 }
 
 void TWindow::calcFracN(){
@@ -294,7 +294,7 @@ void TWindow::calcFracN(){
 	fractionRefIsN = numN / (double) length;
 }
 
-void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
+void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 	//calculate and return coverage
 	depth = 0.0;
 	long noData = 0;
@@ -303,8 +303,8 @@ void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 
 	for(int i=0; i<length; ++i){
 		cov = sites[i].depth();
-		if(cov <= maxCov)	siteCoverage[cov] += 1;
-		else siteCoverage[maxCov + 1] += 1; //else it should be in the "greater than" bin
+		if(cov <= maxDepth)	siteDepth[cov] += 1;
+		else siteDepth[maxDepth + 1] += 1; //else it should be in the "greater than" bin
 
 		if(cov == 0) ++ noData;
 		else if(cov > 1) ++ plentyData;
@@ -312,7 +312,7 @@ void TWindow::calcDepthPerSite(long* siteCoverage, size_t maxCov){
 
 	depth = depth / (double) length;
 	fractionSitesNoData = (double) noData / (double) length;
-	fractionsitesCoverageAtLeastTwo = (double) plentyData / (double) length;
+	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
 }
 
 void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
@@ -322,10 +322,10 @@ void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
 	}
 }
 
-void TWindow::applyCoverageFilter(int minCoverage, size_t maxCoverage){
+void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			if(sites[i].bases.size() < minCoverage || sites[i].bases.size() > maxCoverage)
+			if(sites[i].bases.size() < minDepth || sites[i].bases.size() > maxDepth)
 				sites[i].clear();
 		}
 	}

@@ -62,8 +62,8 @@ private:
 	TBedReader* mask;
 	bool doMasking, considerRegions;
 	bool doCpGMasking;
-	bool applyCoverageFilter;
-	size_t minCoverage, maxCoverage;
+	bool applyDepthFilter;
+	size_t minDepth, maxDepth;
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;

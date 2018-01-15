@@ -123,13 +123,13 @@ public:
 				logfile->startIndent("Downsampling a bam file (task = downSampleReads):");
 				genome.downSampleReads(*parameters);
 			} else if(task == "BAMDiagnostics"){
-				logfile->startIndent("Estimating approximate coverage, read length frequencies and mapping quality frequencies (task = BAMDiagnostics):");
+				logfile->startIndent("Estimating approximate depth, read length frequencies and mapping quality frequencies (task = BAMDiagnostics):");
 				genome.diagnoseBamFile(*parameters);
-			} else if(task == "coveragePerWindow"){
-				logfile->startIndent("Estimating coverage per window (task = coveragePerWindow):");
+			} else if(task == "depthPerWindow"){
+				logfile->startIndent("Estimating depth per window (task = depthPerWindow):");
 				genome.estimateApproximateDepthPerWindow(*parameters);
-			} else if(task == "coveragePerSite"){
-				logfile->startIndent("Estimating coverage per site (task = coveragePerSite):");
+			} else if(task == "depthPerSite"){
+				logfile->startIndent("Estimating depth per site (task = depthPerSite):");
 				genome.estimateDepthPerSite(*parameters);
 			} else if(task == "writeDepthPerSite"){
 				logfile->startIndent("Writing depth per site (task = writeDepthPerSite):");

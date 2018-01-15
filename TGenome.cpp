@@ -120,37 +120,37 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else considerRegions = false;
 
 	//filters
-	if(params.parameterExists("minCoverage") || params.parameterExists("maxCoverage")){
-		applyCoverageFilter = true;
+	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
+		applyDepthFilter = true;
 		int tmpInt;
-		tmpInt = params.getParameterIntWithDefault("minCoverage", 0);
-		if(tmpInt < 0) throw "minCoverage must be >= 0!";
-		minCoverage = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxCoverage", 1000000);
-		if(tmpInt < minCoverage) throw "maxCoverage must be >= minCoverage!";
-		maxCoverage = tmpInt;
-		logfile->list("Will filter out sites with coverage < " + toString(minCoverage) + " or > " + toString(maxCoverage));
+		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
+		if(tmpInt < 0) throw "minDepth must be >= 0!";
+		minDepth = tmpInt;
+		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
+		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
+		maxDepth = tmpInt;
+		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
 	} else {
-		applyCoverageFilter = false;
-		minCoverage = 0;
-		maxCoverage = 1000000;
+		applyDepthFilter = false;
+		minDepth = 0;
+		maxDepth = 1000000;
 	}
 
 	//quality filters
-	int minQuality = params.getParameterIntWithDefault("minQual", 1);
-	if(minQuality < 0) throw "minQual must be >= 0!";
+	int minPhredInt = params.getParameterIntWithDefault("minQual", 1);
+	if(minPhredInt < 0) throw "minQual must be >= 0!";
 	int maxQuality = params.getParameterIntWithDefault("maxQual", 93);
-	if(maxQuality < minQuality) throw "maxQual must be >= minQual!";
-	alignmentParser.setQualityFilters(minQuality+33, maxQuality+33);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minQuality) + ", " + toString(maxQuality) + "]");
+	if(maxQuality < minPhredInt) throw "maxQual must be >= minQual!";
+	alignmentParser.setQualityFilters(minPhredInt+33, maxQuality+33);
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxQuality) + "]");
 
 	//quality filters for printing
-	minQuality = params.getParameterIntWithDefault("minOutQual", 1);
-	if(minQuality < 0) throw "minOutQual must be >= 0!";
+	minPhredInt = params.getParameterIntWithDefault("minOutQual", 1);
+	if(minPhredInt < 0) throw "minOutQual must be >= 0!";
 	maxQuality = params.getParameterIntWithDefault("maxOutQual", 93);
-	if(maxQuality < minQuality) throw "maxOutQual must be >= minOutQual!";
-	alignmentParser.setQualityRangeForPrinting(minQuality+33, maxQuality+33);
-	logfile->list("Will print qualities truncated to [" + toString(minQuality) + ", " + toString(maxQuality) + "]");
+	if(maxQuality < minPhredInt) throw "maxOutQual must be >= minOutQual!";
+	alignmentParser.setQualityRangeForPrinting(minPhredInt+33, maxQuality+33);
+	logfile->list("Will print qualities truncated to [" + toString(minPhredInt) + ", " + toString(maxQuality) + "]");
 
 	//other filters
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
@@ -405,20 +405,20 @@ bool TGenome::readData(TWindowPair & windowPair){
 			logfile->listFlush("Masking CpG sites ...");
 			windowPair.curPointer->maskCpG(reference, chrNumber);
 			logfile->done();
-		} if(applyCoverageFilter){
-			windowPair.curPointer->applyCoverageFilter(minCoverage, maxCoverage);
+		} if(applyDepthFilter){
+			windowPair.curPointer->applyDepthFilter(minDepth, maxDepth);
 		} if(maxRefN < 1.0 && fastaReference == true){
 			windowPair.curPointer->addReferenceBaseToSites(reference, chrNumber);
 			windowPair.curPointer->calcFracN();
 		}
 
-		//calc coverage
-		windowPair.curPointer->calcCoverage();
+		//calc sequencing depth
+		windowPair.curPointer->calcDepth();
 
 		//report
 		logfile->conclude("read data from " + toString(windowPair.curPointer->numReadsInWindow) + " reads.");
 		logfile->conclude("sequencing depth is " + toString(windowPair.curPointer->depth));
-		logfile->conclude(toString(windowPair.curPointer->fractionsitesCoverageAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(windowPair.curPointer->fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
 		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
 		if(windowPair.curPointer->fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
@@ -1453,7 +1453,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 void TGenome::createDepthMask(TParameters & params){
 	int minDepthForMask = params.getParameterInt("minDepthForMask");
 	int maxDepthForMask = params.getParameterInt("maxDepthForMask");
-	if(params.parameterExists("maxCoverage") || params.parameterExists("minCoverage")) throw "Cannot mask sites for sequencing depth while creating the mask!";
+	if(params.parameterExists("maxDepth") || params.parameterExists("minDepth")) throw "Cannot mask sites for sequencing depth while creating the mask!";
 
 	std::ofstream output;
 	std::string outputFileName = outputName + "_minDepth"+ toString(minDepthForMask) + "_maxDepth" + toString(maxDepthForMask) + "_depthMask.bed";
@@ -2518,11 +2518,11 @@ void TGenome::downSampleReads(TParameters & params){
 
 void TGenome::diagnoseBamFile(TParameters & params){
     //open output files
-    std::ofstream outputCoverage;
-    std::string outputFileNameCov = outputName + "_approximateCoverage.txt";
+    std::ofstream outputDepth;
+    std::string outputFileNameCov = outputName + "_approximateDepth.txt";
     logfile->list("Writing sequencing depth estimates to '" + outputFileNameCov + "'");
-    outputCoverage.open(outputFileNameCov.c_str());
-    if(!outputCoverage) throw "Failed to open output file '" + outputFileNameCov + "'!";
+    outputDepth.open(outputFileNameCov.c_str());
+    if(!outputDepth) throw "Failed to open output file '" + outputFileNameCov + "'!";
 
     std::ofstream outputMQ;
     std::string outputFileNameMQ = outputName + "_MQ.txt";
@@ -2605,12 +2605,12 @@ void TGenome::diagnoseBamFile(TParameters & params){
     logfile->listFlush("Writing to output files ...");
 
     //cov
-    outputCoverage << "RG\tApproximate_depth";
-    outputCoverage << "\nallReadGroups\t" << totCov/totLength;
+    outputDepth << "RG\tApproximate_depth";
+    outputDepth << "\nallReadGroups\t" << totCov/totLength;
     for(int r=0; r<readGroups.numGroups; ++r){
-        outputCoverage << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
+        outputDepth << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
     }
-    outputCoverage << "\n";
+    outputDepth << "\n";
 
 
     //MQ
@@ -2652,7 +2652,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     logfile->done();
 
-    outputCoverage.close();
+    outputDepth.close();
     outputMQ.close();
     outputReadLen.close();
     fragmentStats.close();
