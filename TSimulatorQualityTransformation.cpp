@@ -396,7 +396,6 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 		for(int p = 0; p<maxReadLength; ++p){
 			errorBetaQBetaP[q][p] = (betaQq) * returnBetaPp(p);
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred(errorBetaQBetaP[q][p]);
-			if(q ==0) std::cout << "errorBetaQBetaP[q][p] " << errorBetaQBetaP[q][p] << std::endl;
 		}
 	}
 }

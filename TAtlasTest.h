@@ -77,9 +77,9 @@ private:
 	std::string bamFileName;
 	std::string fastaFileName;
 	int meanQual;
-	double sdQual;
-	int minQual;
-	int maxQual;
+	double sdphredInt;
+	int minPhredInt;
+	int maxPhredInt;
 	int phi1;
 	double phi2;
 	double revIntercept;

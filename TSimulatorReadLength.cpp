@@ -12,7 +12,6 @@
 //TSimulatorReadLength
 //---------------------------------------------------------
 TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator){
-	std::cout << "in TsimulatorReadLen cstr with s" << std::endl;
 	randomGenerator = RandomGenerator;
 
 	//expect string (x) -> remov ( and )!
@@ -31,8 +30,6 @@ TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* Ra
 };
 
 TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
-	std::cout << "in TsimulatorReadLen cstr without s" << std::endl;
-
 	randomGenerator = RandomGenerator;
 	meanLength = -1;
 	cumulAtMin = 0.0;

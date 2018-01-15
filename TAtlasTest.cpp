@@ -335,10 +335,10 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterIntWithDefault("meanQual", 30);
-	sdQual = params.getParameterDoubleWithDefault("sdQual", 20);
-	minQual = params.getParameterIntWithDefault("minQual", 0);
-	maxQual = params.getParameterIntWithDefault("maxQual", 60);
-	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdQual) + ")[" + toString(minQual) + "," + toString(maxQual) + "]");
+	sdphredInt = params.getParameterDoubleWithDefault("sdQual", 10);
+	minPhredInt = params.getParameterIntWithDefault("minQual", 0);
+	maxPhredInt = params.getParameterIntWithDefault("maxQual", 60);
+	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 	beta = params.getParameterDoubleWithDefault("beta", 0.2);
 	minReadLen = params.getParameterIntWithDefault("minReadLen", 30);
@@ -388,9 +388,8 @@ bool TAtlasTest_BQSRSimulation::run(){
 
 	//3) check if results are OK
 	//--------------------------
-	return checkBQSRQualityFile();
-	return checkBQSRPositionFile();
-
+	if(checkBQSRQualityFile() == true && checkBQSRPositionFile() == true) return true;
+	else return false;
 };
 
 double TAtlasTest_BQSRSimulation::trueQual(int & phi1, double & phi2, int & fakeQual){
@@ -431,7 +430,6 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 
 	//parse file line by line check contents
 	logfile->listFlush("Parsing file ...");
-	std::cout << std::endl;
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
@@ -443,7 +441,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 			std::cout << QualityScore << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
 			++unacceptablesCount;
 		}
-		if(Log10Observations >= 5.5 && (EmpiricalQuality > maxEmpiricQual)){
+		if(Log10Observations >= 4.5 && (EmpiricalQuality > maxEmpiricQual)){
 			maxEmpiricQual = EmpiricalQuality;
 		}
 	}
@@ -509,7 +507,6 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 
 	//parse file line by line check contents
 	logfile->listFlush("Parsing file ...");
-	std::cout << std::endl;
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
