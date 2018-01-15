@@ -2024,7 +2024,10 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			//check length
 			if(bamAlignment.Length == singleEndRGIT->second.maxLen)
 				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(bamAlignment.Length > singleEndRGIT->second.maxLen && !allowForLarger) logfile->warning("Length of read in read group '" + readGroup + "' is > max length provided!");
+			else if(bamAlignment.Length > singleEndRGIT->second.maxLen){
+				if(allowForLarger) bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
+				else logfile->warning("Length of read in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+			}
 		}
 
 		//write
@@ -2822,7 +2825,6 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 	delete[] siteDepthNormalized;
 
 }
-
 
 void TGenome::writeDepthPerSite(TParameters & params){
 	gz::ogzstream out;

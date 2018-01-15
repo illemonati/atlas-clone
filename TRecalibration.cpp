@@ -793,7 +793,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
 		model = new TRecalibrationEMModel(numReadGroups);
 	} else if(modelTag == "noContext"){
-		logfile->list("Will use full model with quality, quality squared, position, position squared and one intercept.");
+		logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
 		model = new TRecalibrationEMModelNoContext(numReadGroups);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 
