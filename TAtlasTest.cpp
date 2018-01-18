@@ -334,10 +334,10 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
-	meanQual = params.getParameterIntWithDefault("meanQual", 30);
+	meanQual = params.getParameterIntWithDefault("meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("sdQual", 10);
 	minPhredInt = params.getParameterIntWithDefault("minQual", 0);
-	maxPhredInt = params.getParameterIntWithDefault("maxQual", 60);
+	maxPhredInt = params.getParameterIntWithDefault("maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 //	beta = params.getParameterDoubleWithDefault("beta", 0.2);
@@ -346,7 +346,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 //	readLengthDist = params.getParameterStringWithDefault("readLength", "gamma(alpha,beta)[min,max]");
 	positionEffectSlope = params.getParameterDoubleWithDefault("positionEffectSlope", 0.0144928);
 	positionEffectIntercept = params.getParameterDoubleWithDefault("positionEffectIntercept", 0.485507);
-	phi1 = params.getParameterIntWithDefault("phi1", 40);
+	phi1 = params.getParameterIntWithDefault("phi1", 35);
 	phi2 = params.getParameterDoubleWithDefault("phi2", 1.2);
 	revIntercept = params.getParameterDoubleWithDefault("revIntercept", 1.5);
 	acceptedDelta = params.getParameterDoubleWithDefault("acceptedDelta", 1);
