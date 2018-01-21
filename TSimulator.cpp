@@ -247,8 +247,8 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 
 	//BQSR
 	//****
-	else if(params.parameterExists("BQSR")){
-		std::string BQSRString = params.getParameterString("BQSR");
+	else if(params.parameterExists("BQSRTransformation")){
+		std::string BQSRString = params.getParameterString("BQSRTransformation");
 		pos = BQSRString.find_first_of('[');
 
 		//Option 1: BQSR from numbers: a single one valid for all read groups.

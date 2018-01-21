@@ -226,7 +226,7 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const
 
 	//check if 24 betas were provided
 	if(betas.size() != 24)
-		throw "Wrong number of beta values for quality transformation (" + toString(betas.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+		throw "Wrong number of beta values for recal quality transformation (" + toString(betas.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
 
 	//precalculate stuff
 	fillTransformationTable(maxReadLength);
