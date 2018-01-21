@@ -742,10 +742,10 @@ void TSimulator::simulateDiploidHaplotypesCurChromosome(Base** haplotypes, float
 	}
 }
 
-void TSimulator::writeBEDFiles(Base** haplotypes, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile){
+void TSimulator::writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile){
 	//0-based
 	for(int l=0; l<chrIt->length; ++l){
-		if(haplotypes[0][l] == haplotypes[1][l]){
+		if(haplotypes[0][l] == haplotypes[1][l] && haplotypes[1][l] == ref[l]){
 			invariantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 		} else variantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 
@@ -826,7 +826,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		if(writeTrueGenotypes){
 			logfile->listFlush("Writing true genotypes ...");
 			haplotypes.writeGenotypes(genoFile, chrIt->name, genoMap);
-			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), invariantSitesFile, variantSitesFile);
+			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef(), invariantSitesFile, variantSitesFile);
 			logfile->done();
 		}
 
