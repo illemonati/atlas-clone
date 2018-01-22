@@ -309,7 +309,7 @@ public:
 	//phred is phred-scaled error as phred = -10 * log10(error)
 	//phredInt is (int) phred
 	//quality is phredInt + 33
-	double* phredToErrorMap;
+	double* phredIntToErrorMap;
 	double* qualityToErrorMap;
 	int* illuminaQualityBins;
 	double min;
@@ -319,18 +319,18 @@ public:
 		//only up to phred = 255, else always return 256
 		sizePhred = 256;
 		sizeQual = sizePhred + 33;
-		phredToErrorMap = new double[sizePhred];
+		phredIntToErrorMap = new double[sizePhred];
 		qualityToErrorMap = new double[sizeQual];
 
 		//initialize quality <= 0
 		for(int i=0; i<33; ++i)
 			qualityToErrorMap[i] = 1.0;
-		phredToErrorMap[0] = 1.0;
+		phredIntToErrorMap[0] = 1.0;
 
 		//and now others
 		for(int i=0; i<256; ++i){
-			phredToErrorMap[i] = phredToError(i);
-			qualityToErrorMap[i+33] = phredToErrorMap[i];
+			phredIntToErrorMap[i] = phredToError(i);
+			qualityToErrorMap[i+33] = phredIntToErrorMap[i];
 		}
 		min = phredToError(256);
 
@@ -355,7 +355,7 @@ public:
 	};
 
 	~TQualityMap(){
-		delete[] phredToErrorMap;
+		delete[] phredIntToErrorMap;
 		delete[] qualityToErrorMap;
 		delete[] illuminaQualityBins;
 	};
@@ -363,7 +363,7 @@ public:
 	double phredIntToError(int phredInt){
 		if(phredInt>255)
 			return min;
-		else return phredToErrorMap[phredInt];
+		else return phredIntToErrorMap[phredInt];
 	};
 
 	inline double phredToError(double phred){
@@ -392,7 +392,7 @@ public:
 
 	double& operator[](int phred){
 		//Note: no check on range!
-		return phredToErrorMap[phred];
+		return phredIntToErrorMap[phred];
 	};
 };
 

@@ -1887,14 +1887,14 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//create corresponding objects
 	for(int i=0; i<origNumReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDataInMemory, i);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(qualityMap.qualityToError(qualityIndex->getQuality(q)), storeDataInMemory, i);
 	}
 
 	//rewind file to beginning
 	file.clear();
 	file.seekg(0, file.beg); //rewind file to beginning
 	std::getline(file, tmpF); //skip header
-	double quality;
+	double phredEmpiric;
 	int readGroup;
 
 	//now parse file again and set empirical quality
@@ -1906,8 +1906,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			readGroup = findReadGroupIndex(vec[0], bamHeader->ReadGroups);
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				q = stringToInt(vec[1]);
-				quality = stringToDouble(vec[3]);
-				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q)].set(dePhred(quality), vec[4]);
+				phredEmpiric = stringToDouble(vec[3]);
+				BQSR_cells_readGroup_quality[readGroup][qualityIndex->getIndex(q+33)].set(qualityMap.phredToError(phredEmpiric), vec[4]);
 			} else throw "readGroup " + vec[0] + " does not exist in BAM file header!";
 		}
 	}

@@ -364,7 +364,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("chrLength", "5000000");
 	_testParams.addParameter("refDiv", "0.0");
 	_testParams.addParameter("ploidy", "1");
-	_testParams.addParameter("BQSR", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
+	_testParams.addParameter("BQSRTransformation", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
 

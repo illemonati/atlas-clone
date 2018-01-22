@@ -203,7 +203,7 @@ void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, in
 
 	//add errors
 	for(p=0; p<len; ++p){
-		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[qualities[p]])
+		if(randomGenerator->getRand() < qualityMap.phredIntToErrorMap[qualities[p]])
 			bases[p] = static_cast<Base>((bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 	}
 };
@@ -309,7 +309,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 	//add errors and transform qualities
 	previousBase = N;
 	for(p=0; p<len; ++p){
-		if(randomGenerator->getRand() < qualityMap.phredToErrorMap[qualities[p]])
+		if(randomGenerator->getRand() < qualityMap.phredIntToErrorMap[qualities[p]])
 			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
 
 		//transform qualities
@@ -521,7 +521,7 @@ void TSimulatorQualityTransformationBQSR::setFakePhredDistribution(TLog* logfile
 }
 
 double TSimulatorQualityTransformationBQSR::returnTrueError(const int & fakePhredInt){
-	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakePhredInt) + qualityMap.phredToErrorMap[phi1]);
+	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakePhredInt) + qualityMap.phredIntToErrorMap[phi1]);
 }
 
 double TSimulatorQualityTransformationBQSR::returnBetaPp(const int & pos){
