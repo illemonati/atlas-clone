@@ -1843,7 +1843,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 		for(int i=0; i<numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 			for(int q=0; q<qualityIndex->numQ; ++q){
-				BQSR_cells_readGroup_quality[i][q].init(dePhred(qualityIndex->getQuality(q)), storeDataInMemory, i);
+				BQSR_cells_readGroup_quality[i][q].init(qualityMap.phredIntToErrorMap[qualityIndex->getPhredInt(q)], storeDataInMemory, i);
 			}
 		}
 	}
@@ -1887,7 +1887,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//create corresponding objects
 	for(int i=0; i<origNumReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
-		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(qualityMap.qualityToError(qualityIndex->getQuality(q)), storeDataInMemory, i);
+		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(qualityMap.qualityToError(qualityIndex->getPhredInt(q)), storeDataInMemory, i);
 	}
 
 	//rewind file to beginning
@@ -2642,7 +2642,7 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int i=0; i<origNumReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
-			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << makePhred(BQSR_cells_readGroup_quality[readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].getNumObsForPrinting();
+			out << it->ID << "\t" << qualityIndex->getPhredInt(q) << "\tM\t" << qualityMap.errorToPhred(BQSR_cells_readGroup_quality[readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
 			out << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].F << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].estimationConverged;
 			out << "\n";
@@ -2728,7 +2728,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceQuality(std::string & filenam
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
 	for(int r=0; r<numReadGroups; ++r, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
-			BQSR_cells_readGroup_quality[r][q].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(qualityIndex->getQuality(q)), out);
+			BQSR_cells_readGroup_quality[r][q].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(qualityIndex->getPhredInt(q)), out);
 		}
 	}
 	out.close();

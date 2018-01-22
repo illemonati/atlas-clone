@@ -54,7 +54,7 @@ public:
 		return index[quality];
 	};
 
-	int getQuality(const int & index){
+	int getPhredInt(const int & index){
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
@@ -87,7 +87,7 @@ public:
 
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
-	int makePhredInt(double & epsilon){
+/*	int makePhredInt(double & epsilon){
 		return round(-10.0 * log10(epsilon));
 	};
 
@@ -100,7 +100,7 @@ public:
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
 	};
-
+*/
 	double dePhred(double quality){
 		return pow(10.0, quality / -10.0);
 	};
