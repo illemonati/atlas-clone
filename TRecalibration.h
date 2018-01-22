@@ -196,7 +196,7 @@ public:
 	uint8_t* context;
 	uint8_t* readGroup;
 	float* P_g_given_d_oldBeta;
-	uint8_t numReads;
+	int numReads;
 	bool initialized;
 
 	TRecalibrationEMSite();
