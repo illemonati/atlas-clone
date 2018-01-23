@@ -208,7 +208,7 @@ void TAlignmentParser::parseBasesQualities(){
 					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
-					//need to initialize quality for quality filter
+					//need to initialize quality for quality filter and bases for context
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = -1;
