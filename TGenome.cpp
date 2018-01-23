@@ -2952,7 +2952,6 @@ void TGenome::runPMDS(TParameters & params){
 
 		if(alignmentParser.passedFilters){
 			//recalibrate quality scores
-			alignmentParser.parse();
 			alignmentParser.recalibrate(*recalObject);
 
 			//calc PMD

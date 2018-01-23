@@ -265,21 +265,12 @@ void TAlignmentParser::parseBasesQualities(){
 	length = k;
 	if(length != bamAlignment.Length)
 		throw "Length mismatch!";
-
-	//apply filters
-	//TODO: should that be on the recalibrated quality scores instead???
-	if(applyQualityFilter)
-		filterForBaseQuality();
 };
 
 void TAlignmentParser::filterForBaseQuality(){
 	//set base to N if outside quality filter
 	for(d=0; d<length; ++d){
-		if(qualityOriginal[d] != -1 && (qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual)){
-			if(qualityOriginal[d] > 200){
-				throw "done!";
-			}
-
+		if(qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual){
 			base[d] = N;
 		}
 	}
@@ -433,6 +424,11 @@ void TAlignmentParser::parse(){
 
 		//fill context for each base
 		fillContext();
+
+		//apply filters
+		//TODO: should that be on the recalibrated quality scores instead???
+		if(applyQualityFilter)
+			filterForBaseQuality();
 
 		parsed = true;
 	}
