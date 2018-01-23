@@ -33,7 +33,7 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.addParameter("qualityDist", qualityDist);
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("ploidy", "1");
-	_testParams.addParameter("recal", recalParamString);
+	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
 
@@ -46,6 +46,8 @@ bool TAtlasTest_recalSimulation::run(){
 	//1) Run recal
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
+//	_testParams.addParameter("recal", filenameTag + "_recalibrationEM.txt");
+
 
 	if(!runTGenomeFromInputfile("recal"))
 		return false;
@@ -86,7 +88,7 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
 	repeatIndexes(tmpVec, trueParams);
 
-	for(unsigned int i=0; i<estimatedParams.size(); ++i){
+	for(unsigned int i=1; i<estimatedParams.size(); ++i){ //first one is read group name
 		if(estimatedParams[i] != trueParams[i]){
 			logfile->newLine();
 			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i]));
