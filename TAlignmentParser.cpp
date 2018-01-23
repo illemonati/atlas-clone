@@ -181,8 +181,8 @@ void TAlignmentParser::parseBasesQualities(){
 
 	cigarIter = bamAlignment.CigarData.begin();
 	cigarEnd  = bamAlignment.CigarData.end();
-
-	for( ; cigarIter != cigarEnd; ++cigarIter ){
+	int counter = 0;
+	for( ; cigarIter != cigarEnd; ++cigarIter, ++counter ){
 		const BamTools::CigarOp& op = (*cigarIter);
 		switch ( op.Type ) {
 
@@ -208,6 +208,13 @@ void TAlignmentParser::parseBasesQualities(){
 					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
+					//need to initialize quality for quality filter
+					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
+					baseAsChar[d] = bamAlignment.QueryBases[k];
+					qualityOriginal[d] = -1;
+					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					aligned[d] = false;
+					alignedPos[d] = -1;
 				}
 				break;
 
@@ -268,8 +275,13 @@ void TAlignmentParser::parseBasesQualities(){
 void TAlignmentParser::filterForBaseQuality(){
 	//set base to N if outside quality filter
 	for(d=0; d<length; ++d){
-		if(qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual)
+		if(qualityOriginal[d] != -1 && (qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual)){
+			if(qualityOriginal[d] > 200){
+				throw "done!";
+			}
+
 			base[d] = N;
+		}
 	}
 };
 
