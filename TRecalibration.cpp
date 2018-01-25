@@ -128,7 +128,7 @@ double TRecalibration::getErrorRate(const int & readGroupId, const int & quality
 }
 
 double TRecalibration::getErrorRateFromBase(const TBase & base){
-	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
+	return getErrorRate(base.readGroup, base.phredInt, base.posInRead, base.posInReadRev, base.context);
 }
 
 //---------------------------------------------------------------
@@ -498,7 +498,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 		// - transformed quality
 		// - square of transformed quality
 
-		eps = qualiMap.qualityToErrorMap[(*it)->quality];
+		eps = qualiMap.qualityToErrorMap[(*it)->phredInt];
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
@@ -1268,7 +1268,7 @@ double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quali
 	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
-int TRecalibrationEM::getQuality(const TBase & base){
+int TRecalibrationEM::getphredInt(const TBase & base){
 	double q = getErrorRateFromBase(base);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
@@ -1621,7 +1621,7 @@ void TBQSR_cellPosition::addToLL(float & D, float & epsilon){
 }
 
 float TBQSR_cellPosition::getEpsilon(TBase* base){
-	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredInt)].curEstimate;
 }
 
 void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
@@ -1764,7 +1764,7 @@ void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualit
 }
 
 float TBQSR_cellPositionRev::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredInt)].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	return  epsilonAlpha;
 }
@@ -1798,7 +1798,7 @@ void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityInd
 }
 
 float TBQSR_cellContext::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->phredInt)].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->posInReadRev].curEstimate;
 	return  epsilonAlpha;
@@ -2295,7 +2295,7 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->phredInt)].addBase(*it, refBase);
 			}
 		}
 		else if(considerPosition && !positionConverged){
@@ -2879,7 +2879,7 @@ double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & qua
 	return q;
 }
 
-int TRecalibrationBQSR::getQuality(const TBase & base){
+int TRecalibrationBQSR::getphredInt(const TBase & base){
 	double q = getErrorRateFromBase(base);
 	//transform to quality
 	return qualityMap.errorToQuality(q);

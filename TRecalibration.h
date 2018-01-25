@@ -88,7 +88,7 @@ public:
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
 	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
-		int qual = getQuality(base) + 33;
+		int qual = getphredInt(base) + 33;
 		if(qual > maxOutQuality) qual = maxOutQuality;
 		if(qual < minOutQuality) qual = minOutQuality;
 		return qual;
@@ -100,8 +100,8 @@ public:
 	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 		return quality;
 	}
-	virtual int getQuality(const TBase & base){
-		return base.quality;
+	virtual int getphredInt(const TBase & base){
+		return base.phredInt;
 	};
 
 	virtual bool requiresEstimation(){ return false;};
@@ -266,7 +266,7 @@ public:
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getQuality(const TBase & base);
+	int getphredInt(const TBase & base);
 	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
@@ -499,7 +499,7 @@ public:
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getQuality(const TBase & base);
+	int getphredInt(const TBase & base);
 	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 
