@@ -91,7 +91,7 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 	for(unsigned int i=1; i<estimatedParams.size(); ++i){ //first one is read group name
 		if(estimatedParams[i] != trueParams[i]){
 			logfile->newLine();
-			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i]));
+			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i-1]));
 		}
 
 	}
@@ -300,3 +300,51 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 
 	return true;
 }
+
+//------------------------------------------
+//TAtlasTest_qualityTransformation
+//------------------------------------------
+
+TAtlasTest_qualityTransformation::TAtlasTest_qualityTransformation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+	_name = "qualityTransformation";
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + ".bam";
+	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "1,0{23}");
+
+}
+
+bool TAtlasTest_qualityTransformation::run(){
+
+	//TODO: find minimal data necessary to run test in order to speed up
+
+	//1) Run ATLAS to simulate BAM file
+	//-----------------------------
+	_testParams.addParameter("out", filenameTag);
+	_testParams.addParameter("chrLength", "2000000");
+	_testParams.addParameter("ploidy", "2");
+	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
+	_testParams.addParameter("readLength", "fixed(70)");
+
+
+	if(!runTGenomeFromInputfile("simulate"))
+		return false;
+
+	logfile->newLine();
+
+	//1) Run recal
+	//-----------------------------
+	_testParams.addParameter("bam", bamFileName);
+	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
+
+
+	if(!runTGenomeFromInputfile("qualityTransformation"))
+		return false;
+
+
+	//3) check if results are OK
+	//--------------------------
+//	if(checkRecalFile() == true) return true;
+//	else return false;
+	return false;
+};
+

@@ -72,5 +72,20 @@ public:
 
 };
 
+//------------------------------------------
+//TAtlasTest_qualityTransformation
+//------------------------------------------
+class TAtlasTest_qualityTransformation:public TAtlasTest{
+private:
+	std::string filenameTag;
+	std::string bamFileName;
+	std::string recalParamString;
+
+public:
+	TAtlasTest_qualityTransformation(TParameters & params, TLog* logfile);
+	~TAtlasTest_qualityTransformation(){};
+	bool run();
+
+};
 
 #endif /* TATLASTESTRECALIBRATION_H_ */

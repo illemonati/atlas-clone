@@ -46,6 +46,8 @@ public:
 		testMap.emplace_back("pileup", &createInstance<TAtlasTest_pileup>);
 		testMap.emplace_back("recalSimulation", &createInstance<TAtlasTest_recalSimulation>);
 		testMap.emplace_back("BQSRSimulation", &createInstance<TAtlasTest_BQSRSimulation>);
+		testMap.emplace_back("qualityTransformation", &createInstance<TAtlasTest_qualityTransformation>);
+
 
 
 		//fill map of test suites

@@ -189,11 +189,10 @@ void TRecalibrationEMModel::initialize(int NumReadGroups){
 }
 
 bool TRecalibrationEMModel::setParams(std::vector<std::string> & vec, int & rg){
-	if(vec.size() < (numParams + 1)) return false;
-	std::vector<std::string>::iterator it = vec.begin(); ++it; //skype name of read group in first column
-	for(int i=0; i<numParams; ++i, ++it){
-		betas[rg][i] = stringToDouble(*it);
-	}
+	if(vec.size() < numParams) return false;
+//	std::vector<std::string>::iterator it = vec.begin(); ++it; //skip name of read group in first column
+	for(int i=0; i<numParams; ++i)
+		betas[rg][i] = stringToDouble(vec[i]);
 	return true;
 }
 
@@ -799,7 +798,33 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 
 	//Are the values provided?
 	estimatetionRequired = false;
-	if(args.parameterExists("recal")){ //ToDo: Super ugly hack.... find better solution.
+
+	//is the filename actually a string of recal parameters?
+	std::string::size_type pos = name.find_first_of('[');
+	if(pos != std::string::npos){
+		name.erase(0, pos+1);
+		pos = name.find_first_of(']');
+		if(pos == std::string::npos)
+			throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or the betas as '[beta_q,beta_q2,beta_p,beta_p2,...(beta for all 20 context)...]";
+		name.erase(pos, 1);
+		//initialize all read groups to recal parameters given in name
+		logfile->list("Will use '" + name + "' for all read groups.");
+		std::vector<std::string> tmpVec, vec;
+		fillVectorFromString(name, tmpVec, ",");
+		repeatIndexes(tmpVec, vec);
+		for(int i=0; i<numReadGroups; ++i){
+			//add to model
+//			for(int j=0; j<vec.size(); ++j){
+//				std::cout << vec[j] << std::endl;
+//			}
+			if(!model->setParams(vec, i))
+				throw "Issues initializing read group " + toString(i) + " to given recal string! Did you provide 24 parameter values?";
+		}
+	}
+
+	//filename is a file
+	else if(args.parameterExists("recal")){ //ToDo: Super ugly hack.... find better solution.
+		std::cout << "########## in file part" << std::endl;
 		//read parameters from file
 		std::string filename = name;
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -822,6 +847,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		while(file.good() && !file.eof()){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			std::cout << vec.size() << std::endl;
+
 			//skip empty lines
 			if(vec.size() > 0){
 				//find read group
@@ -830,9 +857,13 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 				rg = readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
 				rgFound[rg] = true;
 
+				//remove read group name from vector
+				vec.erase(vec.begin());
+				vec.erase(vec.end() - 1);
+
 				//add to model
 				if(!model->setParams(vec, rg))
-					throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Do you use the right model?";
+					throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Are you using the right model? Is your recal file corrupted?";
 			}
 		}
 
@@ -1244,7 +1275,7 @@ int TRecalibrationEM::getQuality(const TBase & base){
 }
 
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = model->getErrorRate(readGroupMap[readGroupId], dePhred(quality), pos, context);
+	double q = model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }

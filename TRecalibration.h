@@ -87,24 +87,6 @@ public:
 
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
-/*	int makePhredInt(double & epsilon){
-		return round(-10.0 * log10(epsilon));
-	};
-
-	double makePhred(double & epsilon){
-		if(epsilon < 0.0000000001) return 100.0;
-		return -10.0 * log10(epsilon);
-	};
-
-	double makePhred(float & epsilon){
-		if(epsilon < 0.0000000001) return 100.0;
-		return -10.0 * log10(epsilon);
-	};
-*/
-	double dePhred(double quality){
-		return pow(10.0, quality / -10.0);
-	};
-
 	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
 		int qual = getQuality(base) + 33;
 		if(qual > maxOutQuality) qual = maxOutQuality;
