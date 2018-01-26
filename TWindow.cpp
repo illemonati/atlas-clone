@@ -373,9 +373,9 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-//				std::cout << "old phredInt " << (*it)->phredInt << " new phredInt " << recalObject->getphredInt(**it) << std::endl;
-				QTtables.at((*it)->readGroup)->add((*it)->phredInt, recalObject->getphredInt(**it));
-				QTtables.at(QTtables.size() - 1)->add((*it)->phredInt, recalObject->getphredInt(**it));
+//				std::cout << "old phredInt " << (*it)->quality << " new phredInt " << recalObject->getQualityFromBase(**it) << std::endl;
+				QTtables.at((*it)->readGroup)->add((*it)->quality, recalObject->getQualityFromBase(**it));
+				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQualityFromBase(**it));
 			}
 		}
 	}
@@ -388,8 +388,8 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TReca
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-				QTtables.at((*it)->readGroup)->add(recalObject->getphredInt(**it), otherRecalObject->getphredInt(**it));
-				QTtables.at(QTtables.size() - 1)->add(recalObject->getphredInt(**it), otherRecalObject->getphredInt(**it));
+				QTtables.at((*it)->readGroup)->add(recalObject->getQualityFromBase(**it), otherRecalObject->getQualityFromBase(**it));
+				QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(**it), otherRecalObject->getQualityFromBase(**it));
 			}
 		}
 	}

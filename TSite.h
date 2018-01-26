@@ -48,7 +48,6 @@ public:
 	void clear();
 	void stealFromOther(TSite* other);
 
-	virtual void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	virtual void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){
 		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T')
@@ -119,7 +118,6 @@ public:
 	~TSiteDiploid(){
 		delete[] emissionProbabilities;
 	};
-	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 
 	//MLE callers
@@ -155,7 +153,6 @@ public:
 	~TSiteHaploid(){
 		delete[] emissionProbabilities;
 	};
-	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
 	void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out);

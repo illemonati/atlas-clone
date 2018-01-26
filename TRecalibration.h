@@ -22,25 +22,20 @@ class TQualityIndex{
 	//Note: quality as stored in bases ranges from 33 to max!
 public:
 	int minQ, maxQ, numQ, last, first;
-	int maxQPlus33;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
-		minQ = MinQ;
-		maxQ = MaxQ;
-		maxQPlus33 = maxQ + 33;
+		minQ = MinQ  + 33;
+		maxQ = MaxQ + 33;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
 		first = 0;
 
 		//fill index
-		index = new int[maxQ + 34];
-		for(int i=0; i < 34; ++i){
-			index[i] = 0;
-		}
+		index = new int[numQ + 33];
 		for(int i=0; i < maxQ + 1; ++i){
-			if(i < minQ) index[i+33] = 0;
-			else index[i+33] = i - minQ;
+			if(i < minQ) index[i] = 0;
+			else index[i] = i - minQ;
 		}
 	};
 
@@ -50,11 +45,11 @@ public:
 
 	int& getIndex(const int & quality){
 		if(quality < 33) throw "Quality is negative!";
-		if(quality > maxQPlus33) return last;
+		if(quality > maxQ) return last;
 		return index[quality];
 	};
 
-	int getPhredInt(const int & index){
+	int getQuality(const int & index){
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxQ;
 		return minQ + index;
@@ -100,12 +95,13 @@ public:
 	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 		return quality;
 	}
-	virtual int getphredInt(const TBase & base){
-		return base.phredInt;
-	};
-	virtual int getQuality(const TBase & base){
-		return base.quality;
-	};
+	virtual int getQualityFromBase(const TBase & base);
+//	virtual int getphredInt(const TBase & base){
+//		return base.phredInt;
+//	};
+//	virtual int getQuality(const TBase & base){
+//		return base.quality;
+//	};
 
 	virtual bool requiresEstimation(){ return false;};
 	int findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups);

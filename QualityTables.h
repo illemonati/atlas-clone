@@ -123,7 +123,7 @@ public:
 	double** table; //old qual / new qual
 
 	TQualityTransformTable(int MaxQ){
-		maxQ = MaxQ;
+		maxQ = MaxQ + 34;
 		table = new double*[maxQ];
 		for(int i=0; i<maxQ; ++i){
 			table[i] = new double[maxQ];
@@ -140,16 +140,16 @@ public:
 		delete[] table;
 	};
 
-	void add(int oldPhredInt, int newPhredInt){
-		if(oldPhredInt < maxQ && newPhredInt < maxQ){
-			table[oldPhredInt][newPhredInt] += 1.0;
+	void add(int oldQuality, int newQuality){
+		if(oldQuality < maxQ && newQuality < maxQ){
+			table[oldQuality][newQuality] += 1.0;
 		}
 	};
 
 	double size(){
 		double size = 0;
-		for(int i=0; i<maxQ; ++i){
-			for(int j=0; j<maxQ; ++j){
+		for(int i=33; i<maxQ; ++i){
+			for(int j=33; j<maxQ; ++j){
 				size += table[i][j];
 			}
 		}
@@ -159,16 +159,16 @@ public:
 	void printTable(std::ofstream & out){
 		//print header
 		out << "oldQ/newQ";
-		for(int i=0; i<maxQ; ++i) out << "\t" << i;
+		for(int i=33; i<maxQ; ++i) out << "\t" << i-33;
 		out << "\n";
 
 		//get total
 		double sum = size();
 
 		//print rows
-		for(int i=0; i<maxQ; ++i){
-			out << i;
-			for(int j=0; j<maxQ; ++j){
+		for(int i=33; i<maxQ; ++i){
+			out << i-33;
+			for(int j=33; j<maxQ; ++j){
 				out << "\t" << table[i][j] / sum;
 			}
 			out << "\n";
