@@ -373,7 +373,6 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-//				std::cout << "old phredInt " << (*it)->quality << " new phredInt " << recalObject->getQualityFromBase(**it) << std::endl;
 				QTtables.at((*it)->readGroup)->add((*it)->quality, recalObject->getQualityFromBase(**it));
 				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQualityFromBase(**it));
 			}

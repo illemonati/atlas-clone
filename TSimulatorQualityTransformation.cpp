@@ -278,7 +278,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 
 				transQual = exp(transQual);
 				if(transQual == 0) throw "choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = -10.0 * log10(transQual / (1.0 + transQual));
+				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
 		}
 	}

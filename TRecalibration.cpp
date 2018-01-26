@@ -134,6 +134,7 @@ double TRecalibration::getErrorRateFromBase(const TBase & base){
 int TRecalibration::getQualityFromBase(const TBase & base){
 	return qualityMap.errorToQuality(getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context));
 }
+
 //---------------------------------------------------------------
 //TRecalibrationEMModel
 //---------------------------------------------------------------
@@ -196,6 +197,7 @@ bool TRecalibrationEMModel::setParams(std::vector<std::string> & vec, int & rg){
 //	std::vector<std::string>::iterator it = vec.begin(); ++it; //skip name of read group in first column
 	for(int i=0; i<numParams; ++i)
 		betas[rg][i] = stringToDouble(vec[i]);
+
 	return true;
 }
 
@@ -336,7 +338,7 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
-	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
 	double eta = betas[rg][0] * originalErrorRate;
 
 	//q[1] is square of transformed quality
@@ -350,6 +352,7 @@ double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, con
 
 	//q[4] until q[23] are indicators for the context. Just pick the matching one!
 	eta += betas[rg][context + 4];
+
 
 	//now calculate epsilon from eta
 	if(eta > 22.2) return 0.9999999999;
@@ -827,7 +830,6 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 
 	//filename is a file
 	else if(args.parameterExists("recal")){ //ToDo: Super ugly hack.... find better solution.
-		std::cout << "########## in file part" << std::endl;
 		//read parameters from file
 		std::string filename = name;
 		logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
@@ -1271,14 +1273,20 @@ double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quali
 	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
-int TRecalibrationEM::getphredInt(const TBase & base){
-	double q = getErrorRateFromBase(base);
-	//transform to quality
-	return qualityMap.errorToPhredInt(q);
-}
+//int TRecalibrationEM::getphredInt(const TBase & base){
+//	double q = getErrorRateFromBase(base);
+//	//transform to quality
+//	return qualityMap.errorToPhredInt(q);
+//}
 
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 	double q = model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
+	//transform to quality
+	return qualityMap.errorToQuality(q);
+}
+
+int TRecalibrationEM::getQualityFromBase(const TBase & base){
+	double q = model->getErrorRate(base.readGroup, qualityMap.qualityToErrorMap[base.quality], base.posInRead, base.context);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }

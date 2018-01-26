@@ -267,6 +267,8 @@ public:
 	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	int getphredInt(const TBase & base);
 	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	int getQualityFromBase(const TBase & base);
+
 };
 
 //---------------------------------------------------------------
