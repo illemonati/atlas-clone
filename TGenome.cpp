@@ -137,20 +137,20 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	}
 
 	//quality filters
-	int minPhredInt = params.getParameterIntWithDefault("minQual", 1);
+	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
 	if(minPhredInt < 0) throw "minQual must be >= 0!";
-	int maxQuality = params.getParameterIntWithDefault("maxQual", 93);
-	if(maxQuality < minPhredInt) throw "maxQual must be >= minQual!";
-	alignmentParser.setQualityFilters(minPhredInt+33, maxQuality+33);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxQuality) + "]");
+	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
+	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
+	alignmentParser.setQualityFilters(minPhredInt+33, maxPhredInt+33);
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
 
 	//quality filters for printing
-	minPhredInt = params.getParameterIntWithDefault("minOutQual", 1);
-	if(minPhredInt < 0) throw "minOutQual must be >= 0!";
-	maxQuality = params.getParameterIntWithDefault("maxOutQual", 93);
-	if(maxQuality < minPhredInt) throw "maxOutQual must be >= minOutQual!";
-	alignmentParser.setQualityRangeForPrinting(minPhredInt+33, maxQuality+33);
-	logfile->list("Will print qualities truncated to [" + toString(minPhredInt) + ", " + toString(maxQuality) + "]");
+	minOutQual = params.getParameterIntWithDefault("minOutQual", 1) + 33;
+	if(minOutQual < 0) throw "minOutQual must be >= 0!";
+	maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
+	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
+	alignmentParser.setQualityRangeForPrinting(minOutQual, maxOutQual);
+	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
 
 	//other filters
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
@@ -1647,14 +1647,16 @@ void TGenome::BQSR(TParameters & params){
 
 void TGenome::printQualityDistribution(TParameters & params){
 	//Assemble quality distribution
-	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
-	maxQ += 33; //internally, quality is phred(error) + 33!
-	logfile->list("Will assemble quality distribution up to a quality of " + toString(maxQ-33) + " (" + (char) maxQ + ").");
+	int maxQinPrintQualityDistribution = maxPhredInt;
+//			params.getParameterIntWithDefault("maxQ", 100);
+
+	maxQinPrintQualityDistribution += 33; //internally, quality is phred(error) + 33!
+	logfile->list("Will assemble quality distribution up to a quality of " + toString(maxQinPrintQualityDistribution-33) + " (" + (char) maxQinPrintQualityDistribution + ").");
 
 	//initialize tables: one overall, one per read group
 	std::vector<TQualityTable> qualDist;
 	for(int i=0; i<readGroups.numGroups; ++i)
-		qualDist.emplace_back(maxQ);
+		qualDist.emplace_back(maxQinPrintQualityDistribution);
 
 	//vars
 	logfile->startIndent("Parsing through BAM file:");
@@ -1692,7 +1694,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	//print overall table
 	outFileName = outputName + "_total_qualityDistribution.txt";
 	logfile->listFlush("Writing total distribution to '" + outFileName + " ...");
-	TQualityTable allQualDist(maxQ);
+	TQualityTable allQualDist(maxQinPrintQualityDistribution);
 	for(int i=0; i<readGroups.numGroups; ++i)
 		allQualDist.add(qualDist[i]);
 	allQualDist.write(outFileName);

@@ -64,6 +64,8 @@ private:
 	bool doCpGMasking;
 	bool applyDepthFilter;
 	size_t minDepth, maxDepth;
+	int minPhredInt, maxPhredInt;
+	int minOutQual, maxOutQual;
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;

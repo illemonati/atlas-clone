@@ -87,12 +87,12 @@ public:
 
 	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 
-	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
+/*	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
 		int qual = getphredInt(base) + 33;
 		if(qual > maxOutQuality) qual = maxOutQuality;
 		if(qual < minOutQuality) qual = minOutQuality;
 		return qual;
-	};
+	};*/
 
 	void calcEmissionProbabilities(TSite & site);
 	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
@@ -102,6 +102,9 @@ public:
 	}
 	virtual int getphredInt(const TBase & base){
 		return base.phredInt;
+	};
+	virtual int getQuality(const TBase & base){
+		return base.quality;
 	};
 
 	virtual bool requiresEstimation(){ return false;};

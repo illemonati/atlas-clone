@@ -49,6 +49,7 @@ public:
 //---------------------------------------------------------------
 class TBase{
 public:
+	int quality;
 	int phredInt;
 	//double errorRate;
 	//double transformedLogError;
@@ -59,7 +60,12 @@ public:
 	BaseContext context;
 
 	TBase(char & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		phredInt = (int) Quality;
+		quality = (int) Quality;
+		if(quality < 33){
+			throw "qual is smaller than 33";
+		}
+		phredInt = quality - 33;
+		std::cout << "phredInt in TBase " << phredInt << std::endl;
 		//errorRate = pow(10.0, (double) quality / -10.0);
 		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;
@@ -71,7 +77,8 @@ public:
 	};
 
 	TBase(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		phredInt = Quality;
+		quality = Quality;
+		phredInt = quality - 33;
 		//errorRate = pow(10.0, (double) quality / -10.0);
 		//transformedLogError = -log(1.0 / errorRate - 1.0);
 		posInRead = PosInRead;

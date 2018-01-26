@@ -321,9 +321,12 @@ bool TAtlasTest_qualityTransformation::run(){
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "2000000");
+	_testParams.addParameter("depth", "2");
 	_testParams.addParameter("ploidy", "2");
 	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
 	_testParams.addParameter("readLength", "fixed(70)");
+	_testParams.addParameter("qualityDist", "fixed(10)");
+
 
 
 	if(!runTGenomeFromInputfile("simulate"))
@@ -331,7 +334,7 @@ bool TAtlasTest_qualityTransformation::run(){
 
 	logfile->newLine();
 
-	//1) Run recal
+	//1) Run qualityTransformation
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("recal", "recal[" + recalParamString + "]");

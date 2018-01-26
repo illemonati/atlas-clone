@@ -326,7 +326,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 	readLengthDist = ReadLengthDist;
 	maxReadLength = readLengthDist->max();
-	minPhredInt = 0;
+	minPhredInt = 1;
 	maxPhredInt = 42;
 	maxPhredIntPlusOne = maxPhredInt + 1;
 	meanPhred = qualityDist->mean();

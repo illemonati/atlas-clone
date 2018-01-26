@@ -140,9 +140,9 @@ public:
 		delete[] table;
 	};
 
-	void add(int oldQ, int newQ){
-		if(oldQ < maxQ && newQ < maxQ){
-			table[oldQ][newQ] += 1.0;
+	void add(int oldPhredInt, int newPhredInt){
+		if(oldPhredInt < maxQ && newPhredInt < maxQ){
+			table[oldPhredInt][newPhredInt] += 1.0;
 		}
 	};
 
