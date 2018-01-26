@@ -92,9 +92,7 @@ public:
 	void calcEmissionProbabilities(TSite & site);
 	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	double getErrorRateFromBase(const TBase & base);
-	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-		return quality;
-	}
+	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	virtual int getQualityFromBase(const TBase & base);
 //	virtual int getphredInt(const TBase & base){
 //		return base.phredInt;
@@ -265,10 +263,7 @@ public:
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getphredInt(const TBase & base);
 	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getQualityFromBase(const TBase & base);
-
 };
 
 //---------------------------------------------------------------
@@ -500,7 +495,6 @@ public:
 	bool allConverged();
 	void reopenEstimation();
 	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getphredInt(const TBase & base);
 	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 };
 

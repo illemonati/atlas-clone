@@ -131,8 +131,12 @@ double TRecalibration::getErrorRateFromBase(const TBase & base){
 	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
+int TRecalibration::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
+	return quality;
+}
+
 int TRecalibration::getQualityFromBase(const TBase & base){
-	return qualityMap.errorToQuality(getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context));
+	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
 //---------------------------------------------------------------
@@ -338,7 +342,9 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
+	std::cout << "first originalErrorRate " << originalErrorRate << std::endl;
 	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
+	std::cout << "originalErrorRate " << originalErrorRate << std::endl;
 	double eta = betas[rg][0] * originalErrorRate;
 
 	//q[1] is square of transformed quality
@@ -852,7 +858,6 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		while(file.good() && !file.eof()){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			std::cout << vec.size() << std::endl;
 
 			//skip empty lines
 			if(vec.size() > 0){
@@ -1273,23 +1278,12 @@ double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quali
 	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
-//int TRecalibrationEM::getphredInt(const TBase & base){
-//	double q = getErrorRateFromBase(base);
-//	//transform to quality
-//	return qualityMap.errorToPhredInt(q);
-//}
-
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 	double q = model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }
 
-int TRecalibrationEM::getQualityFromBase(const TBase & base){
-	double q = model->getErrorRate(base.readGroup, qualityMap.qualityToErrorMap[base.quality], base.posInRead, base.context);
-	//transform to quality
-	return qualityMap.errorToQuality(q);
-}
 
 //---------------------------------------------------------------
 //TBQSR_cell_base BQSR
@@ -2888,12 +2882,6 @@ double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & qua
 	if(considerContext) q *= BQSR_cells_readGroup_context[readGroupId][context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
-}
-
-int TRecalibrationBQSR::getphredInt(const TBase & base){
-	double q = getErrorRateFromBase(base);
-	//transform to quality
-	return qualityMap.errorToQuality(q);
 }
 
 int TRecalibrationBQSR::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
