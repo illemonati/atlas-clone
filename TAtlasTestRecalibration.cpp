@@ -304,15 +304,20 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 //TAtlasTest_qualityTransformation
 //------------------------------------------
 
-TAtlasTest_qualityTransformation::TAtlasTest_qualityTransformation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
 	_name = "qualityTransformation";
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "1,0{23}");
 
+	//parse true params
+	std::vector<std::string> tmpVec;
+	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
+	repeatIndexes(tmpVec, trueParams);
+
 }
 
-bool TAtlasTest_qualityTransformation::run(){
+bool TAtlasTest_qualityTransformationRecalPlain::run(){
 
 	//TODO: find minimal data necessary to run test in order to speed up
 
@@ -325,7 +330,6 @@ bool TAtlasTest_qualityTransformation::run(){
 	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
 	_testParams.addParameter("readLength", "fixed(70)");
 	_testParams.addParameter("qualityDist", "fixed(10)");
-
 
 
 	if(!runTGenomeFromInputfile("simulate"))
@@ -345,8 +349,61 @@ bool TAtlasTest_qualityTransformation::run(){
 
 	//3) check if results are OK
 	//--------------------------
-//	if(checkRecalFile() == true) return true;
+	if(readTransformationFile() == true){
+
+	}
 //	else return false;
 	return false;
 };
 
+bool TAtlasTest_qualityTransformationRecalPlain::readTransformationFile(){
+	//open quality file
+	std::string filename = filenameTag + "_qualityTransformation.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in){
+		throw "Failed to open file '" + filename + "'!";
+	}
+	//parse file line by line check contents
+	std::vector<double> tmp;
+	logfile->listFlush("Parsing file ...");
+	while(in.good() && !in.eof()){
+		fillVectorFromLineAny(in, tmp, "\t");
+		qualTransTable.push_back(tmp);
+	}
+	logfile->done();
+	return true;
+}
+
+bool TAtlasTest_qualityTransformationRecalPlain::checkTransformationBinned(std::vector<int> binnedQualScores){
+	//find true quality scores
+	double fakeError, transFakeError;
+	std::vector<int> trueQualScores;
+	for(int i=0; binnedQualScores.size(); ++i){
+		fakeError = pow(10, (double) binnedQualScores[i]/-10.0);
+		transFakeError = log(fakeError /(1.0 -fakeError));
+		transFakeError = transFakeError * trueParams[0] + transFakeError * trueParams[0];
+		for(unsigned int p=4; p<trueParams.size(); ++p){
+			transFakeError += trueParams[p];
+		}
+		trueQualScores[i] = round(-10.0 * log10(transFakeError));
+	}
+
+	double fracObservations = 1.0 / binnedQualScores.size();
+	for(int i=0; i<qualTransTable.size(); ++i){
+		for(int j=0; j<qualTransTable[0].size(); ++j){
+
+		}
+	}
+
+	return true;
+}
+
+//---------------------------------------
+TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRecalBinned(TParameters & params, TLog* logfile):TAtlasTest_qualityTransformationRecalPlain(params, logfile){
+	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0{23}");
+}
+
+bool TAtlasTest_qualityTransformationRecalBinned::run(){
+	return true;
+}

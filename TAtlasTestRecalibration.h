@@ -75,17 +75,32 @@ public:
 //------------------------------------------
 //TAtlasTest_qualityTransformation
 //------------------------------------------
-class TAtlasTest_qualityTransformation:public TAtlasTest{
+class TAtlasTest_qualityTransformationRecalPlain:public TAtlasTest{
 private:
 	std::string filenameTag;
 	std::string bamFileName;
+	std::vector<double> trueParams;
+	std::vector<std::vector<double>> qualTransTable;
+
+protected:
 	std::string recalParamString;
+	bool readTransformationFile();
+	bool checkTransformationBinned(std::vector<int> binnedQualScores);
 
 public:
-	TAtlasTest_qualityTransformation(TParameters & params, TLog* logfile);
-	~TAtlasTest_qualityTransformation(){};
-	bool run();
-
+	virtual bool run();
+	TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile);
+	virtual ~TAtlasTest_qualityTransformationRecalPlain(){};
 };
+
+//------------------------------------------
+
+class TAtlasTest_qualityTransformationRecalBinned:public TAtlasTest_qualityTransformationRecalPlain{
+public:
+	bool run();
+	TAtlasTest_qualityTransformationRecalBinned(TParameters & params, TLog* logfile);
+	~TAtlasTest_qualityTransformationRecalBinned(){};
+};
+
 
 #endif /* TATLASTESTRECALIBRATION_H_ */
