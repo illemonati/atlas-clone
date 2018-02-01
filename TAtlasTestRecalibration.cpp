@@ -309,6 +309,11 @@ TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationReca
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "1,0{23}");
+	maxReadLength = 70;
+	randomGenerator = TRandomGenerator();
+	binnedQualDist = "10";
+	qualityDist = TSimulatorQualityDistBinned(binnedQualDist, & randomGenerator);
+	recalObject = TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, & qualityDist, & randomGenerator);
 
 	//parse true params
 	std::vector<std::string> tmpVec;
@@ -328,7 +333,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("depth", "2");
 	_testParams.addParameter("ploidy", "2");
 	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
-	_testParams.addParameter("readLength", "fixed(70)");
+	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "fixed(10)");
 
 
@@ -358,7 +363,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 
 bool TAtlasTest_qualityTransformationRecalPlain::readTransformationFile(){
 	//open quality file
-	std::string filename = filenameTag + "_qualityTransformation.txt";
+	std::string filename = filenameTag + "_total_qualityTransformation.txt";
 	logfile->listFlush("Opening file '" + filename + "' for reading ...");
 	std::ifstream in(filename.c_str());
 	if(!in){
@@ -377,9 +382,10 @@ bool TAtlasTest_qualityTransformationRecalPlain::readTransformationFile(){
 
 bool TAtlasTest_qualityTransformationRecalPlain::checkTransformationBinned(std::vector<int> binnedQualScores){
 	//find true quality scores
-	double fakeError, transFakeError;
-	std::vector<int> trueQualScores;
+	std::vector<int> transformedQualScores;
 	for(int i=0; binnedQualScores.size(); ++i){
+		transformedQualScores.push_back(recalObject.getTransformedQuality(binnedQualScores[i],0,0));
+/*
 		fakeError = pow(10, (double) binnedQualScores[i]/-10.0);
 		transFakeError = log(fakeError /(1.0 -fakeError));
 		transFakeError = transFakeError * trueParams[0] + transFakeError * trueParams[0];
@@ -387,13 +393,29 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformationBinned(std::
 			transFakeError += trueParams[p];
 		}
 		trueQualScores[i] = round(-10.0 * log10(transFakeError));
+*/
 	}
 
+	//are the qualities transformed correctly?
 	double fracObservations = 1.0 / binnedQualScores.size();
-	for(int i=0; i<qualTransTable.size(); ++i){
-		for(int j=0; j<qualTransTable[0].size(); ++j){
-
+	for(unsigned int qI=0; qI<binnedQualScores.size(); ++qI){
+		if(qualTransTable[binnedQualScores[qI]][transformedQualScores[qI]] != fracObservations){
+			logfile->newLine();
+			logfile->conclude("Wrong transformation of " + toString(binnedQualScores[qI]) + "!");
 		}
+	}
+
+	//is the rest = 0?
+	double s = 0.0;
+	for(unsigned int i=0; i<qualTransTable.size(); ++i){
+		for(unsigned int j=0; j<qualTransTable[0].size(); ++j){
+			s += qualTransTable[i][j];
+		}
+	}
+	if(s != 1.0){
+		logfile->newLine();
+		logfile->conclude("Proportions in qualityTransformation table don't sum to one!");
+		return false;
 	}
 
 	return true;

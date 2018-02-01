@@ -342,9 +342,7 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
-	std::cout << "first originalErrorRate " << originalErrorRate << std::endl;
 	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
-	std::cout << "originalErrorRate " << originalErrorRate << std::endl;
 	double eta = betas[rg][0] * originalErrorRate;
 
 	//q[1] is square of transformed quality

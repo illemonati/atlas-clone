@@ -128,6 +128,9 @@ public:
 	~TSimulatorQualityTransformationRecal(){
 		clearTransformationTable();
 	};
+	int getTransformedQuality(int qual, int pos, int context){
+		return(transformedQuality[qual][pos][context]);
+	}
 	void printDetails(TLog* logfile);
 };
 
