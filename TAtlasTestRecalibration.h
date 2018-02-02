@@ -78,25 +78,30 @@ public:
 //------------------------------------------
 class TAtlasTest_qualityTransformationRecalPlain:public TAtlasTest{
 private:
-	std::string filenameTag;
-	std::string bamFileName;
 	std::vector<double> trueParams;
-	int maxReadLength;
-	TRandomGenerator randomGenerator;
-	TSimulatorQualityDist qualityDist;
 	std::vector<std::vector<double>> qualTransTable;
 
 protected:
+	std::string filenameTag;
+	std::string bamFileName;
 	std::string recalParamString;
-	std::string binnedQualDist;
-	TSimulatorQualityTransformationRecal recalObject;
+	int maxReadLength;
+	TRandomGenerator* randomGenerator;
+	std::string qualDistString;
+	std::vector<int> qualDistVec;
+	TSimulatorQualityDist* qualityDist;
+	TSimulatorQualityTransformationRecal* recalObject;
 	bool readTransformationFile();
-	bool checkTransformationBinned(std::vector<int> binnedQualScores);
+	bool checkTransformation(std::vector<int> trueQualScores);
 
 public:
 	virtual bool run();
 	TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile);
-	virtual ~TAtlasTest_qualityTransformationRecalPlain(){};
+	virtual ~TAtlasTest_qualityTransformationRecalPlain(){
+		delete randomGenerator;
+		delete qualityDist;
+		delete recalObject;
+	};
 };
 
 //------------------------------------------
