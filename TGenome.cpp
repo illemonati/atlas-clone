@@ -608,6 +608,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 
 					//adding sites to estimator
 					logfile->listFlush("Calculating emission probabilities ...");
+					thetaEstimator.clear();
 					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
 					logfile->done();
 
@@ -646,6 +647,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
 				try{
+					thetaEstimator.clear();
 					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
 				} catch(...){
 					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
@@ -750,6 +752,9 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 				logfile->listFlush("Calculating likelihood surface ...");
 				estimator.calcLikelihoodSurface(out, steps);
 				logfile->done();
+
+				//clear theta estimator
+				estimator.clear();
 
 				//finish
 				out.close();
@@ -1013,6 +1018,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							//write results to file
 							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
 							thetaEstimator->writeResultsToFile(outTheta);
+
+							//clear theta estimator
+							(*thetaEstimator).clear();
+
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();
@@ -1140,6 +1149,7 @@ void TGenome::callAllelePresence(TParameters & params){
 						if(estimateTheta){
 							//adding sites to estimator
 							logfile->listFlush("Calculating emission probabilities ...");
+							(*thetaEstimator).clear();
 							windows.cur->addSitesToThetaEstimator(recalObject, *thetaEstimator);
 							logfile->done();
 
@@ -1149,6 +1159,10 @@ void TGenome::callAllelePresence(TParameters & params){
 							//write results to file
 							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
 							thetaEstimator->writeResultsToFile(outTheta);
+
+							//clear theta estimator
+							(*thetaEstimator).clear();
+
 						} else {
 							windows.cur->calculateEmissionProbabilities(recalObject);
 							windows.cur->estimateBaseFrequencies();

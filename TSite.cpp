@@ -93,7 +93,6 @@ void TSite::calcEmissionProbabilities(double* vec){
 			vec[i] = exp(vec[i] - max);
 		}
 	}
-
 }
 
 void TSite::calcEmissionProbabilities(){
