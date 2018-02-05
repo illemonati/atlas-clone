@@ -10,16 +10,18 @@ BIN = atlas
 
 all:	$(BIN)
 
+#replace command below by the following if armadillo cannot be installed system-wide or you get linking errors:
+#$(CC) -O3 -o $(BIN) $(OBJ) -lz -lblas -llapack
+
 $(BIN):	$(OBJ)
 	$(CC) -O3 -o $(BIN) $(OBJ) -lz -larmadillo
-	#replace above line by the following if armadillo cannot be installed system-wide or you get linking errors:
-	#$(CC) -O3 -o $(BIN) $(OBJ) -lz -lblas -llapack
 	
+
+#replace command below by the following if armadillo cannot be installed system-wide or you get linking errors:
+#$(CC) -O3 -c -Ibamtools -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y $< -o $@
 
 %.o: %.cpp
 	$(CC) -O3 -c -Ibamtools -std=c++1y $< -o $@
-	#replace above line by the following if armadillo cannot be installed system-wide or you get linking errors:
-	#$(CC) -O3 -c -Ibamtools -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y $< -o $@
 	
 
 clean:
