@@ -171,6 +171,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 	std::string::size_type pos;
 	std::string line;
 	std::vector<std::string> vec;
+	std::string rgName;
 
 	//Recal
 	//*****
@@ -215,6 +216,9 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 				if(!line.empty()){
 					fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
 
+					//remove header
+					if(vec[0] == "readGroup") continue;
+
 					//check if there are repeated sim group names
 					if(qualTransformMap.find(vec[0]) != qualTransformMap.end())
 						throw "Duplicated read group name '" + vec[0] + "'in file '" + recalString + "'!";
@@ -233,9 +237,13 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 						if(vec.size() == 26)
 							vec.pop_back();
 
+						//remove RG name
+						rgName = vec[0];
+						vec.erase(vec.begin());
+
 						//save to map
 						concatenateString(vec, tmpString, ",");
-						qualTransformMap[vec[0]] = std::pair<std::string,std::string>("recal", tmpString);
+						qualTransformMap[rgName] = std::pair<std::string,std::string>("recal", tmpString);
 					}
 				}
 			}
@@ -390,7 +398,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	initializeQualityTransformations(params, qualTransformPerReadGroup, qualTransformMap);
 
 	//add read group names to list
-	if(qualityPerReadGroup){
+	if(qualTransformPerReadGroup){
 		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=qualTransformMap.begin(); it!=qualTransformMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
@@ -402,7 +410,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	initializePMD(params, pmdPerReadGroup, pmdMap);
 
 	//add read group names to list
-	if(qualityPerReadGroup){
+	if(pmdPerReadGroup){
 		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=pmdMap.begin(); it!=pmdMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
@@ -418,7 +426,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 	//Option 1: at least one file was given specifying multiple read groups
 	if(readGroupNames.size() > 0){
 		//create read groups as specified in the files
-		logfile->startIndent("Initializing " + toString(readGroupNames.size()) + " identical read groups:");
+		logfile->startIndent("Initializing " + toString(readGroupNames.size()) + " read groups:");
 
 		//now initialize
 		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it){
@@ -474,7 +482,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		}
 		logfile->endIndent();
 	}
-
+	
 	//Option 2: everything provided on command line
 	else {
 		//If everything was provided on the command line, allow for replicate read groups

@@ -267,7 +267,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 				//now calc transformed quality
 				constant = posTermForTransformation[p] + betas[c+4] - qualTermForTransformation[q];
 
-				if(4.0 * betas[1] * constant > betas[0] * betas[0]) throw "beta[0]^2 cannot be smaller than 4beta[1](position + context constants)";
+				if(4.0 * betas[1] * constant > betas[0] * betas[0]) throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
 				if(betas[1] == 0.0){
 					transQual = -constant / betas[0];
 				} else {
