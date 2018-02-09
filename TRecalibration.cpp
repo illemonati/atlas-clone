@@ -1895,8 +1895,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	//tmp variables
 	long lineNum = 0;
 	std::vector<std::string> vec;
-	int minQ = 100;
-	int maxQ = 0;
+	int minQ = 33;
+	int maxQ = 133;
 	int q;
 	std::string tmpF;
 	std::getline(file, tmpF); //skip header
@@ -1910,8 +1910,10 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 			if(vec.size() < 5) throw "Found " + toString(vec.size()) + " instead of 5 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//get quality
 			q = stringToInt(vec[1]);
-			if(q > maxQ) maxQ = q;
-			if(q < minQ) minQ = q;
+			if(q > maxQ)
+				maxQ = q;
+			if(q < minQ)
+				minQ = q;
 		}
 	}
 

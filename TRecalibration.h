@@ -25,8 +25,8 @@ public:
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
-		minQ = MinQ  + 33;
-		maxQ = MaxQ + 33;
+		minQ = MinQ;
+		maxQ = MaxQ;
 		numQ = maxQ - minQ + 1;
 		last = numQ - 1;
 		first = 0;

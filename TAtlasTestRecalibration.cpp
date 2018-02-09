@@ -195,7 +195,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	//some variables
 	std::vector<std::string> line;
 	int numLines = 0;
-	int QualityScore;
+	int QualityScoreAsPhredInt;
 	double EmpiricalQuality;
 	double Log10Observations;
 	int unacceptablesCount = 0;
@@ -207,11 +207,11 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
-		QualityScore = stringToInt(line[1]);
+		QualityScoreAsPhredInt = stringToInt(line[1]) - 33;
 		EmpiricalQuality = stringToDouble(line[3]);
 		Log10Observations = stringToDouble(line[4]);
-		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScore)) > acceptedDelta){
-			std::cout << QualityScore << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScore) << std::endl;
+		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
+			std::cout << QualityScoreAsPhredInt << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScoreAsPhredInt) << std::endl;
 			++unacceptablesCount;
 		}
 		if(Log10Observations >= 4.5 && (EmpiricalQuality > maxEmpiricQual)){
@@ -301,7 +301,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 }
 
 //------------------------------------------
-//TAtlasTest_qualityTransformation
+//TAtlasTest_qualityTransformationRecal
 //------------------------------------------
 
 TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
