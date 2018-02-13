@@ -241,7 +241,10 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 	//quality term
 	double* qualTermForTransformation = new double[maxQualPlusOne];
 	double tmp;
-	for(int i=0; i<maxQualPlusOne; ++i){
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<maxQualPlusOne; ++i){
 		tmp = pow(10.0, -(double) i / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
@@ -264,10 +267,13 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLe
 		for(p=0; p<maxReadLengthPlusOne; ++p){
 			transformedQuality[q][p] = new int[numContext];
 			for(c=0; c<numContext; ++c){
+				//quality scores
 				//now calc transformed quality
 				constant = posTermForTransformation[p] + betas[c+4] - qualTermForTransformation[q];
 
-				if(4.0 * betas[1] * constant > betas[0] * betas[0]) throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+				if(4.0 * betas[1] * constant > betas[0] * betas[0]){
+					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+				}
 				if(betas[1] == 0.0){
 					transQual = -constant / betas[0];
 				} else {
