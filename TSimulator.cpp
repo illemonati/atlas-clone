@@ -175,8 +175,8 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 
 	//Recal
 	//*****
-	if(params.parameterExists("recalTransformation")){
-		std::string recalString = params.getParameterString("recalTransformation");
+	if(params.parameterExists("recal")){
+		std::string recalString = params.getParameterString("recal");
 		pos = recalString.find_first_of('[');
 
 		//Option 1: recal from numbers: a single one valid for all read groups.
