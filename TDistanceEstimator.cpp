@@ -733,6 +733,9 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	gz::ogzstream out(filename.c_str());
 	if(!out) throw "Failed to open file '" + filename + "' for writing!";
 
+	//write header to output file
+	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
+
 	//prepare variables
 	std::string curChr;
 	long curChrLen;
