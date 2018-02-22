@@ -401,7 +401,7 @@ TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, BamTools::SamHead
 TPMDTables::~TPMDTables(){
 	if(readGroupMapInitialized) delete[] readGroupMap;
 
-	for(int i=0; i<readGroups->numGroups; ++i){
+	for(int i=0; i<numReadGroups; ++i){
 		delete forward[i];
 		delete reverse[i];
 	}
@@ -455,7 +455,7 @@ void TPMDTables::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParamet
 		int oldId;
 
 		for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
-			logfile->startIndent("The following read groups will be combined into one group for recalibration:");
+			logfile->startIndent("The following read groups will be combined into one group for PMD estimation:");
 			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 				logfile->list(*it);
 				oldId = ReadGroupObject.find(*it);
