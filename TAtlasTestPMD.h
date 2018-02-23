@@ -16,8 +16,17 @@ private:
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string fastaFileName;
+	std::string pmdEmpiricFileName;
+	float alpha, beta;
+	int minReadLength, maxReadLength;
+	std::string firstPMDStringCT, firstPMDStringGA, secondPMDStringCT, secondPMDStringGA, thirdPMDStringCT, thirdPMDStringGA;
+	std::ofstream out;
+
+	bool checkPMDEmpiricFile();
+
 public:
 	TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile);
+	bool run();
 
 };
 

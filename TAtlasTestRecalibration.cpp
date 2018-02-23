@@ -37,7 +37,6 @@ bool TAtlasTest_recalSimulation::run(){
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
 
-
 	if(!runTGenomeFromInputfile("simulate"))
 		return false;
 
