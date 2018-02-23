@@ -10,6 +10,7 @@
 
 #include "TAtlasTest.h"
 #include "TAtlasTestRecalibration.h"
+#include "TAtlasTestPMD.h"
 #include "TParameters.h"
 
 
@@ -48,6 +49,7 @@ public:
 		testMap.emplace_back("BQSRSimulation", &createInstance<TAtlasTest_BQSRSimulation>);
 		testMap.emplace_back("qualityTransformationRecalPlain", &createInstance<TAtlasTest_qualityTransformationRecalPlain>);
 		testMap.emplace_back("qualityTransformationRecalBinned", &createInstance<TAtlasTest_qualityTransformationRecalBinned>);
+		testMap.emplace_back("PMDEmpiric", &createInstance<TAtlasTest_PMDEmpiric>);
 
 
 
