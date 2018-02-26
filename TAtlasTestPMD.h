@@ -17,12 +17,15 @@ private:
 	std::string bamFileName;
 	std::string fastaFileName;
 	std::string pmdEmpiricFileName;
+	std::string poolRGFileName;
+	std::ofstream outPMD;
+	std::ofstream outPool;
 	float alpha, beta;
 	int minReadLength, maxReadLength;
 	std::string firstPMDStringCT, firstPMDStringGA, secondPMDStringCT, secondPMDStringGA, thirdPMDStringCT, thirdPMDStringGA;
 	std::string CTpatterns[3];
 	std::string GApatterns[3];
-	std::ofstream out;
+
 
 	bool checkPMDEmpiricFile();
 

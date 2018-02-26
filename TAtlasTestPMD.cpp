@@ -13,9 +13,10 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
+
+	//open PMD param file
 	pmdEmpiricFileName = filenameTag + "_true_PMD_input_Empiric.txt";
-	out.open(pmdEmpiricFileName.c_str());
-	if(!out) throw "Failed to open file '" + pmdEmpiricFileName + "'!";
+	poolRGFileName = filenameTag + "_poolThese.txt";
 
 	alpha = params.getParameterDoubleWithDefault("recal_alpha", 10);
 	beta = params.getParameterDoubleWithDefault("recal_beta", 0.2);
@@ -40,14 +41,18 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 
 bool TAtlasTest_PMDEmpiric::run(){
 	//1) Write PMD params to file
-	out << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99	Empiric[" << firstPMDStringCT << "]	Empiric[" << firstPMDStringGA << "]" << std::endl;
-	out << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100 Empiric[" << secondPMDStringCT << "]	Empiric[" << secondPMDStringGA << "]" << std::endl;
-	out << "HWI-ST558:341:C7R9TACXX_BAR8_plus100 Empiric[" << thirdPMDStringCT << "]	Empiric[" << thirdPMDStringGA << "]" << std::endl;
+	outPMD.open(pmdEmpiricFileName.c_str());
+	if(!outPMD) throw "Failed to open file '" + pmdEmpiricFileName + "'!";
+
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99	Empiric[" << firstPMDStringCT << "]	Empiric[" << firstPMDStringGA << "]" << std::endl;
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100 Empiric[" << secondPMDStringCT << "]	Empiric[" << secondPMDStringGA << "]" << std::endl;
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_plus100 Empiric[" << thirdPMDStringCT << "]	Empiric[" << thirdPMDStringGA << "]" << std::endl;
 
 	//TODO: find minimal data necessary to run test in order to speed up
 
 	//2) Run ATLAS to simulate BAM file
 	//-----------------------------
+
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");
@@ -62,9 +67,15 @@ bool TAtlasTest_PMDEmpiric::run(){
 
 	//3) Run estimatePMD
 	//-----------------------------
+	//open pool read group file
+	outPool.open(poolRGFileName.c_str());
+	if(!outPool) throw "Failed to open file '" + poolRGFileName + "'!";
+	outPool << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99 HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100";
+
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("fasta", fastaFileName);
+	_testParams.addParameter("poolReadGroups", poolRGFileName);
 
 	if(!runTGenomeFromInputfile("estimatePMD"))
 		return false;
@@ -93,33 +104,36 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 	std::string CTString, GAString;
 	std::vector<double> CTestimated, GAestimated, CTtrue, GAtrue;
 
-	//read estimated params
-	getline(in, tmp);
-	//CT string
-	std::string::size_type pos1 = tmp.find_first_of('[');
-	if(pos1 == std::string::npos) throw "Can not find '[' in '" + tmp + "'!";
-	std::string::size_type pos2 = tmp.find_first_of(']');
-	if(pos2 == std::string::npos) throw "Can not find ']' in '" + tmp + "'!";
-	CTString = tmp.substr((pos1+1),pos2-(pos1+1));
-	fillVectorFromStringAny(CTString, CTestimated, ",");
+	for(int rg=0; rg<3; ++rg){
+		//read estimated params
+		logfile->list("Reading line for read group " + toString(rg));
+		getline(in, tmp);
 
-	//GA string
-	pos1 = tmp.find_last_of('[');
-	if(pos1 == std::string::npos) throw "Can not find second '[' in '" + tmp + "'!";
-	pos2 = tmp.find_last_of(']');
-	if(pos2 == std::string::npos) throw "Can not find second ']' in '" + tmp + "'!";
-	GAString = tmp.substr((pos1+1),pos2-(pos1+1));
-	fillVectorFromStringAny(GAString, GAestimated, ",");
+		//CT string
+		std::string::size_type pos1 = tmp.find_first_of('[');
+		if(pos1 == std::string::npos) throw "Can not find '[' in '" + tmp + "'!";
+		std::string::size_type pos2 = tmp.find_first_of(']');
+		if(pos2 == std::string::npos) throw "Can not find ']' in '" + tmp + "'!";
+		CTString = tmp.substr((pos1+1),pos2-(pos1+1));
+		fillVectorFromStringAny(CTString, CTestimated, ",");
 
-	//parse true params
-	fillVectorFromStringAny(CTpatterns[0], CTtrue, ",");
-	fillVectorFromStringAny(GApatterns[0], GAtrue, ",");
+		//GA string
+		pos1 = tmp.find_last_of('[');
+		if(pos1 == std::string::npos) throw "Can not find second '[' in '" + tmp + "'!";
+		pos2 = tmp.find_last_of(']');
+		if(pos2 == std::string::npos) throw "Can not find second ']' in '" + tmp + "'!";
+		GAString = tmp.substr((pos1+1),pos2-(pos1+1));
+		fillVectorFromStringAny(GAString, GAestimated, ",");
 
-	//compare
-	for(unsigned int i=0; i<CTtrue.size(); ++i){
-		logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]));
+		//parse true params
+		fillVectorFromStringAny(CTpatterns[0], CTtrue, ",");
+		fillVectorFromStringAny(GApatterns[0], GAtrue, ",");
+
+		//compare
+		for(unsigned int i=0; i<CTtrue.size(); ++i){
+			logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]));
+		}
 	}
-
 
 	return false;
 }
