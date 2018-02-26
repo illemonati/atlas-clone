@@ -13,12 +13,12 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
-	pmdEmpiricFileName = filenameTag + "_PMD_input_Empiric.txt";
+	pmdEmpiricFileName = filenameTag + "_true_PMD_input_Empiric.txt";
 	out.open(pmdEmpiricFileName.c_str());
 	if(!out) throw "Failed to open file '" + pmdEmpiricFileName + "'!";
 
-	alpha = params.getParameterDoubleWithDefault("recal_alpha", 1.2);
-	beta = params.getParameterDoubleWithDefault("recal_beta", 1.2);
+	alpha = params.getParameterDoubleWithDefault("recal_alpha", 10);
+	beta = params.getParameterDoubleWithDefault("recal_beta", 0.2);
 	minReadLength = params.getParameterDoubleWithDefault("recal_minReadLength", 30);
 	maxReadLength = params.getParameterDoubleWithDefault("recal_maxReadLength", 100);
 
@@ -43,9 +43,9 @@ bool TAtlasTest_PMDEmpiric::run(){
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");
+	_testParams.addParameter("depth", "2");
 	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength));
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
-
 
 	if(!runTGenomeFromInputfile("simulate"))
 		return false;
@@ -54,12 +54,12 @@ bool TAtlasTest_PMDEmpiric::run(){
 
 	//3) Run estimatePMD
 	//-----------------------------
+	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("fasta", bamFileName);
+	_testParams.addParameter("fasta", fastaFileName);
 
 	if(!runTGenomeFromInputfile("estimatePMD"))
 		return false;
-
 
 	//4) check if results are OK
 	//--------------------------
@@ -67,6 +67,34 @@ bool TAtlasTest_PMDEmpiric::run(){
 	else return false;
 };
 
+
 bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
+	/*	logfile->startIndent("Checking recal file:");
+
+	//open quality file
+	std::string filename = filenameTag + "_recalibrationEM.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//some variables
+	std::string tmp;
+	std::vector<double> estimatedParams;
+	std::vector<std::string> tmpVec;
+	std::vector<double> trueParams;
+
+	//read estimated params
+	getline(in, tmp);
+	fillVectorFromStringAny(tmp, estimatedParams, "\t");
+	std::string::size_type pos = pmdString.find_first_of('[');
+	if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
+	std::string name = pmdString.substr(0,pos);
+
+
+	//parse true params
+	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
+*/
 	return false;
 }

@@ -68,6 +68,21 @@ public:
 	bool run();
 };
 
+//------------------------------------------
+//TAtlasTest_theta
+//------------------------------------------
+class TAtlasTest_theta:public TAtlasTest{
+private:
+	std::string filenameTag;
+	std::string bamFileName;
+	double simTheta;
 
+	bool checkThetaFile();
+
+public:
+	TAtlasTest_theta(TParameters & params, TLog* logfile);
+	~TAtlasTest_theta(){};
+	bool run();
+};
 
 #endif /* TATLASTEST_H_ */

@@ -31,7 +31,7 @@ bool TAtlasTest_recalSimulation::run(){
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("qualityDist", qualityDist);
-	_testParams.addParameter("chrLength", "10000000");
+	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("ploidy", "1");
 	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
@@ -42,8 +42,9 @@ bool TAtlasTest_recalSimulation::run(){
 
 	logfile->newLine();
 
-	//1) Run recal
+	//2) Run recal
 	//-----------------------------
+	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 //	_testParams.addParameter("recal", filenameTag + "_recalibrationEM.txt");
 

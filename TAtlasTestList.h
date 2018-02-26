@@ -50,6 +50,7 @@ public:
 		testMap.emplace_back("qualityTransformationRecalPlain", &createInstance<TAtlasTest_qualityTransformationRecalPlain>);
 		testMap.emplace_back("qualityTransformationRecalBinned", &createInstance<TAtlasTest_qualityTransformationRecalBinned>);
 		testMap.emplace_back("PMDEmpiric", &createInstance<TAtlasTest_PMDEmpiric>);
+		testMap.emplace_back("theta", &createInstance<TAtlasTest_theta>);
 
 
 

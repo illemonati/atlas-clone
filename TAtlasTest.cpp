@@ -325,8 +325,102 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	return true;
 }
 
+TAtlasTest_theta::TAtlasTest_theta(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+	_name = "theta";
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + ".bam";
+	simTheta = 	params.getParameterDoubleWithDefault("thetaTest_theta", 0.001);
 
+};
 
+bool TAtlasTest_theta::run(){
+	//1) Run ATLAS to simulate BAM file if not yet existant
+	//-----------------------------
+	_testParams.addParameter("out", filenameTag);
+	_testParams.addParameter("chrLength", "50000000");
+	_testParams.addParameter("ploidy", "2");
+	_testParams.addParameter("depth", "2");
+	_testParams.addParameter("theta", toString(simTheta));
+
+	//only simulate BAM if it does not already exist
+	std::string filenameBAM = filenameTag + ".bam";
+	logfile->listFlush("Opening file '" + filenameBAM + "' for reading ...");
+	std::ifstream bam(filenameBAM.c_str());
+	if(!bam){
+		if(!runTGenomeFromInputfile("simulate"))
+			return false;
+	} else
+		logfile->flush("file already exists");
+
+	logfile->newLine();
+
+	//2) Run ATLAS to estimateTheta
+	//-----------------------------
+	//only simulate BAM if it does not already exist
+	std::string filenameTheta = filenameTag + "_theta_estimates.txt";
+	logfile->listFlush("Opening file '" + filenameTheta + "' for reading ...");
+	std::ifstream in(filenameTheta.c_str());
+	if(!in){
+		_testParams.addParameter("bam", bamFileName);
+		if(!runTGenomeFromInputfile("estimateTheta"))
+			return false;
+	} else
+		logfile->flush("file already exists");
+	logfile->newLine();
+
+	//3) check if results are OK
+	//--------------------------
+	return checkThetaFile();
+};
+
+bool TAtlasTest_theta::checkThetaFile(){
+	//open theta file
+	std::string filename = filenameTag + "_theta_estimates.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//some variables
+	std::string tmp;
+	std::vector<std::string> line;
+	float numLines = 0.0;
+	float sum = 0.0;
+	float mean;
+
+	//skip header
+	getline(in, tmp);
+
+	while(in.good() && !in.eof()){
+		//read line into vector
+		++numLines;
+		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+
+		//skip empty
+		if(line.size() == 0) continue;
+
+		//check columns
+		if(line.size() != 14){
+			logfile->newLine();
+			logfile->conclude("Wrong number of columns in theta file '" + filename + "' on line " + toString(numLines) + "!");
+			return false;
+		}
+		//add new theta value to sum
+		sum += stringToDouble(line[10]);
+
+	}
+	mean = sum / numLines;
+	if(abs(mean - simTheta) > (simTheta / 100.0)){
+		logfile->newLine();
+		logfile->conclude("Theta was NOT estimated within range! mean estimated theta = " + toString(mean) + " with simulated theta = " + toString(simTheta));
+		return false;
+	} else {
+		logfile->newLine();
+		logfile->conclude("Theta was estimated within range! mean estimated theta = " + toString(mean) + " with simulated theta = " + toString(simTheta));
+		return true;
+	}
+}
 
 
 
