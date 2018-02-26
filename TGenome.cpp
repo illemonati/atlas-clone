@@ -2881,10 +2881,13 @@ void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
 
+	//prepare readGroup map
+	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+
 	//prepare PMD table
 	int maxLength = params.getParameterIntWithDefault("length", 50);
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
-	TPMDTables pmdTables(&readGroups, maxLength, &bamHeader, params, logfile);
+	TPMDTables pmdTables(&readGroups, maxLength, &readGroupMap);
 
 	//measure progress and runtime
 	struct timeval start;

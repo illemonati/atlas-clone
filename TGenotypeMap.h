@@ -396,4 +396,7 @@ public:
 	};
 };
 
+
+
+
 #endif /* TGENOTYPEMAP_H_ */

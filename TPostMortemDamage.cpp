@@ -384,12 +384,11 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
-TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile){
+TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap* ReadGroupMap){
 	readGroups = ReadGroups;
-	readGroupMap = NULL;
-	readGroupMapInitialized = false;
-	origNumReadGroups = bamHeader->ReadGroups.Size();
-	initializeReadGroupMap(bamHeader, params, logfile);
+	readGroupMapObject = ReadGroupMap;
+	origNumReadGroups = readGroupMapObject->getOrigNumReadGroups();
+	numReadGroups = readGroupMapObject->getNumReadGroups();
 	forward = new TPMDTable*[numReadGroups];
 	reverse = new TPMDTable*[numReadGroups];
 	for(int i=0; i<numReadGroups; ++i){
@@ -399,8 +398,6 @@ TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, BamTools::SamHead
 };
 
 TPMDTables::~TPMDTables(){
-	if(readGroupMapInitialized) delete[] readGroupMap;
-
 	for(int i=0; i<numReadGroups; ++i){
 		delete forward[i];
 		delete reverse[i];
@@ -409,97 +406,12 @@ TPMDTables::~TPMDTables(){
 	delete[] reverse;
 };
 
-void TPMDTables::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile){
-	readGroupMap = new int[origNumReadGroups];
-	readGroupMapInitialized = true;
-	if(params.parameterExists("poolReadGroups")) mergedInd = true;
-	else mergedInd = false;
-
-
-	//construct array from vectors and report
-	for(int i=0; i<origNumReadGroups; ++i)	readGroupMap[i] = -1; //map initialized
-
-	if(mergedInd){
-		//read read groups and their expected lengths
-		std::string filename = params.getParameterString("poolReadGroups");
-		if(filename=="") throw "No file specifying read groups to merge provided!";
-		logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
-		std::vector< std::vector<std::string> > readGroupsToMerge;
-		std::vector< std::vector<std::string> >::reverse_iterator rIt;
-		std::ifstream file(filename.c_str());
-		if(!file) throw "Failed to open file '" + filename + "!";
-
-		//parse file and fill vectors
-		int lineNum = 0;
-		std::vector<std::string> vec;
-		std::string readGroup;
-		while(file.good() && !file.eof()){
-			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty()){
-				if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
-				//add to new header
-				//others are those to be merged: find read group in header and store int
-				readGroupsToMerge.push_back(std::vector<std::string>());
-				rIt = readGroupsToMerge.rbegin();
-				for(unsigned int i=0; i<vec.size(); ++i){
-					rIt->push_back(vec[i]);
-				}
-			}
-		}
-		TReadGroups ReadGroupObject;
-		ReadGroupObject.fill(*bamHeader);
-		logfile->done();
-
-		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
-		int oldId;
-
-		for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
-			logfile->startIndent("The following read groups will be combined into one group for PMD estimation:");
-			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
-				logfile->list(*it);
-				oldId = ReadGroupObject.find(*it);
-				if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
-				readGroupMap[oldId] = rg;
-			}
-			logfile->endIndent();
-		}
-
-		numReadGroups = readGroupsToMerge.size();
-
-		//now add read groups that will not be merged
-		bool printed = false;
-		std::string name;
-		for(int i = 0; i < ReadGroupObject.size(); ++i){
-			//check if it is mapped, otherwise add
-			if(readGroupMap[i] < 0){
-				if(!printed){
-					logfile->startIndent("The following read groups will be kept as is:");
-					printed = true;
-				}
-				name = ReadGroupObject.getName(i);
-				logfile->list(name);
-				readGroupMap[i] = numReadGroups;
-				++numReadGroups;
-			}
-		}
-
-		if(printed) logfile->endIndent();
-		else logfile->list("All existing read groups will be merged into a new read group.");
-	}else{
-		numReadGroups = origNumReadGroups;
-		for(int i = 0; i < numReadGroups; ++i){
-			readGroupMap[i] = i;
-		}
-	}
-}
-
 void TPMDTables::addForward(const int readGroup, const int pos, const Base & ref, const Base & read){
-	forward[readGroupMap[readGroup]]->add(pos, ref, read);
+	forward[readGroupMapObject->readGroupMap[readGroup]]->add(pos, ref, read);
 };
 
 void TPMDTables::addReverse(const int readGroup, const int pos, const Base & ref, const Base & read){
-	reverse[readGroupMap[readGroup]]->add(pos, ref, read);
+	reverse[readGroupMapObject->readGroupMap[readGroup]]->add(pos, ref, read);
 };
 
 void TPMDTables::writePMDFile(std::string filename){
@@ -508,7 +420,7 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMap[i]]->getPMDStringCT() << "\t" << reverse[readGroupMap[i]]->getPMDStringGA() << "\n";
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject->readGroupMap[i]]->getPMDStringCT() << "\t" << reverse[readGroupMapObject->readGroupMap[i]]->getPMDStringGA() << "\n";
 	}
 	out.close();
 }
@@ -520,8 +432,8 @@ void TPMDTables::writeTable(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->inUse[i]){
-			forward[readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\treverse\t");
+			forward[readGroupMapObject->readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\tforward\t");
+			reverse[readGroupMapObject->readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -534,8 +446,8 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->inUse[i]){
-			forward[readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
+			forward[readGroupMapObject->readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
+			reverse[readGroupMapObject->readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -548,8 +460,8 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups->numGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMap[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
-			<< "\t" << reverse[readGroupMap[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject->readGroupMap[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
+			<< "\t" << reverse[readGroupMapObject->readGroupMap[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
 	}
 	out.close();
 }

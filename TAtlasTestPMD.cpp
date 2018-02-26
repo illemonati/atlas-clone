@@ -28,6 +28,14 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 	secondPMDStringGA = params.getParameterStringWithDefault("PMD_secondPMDStringGA", "0,0,0.00293742,0.00336413,0.0048651,0.00218997,0.00245297,0.00209862,0.00221646,0.00173175,0.00206741,0.00204128,0.00190718,0.00176191,0.00177644,0.00189132,0.00210642,0.0017206,0.00168852,0.00184077,0.00178956,0.00167079,0.00153733,0.00158146,0.0013248,0.00173105,0.00159785,0.00168088,0.00174343,0.00148742,0.00160376,0.00180732,0.00154377,0.00158591,0.0013558,0.00153654,0.00135425,0.00132407,0.00171275,0.00141973,0.00153039,0.00146885,0.00133669,0.00149182,0.00173479,0.00141099,0.00157696,0.00171272,0.00133564,0.00161568");
 	thirdPMDStringCT = params.getParameterStringWithDefault("PMD_thirdPMDStringCT", "0.484202,0.293208,0.1472,0.0944159,0.0664974,0.0529067,0.0426632,0.0361048,0.0339675,0.0310974,0.0290736,0.0294713,0.029148,0.0290933,0.0294277,0.0302419,0.0309769,0.0333302,0.0339012,0.0362583,0.035577,0.035068,0.034547,0.0332448,0.0339795,0.0323574,0.0337345,0.0319812,0.0318846,0.03236,0.03354,0.0374068,0.0381569,0.0378421,0.0384532,0.03858,0.0375318,0.0383115,0.0378018,0.0377071,0.0371242,0.0382571,0.0368973,0.0373601,0.0371789,0.0361634,0.0367845,0.0363578,0.0361899,0.037026");
 	thirdPMDStringGA = params.getParameterStringWithDefault("PMD_thirdPMDStringGA", "0.0521108,0.0522647,0.0571158,0.0489263,0.0444985,0.0392937,0.0392914,0.0380545,0.0373113,0.0372499,0.0371585,0.036443,0.0381607,0.0361248,0.0378769,0.0367767,0.0372836,0.0374682,0.0368751,0.0364539,0.0363257,0.0358006,0.0365954,0.0353917,0.0358281,0.0356717,0.0356513,0.0348792,0.0339361,0.034636,0.0348795,0.0338893,0.0341659,0.0333493,0.0336529,0.0324415,0.033668,0.032749,0.0324516,0.0324685,0.0312622,0.0320816,0.0322268,0.0321283,0.0313664,0.030891,0.0317229,0.0305144,0.0300429,0.0298577");
+
+	CTpatterns[0] = firstPMDStringCT;
+	CTpatterns[1] = secondPMDStringCT;
+	CTpatterns[2] = thirdPMDStringCT;
+
+	GApatterns[0] = firstPMDStringGA;
+	GApatterns[1] = secondPMDStringGA;
+	GApatterns[2] = thirdPMDStringGA;
 }
 
 bool TAtlasTest_PMDEmpiric::run(){
@@ -69,10 +77,10 @@ bool TAtlasTest_PMDEmpiric::run(){
 
 
 bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
-	/*	logfile->startIndent("Checking recal file:");
+	logfile->startIndent("Checking Empiric PMD file:");
 
 	//open quality file
-	std::string filename = filenameTag + "_recalibrationEM.txt";
+	std::string filename = filenameTag + "_PMD_input_Empiric.txt";
 	logfile->listFlush("Opening file '" + filename + "' for reading ...");
 	std::ifstream in(filename.c_str());
 	if(!in)
@@ -81,20 +89,37 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 
 	//some variables
 	std::string tmp;
-	std::vector<double> estimatedParams;
 	std::vector<std::string> tmpVec;
-	std::vector<double> trueParams;
+	std::string CTString, GAString;
+	std::vector<double> CTestimated, GAestimated, CTtrue, GAtrue;
 
 	//read estimated params
 	getline(in, tmp);
-	fillVectorFromStringAny(tmp, estimatedParams, "\t");
-	std::string::size_type pos = pmdString.find_first_of('[');
-	if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
-	std::string name = pmdString.substr(0,pos);
+	//CT string
+	std::string::size_type pos1 = tmp.find_first_of('[');
+	if(pos1 == std::string::npos) throw "Can not find '[' in '" + tmp + "'!";
+	std::string::size_type pos2 = tmp.find_first_of(']');
+	if(pos2 == std::string::npos) throw "Can not find ']' in '" + tmp + "'!";
+	CTString = tmp.substr((pos1+1),pos2-(pos1+1));
+	fillVectorFromStringAny(CTString, CTestimated, ",");
 
+	//GA string
+	pos1 = tmp.find_last_of('[');
+	if(pos1 == std::string::npos) throw "Can not find second '[' in '" + tmp + "'!";
+	pos2 = tmp.find_last_of(']');
+	if(pos2 == std::string::npos) throw "Can not find second ']' in '" + tmp + "'!";
+	GAString = tmp.substr((pos1+1),pos2-(pos1+1));
+	fillVectorFromStringAny(GAString, GAestimated, ",");
 
 	//parse true params
-	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
-*/
+	fillVectorFromStringAny(CTpatterns[0], CTtrue, ",");
+	fillVectorFromStringAny(GApatterns[0], GAtrue, ",");
+
+	//compare
+	for(unsigned int i=0; i<CTtrue.size(); ++i){
+		logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]));
+	}
+
+
 	return false;
 }
