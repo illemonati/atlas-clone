@@ -447,7 +447,7 @@ void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, 
 double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
-	originalErrorRate = log(originalErrorRate / (1.0 + originalErrorRate));
+	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
 	double eta = betas[rg][0] * originalErrorRate;
 
 	//q[1] is square of transformed quality
