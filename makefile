@@ -1,6 +1,7 @@
 #make file for atlas
 
-SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp) 
+SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
+GIT_HEADER = gitversion.h
 
 OBJ = $(SRC:%.cpp=%.o)
 BIN = atlas
@@ -16,12 +17,18 @@ BINFLAG = -lz -lblas -llapack
 OBJFLAG = -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y
 endif
 
-$(BIN):	$(OBJ)
-	$(CC) -O3 -o $(BIN) $(OBJ) $(BINFLAGS)
+$(BIN): $(GIT_HEADER) $(OBJ)
+	$(CC) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
+
+$(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
+	echo "#define GITVERSION \"$(shell git rev-parse HEAD)\"" > $@
+
+.git/COMMIT_EDITMSG :
+	touch $@
 
 %.o: %.cpp
 	$(CC) -O3 -c -Ibamtools $(OBJFLAG) $< -o $@
-	
+
 .PHONY : clean
 clean:
 	rm -rf *.o atlas

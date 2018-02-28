@@ -7,6 +7,7 @@
 
 #include "TAtlasTesting.h"
 #include "atlasTaskSwitcher.h"
+#include "gitversion.h"
 
 //---------------------------------------------------------------------------
 //Main function
@@ -17,7 +18,8 @@ int main(int argc, char* argv[]){
 
 	TLog logfile;
 	logfile.newLine();
-	logfile.write(" ATLAS 1.0 ");
+	logfile.write(" ATLAS 1.0, commit : ");
+	logfile.write(GITVERSION);
 	logfile.write("***********");
     try{
 		//read parameters from the command line
