@@ -27,7 +27,6 @@ void TSite::stealFromOther(TSite* other){
 		referenceBase = other->referenceBase;
 		for(int i=0; i<numGenotypes; ++i){
 			emissionProbabilities[i] = other->emissionProbabilities[i];
-			P_g[i] = other->P_g[i];
 		}
 		//copy pointers to bases, BUT NOT BASES
 		for(std::vector<TBase*>::iterator it = other->bases.begin(); it!=other->bases.end(); ++it){
@@ -39,66 +38,72 @@ void TSite::stealFromOther(TSite* other){
 	}
 }
 
-void TSiteDiploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == 'A') bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'C') bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'G') bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+void TSiteDiploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == A) bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else bases.push_back(new TBaseDiploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
-void TSiteHaploid::add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == 'A') bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'C') bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == 'G') bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+void TSiteHaploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+	if(base == A) bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else bases.push_back(new TBaseHaploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
 
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
-	double weight = 1.0 / bases.size();
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		(*it)->addToBaseFrequencies(frequencies, weight);
+	if(hasData){
+		static double weight = 1.0 / bases.size();
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+			(*baseIterator)->addToBaseFrequencies(frequencies, weight);
+		}
 	}
-}
+};
 
-void TSite::calcEmissionProbabilities(){
+void TSite::calcEmissionProbabilities(double* vec){
 	//assumes that emission probabilities were calculated for TBase!
 
 	//do in log if coverage is high
 	if(bases.size() < 50){
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = 1.0;
+			vec[i] = 1.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				emissionProbabilities[i] *= (*it)->getEmissionProbability(i);
+				vec[i] *= (*baseIterator)->getEmissionProbability(i);
 			}
 		}
 	} else {
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = 0.0;
+			vec[i] = 0.0;
 		}
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 			for(int i=0; i<numGenotypes; ++i){
-				emissionProbabilities[i] += log((*it)->getEmissionProbability(i));
+				vec[i] += log((*baseIterator)->getEmissionProbability(i));
 			}
 		}
 		//now standardize before delog
-		double max = emissionProbabilities[0];
+		double max = vec[0];
 		for(int i=1; i<numGenotypes; ++i){
-			if(emissionProbabilities[i] > max) max = emissionProbabilities[i];
+			if(vec[i] > max) max = vec[i];
 		}
 		for(int i=0; i<numGenotypes; ++i){
-			emissionProbabilities[i] = exp(emissionProbabilities[i] - max);
+			vec[i] = exp(vec[i] - max);
 		}
 	}
+}
+
+void TSite::calcEmissionProbabilities(){
+	calcEmissionProbabilities(emissionProbabilities);
 }
 
 std::string TSite::getBases(){
 	if(bases.size()==0) return "-";
 	std::string b = "";
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		b += (*it)->getBase();
+	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+		b += (*baseIterator)->getBase();
 	}
 	return b;
 }
@@ -111,7 +116,7 @@ std::string TSite::getEmissionProbs(){
 	return b;
 }
 
-void TSite::calculateP_g(double* genotypeProbabilities){
+void TSite::calculateP_g(double* & genotypeProbabilities, double* & P_g){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
 	for(int i=0; i<numGenotypes; ++i){
@@ -144,11 +149,37 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------
-void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
+void TSite::calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL){
+	if(hasData){
+		int tmp;
+		//calculate phred-scaled likelihoods and find max
+		double maxGenotypeProb = 100000.0;
+		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
+		for(int i=0; i<numGenotypes; ++i){
+			emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
+			if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb)
+				maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
+		}
+		for(int i=0; i<numGenotypes; ++i){
+			tmp = round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
+			if(tmp > 255) tmp = 255;
+			normalizedGL[i] = tmp;
+		}
+		delete[] emissionProbabilitiesPhredScaled;
+		maxLL = round(maxGenotypeProb);
+	} else {
+		for(int i=0; i<numGenotypes; ++i)
+			normalizedGL[i] = 0;
+		maxLL = 0;
+	}
+}
+
+void TSite::calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
 	//calculate phred-scaled likelihoods and find max
 	maxGenotypeProb = 100000.0;
 	quality = 100000.0;
 	std::vector<int> MLEs;
+	std::vector<int>::iterator it;
 	for(int i=0; i<numGenotypes; ++i){
 		emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
 		if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb){
@@ -164,7 +195,6 @@ void TSite::calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGene
 			quality = emissionProbabilitiesPhredScaled[i];
 		}
 	}
-
 	//select best allele at random if there are multiple options
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 	quality = quality - maxGenotypeProb;
@@ -186,13 +216,13 @@ void TSite::findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, dou
 	}
 	//select best allele at random if there are multiple options
 	genoSecond = genoMap.getGenotypeString(secondMostLikely[randomGenerator.pickOne(secondMostLikely.size())]);
-
 }
 
-void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	out << "\t" << referenceBase;
+
 	if(hasData){
 		//print reference allele
-		if(printRef) out << "\t" << referenceBase;
 
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
@@ -202,7 +232,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 		double quality, maxGenotypeProb;
 		int MLGenotype;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//now print normalized (max = 0)
 		for(int i=0; i<numGenotypes; ++i){
@@ -211,7 +241,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
-		out << "\t" << round(quality - maxGenotypeProb);
+		out << "\t" << round(quality);
 		delete[] emissionProbabilitiesPhredScaled;
 	} else {
 		out << "\t0";
@@ -221,7 +251,7 @@ void TSite::callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGen
 
 }
 
-void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
+void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool gVCF, bool noAltIfHomoRef, std::string & basesString){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
@@ -234,7 +264,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		int MLGenotype;
 		int R_AD=0, A_AD=0, B_AD=0, C_AD=0;
 		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoods(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//find alternative alleles
 		std::string genoVCF;
@@ -489,7 +519,8 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 		delete[] emissionProbabilitiesPhredScaled;
 	} else {
-//		if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
+		//hasData is false
+		//if(gVCF) out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP\t./.:0";
 		out << "\t.\t" << referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0";
 	}
 }
@@ -526,6 +557,22 @@ void TSiteDiploid::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotype
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 }
 
+void TSiteDiploid::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & sumEmissionProbs, int & pos){
+	//which genotypes?
+	int genotypes[3];
+	genotypes[0] = genoMap.getGenotype(referenceBase, referenceBase);
+	genotypes[1] = genoMap.getGenotype(referenceBase, alt);
+	genotypes[2] = genoMap.getGenotype(alt, alt);
+
+	//calculate likelihoods and their sum
+
+	for(int j=0; j<3; ++j){
+		emissionProbs[j] = emissionProbabilities[genotypes[j]];
+		sumEmissionProbs += emissionProbs[j];
+	}
+}
+
+
 void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
 		//print reference allele
@@ -550,10 +597,30 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 		out << "\t" << genoMap.getGenotypeString(MLGenotype);
 		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
-		out << "\t" << referenceBase << "\t" << alt;
+		out << "\t" << referenceBase << "\t" << alt << "\t" << 0;
 		for(int i=0; i<3; ++i) out << "\t-";
 		out << "\t-\t0";
 	}
+}
+
+void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){
+	//print reference allele
+	if(hasData){
+		if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\t" << referenceBase << "\t" << alt;
+		//calc normalized likelihoods
+		double sumEmissionProbs = 0;
+		double emissionProbs[3];
+		calculateGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, emissionProbs, sumEmissionProbs, pos);
+
+		//now print normalized (max = 0)
+		out << std::setprecision(6);
+		out << emissionProbs[0] / sumEmissionProbs;
+		out << "\t" << emissionProbs[1] / sumEmissionProbs;
+		out << "\t" << emissionProbs[2] / sumEmissionProbs;
+	}
+	else if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\tN\tN\t0.333\t0.333\t0.333";
+	else out << "0.333\t0.333\t0.333";
+	out << "\n";
 }
 
 
@@ -620,10 +687,11 @@ void TSite::calculateGenotypePosteriorProbabilities(double* pGenotype, TRandomGe
 	MAP = MAPs[randomGenerator.pickOne(MAPs.size())];
 }
 
-void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	//print reference allele
+	out << "\t" << referenceBase;
 	if(hasData){
-		//print reference allele
-		if(printRef) out << "\t" << referenceBase;
+
 
 		//print coverage (and read bases)
 		out << "\t" << bases.size();
@@ -644,7 +712,6 @@ void TSite::callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRan
 		out << "\t" << genoMap.getGenotypeString(MAPGenotype);
 		out << "\t" << round(makePhred(1.0 - postProb[MAPGenotype]));
 	} else {
-		out << "\t" << referenceBase;
 		out << "\t0";
 		for(int i=0; i<numGenotypes; ++i) out << "\t-";
 		out << "\t-\t0";
@@ -889,10 +956,10 @@ void TSiteDiploid::calculatePosteriorOnAllelePresence(double* pGenotype, TGenoty
 	MAP = MAPs[randomGenerator.pickOne(MAPs.size())];
 }
 
-void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){
+void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	out << "\t" << referenceBase;
 	if(hasData){
 		//print ref base, coverage (and read bases)
-		if(printRef) out << "\t" << referenceBase;
 		out << "\t" << bases.size();
 		//out << "\t" << getBases(); //printing data for debugging
 
@@ -910,10 +977,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 		out << "\t" << genoMap.getBaseAsChar(MAPAllele);
 		out << "\t" << round(makePhred(1.0 - postProbAllele[MAPAllele]));
 		//out << "\t" << quality << " -> " << maxProb;
-	} else {
-		out << "\t" << referenceBase;
-		out << "\t0\t-\t-\t-\t-\t-\t0";
-	}
+	} else 	out << "\t0\t-\t-\t-\t-\t-\t0";
 }
 
 void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){
@@ -1078,6 +1142,52 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 		else out << "\tGT:AD:DP:GQ:PP\t1:" << R_AD << "," << A_AD << ":" << bases.size() << ':' << round(makePhred(1.0 - postProbAllele[MAPAllele])) << ":" << round(makePhred(postProbAllele[0])) << "," << round(makePhred(postProbAllele[1]));
 	} else {
 		out << "\t.\t" << referenceBase << "\t" << "." << "\t.\t.\t.\tGT:DP\t.:0";
+	}
+}
+
+void TSiteDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	if(hasData){
+		//print ref base, alt base, coverage (and read bases)
+		out << "\t" << referenceBase << "\t" << bases.size();
+		out << "\t";
+		for(unsigned int i = 0; i<bases.size(); ++i){
+			out << bases[i]->getBase();
+		}
+		out << "\t" << bases[randomGenerator.pickOne(bases.size())]->getBase();
+ 	} else {
+		out << "\t" << referenceBase << "\t0\t-\t-";
+	}
+}
+
+void TSiteDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){
+	if(hasData){
+		//print ref base, alt base, coverage (and read bases)
+		out << "\t" << referenceBase << "\t" << bases.size();
+		out << "\t";
+
+		//count bases
+		int counts[5] = {0};
+		for(unsigned int i = 0; i<bases.size(); ++i){
+			out << bases[i]->getBase();
+			++counts[bases[i]->getBaseAsEnum()];
+		}
+
+		//find majority
+		char b[5] = {'A','C','G','T','N'};
+		int max = 0;
+		std::vector<char> maxBase;
+		for(int i=0; i<5; ++i){
+			if(counts[i] > max){
+				max = counts[i];
+				maxBase.clear();
+				maxBase.push_back(b[i]);
+			} else if(counts[i] == max){
+				maxBase.push_back(b[i]);
+			}
+		}
+		out << "\t" << maxBase[randomGenerator.pickOne(maxBase.size())];
+ 	} else {
+		out << "\t" << referenceBase << "\t0\t-\t-";
 	}
 }
 

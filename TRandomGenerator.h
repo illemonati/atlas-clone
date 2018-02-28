@@ -5,6 +5,7 @@
 //#include <time.h>
 #include <sys/time.h>
 #include <iostream>
+#include <sstream>
 
 class TRandomGenerator{
 private:
@@ -13,32 +14,42 @@ private:
 	double _lowerIncompleteGamma(double alpha, double z);
 	double _upperIncompleteGamma(double alpha, double z);
 	long get_randomSeedFromCurrentTime(long & addToSeed);
+	void init();
 
 public:
 	long usedSeed;
+	double* factorialTable;
+	bool factorialTableInitialized;
+	double* factorialTableLn;
+	bool factorialTableLnInitialized;
 
 	TRandomGenerator(long addToSeed){
-		init(addToSeed);
+		setSeed(addToSeed);
+		init();
 	};
 	TRandomGenerator(long addToSeed, bool seedIsFixed){
-		if(!seedIsFixed) init(addToSeed);
-		else {
-			if(addToSeed<0) addToSeed=-addToSeed;
-	        usedSeed=addToSeed;
-	        _Idum=-addToSeed;
-		}
+		setSeed(addToSeed, seedIsFixed);
+		init();
 	};
 	TRandomGenerator(){
-			init(0);
+		setSeed(0);
+		init();
 	};
-	~TRandomGenerator(){};
-	void init(long addToSeed);
+	~TRandomGenerator(){
+		if(factorialTableInitialized)
+			delete[] factorialTable;
+		if(factorialTableLnInitialized)
+			delete[] factorialTableLn;
+	};
+	void setSeed(long addToSeed, bool seedIsFixed=false);
 
 	//uniform
 	double getRand(){ return ran3(); };
 	double getRand(double min, double max);
 	int getRand(int min, int maxPlusOne);
 	int pickOne(int numElements);
+	int pickOne(int numElements, float* probsCumulative);
+	int pickOne(int numElements, double* probsCumulative);
 	long getRand(long min, long maxPlusOne);
 
 	//normal
@@ -48,8 +59,12 @@ public:
 	double normalComplementaryErrorCheb(double x);
 
 	//binomial
-	double getBiomialRand(double pp, int n);
+	double getBiomialRand(double pp, long n);
+	double factorial(int n);
+	double factorialLn(int n);
 	double binomCoeffLn(int n, int k);
+	int binomCoeff(int n, int k);
+	double binomDensity(int n, int k, double p);
 
 	//gamma
 	double gammaln(double z);
@@ -58,6 +73,7 @@ public:
 	double getGammaRand(double a);
 	double getGammaRand(int ia);
 
+	double gammaLogDensityFunction(double x, double alpha, double beta);
 	double gammaCumulativeDistributionFunction(double x, double alpha, double beta);
 	double lowerIncompleteGamma(double alpha, double z);
 	double upperIncompleteGamma(double alpha, double z);

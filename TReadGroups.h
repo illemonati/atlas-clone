@@ -47,15 +47,20 @@ public:
 	readGroup* groups;
 	int numGroups;
 	bool initialized;
+	bool* inUse;
 
 	TReadGroups(){
 		initialized = false;
 		numGroups = 0;
 		groups = NULL;
+		inUse = NULL;
 	};
 
 	~TReadGroups(){
-		if(initialized) delete[] groups;
+		if(initialized){
+			delete[] groups;
+			delete[] inUse;
+		}
 	};
 
 	void fill(BamTools::SamHeader & bamHeader){
@@ -64,11 +69,13 @@ public:
 		//create and fill array
 		numGroups = bamHeader.ReadGroups.Size();
 		groups = new readGroup[numGroups];
+		inUse = new bool[numGroups];
 		int i = 0;
 		for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
 			groups[i].id = i;
 			groups[i].name = it->ID;
 			groups[i].object= &(*it);
+			inUse[i] = true;
 		}
 		initialized = true;
 	};
@@ -91,6 +98,14 @@ public:
 			if(groups[i].name == name) return true;
 		}
 		return false;
+	};
+
+	bool readGroupInUse(int & readGroupId){
+		return inUse[readGroupId];
+	};
+
+	bool readGroupInUse(BamTools::BamAlignment & alignment){
+		return inUse[find(alignment)];
 	};
 
 	std::string getName(int num){

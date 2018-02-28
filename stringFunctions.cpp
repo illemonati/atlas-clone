@@ -461,6 +461,18 @@ std::string concatenateString(std::vector<double> & vec, std::string delim){
 	}
 	return s;
 }
+
+std::string concatenateString(double* array, int length, std::string delim){
+	std::string s;
+	if(length>0){
+		s = toString(array[0]);
+		for(int i=1; i<length; ++i){
+			s += delim + toString(array[i]);
+		}
+	}
+	return s;
+}
+
 //-----------------------------------------------------------------------
 //split into vector
 //-----------------------------------------------------------------------
@@ -1020,6 +1032,24 @@ void repeatIndexes(std::vector<std::string> & orig, std::vector<double> & vec){
 	}
 	for(std::vector<std::string>::iterator it=tmp.begin(); it!=tmp.end(); ++it){
 		vec.push_back(stringToDoubleCheck(*it));
+	}
+}
+void repeatIndexes(std::vector<std::string> & orig, std::vector<int> & vec){
+	std::vector<std::string> tmp;
+	for(std::vector<std::string>::iterator it=orig.begin(); it!=orig.end(); ++it){
+		addRepeatedIndex(*it, tmp);
+	}
+	for(std::vector<std::string>::iterator it=tmp.begin(); it!=tmp.end(); ++it){
+		vec.push_back(stringToIntCheck(*it));
+	}
+}
+void repeatIndexes(std::vector<std::string> & orig, std::vector<long> & vec){
+	std::vector<std::string> tmp;
+	for(std::vector<std::string>::iterator it=orig.begin(); it!=orig.end(); ++it){
+		addRepeatedIndex(*it, tmp);
+	}
+	for(std::vector<std::string>::iterator it=tmp.begin(); it!=tmp.end(); ++it){
+		vec.push_back(stringToLongCheck(*it));
 	}
 }
 

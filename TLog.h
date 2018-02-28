@@ -112,13 +112,7 @@ public:
 	void clearIndent(){
 		numIndent = 0;
 		fillIndentString();
-	};
-
-	void setIndent(int n=0){
-		numIndent = n;
-		fillIndentString();
-	};
-
+	}
 
 	template<typename T>
 	void startIndent(T out){
@@ -211,6 +205,12 @@ public:
 	};
 
 	template<typename T>
+	void numberWithIndent(T out){
+		number(out);
+		addIndent();
+	};
+
+	template<typename T>
 	void numberFlush(T out){
 		if(numberingLevel<0) addNumberingLevel();
 		if(isFile){
@@ -272,6 +272,14 @@ public:
 			lastLineStartInFile=file.tellp();
 		}
 		if(isVerbose) std::cout << first << middle << last << std::endl;
+	};
+
+	void done(){
+		if(isFile){
+			file << " done!" << std::endl;
+			lastLineStartInFile=file.tellp();
+		}
+		if(isVerbose) std::cout << " done!" << std::endl;
 	};
 
 	//---------------------------------------------------------

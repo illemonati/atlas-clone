@@ -85,6 +85,7 @@ void concatenateString(std::vector<double> & vec, std::string & s, std::string d
 std::string concatenateString(std::vector<std::string> & vec, std::string delim);
 std::string concatenateString(std::vector<int> & vec, std::string delim);
 std::string concatenateString(std::vector<double> & vec, std::string delim);
+std::string concatenateString(double* array, int length, std::string delim);
 
 //read
 std::string readAfterLast(std::string & s, char delim);
@@ -155,6 +156,8 @@ void addRepeatedAndExpandIndexes(std::string & orig, std::vector<std::string> & 
 void repeatAndExpandIndexes(std::vector<std::string> & orig, std::vector<std::string> & vec);
 void repeatIndexes(std::vector<std::string> & orig, std::vector<std::string> & vec);
 void repeatIndexes(std::vector<std::string> & orig, std::vector<double> & vec);
+void repeatIndexes(std::vector<std::string> & orig, std::vector<int> & vec);
+void repeatIndexes(std::vector<std::string> & orig, std::vector<long> & vec);
 void addRepeatedAndExpandedIndexesOfSub(const std::string & orig, std::vector< std::vector<std::string> > & vec, std::string delim);
 void repeatAndExpandIndexesOfSubs(std::vector<std::string> & orig, std::vector< std::vector<std::string> > & vec, std::string delim);
 

@@ -11,51 +11,13 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "bamtools/utils/bamtools_fasta.h"
+#include "TAlignmentParser.h"
 #include "TRecalibration.h"
-#include "TSite.h"
+#include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
-
-//---------------------------------------------------------------
-//EMParameters
-//---------------------------------------------------------------
-struct EMParameters{
-	int numIterations;
-	int numThetaOnlyUpdates;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	double initalTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
-
-	EMParameters();
-	EMParameters(TParameters & params, TLog* logfile);
-	~EMParameters(){};
-
-	void report(TLog* logfile);
-};
-
-//---------------------------------------------------------------
-//Theta
-//---------------------------------------------------------------
-struct Theta{
-	double theta, expTheta, thetaConfidence, LL;
-
-	Theta(){
-		theta = 0.0;
-		thetaConfidence = 0.0;
-		expTheta = 0.0;
-		LL = -9e100;
-	};
-
-	void setTheta(double val){
-		theta = val;
-		expTheta = exp(-theta);
-	}
-};
+#include "TGLF.h"
 
 
 //---------------------------------------------------------------
@@ -69,72 +31,74 @@ public:
 	TSite* sites;
 	bool sitesInitialized;
 	int numReadsInWindow;
-	double coverage, fractionSitesNoData, fractionsitesCoverageAtLeastTwo;
+	double depth, fractionSitesNoData, fractionsitesDepthAtLeastTwo;
+	double fractionRefIsN;
+	long numSitesWithData;
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
+	bool referenceBaseAdded;
 
 	TWindow();
 	TWindow(long Start, long End);
 	virtual ~TWindow(){
 		if(sitesInitialized) delete[] sites;
 	};
-	virtual void initSites(long newLength){
+	virtual void initSites(long newLength);
+	virtual void _initSites(){
 		throw "Function 'initSites' not implemented for base class TWindow!";
 	};
 	void clear();
 	void move(long Start, long End);
-	bool addFromRead(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroupsm, int & minQuality, int & maxQuality);
+	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
-	void applyMask(TBedReader* mask);
+	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
-	void calcCoverage();
-	void calcCoveragePerSite(long * siteCoverage, unsigned int maxCov);
-	void applyCoverageFilter(int minCoverage, int maxCoverage);
-	double calcLogLikelihood(double* pGenotype);
+	virtual void calcDepth();
+	void calcFracN();
+	void calcDepthPerSite(long * siteDepth, size_t maxCov);
+	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
+	void applyDepthFilter(int minDepth, size_t maxDepth);
+	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, TQualityTransformTable & QT, TLog* logfile);
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, TQualityTransformTable & QT, TLog* logfile);
+	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
+	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
 	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
 };
 
 class TWindowDiploid:public TWindow{
 protected:
+	/*
 	Theta thetaContainer;
 
 	void fillPGenotype(double* pGenotype, double & expTheta);
-	void fillP_G(double* P_g, double* pGenotype);
+	virtual void fillP_G(double* P_g, double* pGenotype);
+	virtual double calcLogLikelihood(double* pGenotype);
 	void findGoodStartingTheta(Theta & thetaContainer, EMParameters & EMParams);
-	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, int & lengthWithData);
+	void runEMForTheta(Theta & thetaContainer, EMParameters & constants, long & lengthWithData);
 	void estimateConfidenceInterval(Theta & thetaContainer);
+	*/
 
 public:
 	TWindowDiploid():TWindow(){};
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
-	void initSites(long newLength);
-	void estimateTheta(EMParameters & constants, TRecalibration* recalObject, std::ofstream & out, TLog* logfile);
-	void setTheta(double theta){thetaContainer.setTheta(theta);};
-	void calcLikelihoodSurface(TRecalibration* recalObject, std::ofstream & out, int & steps);
-	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
-	void callBayesianGenotype(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
-	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
-	void callAllelePresence(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
-	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
-	void generatePSMCInput(int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
-};
-
-class TWindowDiploidSpecificSites:public TWindowDiploid{
-protected:
-	TBedReader* subset;
-	long nextId;
-
-public:
-	TWindowDiploidSpecificSites(TBedReader* Subset);
-	void copySites(TWindowDiploid* other);
+	void _initSites();
+	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
+	void addSitesToThetaEstimator(TThetaEstimator & estimator);
+	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
+	void callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
+	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
+	void callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
+	void callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
+	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
+	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
+	void addToGLF(TGlfWriter & writer, bool printAll);
+	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 };
 
 class TWindowHaploid:public TWindow{
@@ -144,9 +108,10 @@ private:
 public:
 	TWindowHaploid():TWindow(){};
 	TWindowHaploid(long Start, long End):TWindow(Start, End){};
-	void initSites(long newLength);
+	void _initSites();
 	double calcLogLikelihood();
 	void addToRecalibrationEM(TRecalibrationEM & recalObject);
+	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset);
 	void addToExpectedBaseCounts(TRecalibration* recalObject, double** expectedCounts);
 	void calculatePoolFreqLikelihoods(int & numChromosomes, Base** majorMinor, gz::ogzstream & out, std::string & chr, bool printAll);
 };
@@ -169,11 +134,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	void addToCur(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
-		curPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQuality, maxQuality);
+	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
+		return curPointer->addFromRead(alignemntParser, pmdObjects);
 	};
-	void addToNext(BamTools::BamAlignment & bamAlignement, TPMD* pmdObjects, TReadGroups* readGroups, int & minQuality, int & maxQuality){
-		nextPointer->addFromRead(bamAlignement, pmdObjects, readGroups, minQuality, maxQuality);
+	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
+		return nextPointer->addFromRead(alignemntParser, pmdObjects);
 	};
 	void clear(){
 		curPointer->clear();

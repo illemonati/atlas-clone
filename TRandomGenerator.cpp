@@ -8,14 +8,21 @@
 #include "TRandomGenerator.h"
 
 //---------------------------------------------------------------------------------------
-void TRandomGenerator::init(long addToSeed){
-	_Idum = get_randomSeedFromCurrentTime(addToSeed);
-	if(_Idum==0) _Idum=get_randomSeedFromCurrentTime(_Idum);
-	if(_Idum < 0) _Idum=-_Idum;
-	if(_Idum > 161803398) _Idum = _Idum % 161803397;
-	usedSeed = _Idum;
-	_Idum = -_Idum;
+void TRandomGenerator::setSeed(long addToSeed, bool seedIsFixed){
+	if(seedIsFixed){
+		if(addToSeed<0) addToSeed=-addToSeed;
+        usedSeed = addToSeed;
+        _Idum = -addToSeed;
+	} else {
+		_Idum = get_randomSeedFromCurrentTime(addToSeed);
+		if(_Idum==0) _Idum=get_randomSeedFromCurrentTime(_Idum);
+		if(_Idum < 0) _Idum=-_Idum;
+		if(_Idum > 161803398) _Idum = _Idum % 161803397;
+		usedSeed = _Idum;
+		_Idum = -_Idum;
+	}
 };
+
 long TRandomGenerator::get_randomSeedFromCurrentTime(long & addToSeed){
 	struct timeval time;
 	gettimeofday(&time, 0);
@@ -26,6 +33,12 @@ long TRandomGenerator::get_randomSeedFromCurrentTime(long & addToSeed){
    return microseconds ;
 }
 
+void TRandomGenerator::init(){
+	factorialTable = NULL;
+	factorialTableInitialized = false;
+	factorialTableLn = NULL;
+	factorialTableLnInitialized = false;
+}
 
 #define MBIG 1000000000L
 #define MSEED 161803398L
@@ -76,57 +89,119 @@ double TRandomGenerator::ran3(){
 //--------------------------------------------------------
 //Binomial Distribution
 //--------------------------------------------------------
-double TRandomGenerator::getBiomialRand(double pp, int n){
- int j;
- static int nold=(-1);
- double am,em,g,angle,p,bnl,sq,t,y;
- static double pold=(-1.0),pc,plog,pclog,en,oldg;
+double TRandomGenerator::getBiomialRand(double pp, long n){
+	int j;
+	static int nold=(-1);
+	double am,em,g,angle,p,bnl,sq,t,y;
+	static double pold=(-1.0),pc,plog,pclog,en,oldg;
 
- p=(pp <= 0.5 ? pp : 1.0-pp);
- am=n*p;
- if (n < 25) {
-  bnl=0;
-  for (j=1;j<=n;j++)
-   if (ran3() < p) ++bnl;
- } else if (am < 1.0) {
-  g=exp(-am);
-  t=1.0;
-  for (j=0;j<=n;j++) {
-   t *= ran3();
-   if (t < g) break;
-  }
-  bnl=(j <= n ? j : n);
- } else {
-  if (n != nold) {
-   en=n;
-   oldg=gammaln(en+1.0);
-   nold=n;
-  } if (p != pold) {
-   pc=1.0-p;
-   plog=log(p);
-   pclog=log(pc);
-   pold=p;
-  }
-  sq=sqrt(2.0*am*pc);
-  do {
-   do {
-    angle=3.141592654*ran3();
-    y=tan(angle);
-    em=sq*y+am;
-   } while (em < 0.0 || em >= (en+1.0));
-   em=floor(em);
-   t=1.2*sq*(1.0+y*y)*exp(oldg-gammaln(em+1.0)
-    -gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
-  } while (ran3() > t);
-  bnl=em;
- }
- if (p != pp) bnl=n-bnl;
- return bnl;
+	p=(pp <= 0.5 ? pp : 1.0-pp);
+	am=n*p;
+
+	if (n < 25){
+		bnl=0;
+		for (j=1;j<=n;j++)
+			if (ran3() < p) ++bnl;
+	} else if (am < 1.0) {
+		g=exp(-am);
+		t=1.0;
+		for (j=0;j<=n;j++) {
+			t *= ran3();
+			if (t < g) break;
+		}
+		bnl=(j <= n ? j : n);
+	} else {
+		if (n != nold) {
+			en=n;
+			oldg=gammaln(en+1.0);
+			nold=n;
+		}
+		if (p != pold) {
+			pc=1.0-p;
+			plog=log(p);
+			pclog=log(pc);
+			pold=p;
+		}
+		sq=sqrt(2.0*am*pc);
+
+		do {
+			do {
+				angle=3.141592654*ran3();
+				y=tan(angle);
+				em=sq*y+am;
+			} while (em < 0.0 || em >= (en+1.0));
+
+			em=floor(em);
+			t=1.2*sq*(1.0+y*y)*exp(oldg-gammaln(em+1.0)
+					-gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
+		} while (ran3() > t);
+		bnl=em;
+	}
+	if (p != pp) bnl=n-bnl;
+	return bnl;
 }
+
+double TRandomGenerator::factorial(int n){
+	if(n < 0 || n > 170){
+		std::ostringstream tos;
+		tos << n;
+		throw "TRandomGenerator::factorial: n = " + tos.str() + " out of range!";
+	}
+
+	if(!factorialTableInitialized){
+		factorialTable = new double[171];
+		factorialTable[0] = 1.0;
+		for(int i=1; i<171; i++)
+			factorialTable[i] = factorialTable[i-1]*i;
+		factorialTableInitialized = true;
+	}
+
+	return factorialTable[n];
+}
+
+double TRandomGenerator::factorialLn(int n){
+	static const int TABLESIZE = 2000;
+	if(n < 0){
+		std::ostringstream tos;
+		tos << n;
+		throw "TRandomGenerator::factorial: n = " + tos.str() + "out of range!";
+	}
+
+	if(n < TABLESIZE){
+		if(!factorialTableLnInitialized){
+			factorialTableLn = new double[TABLESIZE];
+			factorialTableLn[0] = 0.0;
+			for(int i=1; i<TABLESIZE; i++)
+				factorialTableLn[i] = gammaln(i+1);
+			factorialTableLnInitialized = true;
+		}
+		return factorialTableLn[n];
+	}
+	return gammaln(n+1);
+}
+
 
 double TRandomGenerator::binomCoeffLn(int n, int k){
-	return gammaln(n+1) - gammaln(k+1) - gammaln(n-k+1);
+	return factorialLn(n) - factorialLn(k) - factorialLn(n-k);
 }
+
+int TRandomGenerator::binomCoeff(int n, int k){
+	return factorial(n) - factorial(k) - factorial(n-k);
+}
+
+double TRandomGenerator::binomDensity(int n, int k, double p){
+	if(p == 0.0){
+		if(k == 0) return 1.0;
+		else return 0.0;
+	}
+	if(p == 1.0){
+		if(k == n) return 1.0;
+		else return 0.0;
+	}
+	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
+}
+
+
 
 //--------------------------------------------------------
 //Uniform Distribution
@@ -143,11 +218,33 @@ int TRandomGenerator::getRand(int min, int maxPlusOne){
 }
 
 int TRandomGenerator::pickOne(int numElements){
-	if(numElements < 1) throw "TRandomGenerator::pickOne: can not choose an element among less than 1 elements!";
+	//if(numElements < 1) throw "TRandomGenerator::pickOne: can not choose an element among less than 1 elements!";
 	if(numElements == 1) return 0;
 	float r = 1.0;
 	while(r == 1.0) r=getRand(); //we have a number in [0,1[
 	return floor(r*(numElements));
+}
+
+int TRandomGenerator::pickOne(int numElements, float* probsCumulative){
+	if(numElements == 1) return 0;
+	float r = 1.0;
+	//while(r == 1.0) r=getRand(); //we have a number in [0,1[
+	r = getRand();
+	int i = 0;
+	while(r > probsCumulative[i])
+		++i;
+	return i;
+}
+
+int TRandomGenerator::pickOne(int numElements, double* probsCumulative){
+	if(numElements == 1) return 0;
+	double r = 1.0;
+	//while(r == 1.0) r=getRand(); //we have a number in [0,1[
+	r = getRand();
+	int i = 0;
+	while(r > probsCumulative[i])
+		++i;
+	return i;
 }
 
 long TRandomGenerator::getRand(long min, long maxPlusOne){
@@ -331,10 +428,15 @@ double TRandomGenerator::getGammaRand(int ia){
   return(x);
 }
 
+//gamma log density function
+double TRandomGenerator::gammaLogDensityFunction(double x, double alpha, double beta){
+	return alpha * log(beta) - gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
+}
+
 //Functions to calculate cumulative of Gamma
 //Adapted from kfunc.c of samtools
 double TRandomGenerator::gammaCumulativeDistributionFunction(double x, double alpha, double beta){
-	return lowerIncompleteGamma(alpha, beta * x) / exp(gammaln(alpha));
+	return lowerIncompleteGamma(alpha, beta * x); // do not need to divide by exp(gammaln(alpha)), it is already regularized;
 }
 
 /* The following computes regularized incomplete gamma functions.

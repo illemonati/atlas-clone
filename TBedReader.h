@@ -16,18 +16,18 @@
 //store all data in chr / window combinations using vectors
 //Store all positions 0-based, as in TWindow
 
-class TBedWindow{
+class TBedReaderWindow{
 public:
 	bool hasData;
 	long start, end;
 	std::vector<long> positions;
 
-	TBedWindow(long Start, long End){
+	TBedReaderWindow(long Start, long End){
 		hasData = false;
 		start = Start;
 		end = End;
 	};
-	~TBedWindow(){};
+	~TBedReaderWindow(){};
 	void addPosition(long & pos){
 		positions.push_back(pos);
 	};
@@ -43,20 +43,20 @@ public:
 	}
 };
 
-class TBedChromosome{
+class TBedReaderChromosome{
 public:
 	std::string name;
-	std::map<int, TBedWindow*> windows;
-	std::map<int, TBedWindow*>::iterator windowIt;
+	std::map<int, TBedReaderWindow*> windows;
+	std::map<int, TBedReaderWindow*>::iterator windowIt;
 	int windowSize;
 
 
-	TBedChromosome(std::string & Name, int & WindowSize){
+	TBedReaderChromosome(std::string & Name, int & WindowSize){
 		name = Name;
 		windowSize = WindowSize;
 	};
 
-	~TBedChromosome(){
+	~TBedReaderChromosome(){
 		//delete all windows
 		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt){
 			delete windowIt->second;
@@ -74,7 +74,7 @@ public:
 		if(windowIt == windows.end()){
 			//insert window
 			int w = (double) pos / (double) windowSize;
-			windows.insert(std::pair<int, TBedWindow*>(w, new TBedWindow(w*windowSize, (w+1)*windowSize - 1)));
+			windows.insert(std::pair<int, TBedReaderWindow*>(w, new TBedReaderWindow(w*windowSize, (w+1)*windowSize - 1)));
 			findWindow(pos);
 		}
 	}
@@ -95,7 +95,6 @@ public:
 	};
 
 	void print(){
-		std::cout << "Chromosome '" << name << "':" << std::endl;
 		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 	};
 
@@ -121,15 +120,17 @@ public:
 
 class TBedReader{
 private:
-	std::map<std::string, TBedChromosome*> chromosomes;
-	std::map<std::string, TBedChromosome*>::iterator chrIt;
+	std::map<std::string, TBedReaderChromosome*> chromosomes;
+	std::map<std::string, TBedReaderChromosome*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
 
-	void readFile(){
+	void readFile(BamTools::SamSequenceDictionary & Sequences, 	TLog* logfile){
 		//open file
-		std::ifstream bedFile(filename.c_str());
-		if(!bedFile) throw "Failed to open BED file '" + filename + "'!";
+		std::istream* myStream = NULL;
+		if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
+		else myStream = new std::ifstream(filename.c_str());
+		if(!*myStream) throw "Failed to open BED file '" + filename + "'!";
 
 		//tmp variables
 		long lineNum = 0;
@@ -137,18 +138,22 @@ private:
 		curChr = "";
 
 		//read file
-		while(bedFile.good() && !bedFile.eof()){
+		while((*myStream).good() && !(*myStream).eof()){
 			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(bedFile, vec);
+			std::string line;
+			std::getline(*myStream, line);
+
+
+			fillVectorFromStringAny(line, vec, "\t ");
 			//skip empty lines
 			if(vec.size() > 0){
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
-
 				//get chromosome
+				if(!Sequences.Contains(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0], windowSize)));
+						chromosomes.insert(std::pair<std::string, TBedReaderChromosome*>(vec[0], new TBedReaderChromosome(vec[0], windowSize)));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
@@ -160,16 +165,16 @@ private:
 		}
 
 		//close file
-		bedFile.close();
+		delete myStream;
 	};
 
 public:
 	std::string filename;
 
-	TBedReader(std::string Filename, int & WindowSize){
+	TBedReader(std::string Filename, int & WindowSize, BamTools::SamSequenceDictionary & Sequences, TLog* logfile){
 		filename = Filename;
 		windowSize = WindowSize;
-		readFile();
+		readFile(Sequences, logfile);
 		curChr = "";
 	};
 
@@ -186,7 +191,6 @@ public:
 	};
 
 	void print(){
-		std::cout << "Bed File '" << filename << "':" << std::endl;
 		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
 	};
 
@@ -208,7 +212,11 @@ public:
 		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
 			s += chrIt->second->size();
 		return s;
-	}
+	};
+
+	int getNumChromosomes(){
+		return chromosomes.size();
+	};
 
 };
 

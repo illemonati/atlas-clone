@@ -168,7 +168,6 @@ bool BamAlignment::BuildCharData(void) {
     }
 
     // save qualities
-
     Qualities.clear();
     if ( hasQualData ) {
         const char* qualData = SupportData.AllCharData.data() + qualDataOffset;
@@ -181,9 +180,11 @@ bool BamAlignment::BuildCharData(void) {
         else {
             Qualities.reserve(SupportData.QuerySequenceLength);
             for ( size_t i = 0; i < SupportData.QuerySequenceLength; ++i )
-                Qualities.append(1, qualData[i]+33);
+                Qualities.append(1, (char) (qualData[i]+33));
         }
     }
+
+    //mod wegmann: we now do this in TAlignmentParser!
 
     // clear previous AlignedBases
     AlignedBases.clear();
@@ -212,7 +213,7 @@ bool BamAlignment::BuildCharData(void) {
                 case (Constants::BAM_CIGAR_MISMATCH_CHAR) :
                     AlignedBases.append(QueryBases.substr(k, op.Length));
                 	AlignedQualities.append(Qualities.substr(k, op.Length));
-                    // fall through
+                	// INTENTIONAL FALL THROUGH HERE
 
                 // for 'S' - soft clip, do not write bases
                 // for 'I' - insertion, do not write base! (Mod D Wegmann). Reason: algorithm uses reference coordinate system.
@@ -252,6 +253,7 @@ bool BamAlignment::BuildCharData(void) {
             }
         }
     }
+
 
     // save tag data
     TagData.clear();
@@ -611,6 +613,7 @@ bool BamAlignment::GetSoftClips(vector<int>& clipSizes,
                 clipSizes.push_back(op.Length);
                 readPositions.push_back(readPosition);
                 genomePositions.push_back(refPosition);
+                break;
 
             // any other CIGAR operations have no effect
             default :
@@ -819,6 +822,15 @@ bool BamAlignment::IsReverseStrand(void) const {
 bool BamAlignment::IsSecondMate(void) const {
     return ( (AlignmentFlag & Constants::BAM_ALIGNMENT_READ_2) != 0 );
 }
+
+/*! \fn bool BamAlignment::IsSupplementary(void) const
+    \return \c true if alignment is supplementary
+*/
+bool BamAlignment::IsSupplementary(void) const {
+    return ( (AlignmentFlag & Constants::BAM_ALIGNMENT_SUPPLEMENTARY) != 0 );
+}
+
+
 
 /*! \fn bool BamAlignment::IsValidSize(const std::string& tag, const std::string& type) const
     \internal

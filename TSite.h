@@ -19,33 +19,36 @@
 #include <algorithm>
 #include "TRandomGenerator.h"
 
+#define maxQualToPrint 1000
+#define maxQualToPrintNaturalScale 1E-100
+
 //---------------------------------------------------------------
 //TSite
 //---------------------------------------------------------------
 class TSite{
+protected:
+	short int numGenotypes;
+	std::vector<TBase*>::iterator baseIterator;
+
 public:
-	bool hasData;
 	std::vector<TBase*> bases;
-	int numGenotypes;
+	bool hasData;
 	double* emissionProbabilities;
-	double* P_g; //P(g|d, theta, pi), see equation (3)
 	char referenceBase; //optional
-	double maxQualToPrint, maxQualToPrintNaturalScale;
 
 	TSite(){
 		hasData = false;
 		numGenotypes = 0;
 		emissionProbabilities = NULL;
-		P_g = NULL;
 		referenceBase = 'N';
-		maxQualToPrint = 1000;
-		maxQualToPrintNaturalScale = pow(10.0, -maxQualToPrint / 10.0);
+		//std::cout << "maxQualToPrintNaturalScale " << maxQualToPrintNaturalScale << std::endl;
 	};
+	TSite(TSite* other):TSite(){stealFromOther(other);};
 	virtual ~TSite(){ clear(); };
 	void clear();
 	void stealFromOther(TSite* other);
 
-	virtual void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
+	virtual void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){throw "Function 'add' Not implemented for base class TSite!"; };
 	void setRefBase(char & Base){
 		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T')
 			referenceBase = Base;
@@ -59,7 +62,7 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
-	int getCoverage(){return bases.size();};
+	int depth(){return bases.size();};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);
@@ -68,30 +71,36 @@ public:
 		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
 		return -10.0 * log10(epsilon);
 	};
+	void calcEmissionProbabilities(double* vec);
 	void calcEmissionProbabilities();
-	void calculateP_g(double* genotypeProbabilities);
+	void calculateP_g(double* & genotypeProbabilities, double* & P_g);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
 	//MLE Callers
-	void calculateNormalizedGenotypeLikelihoods(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, double & quality, double & maxGenotypeProb, int & MLGenotype);
+	void calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL);
+	void calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, double & quality, double & maxGenotypeProb, int & MLGenotype);
 	void findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, TGenotypeMap & genoMap, int MLGenotype, std::string & genoSecond);
-	void callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef);
-	void callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef, bool gVCF, bool noAltIfHomoRef, std::string & basesString);
+	void callMLEGenotype(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out);
+	void callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool gVCF, bool noAltIfHomoRef, std::string & basesString);
 	virtual void callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callMLEGenotypeKnownAlleles not implemented for TSite base class!";};
 	virtual void callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string & basesString){ throw "callMLEGenotypeVCFKnownAlleles not implemented for TSite base class!";};
+	virtual void callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){ throw "callMLEGenotypeKnownAllelesBeagle not implemented for TSite base class!";};
 	//Bayesian Callers
 	void calculateGenotypePosteriorProbabilities(double* pGenotype, TRandomGenerator & randomGenerator, double* postProb, int & MAP);
-	void callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef);
+	void callBayesianGenotype(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	void callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	virtual void callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callBayesianGenotypeKnownAlleles not implemented for TSite base class!";};
 	virtual void callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callBayesianGenotypeVCFKnownAlleles not implemented for TSite base class!";};
 	//Allele Presence Callers
-	virtual void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef){ throw "callAllelePresence not implemented for TSite base class!";};
+	virtual void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){ throw "callAllelePresence not implemented for TSite base class!";};
 	virtual void callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){ throw "callAllelePresenceKnownAlleles not implemented for TSite base class!";};
 	virtual void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){ throw "callAllelePresenceVCF not implemented for TSite base class!";};
 	virtual void callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString){ throw "callAllelePresenceVCFKnownAlleles not implemented for TSite base class!";};
+	virtual void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out) { throw "callRandomBase not implemented for TSite base class!";};
+	virtual void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){ throw "majorityCall not implemented for TSite base class!";};
+
 	virtual double calculatePHomozygous(double* pGenotype){ throw "calculatePHomozygous not implemented for TSite base class!";};
 
 	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
@@ -104,28 +113,32 @@ public:
 	TSiteDiploid(){
 		numGenotypes = 10;
 		emissionProbabilities = new double[numGenotypes];
-		P_g = new double[numGenotypes];
 	};
+	TSiteDiploid(TSite* other):TSiteDiploid(){stealFromOther(other);};
 	~TSiteDiploid(){
 		delete[] emissionProbabilities;
-		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+
 	//MLE callers
 	void calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* phredEmissionProbs, double & quality, double & maxGenotypeProb, int & MLGenotype);
+	void calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & sumEmissionProbs, int & pos);
 	void callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt);
 	void callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string & basesString);
+	void callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL);
 	//Bayesian Callers
 	void calculateGenotypePosteriorProbabilitiesKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* postProb, int & MAP);
 	void callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt);
 	void callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt);
 	//Allele Presence Callers
 	void calculatePosteriorOnAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP);
-	void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool printRef);
+	void callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	void callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString);
 	void calculatePosteriorOnAllelePresenceKnownAlleles(double* pGenotype, char & alt, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP);
 	void callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt);
 	void callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString);
+	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out);
+	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	double calculatePHomozygous(double* pGenotype);
 };
 
@@ -133,16 +146,14 @@ class TSiteHaploid:public TSite{
 public:
 
 	TSiteHaploid(){
-		hasData = false;
 		numGenotypes = 4;
 		emissionProbabilities = new double[numGenotypes];
-		P_g = new double[numGenotypes];
 	}
+	TSiteHaploid(TSite* other):TSiteHaploid(){stealFromOther(other);};
 	~TSiteHaploid(){
 		delete[] emissionProbabilities;
-		delete[] P_g;
 	};
-	void add(char & base, char & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
 	void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out);
 };

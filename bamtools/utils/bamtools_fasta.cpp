@@ -62,7 +62,9 @@ struct Fasta::FastaPrivate {
 };
 
 Fasta::FastaPrivate::FastaPrivate(void) 
-    : IsOpen(false)
+    : Stream(NULL)
+	, IsOpen(false)
+	, IndexStream(NULL)
     , HasIndex(false)
     , IsIndexOpen(false)
 { }
@@ -415,7 +417,7 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         
         // validate stop position
         //--------------------------------------------------------------------
-        //Modified by Dan Wegmann to return N is start / stop is outside fasta
+        //Modified by Dan Wegmann to return N if start / stop is outside fasta
         //---------------------------------------------------------------------
         /*
         if ( (start < 0) || (start > stop) || (stop > referenceData.Length) ) {

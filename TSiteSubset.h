@@ -95,7 +95,7 @@ public:
 		}
 	};
 
-	void addPosition(std::vector<std::string> & tmp, const std::string & chr){
+	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -113,14 +113,15 @@ public:
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
-		if(ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(!invariantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(invariantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
 
 		//identify window
 		findOrCreateWindow(pos);
 		windowIt->second->addPosition(pos, ref, alt);
 	};
 
-	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error){
+	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool invariantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -141,7 +142,6 @@ public:
 				return false;
 			}
 		}
-
 		//check
 		if(ref != 'A' && ref != 'C' && ref != 'G' && ref != 'T'){
 			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
@@ -151,10 +151,14 @@ public:
 			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			return false;
 		}
-		if(ref == alt){
-			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
-			return false;
-			//throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(ref == alt && !invariantSites){
+			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
+			//return false;
+			throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		}if(ref != alt && invariantSites){
+			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
+			//return false;
+			throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
 		}
 
 		//identify window
@@ -194,6 +198,7 @@ private:
 	std::map<std::string, TSiteSubsetChr*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
+	bool invariantSites;
 
 	void readFile(TLog* logfile){
 		logfile->listFlush("Reading sites to be used from '" + filename + "' ...");
@@ -225,7 +230,7 @@ private:
 				}
 
 				//add positions
-				chrIt->second->addPosition(vec, chrIt->first);
+				chrIt->second->addPosition(vec, chrIt->first, invariantSites);
 			}
 		}
 
@@ -273,7 +278,7 @@ private:
 				}
 
 				//add positions
-				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error)){
+				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error, invariantSites)){
 					//conflict with fasta -> add to vector
 					conflictsWithReference.push_back(error);
 				}
@@ -302,21 +307,22 @@ private:
 
 		//close file
 		sitesFile.close();
-
 	};
 
 public:
 	std::string filename;
-	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile){
+	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
+		invariantSites = InvariantSites;
 		readFile(logfile);
 		curChr = "";
 	};
 
-	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile){
+	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
+		invariantSites = InvariantSites;
 		readFile(reference, bamHeader, logfile);
 		curChr = "";
 	};
@@ -340,7 +346,9 @@ public:
 
 	bool hasPositionsInWindow(const long & windowStart){
 		chrIt = chromosomes.find(curChr);
-		if(chrIt == chromosomes.end()) return false;
+		if(chrIt == chromosomes.end()){
+			return false;
+		}
 		else return chrIt->second->hasPositionsInWindow(windowStart);
 	}
 

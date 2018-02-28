@@ -36,12 +36,12 @@ public:
 	TPMDTable(int MaxLength);
 	~TPMDTable();
 	void empty();
-	void add(int & pos, Base & ref, Base & read);
+	void add(const int & pos, const Base & ref, const Base & read);
 	void writeTable(std::ofstream & out, std::string prefix);
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName);
+	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile);
 };
 
 class TPMDTables{
@@ -52,12 +52,12 @@ public:
 
 	TPMDTables(TReadGroups* ReadGroups, int maxLength);
 	~TPMDTables();
-	void addForward(int readGroup, int pos, Base & ref, Base & read);
-	void addReverse(int readGroup, int pos, Base & ref, Base & read);
+	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);
+	void addReverse(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
-	void fitExponentialModel(int numNRIterations, double eps, std::string & filename);
+	void fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile);
 };
 
 
@@ -66,46 +66,93 @@ public:
 //---------------------------------------------------------------
 //Note: Base class is to be used when there is no PMD!
 class TPMDFunction{
+protected:
+	std::string functionName;
+
+	virtual void setName(){ functionName = "noPMD"; };
 public:
-	TPMDFunction(){};
+	TPMDFunction(){ setName(); };
+	TPMDFunction(TPMDFunction & other){
+		setName();
+	};
 	virtual ~TPMDFunction(){};
+	virtual void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDFunction();
+	};
 	virtual double getProb(int & pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
+	virtual std::string getFunctionName(){ return functionName; };
+	virtual bool hasDamage(){ return false; };
 };
 
 class TPMDSkoglund:public TPMDFunction{
 private:
 	double lambda, c;
 
+protected:
+	void setName(){ functionName = "Skoglund"; };
+
 public:
 	TPMDSkoglund(double & Lambda, double & C);
+	TPMDSkoglund(TPMDSkoglund & other){
+		setName();
+		lambda = other.lambda;
+		c = other.lambda;
+	};
 	~TPMDSkoglund(){};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDSkoglund(lambda, c);
+	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 class TPMDExponential:public TPMDFunction{
 private:
 	double a,b,c;
 
+protected:
+	void setName(){ functionName = "Exponential"; };
+
 public:
 	TPMDExponential(double & A, double & B, double & C);
+	TPMDExponential(TPMDExponential & other){
+		setName();
+		a = other.a;
+		b = other.b;
+		c = other.c;
+	};
+	~TPMDExponential(){};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDExponential(a, b, c);
+	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 class TPMDEmpiric:public TPMDFunction{
 private:
 	int length;
-	double* probs;
+	std::vector<double> probs;
 	double last;
+
+protected:
+	void setName(){ functionName = "Empiric"; };
 
 public:
 	TPMDEmpiric(std::string & values, std::string & example);
+	TPMDEmpiric(std::vector<double> Probs);
+	~TPMDEmpiric(){};
+	void getCopy(TPMDFunction* & pointer){
+		pointer = new TPMDEmpiric(probs);
+	};
 	double getProb(int & pos);
 	std::string getString();
+	bool hasDamage(){ return true; };
 };
 
 //------------------------------------------------------
@@ -124,11 +171,22 @@ public:
 		functionsInitialized[pmdGA] = false;
 	};
 
+	TPMD(TParameters & params, TLog* logfile){
+		myFunctions[pmdCT] = NULL;
+		myFunctions[pmdGA] = NULL;
+		functionsInitialized[pmdCT] = false;
+		functionsInitialized[pmdGA] = false;
+
+		initialize(params, logfile);
+	};
+	TPMD(TPMD & other){initialize(other);};
 	~TPMD(){
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
-	void initializeFunction(std::string & pmdString, PMDType type);
+	void initialize(TParameters & params, TLog* logfile);
+	void initialize(TPMD & other);
+	void initializeFunction(std::string pmdString, PMDType type);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
 	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };
@@ -137,6 +195,11 @@ public:
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];
 	};
+	bool hasDamage(){ return myFunctions[pmdCT]->hasDamage() & myFunctions[pmdGA]->hasDamage(); };
+	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
+	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
+
+
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 };
