@@ -1,3 +1,4 @@
 atlas
 *.o
 gitversion.h
+/Debug/

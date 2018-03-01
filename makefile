@@ -18,7 +18,7 @@ OBJFLAG = -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -s
 endif
 
 $(BIN): $(GIT_HEADER) $(OBJ)
-	$(CC) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
+	$(CXX) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
 
 $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
 	echo "#define GITVERSION \"$(shell git rev-parse HEAD)\"" > $@
@@ -27,7 +27,7 @@ $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
 	touch $@
 
 %.o: %.cpp
-	$(CC) -O3 -c -Ibamtools $(OBJFLAG) $< -o $@
+	$(CXX) -O3 -c -Ibamtools $(OBJFLAG) $< -o $@
 
 .PHONY : clean
 clean:
