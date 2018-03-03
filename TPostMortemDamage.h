@@ -55,7 +55,7 @@ public:
 
 	TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap* ReadGroupMap);
 	~TPMDTables();
-	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
+//	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void addReverse(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);

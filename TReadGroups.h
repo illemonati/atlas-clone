@@ -126,12 +126,12 @@ public:
 //---------------------------------------------------------------
 class TReadGroupMap{
 private:
+
+public:
 	int origNumReadGroups;
 	int numReadGroups;
 	bool readGroupMapInitialized;
 	bool mergedInd;
-
-public:
 	int* readGroupMap;
 
 	TReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile){

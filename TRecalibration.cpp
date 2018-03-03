@@ -11,12 +11,13 @@
 //TRecalibration
 //---------------------------------------------------------------
 
-TRecalibration::TRecalibration(){
-	mergedInd = false;
-	readGroupMap = NULL;
-	origNumReadGroups = -1;
-	numReadGroups = -1;
-	readGroupMapInitialized = false;
+TRecalibration::TRecalibration(TReadGroupMap* ReadGroupMap){
+//	mergedInd = false;
+//	readGroupMap = NULL;
+//	origNumReadGroups = -1;
+//	numReadGroups = -1;
+//	readGroupMapInitialized = false;
+	readGroupMapObject = ReadGroupMap;
 }
 
 int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups){
@@ -27,6 +28,7 @@ int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGrou
 	return -1;
 }
 
+/*
 void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile){
 	origNumReadGroups = bamHeader->ReadGroups.Size();
 	readGroupMap = new int[origNumReadGroups];
@@ -112,6 +114,7 @@ void TRecalibration::initializeReadGroupMap(BamTools::SamHeader* bamHeader, TPar
 		}
 	}
 }
+*/
 
 void TRecalibration::calcEmissionProbabilities(TSite & site){
 	//first calculate for each base
@@ -780,15 +783,14 @@ void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
 //---------------------------------------------------------------
 //TRecalibrationEM
 //---------------------------------------------------------------
-TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile){
+TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile, TReadGroupMap* ReadGroupMap):TRecalibration(ReadGroupMap){
 	//read groups and log file
 	numSitesAdded = 0;
 	equalBaseFrequencies = false;
 	bamHeader = BamHeader;
-	initializeReadGroupMap(BamHeader, args, Logfile);
-	readGroupNames = new std::string[origNumReadGroups];
+	readGroupNames = new std::string[readGroupMapObject->origNumReadGroups];
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<origNumReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r, ++it){
 		readGroupNames[r] = it->ID;
 	}
 	logfile = Logfile;
@@ -800,10 +802,10 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 	std::string modelTag = args.getParameterStringWithDefault("model", "full");
 	if(modelTag == "full"){
 		logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		model = new TRecalibrationEMModel(numReadGroups);
+		model = new TRecalibrationEMModel(readGroupMapObject->numReadGroups);
 	} else if(modelTag == "noContext"){
 		logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
-		model = new TRecalibrationEMModelNoContext(numReadGroups);
+		model = new TRecalibrationEMModelNoContext(readGroupMapObject->numReadGroups);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 
 	//Are the values provided?
@@ -822,7 +824,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		std::vector<std::string> tmpVec, vec;
 		fillVectorFromString(name, tmpVec, ",");
 		repeatIndexes(tmpVec, vec);
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			//add to model
 //			for(int j=0; j<vec.size(); ++j){
 //				std::cout << vec[j] << std::endl;
@@ -846,8 +848,8 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		std::vector<std::string> vec;
 		std::vector<std::string>::iterator it;
 		int rg;
-		bool* rgFound = new bool[numReadGroups];
-		for(int r=0; r<numReadGroups; ++r) rgFound[r] = false;
+		bool* rgFound = new bool[readGroupMapObject->numReadGroups];
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r) rgFound[r] = false;
 
 		//skip header
 		std::getline(file, tmp);
@@ -862,7 +864,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 				//find read group
 				it = vec.begin();
 				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
-				rg = readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
+				rg = readGroupMapObject->readGroupMap[findReadGroupIndex(*it, bamHeader->ReadGroups)];
 				rgFound[rg] = true;
 
 				//remove read group name from vector
@@ -876,7 +878,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 		}
 
 		//check if we miss some read groups
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in file '" + filename + "'!";
 		}
 		delete[] rgFound;
@@ -913,7 +915,7 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 }
 
 void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
-	windows.push_back(new TRecalibrationEMWindow(freqs, readGroupMap));
+	windows.push_back(new TRecalibrationEMWindow(freqs, readGroupMapObject->readGroupMap));
 	//set iterator
 	curWindow = windows.end(); --curWindow;
 	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
@@ -1123,9 +1125,9 @@ void TRecalibrationEM::writeHeader(std::ofstream & out){
 }
 
 void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
-	for(int r=0; r<origNumReadGroups; ++r){
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r){
 		out << readGroupNames[r];
-		model->writeParametersToFile(out, readGroupMap[r]);
+		model->writeParametersToFile(out, readGroupMapObject->readGroupMap[r]);
 		out << "\t" << LL;
 		out << std::endl;
 	}
@@ -1273,11 +1275,11 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 */
 
 double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
+	return model->getErrorRate(readGroupMapObject->readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = model->getErrorRate(readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
+	double q = model->getErrorRate(readGroupMapObject->readGroupMap[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }
@@ -1810,7 +1812,7 @@ float TBQSR_cellContext::getEpsilon(TBase* base){
 //---------------------------------------------------------------
 //Recalibration BQSR
 //---------------------------------------------------------------
-TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile){
+TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile, TReadGroupMap* ReadGroupMap):TRecalibration(ReadGroupMap){
 	logfile = Logfile;
 	bamHeader = BamHeader;
 	estimatetionRequired = false;
@@ -1824,8 +1826,6 @@ TRecalibrationBQSR::TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParamete
 	if(storeDataInMemory) logfile->list("Will store D in memory to iterate Newton-Raphson faster");
 	//if(mergeReadGroupsRecalibration) logfile->list("Pooling all read groups for BQSR recalibration");
 	dataStored = false;
-
-	initializeReadGroupMap(bamHeader, params, logfile);
 
 	//check if BQSR table readGroup x Quality is given, or has to be estimated
 	initializeBQSRReadGroupQualityTable(params);
@@ -1873,8 +1873,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTable(TParameters & param
 		qualityIndex = new TQualityIndex(minQ, maxQ);
 
 		//initialize BQSR table
-		BQSR_cells_readGroup_quality = new TBQSR_cell*[numReadGroups];
-		for(int i=0; i<numReadGroups; ++i){
+		BQSR_cells_readGroup_quality = new TBQSR_cell*[readGroupMapObject->numReadGroups];
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 			for(int q=0; q<qualityIndex->numQ; ++q){
 				BQSR_cells_readGroup_quality[i][q].init(qualityMap.phredIntToErrorMap[qualityIndex->getQuality(q)], storeDataInMemory, i);
@@ -1890,7 +1890,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	if(!file) throw "Failed to open BQSR readGroup x quality table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_quality = new TBQSR_cell*[origNumReadGroups];
+	BQSR_cells_readGroup_quality = new TBQSR_cell*[readGroupMapObject->origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -1921,7 +1921,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupQualityTableFromFile(TParameters
 	qualityIndex = new TQualityIndex(minQ, maxQ);
 
 	//create corresponding objects
-	for(int i=0; i<origNumReadGroups; ++i){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i){
 		BQSR_cells_readGroup_quality[i] = new TBQSR_cell[qualityIndex->numQ];
 		for(int q=0; q<qualityIndex->numQ; ++q) BQSR_cells_readGroup_quality[i][q].init(qualityMap.qualityToError(qualityIndex->getQuality(q)), storeDataInMemory, i);
 	}
@@ -1974,8 +1974,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTable(TParameters & para
 			maxPos = params.getParameterInt("maxPos");
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
 			logfile->list("Considering positions up to " + toString(maxPos));
-			BQSR_cells_readGroup_position = new TBQSR_cellPosition*[numReadGroups];
-			for(int r=0; r<numReadGroups; ++r){
+			BQSR_cells_readGroup_position = new TBQSR_cellPosition*[readGroupMapObject->numReadGroups];
+			for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 				BQSR_cells_readGroup_position[r] = new TBQSR_cellPosition[maxPos];
 				for(int p=0; p<maxPos; ++p) BQSR_cells_readGroup_position[r][p].init(BQSR_cells_readGroup_quality, qualityIndex, storeDataInMemory, r);
 			}
@@ -1992,7 +1992,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	if(!file) throw "Failed to open BQSR readGroup x position table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_position = new TBQSR_cellPosition*[origNumReadGroups];
+	BQSR_cells_readGroup_position = new TBQSR_cellPosition*[readGroupMapObject->origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -2016,8 +2016,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 	}
 
 	//create corresponding objects and object to check if we will initialize all positions!
-	bool** isListed = new bool*[origNumReadGroups];
-	for(int r=0; r<origNumReadGroups; ++r){
+	bool** isListed = new bool*[readGroupMapObject->origNumReadGroups];
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r){
 		BQSR_cells_readGroup_position[r] = new TBQSR_cellPosition[maxPos];
 		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
@@ -2051,7 +2051,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionTableFromFile(TParameter
 
 	//check if we miss positions
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
 			if(!isListed[i][p]) throw "Position " + toString(p+1) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
@@ -2087,8 +2087,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTable(TParameters
 			maxPos = params.getParameterInt("maxPos");
 			if(maxPos < 1) throw "Max position has to be larger than zero!";
 			logfile->list("Considering positions reverse up to " + toString(maxPos));
-			BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[numReadGroups];
-			for(int r=0; r<numReadGroups; ++r){
+			BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[readGroupMapObject->numReadGroups];
+			for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 				BQSR_cells_readGroup_position_reverse[r] = new TBQSR_cellPositionRev[maxPos];
 				for(int p=0; p<maxPos; ++p){
 					if(considerPosition) BQSR_cells_readGroup_position_reverse[r][p].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, qualityIndex, storeDataInMemory, r);
@@ -2108,7 +2108,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	if(!file) throw "Failed to open BQSR readGroup x position reverse table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[origNumReadGroups];
+	BQSR_cells_readGroup_position_reverse = new TBQSR_cellPositionRev*[readGroupMapObject->origNumReadGroups];
 
 	//tmp variables
 	long lineNum = 0;
@@ -2132,8 +2132,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 	}
 
 	//create corresponding objects and object to check if we will initialize all positions!
-	bool** isListed = new bool*[origNumReadGroups];
-	for(int r=0; r<origNumReadGroups; ++r){
+	bool** isListed = new bool*[readGroupMapObject->origNumReadGroups];
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r){
 		BQSR_cells_readGroup_position_reverse[r] = new TBQSR_cellPositionRev[maxPos];
 		isListed[r] = new bool[maxPos];
 		for(int p=0; p<maxPos; ++p){
@@ -2168,7 +2168,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupPositionReverseTableFromFile(TPa
 
 	//check if we miss positions
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
 			if(!isListed[i][p]) throw "Position " + toString(p+1) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
@@ -2200,8 +2200,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTable(TParameters & param
 			estimateContext = true;
 			estimatetionRequired = true;
 			logfile->list("Considering context");
-			BQSR_cells_readGroup_context = new TBQSR_cellContext*[numReadGroups];
-			for(int r=0; r<numReadGroups; ++r){
+			BQSR_cells_readGroup_context = new TBQSR_cellContext*[readGroupMapObject->numReadGroups];
+			for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 				BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 				for(int c=0; c<numContexts; ++c){
 					if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDataInMemory, r);
@@ -2223,8 +2223,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	if(!file) throw "Failed to open BQSR readGroup x context table from file '" + filename + "'!";
 
 	//construct for each read group in bam file
-	BQSR_cells_readGroup_context = new TBQSR_cellContext*[origNumReadGroups];
-	for(int r=0; r<origNumReadGroups; ++r){
+	BQSR_cells_readGroup_context = new TBQSR_cellContext*[readGroupMapObject->origNumReadGroups];
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r){
 		BQSR_cells_readGroup_context[r] = new TBQSR_cellContext[numContexts];
 		for(int c=0; c<numContexts; ++c){
 			if(considerPosition && considerPositionReverse) BQSR_cells_readGroup_context[r][c].init(BQSR_cells_readGroup_quality, BQSR_cells_readGroup_position, BQSR_cells_readGroup_position_reverse, qualityIndex, storeDataInMemory, r);
@@ -2235,8 +2235,8 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	}
 
 	//create object to check of all contexts have been initialized!
-	bool** isListed = new bool*[origNumReadGroups];
-	for(int i=0; i<origNumReadGroups; ++i){
+	bool** isListed = new bool*[readGroupMapObject->origNumReadGroups];
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i){
 		isListed[i] = new bool[numContexts];
 		for(int c=0; c<numContexts; ++c){
 			isListed[i][c] = false;
@@ -2272,7 +2272,7 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 
 	//check if we miss contexts
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int c=0; c<numContexts; ++c){
 			if(!isListed[i][c]) throw "Context " + genoMap.getContextString(c) + " is not listed for read group '" + it->ID + "' in file '" + filename + "'!";
 		}
@@ -2300,23 +2300,23 @@ void TRecalibrationBQSR::addSite(TSite & site){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+					BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
 			}
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[readGroupMap[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
+				BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position_reverse[readGroupMap[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase);
+				BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase);
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_context[readGroupMap[(*it)->readGroup]][(*it)->context].addBase(*it, refBase);
+				BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[(*it)->readGroup]][(*it)->context].addBase(*it, refBase);
 			}
 		}
 	}
@@ -2324,27 +2324,27 @@ void TRecalibrationBQSR::addSite(TSite & site){
 
 void TRecalibrationBQSR::recalculateDerivativesFromDataInMemory(){
 	if(!qualityConverged){
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int j=0; j<qualityIndex->numQ; ++j){
 				BQSR_cells_readGroup_quality[r][j].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	}
 	else if(considerPosition && !positionConverged){
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position[r][p].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	}
 	else if(considerPositionReverse && !positionReverseConverged){
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position_reverse[r][p].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	} else if(considerContext && !contextConverged){
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
 				BQSR_cells_readGroup_context[r][c].recalculateDerivativesFromDataInMemory();
 			}
@@ -2375,7 +2375,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		}
 		//now do estimation
 		logfile->listFlush("Estimating tmpEpsilon for readGroup x quality table ...");
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int j=0; j<qualityIndex->numQ; ++j){
 				if(!BQSR_cells_readGroup_quality[i][j].estimate(convergenceThreshold_F, minEpsilonQuality, minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
@@ -2390,7 +2390,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			logfile->list("Estimation converged in all cells!");
 		} else {
 			qualityConverged = false;
-			int percent = 100.0 * ((double) numCellsNotConverged / (double) (numReadGroups * qualityIndex->numQ));
+			int percent = 100.0 * ((double) numCellsNotConverged / (double) (readGroupMapObject->numReadGroups * qualityIndex->numQ));
 			logfile->conclude("Estimation has not yet converged in " + toString(numCellsNotConverged) + " cells (" + toString(percent) + "%)");
 		}
 		logfile->conclude("Largest F = " + toString(maxF));
@@ -2398,7 +2398,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!qualityConverged){
 			//empty all cells
-			for(int i=0; i<numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 				for(int j=0; j<qualityIndex->numQ; ++j){
 					BQSR_cells_readGroup_quality[i][j].empty();
 				}
@@ -2413,7 +2413,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(storeDataInMemory){
-				for(int i=0; i<numReadGroups; ++i){
+				for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 					for(int j=0; j<qualityIndex->numQ; ++j){
 						BQSR_cells_readGroup_quality[i][j].clearStorage();
 					}
@@ -2442,7 +2442,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		logfile->listFlush("Estimating tmpEpsilon for readGroup x position table ...");
 		numCellsNotConverged = 0;
 
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				if(!BQSR_cells_readGroup_position[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
@@ -2457,7 +2457,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			logfile->list("Estimation converged in all cells!");
 		} else {
 			positionConverged = false;
-			int percent = 100.0 * ((double) numCellsNotConverged / (double) (numReadGroups * maxPos));
+			int percent = 100.0 * ((double) numCellsNotConverged / (double) (readGroupMapObject->numReadGroups * maxPos));
 			logfile->conclude("Estimation has not yet converged in " + toString(numCellsNotConverged) + " cells (" + toString(percent) + "%)");
 		}
 		logfile->conclude("Largest F = " + toString(maxF));
@@ -2465,7 +2465,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!positionConverged){
 			//empty all cells
-			for(int i=0; i<numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 				for(int p=0; p<maxPos; ++p){
 					BQSR_cells_readGroup_position[i][p].empty();
 				}
@@ -2480,7 +2480,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(storeDataInMemory){
-				for(int i=0; i<numReadGroups; ++i){
+				for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 					for(int p=0; p<maxPos; ++p){
 						BQSR_cells_readGroup_position[i][p].clearStorage();
 					}
@@ -2509,7 +2509,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		logfile->listFlush("Estimating tmpEpsilon for readGroup x position reverse table ...");
 		numCellsNotConverged = 0;
 
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				if(!BQSR_cells_readGroup_position_reverse[i][p].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
@@ -2524,7 +2524,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			logfile->list("Estimation converged in all cells!");
 		} else {
 			positionReverseConverged = false;
-			int percent = 100.0 * ((double) numCellsNotConverged / (double) (numReadGroups * maxPos));
+			int percent = 100.0 * ((double) numCellsNotConverged / (double) (readGroupMapObject->numReadGroups * maxPos));
 			logfile->conclude("Estimation has not yet converged in " + toString(numCellsNotConverged) + " cells (" + toString(percent) + "%)");
 		}
 		logfile->conclude("Largest F = " + toString(maxF));
@@ -2532,7 +2532,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!positionReverseConverged){
 			//empty all cells
-			for(int i=0; i<numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 				for(int p=0; p<maxPos; ++p){
 					BQSR_cells_readGroup_position_reverse[i][p].empty();
 				}
@@ -2547,7 +2547,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(storeDataInMemory){
-				for(int i=0; i<numReadGroups; ++i){
+				for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 					for(int p=0; p<maxPos; ++p){
 						BQSR_cells_readGroup_position_reverse[i][p].clearStorage();
 					}
@@ -2574,7 +2574,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 		//now do estimation
 		logfile->listFlush("Estimating tmpEpsilon for quality x context table ...");
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
 				if(!BQSR_cells_readGroup_context[r][c].estimate(convergenceThreshold_F, minEpsilonFactors, minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
@@ -2589,7 +2589,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 			logfile->list("Estimation converged in all cells!");
 		} else {
 			contextConverged = false;
-			int percent = 100.0 * ((double) numCellsNotConverged / (double) (numReadGroups * numContexts));
+			int percent = 100.0 * ((double) numCellsNotConverged / (double) (readGroupMapObject->numReadGroups * numContexts));
 			logfile->conclude("Estimation has not yet converged in " + toString(numCellsNotConverged) + " cells (" + toString(percent) + "%)");
 		}
 		logfile->conclude("Largest F = " + toString(maxF));
@@ -2597,7 +2597,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!contextConverged){
 			//empty all cells
-			for(int r=0; r<numReadGroups; ++r){
+			for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 				for(int c=0; c<numContexts; ++c){
 					BQSR_cells_readGroup_context[r][c].empty();
 				}
@@ -2612,7 +2612,7 @@ bool TRecalibrationBQSR::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(storeDataInMemory){
-				for(int i=0; i<numReadGroups; ++i){
+				for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 					for(int c=0; c<numContexts; ++c){
 						BQSR_cells_readGroup_context[i][c].clearStorage();
 					}
@@ -2676,11 +2676,11 @@ void TRecalibrationBQSR::writeQualityToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
-			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << qualityMap.errorToPhred(BQSR_cells_readGroup_quality[readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].getNumObsForPrinting();
+			out << it->ID << "\t" << qualityIndex->getQuality(q) << "\tM\t" << qualityMap.errorToPhred(BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].curEstimate) << "\t" << BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].F << "\t" << BQSR_cells_readGroup_quality[readGroupMap[i]][q].estimationConverged;
+			out << "\t" << BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].firstDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].secondDerivativeSave << "\t" << BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].F << "\t" << BQSR_cells_readGroup_quality[readGroupMapObject->readGroupMap[i]][q].estimationConverged;
 			out << "\n";
 		}
 	}
@@ -2697,11 +2697,11 @@ void TRecalibrationBQSR::writePositionToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
-			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].getNumObsForPrinting();
+			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position[readGroupMap[i]][p].estimationConverged;
+			out << "\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position[readGroupMapObject->readGroupMap[i]][p].estimationConverged;
 			out << "\n";
 
 		}
@@ -2719,11 +2719,11 @@ void TRecalibrationBQSR::writePositionReverseToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int i=0; i<origNumReadGroups; ++i, ++it){
+	for(int i=0; i<readGroupMapObject->origNumReadGroups; ++i, ++it){
 		for(int p=0; p<maxPos; ++p){
-			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].getNumObsForPrinting();
+			out << it->ID << "\t" << p+1 << "\tM\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].curEstimate << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMap[i]][p].estimationConverged;
+			out << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].firstDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].secondDerivativeSave << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].F << "\t" << BQSR_cells_readGroup_position_reverse[readGroupMapObject->readGroupMap[i]][p].estimationConverged;
 			out << "\n";
 		}
 	}
@@ -2740,11 +2740,11 @@ void TRecalibrationBQSR::writeContextToFile(std::string & filenameTag){
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<origNumReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->origNumReadGroups; ++r, ++it){
 		for(int c=0; c<numContexts; ++c){
-			out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].curEstimate << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].getNumObsForPrinting();
+			out << it->ID << "\t" << genoMap.getContextString(c) << "\tM\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].curEstimate << "\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].getNumObsForPrinting();
 			//for debugging: also print derivatives, F and whether is has converged
-			out << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].F << "\t" << BQSR_cells_readGroup_context[readGroupMap[r]][c].estimationConverged;
+			out << "\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].firstDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].secondDerivativeSave << "\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].F << "\t" << BQSR_cells_readGroup_context[readGroupMapObject->readGroupMap[r]][c].estimationConverged;
 			out << "\n";
 		}
 	}
@@ -2762,7 +2762,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceQuality(std::string & filenam
 	//write header
 	out << "ReadGroup\tQuality\terrorRate\tLL\tFirstDerivative\tSecondDerivative\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<numReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->numReadGroups; ++r, ++it){
 		for(int q=0; q<qualityIndex->numQ; ++q){
 			BQSR_cells_readGroup_quality[r][q].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(qualityIndex->getQuality(q)), out);
 		}
@@ -2780,7 +2780,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfacePosition(std::string & filena
 	//write header
 	out << "ReadGroup\tPosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<numReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->numReadGroups; ++r, ++it){
 		for(int p=0; p<maxPos; ++p){
 			BQSR_cells_readGroup_position[r][p].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(p+1), out);
 		}
@@ -2798,7 +2798,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceReversePosition(std::string &
 	//write header
 	out << "ReadGroup\tReversePosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<numReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->numReadGroups; ++r, ++it){
 		for(int p=0; p<maxPos; ++p){
 			BQSR_cells_readGroup_position_reverse[r][p].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + toString(p+1), out);
 		}
@@ -2816,7 +2816,7 @@ void TRecalibrationBQSR::calculateAndPrintLLSurfaceContext(std::string & filenam
 	//write header
 	out << "ReadGroup\tContext\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	BamTools::SamReadGroupIterator it = bamHeader->ReadGroups.Begin();
-	for(int r=0; r<numReadGroups; ++r, ++it){
+	for(int r=0; r<readGroupMapObject->numReadGroups; ++r, ++it){
 		for(int c=0; c<numContexts; ++c){
 			BQSR_cells_readGroup_context[r][c].calcLikelihoodSurface(numPosLLsurface, it->ID + "\t" + genoMap.getContextString(c), out);
 		}
@@ -2836,7 +2836,7 @@ bool TRecalibrationBQSR::allConverged(){
 void TRecalibrationBQSR::reopenEstimation(){
 	//resets all cells not to have converged
 	if(estimateQuality){
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int q=0; q<qualityIndex->numQ; ++q){
 				BQSR_cells_readGroup_quality[i][q].reopenEstimation();
 			}
@@ -2846,7 +2846,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 
 	//also for position
 	if(considerPosition && estimatePosition){
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position[i][p].reopenEstimation();
 			}
@@ -2856,7 +2856,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 
 	//reverse position
 	if(considerPositionReverse && estimatePositionReverse){
-		for(int i=0; i<numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
 			for(int p=0; p<maxPos; ++p){
 				BQSR_cells_readGroup_position_reverse[i][p].reopenEstimation();
 			}
@@ -2866,7 +2866,7 @@ void TRecalibrationBQSR::reopenEstimation(){
 
 	//and context
 	if(considerContext && estimateContext){
-		for(int r=0; r<numReadGroups; ++r){
+		for(int r=0; r<readGroupMapObject->numReadGroups; ++r){
 			for(int c=0; c<numContexts; ++c){
 				BQSR_cells_readGroup_context[r][c].reopenEstimation();
 			}
