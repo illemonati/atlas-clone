@@ -47,13 +47,13 @@ public:
 class TPMDTables{
 public:
 	TReadGroups* readGroups;
-	TReadGroupMap* readGroupMapObject;
+	int* readGroupMapObject;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;
 	TPMDTable** reverse;
 
-	TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap* ReadGroupMap);
+	TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap & ReadGroupMapObject);
 	~TPMDTables();
 //	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);
