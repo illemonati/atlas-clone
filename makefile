@@ -23,4 +23,4 @@ $(BIN):	$(OBJ)
 	
 
 clean:
-	rm -rf *.o atlas
+	rm -rf $(BIN) $(OBJ)
