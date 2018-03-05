@@ -20,7 +20,8 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLo
 	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 0);
 	maxPhredInt = params.getParameterIntWithDefault("recal_maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
+//	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
+	recalParamString = params.getParameterStringWithDefault("recal_recalParams","0.908163,0.0022877,-0.0160425,0.000170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
 }
 
 bool TAtlasTest_recalSimulation::run(){

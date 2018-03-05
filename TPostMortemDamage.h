@@ -47,7 +47,7 @@ public:
 class TPMDTables{
 public:
 	TReadGroups* readGroups;
-	TReadGroupMap readGroupMapObject;
+	TReadGroupMap& readGroupMapObject;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;

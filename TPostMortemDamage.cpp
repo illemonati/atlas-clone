@@ -384,7 +384,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
-TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap &ReadGroupMap){
+TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap &ReadGroupMap):readGroupMapObject(ReadGroupMap){
 	readGroups = ReadGroups;
 	readGroupMapObject = ReadGroupMap;
 	origNumReadGroups = readGroupMapObject.getOrigNumReadGroups();
