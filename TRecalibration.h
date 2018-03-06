@@ -61,22 +61,13 @@ public:
 //---------------------------------------------------------------
 class TRecalibration{
 protected:
-	TReadGroupMap* readGroupMapObject;
-
-//	bool mergedInd;
-//	int* readGroupMap;
-//	int numReadGroups;
-//	int origNumReadGroups;
-//	bool readGroupMapInitialized;
-
+	TReadGroupMap& readGroupMapObject;
 	TQualityMap qualityMap;
 
 public:
-	TRecalibration(TReadGroupMap* ReadGroupMap);
+	TRecalibration(TReadGroupMap& ReadGroupMap);
 
-	virtual ~TRecalibration(){
-//		if(readGroupMapInitialized) delete[] readGroupMap;
-	};
+	virtual ~TRecalibration(){};
 
 	virtual bool recalibrationChangesQualities(){
 		return false;
@@ -238,7 +229,7 @@ public:
 	float* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 
-	TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & params, TLog* Logfile, TReadGroupMap* ReadGroupMap);
+	TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & params, TLog* Logfile, TReadGroupMap& ReadGroupMap);
 	~TRecalibrationEM(){
 		delete[] readGroupNames;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
@@ -274,7 +265,6 @@ public:
 // -
 class TBQSR_cell_base{
 public:
- //	TReadGroups newReadGroupObject;
 	float curEstimate;
 	bool estimationConverged, hasData;
 	float firstDerivative, secondDerivative;
@@ -447,30 +437,30 @@ private:
 	bool requiresEstimation(){ return estimatetionRequired;};
 
 public:
-	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile, TReadGroupMap* ReadGroupMap);
+	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile, TReadGroupMap& ReadGroupMap);
 	~TRecalibrationBQSR(){
-		for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
+		for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
 			delete[] BQSR_cells_readGroup_quality[i];
 		}
 		delete[] BQSR_cells_readGroup_quality;
 		delete qualityIndex;
 
 		if(considerPosition){
-			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
 				delete[] BQSR_cells_readGroup_position[i];
 			}
 			delete[] BQSR_cells_readGroup_position;
 		}
 
 		if(considerPositionReverse){
-			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
 				delete[] BQSR_cells_readGroup_position_reverse[i];
 			}
 			delete[] BQSR_cells_readGroup_position_reverse;
 		}
 
 		if(considerContext){
-			for(int i=0; i<readGroupMapObject->numReadGroups; ++i){
+			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
 				delete[] BQSR_cells_readGroup_context[i];
 			}
 			delete[] BQSR_cells_readGroup_context;

@@ -509,15 +509,15 @@ void TGenome::initializeRecalibration(TParameters & params){
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 	if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
-		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, &readGroupMap);
+		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, &readGroupMap);
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
 		doRecalibration = false;
-		recalObject = new TRecalibration(&readGroupMap);
+		recalObject = new TRecalibration(readGroupMap);
 	}
 	recalObjectInitialized = true;
 
@@ -1507,7 +1507,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
 	}
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, &readGroupMap);
+	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, readGroupMap);
 	if(!recalObjectEM.estimatetionRequired){
 		logfile->list("No need to estimate anything. Aborting Program.");
 		return;
@@ -1557,7 +1557,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	std::string filename = params.getParameterString("recal");
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, &readGroupMap);
+	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, readGroupMap);
 
 	//prepare windows
 	TWindowPairHaploid windows;
@@ -1592,7 +1592,7 @@ void TGenome::BQSR(TParameters & params){
 
 	//create BQSR object
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-	TRecalibrationBQSR bqsr(&bamHeader, params, logfile, &readGroupMap);
+	TRecalibrationBQSR bqsr(&bamHeader, params, logfile, readGroupMap);
 	if(bqsr.allConverged()){
 		logfile->list("No need to estimate any BQSR cells. Aborting Program.");
 		return;
@@ -1729,27 +1729,27 @@ void TGenome::printQualityTransformation(TParameters & params){
 	if(params.parameterExists("recal")){
 		std::string nameRecal = params.getParameterString("recal");
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile, &readGroupMap);
+		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile, readGroupMap);
 		if(params.parameterExists("recal2")){
 			std::string nameRecal2 = params.getParameterString("recal2");
-			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile, &readGroupMap);
+			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile, readGroupMap);
 			doRecalibration2 = true;
 			recalObjectInitialized2 = true;
 		} else if(params.parameterExists("BQSRQuality")){
 			TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-			recalObject2 = new TRecalibrationBQSR(&bamHeader, params, logfile, &readGroupMap);
+			recalObject2 = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
 			doRecalibration2 = true;
 			recalObjectInitialized2 = true;
 		}
 	} else if(params.parameterExists("BQSRQuality")){
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, &readGroupMap);
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
 		doRecalibration = false;
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibration(&readGroupMap);
+		recalObject = new TRecalibration(readGroupMap);
 	}
 	//recalObjectInitialized = true;
 
