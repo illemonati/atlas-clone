@@ -756,7 +756,6 @@ void TSimulator::writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & inv
 		if(haplotypes[0][l] == haplotypes[1][l] && haplotypes[1][l] == ref[l]){
 			invariantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 		} else variantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
-
 	}
 }
 

@@ -78,7 +78,7 @@ private:
 	double* posTermForTransformation;
 
 	//helper tools
-	char toBase[4];
+	char toBase[4] = {'A', 'C', 'G', 'T'};
 	float baseFreq[4];
 	float cumulBaseFreq[4];
 	bool refInitialized;
