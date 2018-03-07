@@ -18,9 +18,10 @@ int main(int argc, char* argv[]){
 
 	TLog logfile;
 	logfile.newLine();
-	logfile.write(" ATLAS 1.0, commit : ");
-	logfile.write(GITVERSION);
-	logfile.write("***********");
+	logfile.flush(" ATLAS 1.0, commit ");
+	std::string version = GITVERSION;
+	logfile.write(version.substr(0,7));
+	logfile.write("***************************");
     try{
 		//read parameters from the command line
     	TParameters myParameters(argc, argv, &logfile);
@@ -40,8 +41,9 @@ int main(int argc, char* argv[]){
 		std::string  logFilename=myParameters.getParameterString("logFile", false);
 		if(logFilename.length()>0){
 			logfile.openFile(logFilename.c_str());
-			logfile.writeFileOnly(" ATLAS 1.0 ");
-			logfile.writeFileOnly("***********");
+			logfile.flush(" ATLAS 1.0, commit ");
+			logfile.write(version.substr(0,7));
+			logfile.writeFileOnly("***************************");
 		}
 
 		//what to do?
