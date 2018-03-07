@@ -14,7 +14,7 @@ BINFLAG = -lz -larmadillo
 OBJFLAG = -std=c++1y
 else
 BINFLAG = -lz -lblas -llapack
-OBJFLAG = -Iarmadillo-VERSION/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y
+OBJFLAG = -Iarmadillo-8.400.0/include -DARMA_DONT_USE_WRAPPER -lblas -llapack -std=c++1y
 endif
 
 $(BIN): $(GIT_HEADER) $(OBJ)
