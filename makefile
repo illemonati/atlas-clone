@@ -20,15 +20,18 @@ endif
 $(BIN): $(GIT_HEADER) $(OBJ)
 	$(CXX) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
 
+
 $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
 	echo "#define GITVERSION \"$(shell git rev-parse HEAD)\"" > $@
 
 .git/COMMIT_EDITMSG :
 	touch $@
 
+
 %.o: %.cpp
 	$(CXX) -O3 -c -Ibamtools $(OBJFLAG) $< -o $@
 
+
 .PHONY : clean
 clean:
-	rm -rf *.o atlas
+	rm -rf $(BIN) $(OBJ)

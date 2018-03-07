@@ -2416,7 +2416,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 			if(first) first = false;
 			else logfile->flush(",");
 			logfile->flush(" " + toString(*it));
-			if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between >0 and <1!";
+			if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between > 0 and < 1!";
 			downSampleProb[i] = *it;
 		}
 	} else {
@@ -2433,7 +2433,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	if(times > 1){
 		for(i=0; i<numProbs; ++i){
 			//construct and print filename
-			filename = outputName + "_downsampled" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
+			filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
 			logfile->list(filename);
 			//open file
 			if(!bamWriter[i].Open(filename, bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
@@ -2441,7 +2441,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	} else {
 		for(i=0; i<numProbs; ++i){
 			//construct and print filename
-			filename = outputName + "_downsampled" + toString(downSampleProb[i]) + ".bam";
+			filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
 			logfile->list(filename);
 			//open file
 			if(!bamWriter[i].Open(filename, bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
@@ -2463,8 +2463,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 		++counter;
 
 		//accept read or not?
-		r = randomGenerator->getRand();
 		for(i=0; i<numProbs; ++i){
+			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 			if(r < downSampleProb[i]){
 				alignmentParser.save(bamWriter[i]);
 			}
