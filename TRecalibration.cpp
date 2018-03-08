@@ -488,10 +488,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 	numReads = site.bases.size();
 	q = new float*[numReads];
 	D = new float*[4];
-//	B = new float*[4];
 	for(int g=0; g<4; ++g){
 		D[g] = new float[numReads];
-//		B[g] = new float[numReads];
 	}
 
 	context = new uint8_t[numReads];
@@ -552,11 +550,6 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 					D[2][k] = 0.0;
 					D[3][k] = 0.0;
 					break;
-		}
-
-		//now store B
-		for(int g=0; g<4; ++g){
-//			B[g][k] = 4.0 / 3.0 * D[g][k] - 1.0;
 		}
 	}
 };

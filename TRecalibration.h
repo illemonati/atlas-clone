@@ -171,7 +171,6 @@ class TRecalibrationEMSite{
 public:
 	float** q; //covariates such as quality, position etc.
 	float** D; //D for the emission probabilities: depends on genotype and base!
-	//float** B; //B = 4/3 D - 1
 	uint8_t* context;
 	uint8_t* readGroup;
 	float* P_g_given_d_oldBeta;
