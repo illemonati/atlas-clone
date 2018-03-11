@@ -9,7 +9,7 @@ BIN = atlas
 .PHONY : all
 all : $(BIN)
 
-ifeq ($(ARM), true)
+ifeq ($(ARM),)
 BINFLAG = -lz -larmadillo
 OBJFLAG = -std=c++1y
 else
