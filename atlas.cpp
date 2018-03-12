@@ -77,7 +77,7 @@ int main(int argc, char* argv[]){
 		logfile.error(error.what());
 	}
 	catch (...){
-		logfile.error("unhandeled error!");
+		logfile.error("unhandled error!");
 	}
 	logfile.clearIndent();
 	gettimeofday(&end, NULL);

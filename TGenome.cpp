@@ -2460,6 +2460,9 @@ void TGenome::downSampleBamFile(TParameters & params){
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readAlignment(bamReader)){
+		//filters
+        if(!readGroups.readGroupInUse(bamAlignment)) continue;
+        if(!useChromosome[bamAlignment.RefID]) continue;
 		++counter;
 
 		//accept read or not?
