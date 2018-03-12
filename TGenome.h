@@ -34,7 +34,6 @@ private:
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
- 	BamTools::BamAlignment bamAlignment;
  	TAlignmentParser alignmentParser;
 	bool oldAlignementMustBeConsidered;
 	BamTools::Fasta reference;

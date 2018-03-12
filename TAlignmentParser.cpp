@@ -392,9 +392,11 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
 	isReverseStrand = bamAlignment.IsReverseStrand();
+	isProperPair = bamAlignment.IsProperPair();
 
 	//Extract Read Group Info
 	bamAlignment.GetTag("RG", readGroup);
+	//TODO: add check of whether RG is used
 	readGroupId = readGroupTable->find(readGroup);
 
 	//check if read passes basic QC
@@ -669,6 +671,16 @@ void TAlignmentParser::updateOptionalSamField(std::string tag, float value){
 	else bamAlignment.EditTag(tag, "f", value);
 };
 
+void TAlignmentParser::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator){
+	for(int d=0; d<length; ++d){
+		double r = randomGenerator.getRand();
+		if(r < fraction){
+			base[d] = N;
+			quality[d] = 0;
+		}
+	}
+	changed = true;
+}
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------

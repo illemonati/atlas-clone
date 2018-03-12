@@ -1944,7 +1944,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 		alignmentParser.assessSoftClipping(S_left, middle, S_right);
 
 		//report
-		out << bamAlignment.Name << "\t" << bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
+		out << alignmentParser.bamAlignment.Name << "\t" << alignmentParser.bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
 
 		//report
 		++counter;
@@ -2025,12 +2025,14 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
+ 	BamTools::BamAlignment bamAlignment;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
 	struct timeval start;
     gettimeofday(&start, NULL);
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
+
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
@@ -2148,6 +2150,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
+ 	BamTools::BamAlignment bamAlignment;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -2219,6 +2222,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
+ 	BamTools::BamAlignment bamAlignment;
 
 	//create storage for reads until their mate was found
 	std::vector< std::pair<BamTools::BamAlignment*, bool> > alignmentStorage;
@@ -2461,8 +2465,8 @@ void TGenome::downSampleBamFile(TParameters & params){
     //now parse through bam file and write alignments
 	while(alignmentParser.readAlignment(bamReader)){
 		//filters
-        if(!readGroups.readGroupInUse(bamAlignment)) continue;
-        if(!useChromosome[bamAlignment.RefID]) continue;
+        if(!readGroups.readGroupInUse(alignmentParser.readGroupId)) continue;
+        if(!useChromosome[alignmentParser.chrNumber]) continue;
 		++counter;
 
 		//accept read or not?
@@ -2505,7 +2509,6 @@ void TGenome::downSampleReads(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
-	double r;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -2515,14 +2518,8 @@ void TGenome::downSampleReads(TParameters & params){
     //now parse through bam file and write alignments
 	while(alignmentParser.readAlignment(bamReader)){
 
-		for(int i=0; i<bamAlignment.Length; ++i){
-			r = randomGenerator->getRand();
-			if(r < fraction){
-				bamAlignment.QueryBases.at(i) = 'N';
-				bamAlignment.Qualities.at(i) = '!';
-			}
-		}
-		bamWriter.SaveAlignment(bamAlignment);
+		alignmentParser.downsampleAlignment(fraction, *randomGenerator);
+		alignmentParser.save(bamWriter);
 
 		//report
 		++counter;
@@ -2594,25 +2591,25 @@ void TGenome::diagnoseBamFile(TParameters & params){
     }
 
     //now parse through bam file and sum number of aligned bases
-    while(bamReader.GetNextAlignment(bamAlignment)){
+    //TODO: avoid getting properties from bamAlignment, use alignmentParser
+    while(alignmentParser.readAlignment(bamReader)){
     	//filters
-        if(!readGroups.readGroupInUse(bamAlignment)) continue;
-        if(!useChromosome[bamAlignment.RefID]) continue;
-        if(bamAlignment.IsDuplicate()) continue;
-        if(!bamAlignment.IsPrimaryAlignment()) continue;
-        if(bamAlignment.IsProperPair()){
-        	if(!bamAlignment.IsReverseStrand()){
+        if(!readGroups.readGroupInUse(alignmentParser.readGroupId)) continue;
+        if(!useChromosome[alignmentParser.chrNumber]) continue;
+        if(!alignmentParser.passedFilters) continue;
+        if(alignmentParser.isProperPair){
+        	if(!alignmentParser.isReverseStrand){
         		++numProperPairs;
-        		sumFragLen += abs(bamAlignment.InsertSize);
-        		sumSquaredFragLen += (bamAlignment.InsertSize * bamAlignment.InsertSize);
+        		sumFragLen += abs(alignmentParser.bamAlignment.InsertSize);
+        		sumSquaredFragLen += (alignmentParser.bamAlignment.InsertSize * alignmentParser.bamAlignment.InsertSize);
         	}
-        } else if(bamAlignment.IsPaired() && !bamAlignment.IsProperPair()) continue;
+        }
 
-        RGInd = readGroups.find(bamAlignment);
-        totCov += bamAlignment.AlignedBases.length();
-        cov[RGInd] += bamAlignment.AlignedBases.length();
-        ++MQ[RGInd][bamAlignment.MapQuality];
-        ++RL[RGInd][bamAlignment.Length];
+        RGInd = alignmentParser.readGroupId;
+        totCov += alignmentParser.bamAlignment.AlignedBases.length();
+        cov[RGInd] += alignmentParser.bamAlignment.AlignedBases.length();
+        ++MQ[RGInd][alignmentParser.bamAlignment.MapQuality];
+        ++RL[RGInd][alignmentParser.bamAlignment.Length];
 
         //report
         ++counter;

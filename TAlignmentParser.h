@@ -101,6 +101,7 @@ public:
 
 	int32_t position;
 	bool isReverseStrand;
+	bool isProperPair;
 	bool passedFilters;
 	bool recalibrated;
 
@@ -155,6 +156,7 @@ public:
 
 	//functions to modify alignment
 	void updateOptionalSamField(std::string tag, float value);
+	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);
 
 	//functions to write / print alignment
 	void save(BamTools::BamWriter & bamWriter);
