@@ -35,8 +35,12 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 	cumulAtMin = 0.0;
 
 	positionProbs = NULL;
-
 };
+
+TSimulatorReadLength::~TSimulatorReadLength(){
+	if(meanLength > 0)
+		delete[] positionProbs;
+}
 
 void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){
 	fragmentLength = meanLength;

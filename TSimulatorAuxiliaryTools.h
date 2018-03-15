@@ -57,6 +57,7 @@ private:
 	long storageLength;
 	long chrLength;
 	std::string chrName;
+	bool needsWriting;
 
 	void allocateStorage(long length);
 	void freeStorage();
@@ -74,7 +75,7 @@ public:
 
 	void initialize(std::string Filename, TLog* Logfile);
 	void close(){
-		if(chrName != "")
+		if(chrName != "" && needsWriting)
 			writeRefToFasta();
 		closeFastaFile();
 		freeStorage();

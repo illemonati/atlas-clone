@@ -22,10 +22,11 @@ protected:
 	double cumulAtMin;
 
 public:
+	double* positionProbs; //normalized (1 - cumulDensity)
+
 	TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
-	double* positionProbs; //normalized (1 - cumulDensity)
-	virtual ~TSimulatorReadLength(){};
+	virtual ~TSimulatorReadLength();
 
 	virtual void sample(int & readLength, int & fragmentLength);
 	virtual int max(){return meanLength;};

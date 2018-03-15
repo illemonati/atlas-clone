@@ -177,7 +177,7 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
-		memcpy(contaminationSource->getPointerToRef(), haplotype + pos, bamAlignment.Length);
+		memcpy(contaminationSource->getPointerToRef(), contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
 	else
 		memcpy(bases, haplotype + pos, bamAlignment.Length);
 
@@ -220,8 +220,9 @@ void TSimulatorRead::printDetails(TLog* logfile){
 	}
 
 	if(isContaminated)
-		logfile->list("Contaminated with rate " + toString(contaminationRate));
-
+		logfile->list("Contaminated with rate " + toString(contaminationRate) + ".");
+	else
+		logfile->list("Read group is not contaminated.");
 };
 
 
