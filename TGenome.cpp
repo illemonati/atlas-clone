@@ -1380,8 +1380,8 @@ void TGenome::printPileup(TParameters & params){
 	TWindowPairDiploid windows;
 
 	//open output
-	std::ofstream out;
-	std::string filename = outputName + "_pileup.txt";
+	gz::ogzstream out;
+	std::string filename = outputName + "_pileup.txt.gz";
 	out.open(filename.c_str());
 	if(!out) throw "Failed to open output file '" + outputName + "'!";
 
