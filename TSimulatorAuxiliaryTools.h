@@ -66,8 +66,14 @@ private:
 	void writeRefToFasta();
 
 public:
+	TSimulatorReference();
 	TSimulatorReference(std::string Filename, TLog* Logfile);
 	~TSimulatorReference(){
+		close();
+	};
+
+	void initialize(std::string Filename, TLog* Logfile);
+	void close(){
 		if(chrName != "")
 			writeRefToFasta();
 		closeFastaFile();

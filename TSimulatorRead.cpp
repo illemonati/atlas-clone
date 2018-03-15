@@ -30,6 +30,10 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintPhredInt, 
 	hasPMD = false;
 	isInitialized = false;
 
+	isContaminated = false;
+	contaminationRate = 0.0;
+	contaminationSource = NULL;
+
 	//initialize bamAlignment
 	_name = readGroupName;
 	bamAlignment.AddTag("RG", "Z", _name);
@@ -146,6 +150,20 @@ void TSimulatorRead::applyPMD(Base* _bases, int & len, int & fragmentLength){
 	}
 };
 
+void TSimulatorRead::setContamination(double rate, TSimulatorReference* source){
+	isContaminated = true;
+	contaminationRate = rate;
+	contaminationSource = source;
+
+	//check
+	if(contaminationRate < 0.0)
+		throw "Contamination rate must be >= 0.0!";
+	if(contaminationRate > 1.0)
+		throw "Contamination rate must be <= 0.0!";
+	if(contaminationRate == 0.0)
+		isContaminated = false;
+};
+
 void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length
 	readLengthDist->sample(bamAlignment.Length, fragmentLength);
@@ -157,10 +175,11 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
 
-	//TODO: simulate indels too!
-
 	//copy bases
-	memcpy(bases, haplotype + pos, bamAlignment.Length);
+	if(isContaminated && randomGenerator->getRand() < contaminationRate)
+		memcpy(contaminationSource->getPointerToRef(), haplotype + pos, bamAlignment.Length);
+	else
+		memcpy(bases, haplotype + pos, bamAlignment.Length);
 
 	//apply PMD
 	applyPMD(bases, bamAlignment.Length, fragmentLength);
@@ -199,6 +218,9 @@ void TSimulatorRead::printDetails(TLog* logfile){
 	} else {
 		logfile->list("No PMD.");
 	}
+
+	if(isContaminated)
+		logfile->list("Contaminated with rate " + toString(contaminationRate));
 
 };
 

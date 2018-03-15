@@ -13,13 +13,31 @@
 //---------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------
-TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
-	filename = Filename;
-	logfile = Logfile;
+TSimulatorReference::TSimulatorReference(){
+	logfile = NULL;
 	chrName = "";
 	ref = NULL;
 	storageInitialized = false;
 	storageLength = 0;
+	fastaOpen = false;
+	oldOffset = 0;
+	chrLength = 0;
+};
+
+TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
+	chrName = "";
+	ref = NULL;
+	storageInitialized = false;
+	storageLength = 0;
+	fastaOpen = false;
+	chrLength = 0;
+
+	initialize(Filename, Logfile);
+};
+
+void TSimulatorReference::initialize(std::string Filename, TLog* Logfile){
+	filename = Filename;
+	logfile = Logfile;
 
 	openFastaFile();
 };
@@ -66,7 +84,8 @@ void TSimulatorReference::writeRefToFasta(){
 		fastaIndex << extractBeforeWhiteSpace(tmp) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
 		oldOffset += chrLength + (int) (chrLength / 70);
 		if(chrLength % 70 != 0) oldOffset += 1;
-	}
+	} else
+		throw "Can not write to FASTA file: file was never opened!";
 };
 
 void TSimulatorReference::allocateStorage(long length){

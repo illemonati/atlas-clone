@@ -360,6 +360,55 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 	logfile->endIndent();
 };
 
+void TSimulator::initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap){
+	logfile->startIndent("Reading contamination:");
+	std::string s = params.getParameterStringWithDefault("contamination", "0.0");
+
+	//check if it is a single number or a file
+	if(stringIsProbablyANumber(s)){
+		//is a numberon the command line
+		double rate = stringToDouble(s);
+		logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
+		contaminationMap.insert(std::pair<std::string,double>("-", rate));
+		perReadGroup = false;
+	} else {
+		//is a file
+		logfile->listFlush("Reading contamination from file '" + s + "' ...");
+		std::ifstream file(s.c_str());
+		if(!file)
+			throw "Failed to open quality distribution file '" + s + "!\nEither provide a valid quality distribution, or a valid file name listing this distribution for each read group.";
+
+		//variables
+		int lineNum = 0;
+		std::string line;
+		std::vector<std::string> vec;
+
+		//now parse file
+		while(file.good() && !file.eof()){
+			++lineNum;
+			//skip empty lines or those that start with //
+			std::getline(file, line);
+			line = extractBefore(line, "//");
+			trimString(line);
+			if(!line.empty()){
+				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				if(vec.size() != 2)
+					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) contamination rate.";
+
+				//save to map
+				if(contaminationMap.find(vec[0]) != contaminationMap.end())
+						throw "Duplicated read group name '" + vec[0] + "'in file '" + s + "'!";
+				double rate = stringToDouble(s);
+				contaminationMap.insert(std::pair<std::string,double>(vec[0], rate));
+			}
+		}
+		logfile->done();
+		logfile->conclude("Read distributions for " + toString(contaminationMap.size()) + " read groups.");
+		perReadGroup = true;
+	}
+	logfile->endIndent();
+}
+
 void TSimulator::addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg){
 	//add read group if it does not exist yet
 	if(std::find(vec.begin(), vec.end(), rg) == vec.end())
@@ -415,7 +464,19 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			addToReadGroupVector(readGroupNames, it->first);
 	}
 
-	// E) other things
+	// E) initialize contamination
+	//----------------------------
+	std::map<std::string, double> contaminationMap;
+	bool contaminationPerReadGroup = false;
+	initializeContamination(params, contaminationPerReadGroup, contaminationMap);
+
+	//add read group names to list
+	if(contaminationPerReadGroup){
+		for(std::map<std::string, double>::iterator it=contaminationMap.begin(); it!=contaminationMap.end(); ++it)
+			addToReadGroupVector(readGroupNames, it->first);
+	}
+
+	// F) other things
 	//----------------
 	int maxPrintQual = params.getParameterIntWithDefault("maxPrintQual", 93);
 	logfile->list("Will print quality scores up to " + toString(maxPrintQual) + ".");
@@ -476,6 +537,14 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			} else
 				(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
 
+			//contamination
+			if(contaminationPerReadGroup){
+				std::map<std::string, double>::iterator contaminationIt = contaminationMap.find(*it);
+				if(contaminationIt != contaminationMap.end())
+					(*readSimsIt)->setContamination(contaminationIt->second, &referenceObj);
+			} else
+				(*readSimsIt)->setContamination(contaminationMap.begin()->second, &referenceObj);
+
 			//check and print
 			(*readSimsIt)->printDetails(logfile);
 			logfile->endIndent();
@@ -501,6 +570,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
 			(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
+			(*readSimsIt)->setContamination(contaminationMap.begin()->second, &referenceObj);
 
 			//check and print
 			(*readSimsIt)->printDetails(logfile);
@@ -727,6 +797,8 @@ void TSimulator::simulateDiploidHaplotypesCurChromosome(Base** haplotypes, float
 	cumulRef[2] = cumulRef[1] + referenceDivergence / 3.0;
 	cumulRef[3] = 1.0;
 
+	//TODO: simulate indels too!
+
 	//now simulate haplotypes
 	if(chrIt->haploid){
 		for(int l=0; l<chrIt->length; ++l){
@@ -767,7 +839,7 @@ void TSimulator::simulateSingleIndividual(double theta, std::string & outname){
 }
 
 void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string & outname){
-	//one thet aper chromosome
+	//one theta per chromosome
 	if(theta.size() != chromosomes.size())
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
 
@@ -777,7 +849,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 
 	//open FASTA file for reference sequences
 	std::string filename = outname + ".fasta";
-	TSimulatorReference referenceObj(filename, logfile);
+	referenceObj.initialize(filename, logfile);
 
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(1);
@@ -850,6 +922,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	genoFile.close();
 	invariantSitesFile.close();
 	variantSitesFile.close();
+	referenceObj.close();
 
 	//clear memory
 	for(int i=0; i<4; ++i)
@@ -1176,7 +1249,7 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 
 	//open FASTA file for reference sequences
 	std::string filename = outname + ".fasta";
-	TSimulatorReference referenceObj(filename, logfile);
+	referenceObj.initialize(filename, logfile);
 
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(2);
@@ -1226,6 +1299,7 @@ void TSimulator::simulateIndividualPair(std::vector<double> & phis, std::string 
 	bamFile1.close();
 	bamFileOpen = false;
 	genoFile.close();
+	referenceObj.close();
 }
 
 //--------------------------------------------------------
@@ -1443,7 +1517,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 
 	//open FASTA file for reference sequences
 	std::string filename = outname + ".fasta";
-	TSimulatorReference referenceObj(filename, logfile);
+	referenceObj.initialize(filename, logfile);
 
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(numIndividuals);
@@ -1504,6 +1578,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 	bamFileOpen = false;
 	logfile->endIndent();
 	genoFile.close();
+	referenceObj.close();
 
 	//clear memory
 	for(int i=0; i<4; ++i)
