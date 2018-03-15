@@ -8,14 +8,14 @@
 #ifndef TSIMULATOR_H_
 #define TSIMULATOR_H_
 
-#include "SFS.h"
-#include "stringFunctions.h"
 #include <math.h>
 #include <numeric>
 #include <algorithm>
+#include "commonutilities/stringFunctions.h"
 #include "TSimulatorRead.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
+#include "SFS.h"
 
 //---------------------------------------------------------
 //TSimulatorGenotypecombination

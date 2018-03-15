@@ -8,8 +8,8 @@
 #ifndef ATLASTASKSWITCHER_H_
 #define ATLASTASKSWITCHER_H_
 
-#include "TLog.h"
-#include "TParameters.h"
+#include "commonutilities/TLog.h"
+#include "commonutilities/TParameters.h"
 #include "TGenome.h"
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"

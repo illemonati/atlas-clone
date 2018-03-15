@@ -8,8 +8,8 @@
 #ifndef TGENOTYPEMAP_H_
 #define TGENOTYPEMAP_H_
 
-#include "stringFunctions.h"
 #include <math.h>
+#include "commonutilities/stringFunctions.h"
 
 enum Base : uint8_t {A=0, C, G, T, N};
 enum Genotype : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT};

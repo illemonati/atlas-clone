@@ -9,9 +9,9 @@
 #define SFS_H_
 
 #include <iostream>
-#include "stringFunctions.h"
 #include <math.h>
-#include "TRandomGenerator.h"
+#include "commonutilities/stringFunctions.h"
+#include "commonutilities/TRandomGenerator.h"
 
 //--------------------------------
 //Class to store and SFS

@@ -8,9 +8,9 @@
 #ifndef TREADGROUPS_H_
 #define TREADGROUPS_H_
 
-#include "stringFunctions.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/SamSequenceDictionary.h"
+#include "commonutilities/stringFunctions.h"
 
 //---------------------------------------------------------------
 //TReadGroupMaxLength

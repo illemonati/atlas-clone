@@ -12,9 +12,9 @@
 #include "bamtools/api/BamWriter.h"
 #include "bamtools/api/SamSequenceDictionary.h"
 #include "bamtools/utils/bamtools_fasta.h"
+#include "commonutilities/TLog.h"
 #include "TGenotypeMap.h"
 #include "TReadGroups.h"
-#include "TLog.h"
 #include "TRecalibration.h"
 #include "TPostMortemDamage.h"
 

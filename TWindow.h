@@ -8,8 +8,8 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
-#include "TLog.h"
-#include "TParameters.h"
+#include "commonutilities/TLog.h"
+#include "commonutilities/TParameters.h"
 #include "TReadGroups.h"
 #include "TAlignmentParser.h"
 #include "TRecalibration.h"

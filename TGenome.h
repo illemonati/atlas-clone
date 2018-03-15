@@ -8,14 +8,14 @@
 #ifndef LOCI_H_
 #define LOCI_H_
 
-#include "TWindow.h"
-#include "TRecalibration.h"
-#include "gzstream.h"
-#include "bamtools/api/BamWriter.h"
-#include "TLog.h"
-#include "TBed.h"
 #include <typeinfo>
 #include <map>
+#include "bamtools/api/BamWriter.h"
+#include "commonutilities/TLog.h"
+#include "gzstream.h"
+#include "TWindow.h"
+#include "TRecalibration.h"
+#include "TBed.h"
 
 //---------------------------------------------------------------
 //TGenome

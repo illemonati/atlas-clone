@@ -8,11 +8,11 @@
 #ifndef TSIMULATORQUALITYTRANSFORMATION_H_
 #define TSIMULATORQUALITYTRANSFORMATION_H_
 
+#include "commonutilities/TLog.h"
+#include "commonutilities/TRandomGenerator.h"
+#include "commonutilities/TParameters.h"
 #include "TBase.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
 #include "TGenotypeMap.h"
-#include "TParameters.h"
 #include "TSimulatorReadLength.h"
 
 //-------------------------------

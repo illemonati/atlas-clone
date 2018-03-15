@@ -12,12 +12,12 @@
 #include <vector>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
-#include "TParameters.h"
+#include <algorithm>
+#include "commonutilities/TParameters.h"
+#include "commonutilities/TRandomGenerator.h"
 #include "TGenotypeMap.h"
 #include "TBase.h"
 #include "gzstream.h"
-#include <algorithm>
-#include "TRandomGenerator.h"
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100

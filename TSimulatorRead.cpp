@@ -6,7 +6,6 @@
  */
 
 #include "TSimulatorRead.h"
-#include "TParameters.h"
 
 
 //----------------------------------

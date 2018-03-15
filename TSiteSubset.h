@@ -12,7 +12,7 @@
 #include <vector>
 #include <map>
 #include "bamtools/utils/bamtools_fasta.h"
-#include "TLog.h"
+#include "commonutilities/TLog.h"
 
 //store sites 0-based!
 

@@ -12,10 +12,10 @@
 #include "bamtools/api/BamWriter.h"
 #include "bamtools/api/SamHeader.h"
 #include "bamtools/api/BamAlignment.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
+#include "commonutilities/TLog.h"
+#include "commonutilities/TRandomGenerator.h"
+#include "commonutilities/stringFunctions.h"
 #include "TGenotypeMap.h"
-#include "stringFunctions.h"
 #include "gzstream.h"
 
 //---------------------------------------------------------

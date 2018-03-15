@@ -8,10 +8,9 @@
 #ifndef TATLASTESTLIST_H_
 #define TATLASTESTLIST_H_
 
+#include "commonutilities/TParameters.h"
 #include "TAtlasTest.h"
 #include "TAtlasTestRecalibration.h"
-#include "TParameters.h"
-
 
 //------------------------------------------
 //TAtlasTestList
