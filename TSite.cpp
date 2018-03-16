@@ -146,6 +146,16 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	return log(sum);
 }
 
+
+void TSite::countAlleles(long**** siteImbalance){
+	//calculate and return imbalance
+	int b[4] = {0};
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		++b[(*it)->getBaseAsEnum()];
+	}
+	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
+}
+
 //-----------------------------------------------------------------------
 //MLE Callers
 //-----------------------------------------------------------------------

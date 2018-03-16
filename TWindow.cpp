@@ -322,6 +322,18 @@ void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
 	}
 }
 
+void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
+	//calculate and return imbalance
+	for(int i=0; i<length; ++i){
+		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
+			sites[i].countAlleles(siteImbalance);
+		else if(sites[i].depth()  == 0){
+			++siteImbalance[0][0][0][0];
+		}
+
+	}
+}
+
 void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){

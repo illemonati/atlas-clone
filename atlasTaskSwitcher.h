@@ -137,6 +137,10 @@ public:
 			} else if(task=="createDepthMask"){
 				logfile->startIndent("Creating depth mask BED file (task=createDepthMask:");
 				genome.createDepthMask(*parameters);
+			} else if(task=="allelicDepth"){
+				logfile->startIndent("Finding allelic depth distribution (task=createDepthMask:");
+				genome.allelicDepth(*parameters);
+
 			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile->endIndent();

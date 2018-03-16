@@ -2684,6 +2684,67 @@ void TGenome::diagnoseBamFile(TParameters & params){
     delete [] RL;
 }
 
+void TGenome::allelicDepth(TParameters & params){
+	std::ofstream output;
+	std::string outputFileName = outputName + "_allelicDepth.txt";
+	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+	//int maxCov = params.getParameterIntWithDefault("maxCov", 20);
+	int maxAllelicDepth = params.getParameterInt("maxAllelicDepth");
+	int size = maxAllelicDepth+1; // need 0 bin
+	int nCharOnLine = 0;
+
+	//prepare array
+	long**** siteCounts = new long***[size];
+	for(int i=0; i<size; ++i){
+		siteCounts[i] = new long**[size];
+		for(int j=0; j<size; ++j){
+			siteCounts[i][j] = new long*[size];
+			for(int k=0; k<size; ++k){
+				siteCounts[i][j][k] = new long[size];
+				for(int l=0; l<size; ++l){
+					siteCounts[i][j][k][l] = 0;
+				}
+			}
+		}
+	}
+
+	//write header
+	output << "Category" << "\t" << "Counts" << "Depth" << std::endl;
+
+	//prepare windows
+	TWindowPairDiploid windows;
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		//write chromosome to file
+		while(iterateWindow(windows)){
+			//read data for current window
+			readData(windows);
+			windows.cur->countAlleles(siteCounts, maxAllelicDepth);
+			logfile->listFlush("Adding imbalance values to table ...");
+			logfile->write(" done!");
+		}
+	}
+
+	//write to file
+	for(int i=0; i<(size); ++i){
+		for(int j=0; j<(size); ++j){
+			for(int k=0; k<(size); ++k){
+				for(int l=0; l<(size); ++l){
+					output << "A" << i << "C" << j << "G" << k << "T" << l << "\t" << siteCounts[i][j][k][l] << "\t" << i + j + k + l;
+					output << std::endl;
+				}
+			}
+		}
+	}
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
+	delete[] siteCounts;
+}
+
 void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	//open output file
 	std::ofstream output;
