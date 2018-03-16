@@ -177,7 +177,7 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
-		memcpy(contaminationSource->getPointerToRef(), contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
+		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
 	else
 		memcpy(bases, haplotype + pos, bamAlignment.Length);
 
