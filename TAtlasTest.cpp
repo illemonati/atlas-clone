@@ -325,9 +325,219 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	return true;
 }
 
+//------------------------------------------
+//TAtlasTest_allelicDepth
+//------------------------------------------
 
+TAtlasTest_allelicDepth::TAtlasTest_allelicDepth(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+	_name = "allelicDepth";
 
+	//variables
+	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	logfile->list("Will test with quality " + toString(phredError) + ".");
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + ".bam";
+	readGroupName = "TestReadGroup";
+};
 
+bool TAtlasTest_allelicDepth::run(){
+	//1) create a bam file with known pileup results
+	//----------------------------------------------
+	writeBAM();
 
+	//2) Run ATLAS to create allelicDepthTable
+	//-----------------------------
+	_testParams.addParameter("bam", bamFileName);
+	_testParams.addParameter("maxAllelicDepth", toString(3));
+
+	if(!runTGenomeFromInputfile("allelicDepth"))
+		return false;
+
+	//3) check if results are OK
+	//--------------------------
+	return checkAllelicDepthTable();
+};
+
+void TAtlasTest_allelicDepth::writeBAM(){
+	//create a bam file with known pileup results
+	logfile->startIndent("Writing a test BAM file:");
+	logfile->listFlush("Opening bam file '" + bamFileName + "' for writing ...");
+
+	//prepare header
+	BamTools::SamHeader header("");
+	header.Version = "1.4";
+	header.GroupOrder = "none";
+	header.SortOrder = "coordinate";
+	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+	header.Sequences.Add(BamTools::SamSequence("Chr1", 100));
+
+	BamTools::RefVector references;
+	references.push_back(BamTools::RefData("Chr1", 30));
+
+	//now open file
+	BamTools::BamWriter bamWriter;
+	if (!bamWriter.Open(bamFileName, header, references))
+		throw "Failed to open BAM file '" + bamFileName + "'!";
+	logfile->done();
+
+	//file should look like this:
+	//AACTCG
+	//ACTC
+	//AG
+	//A
+
+	logfile->listFlush("Writing reads to BAM ...");
+	//create alignment
+	BamTools::BamAlignment bamAlignment;
+	bamAlignment.AddTag("RG", "Z", readGroupName);
+	bamAlignment.MapQuality = 50;
+	bamAlignment.Name = "*";
+	bamAlignment.RefID = 0;
+	bamAlignment.Position = 0;
+
+	//alignment 1
+	bamAlignment.QueryBases = "AACTCG";
+	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(phredError));
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//alignment 2
+	bamAlignment.QueryBases = "ACTC";
+	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(phredError));
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//alignment 3
+	bamAlignment.QueryBases = "AG";
+	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(phredError));
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//alignment 4
+	bamAlignment.QueryBases = "A";
+	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(phredError));
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//close BAM file
+	bamWriter.Close();
+	logfile->done();
+
+	//index BAM file
+	logfile->listFlush("Creating index of BAM file '" + bamFileName + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(bamFileName))
+		throw "Failed to open BAM file '" + bamFileName + "' for indexing!";
+
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+	reader.Close();
+	logfile->done();
+
+	//done!
+	logfile->endIndent();
+};
+
+bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
+	logfile->startIndent("Checking allelicDepth file:");
+
+	//open pileup file
+	std::string filename = filenameTag + "_allelicDepth.txt";
+	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	std::ifstream in(filename.c_str());
+	if(!in)
+		throw "Failed to open file '" + filename + "'!";
+	logfile->done();
+
+	//skip header
+	std::string tmp;
+	getline(in, tmp);
+
+	//some variables
+	int numLines = 0;
+
+	//parse file line by line check contents
+	logfile->listFlush("Parsing file ...");
+	while(in.good() && !in.eof()){
+		//read line into vector
+		++numLines;
+		std::vector<std::string> line;
+		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+
+		//skip empty
+		if(line.size() == 0) continue;
+
+		//check columns
+		if(line.size() != 6){
+			logfile->newLine();
+			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			return false;
+		}
+
+		//parse line into variables
+		int A = stringToInt(line[0]);
+		int C = stringToInt(line[1]);
+		int G = stringToInt(line[2]);
+		int T = stringToInt(line[3]);
+		int count = stringToInt(line[4]);
+		int depth = stringToInt(line[5]);
+
+		//check depth
+		if(A + C + G + T != depth){
+			logfile->newLine();
+			logfile->conclude("Depth is not sum of allelic depths in file '" + filename + "' on line " + toString(numLines) + "!");
+			return false;
+		}
+
+		//check counts
+		//site 2
+		if(A == 1 && C == 1 && G == 1 && T == 0){
+			if(count != 1){
+				logfile->newLine();
+				logfile->conclude("Count should equal 1 in '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+		}
+		//site 3 and 4
+		else if(A == 0 && C == 1 && G == 0 && T == 1){
+			if(count != 2){
+				logfile->newLine();
+				logfile->conclude("Count should equal 2 in '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+		}
+		//site 5 and 6
+		else if((A == 0 && C == 1 && G == 0 && T == 0) || (A == 0 && C == 0 && G == 1 && T == 0 )){
+			if(count != 1){
+				logfile->newLine();
+				logfile->conclude("Count should equal 2 in '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+		}
+		//depth=0
+		else if(A == 0 && C == 0 && G == 0 && T == 0){
+			if(count != 94){
+				logfile->newLine();
+				logfile->conclude("Count should equal 94 in '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+		} else {
+			if(count != 0){
+				logfile->newLine();
+				logfile->conclude("Count should equal 0 in '" + filename + "' on line " + toString(numLines) + "!");
+				return false;
+			}
+		}
+	}
+	logfile->done();
+	logfile->newLine();
+	return true;
+};
 
 

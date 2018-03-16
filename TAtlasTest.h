@@ -68,6 +68,27 @@ public:
 	bool run();
 };
 
+//------------------------------------------
+//TAtlasTest_allelicDepth
+//------------------------------------------
+class TAtlasTest_allelicDepth:public TAtlasTest{
+private:
+	int phredError;
+	TQualityMap qualMap;
+	std::string filenameTag;
+	std::string bamFileName;
+	std::string readGroupName;
+
+	void writeBAM();
+	bool checkAllelicDepthTable();
+
+public:
+	TAtlasTest_allelicDepth(TParameters & params, TLog* logfile);
+	~TAtlasTest_allelicDepth(){};
+	bool run();
+
+
+};
 
 
 #endif /* TATLASTEST_H_ */

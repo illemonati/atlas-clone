@@ -2711,7 +2711,7 @@ void TGenome::allelicDepth(TParameters & params){
 	}
 
 	//write header
-	output << "Category" << "\t" << "Counts" << "Depth" << std::endl;
+	output << "A\tC\tG\tT\tCounts\tDepth" << std::endl;
 
 	//prepare windows
 	TWindowPairDiploid windows;
@@ -2732,7 +2732,7 @@ void TGenome::allelicDepth(TParameters & params){
 		for(int j=0; j<(size); ++j){
 			for(int k=0; k<(size); ++k){
 				for(int l=0; l<(size); ++l){
-					output << "A" << i << "C" << j << "G" << k << "T" << l << "\t" << siteCounts[i][j][k][l] << "\t" << i + j + k + l;
+					output << i << "\t" << j << "\t" << k << "\t" << l << "\t" << siteCounts[i][j][k][l] << "\t" << i + j + k + l;
 					output << std::endl;
 				}
 			}

@@ -44,6 +44,7 @@ public:
 		//NOTE: order will be the order in which test will be run if initialized from TParameters
 		testMap.emplace_back("empty", &createInstance<TAtlasTest>);
 		testMap.emplace_back("pileup", &createInstance<TAtlasTest_pileup>);
+		testMap.emplace_back("allelicDepth", &createInstance<TAtlasTest_allelicDepth>);
 		testMap.emplace_back("recalSimulation", &createInstance<TAtlasTest_recalSimulation>);
 		testMap.emplace_back("BQSRSimulation", &createInstance<TAtlasTest_BQSRSimulation>);
 		testMap.emplace_back("qualityTransformationRecalPlain", &createInstance<TAtlasTest_qualityTransformationRecalPlain>);
