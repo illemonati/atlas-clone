@@ -80,6 +80,8 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 	 * returns false if end of read is within this (or a previous) window
 	 */
 
+	//TODO: move to alignment parser instead?
+
 	//check if alignment is inside window
 	if(alignmentParser.position >= end) return true;
 	if(alignmentParser.position + alignmentParser.length < start) return false;

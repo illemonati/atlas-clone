@@ -152,6 +152,18 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	alignmentParser.setQualityRangeForPrinting(minOutQual, maxOutQual);
 	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
 
+	//trimming ends
+	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
+		int trim3 = params.getParameterIntWithDefault("trim3", 0);
+		if(trim3 < 0) throw "trimming distance trim3 must be >= 0!";
+		int trim5 = params.getParameterIntWithDefault("trim5", 0);
+		if(trim5 < 0) throw "trimming distance trim5 must be >= 0!";
+		if(trim3>0 || trim5>0){
+			alignmentParser.setReadTrimming(trim3, trim5);
+			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
+		}
+	}
+
 	//other filters
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
