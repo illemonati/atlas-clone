@@ -116,7 +116,7 @@ std::string TSite::getEmissionProbs(){
 			b += "\t1";
 		}
 	} else {
-		std::string b = toString(emissionProbabilities[0]);
+		b = toString(emissionProbabilities[0]);
 		for(int i=1; i<numGenotypes; ++i){
 			b += "\t" + toString(emissionProbabilities[i]);
 		}

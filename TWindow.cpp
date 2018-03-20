@@ -257,7 +257,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr){
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		recalObject->calcEmissionProbabilities(sites[i]);
