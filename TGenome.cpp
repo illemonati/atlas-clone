@@ -2420,7 +2420,9 @@ void TGenome::downSampleBamFile(TParameters & params){
 			if(first) first = false;
 			else logfile->flush(",");
 			logfile->flush(" " + toString(*it));
-			if(*it <= 0.0 || *it >= 1.0) throw "All probabilities have to be between > 0 and < 1!";
+			if(*it <= 0.0 || *it > 1.0) throw "All probabilities have to be between  0 and 1!";
+			if(*it == 1.0) logfile->warning("Probability of 1 will result in identical file");
+			if(*it == 0.0) logfile->warning("Probability of 0 will result in empty file");
 			downSampleProb[i] = *it;
 		}
 	} else {
@@ -2472,9 +2474,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 		//accept read or not?
 		for(i=0; i<numProbs; ++i){
 			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
-			if(r < downSampleProb[i]){
+			if(r < downSampleProb[i])
 				alignmentParser.save(bamWriter[i]);
-			}
 		}
 
 		//report

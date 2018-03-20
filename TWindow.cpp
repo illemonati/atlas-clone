@@ -258,13 +258,10 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 }
 
 void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr){
-	//calc emission probs
-	for(int i=0; i<length; ++i){
-		recalObject->calcEmissionProbabilities(sites[i]);
-	}
 	//print pileup
 	for(int i=0; i<length; ++i){
-		out << chr << "\t" << start + i + 1 << "\t" << sites[i].bases.size();
+		recalObject->calcEmissionProbabilities(sites[i]);
+		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth();
 		out << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
 	}
 }

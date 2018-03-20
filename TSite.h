@@ -62,7 +62,10 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
-	int depth(){return bases.size();};
+	int depth(){
+		if(!hasData) return 0;
+		return bases.size();
+	};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);

@@ -100,7 +100,7 @@ void TSite::calcEmissionProbabilities(){
 }
 
 std::string TSite::getBases(){
-	if(bases.size()==0) return "-";
+	if(!hasData) return "-";
 	std::string b = "";
 	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 		b += (*baseIterator)->getBase();
@@ -109,9 +109,17 @@ std::string TSite::getBases(){
 }
 
 std::string TSite::getEmissionProbs(){
-	std::string b = toString(emissionProbabilities[0]);
-	for(int i=1; i<numGenotypes; ++i){
-		b += "\t" + toString(emissionProbabilities[i]);
+	std::string b;
+	if(!hasData){
+		b = "1";
+		for(int i=1; i<numGenotypes; ++i){
+			b += "\t1";
+		}
+	} else {
+		std::string b = toString(emissionProbabilities[0]);
+		for(int i=1; i<numGenotypes; ++i){
+			b += "\t" + toString(emissionProbabilities[i]);
+		}
 	}
 	return b;
 }
