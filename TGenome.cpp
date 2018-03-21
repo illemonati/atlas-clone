@@ -2863,7 +2863,7 @@ void TGenome::writeDepthPerSite(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
-			logfile->listFlush("Writing depth per size ...");
+			logfile->listFlush("Writing depth per site ...");
 			windows.cur->printDepthPerSite(out, chrIterator->Name);
 			logfile->done();
 		}
