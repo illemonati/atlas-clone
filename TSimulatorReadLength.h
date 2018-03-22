@@ -46,10 +46,10 @@ protected:
 	double* gammaCumulDensity;
 
 	void parseFunctionString(std::string & s, double & param1, double & param2);
-	void initiate();
+	void initiate(TLog* logfile);
 
 public:
-	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator);
+	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLengthGamma(){
 		if(initialized){
@@ -69,7 +69,7 @@ protected:
 	double mode, var;
 
 public:
-	TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator);
+	TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile);
 	~TSimulatorReadLengthGammaMode(){};
 	void printDetails(TLog* logfile);
 };
