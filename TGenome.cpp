@@ -1399,7 +1399,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//write header
 	TGenotypeMap genoMap;
-	out << "Chr\tposition\tdepth\tbases";
+	out << "Chr\tposition\tref\tdepth\trefDepth\tbases";
 	for(int i=0; i<10; ++i)
 		out << "\tPem(" << genoMap.getGenotypeString(i) << ")";
 	out << "\n";

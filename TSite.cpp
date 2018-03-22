@@ -16,6 +16,7 @@ void TSite::clear(){
 			delete *it;
 		bases.clear();
 		hasData = false;
+		referenceBase = 'N';
 	}
 };
 
@@ -108,6 +109,20 @@ std::string TSite::getBases(){
 	return b;
 }
 
+int TSite::depth(){
+	if(!hasData) return 0;
+	return bases.size();
+};
+
+int TSite::refDepth(){
+	if(!hasData) return 0;
+	if(referenceBase == 'N') return 0;
+	int counter = 0;
+	for(int i=0; i<bases.size(); ++i){
+		if(bases[i]->getBase() == referenceBase) ++counter;
+	}
+	return counter;
+};
 std::string TSite::getEmissionProbs(){
 	std::string b;
 	if(!hasData){
@@ -163,6 +178,12 @@ void TSite::countAlleles(long**** siteImbalance){
 	}
 	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
 }
+
+void TSite::printPileup(gz::ogzstream & out){
+	out << "\t" << depth() << "\t" << refDepth();
+	out << "\t" << getBases() << "\t" << getEmissionProbs();
+}
+
 
 //-----------------------------------------------------------------------
 //MLE Callers

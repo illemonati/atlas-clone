@@ -263,8 +263,9 @@ void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std:
 	//print pileup
 	for(int i=0; i<length; ++i){
 		recalObject->calcEmissionProbabilities(sites[i]);
-		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth();
-		out << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
+		out << chr << "\t" << start + i + 1;
+		sites[i].printPileup(out);
+		out << "\n";
 	}
 }
 
