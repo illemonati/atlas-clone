@@ -538,6 +538,20 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
+void TGenome::indexBamFile(){
+	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	//close BAM file
+	reader.Close();
+	logfile->done();
+}
+
 //-----------------------------------------------------
 //Functions for theta estimation
 //-----------------------------------------------------
@@ -2058,6 +2072,9 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 	//close bam writer
 	bamWriter.Close();
+
+	//now generate bam index
+	indexBamFile();
 
 	//report
 	reportProgressParsingBamFile(counter, start);
