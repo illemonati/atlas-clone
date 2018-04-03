@@ -33,8 +33,10 @@ TWindow::TWindow(long Start, long End){
 };
 
 void TWindow::initSites(long newLength){
-	if(sitesInitialized)
+	if(sitesInitialized){
+		clear();
 		delete[] sites;
+	}
 	length = newLength;
 	if(length > 0){
 		try{

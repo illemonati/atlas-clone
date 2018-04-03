@@ -42,6 +42,7 @@ public:
 	TWindow(long Start, long End);
 	virtual ~TWindow(){
 		if(sitesInitialized) delete[] sites;
+		clear();
 	};
 	virtual void initSites(long newLength);
 	virtual void _initSites(){
@@ -87,6 +88,10 @@ protected:
 
 public:
 	TWindowDiploid():TWindow(){};
+	~TWindowDiploid(){
+		clear();
+	}
+
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void _initSites();
 	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
