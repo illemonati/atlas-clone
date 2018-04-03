@@ -340,7 +340,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	++windowNumber;
 
 	//report
-	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 
 	return true;
