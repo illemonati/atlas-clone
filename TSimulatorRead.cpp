@@ -54,7 +54,7 @@ bool TSimulatorRead::checkInitialization(){
 	return isInitialized;
 }
 
-void TSimulatorRead::setReadLengthDistribution(std::string s){
+void TSimulatorRead::setReadLengthDistribution(std::string s, TLog* logfile){
 	size_t pos = s.find("(");
 	std::string tmp;
 
@@ -66,9 +66,9 @@ void TSimulatorRead::setReadLengthDistribution(std::string s){
 	s.erase(0, pos);
 
 	if(type == "gamma")
-		readLengthDist = new TSimulatorReadLengthGamma(s, randomGenerator);
+		readLengthDist = new TSimulatorReadLengthGamma(s, randomGenerator, logfile);
 	else if(type == "gammaMode"){
-		readLengthDist = new TSimulatorReadLengthGammaMode(s, randomGenerator);
+		readLengthDist = new TSimulatorReadLengthGammaMode(s, randomGenerator, logfile);
 
 	}
 	else if(type == "fixed")

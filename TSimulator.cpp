@@ -500,16 +500,16 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				std::map<std::string, std::string>::iterator rlIt = readLengthMap.find(*it);
 				if(rlIt == readLengthMap.end())
 					throw "Read length distribution not specified for read group '" + *it + "'!";
-				(*readSimsIt)->setReadLengthDistribution(rlIt->second);
+				(*readSimsIt)->setReadLengthDistribution(rlIt->second, logfile);
 			} else
-				(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second);
+				(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 
 			//quality dist
 			if(qualityPerReadGroup){
 				std::map<std::string, std::string>::iterator qIt = qualityMap.find(*it);
 				if(qIt == qualityMap.end())
 					throw "Read quality distribution not specified for read group '" + *it + "'!";
-				(*readSimsIt)->setReadLengthDistribution(qIt->second);
+				(*readSimsIt)->setReadLengthDistribution(qIt->second, logfile);
 			} else
 				(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 
@@ -566,7 +566,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			logfile->startIndent("Initializing readgroup '" + name + "':");
 			readSimulators.push_back(new TSimulatorRead(name, maxPrintQual, randomGenerator));
 			readSimsIt = readSimulators.end() - 1;
-			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second);
+			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
 			(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
@@ -735,13 +735,13 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	int prog;
 	int oldProg = 0;
 	std::string progressString = "Simulating about " + toString(numReads) + " reads" + extraProgressText + " ...";
+
 	logfile->listFlush(progressString);
 
 	//now simulate
 	for(long l=0; l<chrLengthForStart; ++l){
 		//draw random number to get number of reads starting at this position
 		numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
-
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;

@@ -550,6 +550,20 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
+void TGenome::indexBamFile(){
+	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	//close BAM file
+	reader.Close();
+	logfile->done();
+}
+
 //-----------------------------------------------------
 //Functions for theta estimation
 //-----------------------------------------------------
@@ -2071,6 +2085,9 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//close bam writer
 	bamWriter.Close();
 
+	//now generate bam index
+	indexBamFile();
+
 	//report
 	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
@@ -2937,7 +2954,7 @@ void TGenome::writeDepthPerSite(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			readData(windows);
-			logfile->listFlush("Writing depth per size ...");
+			logfile->listFlush("Writing depth per site ...");
 			windows.cur->printDepthPerSite(out, chrIterator->Name);
 			logfile->done();
 		}
