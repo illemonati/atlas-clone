@@ -42,7 +42,6 @@ public:
 	TWindow(long Start, long End);
 	virtual ~TWindow(){
 		if(sitesInitialized) delete[] sites;
-		clear();
 	};
 	virtual void initSites(long newLength);
 	virtual void _initSites(){
