@@ -180,7 +180,7 @@ public:
 			int oldId;
 
 			for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
-				logfile->startIndent("The following read groups will be combined into one group for recalibration:");
+				logfile->startIndent("The following read groups will be combined into one group for parameter estimation:");
 				for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 					logfile->list(*it);
 					oldId = ReadGroupObject.find(*it);

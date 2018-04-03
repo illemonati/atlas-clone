@@ -70,7 +70,8 @@ bool TAtlasTest_PMDEmpiric::run(){
 	//open pool read group file
 	outPool.open(poolRGFileName.c_str());
 	if(!outPool) throw "Failed to open file '" + poolRGFileName + "'!";
-	outPool << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99 HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100";
+	outPool << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99 HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100\n";
+	outPool.close();
 
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
@@ -86,7 +87,7 @@ bool TAtlasTest_PMDEmpiric::run(){
 	else return false;
 };
 
-void fillPatternsToVector(	std::string tmp, std::vector<double> &CTestimated, std::vector<double> &GAestimated){
+void fillPatternsToVector(std::string tmp, std::vector<double> &CTestimated, std::vector<double> &GAestimated){
 	//CT string
 	std::string::size_type pos1 = tmp.find_first_of('[');
 	if(pos1 == std::string::npos) throw "Can not find '[' in '" + tmp + "'!";
@@ -151,12 +152,11 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 	//read estimated params
 	logfile->list("Reading line for RG3");
 	getline(in, tmp);
-
 	fillPatternsToVector(tmp, CTestimated, GAestimated);
 
 	//parse true params
-	fillVectorFromStringAny(CTpatterns[0], CTtrue, ",");
-	fillVectorFromStringAny(GApatterns[0], GAtrue, ",");
+	fillVectorFromStringAny(CTpatterns[2], CTtrue, ",");
+	fillVectorFromStringAny(GApatterns[2], GAtrue, ",");
 
 	//compare
 	for(unsigned int i=0; i<CTtrue.size(); ++i){
