@@ -270,7 +270,7 @@ void TAlignmentParser::parseBasesQualities(){
 	//update length
 	length = k;
 	if(length != bamAlignment.Length)
-		throw "Length mismatch!";
+		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
 
 void TAlignmentParser::filterForBaseQuality(){
