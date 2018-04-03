@@ -199,6 +199,35 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
+	std::string getGenotypeStringKnownAlleles(int num, char ref, char alt){
+		std::string genotype = "";
+		if(num == 0){
+			genotype += ref;
+			genotype += ref;
+			return genotype;
+		}
+		else if(num == 2){
+			genotype += alt;
+			genotype += alt;
+			return genotype;
+		}
+		else if(num == 1){
+			Base refBase = getBase(ref);
+			Base altBase = getBase(alt);
+			if(refBase > altBase){
+				genotype += alt;
+				genotype += ref;
+				return genotype;
+			}
+			else{
+				genotype += ref;
+				genotype += alt;
+				return genotype;
+			}
+		}
+		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
+	};
+
 	std::pair<Base,Base> getBasesOfGenotype(int num){
 		if(num==0) return std::pair<Base,Base>(A,A);
 		if(num==1) return std::pair<Base,Base>(A,C);

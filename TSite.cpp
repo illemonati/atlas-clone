@@ -633,7 +633,7 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 		}
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
-		out << "\t" << genoMap.getGenotypeString(MLGenotype);
+		out << "\t" << genoMap.getGenotypeStringKnownAlleles(MLGenotype, referenceBase, alt);
 		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
 		out << "\t" << referenceBase << "\t" << alt << "\t" << 0;
