@@ -1828,7 +1828,7 @@ void TGenome::reportProgressParsingBamFile(const long & counter, const struct ti
 	if(counter % 1000000 == 0){
 		static struct timeval end;
 		gettimeofday(&end, NULL);
-		static float runtime = (end.tv_sec  - start.tv_sec)/60.0;
+		float runtime = (end.tv_sec  - start.tv_sec)/60.0;
 		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	}
 }
@@ -2980,12 +2980,12 @@ void TGenome::estimatePMD(TParameters & params){
 	//measure progress and runtime
 	struct timeval start;
 	long numreadsAdded = 0;
-
 	gettimeofday(&start, NULL);
 
 	//iterate through BAM file
 	while(alignmentParser.readAlignment(bamReader)){
-		alignmentParser.addToPMDTables(pmdTables);
+		if(alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId))
+			alignmentParser.addToPMDTables(pmdTables);
 
 		//report
 		++numreadsAdded;
@@ -3074,7 +3074,7 @@ void TGenome::runPMDS(TParameters & params){
 		//report progress
 		if(counter % 1000000 == 0){
 			gettimeofday(&end, NULL);
-			logfile->list("Analyzed " + toString(counter) + " reads in " + toString(end.tv_sec  - start.tv_sec) + "s and filtered out " + toString(counterF) + " of them!");
+			logfile->list("Analyzed " + toString(counter) + " reads in " + toString((end.tv_sec  - start.tv_sec)/60.0) + " min and filtered out " + toString(counterF) + " of them!");
 		}
 	}
 
