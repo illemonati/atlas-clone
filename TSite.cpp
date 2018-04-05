@@ -180,6 +180,7 @@ void TSite::countAlleles(long**** siteImbalance){
 }
 
 void TSite::printPileup(gz::ogzstream & out){
+	out << "\t" << referenceBase;
 	out << "\t" << depth() << "\t" << refDepth();
 	out << "\t" << getBases() << "\t" << getEmissionProbs();
 }

@@ -66,6 +66,7 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 	chrLength = readLength * 5;
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
+	fastaName = filenameTag + ".fasta";
 	readGroupName = "TestReadGroup";
 
 	emissionTolerance = params.getParameterDoubleWithDefault("pileupTest_qual", 0.0001);
@@ -73,13 +74,15 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 };
 
 bool TAtlasTest_pileup::run(){
-	//1) create a bam file with known pileup results
+	//1) create a bam and fasta file with known pileup results
 	//----------------------------------------------
+	//writeFasta();
 	writeBAM();
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
+//	_testParams.addParameter("fasta", fastaName);
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
@@ -90,6 +93,35 @@ bool TAtlasTest_pileup::run(){
 	//--------------------------
 	return checkPileupFile();
 };
+
+/*void TAtlasTest_pileup::writeFasta(){
+	std::ofstream out;
+	out.open(fastaName.c_str());
+	if(!out) throw "Failed to open output file '" + fastaName + "'!";
+
+	out << ">chr1\n";
+	for(int i=0; i<chrLength; ++i)
+		out << "C";
+
+	out << "\n>chr2\n";
+	for(int i=0; i<chrLength; ++i)
+		out << "T";
+	out << "\n";
+	out.close();
+
+	//create index of new bam file
+	logfile->listFlush("Creating index of fasta file '" + fastaName + "' ...");
+	BamTools::Fasta reader;
+	if(!reader.Open(fastaName))
+		throw "Failed to open BAM file '" + fastaName + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(fastaName);
+
+	//close fasta file
+	reader.Close();
+	logfile->done();
+}*/
 
 void TAtlasTest_pileup::writeBAM(){
 	//create a bam file with known pileup results
@@ -177,9 +209,9 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	logfile->startIndent("Checking pileup file:");
 
 	//open pileup file
-	std::string filename = filenameTag + "_pileup.txt";
+	std::string filename = filenameTag + "_pileup.txt.gz";
 	logfile->listFlush("Opening file '" + filename + "' for reading ...");
-	std::ifstream in(filename.c_str());
+	gz::igzstream in(filename.c_str());
 	if(!in)
 		throw "Failed to open file '" + filename + "'!";
 	logfile->done();
@@ -190,7 +222,6 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 	//some variables
 	std::vector<std::string> line;
-	unsigned int trueDepth;
 	int numLines = 0;
 	std::string chr = "Chr1";
 	int truePos = 0;
@@ -209,15 +240,17 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		//read line into vector
 		++numLines;
 		++truePos;
-		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		std::getline(in, tmp);
+
+		fillVectorFromStringWhiteSpace(tmp, line);
 
 		//skip empty
 		if(line.size() == 0) continue;
 
 		//check columns
-		if(line.size() != 14){
+		if(line.size() != 16){
 			logfile->newLine();
-			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "! " + toString(line.size()) + " instead of 16 columns!");
 			return false;
 		}
 
@@ -241,17 +274,29 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			return false;
 		}
 
+		//check ref base (always N)
+		if(line[2] != "N"){
+			logfile->newLine();
+			logfile->conclude("Wrong reference base in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+		}
+
 		//check depth
-		trueDepth = depths[(truePos-1) / readLength];
-		if(stringToInt(line[2]) != trueDepth){
+		unsigned int trueDepth = depths[(truePos-1) / readLength];
+		if(stringToInt(line[3]) != trueDepth){
 			logfile->newLine();
 			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 			return false;
 		}
 
+		//check refDepth
+		if(line[4] != "0"){
+			logfile->newLine();
+			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+		}
+
 		//check bases and emission probabilities
 		for(b=0; b<4; ++b)
-			baseCounts[b] = std::count(line[3].begin(), line[3].end(), genoMap.getBaseAsChar(b));
+			baseCounts[b] = std::count(line[5].begin(), line[5].end(), genoMap.getBaseAsChar(b));
 
 		firstBase = (int) ((truePos-1) / readLength) % 4;
 
@@ -311,7 +356,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//now check emission probabilities
 		for(b=0; b<genoMap.numGenotypes; ++b){
-			relDiff = (stringToDouble(line[b+4]) - emissionProbs[b]) / emissionProbs[b];
+			relDiff = (stringToDouble(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){
 				logfile->newLine();
 				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + "!");

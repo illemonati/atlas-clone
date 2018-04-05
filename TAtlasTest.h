@@ -56,9 +56,11 @@ private:
 	TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
+	std::string fastaName;
 	std::string readGroupName;
 	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
+	void writeFasta();
 	void writeBAM();
 	bool checkPileupFile();
 
