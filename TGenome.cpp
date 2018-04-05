@@ -1706,13 +1706,15 @@ void TGenome::printQualityDistribution(TParameters & params){
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readAlignment(bamReader)){
-		++counter;
+        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+			++counter;
 
-		//update and write (only if alignment qualities could be calculated)
-		alignmentParser.addToQualityTable(qualDist[alignmentParser.readGroupId]);
+			//update and write (only if alignment qualities could be calculated)
+			alignmentParser.addToQualityTable(qualDist[alignmentParser.readGroupId]);
 
-		//report
-		reportProgressParsingBamFile(counter, start);
+			//report
+			reportProgressParsingBamFile(counter, start);
+        }
 	}
 
 	//report
@@ -1863,21 +1865,25 @@ void TGenome::recalibrateBamFile(TParameters & params){
     //now parse through bam file and write alignments
 	if(withPMD){
 		while(alignmentParser.readAlignment(bamReader)){
-			++counter;
+	        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+				++counter;
 
-			alignmentParser.recalibrate(*recalObject, pmdObjects);
-			alignmentParser.save(bamWriter);
+				alignmentParser.recalibrate(*recalObject, pmdObjects);
+				alignmentParser.save(bamWriter);
 
-			reportProgressParsingBamFile(counter, start);
-		}
+				reportProgressParsingBamFile(counter, start);
+			}
+        }
 	} else {
 		while(alignmentParser.readAlignment(bamReader)){
-			++counter;
+	        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+				++counter;
 
-			alignmentParser.recalibrate(*recalObject);
-			alignmentParser.save(bamWriter);
+				alignmentParser.recalibrate(*recalObject);
+				alignmentParser.save(bamWriter);
 
-			reportProgressParsingBamFile(counter, start);
+				reportProgressParsingBamFile(counter, start);
+	        }
 		}
 	}
 
@@ -2984,7 +2990,7 @@ void TGenome::estimatePMD(TParameters & params){
 
 	//iterate through BAM file
 	while(alignmentParser.readAlignment(bamReader)){
-		if(alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId))
+        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId))
 			alignmentParser.addToPMDTables(pmdTables);
 
 		//report
@@ -3057,7 +3063,7 @@ void TGenome::runPMDS(TParameters & params){
 	while(alignmentParser.readAlignment(bamReader)){
 		++counter;
 
-		if(alignmentParser.passedFilters){
+        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
 			//recalibrate quality scores
 			alignmentParser.recalibrate(*recalObject);
 
