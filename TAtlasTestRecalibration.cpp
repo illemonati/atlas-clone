@@ -22,20 +22,40 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLo
 	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams","0.908163,0.0022877,-0.0160425,0.000170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
+	recalParamsFileName = filenameTag + "_recalibrationEM.txt";
+	poolRGFileName = filenameTag + "_poolThese.txt";
 }
 
 bool TAtlasTest_recalSimulation::run(){
+	//1) Write recal params to file
+	//-----------------------------
+	std::vector<std::string> paramVector;
+	fillVectorFromStringAny(recalParamString, paramVector, ",");
+	outRecalParams.open(recalParamsFileName.c_str());
+	if(!outRecalParams) throw "Failed to open file '" + recalParamsFileName + "'!";
 
-	//TODO: find minimal data necessary to run test in order to speed up
+	outRecalParams << "readGroup\tquality\tquality^2\tposition\tposition^2\tAA\tAC\tAG\tAT\tCA\tCC\tCG\tCT\tGA\tGC\tGG\tGT\tTA\tTC\tTG\tTT\t-A\t-C\t-G\t-T\tLL\n";
+	for(int i=0; i<3; ++i){
+		std::string RGName = "RG" + toString(i);
+		outRecalParams << RGName << "\t";
+		for(unsigned int p=0; p<paramVector.size(); ++p)
+			outRecalParams << paramVector[p] << "\t";
+		//add likelihood
+		outRecalParams << "0\n";
+	}
+	outRecalParams.close();
 
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
+	//TODO: find minimal data necessary to run test in order to speed up
+
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("ploidy", "1");
 	_testParams.addParameter("depth", "1");
 	_testParams.addParameter("qualityDist", qualityDist);
-	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
+	_testParams.addParameter("recal", recalParamsFileName);
+//	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
 
@@ -46,14 +66,19 @@ bool TAtlasTest_recalSimulation::run(){
 
 	//2) Run recal
 	//-----------------------------
+	//open pool read group file
+	outRecalPool.open(poolRGFileName.c_str());
+	if(!outRecalPool) throw "Failed to open file '" + poolRGFileName + "'!";
+	outRecalPool << "RG0 RG1\n";
+	outRecalPool.close();
+
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
+	_testParams.addParameter("poolReadGroups", poolRGFileName);
 //	_testParams.addParameter("recal", filenameTag + "_recalibrationEM.txt");
-
 
 	if(!runTGenomeFromInputfile("recal"))
 		return false;
-
 
 	//3) check if results are OK
 	//--------------------------
@@ -73,30 +98,49 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 	logfile->done();
 
 	//some variables
-	std::string tmp;
-	std::vector<double> estimatedParams;
+	std::string tmp, tmp2;
+	std::vector<double> estimatedParams, estimatedParams2;
 	std::vector<std::string> tmpVec;
 	std::vector<double> trueParams;
-
 
 	//skip header
 	getline(in, tmp);
 
-	//read estimated params
+	//read estimated params for RG0 and RG1
 	getline(in, tmp);
+	getline(in, tmp2);
 	fillVectorFromStringAny(tmp, estimatedParams, "\t");
+	fillVectorFromStringAny(tmp2, estimatedParams2, "\t");
 
 	//parse true params
 	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
 	repeatIndexes(tmpVec, trueParams);
-
-	for(unsigned int i=1; i<estimatedParams.size(); ++i){ //first one is read group name
+	logfile->startIndent("Checking parameter values for pooled read groups RG0 and RG1");
+	for(unsigned int i=1; i<estimatedParams.size()-1; ++i){ //first one is read group name, last one LL
+		if(estimatedParams[i] != estimatedParams2[i]){
+			logfile->newLine();
+			logfile->conclude("esimated value for parameter number " + toString(i) + " in RG0: " + toString(estimatedParams[i]) + " is not the same as in RG1: " + toString(estimatedParams2[i]));
+			return false;
+		}
 		if(estimatedParams[i] != trueParams[i]){
 			logfile->newLine();
 			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i-1]));
 		}
-
 	}
+	logfile->done();
+
+	//read estimated params for RG2
+	logfile->startIndent("Checking parameter values for RG2");
+	getline(in, tmp);
+	fillVectorFromStringAny(tmp, estimatedParams, "\t");
+
+	for(unsigned int i=1; i<estimatedParams.size()-1; ++i){ //first one is read group name, last one LL
+		if(estimatedParams[i] != trueParams[i]){
+			logfile->newLine();
+			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i-1]));
+		}
+	}
+	logfile->done();
 	return true;
 }
 

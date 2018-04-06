@@ -41,18 +41,19 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 
 bool TAtlasTest_PMDEmpiric::run(){
 	//1) Write PMD params to file
+	//-----------------------------
 	outPMD.open(pmdEmpiricFileName.c_str());
 	if(!outPMD) throw "Failed to open file '" + pmdEmpiricFileName + "'!";
 
-	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99	Empiric[" << firstPMDStringCT << "]	Empiric[" << firstPMDStringGA << "]" << std::endl;
-	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100 Empiric[" << secondPMDStringCT << "]	Empiric[" << secondPMDStringGA << "]" << std::endl;
-	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_plus100 Empiric[" << thirdPMDStringCT << "]	Empiric[" << thirdPMDStringGA << "]" << std::endl;
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_less99	Empiric[" << firstPMDStringCT << "]	Empiric[" << firstPMDStringGA << "]\n";
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_UDG_plus100 Empiric[" << secondPMDStringCT << "]	Empiric[" << secondPMDStringGA << "]\n";
+	outPMD << "HWI-ST558:341:C7R9TACXX_BAR8_plus100 Empiric[" << thirdPMDStringCT << "]	Empiric[" << thirdPMDStringGA << "]\n";
 
+	outPMD.close();
 	//TODO: find minimal data necessary to run test in order to speed up
 
 	//2) Run ATLAS to simulate BAM file
 	//-----------------------------
-
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");

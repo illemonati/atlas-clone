@@ -25,6 +25,10 @@ private:
 	int maxPhredInt;
 	std::string qualityDist;
 	std::string recalParamString;
+	std::string recalParamsFileName;
+	std::string poolRGFileName;
+	std::ofstream outRecalParams;
+	std::ofstream outRecalPool;
 
 public:
 	TAtlasTest_recalSimulation(TParameters & params, TLog* logfile);
