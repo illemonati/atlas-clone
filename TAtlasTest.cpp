@@ -76,13 +76,13 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 bool TAtlasTest_pileup::run(){
 	//1) create a bam and fasta file with known pileup results
 	//----------------------------------------------
-	//writeFasta();
+	writeFasta();
 	writeBAM();
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
-//	_testParams.addParameter("fasta", fastaName);
+	_testParams.addParameter("fasta", fastaName);
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
@@ -94,21 +94,46 @@ bool TAtlasTest_pileup::run(){
 	return checkPileupFile();
 };
 
-/*void TAtlasTest_pileup::writeFasta(){
-	std::ofstream out;
-	out.open(fastaName.c_str());
-	if(!out) throw "Failed to open output file '" + fastaName + "'!";
+void TAtlasTest_pileup::writeFasta(){
+	//open fasta file
+	std::ofstream fasta, fastaIndex;
+	fasta.open(fastaName.c_str());
+	if(!fasta) throw "Failed to open output file '" + fastaName + "'!";
+	//index file
+	std::string faiName = fastaName + ".fai";
+	fastaIndex.open(faiName.c_str());
+	if(!fastaIndex)
+		throw "Failed to open file '" + faiName + "' for writing!";
+	long oldOffset = 0;
 
-	out << ">chr1\n";
+	//write to fasta file
+	std::string chrName = "chr1";
+	fasta << ">chr1\n";
 	for(int i=0; i<chrLength; ++i)
-		out << "C";
+		fasta << "C";
 
-	out << "\n>chr2\n";
+	//write to index file
+	oldOffset += chrName.size() + 2;
+	fastaIndex << extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
+	oldOffset += chrLength + (int) (chrLength / 70);
+	if(chrLength % 70 != 0) oldOffset += 1;
+
+	//write to fasta file
+	chrName = "chr2";
+	fasta << "\n>chr2\n";
 	for(int i=0; i<chrLength; ++i)
-		out << "T";
-	out << "\n";
-	out.close();
+		fasta << "T";
+	fasta << "\n";
+	fasta.close();
 
+	//write to index file
+	oldOffset += chrName.size() + 2;
+	fastaIndex << extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
+	oldOffset += chrLength + (int) (chrLength / 70);
+	fastaIndex.close();
+};
+
+/*
 	//create index of new bam file
 	logfile->listFlush("Creating index of fasta file '" + fastaName + "' ...");
 	BamTools::Fasta reader;
@@ -121,7 +146,8 @@ bool TAtlasTest_pileup::run(){
 	//close fasta file
 	reader.Close();
 	logfile->done();
-}*/
+}
+*/
 
 void TAtlasTest_pileup::writeBAM(){
 	//create a bam file with known pileup results

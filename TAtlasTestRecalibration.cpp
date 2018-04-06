@@ -75,7 +75,6 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
-//	_testParams.addParameter("recal", filenameTag + "_recalibrationEM.txt");
 
 	if(!runTGenomeFromInputfile("recal"))
 		return false;
