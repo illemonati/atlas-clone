@@ -437,6 +437,9 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 		initThetaSearchFactor = 0;
 	}
 
+	//minimum window size
+	minSitesWithData = params.getParameterIntWithDefault("minSitesWithData", 1000);
+
 	//counters and tmp variables
 	init();
 
@@ -831,8 +834,8 @@ void TThetaEstimator::estimateConfidenceInterval(){
 //Functions to run estimation-
 //------------------------------------------------------------
 bool TThetaEstimator::estimateTheta(){
-	if(data->sizeWithData() < 100){
-		logfile->write("Can not estimate theta, less than 100 sites with data in this region!");
+	if(data->sizeWithData() < minSitesWithData){
+		logfile->write("Can not estimate theta, less than minSitesWithData = " + toString(minSitesWithData) + " sites with data in this region!");
 		return false;
 	}
 

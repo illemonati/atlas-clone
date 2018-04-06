@@ -63,6 +63,7 @@ private:
 	std::vector<TSimulatorChromosome> chromosomes;
 	std::vector<TSimulatorChromosome>::iterator chrIt;
 	bool writeTrueGenotypes;
+	TSimulatorReference referenceObj;
 
 	//read simulator
 	std::vector<TSimulatorRead*> readSimulators;
@@ -78,7 +79,7 @@ private:
 	double* posTermForTransformation;
 
 	//helper tools
-	char toBase[4];
+	char toBase[4] = {'A', 'C', 'G', 'T'};
 	float baseFreq[4];
 	float cumulBaseFreq[4];
 	bool refInitialized;
@@ -89,6 +90,7 @@ private:
 	void initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
 	void initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & qualTransformMap);
 	void initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
+	void initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
 	void addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
 	void initializeReadSimulator(TParameters & params);
 	void initializeReadGroupFrequencies(TParameters & params);

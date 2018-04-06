@@ -33,8 +33,10 @@ TWindow::TWindow(long Start, long End){
 };
 
 void TWindow::initSites(long newLength){
-	if(sitesInitialized)
+	if(sitesInitialized){
+		clear();
 		delete[] sites;
+	}
 	length = newLength;
 	if(length > 0){
 		try{
@@ -79,6 +81,8 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
 	 */
+
+	//TODO: move to alignment parser instead?
 
 	//check if alignment is inside window
 	if(alignmentParser.position >= end) return true;
@@ -257,15 +261,13 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr){
-	//calc emission probs
-	for(int i=0; i<length; ++i){
-		recalObject->calcEmissionProbabilities(sites[i]);
-	}
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr){
 	//print pileup
 	for(int i=0; i<length; ++i){
-		out << chr << "\t" << start + i + 1 << "\t" << sites[i].bases.size();
-		out << "\t" << sites[i].getBases() << "\t" << sites[i].getEmissionProbs() << "\n";
+		recalObject->calcEmissionProbabilities(sites[i]);
+		out << chr << "\t" << start + i + 1;
+		sites[i].printPileup(out);
+		out << "\n";
 	}
 }
 
@@ -319,6 +321,18 @@ void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
 	//print depth for each site to file
 	for(int i=0; i<length; ++i){
 		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth() << "\n";
+	}
+}
+
+void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
+	//calculate and return imbalance
+	for(int i=0; i<length; ++i){
+		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
+			sites[i].countAlleles(siteImbalance);
+		else if(sites[i].depth()  == 0){
+			++siteImbalance[0][0][0][0];
+		}
+
 	}
 }
 

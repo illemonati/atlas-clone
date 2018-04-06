@@ -56,15 +56,37 @@ private:
 	TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
+	std::string fastaName;
 	std::string readGroupName;
 	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
+	void writeFasta();
 	void writeBAM();
 	bool checkPileupFile();
 
 public:
 	TAtlasTest_pileup(TParameters & params, TLog* logfile);
 	~TAtlasTest_pileup(){};
+	bool run();
+};
+
+//------------------------------------------
+//TAtlasTest_allelicDepth
+//------------------------------------------
+class TAtlasTest_allelicDepth:public TAtlasTest{
+private:
+	int phredError;
+	TQualityMap qualMap;
+	std::string filenameTag;
+	std::string bamFileName;
+	std::string readGroupName;
+
+	void writeBAM();
+	bool checkAllelicDepthTable();
+
+public:
+	TAtlasTest_allelicDepth(TParameters & params, TLog* logfile);
+	~TAtlasTest_allelicDepth(){};
 	bool run();
 };
 

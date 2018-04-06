@@ -24,15 +24,26 @@ protected:
 	int maxPrintPhredInt;
 	std::string _name;
 
+	//read length
 	TSimulatorReadLength* readLengthDist;
 	bool readLengthInitialized;
+
+	//qualities
 	TSimulatorQualityDist* qualityDist;
 	bool qualityDistInitialized;
 	std::string qualDistType;
 	TSimulatorQualityTransformation* qualityTransform;
 	bool qualityTransformInitialized;
+
+	//PMD
 	TPMD pmdObject;
 	bool hasPMD;
+
+	//contamination
+	bool isContaminated;
+	double contaminationRate;
+	TSimulatorReference* contaminationSource;
+
 	bool isInitialized;
 
 	TGenotypeMap genoMap;
@@ -69,10 +80,11 @@ public:
 	};
 
 	bool checkInitialization();
-	void setReadLengthDistribution(std::string s);
+	void setReadLengthDistribution(std::string s, TLog* logfile);
 	void setQualityDistribution(std::string s);
 	void setQualityTransformation(const std::string & type, const std::string & arg, TLog* logfile);
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
+	void setContamination(double rate, TSimulatorReference* source);
 
 	std::string name(){ return _name; }
 	double meanReadLength(){

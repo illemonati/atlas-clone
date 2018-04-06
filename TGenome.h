@@ -34,7 +34,6 @@ private:
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
- 	BamTools::BamAlignment bamAlignment;
  	TAlignmentParser alignmentParser;
 	bool oldAlignementMustBeConsidered;
 	BamTools::Fasta reference;
@@ -84,6 +83,7 @@ private:
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
+	void indexBamFile();
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -143,6 +143,7 @@ public:
 	void downSampleBamFile(TParameters & params);
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
+	void allelicDepth(TParameters & params);
 	void estimateApproximateDepthPerWindow(TParameters & params);
 	void estimateDepthPerSite(TParameters & params);
 	void writeDepthPerSite(TParameters & params);

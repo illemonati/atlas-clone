@@ -54,9 +54,16 @@ private:
 	TReadGroups* readGroupTable;
 	TLog* logfile;
 	bool _keepDuplicates;
+
+	//quality filter
 	bool applyQualityFilter;
 	int minQual, maxQual;
 	int minQualForPrinting, maxQualForPrinting;
+
+	//read trimming
+	bool trimReads;
+	int trimmingLength3Prime;
+	int trimmingLength5Prime;
 
 	//data
 	bool initialized;
@@ -67,8 +74,6 @@ private:
 	double* errorRates;
 
 	//tmp variables
-	unsigned int i;
-	int d, k, p;
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter;
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd;
 	std::string tmpString;
@@ -86,6 +91,7 @@ private:
 	void setDistancesFromEnds();
 	void filterForBaseQuality();
 	void filterForPrintingBaseQuality(std::string & qual);
+	void trimRead();
 	void fillContext();
 	void fillPmdProbabilities(TPMD* pmdObjects);
 
@@ -101,6 +107,7 @@ public:
 
 	int32_t position;
 	bool isReverseStrand;
+	bool isProperPair;
 	bool passedFilters;
 	bool recalibrated;
 
@@ -136,6 +143,7 @@ public:
 	void keepDuplicates(){_keepDuplicates = true;};
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
+	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
@@ -155,6 +163,7 @@ public:
 
 	//functions to modify alignment
 	void updateOptionalSamField(std::string tag, float value);
+	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);
 
 	//functions to write / print alignment
 	void save(BamTools::BamWriter & bamWriter);

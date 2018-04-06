@@ -57,6 +57,7 @@ private:
 	long storageLength;
 	long chrLength;
 	std::string chrName;
+	bool needsWriting;
 
 	void allocateStorage(long length);
 	void freeStorage();
@@ -66,9 +67,15 @@ private:
 	void writeRefToFasta();
 
 public:
+	TSimulatorReference();
 	TSimulatorReference(std::string Filename, TLog* Logfile);
 	~TSimulatorReference(){
-		if(chrName != "")
+		close();
+	};
+
+	void initialize(std::string Filename, TLog* Logfile);
+	void close(){
+		if(chrName != "" && needsWriting)
 			writeRefToFasta();
 		closeFastaFile();
 		freeStorage();

@@ -39,6 +39,7 @@ bool stringContains(const std::string & haystack, std::string needle);
 bool stringContainsAny(const std::string & haystack, std::string needle);
 bool stringContains(const std::string & haystack, char needle);
 bool stringContainsOnly(const std::string & haystack, std::string needle);
+bool stringIsProbablyANumber(const std::string & haystack);
 bool stringContainsLetters(const std::string & haystack);
 bool stringContainsNumbers(const std::string & haystack);
 bool allEntriesAreUnique(const std::vector<std::string> vec);

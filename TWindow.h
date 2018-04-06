@@ -57,11 +57,12 @@ public:
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
-	void printPileup(TRecalibration* recalObject, std::ofstream & out, std::string & chr);
+	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
 	virtual void calcDepth();
 	void calcFracN();
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);
 	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
+	void countAlleles(long**** siteImbalance, const unsigned int & maxDepth);
 	void applyDepthFilter(int minDepth, size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
 	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
@@ -86,6 +87,10 @@ protected:
 
 public:
 	TWindowDiploid():TWindow(){};
+	~TWindowDiploid(){
+		clear();
+	}
+
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void _initSites();
 	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);

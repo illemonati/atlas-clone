@@ -46,11 +46,16 @@ TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
 	initialized = false;
+
+	//filters
 	applyQualityFilter = false;
 	minQual = 33;
 	maxQual = 126;
 	minQualForPrinting = 33;
 	maxQualForPrinting = 126;
+	trimReads = false;
+	trimmingLength3Prime = 0;
+	trimmingLength5Prime = 0;
 
 	//details
 	length = 0;
@@ -58,6 +63,7 @@ TAlignmentParser::TAlignmentParser(){
 	readGroupId = -1;
 	position = 0;
 	isReverseStrand = false;
+	isProperPair = false;
 	passedFilters = false;
 	parsed = false;
 	changed = false;
@@ -87,12 +93,6 @@ TAlignmentParser::TAlignmentParser(){
 	//reference
 	hasReference = false;
 	fastaBuffer = NULL;
-
-	//tmp variables
-	i = 0;
-	d = 0;
-	k = 0;
-	p = 0;
 };
 
 TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
@@ -171,11 +171,17 @@ void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
 	maxQualForPrinting = maxQual;
 };
 
+void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
+	trimmingLength3Prime = trim3Prime;
+	trimmingLength5Prime = trim5Prime;
+	trimReads = true;
+};
+
 void TAlignmentParser::parseBasesQualities(){
 	// iterate over CigarOps
-	d = 0; //index regarding data structures
-	k = 0; //index inside read
-	p = 0; //index regarding reference position (!= k for indels)
+	int d = 0; //index regarding data structures
+	int k = 0; //index inside read
+	int p = 0; //index regarding reference position (!= k for indels)
 	softClippedEntry = 0; //softclipped bases to be added
 	softClippedLength[0] = 0; softClippedLength[1] = 0;
 
@@ -190,7 +196,7 @@ void TAlignmentParser::parseBasesQualities(){
 			case (BamTools::Constants::BAM_CIGAR_MATCH_CHAR)    :
 			case (BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR) :
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
-				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
@@ -204,7 +210,7 @@ void TAlignmentParser::parseBasesQualities(){
 			//for 'S' - soft clip: ignore bases, but increase k
 			case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 				//add bases to softclipped entries
-				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
@@ -220,7 +226,7 @@ void TAlignmentParser::parseBasesQualities(){
 
 			//for 'I' - insertion: copy bases, but put aligned pos to
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
-				for(i=0; i<op.Length; ++i, ++d, ++k){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
@@ -240,7 +246,7 @@ void TAlignmentParser::parseBasesQualities(){
 
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
-				for(i=0; i<op.Length; ++i, ++d, ++k, ++p){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
@@ -264,12 +270,12 @@ void TAlignmentParser::parseBasesQualities(){
 	//update length
 	length = k;
 	if(length != bamAlignment.Length)
-		throw "Length mismatch!";
+		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
 
 void TAlignmentParser::filterForBaseQuality(){
 	//set base to N if outside quality filter
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		if(qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual){
 			base[d] = N;
 		}
@@ -279,7 +285,6 @@ void TAlignmentParser::filterForBaseQuality(){
 void TAlignmentParser::filterForPrintingBaseQuality(std::string & qual){
 	//set base to N if outside quality filter
 	for(stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt){
-
 		if((int) *stringIt < minQualForPrinting)
 			*stringIt = (char) minQualForPrinting;
 		else if((int) *stringIt > maxQualForPrinting)
@@ -287,17 +292,36 @@ void TAlignmentParser::filterForPrintingBaseQuality(std::string & qual){
 	}
 };
 
+void TAlignmentParser::trimRead(){
+	//set base to N at ends of read
+	if(isReverseStrand){
+		//distance from 3' is just pos
+		//distance from 5' is len - pos - 1
+		for(int d=0; d<trimmingLength3Prime; ++d)
+			base[d] = N;
+		for(int d=0; d<trimmingLength5Prime; ++d)
+			base[length - 1 - d] = N;
+	} else {
+		//distance from 3' is len - pos - 1
+		//distance from 5' is just pos
+		for(int d=0; d<trimmingLength3Prime; ++d)
+			base[length - 1 - d] = N;
+		for(int d=0; d<trimmingLength5Prime; ++d)
+			base[d] = N;
+	}
+};
+
 
 void TAlignmentParser::setDistancesFromEnds(){
 	//is it paired-end?
-	if(bamAlignment.IsProperPair()){
-		if(bamAlignment.IsReverseStrand()){
+	if(isProperPair){
+		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
-			k = abs(bamAlignment.InsertSize) - length;
-			p = length - 1;
-			for(d=0; d<length; ++d){
+			int k = abs(bamAlignment.InsertSize) - length;
+			int p = length - 1;
+			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = p - d;
 				distFrom3Prime[d] = k + d;
 			}
@@ -307,29 +331,29 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//And distance from 5' is given by (length of fragment) - pos -1
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
-			p = abs(bamAlignment.InsertSize) - 1;
-			for(d=0; d<length; ++d){
+			int p = abs(bamAlignment.InsertSize) - 1;
+			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = d;
 				distFrom3Prime[d] = p - d;
 			}
 		}
 	} else {
 		//treat as single end
-		p = length - 1;
-		if(bamAlignment.IsReverseStrand()){
+		int p = length - 1;
+		if(isReverseStrand){
 			//not in pair & reverse
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
-			for(d=0; d<length; ++d){
+			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = p - d;
 				distFrom3Prime[d] = d;
 			}
 
 		} else {
 			//not in pair & forward
-			//Hence distance from 5' is given as a function of pos
+			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
-			for(d=0; d<length; ++d){
+			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = d;
 				distFrom3Prime[d] = p - d;
 			}
@@ -340,16 +364,16 @@ void TAlignmentParser::setDistancesFromEnds(){
 void TAlignmentParser::fillContext(){
 	if(isReverseStrand){
 		//reverse
-		for(d=0; d<(length-1); ++d){
+		for(int d=0; d<(length-1); ++d){
 //			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
 			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
 			context[d] = genoMap.contextMap[base[d+1]][base[d]];
 		}
-		context[d] = genoMap.contextMap[N][base[d]];
+		context[length-1] = genoMap.contextMap[N][base[length-1]];
 	} else {
 		//forward
 		context[0] = genoMap.contextMap[N][base[0]];
-		for(d=1; d<length; ++d){
+		for(int d=1; d<length; ++d){
 //			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
 			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
 			context[d] = genoMap.contextMap[base[d-1]][base[d]];
@@ -358,7 +382,7 @@ void TAlignmentParser::fillContext(){
 };
 
 void TAlignmentParser::fillPmdProbabilities(TPMD* pmdObjects){
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		pmdCT[d] = pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]);
 		pmdGA[d] = pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]);
 	}
@@ -392,9 +416,11 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
 	isReverseStrand = bamAlignment.IsReverseStrand();
+	isProperPair = bamAlignment.IsProperPair();
 
 	//Extract Read Group Info
 	bamAlignment.GetTag("RG", readGroup);
+	//TODO: add check of whether RG is used
 	readGroupId = readGroupTable->find(readGroup);
 
 	//check if read passes basic QC
@@ -429,6 +455,8 @@ void TAlignmentParser::parse(){
 		//TODO: should that be on the recalibrated quality scores instead???
 		if(applyQualityFilter)
 			filterForBaseQuality();
+		if(trimReads)
+			trimRead();
 
 		parsed = true;
 	}
@@ -440,8 +468,8 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject){
 
 	if(recalObject.recalibrationChangesQualities()){
 		//recalibrate quality scores
-		for(d=0; d<length; ++d){
-			k = length - d - 1;
+		for(int d=0; d<length; ++d){
+			int k = length - d - 1;
 			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
 			qualityRecalibrated[d] = qualityMap.errorToQuality(errorRates[d]);
 		}
@@ -464,8 +492,8 @@ void TAlignmentParser::recalibrate(TRecalibration & recalObject, TPMD* pmdObject
 	fillPmdProbabilities(pmdObjects);
 
 	//recalibrate quality scores
-	for(d=0; d<length; ++d){
-		k = length - d - 1;
+	for(int d=0; d<length; ++d){
+		int k = length - d - 1;
 		if(recalObject.recalibrationChangesQualities())
 			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
 
@@ -491,7 +519,7 @@ void TAlignmentParser::binQualityScores(){
 	parse();
 
 	//bin quality scores as done by Illumina
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		quality[d] = qualityMap.illuminaQualityBins[quality[d]];
 	}
 	changed = true;
@@ -510,7 +538,7 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables){
 
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
-		for(d=0; d<length; ++d){
+		for(int d=0; d<length; ++d){
 			if(aligned[d] && base[d] != N){
 				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
 				read = genoMap.baseToFlippedBase[base[d]];
@@ -519,7 +547,7 @@ void TAlignmentParser::addToPMDTables(TPMDTables & pmdTables){
 			}
 		}
 	} else {
-		for(d=0; d<length; ++d){
+		for(int d=0; d<length; ++d){
 			if(aligned[d] && base[d] != N){
 				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
 				pmdTables.addForward(readGroupId, distFrom5Prime[d], ref, base[d]);
@@ -546,7 +574,7 @@ double TAlignmentParser::calculatePMDS(double & pi, TPMD* pmdObjects){
 	fillPmdProbabilities(pmdObjects);
 
 	//go over all bases in read
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		//limit to aligned positions
 		if(aligned[d]){
 			//Prepare variables
@@ -669,6 +697,16 @@ void TAlignmentParser::updateOptionalSamField(std::string tag, float value){
 	else bamAlignment.EditTag(tag, "f", value);
 };
 
+void TAlignmentParser::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator){
+	for(int d=0; d<length; ++d){
+		double r = randomGenerator.getRand();
+		if(r < fraction){
+			base[d] = N;
+			quality[d] = 0;
+		}
+	}
+	changed = true;
+}
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
@@ -681,7 +719,7 @@ void TAlignmentParser::save(BamTools::BamWriter & bamWriter){
 		//assume that only bases and quality scores where changed
 		tmpString.clear();
 		tmpString2.clear();
-		for(d=0; d<length; ++d){
+		for(int d=0; d<length; ++d){
 			tmpString += genoMap.baseToChar[base[d]];
 			tmpString2 += (char) quality[d];
 		}
@@ -704,19 +742,19 @@ void TAlignmentParser::print(){
 
 	//print bases
 	std::cout << "SEQ:\t";
-	for(d=0; d<length; ++d)
+	for(int d=0; d<length; ++d)
 		std::cout << genoMap.getBaseAsChar(base[d]);
 	std::cout << std::endl;
 
 	//print qualities
 	std::cout << "QUAL:\t";
-	for(d=0; d<length; ++d)
+	for(int d=0; d<length; ++d)
 		std::cout << (char) quality[d];
 	std::cout << std::endl;
 
 	//print aligned pos
 	std::cout << "POS:\t";
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
 		if(aligned[d])
 			std::cout << alignedPos[d];
@@ -727,7 +765,7 @@ void TAlignmentParser::print(){
 
 	//print dist from 3'
 	std::cout << "dist 3':\t";
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
 		std::cout << distFrom3Prime[d];
 	}
@@ -735,7 +773,7 @@ void TAlignmentParser::print(){
 
 	//print dist from 5'
 	std::cout << "dist 5':\t";
-	for(d=0; d<length; ++d){
+	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
 		std::cout << distFrom5Prime[d];
 	}

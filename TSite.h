@@ -62,7 +62,8 @@ public:
 		if(referenceBase == 'T') return T;
 		return N;
 	};
-	int depth(){return bases.size();};
+	int depth();
+	int refDepth();
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);
@@ -78,6 +79,9 @@ public:
 	std::string getBases();
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
+	void countAlleles(long**** siteImbalance);
+	void printPileup(gz::ogzstream & out);
+
 	//MLE Callers
 	void calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL);
 	void calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, double & quality, double & maxGenotypeProb, int & MLGenotype);

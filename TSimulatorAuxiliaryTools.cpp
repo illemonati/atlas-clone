@@ -13,13 +13,33 @@
 //---------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------
-TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
-	filename = Filename;
-	logfile = Logfile;
+TSimulatorReference::TSimulatorReference(){
+	logfile = NULL;
 	chrName = "";
 	ref = NULL;
 	storageInitialized = false;
 	storageLength = 0;
+	fastaOpen = false;
+	oldOffset = 0;
+	chrLength = 0;
+	needsWriting = false;
+};
+
+TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
+	chrName = "";
+	ref = NULL;
+	storageInitialized = false;
+	storageLength = 0;
+	fastaOpen = false;
+	chrLength = 0;
+	needsWriting = false;
+
+	initialize(Filename, Logfile);
+};
+
+void TSimulatorReference::initialize(std::string Filename, TLog* Logfile){
+	filename = Filename;
+	logfile = Logfile;
 
 	openFastaFile();
 };
@@ -66,7 +86,10 @@ void TSimulatorReference::writeRefToFasta(){
 		fastaIndex << extractBeforeWhiteSpace(tmp) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
 		oldOffset += chrLength + (int) (chrLength / 70);
 		if(chrLength % 70 != 0) oldOffset += 1;
-	}
+
+		needsWriting = false;
+	} else
+		throw "Can not write to FASTA file: file was never opened!";
 };
 
 void TSimulatorReference::allocateStorage(long length){
@@ -81,6 +104,7 @@ void TSimulatorReference::allocateStorage(long length){
 void TSimulatorReference::freeStorage(){
 	if(storageInitialized){
 		delete[] ref;
+		storageInitialized = false;
 	}
 };
 
@@ -94,6 +118,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 	if(ChrLength > storageLength)
 		allocateStorage(ChrLength);
 	chrLength = ChrLength;
+	needsWriting = true;
 };
 
 void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){

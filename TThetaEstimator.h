@@ -209,6 +209,7 @@ private:
 	double* baseFreq;
 	TGenotypeMap genoMap;
 	Theta theta;
+	int minSitesWithData;
 
 	//tmp variables
 	int g;

@@ -16,6 +16,7 @@ void TSite::clear(){
 			delete *it;
 		bases.clear();
 		hasData = false;
+		referenceBase = 'N';
 	}
 };
 
@@ -100,7 +101,7 @@ void TSite::calcEmissionProbabilities(){
 }
 
 std::string TSite::getBases(){
-	if(bases.size()==0) return "-";
+	if(!hasData) return "-";
 	std::string b = "";
 	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 		b += (*baseIterator)->getBase();
@@ -108,10 +109,32 @@ std::string TSite::getBases(){
 	return b;
 }
 
+int TSite::depth(){
+	if(!hasData) return 0;
+	return bases.size();
+};
+
+int TSite::refDepth(){
+	if(!hasData) return 0;
+	if(referenceBase == 'N') return 0;
+	int counter = 0;
+	for(int i=0; i<bases.size(); ++i){
+		if(bases[i]->getBase() == referenceBase) ++counter;
+	}
+	return counter;
+};
 std::string TSite::getEmissionProbs(){
-	std::string b = toString(emissionProbabilities[0]);
-	for(int i=1; i<numGenotypes; ++i){
-		b += "\t" + toString(emissionProbabilities[i]);
+	std::string b;
+	if(!hasData){
+		b = "1";
+		for(int i=1; i<numGenotypes; ++i){
+			b += "\t1";
+		}
+	} else {
+		b = toString(emissionProbabilities[0]);
+		for(int i=1; i<numGenotypes; ++i){
+			b += "\t" + toString(emissionProbabilities[i]);
+		}
 	}
 	return b;
 }
@@ -145,6 +168,23 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 	}
 	return log(sum);
 }
+
+
+void TSite::countAlleles(long**** siteImbalance){
+	//calculate and return imbalance
+	int b[4] = {0};
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
+		++b[(*it)->getBaseAsEnum()];
+	}
+	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
+}
+
+void TSite::printPileup(gz::ogzstream & out){
+	out << "\t" << referenceBase;
+	out << "\t" << depth() << "\t" << refDepth();
+	out << "\t" << getBases() << "\t" << getEmissionProbs();
+}
+
 
 //-----------------------------------------------------------------------
 //MLE Callers
@@ -594,7 +634,7 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 		}
 
 		//add MLE genotype and quality = second smallest phred-scaled likelihood (like GATK)
-		out << "\t" << genoMap.getGenotypeString(MLGenotype);
+		out << "\t" << genoMap.getGenotypeStringKnownAlleles(MLGenotype, referenceBase, alt);
 		out << "\t" << round(quality - maxGenotypeProb);
 	} else {
 		out << "\t" << referenceBase << "\t" << alt << "\t" << 0;
