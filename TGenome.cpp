@@ -1385,18 +1385,7 @@ void TGenome::combineBeagleFiles(TParameters & params){
 //			fillVectorFromStringWhiteSpaceSkipEmpty(beagleLine, sitesLineVec);
 //			if(input.at(inputIt) == marker) std::cout << marker << std::endl;
 		}
-
 	}
-
-
-/*
-	if(!bamName.empty()){
-
-	}
-
-	fillVectorFromStringWhiteSpaceSkipEmpty(trueLine, trueVec);
-*/
-
 }
 
 void TGenome::printPileup(TParameters & params){
@@ -1422,9 +1411,8 @@ void TGenome::printPileup(TParameters & params){
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
-			//read data for current window
 			if(readData(windows)){
-				//print pileup
+				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
 				windows.cur->printPileup(recalObject, out, chrIterator->Name);
 			}
 		}

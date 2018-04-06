@@ -109,9 +109,11 @@ void TAtlasTest_pileup::writeFasta(){
 	//write to fasta file
 	std::string chrName = "chr1";
 	fasta << ">chr1\n";
-	for(int i=0; i<chrLength; ++i)
+	for(int l=0; l<chrLength; ++l){
+		if(l % 70 == 0)
+			fasta << "\n";
 		fasta << "C";
-
+	}
 	//write to index file
 	oldOffset += chrName.size() + 2;
 	fastaIndex << extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
@@ -121,8 +123,11 @@ void TAtlasTest_pileup::writeFasta(){
 	//write to fasta file
 	chrName = "chr2";
 	fasta << "\n>chr2\n";
-	for(int i=0; i<chrLength; ++i)
-		fasta << "T";
+	for(int l=0; l<chrLength; ++l){
+		if(l % 70 == 0)
+			fasta << "\n";
+		fasta << "C";
+	}
 	fasta << "\n";
 	fasta.close();
 
@@ -132,22 +137,6 @@ void TAtlasTest_pileup::writeFasta(){
 	oldOffset += chrLength + (int) (chrLength / 70);
 	fastaIndex.close();
 };
-
-/*
-	//create index of new bam file
-	logfile->listFlush("Creating index of fasta file '" + fastaName + "' ...");
-	BamTools::Fasta reader;
-	if(!reader.Open(fastaName))
-		throw "Failed to open BAM file '" + fastaName + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(fastaName);
-
-	//close fasta file
-	reader.Close();
-	logfile->done();
-}
-*/
 
 void TAtlasTest_pileup::writeBAM(){
 	//create a bam file with known pileup results
@@ -300,10 +289,10 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			return false;
 		}
 
-		//check ref base (always N)
-		if(line[2] != "N"){
+		//check ref base (always C)
+		if(line[2] != "C"){
 			logfile->newLine();
-			logfile->conclude("Wrong reference base in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong reference base in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[2] + " instead of C.");
 		}
 
 		//check depth
@@ -312,12 +301,6 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			logfile->newLine();
 			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 			return false;
-		}
-
-		//check refDepth
-		if(line[4] != "0"){
-			logfile->newLine();
-			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
 		}
 
 		//check bases and emission probabilities
@@ -379,6 +362,14 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			//correct heterozygous genotype
 			emissionProbs[genoMap.getGenotype(firstBase,secondBase)] = pow(1.0-error, trueDepth);
 		}
+
+		//check refDepth
+		//reference is always C
+		if(stringToInt(line[4]) != baseCounts[1]){
+			logfile->newLine();
+			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "! Estimated at " + line[4] + " instead of " + toString(baseCounts[1]));
+		}
+
 
 		//now check emission probabilities
 		for(b=0; b<genoMap.numGenotypes; ++b){
