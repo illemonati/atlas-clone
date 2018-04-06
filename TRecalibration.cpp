@@ -1175,11 +1175,11 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 */
 
 double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return model->getErrorRate(readGroupMapObject[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
+	return model->getErrorRate(readGroupId, qualityMap.qualityToErrorMap[quality], pos, context);
 }
 
 int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = model->getErrorRate(readGroupMapObject[readGroupId], qualityMap.qualityToErrorMap[quality], pos, context);
+	double q = model->getErrorRate(readGroupId, qualityMap.qualityToErrorMap[quality], pos, context);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }
