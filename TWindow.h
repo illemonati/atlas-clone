@@ -74,6 +74,8 @@ public:
 
 class TWindowDiploid:public TWindow{
 protected:
+	void fillPGenotype(double* pGenotype);
+
 	/*
 	Theta thetaContainer;
 
@@ -104,26 +106,16 @@ public:
 	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 	void addToGLF(TGlfWriter & writer, bool printAll);
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
-};
-
-class TWindowHaploid:public TWindow{
-private:
-	void fillPGenotype(double* pGenotype);
-
-public:
-	TWindowHaploid():TWindow(){};
-	TWindowHaploid(long Start, long End):TWindow(Start, End){};
-	void _initSites();
 	double calcLogLikelihood();
 	void addToRecalibrationEM(TRecalibrationEM & recalObject);
 	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset);
-	void addToExpectedBaseCounts(TRecalibration* recalObject, double** expectedCounts);
-	void calculatePoolFreqLikelihoods(int & numChromosomes, Base** majorMinor, gz::ogzstream & out, std::string & chr, bool printAll);
+
 };
 
 //---------------------------------------------------------------
 //TWindowPair
 //---------------------------------------------------------------
+
 class TWindowPair{
 public:
 	TWindow* curPointer;
@@ -175,28 +167,5 @@ public:
 	};
 };
 
-class TWindowPairHaploid:public TWindowPair{
-public:
-	TWindowHaploid* cur;
-	TWindowHaploid* next;
-
-	TWindowPairHaploid(){
-		cur = new TWindowHaploid();
-		curPointer = cur;
-		next = new TWindowHaploid();
-		nextPointer = next;
-	};
-	~TWindowPairHaploid(){
-		delete cur;
-		delete next;
-	};
-
-	void swap(){
-		TWindowHaploid* tmp = cur;
-		cur = next;
-		next = tmp;
-		TWindowPair::swap();
-	};
-};
 
 #endif /* TWINDOW_H_ */

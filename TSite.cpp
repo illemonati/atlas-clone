@@ -46,13 +46,6 @@ void TSiteDiploid::add(Base & base, int & quality, int PosInRead, int PosInReadR
 	else bases.push_back(new TBaseDiploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
-void TSiteHaploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == A) bases.push_back(new TBaseHaploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == C) bases.push_back(new TBaseHaploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == G) bases.push_back(new TBaseHaploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else bases.push_back(new TBaseHaploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	hasData = true;
-};
 
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	if(hasData){
@@ -1245,43 +1238,6 @@ double TSiteDiploid::calculatePHomozygous(double* pGenotype){
 	//make sum for all homozygous genotypes
 	return (postProb[AA] + postProb[CC] + postProb[GG] + postProb[TT]) / tot;
 }
-
-
-void TSiteHaploid::addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){
-	double* tmp = new double[4];
-	for(int b=0; b<4; ++b) tmp[b]=0.0;
-	for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-		(*it)->addToExpectedBaseCounts(baseFreq, tmp);
-	}
-	for(int b=0; b<4; ++b) expectedCounts[b] += tmp[b] / (double) bases.size();
-}
-
-void TSiteHaploid::calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){
-	//write coverage
-	out << "\t" << genoMap.getBaseAsChar(allele1) << "\t" << genoMap.getBaseAsChar(allele2) << "\t" << bases.size();
-
-	if(hasData){
-		//calculate likelihood for sample frequencies from 0 to num chromosomes for allele 1
-		double LL;
-		double f;
-		for(int y = 0; y < (numChromosomes + 1); ++y){
-			//calculate likelihood
-			LL = 0.0;
-			f = (double) y / (double) numChromosomes;
-			for(std::vector<TBase*>::iterator it = bases.begin(); it != bases.end(); ++it){
-				LL += log((*it)->getEmissionProbability(allele1) * f + (*it)->getEmissionProbability(allele2) * (1.0 -f));
-			}
-
-			//write it to file
-			out << "\t" << LL;
-		}
-	} else {
-		for(int y = 0; y < (numChromosomes + 1); ++y){
-			out << "\t0.0";
-		}
-	}
-}
-
 
 
 

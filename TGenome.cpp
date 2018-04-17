@@ -1528,7 +1528,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPairHaploid windows;
+	TWindowPairDiploid windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
@@ -1574,7 +1574,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, readGroupMap);
 
 	//prepare windows
-	TWindowPairHaploid windows;
+	TWindowPairDiploid windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
@@ -1602,7 +1602,7 @@ void TGenome::BQSR(TParameters & params){
 	if(!fastaReference) throw "Can not run BQSR recalibration without a provided FASTA reference!";
 
 	//prepare windows
-	TWindowPairHaploid windows;
+	TWindowPairDiploid windows;
 
 	//create BQSR object
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
@@ -1773,7 +1773,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 
 	//prepare windows
-	TWindowPairHaploid windows;
+	TWindowPairDiploid windows;
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 
 	//create table to store counts

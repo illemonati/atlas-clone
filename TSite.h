@@ -108,7 +108,6 @@ public:
 	virtual double calculatePHomozygous(double* pGenotype){ throw "calculatePHomozygous not implemented for TSite base class!";};
 
 	virtual void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out){throw "calculatePoolFreqLikelihoods not implemented for TSite base class!";};
-	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts){ throw "addToExpectedBaseCounts not implemented for TSite base class!";};
 };
 
 class TSiteDiploid:public TSite{
@@ -145,22 +144,5 @@ public:
 	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out);
 	double calculatePHomozygous(double* pGenotype);
 };
-
-class TSiteHaploid:public TSite{
-public:
-
-	TSiteHaploid(){
-		numGenotypes = 4;
-		emissionProbabilities = new double[numGenotypes];
-	}
-	TSiteHaploid(TSite* other):TSiteHaploid(){stealFromOther(other);};
-	~TSiteHaploid(){
-		delete[] emissionProbabilities;
-	};
-	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
-	void addToExpectedBaseCounts(TBaseFrequencies & baseFreq, double* expectedCounts);
-	void calculatePoolFreqLikelihoods(int & numChromosomes, TGenotypeMap & genoMap, Base & allele1, Base & allele2, gz::ogzstream & out);
-};
-
 
 #endif /* TSITE_H_ */
