@@ -39,7 +39,7 @@ void TSite::stealFromOther(TSite* other){
 	}
 }
 
-void TSiteDiploid::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
+void TSite::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
 	if(base == A) bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else if(base == C) bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	else if(base == G) bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
@@ -558,7 +558,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 	}
 }
 
-void TSiteDiploid::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* phredEmissionProbs, double & quality, double & maxGenotypeProb, int & MLGenotype){
+void TSite::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* phredEmissionProbs, double & quality, double & maxGenotypeProb, int & MLGenotype){
 	//which genotypes?
 	int genotypes[3];
 	genotypes[0] = genoMap.getGenotype(referenceBase, referenceBase);
@@ -590,7 +590,7 @@ void TSiteDiploid::calculatePhredScaledGenotypeLikelihoodsKnownAlleles(TGenotype
 	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
 }
 
-void TSiteDiploid::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & sumEmissionProbs, int & pos){
+void TSite::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* emissionProbs, double & sumEmissionProbs, int & pos){
 	//which genotypes?
 	int genotypes[3];
 	genotypes[0] = genoMap.getGenotype(referenceBase, referenceBase);
@@ -606,7 +606,7 @@ void TSiteDiploid::calculateGenotypeLikelihoodsKnownAlleles(TGenotypeMap & genoM
 }
 
 
-void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
+void TSite::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
 		//print reference allele
 		out << "\t" << referenceBase << "\t" << alt;
@@ -636,7 +636,7 @@ void TSiteDiploid::callMLEGenotypeKnownAlleles(TGenotypeMap & genoMap, TRandomGe
 	}
 }
 
-void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){
+void TSite::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, std::string & chr, int & pos, long & start, bool & printOnlyGL){
 	//print reference allele
 	if(hasData){
 		if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\t" << referenceBase << "\t" << alt;
@@ -657,7 +657,7 @@ void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRa
 }
 
 
-void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string & basesString){
+void TSite::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string & basesString){
 	if(hasData){
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
@@ -853,7 +853,7 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 	}
 }
 
-void TSiteDiploid::calculateGenotypePosteriorProbabilitiesKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* postProb, int & MAP){
+void TSite::calculateGenotypePosteriorProbabilitiesKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, char & alt, TRandomGenerator & randomGenerator, double* postProb, int & MAP){
 	//which genotypes?
 	int genotypes[3];
 	genotypes[0] = genoMap.getGenotype(referenceBase, referenceBase);
@@ -884,7 +884,7 @@ void TSiteDiploid::calculateGenotypePosteriorProbabilitiesKnownAlleles(double* p
 }
 
 
-void TSiteDiploid::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
+void TSite::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
 		//print reference allele
 		out << "\t" << referenceBase << "\t" << alt;
@@ -916,7 +916,7 @@ void TSiteDiploid::callBayesianGenotypeKnownAlleles(double* pGenotype, TGenotype
 	}
 }
 
-void TSiteDiploid::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
+void TSite::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	//just consider known alleles: ref and alt
 	if(hasData){
 		//print reference allele
@@ -955,7 +955,7 @@ void TSiteDiploid::callBayesianGenotypeVCFKnownAlleles(double* pGenotype, TGenot
 //-----------------------------------------------------------------------
 //Allele Presence Callers
 //-----------------------------------------------------------------------
-void TSiteDiploid::calculatePosteriorOnAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP){
+void TSite::calculatePosteriorOnAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP){
 	//calculate posterior probability for each genotype
 	double postProb[numGenotypes];
 	double tot = 0.0;
@@ -989,7 +989,7 @@ void TSiteDiploid::calculatePosteriorOnAllelePresence(double* pGenotype, TGenoty
 	MAP = MAPs[randomGenerator.pickOne(MAPs.size())];
 }
 
-void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
+void TSite::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out){
 	out << "\t" << referenceBase;
 	if(hasData){
 		//print ref base, coverage (and read bases)
@@ -1013,7 +1013,7 @@ void TSiteDiploid::callAllelePresence(double* pGenotype, TGenotypeMap & genoMap,
 	} else 	out << "\t0\t-\t-\t-\t-\t-\t0";
 }
 
-void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){
+void TSite::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, bool noAltIfHomoRef, std::string basesString){
 	if(hasData){
 		//print reference allele
 		out << "\t.\t" << referenceBase;
@@ -1085,7 +1085,7 @@ void TSiteDiploid::callAllelePresenceVCF(double* pGenotype, TGenotypeMap & genoM
 	}
 }
 
-void TSiteDiploid::calculatePosteriorOnAllelePresenceKnownAlleles(double* pGenotype, char & alt, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP){
+void TSite::calculatePosteriorOnAllelePresenceKnownAlleles(double* pGenotype, char & alt, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, double* postProbAllele, int & MAP){
 	//calculate posterior probability for each genotype
 	double postProb[3];
 	double tot = 0.0;
@@ -1115,7 +1115,7 @@ void TSiteDiploid::calculatePosteriorOnAllelePresenceKnownAlleles(double* pGenot
 	else MAP = randomGenerator.pickOne(2);
 }
 
-void TSiteDiploid::callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
+void TSite::callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt){
 	if(hasData){
 		//print ref base, alt base, coverage (and read bases)
 		out << "\t" << referenceBase << "\t" << alt;
@@ -1140,7 +1140,7 @@ void TSiteDiploid::callAllelePresenceKnownAlleles(double* pGenotype, TGenotypeMa
 	}
 }
 
-void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString){
+void TSite::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotypeMap & genoMap, TRandomGenerator & randomGenerator, gz::ogzstream & out, char & alt, bool noAltIfHomoRef, std::string basesString){
 	if(hasData){
 		//print reference and alternative allele
 		out << "\t.\t" << referenceBase;
@@ -1178,7 +1178,7 @@ void TSiteDiploid::callAllelePresenceVCFKnownAlleles(double* pGenotype, TGenotyp
 	}
 }
 
-void TSiteDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out){
+void TSite::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out){
 	if(hasData){
 		//print ref base, alt base, coverage (and read bases)
 		out << "\t" << referenceBase << "\t" << bases.size();
@@ -1192,7 +1192,7 @@ void TSiteDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstr
 	}
 }
 
-void TSiteDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){
+void TSite::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out){
 	if(hasData){
 		//print ref base, alt base, coverage (and read bases)
 		out << "\t" << referenceBase << "\t" << bases.size();
@@ -1225,7 +1225,7 @@ void TSiteDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstrea
 }
 
 
-double TSiteDiploid::calculatePHomozygous(double* pGenotype){
+double TSite::calculatePHomozygous(double* pGenotype){
 	//calculate posterior probability for each genotype
 	double postProb[numGenotypes];
 	double tot = 0.0;

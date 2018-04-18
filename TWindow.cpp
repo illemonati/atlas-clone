@@ -40,7 +40,7 @@ void TWindow::initSites(long newLength){
 	length = newLength;
 	if(length > 0){
 		try{
-			_initSites();
+			sites = new TSite[length];;
 		} catch(...){
 			throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
 		}
@@ -54,7 +54,10 @@ void TWindow::initSites(long newLength){
 }
 
 void TWindow::clear(){
-	for(int i=0; i<length; ++i) sites[i].clear();
+	if(sitesInitialized){
+		for(int i=0; i<length; ++i) sites[i].clear();
+		delete[] sites;
+	}
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
@@ -422,11 +425,7 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
-void TWindowDiploid::_initSites(){
-	sites = new TSiteDiploid[length];
-};
-
-void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator){
+void TWindow::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator){
 	//first calculate emission probabilities
 	calculateEmissionProbabilities(recalObject);
 
@@ -434,14 +433,14 @@ void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThet
 	addSitesToThetaEstimator(estimator);
 }
 
-void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimator & estimator){
+void TWindow::addSitesToThetaEstimator(TThetaEstimator & estimator){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){
 		estimator.add(sites[i]);
 	}
 }
 
-void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
+void TWindow::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//now only run over sites listed in that window
@@ -465,7 +464,7 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 	}
 }
 
-void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+void TWindow::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -509,7 +508,7 @@ void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGe
 	delete[] pGenotype;
 }
 
-void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
+void TWindow::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
@@ -534,7 +533,7 @@ void TWindowDiploid::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThet
 	}
 }
 
-void TWindowDiploid::callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
+void TWindow::callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -580,7 +579,7 @@ void TWindowDiploid::callAllelePresence(TThetaEstimator & estimator, TRandomGene
 	delete[] pGenotype;
 }
 
-void TWindowDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
+void TWindow::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(printAll){
 		for(int i=0; i<length; ++i){
@@ -599,7 +598,7 @@ void TWindowDiploid::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzs
 	}
 }
 
-void TWindowDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
+void TWindow::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
 	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
 	if(printAll){
 		for(int i=0; i<length; ++i){
@@ -618,7 +617,7 @@ void TWindowDiploid::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstr
 	}
 }
 
-void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
+void TWindow::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes
@@ -646,7 +645,7 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaE
 	}
 }
 
-void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
+void TWindow::addToGLF(TGlfWriter & writer, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	uint8_t* gl = new uint8_t[10];
 	uint32_t maxLL;
@@ -666,7 +665,7 @@ void TWindowDiploid::addToGLF(TGlfWriter & writer, bool printAll){
 	delete[] gl;
 }
 
-void TWindowDiploid::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
+void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -710,13 +709,13 @@ void TWindowDiploid::generatePSMCInput(TThetaEstimator & estimator, int & blockS
 }
 
 
-void TWindowDiploid::fillPGenotype(double* pGenotype){
+void TWindow::fillPGenotype(double* pGenotype){
 	for(int i=0; i<4; ++i){
 		pGenotype[i] = baseFreq[i];
 	}
 }
 
-double TWindowDiploid::calcLogLikelihood(){
+double TWindow::calcLogLikelihood(){
 	double pGenotype[4];
 	fillPGenotype(pGenotype);
 
@@ -729,7 +728,7 @@ double TWindowDiploid::calcLogLikelihood(){
 	return LL;
 }
 
-void TWindowDiploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
+void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	for(int i=0; i<length; ++i){
@@ -739,7 +738,7 @@ void TWindowDiploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	}
 }
 
-void TWindowDiploid::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset){
+void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	//now only run over sites listed in that window
