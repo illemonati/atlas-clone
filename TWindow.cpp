@@ -55,8 +55,8 @@ void TWindow::initSites(long newLength){
 
 void TWindow::clear(){
 	if(sitesInitialized){
-		for(int i=0; i<length; ++i) sites[i].clear();
-		delete[] sites;
+		for(int i=0; i<length; ++i)
+			sites[i].clear();
 	}
 	depth = -1.0;
 	fractionSitesNoData = -1.0;

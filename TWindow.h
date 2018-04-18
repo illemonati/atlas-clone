@@ -45,6 +45,9 @@ public:
 	TWindow(long Start, long End);
 	~TWindow(){
 		clear();
+		if(sitesInitialized){
+			delete[] sites;
+		}
 	};
 	void initSites(long newLength);
 	void clear();
