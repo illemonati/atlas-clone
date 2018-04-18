@@ -13,11 +13,11 @@
 //---------------------------------------------------------------
 //TEmissionProbabilities
 //---------------------------------------------------------------
-class TEmissionProbabilitiesDiploid{
+class TEmissionProbabilities{
 public:
 	double emission[10];
 
-	TEmissionProbabilitiesDiploid(){
+	TEmissionProbabilities(){
 		for(int i=0; i<10; ++i) emission[i]=0.0;
 	};
 	void set(Genotype geno, double val){ emission[geno] = val; }
@@ -35,57 +35,20 @@ public:
 //---------------------------------------------------------------
 //TBase
 //---------------------------------------------------------------
-/*class TBase{
-public:
-	int quality;
-	int posInRead; //zero based!
-	int posInReadRev; //zero based!
-	double PMD_CT, PMD_GA;
-	int readGroup;
-	BaseContext context;
-
-	TBase(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup){
-		quality = Quality;
-		//errorRate = pow(10.0, (double) quality / -10.0);
-		//transformedLogError = -log(1.0 / errorRate - 1.0);
-		posInRead = PosInRead;
-		posInReadRev = PosInReadRev;
-		PMD_CT = thisPMD_CT;
-		PMD_GA = thisPMD_GA;
-		readGroup = ReadGroup;
-		context = Context;
-	};
-
-	virtual ~TBase(){};
-
-	//void fillEmissionProbabilities(TPMD & pmdObject);
-	virtual void fillEmissionProbabilitiesCore(double thisErrorRate){
-		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
-	};
-
-	virtual void printEmissionProbs(){
-		throw "Function 'printEmissionProbs' Not implemented for base class TBase!";
-	};
-
-	virtual char getBase(){ return '?'; };
-	virtual Base getBaseAsEnum(){ return N;};
-	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
-	virtual double getEmissionProbability(int genotype){
-		throw "Function 'getEmissionProbability' Not implemented for base class TBase!";
-	};
-};*/
 
 class TBase{
 public:
+	Base base;
 	int quality;
 	int posInRead; //zero based!
 	int posInReadRev; //zero based!
 	double PMD_CT, PMD_GA;
 	int readGroup;
 	BaseContext context;
-	TEmissionProbabilitiesDiploid emissionProbabilities;
+	TEmissionProbabilities emissionProbabilities;
 
-	TBase(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
+	TBase(Base & Base, int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
+		base = Base;
 		quality = Quality;
 		posInRead = PosInRead;
 		posInReadRev = PosInReadRev;
@@ -97,9 +60,7 @@ public:
 
 	virtual ~TBase(){};
 
-	virtual void fillEmissionProbabilitiesCore(double thisErrorRate){
-		throw "Function 'fillEmissionProbabilitiesCore' Not implemented for base class TBase!";
-	};
+	void fillEmissionProbabilitiesCore(double thisErrorRate);
 
 	double getEmissionProbability(Genotype genotype){
 		return emissionProbabilities.get(genotype);
@@ -111,12 +72,12 @@ public:
 	void printEmissionProbs(){
 		emissionProbabilities.print();
 	}
-	virtual char getBase(){ return '?'; };
-	virtual Base getBaseAsEnum(){ return N;};
-	virtual void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){};
+//	virtual char getBaseAsChar(){ return '?'; };
+	Base getBaseAsEnum(){ return N;};
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(base, weight); };
 
 };
-
+/*
 //---------------------------------------------------------------
 class TBaseDiploidA:public TBase{
 public:
@@ -154,5 +115,5 @@ public:
 	void fillEmissionProbabilitiesCore(double thisErrorRate);
 };
 
-
+*/
 #endif /* TBASE_H_ */

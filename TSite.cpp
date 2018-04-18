@@ -40,10 +40,10 @@ void TSite::stealFromOther(TSite* other){
 }
 
 void TSite::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == A) bases.push_back(new TBaseDiploidA(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == C) bases.push_back(new TBaseDiploidC(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == G) bases.push_back(new TBaseDiploidG(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else bases.push_back(new TBaseDiploidT(quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	if(base == A) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == C) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else if(base == G) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
+	else bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
 	hasData = true;
 };
 
@@ -97,7 +97,7 @@ std::string TSite::getBases(){
 	if(!hasData) return "-";
 	std::string b = "";
 	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
-		b += (*baseIterator)->getBase();
+		b += getBaseAsChar((*baseIterator)->getBaseAsEnum());
 	}
 	return b;
 }
@@ -111,8 +111,8 @@ int TSite::refDepth(){
 	if(!hasData) return 0;
 	if(referenceBase == 'N') return 0;
 	int counter = 0;
-	for(int i=0; i<bases.size(); ++i){
-		if(bases[i]->getBase() == referenceBase) ++counter;
+	for(unsigned int i=0; i<bases.size(); ++i){
+		if(getBaseAsChar(bases[i]->getBaseAsEnum()) == referenceBase) ++counter;
 	}
 	return counter;
 };
@@ -1184,9 +1184,9 @@ void TSite::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & o
 		out << "\t" << referenceBase << "\t" << bases.size();
 		out << "\t";
 		for(unsigned int i = 0; i<bases.size(); ++i){
-			out << bases[i]->getBase();
+			out << getBaseAsChar(bases[i]->getBaseAsEnum());
 		}
-		out << "\t" << bases[randomGenerator.pickOne(bases.size())]->getBase();
+		out << "\t" << getBaseAsChar(bases[randomGenerator.pickOne(bases.size())]->getBaseAsEnum());
  	} else {
 		out << "\t" << referenceBase << "\t0\t-\t-";
 	}
@@ -1201,7 +1201,7 @@ void TSite::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out
 		//count bases
 		int counts[5] = {0};
 		for(unsigned int i = 0; i<bases.size(); ++i){
-			out << bases[i]->getBase();
+			out << getBaseAsChar(bases[i]->getBaseAsEnum());
 			++counts[bases[i]->getBaseAsEnum()];
 		}
 
