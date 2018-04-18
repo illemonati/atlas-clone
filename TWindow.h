@@ -97,45 +97,17 @@ public:
 //TWindowPair
 //---------------------------------------------------------------
 
+
 class TWindowPair{
-public:
-	TWindow* curPointer;
-	TWindow* nextPointer;
-
-	TWindowPair(){
-		curPointer = NULL;
-		nextPointer = NULL;
-	};
-	virtual ~TWindowPair(){};
-	virtual void swap(){
-		TWindow* tmp = curPointer;
-		curPointer = nextPointer;
-		nextPointer = tmp;
-	};
-	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return curPointer->addFromRead(alignemntParser, pmdObjects);
-	};
-	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return nextPointer->addFromRead(alignemntParser, pmdObjects);
-	};
-	void clear(){
-		curPointer->clear();
-		nextPointer->clear();
-	}
-};
-
-class TWindowPairDiploid:public TWindowPair{
 public:
 	TWindow* cur;
 	TWindow* next;
 
-	TWindowPairDiploid(){
+	TWindowPair(){
 		cur = new TWindow();
-		curPointer = cur;
 		next = new TWindow();
-		nextPointer = next;
 	};
-	~TWindowPairDiploid(){
+	~TWindowPair(){
 		delete cur;
 		delete next;
 	};
@@ -144,8 +116,18 @@ public:
 		TWindow* tmp = cur;
 		cur = next;
 		next = tmp;
-		TWindowPair::swap();
+	}
+	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
+		return cur->addFromRead(alignemntParser, pmdObjects);
 	};
+	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
+		return next->addFromRead(alignemntParser, pmdObjects);
+	};
+	void clear(){
+		cur->clear();
+		next->clear();
+	}
+
 };
 
 

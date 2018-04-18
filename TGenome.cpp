@@ -286,12 +286,12 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 		int nextEnd = predefinedWindows->curWindowEnd();
 		if(nextEnd > chrLength) nextEnd = chrLength + 1;
-		else windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
+		else windowPair.next->move(predefinedWindows->curWindowStart(), nextEnd);
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
 		if(nextEnd > chrLength) nextEnd = chrLength; //!!! removed +1 because we are zero-based. Chedk if true!
-		windowPair.nextPointer->move(0, nextEnd);
+		windowPair.next->move(0, nextEnd);
 	}
 
 	//advance mask
@@ -308,8 +308,8 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	windowPair.swap();
 
 	//move to next region
-	curStart = windowPair.curPointer->start;
-	curEnd = windowPair.curPointer->end;
+	curStart = windowPair.cur->start;
+	curEnd = windowPair.cur->end;
 	if(curStart >= chrLength || windowNumber >= limitWindows) return false;
 
 	//move next
@@ -320,21 +320,21 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 		}
 		//jump reader if large gap to previous window
 		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
-		if(windowPair.curPointer->start - windowPair.nextPointer->end > maxReadLength)
+		if(windowPair.cur->start - windowPair.next->end > maxReadLength)
 			bamReader.Jump(chrNumber, curStart);
 
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
 			int nextEnd = predefinedWindows->curWindowEnd();
 			if(nextEnd > chrLength) nextEnd = chrLength;
-			windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
+			windowPair.next->move(predefinedWindows->curWindowStart(), nextEnd);
 		} else {
-			windowPair.nextPointer->move(chrLength, chrLength+1);
+			windowPair.next->move(chrLength, chrLength+1);
 		}
 	} else {
 		long nextEnd = curEnd + windowSize;
 		if(nextEnd > chrLength) nextEnd = chrLength;
-		windowPair.nextPointer->move(curEnd, nextEnd);
+		windowPair.next->move(curEnd, nextEnd);
 	}
 
 	++windowNumber;
@@ -403,42 +403,42 @@ bool TGenome::readData(TWindowPair & windowPair){
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
-	if(windowPair.curPointer->numReadsInWindow > 0){
+	if(windowPair.cur->numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
-			windowPair.curPointer->applyMask(mask, considerRegions);
+			windowPair.cur->applyMask(mask, considerRegions);
 			logfile->done();
 		} else if(considerRegions){
 			logfile->listFlush("Masking sites outside regions ...");
-			windowPair.curPointer->applyMask(mask, considerRegions);
+			windowPair.cur->applyMask(mask, considerRegions);
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			windowPair.curPointer->maskCpG(reference, chrNumber);
+			windowPair.cur->maskCpG(reference, chrNumber);
 			logfile->done();
 		} if(applyDepthFilter){
-			windowPair.curPointer->applyDepthFilter(minDepth, maxDepth);
+			windowPair.cur->applyDepthFilter(minDepth, maxDepth);
 		} if(maxRefN < 1.0 && fastaReference == true){
-			windowPair.curPointer->addReferenceBaseToSites(reference, chrNumber);
-			windowPair.curPointer->calcFracN();
+			windowPair.cur->addReferenceBaseToSites(reference, chrNumber);
+			windowPair.cur->calcFracN();
 		}
 
 		//calc sequencing depth
-		windowPair.curPointer->calcDepth();
+		windowPair.cur->calcDepth();
 
 		//report
-		logfile->conclude("read data from " + toString(windowPair.curPointer->numReadsInWindow) + " reads.");
-		logfile->conclude("sequencing depth is " + toString(windowPair.curPointer->depth));
-		logfile->conclude(toString(windowPair.curPointer->fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
-		logfile->conclude(toString(windowPair.curPointer->fractionSitesNoData * 100) + "% of all sites have no data");
-		if(windowPair.curPointer->fractionSitesNoData > maxMissing){
+		logfile->conclude("read data from " + toString(windowPair.cur->numReadsInWindow) + " reads.");
+		logfile->conclude("sequencing depth is " + toString(windowPair.cur->depth));
+		logfile->conclude(toString(windowPair.cur->fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(windowPair.cur->fractionSitesNoData * 100) + "% of all sites have no data");
+		if(windowPair.cur->fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			return false;
 		}
 		if(maxRefN < 1.0 && fastaReference == true){
-			logfile->conclude(toString(windowPair.curPointer->fractionRefIsN * 100) + "% of all reference bases are 'N'");
-			if(windowPair.curPointer->fractionRefIsN > maxRefN){
+			logfile->conclude(toString(windowPair.cur->fractionRefIsN * 100) + "% of all reference bases are 'N'");
+			if(windowPair.cur->fractionRefIsN > maxRefN){
 				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 				return false;
 			}
@@ -616,7 +616,7 @@ void TGenome::estimateTheta(TParameters & params){
 
 void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out){
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -664,7 +664,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 		logfile->startIndent("Estimating theta at specific sites:");
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structure:");
@@ -745,7 +745,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 	int steps = params.getParameterIntWithDefault("steps", 100);
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//Theta estimator
 	TThetaEstimator estimator(logfile);
@@ -915,7 +915,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1017,7 +1017,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1156,7 +1156,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1244,7 +1244,7 @@ void TGenome::randomBaseCaller(TParameters & params){
 	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1286,7 +1286,7 @@ void TGenome::majorityBaseCaller(TParameters & params){
 	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1323,7 +1323,7 @@ void TGenome::writeGLF(TParameters & params){
 	TGlfWriter writer(outputFileName);
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1393,7 +1393,7 @@ void TGenome::printPileup(TParameters & params){
 	initializeRecalibration(params);
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//open output
 	gz::ogzstream out;
@@ -1448,7 +1448,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	int nCharOnLine = 0;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1490,7 +1490,7 @@ void TGenome::createDepthMask(TParameters & params){
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -1528,7 +1528,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
@@ -1574,7 +1574,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, readGroupMap);
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
@@ -1602,7 +1602,7 @@ void TGenome::BQSR(TParameters & params){
 	if(!fastaReference) throw "Can not run BQSR recalibration without a provided FASTA reference!";
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//create BQSR object
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
@@ -1773,7 +1773,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 
 	//create table to store counts
@@ -2746,7 +2746,7 @@ void TGenome::allelicDepth(TParameters & params){
 	output << "A\tC\tG\tT\tCounts\tDepth" << std::endl;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		//write chromosome to file
@@ -2790,7 +2790,7 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	output << "chr\tstart\tend\tdepth" << std::endl;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -2860,7 +2860,7 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 	outputQuantiles << "percent\tquantile" << std::endl;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -2948,7 +2948,7 @@ void TGenome::writeDepthPerSite(TParameters & params){
 	out << "chr\tpos\tdepth" << std::endl;
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindowPair windows;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
