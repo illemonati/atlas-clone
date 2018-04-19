@@ -99,18 +99,6 @@ public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
 
-	//details
-	int length;
-	int chrNumber;
-	std::string readGroup;
-	int readGroupId;
-
-	int32_t position;
-	bool isReverseStrand;
-	bool isProperPair;
-	bool passedFilters;
-	bool recalibrated;
-
 	//per base data
 	//TODO: try to move to private if possible
 	Base* base;

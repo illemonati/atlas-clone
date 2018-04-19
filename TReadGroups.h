@@ -45,17 +45,20 @@ public:
 //---------------------------------------------------------------
 
 class TReadGroups{
-public:
+private:
 	readGroup* groups;
 	int numGroups;
 	bool initialized;
+	bool limitReadGroups;
 	bool* inUse;
 
+public:
 	TReadGroups(){
 		initialized = false;
 		numGroups = 0;
 		groups = NULL;
 		inUse = NULL;
+		limitReadGroups = false;
 	};
 
 	~TReadGroups(){
@@ -117,6 +120,24 @@ public:
 
 	int size(){
 		return numGroups;
+	};
+
+	void filterReadGroups(std::string readGroupList){
+		limitReadGroups = true;
+		std::vector<std::string> readGroupsInUse;
+		fillVectorFromString(readGroupList, readGroupsInUse, ',');
+		for(int i=0; i < numGroups; i++){
+			if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), getName(i)) != readGroupsInUse.end()){
+				inUse[i] = true;
+			} else inUse[i] = false;
+		}
+	};
+
+	void printReadgroupsInUse(TLog* logfile){
+		for(int i=0; i < numGroups; i++){
+			if(inUse[i])
+				logfile->list(groups[i].name);
+		}
 	};
 };
 

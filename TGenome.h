@@ -68,8 +68,6 @@ private:
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
-	bool limitReadGroups;
-	std::vector<std::string> readGroupsInUse;
 
 	void jumpToEnd();
 	void restartChromosome(TWindowPair & windowPair);

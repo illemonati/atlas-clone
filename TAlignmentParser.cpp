@@ -404,37 +404,35 @@ void TAlignmentParser::fillReferenceSequence(){
 //------------------------------
 //public functions
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
 	if(!bamReader.GetNextAlignment(bamAlignment))
 		return false;
-
-	//add basic info
-	parsed = false;
-	recalibrated = false;
-	changed = false;
-	quality = qualityOriginal;
-	chrNumber = bamAlignment.RefID;
-	position = bamAlignment.Position;
-	isReverseStrand = bamAlignment.IsReverseStrand();
-	isProperPair = bamAlignment.IsProperPair();
-
-	//Extract Read Group Info
-	bamAlignment.GetTag("RG", readGroup);
-	//TODO: add check of whether RG is used
-	readGroupId = readGroupTable->find(readGroup);
-
-	//check if read passes basic QC
-	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && (_keepDuplicates || !bamAlignment.IsDuplicate());
 
 	//check read length
 	if(bamAlignment.AlignedBases.size() > maxSize)
 		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
 
+	//fill alignment
+	std::string readGroup;
+	bamAlignment.GetTag("RG", readGroup);
+	int readGroupId = readGroupTable->find(readGroup);
+	alignment.fill(bamAlignment, readGroupId);
+
 	//check if insert size is shorter than read, this means we are reading the adaptor sequence
+	bool filtersPassed = true;
 	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
 		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-		passedFilters = false;
+		filtersPassed = false;
+	} else {
+		//apply filters: read group in use and basic QC
+		filtersPassed = readGroupTable->readGroupInUse(readGroupId)
+						&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
+						&& bamAlignment.IsPrimaryAlignment()
+						&& (_keepDuplicates || !bamAlignment.IsDuplicate());
 	}
+
+	//set filter
+	alignment.setFiltersPassed(filtersPassed);
 
 	return true;
 }

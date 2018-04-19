@@ -216,17 +216,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//limit readGroups
 	if(params.parameterExists("readGroup")){
-		limitReadGroups = true;
-		fillVectorFromString(params.getParameterString("readGroup"), readGroupsInUse, ',');
+		readGroups.filterReadGroups(params.getParameterString("readGroup"));
 		logfile->startIndent("Will limit analysis to the following read groups:");
-		for(int i=0; i < readGroups.numGroups; i++){
-			if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), readGroups.getName(i)) != readGroupsInUse.end()){
-				readGroups.inUse[i] = true;
-				logfile->list(readGroups.getName(i));
-			} else readGroups.inUse[i] = false;
-		}
+		readGroups.printReadgroupsInUse(logfile);
 		logfile->endIndent();
-	} else limitReadGroups = false;
+	}
 
 };
 
