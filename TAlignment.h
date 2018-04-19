@@ -8,7 +8,7 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
-
+#include "TAlignmentParser.h"
 
 class TAlignment{
 private:
@@ -25,25 +25,26 @@ private:
 	bool recalibrated;
 
 	//data
+	BamTools::BamAlignment bamAlignment;
 	unsigned int maxSize;
 	bool initialized;
 	bool parsed;
 	bool changed;
-	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
-	int* qualityRecalibrated;
-	double* errorRates;
 
+	//per base data
 	Base* base;
 	char* baseAsChar; //TODO: to be removed, if possible
 	BaseContext* context;
 	int* quality; //pointer to qualities to be used
+	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
+	int* qualityRecalibrated;
+	double* errorRates;
 	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
 	int* alignedPos;
 	int* distFrom3Prime;
 	int* distFrom5Prime;
 	double* pmdCT;
 	double* pmdGA;
-
 
 	//reference
 	bool hasReference;
@@ -60,16 +61,43 @@ private:
 	void freeStorage();
 	void clear();
 
-	void parseBasesQualities();
+	//functions to read and parse
+	void fillReferenceSequence(TFastaBuffer* fastaBuffer);
+	void parse(bool & applyQualityFilter, bool & trimReads, int & minQual, int & maxQual, int & trimmingLength3Prime, int & trimmingLength5Prime, TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void setDistancesFromEnds();
-	void fillContext();
+	void parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap);
+	void fillContext(TGenotypeMap & genoMap);
+	void fillPmdProbabilities(TPMD* pmdObjects);
+
+
+	//functions to access and modify data
+	std::string& name(){return bamAlignment.Filename;};
+	void filterForBaseQuality(int & minQual, int & maxQual);
+	void filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
+	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
+	void recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap);
+	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap);
+	void binQualityScores(TQualityMap & qualityMap);
+	void addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffer, TGenotypeMap & genoMap);
+	double calculatePMDS(double & pi, TPMD* pmdObjects, TFastaBuffer* fastaBuffer);
+	void assessSoftClipping(int & S_left, int & middle, int & S_right);
+	void addToQualityTable(TQualityTable & qualTable);
+
+	//functions to modify alignment
+	void updateOptionalSamField(std::string tag, float value);
+	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);
 
 
 public:
-	TAlignment(int size);
+	TAlignment();
+	TAlignment(unsigned int MaxSize);
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
 	void setFiltersPassed(bool passed);
+
+	//functions to write / print alignment
+	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting);
+	void print(TGenotypeMap & genoMap);
 };
 
 #endif /* TALIGNMENT_H_ */

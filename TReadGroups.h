@@ -13,6 +13,7 @@
 #include "bamtools/api/SamSequenceDictionary.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include <vector>
 
 //---------------------------------------------------------------
 //TReadGroupMaxLength

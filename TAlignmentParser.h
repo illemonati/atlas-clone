@@ -85,16 +85,6 @@ private:
 	bool hasReference;
 	TFastaBuffer* fastaBuffer;
 
-	//functions
-	inline int toQual(const char & q);
-	void parseBasesQualities();
-	void setDistancesFromEnds();
-	void filterForBaseQuality();
-	void filterForPrintingBaseQuality(std::string & qual);
-	void trimRead();
-	void fillContext();
-	void fillPmdProbabilities(TPMD* pmdObjects);
-
 public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
@@ -111,12 +101,6 @@ public:
 	int* distFrom5Prime;
 	double* pmdCT;
 	double* pmdGA;
-
-	//soft clipped data
-	uint8_t softClippedEntry; //0 means start, 1 means end of read
-	int* softClippedLength;
-	char** softClippedBase;
-	char** softClippedQuality;
 
 	//construction
 	TAlignmentParser();
@@ -135,27 +119,9 @@ public:
 
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
-	void parse();
 	void addReference(BamTools::Fasta* reference);
-	void fillReferenceSequence();
 
-	//functions to access and modify data
-	std::string& name(){return bamAlignment.Filename;};
-	void recalibrate(TRecalibration & recalObject);
-	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects);
-	void binQualityScores();
-	void addToPMDTables(TPMDTables & pmdTables);
-	double calculatePMDS(double & pi, TPMD* pmdObjects);
-	void assessSoftClipping(int & S_left, int & middle, int & S_right);
-	void addToQualityTable(TQualityTable & qualTable);
 
-	//functions to modify alignment
-	void updateOptionalSamField(std::string tag, float value);
-	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);
-
-	//functions to write / print alignment
-	void save(BamTools::BamWriter & bamWriter);
-	void print();
 };
 
 
