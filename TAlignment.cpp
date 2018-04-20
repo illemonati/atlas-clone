@@ -20,7 +20,7 @@ TAlignment::TAlignment(){
 	passedFilters = false;
 	parsed = false;
 	changed = false;
-	initialized = false;
+	storageInitialized = false;
 
 	//per base data
 	base = NULL;
@@ -49,7 +49,6 @@ TAlignment::TAlignment(){
 TAlignment::TAlignment(unsigned int MaxSize){
 	TAlignment();
 	initStorage();
-
 }
 
 void TAlignment::clear(){
@@ -88,8 +87,33 @@ void TAlignment::initStorage(){
 	softClippedQuality[0] = new char[maxSize];
 	softClippedQuality[1] = new char[maxSize];
 
-	initialized = true;
+	storageInitialized = true;
 
+}
+
+void TAlignment::freeStorage(){
+	if(storageInitialized){
+		delete[] base;
+		delete[] baseAsChar;
+		delete[] context;
+		delete[] qualityOriginal;
+		delete[] qualityRecalibrated;
+		delete[] errorRates;
+		delete[] aligned;
+		delete[] alignedPos;
+		delete[] distFrom3Prime;
+		delete[] distFrom5Prime;
+
+		delete[] softClippedLength;
+		delete[] softClippedBase[0];
+		delete[] softClippedBase[1];
+		delete[] softClippedBase;
+		delete[] softClippedQuality[0];
+		delete[] softClippedQuality[1];
+		delete[] softClippedQuality;
+
+	}
+	storageInitialized = false;
 }
 
 void TAlignment::fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId){
@@ -104,16 +128,13 @@ void TAlignment::fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId){
 	readGroupId = ReadGroupId;
 }
 
-void TAlignment::fillReferenceSequence(TFastaBuffer* fastaBuffer){
-	if(!hasReference) //is this check really necessary?
-		throw "No reference provided!";
-
-	fastaBuffer->fill(chrNumber, position, position + alignedPos[length-1], referenceSequence);
-};
-
 void TAlignment::setFiltersPassed(bool passed){
 	passedFilters = passed;
 };
+
+void TAlignment::setReferenceAdded(){
+	hasReference = true;
+}
 
 void TAlignment::setDistancesFromEnds(){
 	//is it paired-end?
@@ -164,8 +185,10 @@ void TAlignment::setDistancesFromEnds(){
 	}
 };
 
-void TAlignment::parse(bool & applyQualityFilter, bool & trimReads, int & minQual, int & maxQual, int & trimmingLength3Prime, int & trimmingLength5Prime, TGenotypeMap & genoMap, TQualityMap & qualityMap){
+void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	if(!parsed){
+
+		if(!storageInitialized) throw "Alignment storage was not initialized!";
 
 		//first parse bases and qualities
 		parseBasesQualities(genoMap, qualityMap);
@@ -175,13 +198,6 @@ void TAlignment::parse(bool & applyQualityFilter, bool & trimReads, int & minQua
 
 		//fill context for each base
 		fillContext(genoMap);
-
-		//apply filters
-		//TODO: should that be on the recalibrated quality scores instead???
-		if(applyQualityFilter)
-			filterForBaseQuality(minQual, maxQual);
-		if(trimReads)
-			trimRead(trimmingLength3Prime, trimmingLength5Prime);
 
 		parsed = true;
 	}
@@ -354,8 +370,8 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 	}
 };
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
-	//make sure read is parsed
-	parse();
+	//make sure read is parsed and has reference
+	if(!parsed) throw "Read was not parsed!";
 
 	if(recalObject.recalibrationChangesQualities()){
 		//recalibrate quality scores
@@ -373,11 +389,9 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & quality
 };
 
 void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap){
-	//make sure read is parsed
-	parse();
-
-	//get reference sequence
-	fillReferenceSequence(fastaBuffer);
+	//make sure read is parsed and has reference
+	if(!parsed) throw "Read was not parsed!";
+	if(!hasReference) throw "Reference was not added!";
 
 	//get PMD probs
 	fillPmdProbabilities(pmdObjects);
@@ -407,7 +421,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	//make sure read is parsed
-	parse();
+	if(!parsed) throw "Read was not parsed!";
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
@@ -417,11 +431,9 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 };
 
 void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffer, TGenotypeMap & genoMap){
-	//make sure read is parsed
-	parse();
-
-	//get reference sequence
-	fillReferenceSequence(fastaBuffer);
+	//make sure read is parsed and has reference
+	if(!parsed) throw "Read was not parsed!";
+	if(!hasReference) throw "Reference was not added!";
 
 	//tmp variables
 	Base ref, read;
@@ -449,17 +461,15 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffe
 
 
 double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects, TFastaBuffer* fastaBuffer){
-	//make sure read is parsed
-	parse();
+	//make sure read is parsed and has reference
+	if(!parsed) throw "Read was not parsed!";
+	if(!hasReference) throw "Reference was not added!";
 
 	//variables
 	double PMDS = 0.0;
 	double probPMD, probNoPMD;
 	double epsThird;
 	double fourEpsThird;
-
-	//get reference
-	fillReferenceSequence(fastaBuffer);
 
 	//get PMD probs
 	fillPmdProbabilities(pmdObjects);
@@ -576,7 +586,8 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right){
 };
 
 void TAlignment::addToQualityTable(TQualityTable & qualTable){
-	parse();
+	//make sure read is parsed
+	if(!parsed) throw "Read was not parsed!";
 	qualTable.add(quality, length);
 };
 

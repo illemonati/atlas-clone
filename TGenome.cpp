@@ -1672,6 +1672,7 @@ void TGenome::BQSR(TParameters & params){
 };
 
 void TGenome::printQualityDistribution(TParameters & params){
+	TAlignment alignment(maxReadLength);
 	//Assemble quality distribution
 	int maxQinPrintQualityDistribution = maxPhredInt;
 //			params.getParameterIntWithDefault("maxQ", 100);

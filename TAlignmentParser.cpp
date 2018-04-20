@@ -45,7 +45,6 @@ TAlignmentParser::TAlignmentParser(){
 	readGroupTable = NULL;
 	logfile = NULL;
 	_keepDuplicates = false;
-	initialized = false;
 
 	//filters
 	applyQualityFilter = false;
@@ -68,63 +67,9 @@ TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, unsigned int Max
 };
 
 void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
-	clear();
-
 	maxSize = MaxSize;
 	readGroupTable = ReadGroupTable;
 	logfile = Logfile;
-
-	//data
-	base = new Base[maxSize];
-	baseAsChar = new char[maxSize];
-	context = new BaseContext[maxSize];
-	qualityOriginal = new int[maxSize];
-	qualityRecalibrated = new int[maxSize];
-	errorRates = new double[maxSize];
-	aligned = new bool[maxSize];
-	alignedPos = new int[maxSize];
-	distFrom3Prime = new int[maxSize];
-	distFrom5Prime = new int[maxSize];
-	pmdCT = new double[maxSize];
-	pmdGA = new double[maxSize];
-
-	//soft clipped data
-	softClippedLength = new int[2];
-	softClippedBase = new char*[2];
-	softClippedQuality = new char*[2];
-	softClippedBase[0] = new char[maxSize];
-	softClippedBase[1] = new char[maxSize];
-	softClippedQuality[0] = new char[maxSize];
-	softClippedQuality[1] = new char[maxSize];
-
-	initialized = true;
-};
-
-void TAlignmentParser::clear(){
-	if(initialized){
-		delete[] base;
-		delete[] baseAsChar;
-		delete[] context;
-		delete[] qualityOriginal;
-		delete[] qualityRecalibrated;
-		delete[] errorRates;
-		delete[] aligned;
-		delete[] alignedPos;
-		delete[] distFrom3Prime;
-		delete[] distFrom5Prime;
-		delete[] pmdCT;
-		delete[] pmdGA;
-
-		delete[] softClippedLength;
-		delete[] softClippedBase[0];
-		delete[] softClippedBase[1];
-		delete[] softClippedBase;
-		delete[] softClippedQuality[0];
-		delete[] softClippedQuality[1];
-		delete[] softClippedQuality;
-
-		initialized = false;
-	}
 };
 
 void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
@@ -149,13 +94,20 @@ void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	fastaBuffer = new TFastaBuffer(reference);
 };
 
+void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
+	if(!hasReference) //is this check really necessary?
+		throw "No reference provided!";
 
-
+	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.alignedPos[alignment.length-1], referenceSequence);
+};
 
 //------------------------------
 //public functions
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, BamTools::Fasta* reference, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim){
+	//make sure container is empty
+	alignment.clear();
+
 	if(!bamReader.GetNextAlignment(bamAlignment))
 		return false;
 
@@ -184,6 +136,17 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 
 	//set filter
 	alignment.setFiltersPassed(filtersPassed);
+
+	if(parse)
+		alignment.parse(genoMap, qualityMap);
+	if(addReference){
+		fillReferenceSequence(fastaBuffer, alignment);
+		alignment.setReferenceAdded();
+	}
+
+	if(filterBaseQual)
+		alignment.filterForBaseQuality(minQual, maxQual);
+
 
 	return true;
 }

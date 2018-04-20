@@ -16,6 +16,7 @@
 #include "TBed.h"
 #include <typeinfo>
 #include <map>
+#include "TAlignment.h"
 
 //---------------------------------------------------------------
 //TGenome

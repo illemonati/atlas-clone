@@ -17,7 +17,7 @@
 #include "TLog.h"
 #include "TRecalibration.h"
 #include "TPostMortemDamage.h"
-
+#include "TAlignment.h"
 
 //-----------------------------------------------------
 //TFastaBuffer
@@ -65,14 +65,6 @@ private:
 	int trimmingLength3Prime;
 	int trimmingLength5Prime;
 
-	//data
-	bool initialized;
-	bool parsed;
-	bool changed;
-	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
-	int* qualityRecalibrated;
-	double* errorRates;
-
 	//tmp variables
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter;
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd;
@@ -89,39 +81,25 @@ public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
 
-	//per base data
-	//TODO: try to move to private if possible
-	Base* base;
-	char* baseAsChar; //TODO: to be removed, if possible
-	BaseContext* context;
-	int* quality; //pointer to qualities to be used
-	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
-	int* alignedPos;
-	int* distFrom3Prime;
-	int* distFrom5Prime;
-	double* pmdCT;
-	double* pmdGA;
-
 	//construction
 	TAlignmentParser();
 	TAlignmentParser(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
 	~TAlignmentParser(){
-		clear();
 		if(hasReference)
 			delete fastaBuffer;
 	}
 	void init(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
-	void clear();
+
+	//setters
 	void keepDuplicates(){_keepDuplicates = true;};
+	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readAlignment(BamTools::BamReader & bamReader);
+	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, BamTools::Fasta* reference, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim);
 	void addReference(BamTools::Fasta* reference);
-
-
 };
 
 

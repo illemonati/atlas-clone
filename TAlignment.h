@@ -27,7 +27,7 @@ private:
 	//data
 	BamTools::BamAlignment bamAlignment;
 	unsigned int maxSize;
-	bool initialized;
+	bool storageInitialized;
 	bool parsed;
 	bool changed;
 
@@ -62,8 +62,7 @@ private:
 	void clear();
 
 	//functions to read and parse
-	void fillReferenceSequence(TFastaBuffer* fastaBuffer);
-	void parse(bool & applyQualityFilter, bool & trimReads, int & minQual, int & maxQual, int & trimmingLength3Prime, int & trimmingLength5Prime, TGenotypeMap & genoMap, TQualityMap & qualityMap);
+	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void setDistancesFromEnds();
 	void parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void fillContext(TGenotypeMap & genoMap);
@@ -91,9 +90,13 @@ private:
 public:
 	TAlignment();
 	TAlignment(unsigned int MaxSize);
+	~TAlignment(){
+		freeStorage();
+	}
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
 	void setFiltersPassed(bool passed);
+	void setReferenceAdded();
 
 	//functions to write / print alignment
 	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting);
