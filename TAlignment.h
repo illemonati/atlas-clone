@@ -8,7 +8,10 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
-#include "TAlignmentParser.h"
+#include "stringFunctions.h"
+#include "TBase.h"
+#include "BamAlignment.h"
+
 
 class TAlignment{
 private:
@@ -31,8 +34,10 @@ private:
 	bool parsed;
 	bool changed;
 
+	TBase* bases;
+
 	//per base data
-	Base* base;
+/*	Base* base;
 	char* baseAsChar; //TODO: to be removed, if possible
 	BaseContext* context;
 	int* quality; //pointer to qualities to be used
@@ -46,15 +51,17 @@ private:
 	double* pmdCT;
 	double* pmdGA;
 
-	//reference
-	bool hasReference;
-	std::string referenceSequence;
-
 	//soft clipped data
-	uint8_t softClippedEntry; //0 means start, 1 means end of read
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
+*/
+	uint8_t softClippedEntry; //0 means start, 1 means end of read
+
+
+	//reference
+	bool hasReference;
+	std::string referenceSequence;
 
 	//functions
 	void initStorage();

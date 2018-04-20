@@ -21,15 +21,19 @@ TAlignment::TAlignment(){
 	parsed = false;
 	changed = false;
 	storageInitialized = false;
+	recalibrated = false;
+	hasReference = false;
+
+	bases = NULL;
 
 	//per base data
+/*
 	base = NULL;
 	baseAsChar = NULL;
 	context = NULL;
 	quality = NULL;
 	qualityOriginal = NULL;
 	errorRates = NULL;
-	recalibrated = false;
 	qualityRecalibrated = NULL;
 	aligned = NULL;
 	alignedPos = NULL;
@@ -37,13 +41,13 @@ TAlignment::TAlignment(){
 	distFrom5Prime = NULL;
 	pmdCT = NULL;
 	pmdGA = NULL;
-	hasReference = false;
 
 	//soft clipped data
 	softClippedEntry = 0;
 	softClippedLength = NULL;
 	softClippedBase = NULL;
 	softClippedQuality = NULL;
+*/
 }
 
 TAlignment::TAlignment(unsigned int MaxSize){
@@ -64,6 +68,9 @@ void TAlignment::initStorage(){
 	clear();
 
 	//data
+	bases = new TBase[maxSize];
+
+/*
 	base = new Base[maxSize];
 	baseAsChar = new char[maxSize];
 	context = new BaseContext[maxSize];
@@ -86,6 +93,7 @@ void TAlignment::initStorage(){
 	softClippedBase[1] = new char[maxSize];
 	softClippedQuality[0] = new char[maxSize];
 	softClippedQuality[1] = new char[maxSize];
+*/
 
 	storageInitialized = true;
 
@@ -93,6 +101,8 @@ void TAlignment::initStorage(){
 
 void TAlignment::freeStorage(){
 	if(storageInitialized){
+		delete[] bases;
+/*
 		delete[] base;
 		delete[] baseAsChar;
 		delete[] context;
@@ -111,6 +121,7 @@ void TAlignment::freeStorage(){
 		delete[] softClippedQuality[0];
 		delete[] softClippedQuality[1];
 		delete[] softClippedQuality;
+*/
 
 	}
 	storageInitialized = false;
@@ -146,8 +157,10 @@ void TAlignment::setDistancesFromEnds(){
 			int k = abs(bamAlignment.InsertSize) - length;
 			int p = length - 1;
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = p - d;
-				distFrom3Prime[d] = k + d;
+				bases[d].posInRead = p - d;
+				bases[d].posInReadRev = k + d;
+//				distFrom5Prime[d] = p - d;
+//				distFrom3Prime[d] = k + d;
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -157,8 +170,10 @@ void TAlignment::setDistancesFromEnds(){
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			int p = abs(bamAlignment.InsertSize) - 1;
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = d;
-				distFrom3Prime[d] = p - d;
+				bases[d].posInRead = d;
+				bases[d].posInReadRev = p - d;
+//				distFrom5Prime[d] = d;
+//				distFrom3Prime[d] = p - d;
 			}
 		}
 	} else {
@@ -169,8 +184,11 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = p - d;
-				distFrom3Prime[d] = d;
+				bases[d].posInRead = p - d;
+				bases[d].posInReadRev = d;
+
+//				distFrom5Prime[d] = p - d;
+//				distFrom3Prime[d] = d;
 			}
 
 		} else {
@@ -178,8 +196,11 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = d;
-				distFrom3Prime[d] = p - d;
+				bases[d].posInRead = d;
+				bases[d].posInReadRev = p - d;
+
+//				distFrom5Prime[d] = d;
+//				distFrom3Prime[d] = p - d;
 			}
 		}
 	}
@@ -425,7 +446,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
-		quality[d] = qualityMap.illuminaQualityBins[quality[d]];
+		bases[d].quality = qualityMap.illuminaQualityBins[bases[d].quality];
 	}
 	changed = true;
 };
@@ -441,19 +462,19 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffe
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(int d=0; d<length; ++d){
-			if(aligned[d] && base[d] != N){
-				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
-				read = genoMap.baseToFlippedBase[base[d]];
-				pmdTables.addForward(readGroupId, distFrom3Prime[d], ref, read);
-				pmdTables.addReverse(readGroupId, distFrom5Prime[d], ref, read);
+			if(bases[d].aligned && bases[d].base != N){
+				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
+				read = genoMap.baseToFlippedBase[bases[d].base];
+				pmdTables.addForward(readGroupId, bases[d].posInReadRev, ref, read);
+				pmdTables.addReverse(readGroupId, bases[d].posInRead, ref, read);
 			}
 		}
 	} else {
 		for(int d=0; d<length; ++d){
-			if(aligned[d] && base[d] != N){
-				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
-				pmdTables.addForward(readGroupId, distFrom5Prime[d], ref, base[d]);
-				pmdTables.addReverse(readGroupId, distFrom3Prime[d], ref, base[d]);
+			if(bases[d].aligned && bases[d].base != N){
+				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
+				pmdTables.addForward(readGroupId, bases[d].posInRead, ref, bases[d].base);
+				pmdTables.addReverse(readGroupId, bases[d].posInReadRev, ref, bases[d].base);
 			}
 		}
 	}

@@ -47,6 +47,17 @@ public:
 	BaseContext context;
 	TEmissionProbabilities emissionProbabilities;
 
+	TBase(){
+		base = N;
+		quality = -1;
+		posInRead = -1;
+		posInReadRev = -1;
+		PMD_CT = -1.0;
+		PMD_GA = -1.0;
+		readGroup = -1;
+		context = NN;
+	}
+
 	TBase(Base & Base, int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
 		base = Base;
 		quality = Quality;

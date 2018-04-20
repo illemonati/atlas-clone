@@ -104,7 +104,7 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 //------------------------------
 //public functions
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, BamTools::Fasta* reference, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim){
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim){
 	//make sure container is empty
 	alignment.clear();
 
