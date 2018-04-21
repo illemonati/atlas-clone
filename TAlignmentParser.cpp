@@ -45,6 +45,7 @@ TAlignmentParser::TAlignmentParser(){
 	readGroupTable = NULL;
 	logfile = NULL;
 	_keepDuplicates = false;
+	parse = false;
 
 	//filters
 	applyQualityFilter = false;
@@ -104,7 +105,7 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 //------------------------------
 //public functions
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim){
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
 	//make sure container is empty
 	alignment.clear();
 
@@ -137,16 +138,13 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	//set filter
 	alignment.setFiltersPassed(filtersPassed);
 
-	if(parse)
+	if(parse){
 		alignment.parse(genoMap, qualityMap);
-	if(addReference){
-		fillReferenceSequence(fastaBuffer, alignment);
-		alignment.setReferenceAdded();
+		if(hasReference)
+			fillReferenceSequence(fastaBuffer, alignment);
+		if(applyQualityFilter)
+			alignment.filterForBaseQuality(minQual, maxQual);
 	}
-
-	if(filterBaseQual)
-		alignment.filterForBaseQuality(minQual, maxQual);
-
 
 	return true;
 }

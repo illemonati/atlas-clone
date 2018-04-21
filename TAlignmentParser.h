@@ -20,29 +20,6 @@
 #include "TAlignment.h"
 
 //-----------------------------------------------------
-//TFastaBuffer
-//-----------------------------------------------------
-//a buffer class to speed up adding the reference sequence to each read
-//This class makes use of the fact that bam files are sorted, hence the buffer can always start at the current position
-
-class TFastaBuffer{
-private:
-	BamTools::Fasta* reference;
-	int bufferSize;
-	std::string referenceSequence;
-
-	int curChr;
-	long curStart, curEnd;
-
-	void moveTo(const int & chr, const int32_t & pos);
-
-public:
-	TFastaBuffer(BamTools::Fasta* Reference);
-	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
-};
-
-
-//-----------------------------------------------------
 //TAlignmentParser
 //-----------------------------------------------------
 class TAlignmentParser{
@@ -54,6 +31,7 @@ private:
 	TReadGroups* readGroupTable;
 	TLog* logfile;
 	bool _keepDuplicates;
+	bool parse;
 
 	//quality filter
 	bool applyQualityFilter;
@@ -66,12 +44,7 @@ private:
 	int trimmingLength5Prime;
 
 	//tmp variables
-	std::vector<BamTools::CigarOp>::const_iterator cigarIter;
-	std::vector<BamTools::CigarOp>::const_iterator cigarEnd;
-	std::string tmpString;
-	std::string tmpString2;
 	std::string referenceSequence;
-	std::string::iterator stringIt;
 
 	//reference
 	bool hasReference;
@@ -92,16 +65,15 @@ public:
 
 	//setters
 	void keepDuplicates(){_keepDuplicates = true;};
+	void TAlignmentParser::setParsingToTrue(){parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment, BamTools::Fasta* reference, bool & parse, bool & addReference, bool & filterBaseQual, bool & trim);
+	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
 };
-
-
 
 #endif /* TALIGNMENTPARSER_H_ */

@@ -10,8 +10,37 @@
 
 #include "stringFunctions.h"
 #include "TBase.h"
-#include "BamAlignment.h"
+#include "TPostMortemDamage.h"
+#include "TRecalibration.h"
+#include "bamtools/api/BamAlignment.h"
+#include "bamtools/utils/bamtools_fasta.h"
+#include "bamtools/api/BamWriter.h"
 
+//-----------------------------------------------------
+//TFastaBuffer
+//-----------------------------------------------------
+//a buffer class to speed up adding the reference sequence to each read
+//This class makes use of the fact that bam files are sorted, hence the buffer can always start at the current position
+
+class TFastaBuffer{
+private:
+	BamTools::Fasta* reference;
+	int bufferSize;
+	std::string referenceSequence;
+
+	int curChr;
+	long curStart, curEnd;
+
+	void moveTo(const int & chr, const int32_t & pos);
+
+public:
+	TFastaBuffer(BamTools::Fasta* Reference);
+	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
+};
+
+//-----------------------------------------------------
+//TAlignment
+//-----------------------------------------------------
 
 class TAlignment{
 private:
@@ -35,17 +64,24 @@ private:
 	bool changed;
 
 	TBase* bases;
+	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
+	int* alignedPos;
+	//soft clipped data
+	int* softClippedLength;
+	char** softClippedBase;
+	char** softClippedQuality;
+	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
+	int* qualityRecalibrated;
+	int* quality; //pointer to qualities to be used
+	char* baseAsChar; //TODO: to be removed, if possible
+
+
 
 	//per base data
 /*	Base* base;
-	char* baseAsChar; //TODO: to be removed, if possible
 	BaseContext* context;
-	int* quality; //pointer to qualities to be used
-	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
-	int* qualityRecalibrated;
 	double* errorRates;
-	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
-	int* alignedPos;
+
 	int* distFrom3Prime;
 	int* distFrom5Prime;
 	double* pmdCT;
@@ -84,8 +120,8 @@ private:
 	void recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap);
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap);
 	void binQualityScores(TQualityMap & qualityMap);
-	void addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffer, TGenotypeMap & genoMap);
-	double calculatePMDS(double & pi, TPMD* pmdObjects, TFastaBuffer* fastaBuffer);
+	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
+	double calculatePMDS(double & pi, TPMD* pmdObjects);
 	void assessSoftClipping(int & S_left, int & middle, int & S_right);
 	void addToQualityTable(TQualityTable & qualTable);
 

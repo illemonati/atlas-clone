@@ -25,28 +25,30 @@ TAlignment::TAlignment(){
 	hasReference = false;
 
 	bases = NULL;
+	aligned = NULL;
+	alignedPos = NULL;
+	qualityRecalibrated = NULL;
+	quality = NULL;
+	qualityOriginal = NULL;
+	baseAsChar = NULL;
+	softClippedEntry = 0;
+	softClippedLength = NULL;
+	softClippedBase = NULL;
+	softClippedQuality = NULL;
 
 	//per base data
 /*
 	base = NULL;
-	baseAsChar = NULL;
 	context = NULL;
-	quality = NULL;
-	qualityOriginal = NULL;
 	errorRates = NULL;
-	qualityRecalibrated = NULL;
-	aligned = NULL;
-	alignedPos = NULL;
+
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
 	pmdCT = NULL;
 	pmdGA = NULL;
 
 	//soft clipped data
-	softClippedEntry = 0;
-	softClippedLength = NULL;
-	softClippedBase = NULL;
-	softClippedQuality = NULL;
+
 */
 }
 
@@ -159,8 +161,6 @@ void TAlignment::setDistancesFromEnds(){
 			for(int d=0; d<length; ++d){
 				bases[d].posInRead = p - d;
 				bases[d].posInReadRev = k + d;
-//				distFrom5Prime[d] = p - d;
-//				distFrom3Prime[d] = k + d;
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -172,8 +172,6 @@ void TAlignment::setDistancesFromEnds(){
 			for(int d=0; d<length; ++d){
 				bases[d].posInRead = d;
 				bases[d].posInReadRev = p - d;
-//				distFrom5Prime[d] = d;
-//				distFrom3Prime[d] = p - d;
 			}
 		}
 	} else {
@@ -186,9 +184,6 @@ void TAlignment::setDistancesFromEnds(){
 			for(int d=0; d<length; ++d){
 				bases[d].posInRead = p - d;
 				bases[d].posInReadRev = d;
-
-//				distFrom5Prime[d] = p - d;
-//				distFrom3Prime[d] = d;
 			}
 
 		} else {
@@ -198,9 +193,6 @@ void TAlignment::setDistancesFromEnds(){
 			for(int d=0; d<length; ++d){
 				bases[d].posInRead = d;
 				bases[d].posInReadRev = p - d;
-
-//				distFrom5Prime[d] = d;
-//				distFrom3Prime[d] = p - d;
 			}
 		}
 	}
@@ -245,10 +237,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR) :
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
 				}
@@ -263,10 +255,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
 					//need to initialize quality for quality filter and bases for context
-					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = -1;
-					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = -1;
 				}
@@ -275,10 +267,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			//for 'I' - insertion: copy bases, but put aligned pos to
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
-					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = -1;
 				}
@@ -295,10 +287,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					base[d] = genoMap.getBase(bamAlignment.QueryBases[k]);
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
 					alignedPos[d] = p;
 				}
@@ -327,26 +319,27 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){
 		//reverse
 		for(int d=0; d<(length-1); ++d){
-//			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
-			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
-			context[d] = genoMap.contextMap[base[d+1]][base[d]];
+//			std::cout << "getting Context for " << base[d-1] << ", " << bases[d].base << std::flush;
+			//std::cout << " -> " << genoMap.contextMap[base[d-1]][bases[d].base] << std::endl;
+			bases[d].context = genoMap.contextMap[bases[d+1].base][bases[d].base];
 		}
-		context[length-1] = genoMap.contextMap[N][base[length-1]];
+		bases[length-1].context = genoMap.contextMap[N][bases[length-1].base];
 	} else {
 		//forward
-		context[0] = genoMap.contextMap[N][base[0]];
+		bases[0].context = genoMap.contextMap[N][bases[0].base];
 		for(int d=1; d<length; ++d){
-//			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
-			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
-			context[d] = genoMap.contextMap[base[d-1]][base[d]];
+//			std::cout << "getting Context for " << base[d-1] << ", " << bases[d].base << std::flush;
+			//std::cout << " -> " << genoMap.contextMap[base[d-1]][bases[d].base] << std::endl;
+			bases[d].context = genoMap.contextMap[bases[d-1].context][bases[d].context];
 		}
 	}
 };
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
 	for(int d=0; d<length; ++d){
-		pmdCT[d] = pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]);
-		pmdGA[d] = pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]);
+		bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].posInRead);
+//		bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(distFrom5Prime[d]);
+//		bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(distFrom3Prime[d]);
 	}
 };
 
@@ -357,7 +350,7 @@ void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 	//set base to N if outside quality filter
 	for(int d=0; d<length; ++d){
 		if(qualityOriginal[d] < minQual || qualityOriginal[d] > maxQual){
-			base[d] = N;
+			bases[d].base = N;
 		}
 	}
 };
@@ -378,16 +371,16 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 		//distance from 3' is just pos
 		//distance from 5' is len - pos - 1
 		for(int d=0; d<trimmingLength3Prime; ++d)
-			base[d] = N;
+			bases[d].base = N;
 		for(int d=0; d<trimmingLength5Prime; ++d)
-			base[length - 1 - d] = N;
+			bases[length - 1 - d].base = N;
 	} else {
 		//distance from 3' is len - pos - 1
 		//distance from 5' is just pos
 		for(int d=0; d<trimmingLength3Prime; ++d)
-			base[length - 1 - d] = N;
+			bases[length - 1 - d].base = N;
 		for(int d=0; d<trimmingLength5Prime; ++d)
-			base[d] = N;
+			bases[d].base = N;
 	}
 };
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
@@ -398,8 +391,11 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & quality
 		//recalibrate quality scores
 		for(int d=0; d<length; ++d){
 			int k = length - d - 1;
-			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
-			qualityRecalibrated[d] = qualityMap.errorToQuality(errorRates[d]);
+			bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
+			qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].errorRate);
+
+//			bases[d].error = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
+//			qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].error);
 		}
 
 		quality = qualityRecalibrated;
@@ -421,17 +417,17 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	for(int d=0; d<length; ++d){
 		int k = length - d - 1;
 		if(recalObject.recalibrationChangesQualities())
-			errorRates[d] = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, context[d]);
+			bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
 
 		//now add effect of PMD
 		if(aligned[d]){
-			if(base[d] == T && referenceSequence[alignedPos[d]] == 'C')
-				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdCT[d])); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(base[d] == A && referenceSequence[alignedPos[d]] == 'G')
-				errorRates[d] = 1.0 - ((1.0 - errorRates[d])*(1.0 - pmdGA[d])); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+			if(bases[d].base == T && referenceSequence[alignedPos[d]] == 'C')
+				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+			else if(bases[d].base == A && referenceSequence[alignedPos[d]] == 'G')
+				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		}
 
-		qualityRecalibrated[d] = qualityMap.errorToQuality(errorRates[d]);
+		qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].errorRate);
 	}
 
 	//set pointer to recalibrated scores
@@ -451,7 +447,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	changed = true;
 };
 
-void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffer, TGenotypeMap & genoMap){
+void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//make sure read is parsed and has reference
 	if(!parsed) throw "Read was not parsed!";
 	if(!hasReference) throw "Reference was not added!";
@@ -462,8 +458,8 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffe
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(int d=0; d<length; ++d){
-			if(bases[d].aligned && bases[d].base != N){
-				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
+			if(aligned[d] && bases[d].base != N){
+				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
 				read = genoMap.baseToFlippedBase[bases[d].base];
 				pmdTables.addForward(readGroupId, bases[d].posInReadRev, ref, read);
 				pmdTables.addReverse(readGroupId, bases[d].posInRead, ref, read);
@@ -471,8 +467,8 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffe
 		}
 	} else {
 		for(int d=0; d<length; ++d){
-			if(bases[d].aligned && bases[d].base != N){
-				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
+			if(aligned[d] && bases[d].base != N){
+				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
 				pmdTables.addForward(readGroupId, bases[d].posInRead, ref, bases[d].base);
 				pmdTables.addReverse(readGroupId, bases[d].posInReadRev, ref, bases[d].base);
 			}
@@ -481,7 +477,7 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TFastaBuffer* fastaBuffe
 };
 
 
-double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects, TFastaBuffer* fastaBuffer){
+double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//make sure read is parsed and has reference
 	if(!parsed) throw "Read was not parsed!";
 	if(!hasReference) throw "Reference was not added!";
@@ -500,80 +496,80 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects, TFastaBuffer* fa
 		//limit to aligned positions
 		if(aligned[d]){
 			//Prepare variables
-			epsThird = errorRates[d] / 3.0;
+			epsThird = bases[d].errorRate / 3.0;
 			fourEpsThird = 4.0 * epsThird;
 
 			//calc likelihoods
 			if(referenceSequence[alignedPos[d]] == 'A'){
-				if(base[d] == A){
-					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + pmdGA[d]*pi/3.0*(1.0-fourEpsThird);
-					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				if(bases[d].base == A){
+					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + bases[d].PMD_GA*pi/3.0*(1.0-fourEpsThird);
+					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
-				else if(base[d] == C){ //ok
-					probPMD = errorRates[d] - fourEpsThird*pi + pi - pi*pmdCT[d]*(fourEpsThird-1.0);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == C){ //ok
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - pi*bases[d].PMD_CT*(fourEpsThird-1.0);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == G){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdGA[d]*(fourEpsThird-1.0);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == G){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird-1.0);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == T){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(1.0-fourEpsThird);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == T){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(1.0-fourEpsThird);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
 			}
 			else if (referenceSequence[alignedPos[d]] == 'C'){
-				if(base[d] == A){
-					probPMD = errorRates[d] + pi - 2.0*errorRates[d]*pi + pi*pmdGA[d]*(1.0-fourEpsThird);
-					probNoPMD = errorRates[d] + pi - 2.0*errorRates[d]*pi;
+				if(bases[d].base == A){
+					probPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi + pi*bases[d].PMD_GA*(1.0-fourEpsThird);
+					probNoPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi;
 				}
-				else if(base[d] == C){
-					probPMD = 1.0 - pi - errorRates[d] + fourEpsThird*pi + (1.0-pi)*pmdCT[d]*(fourEpsThird-1.0);
-					probNoPMD = 1.0 - pi - errorRates[d] + fourEpsThird*pi;
+				else if(bases[d].base == C){
+					probPMD = 1.0 - pi - bases[d].errorRate + fourEpsThird*pi + (1.0-pi)*bases[d].PMD_CT*(fourEpsThird-1.0);
+					probNoPMD = 1.0 - pi - bases[d].errorRate + fourEpsThird*pi;
 				}
-				else if(base[d] == G){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pmdGA[d]*(fourEpsThird*pi - pi);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == G){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + bases[d].PMD_GA*(fourEpsThird*pi - pi);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == T){
-					probPMD = epsThird + (1.0-pi)*pmdCT[d]*(1.0-fourEpsThird);
+				else if(bases[d].base == T){
+					probPMD = epsThird + (1.0-pi)*bases[d].PMD_CT*(1.0-fourEpsThird);
 					probNoPMD = epsThird;
 				}
 			}
 			else if (referenceSequence[alignedPos[d]] == 'G'){
-				if(base[d] == A){
-					probPMD = pmdGA[d]*(3.0-3.0*pi+4.0*errorRates[d]+4.0*errorRates[d]*pi) + errorRates[d] - fourEpsThird*pi + pi;
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				if(bases[d].base == A){
+					probPMD = bases[d].PMD_GA*(3.0-3.0*pi+4.0*bases[d].errorRate+4.0*bases[d].errorRate*pi) + bases[d].errorRate - fourEpsThird*pi + pi;
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == C){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(fourEpsThird - 1.0);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == C){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(fourEpsThird - 1.0);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == G){
-					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + (1.0-pi)*pmdGA[d]*(fourEpsThird-1.0);
-					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				else if(bases[d].base == G){
+					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + (1.0-pi)*bases[d].PMD_GA*(fourEpsThird-1.0);
+					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
-				else if(base[d] == T){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(1.0-fourEpsThird);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == T){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(1.0-fourEpsThird);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
 			}
 			else if(referenceSequence[alignedPos[d]] == 'T'){
-				if(base[d] == A){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi - epsThird*pi*pmdCT[d] + pi*pmdGA[d]*(1.0-errorRates[d]);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				if(bases[d].base == A){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - epsThird*pi*bases[d].PMD_CT + pi*bases[d].PMD_GA*(1.0-bases[d].errorRate);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == C){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdCT[d]*(fourEpsThird - 1.0);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == C){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(fourEpsThird - 1.0);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == G){
-					probPMD = errorRates[d] - fourEpsThird*pi + pi + pi*pmdGA[d]*(fourEpsThird - 1.0);
-					probNoPMD = errorRates[d] - fourEpsThird*pi + pi;
+				else if(bases[d].base == G){
+					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird - 1.0);
+					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(base[d] == T){
-					probPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi + pmdCT[d]*(pi/3.0-fourEpsThird*pi/3.0);
-					probNoPMD = 1.0 - errorRates[d] - pi + fourEpsThird*pi;
+				else if(bases[d].base == T){
+					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + bases[d].PMD_CT*(pi/3.0-fourEpsThird*pi/3.0);
+					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
 			}
 
@@ -626,7 +622,7 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 	for(int d=0; d<length; ++d){
 		double r = randomGenerator.getRand();
 		if(r < fraction){
-			base[d] = N;
+			bases[d].base = N;
 			quality[d] = 0;
 		}
 	}
@@ -647,7 +643,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 //		tmpString.clear();
 //		tmpString2.clear();
 		for(int d=0; d<length; ++d){
-			tmpString += genoMap.baseToChar[base[d]];
+			tmpString += genoMap.baseToChar[bases[d].base];
 			tmpString2 += (char) quality[d];
 		}
 		bamAlignment.QueryBases = tmpString;
@@ -669,7 +665,7 @@ void TAlignment::print(TGenotypeMap & genoMap){
 	//print bases
 	std::cout << "SEQ:\t";
 	for(int d=0; d<length; ++d)
-		std::cout << genoMap.getBaseAsChar(base[d]);
+		std::cout << genoMap.getBaseAsChar(bases[d].base);
 	std::cout << std::endl;
 
 	//print qualities
@@ -693,7 +689,7 @@ void TAlignment::print(TGenotypeMap & genoMap){
 	std::cout << "dist 3':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << distFrom3Prime[d];
+		std::cout << bases[d].posInReadRev;
 	}
 	std::cout << std::endl;
 
@@ -701,7 +697,7 @@ void TAlignment::print(TGenotypeMap & genoMap){
 	std::cout << "dist 5':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << distFrom5Prime[d];
+		std::cout << bases[d].posInRead;
 	}
 	std::cout << std::endl;
 }

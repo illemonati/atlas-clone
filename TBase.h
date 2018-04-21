@@ -39,6 +39,7 @@ public:
 class TBase{
 public:
 	Base base;
+	double errorRate;
 	int quality;
 	int posInRead; //zero based!
 	int posInReadRev; //zero based!
@@ -49,17 +50,19 @@ public:
 
 	TBase(){
 		base = N;
+		errorRate = -1.0;
 		quality = -1;
 		posInRead = -1;
 		posInReadRev = -1;
 		PMD_CT = -1.0;
 		PMD_GA = -1.0;
 		readGroup = -1;
-		context = NN;
+		context = cNN;
 	}
 
 	TBase(Base & Base, int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
 		base = Base;
+		errorRate = ;
 		quality = Quality;
 		posInRead = PosInRead;
 		posInReadRev = PosInReadRev;
