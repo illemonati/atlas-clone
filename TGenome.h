@@ -75,7 +75,7 @@ private:
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
-	bool addAlignementToWindows(TAlignmentParser & alignment, TWindowPair & windowPair);
+	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair);
 	bool readData(TWindowPair & windowPair);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);

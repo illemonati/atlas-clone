@@ -14,6 +14,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include <vector>
+#include <algorithm>
 
 //---------------------------------------------------------------
 //TReadGroupMaxLength

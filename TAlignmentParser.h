@@ -36,7 +36,6 @@ private:
 	//quality filter
 	bool applyQualityFilter;
 	int minQual, maxQual;
-	int minQualForPrinting, maxQualForPrinting;
 
 	//read trimming
 	bool trimReads;
@@ -53,6 +52,7 @@ private:
 public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
+	int minQualForPrinting, maxQualForPrinting;
 
 	//construction
 	TAlignmentParser();

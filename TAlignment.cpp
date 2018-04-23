@@ -444,7 +444,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
-		bases[d].quality = qualityMap.illuminaQualityBins[bases[d].quality];
+		quality[d] = qualityMap.illuminaQualityBins[quality[d]];
 	}
 	changed = true;
 };

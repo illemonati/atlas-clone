@@ -340,11 +340,11 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 	return true;
 };
 
-bool TGenome::addAlignementToWindows(TAlignmentParser & alignment, TWindowPair & windowPair){
+bool TGenome::addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair){
 	//check if bam file is sorted
-	if(alignment.position < oldPos)
+	if(alignment.getPosition() < oldPos)
 		throw "BAM file must be sorted by position!";
-	oldPos = alignment.position;
+	oldPos = alignment.getPosition();
 
 	//and add
 	if(alignment.position >= curStart){
@@ -363,6 +363,9 @@ bool TGenome::addAlignementToWindows(TAlignmentParser & alignment, TWindowPair &
 bool TGenome::readData(TWindowPair & windowPair){
 	logfile->listFlush("Reading data ...");
 
+	TAlignment alignment;
+	alignmentParser.setParsingToTrue();
+
 	//measure runtime
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -370,7 +373,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 	//parse through reads
 	if(oldAlignementMustBeConsidered){
 		oldAlignementMustBeConsidered = false;
-		if(!addAlignementToWindows(alignmentParser, windowPair)){
+		if(!addAlignementToWindows(alignment, windowPair)){
 			//next read is for a later window
 			oldAlignementMustBeConsidered = true;
 			gettimeofday(&end, NULL);
@@ -380,13 +383,13 @@ bool TGenome::readData(TWindowPair & windowPair){
 		}
 	}
 
-	while(alignmentParser.readAlignment(bamReader) && alignmentParser.chrNumber==chrNumber){
-		if(alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+	while(alignmentParser.readAlignment(bamReader, alignment) && alignment.chrNumber==chrNumber){
+		if(alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 			//now parse alignment
 			alignmentParser.parse();
 
 			//and add to windows
-			if(!addAlignementToWindows(alignmentParser, windowPair)){
+			if(!addAlignementToWindows(alignment, windowPair)){
 				//read is beyond window and should be reconsidered
 				oldAlignementMustBeConsidered = true;
 				break;
@@ -1882,7 +1885,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 				++counter;
 
 				alignment.recalibrate(*recalObject, qualMap);
-				alignment.save(bamWriter);
+				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
 				reportProgressParsingBamFile(counter, start);
 	        }
@@ -1940,7 +1943,7 @@ void TGenome::binQualityScores(TParameters & params){
 
 		//update and write (only if alignment qualities could be calculated)
 		alignment.binQualityScores(qualMap);
-		alignment.save(bamWriter);
+		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting);
 
 		//report
 		reportProgressParsingBamFile(counter, start);
@@ -2447,15 +2450,14 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");
-	int times = params.getParameterIntWithDefault("times", 1);
 	//check if prob is a vector of multiple probabilities
 	std::vector<double> downSampleProbVector;
 	if(!stringContainsOnly(prob, "-0123456789.,")) throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
 	fillVectorFromString(prob, downSampleProbVector, ',');
 
-	std::vector<double>::iterator it;
+	//read how many replicates
 	int numProbs = downSampleProbVector.size();
-
+	int times = params.getParameterIntWithDefault("times", 1);
 	if(times > 1 && numProbs > 1) throw "Replicated downsampling is not implemented for more than one prob";
 	if(times > 1) numProbs = times;
 
@@ -2465,7 +2467,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	bool first = true;
 	int i=0;
 	if(times == 1){
-		for(it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
+		for(std::vector<double>::iterator it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
 			if(first) first = false;
 			else logfile->flush(",");
 			logfile->flush(" " + toString(*it));
@@ -2507,6 +2509,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 	//other temp variables
 	long counter = 0;
 	double r;
+	TGenotypeMap genoMap;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -2524,7 +2527,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 		for(i=0; i<numProbs; ++i){
 			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 			if(r < downSampleProb[i])
-				alignment.save(bamWriter[i]);
+				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting);
 		}
 
 		//report
@@ -2563,6 +2566,7 @@ void TGenome::downSampleReads(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
+	TGenotypeMap genoMap;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -2573,7 +2577,7 @@ void TGenome::downSampleReads(TParameters & params){
 	while(alignmentParser.readAlignment(bamReader, alignment)){
 
 		alignment.downsampleAlignment(fraction, *randomGenerator);
-		alignment.save(bamWriter);
+		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting);
 
 		//report
 		++counter;
@@ -3075,13 +3079,16 @@ void TGenome::runPMDS(TParameters & params){
 	double maxPMDS = params.getParameterDoubleWithDefault("maxPMDS", 10000);
 	logfile->list("Filtering out reads with " + toString(minPMDS) + " > PMDS > " + toString(maxPMDS));
 
-
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 	float runtime;
 	long counter = 0, counterF = 0;
+
+	//other tmp
+	TQualityMap qualMap;
+	TGenotypeMap genoMap;
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -3098,7 +3105,7 @@ void TGenome::runPMDS(TParameters & params){
 
         if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 			//recalibrate quality scores
-			alignment.recalibrate(*recalObject);
+			alignment.recalibrate(*recalObject, qualMap);
 
 			//calc PMD
 			PMDS = alignment.calculatePMDS(pi, pmdObjects);
@@ -3106,9 +3113,9 @@ void TGenome::runPMDS(TParameters & params){
 			//update and write
 			if(PMDS > minPMDS && PMDS < maxPMDS){
 				alignment.updateOptionalSamField("DS", PMDS);
-				alignmentParser.save(bamWriter);
+				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 			} else ++counterF;
-		} else alignmentParser.save(bamWriter);
+		} else alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
 		//report progress
 		if(counter % 1000000 == 0){

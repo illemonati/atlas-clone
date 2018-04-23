@@ -40,7 +40,7 @@ class TBase{
 public:
 	Base base;
 	double errorRate;
-	int quality;
+//	int quality;
 	int posInRead; //zero based!
 	int posInReadRev; //zero based!
 	double PMD_CT, PMD_GA;
@@ -51,7 +51,7 @@ public:
 	TBase(){
 		base = N;
 		errorRate = -1.0;
-		quality = -1;
+//		quality = -1;
 		posInRead = -1;
 		posInReadRev = -1;
 		PMD_CT = -1.0;
@@ -60,10 +60,10 @@ public:
 		context = cNN;
 	}
 
-	TBase(Base & Base, int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
 		base = Base;
-		errorRate = ;
-		quality = Quality;
+		errorRate = ErrorRate;
+//		quality = Quality;
 		posInRead = PosInRead;
 		posInReadRev = PosInReadRev;
 		PMD_CT = thisPMD_CT;
