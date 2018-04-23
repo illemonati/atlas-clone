@@ -1672,7 +1672,10 @@ void TGenome::BQSR(TParameters & params){
 };
 
 void TGenome::printQualityDistribution(TParameters & params){
+	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	//Assemble quality distribution
 	int maxQinPrintQualityDistribution = maxPhredInt;
 //			params.getParameterIntWithDefault("maxQ", 100);
@@ -1692,12 +1695,12 @@ void TGenome::printQualityDistribution(TParameters & params){
     long counter = 0;
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment(bamReader)){
-        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
-			++counter;
+	while(alignmentParser.readAlignment(bamReader, alignment)){
+		++counter;
+        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 
 			//update and write (only if alignment qualities could be calculated)
-			alignmentParser.addToQualityTable(qualDist[alignmentParser.readGroupId]);
+			alignment.addToQualityTable(qualDist[alignment.readGroupId]);
 
 			//report
 			reportProgressParsingBamFile(counter, start);
@@ -1827,6 +1830,10 @@ void TGenome::reportProgressParsingBamFile(const long & counter, const struct ti
 }
 
 void TGenome::recalibrateBamFile(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	//initialize recalibration
 	initializeRecalibration(params);
 
@@ -1847,6 +1854,8 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 	//other tmp variables
 	long counter = 0;
+	TQualityMap qualMap;
+	TGenotypeMap genoMap;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1855,23 +1864,25 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
     //now parse through bam file and write alignments
 	if(withPMD){
-		while(alignmentParser.readAlignment(bamReader)){
-	        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+		while(alignmentParser.readAlignment(bamReader, alignment)){
+	        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 				++counter;
+				if(!fastaReference) "Cannot take PMD into account in BAM quality scores without reference!";
+				alignmentParser.addReference(&reference);
 
-				alignmentParser.recalibrate(*recalObject, pmdObjects);
-				alignmentParser.save(bamWriter);
+				alignment.recalibrate(*recalObject, pmdObjects, alignmentParser.fastaBuffer, qualMap);
+				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
 				reportProgressParsingBamFile(counter, start);
 			}
         }
 	} else {
-		while(alignmentParser.readAlignment(bamReader)){
-	        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+		while(alignmentParser.readAlignment(bamReader, alignment)){
+	        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 				++counter;
 
-				alignmentParser.recalibrate(*recalObject);
-				alignmentParser.save(bamWriter);
+				alignment.recalibrate(*recalObject, qualMap);
+				alignment.save(bamWriter);
 
 				reportProgressParsingBamFile(counter, start);
 	        }
@@ -1909,8 +1920,13 @@ void TGenome::binQualityScores(TParameters & params){
 	if (!bamWriter.Open(filename, bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	//other temp variables
 	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 	long counter = 0;
 
 	//prepare reporting
@@ -1919,12 +1935,12 @@ void TGenome::binQualityScores(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment(bamReader)){
+	while(alignmentParser.readAlignment(bamReader, alignment)){
 		++counter;
 
 		//update and write (only if alignment qualities could be calculated)
-		alignmentParser.binQualityScores();
-		alignmentParser.save(bamWriter);
+		alignment.binQualityScores(qualMap);
+		alignment.save(bamWriter);
 
 		//report
 		reportProgressParsingBamFile(counter, start);
@@ -1945,6 +1961,10 @@ void TGenome::binQualityScores(TParameters & params){
 void TGenome::assessSoftClipping(TParameters & params){
 	//build table ??
 
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	//open output file
 	std::string filename = outputName + "_clippingStats.txt.gz";
 	gz::ogzstream out(filename.c_str());
@@ -1963,8 +1983,8 @@ void TGenome::assessSoftClipping(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//now parse through bam file and write alignments
-	while(alignmentParser.readAlignment(bamReader)){
-		alignmentParser.assessSoftClipping(S_left, middle, S_right);
+	while(alignmentParser.readAlignment(bamReader, alignment)){
+		alignment.assessSoftClipping(S_left, middle, S_right);
 
 		//report
 		out << alignmentParser.bamAlignment.Name << "\t" << alignmentParser.bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
@@ -2422,6 +2442,9 @@ void TGenome::mergePairedEndReads(TParameters & params){
 }
 
 void TGenome::downSampleBamFile(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");
 	int times = params.getParameterIntWithDefault("times", 1);
@@ -2491,17 +2514,17 @@ void TGenome::downSampleBamFile(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment(bamReader)){
+	while(alignmentParser.readAlignment(bamReader, alignment)){
 		//filters
-        if(!readGroups.readGroupInUse(alignmentParser.readGroupId)) continue;
-        if(!useChromosome[alignmentParser.chrNumber]) continue;
+        if(!readGroups.readGroupInUse(alignment.readGroupId)) continue;
+        if(!useChromosome[alignment.chrNumber]) continue;
 		++counter;
 
 		//accept read or not?
 		for(i=0; i<numProbs; ++i){
 			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 			if(r < downSampleProb[i])
-				alignmentParser.save(bamWriter[i]);
+				alignment.save(bamWriter[i]);
 		}
 
 		//report
@@ -2522,9 +2545,13 @@ void TGenome::downSampleBamFile(TParameters & params){
 }
 
 void TGenome::downSampleReads(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
+	//read parameters
 	double fraction = params.getParameterDoubleWithDefault("fraction", 0.1);
 	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked.");
-
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -2543,10 +2570,10 @@ void TGenome::downSampleReads(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment(bamReader)){
+	while(alignmentParser.readAlignment(bamReader, alignment)){
 
-		alignmentParser.downsampleAlignment(fraction, *randomGenerator);
-		alignmentParser.save(bamWriter);
+		alignment.downsampleAlignment(fraction, *randomGenerator);
+		alignment.save(bamWriter);
 
 		//report
 		++counter;
@@ -2563,6 +2590,9 @@ void TGenome::downSampleReads(TParameters & params){
 }
 
 void TGenome::diagnoseBamFile(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+
     //open output files
     std::ofstream outputDepth;
     std::string outputFileNameCov = outputName + "_approximateDepth.txt";
@@ -2588,6 +2618,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     fragmentStats.open(outputFileNameFL.c_str());
     if(!fragmentStats) throw "Failed to open output file '" + outputFileNameFL + "'!";
 
+    //calculate length of genome
     double totLength = 0.0;
     int chrNum = 0;
     for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator, ++chrNum)
@@ -2619,23 +2650,23 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //now parse through bam file and sum number of aligned bases
     //TODO: avoid getting properties from bamAlignment, use alignmentParser
-    while(alignmentParser.readAlignment(bamReader)){
+    while(alignmentParser.readAlignment(bamReader, alignment)){
     	//filters
-        if(!readGroups.readGroupInUse(alignmentParser.readGroupId)) continue;
-        if(!useChromosome[alignmentParser.chrNumber]) continue;
-        if(!alignmentParser.passedFilters) continue;
-        if(alignmentParser.isProperPair){
-        	if(!alignmentParser.isReverseStrand){
+        if(!readGroups.readGroupInUse(alignment.readGroupId)) continue;
+        if(!useChromosome[alignment.chrNumber]) continue;
+        if(!alignment.passedFilters) continue;
+        if(alignment.isProperPair){
+        	if(!alignment.isReverseStrand){
         		++numProperPairs;
         		sumFragLen += abs(alignmentParser.bamAlignment.InsertSize);
         		sumSquaredFragLen += (alignmentParser.bamAlignment.InsertSize * alignmentParser.bamAlignment.InsertSize);
         	}
         }
 
-        RGInd = alignmentParser.readGroupId;
+        RGInd = alignment.readGroupId;
         totCov += alignmentParser.bamAlignment.AlignedBases.length();
         cov[RGInd] += alignmentParser.bamAlignment.AlignedBases.length();
-        ++MQ[RGInd][alignmentParser.bamAlignment.MapQuality];
+        ++MQ[RGInd][alignment.mappingQuality];
         ++RL[RGInd][alignmentParser.bamAlignment.Length];
 
         //report
@@ -2968,8 +2999,13 @@ void TGenome::estimatePMD(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
 
-	//prepare readGroup map
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
+	//prepare maps
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+	TGenotypeMap genoMap;
 
 	//prepare PMD table
 	int maxLength = params.getParameterIntWithDefault("length", 50);
@@ -2982,9 +3018,9 @@ void TGenome::estimatePMD(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//iterate through BAM file
-	while(alignmentParser.readAlignment(bamReader)){
-        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId))
-			alignmentParser.addToPMDTables(pmdTables);
+	while(alignmentParser.readAlignment(bamReader, alignment)){
+        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId))
+			alignment.addToPMDTables(pmdTables, genoMap);
 
 		//report
 		++numreadsAdded;
@@ -3025,6 +3061,10 @@ void TGenome::runPMDS(TParameters & params){
 	//write new bam file with PMDS score added
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
 
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	initializeRecalibration(params);
 	if(!fastaReference) throw "Cannot run PMDS without reference!";
 
@@ -3053,19 +3093,19 @@ void TGenome::runPMDS(TParameters & params){
 
 	//now parse through bam file and write alignments
 	double PMDS;
-	while(alignmentParser.readAlignment(bamReader)){
+	while(alignmentParser.readAlignment(bamReader, alignment)){
 		++counter;
 
-        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
+        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 			//recalibrate quality scores
-			alignmentParser.recalibrate(*recalObject);
+			alignment.recalibrate(*recalObject);
 
 			//calc PMD
-			PMDS = alignmentParser.calculatePMDS(pi, pmdObjects);
+			PMDS = alignment.calculatePMDS(pi, pmdObjects);
 
 			//update and write
 			if(PMDS > minPMDS && PMDS < maxPMDS){
-				alignmentParser.updateOptionalSamField("DS", PMDS);
+				alignment.updateOptionalSamField("DS", PMDS);
 				alignmentParser.save(bamWriter);
 			} else ++counterF;
 		} else alignmentParser.save(bamWriter);

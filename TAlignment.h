@@ -53,6 +53,7 @@ private:
 	int32_t position;
 	bool isReverseStrand;
 	bool isProperPair;
+	int mappingQuality;
 	bool passedFilters;
 	bool recalibrated;
 

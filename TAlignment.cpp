@@ -17,6 +17,7 @@ TAlignment::TAlignment(){
 	position = 0;
 	isReverseStrand = false;
 	isProperPair = false;
+	mappingQuality = 0;
 	passedFilters = false;
 	parsed = false;
 	changed = false;
@@ -138,6 +139,7 @@ void TAlignment::fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId){
 	position = bamAlignment.Position;
 	isReverseStrand = bamAlignment.IsReverseStrand();
 	isProperPair = bamAlignment.IsProperPair();
+	mappingQuality = bamAlignment.MapQuality;
 	readGroupId = ReadGroupId;
 }
 
