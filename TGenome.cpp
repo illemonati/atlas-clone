@@ -360,7 +360,7 @@ bool TGenome::addAlignementToWindows(TAlignment & alignment, TWindowPair & windo
 	return true; //continue
 }
 
-bool TGenome::readData(TWindowPair & windowPair){
+bool TGenome::readData(TWindow & window){
 	logfile->listFlush("Reading data ...");
 
 	TAlignment alignment;
@@ -370,10 +370,11 @@ bool TGenome::readData(TWindowPair & windowPair){
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 
+/*
 	//parse through reads
 	if(oldAlignementMustBeConsidered){
 		oldAlignementMustBeConsidered = false;
-		if(!addAlignementToWindows(alignment, windowPair)){
+		if(!addAlignementToWindows(alignment, window)){
 			//next read is for a later window
 			oldAlignementMustBeConsidered = true;
 			gettimeofday(&end, NULL);
@@ -382,13 +383,13 @@ bool TGenome::readData(TWindowPair & windowPair){
 			return false; //still only in next window
 		}
 	}
+*/
 
-	while(alignmentParser.readAlignment(bamReader, alignment) && alignment.chrNumber==chrNumber){
+	while(alignmentParser.readData()){
 		if(alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 			//and add to windows
-			if(!addAlignementToWindows(alignment, windowPair)){
+			if(!addAlignementToWindows(alignment, window)){
 				//read is beyond window and should be reconsidered
-				oldAlignementMustBeConsidered = true;
 				break;
 			}
 		}

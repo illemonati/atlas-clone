@@ -47,6 +47,10 @@ private:
 	//reference
 	bool hasReference;
 
+	//alignment stacks
+	std::vector<TAlignment*> usedAlignments;
+	std::vector<TAlignment*> emptyAlignments;
+
 public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
@@ -72,8 +76,14 @@ public:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment);
+	bool readAlignment(BamTools::BamReader & bamReader, TAlignment* alignment);
 	void addReference(BamTools::Fasta* reference);
+
+	//read data in windows
+	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair, int oldPos);
+	bool readData(BamTools::BamReader & bamReader, TWindow & window);
+	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
+
 };
 
 #endif /* TALIGNMENTPARSER_H_ */

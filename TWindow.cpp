@@ -79,35 +79,34 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
+bool TWindow::addFromRead(TAlignment & alignment, TPMD* pmdObjects){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
 	 */
 
 	//TODO: move to alignment parser instead?
+	//TODO: check if bases in window
 
 	//check if alignment is inside window
-	if(alignmentParser.position >= end) return true;
-	if(alignmentParser.position + alignmentParser.length < start) return false;
+	if(alignment.position >= end) return true;
+	if(alignment.position + alignment.length < start) return false;
 
 	//find which position to consider first
 	++numReadsInWindow;
-	int firstPos = alignmentParser.position - start;
+	int firstPos = alignment.position - start;
 
 	//std::cout << "[" << start << "," << end <<  "]: firstPos = " << firstPos;
 
 	int p = 0;
 
 	if(firstPos < 0){
-		while(p < alignmentParser.length && (firstPos + alignmentParser.alignedPos[p]) < 0)
+		while(p < alignment.length && (firstPos + alignment.alignedPos[p]) < 0)
 			++p;
-		if(p == alignmentParser.length)
+		if(p == alignment.length)
 			return false;
 	}
 	int internalPos;
-
-	//std::cout << " -> firstPos = " << firstPos << ", p = " << p << std::endl;
 
 	/* Note:
 	 *  1) Reference is 5' -> 3'
@@ -116,14 +115,12 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 	 *  4) Function add needs first P(C->T), then P(G->A)
 	 */
 
-	for(; p < alignmentParser.length; ++p){
-		if(alignmentParser.aligned[p] && alignmentParser.base[p] != N){
-			internalPos = firstPos + alignmentParser.alignedPos[p];
+	for(; p < alignment.length; ++p){
+		if(alignment.aligned[p] && alignment.bases[p].base != N){
+			internalPos = firstPos + alignment.alignedPos[p];
 			if(internalPos >= length)
 				return true; //since part of the read maps to next window
-			sites[internalPos].add(alignmentParser.base[p], alignmentParser.quality[p], p, alignmentParser.length-p, pmdObjects[alignmentParser.readGroupId].getProbCT(alignmentParser.distFrom5Prime[p]), pmdObjects[alignmentParser.readGroupId].getProbGA(alignmentParser.distFrom3Prime[p]), alignmentParser.context[p], alignmentParser.readGroupId);
-
-			//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
+			sites[internalPos].add(&alignment.bases[p]);
 		}
 	}
 

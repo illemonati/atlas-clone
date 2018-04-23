@@ -46,7 +46,8 @@ public:
 	void clear();
 	void stealFromOther(TSite* other);
 
-	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+//	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
+	void add(TBase* base);
 	void setRefBase(char & Base){
 		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T')
 			referenceBase = Base;

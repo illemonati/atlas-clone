@@ -76,7 +76,7 @@ private:
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
 	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair);
-	bool readData(TWindowPair & windowPair);
+	bool readData(TWindow & window);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
