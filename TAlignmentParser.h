@@ -35,7 +35,6 @@ private:
 
 	//quality filter
 	bool applyQualityFilter;
-	int minQual, maxQual;
 
 	//read trimming
 	bool trimReads;
@@ -47,12 +46,13 @@ private:
 
 	//reference
 	bool hasReference;
-	TFastaBuffer* fastaBuffer;
 
 public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
 	int minQualForPrinting, maxQualForPrinting;
+	int minQual, maxQual;
+	TFastaBuffer* fastaBuffer;
 
 	//construction
 	TAlignmentParser();
@@ -65,7 +65,7 @@ public:
 
 	//setters
 	void keepDuplicates(){_keepDuplicates = true;};
-	void TAlignmentParser::setParsingToTrue(){parse = true;};
+	void setParsingToTrue(){parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);

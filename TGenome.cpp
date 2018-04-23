@@ -385,9 +385,6 @@ bool TGenome::readData(TWindowPair & windowPair){
 
 	while(alignmentParser.readAlignment(bamReader, alignment) && alignment.chrNumber==chrNumber){
 		if(alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
-			//now parse alignment
-			alignmentParser.parse();
-
 			//and add to windows
 			if(!addAlignementToWindows(alignment, windowPair)){
 				//read is beyond window and should be reconsidered
@@ -450,14 +447,14 @@ bool TGenome::readData(TWindowPair & windowPair){
 void TGenome::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
 	//create an array of TPMD objects for each read group
-	pmdObjects = new TPMD[readGroups.numGroups];
+	pmdObjects = new TPMD[readGroups.size()];
 
 	//now fill them!
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
 		//all read groups have the same pmd
 		logfile->list("Initializing one PMD function for all read groups.");
 		pmdObjects[0].initialize(params, logfile);
-		for(int i=1; i<readGroups.numGroups; ++i)
+		for(int i=1; i<readGroups.size(); ++i)
 			pmdObjects[i].initialize(pmdObjects[0]);
 		hasPMD = true;
 	} else if(params.parameterExists("pmdFile")){
@@ -497,7 +494,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		file.close();
 
 		//test if we have a function for all read groups
-		for(int i=0; i<readGroups.numGroups; ++i){
+		for(int i=0; i<readGroups.size(); ++i){
 			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
 			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
 		}
@@ -506,7 +503,7 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 		//no post mortem damage
 		logfile->list("Assuming there is no PMD in the data.");
 		std::string pmdString = "none";
-		for(int i=0; i<readGroups.numGroups; ++i){
+		for(int i=0; i<readGroups.size(); ++i){
 			pmdObjects[i].initializeFunction(pmdString, pmdGA);
 			pmdObjects[i].initializeFunction(pmdString, pmdCT);
 		}
@@ -1688,7 +1685,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 
 	//initialize tables: one overall, one per read group
 	std::vector<TQualityTable> qualDist;
-	for(int i=0; i<readGroups.numGroups; ++i)
+	for(int i=0; i<readGroups.size(); ++i)
 		qualDist.emplace_back(maxQinPrintQualityDistribution);
 
 	//vars
@@ -1718,7 +1715,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	//print per read group table
 	logfile->startIndent("Writing distributions:");
 	std::string outFileName;
-	for(int i=0; i<readGroups.numGroups; ++i){
+	for(int i=0; i<readGroups.size(); ++i){
 		//open output file
 		outFileName = outputName + "_" + readGroups.getName(i) + "_qualityDistribution.txt";
 		logfile->listFlush("Writing distribution for read group '" + readGroups.getName(i) + "' to '" + outFileName + "' ...");
@@ -1730,7 +1727,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	outFileName = outputName + "_total_qualityDistribution.txt";
 	logfile->listFlush("Writing total distribution to '" + outFileName + " ...");
 	TQualityTable allQualDist(maxQinPrintQualityDistribution);
-	for(int i=0; i<readGroups.numGroups; ++i)
+	for(int i=0; i<readGroups.size(); ++i)
 		allQualDist.add(qualDist[i]);
 	allQualDist.write(outFileName);
 	logfile->done();
@@ -1779,7 +1776,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
-	for(int i=0; i<readGroups.numGroups + 1; ++i){
+	for(int i=0; i<readGroups.size() + 1; ++i){
 		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
 		QTtables.push_back(QT);
 	}
@@ -1800,7 +1797,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	}
 
 	//print final tables for read groups
-	for(int i=0; i<readGroups.numGroups; ++i){
+	for(int i=0; i<readGroups.size(); ++i){
 		filename = outputName + "_" + readGroups.getName(i) + "_qualityTransformation.txt";
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open output file '" + filename + "'!";
@@ -1870,7 +1867,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		while(alignmentParser.readAlignment(bamReader, alignment)){
 	        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
 				++counter;
-				if(!fastaReference) "Cannot take PMD into account in BAM quality scores without reference!";
+				if(!fastaReference) throw "Cannot take PMD into account in BAM quality scores without reference!";
 				alignmentParser.addReference(&reference);
 
 				alignment.recalibrate(*recalObject, pmdObjects, alignmentParser.fastaBuffer, qualMap);
@@ -2642,9 +2639,9 @@ void TGenome::diagnoseBamFile(TParameters & params){
     long sumFragLen = 0;
     long sumSquaredFragLen = 0;
 
-    long** MQ = new long*[readGroups.numGroups];
-    long** RL = new long*[readGroups.numGroups];
-    for(int i = 0; i < readGroups.numGroups; ++i){
+    long** MQ = new long*[readGroups.size()];
+    long** RL = new long*[readGroups.size()];
+    for(int i = 0; i < readGroups.size(); ++i){
     	cov.push_back(0);
     	MQ[i] = new long[100];
     	RL[i] = new long[500];
@@ -2688,7 +2685,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     //cov
     outputDepth << "RG\tApproximate_depth";
     outputDepth << "\nallReadGroups\t" << totCov/totLength;
-    for(int r=0; r<readGroups.numGroups; ++r){
+    for(int r=0; r<readGroups.size(); ++r){
         outputDepth << "\n" << readGroups.getName(r) << "\t" << cov[r]/totLength;
     }
     outputDepth << "\n";
@@ -2699,11 +2696,11 @@ void TGenome::diagnoseBamFile(TParameters & params){
     outputMQ << "RG\tMapping_quality\tCount";
     for(int i=0; i<100; ++i){
     	tot = 0;
-    	for(int r=0; r<readGroups.numGroups; ++r) tot += MQ[r][i];
+    	for(int r=0; r<readGroups.size(); ++r) tot += MQ[r][i];
 		outputMQ << "\nallReadGroups\t" << i << "\t" << tot;
 
     }
-    for(int r=0; r<readGroups.numGroups; ++r){
+    for(int r=0; r<readGroups.size(); ++r){
         for(int i=0; i<100; ++i){
             outputMQ << "\n" << readGroups.getName(r) << "\t" << i << "\t" << MQ[r][i];
         }
@@ -2715,10 +2712,10 @@ void TGenome::diagnoseBamFile(TParameters & params){
     outputReadLen << "RG\tRead_length\tCount";
     for(int i=0; i<500; ++i){
     	tot = 0;
-    	for(int r=0; r<readGroups.numGroups; ++r) tot += RL[r][i];
+    	for(int r=0; r<readGroups.size(); ++r) tot += RL[r][i];
 		outputReadLen << "\nallReadGroups\t" << i << "\t" << tot;
     }
-    for(int r=0; r<readGroups.numGroups; ++r){
+    for(int r=0; r<readGroups.size(); ++r){
         for(int i=0; i<500; ++i){
             outputReadLen << "\n" << readGroups.getName(r)<< "\t" << i << "\t" << RL[r][i];
         }
@@ -2738,7 +2735,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     outputReadLen.close();
     fragmentStats.close();
 
-    for(int i = 0; i < readGroups.numGroups; ++i){
+    for(int i = 0; i < readGroups.size(); ++i){
     	delete MQ[i];
     	delete RL[i];
     }
@@ -3014,7 +3011,7 @@ void TGenome::estimatePMD(TParameters & params){
 	//prepare PMD table
 	int maxLength = params.getParameterIntWithDefault("length", 50);
 	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
-	TPMDTables pmdTables(&readGroups, maxLength, readGroupMap);
+	TPMDTables pmdTables(readGroups, maxLength, readGroupMap);
 
 	//measure progress and runtime
 	struct timeval start;

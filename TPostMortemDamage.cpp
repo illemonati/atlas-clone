@@ -384,7 +384,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
-TPMDTables::TPMDTables(TReadGroups* ReadGroups, int maxLength, TReadGroupMap &ReadGroupMap):readGroupMapObject(ReadGroupMap){
+TPMDTables::TPMDTables(TReadGroups &ReadGroups, int maxLength, TReadGroupMap &ReadGroupMap):readGroupMapObject(ReadGroupMap),readGroups(ReadGroups){
 	readGroups = ReadGroups;
 	readGroupMapObject = ReadGroupMap;
 	origNumReadGroups = readGroupMapObject.getOrigNumReadGroups();
@@ -420,7 +420,7 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->getPMDStringCT() << "\t" << reverse[readGroupMapObject[i]]->getPMDStringGA() << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->getPMDStringCT() << "\t" << reverse[readGroupMapObject[i]]->getPMDStringGA() << "\n";
 	}
 	out.close();
 }
@@ -431,9 +431,9 @@ void TPMDTables::writeTable(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->inUse[i]){
-			forward[readGroupMapObject[i]]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMapObject[i]]->writeTable(out, readGroups->getName(i) + "\treverse\t");
+		if(readGroups.readGroupInUse(i)){
+			forward[readGroupMapObject[i]]->writeTable(out, readGroups.getName(i) + "\tforward\t");
+			reverse[readGroupMapObject[i]]->writeTable(out, readGroups.getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -445,9 +445,9 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->inUse[i]){
-			forward[readGroupMapObject[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMapObject[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
+		if(readGroups.readGroupInUse(i)){
+			forward[readGroupMapObject[i]]->writeTableWithCounts(out, readGroups.getName(i) + "\tforward\t");
+			reverse[readGroupMapObject[i]]->writeTableWithCounts(out, readGroups.getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -459,9 +459,9 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 	if(!out) throw "Failed to open file '" + filename + "'!";
 
 	//loop over all read groups, fit and write exponential model
-	for(int i=0; i<readGroups->numGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), logfile)
-			<< "\t" << reverse[readGroupMapObject[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), logfile) << "\n";
+	for(int i=0; i<readGroups.size(); ++i){
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups.getName(i), logfile)
+			<< "\t" << reverse[readGroupMapObject[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups.getName(i), logfile) << "\n";
 	}
 	out.close();
 }
