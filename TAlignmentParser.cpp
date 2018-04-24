@@ -7,6 +7,7 @@
 
 #include "TAlignmentParser.h"
 #include "TWindow.h"
+#include "TReadGroups.h"
 
 //-----------------------------------------------------
 //TFastaBuffer
@@ -47,6 +48,7 @@ TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
 	parse = false;
+	oldPos = -1;
 
 	//filters
 	applyQualityFilter = false;
@@ -107,9 +109,9 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 //------------------------------
 //public functions
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment* alignment){
+bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
 	//make sure container is empty
-	alignment->clear();
+	alignment.clear();
 
 	if(!bamReader.GetNextAlignment(bamAlignment))
 		return false;
@@ -122,7 +124,7 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	std::string readGroup;
 	bamAlignment.GetTag("RG", readGroup);
 	int readGroupId = readGroupTable->find(readGroup);
-	alignment->fill(bamAlignment, readGroupId);
+	alignment.fill(bamAlignment, readGroupId);
 
 	//check if insert size is shorter than read, this means we are reading the adaptor sequence
 	bool filtersPassed = true;
@@ -157,28 +159,23 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 //---------------------
 
 
-bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & window){
+bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & window, TReadGroups & readGroups){
 	logfile->listFlush("Reading data ...");
-
-	TAlignment* alignmentP;
-	setParsingToTrue();
 
 	//measure runtime
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 
 	//decide which alignment to fill (from empty stack or create a new one)
-	if(emptyAlignments.size() > 0)
-		alignmentP = emptyAlignments.begin();
-	else
-		alignmentP = new TAlignment;
+	TAlignment* alignmentP = window.getNewAlignment();
+	setParsingToTrue();
 
 	//pass it to readAlignment
-	readAlignment(bamReader, alignmentP);
+	readAlignment(bamReader, *alignmentP);
 
 	//if alignment.passedFilters & readGroupInUse:
 		//addAlignementToWindow
-	if(alignmentP->passedFilters && readGroups.readGroupInUse(alignmentP->readGroupId)){
+	if(readGroups.readGroupInUse(alignmentP->readGroupId)){
 		//and add to windows
 		if(!addAlignementToWindows(alignment, window)){
 			//read is beyond window and should be reconsidered
@@ -254,29 +251,18 @@ bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & windo
 };
 
 
-bool TAlignmentParser::addAlignementToWindows(TAlignment & alignment, TWindow & window, int oldPos, int curStart, int curEnd){
+bool TAlignmentParser::addAlignementToWindows(TAlignment* alignment, TWindow & window, int curEnd){
 	//check if bam file is sorted
-	if(alignment.getPosition() < oldPos)
+	if(alignment->getPosition() < oldPos)
 		throw "BAM file must be sorted by position!";
-	oldPos = alignment.getPosition();
+	oldPos = alignment->getPosition();
 
 	//and add
-	if(alignment.position >= curStart){
-		//check if still within current window and add to window
-		if(alignment.position >= curEnd){
-			return false;
-		}
-		else {
-			//check if there are emptyAlignments
-			if(emptyAlignments.size() > 0) emptyAlignments.pop_back()
-			else {
-
-				window.addFromRead())
-			}
-
-		}
-	}
-	return true; //continue
+	if(alignment->getPosition() >= window.start + window.length){
+		window.addAlignment(alignment);
+		return true; //continue
+	} else
+		return false;
 }
 
 

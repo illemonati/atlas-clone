@@ -32,6 +32,15 @@ TWindow::TWindow(long Start, long End){
 	initSites(end - start); //end NOT in window!
 };
 
+TAlignment* TWindow::getNewAlignment(){
+	TAlignment* alignment;
+	if(emptyAlignments.size() > 0){
+		alignment = emptyAlignments.begin();
+		emptyAlignments.pop_back();
+		return alignment;
+	} else
+		return new TAlignment;
+}
 void TWindow::initSites(long newLength){
 	if(sitesInitialized){
 		clear();
@@ -79,13 +88,36 @@ void TWindow::move(long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(TAlignment & alignment, TPMD* pmdObjects){
+void TWindow::addAlignment(TAlignment* alignment){
+	usedAlignments.push_back(alignment);
+}
+
+bool TWindow::addFromRead(){
 	/* Note:
-	 * Function returns true if read also maps to next window and
+	 * Function returns true if read's start is inside window
 	 * returns false if end of read is within this (or a previous) window
 	 */
+	//go through reads and add them to self
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments; ++usedAlignments){
+		//check if alignment start is inside window
+		if((**alignmentIt).position >= end) return false;
+		++numReadsInWindow;
 
-	//TODO: move to alignment parser instead?
+		//find which position to consider first
+		int firstPos = (**alignmentIt).position - start;
+
+		//now add positions <= end to window
+		if(firstPos < 0){
+			int p = 0;
+			//why would firstPos + (**alignmentIt).alignedPos[p] be smaller than 0?
+			while(p < (**alignmentIt).length && (firstPos + (**alignmentIt).alignedPos[p]) < 0)
+				++p;
+			if(p == alignment.length)
+				return false;
+		}
+
+	}
+
 	//TODO: check if bases in window
 
 	//check if alignment is inside window

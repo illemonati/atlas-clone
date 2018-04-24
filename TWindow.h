@@ -41,6 +41,10 @@ public:
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
 
+	//alignment stacks
+	std::vector<TAlignment*> usedAlignments;
+	std::vector<TAlignment*> emptyAlignments;
+
 	TWindow();
 	TWindow(long Start, long End);
 	~TWindow(){
@@ -49,9 +53,11 @@ public:
 			delete[] sites;
 		}
 	};
+	TAlignment* getNewAlignment();
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End);
+	void addAlignment(TAlignment* alignment);
 	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
@@ -96,7 +102,7 @@ public:
 	double calcLogLikelihood();
 };
 
-//---------------------------------------------------------------
+/*//---------------------------------------------------------------
 //TWindowPair
 //---------------------------------------------------------------
 
@@ -131,7 +137,7 @@ public:
 		next->clear();
 	}
 
-};
+};*/
 
 
 #endif /* TWINDOW_H_ */

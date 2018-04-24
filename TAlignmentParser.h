@@ -32,6 +32,7 @@ private:
 	TLog* logfile;
 	bool _keepDuplicates;
 	bool parse;
+	int oldPos;
 
 	//quality filter
 	bool applyQualityFilter;
@@ -46,10 +47,6 @@ private:
 
 	//reference
 	bool hasReference;
-
-	//alignment stacks
-	std::vector<TAlignment*> usedAlignments;
-	std::vector<TAlignment*> emptyAlignments;
 
 public:
 	//alignment: goal is to make this private!
@@ -76,12 +73,12 @@ public:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readAlignment(BamTools::BamReader & bamReader, TAlignment* alignment);
+	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
-	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair, int oldPos);
-	bool readData(BamTools::BamReader & bamReader, TWindow & window);
+	bool addAlignementToWindows(TAlignment & alignment, TWindow & window, int oldPos);
+	bool readData(BamTools::BamReader & bamReader, TWindow & window, TReadGroups & readGroups);
 	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 
 };
