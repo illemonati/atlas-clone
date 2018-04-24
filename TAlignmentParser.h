@@ -18,6 +18,8 @@
 #include "TRecalibration.h"
 #include "TPostMortemDamage.h"
 #include "TAlignment.h"
+#include "TWindow.h"
+#include "TBed.h"
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -25,14 +27,16 @@
 class TAlignmentParser{
 private:
 	//variables
-	unsigned int maxSize;
 	TGenotypeMap genoMap;
 	TQualityMap qualityMap;
 	TReadGroups* readGroupTable;
 	TLog* logfile;
 	bool _keepDuplicates;
 	bool parse;
-	int oldPos;
+	int previousAlignmentPos;
+	int previousAlignmentChr;
+	TAlignment* oldAlignment;
+	bool oldAlignmentMustBeConsidered;
 
 	//quality filter
 	bool applyQualityFilter;
@@ -43,10 +47,34 @@ private:
 	int trimmingLength5Prime;
 
 	//tmp variables
-	std::string referenceSequence;
 
 	//reference
+	BamTools::Fasta* fastaReference;
+	std::string referenceSequence;
 	bool hasReference;
+
+	//window params
+	bool windowsPredefined;
+	TBed* predefinedWindows;
+	int windowSize;
+	int numWindowsOnChr;
+	int windowNumber;
+	unsigned int maxReadLength;
+	double maxMissing;
+	double maxRefN;
+
+	//masks
+	TBedReader* mask;
+	bool doMasking, considerRegions;
+	bool doCpGMasking;
+
+	//filters
+	bool applyDepthFilter;
+	size_t minDepth, maxDepth;
+	int minPhredInt, maxPhredInt;
+	int minOutQual, maxOutQual;
+
+
 
 public:
 	//alignment: goal is to make this private!
@@ -57,12 +85,15 @@ public:
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
+	TAlignmentParser(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
 	~TAlignmentParser(){
 		if(hasReference)
 			delete fastaBuffer;
+		if(doMasking)
+			delete mask;
+
 	}
-	void init(TReadGroups* readGroupTable, unsigned int MaxSize, TLog* Logfile);
+	void init(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
 
 	//setters
 	void keepDuplicates(){_keepDuplicates = true;};
@@ -77,9 +108,9 @@ public:
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
-	bool addAlignementToWindows(TAlignment & alignment, TWindow & window, int oldPos);
+	bool addAlignementToWindow(TAlignment & alignment, TWindow & window);
 	bool readData(BamTools::BamReader & bamReader, TWindow & window, TReadGroups & readGroups);
-	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
+//	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 
 };
 

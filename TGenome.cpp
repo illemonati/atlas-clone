@@ -36,29 +36,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	readGroups.fill(bamHeader);
 	chrIterator = bamHeader.Sequences.End();
 
-	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
-	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
-
 	//initialize alignment parser
-	alignmentParser.init(&readGroups, maxReadLength, logfile);
-
-	//read window parameter
-	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
-	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
-	//check if it is a number
-	if(stringContainsOnly(tmp, "1234567890.Ee-+")){
-		windowsPredefined = false;
-		windowSize = stringToInt(tmp);
-		logfile->list("Setting window size to " + toString(windowSize));
-		if(windowSize < maxReadLength) throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
-	} else {
-		windowsPredefined = true;
-		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
-		predefinedWindows = new TBed(tmp);
-		logfile->done();
-		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
-	}
-	numWindowsOnChr = 0;
+	alignmentParser.init(&readGroups, params, logfile);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -85,73 +64,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	doRecalibration = false;
 	recalObjectInitialized = false;
 
-	//check if we mask sites
-	if(params.parameterExists("mask")){
-		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
-		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
-		doMasking = true;
-		std::string maskFile = params.getParameterString("mask");
-		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
-		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->done();
-		logfile->endIndent();
-		//mask->print();
-	} else doMasking = false;
-
-	if(params.parameterExists("maskCpG")){
-		if(!fastaReference) throw "Cannot mask CpG sites without reference!";
-		doCpGMasking = true;
-		std::string maskFile = params.getParameterString("maskCpG");
-		logfile->list("Will mask all CpG sites");
-	} else doCpGMasking = false;
-
-	if(params.parameterExists("regions")){
-		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
-		considerRegions = true;
-		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
-		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->done();
-		logfile->endIndent();
-	} else considerRegions = false;
-
-	//filters
-	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
-		applyDepthFilter = true;
-		int tmpInt;
-		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
-		if(tmpInt < 0) throw "minDepth must be >= 0!";
-		minDepth = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
-		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
-		maxDepth = tmpInt;
-		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
-	} else {
-		applyDepthFilter = false;
-		minDepth = 0;
-		maxDepth = 1000000;
-	}
-
-	//quality filters
-	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
-	if(minPhredInt < 0) throw "minQual must be >= 0!";
-	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
-	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
-	alignmentParser.setQualityFilters(minPhredInt+33, maxPhredInt+33);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
-
-	//quality filters for printing
-	minOutQual = params.getParameterIntWithDefault("minOutQual", 1) + 33;
-	if(minOutQual < 0) throw "minOutQual must be >= 0!";
-	maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
-	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
-	alignmentParser.setQualityRangeForPrinting(minOutQual, maxOutQual);
-	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
-
 	//trimming ends
 	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
 		int trim3 = params.getParameterIntWithDefault("trim3", 0);
@@ -162,19 +74,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 			alignmentParser.setReadTrimming(trim3, trim5);
 			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
 		}
-	}
-
-	//other filters
-	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
-	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
-
-	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
-	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
-	if(maxRefN < 1.0 && fastaReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
-
-	if(params.parameterExists("keepDuplicates")){
-		alignmentParser.keepDuplicates();
-		logfile->list("Will keep duplicate reads.");
 	}
 
 	//limit chrs and / or windows
@@ -229,14 +128,14 @@ void TGenome::jumpToEnd(){
 	chrNumber = -1;
 }
 
-void TGenome::restartChromosome(TWindowPair & windowPair){
+void TGenome::restartChromosome(TWindow & window){
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
 
-	moveChromosome(windowPair);
+	moveChromosome(window);
 }
 
-bool TGenome::iterateChromosome(TWindowPair & windowPair){
+bool TGenome::iterateChromosome(TWindow & window){
 	if(chrIterator == bamHeader.Sequences.End()){
 		chrIterator = bamHeader.Sequences.Begin();
 		chrNumber = 0;
@@ -264,7 +163,7 @@ bool TGenome::iterateChromosome(TWindowPair & windowPair){
 	return true;
 }
 
-void TGenome::moveChromosome(TWindowPair & windowPair){
+void TGenome::moveChromosome(TWindow & window){
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
 	oldAlignementMustBeConsidered = false;
@@ -295,15 +194,15 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
 }
 
-bool TGenome::iterateWindow(TWindowPair & windowPair){
+bool TGenome::iterateWindow(TWindow & window){
 	if(curEnd > 0) logfile->endIndent();
 
 	//swap window pairs
 	windowPair.swap();
 
 	//move to next region
-	curStart = windowPair.cur->start;
-	curEnd = windowPair.cur->end;
+	curStart = window->start;
+	curEnd = window->end;
 	if(curStart >= chrLength || windowNumber >= limitWindows) return false;
 
 	//move next
@@ -339,6 +238,7 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 
 	return true;
 };
+/*
 
 bool TGenome::addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair){
 	//check if bam file is sorted
@@ -370,7 +270,7 @@ bool TGenome::readData(TWindow & window){
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
 
-/*
+
 	//parse through reads
 	if(oldAlignementMustBeConsidered){
 		oldAlignementMustBeConsidered = false;
@@ -383,7 +283,7 @@ bool TGenome::readData(TWindow & window){
 			return false; //still only in next window
 		}
 	}
-*/
+
 
 	while(alignmentParser.readData()){
 		if(alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
@@ -444,6 +344,7 @@ bool TGenome::readData(TWindow & window){
 		return false;
 	}
 };
+*/
 
 void TGenome::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
@@ -611,12 +512,12 @@ void TGenome::estimateTheta(TParameters & params){
 
 void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out){
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
 		while(iterateWindow(windows)){
-			if(readData(windows)){
+			while(alignmentParser.readData(windows)){
 				if(windows.cur->fractionSitesNoData > maxMissing){
 					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 				} if(windows.cur->fractionRefIsN > maxRefN){
@@ -631,7 +532,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 					//adding sites to estimator
 					logfile->listFlush("Calculating emission probabilities ...");
 					thetaEstimator.clear();
-					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
+					windows->addSitesToThetaEstimator(recalObject, thetaEstimator);
 					logfile->done();
 
 					//estimate Theta

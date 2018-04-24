@@ -43,12 +43,14 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 //TAlignmentParser
 //-----------------------------------------------------
 TAlignmentParser::TAlignmentParser(){
-	maxSize = 0;
 	readGroupTable = NULL;
 	logfile = NULL;
 	_keepDuplicates = false;
 	parse = false;
-	oldPos = -1;
+	previousAlignmentPos = -1;
+	previousAlignmentChr = -1;
+	oldAlignment = NULL;
+	oldAlignementMustBeConsidered = false;
 
 	//filters
 	applyQualityFilter = false;
@@ -62,18 +64,139 @@ TAlignmentParser::TAlignmentParser(){
 
 	//reference
 	hasReference = false;
+	fastaReference = NULL;
 	fastaBuffer = NULL;
 };
 
-TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
+
+
+TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
 	TAlignmentParser();
-	init(ReadGroupTable, MaxSize, Logfile);
+	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
+
+	init(ReadGroupTable, maxReadLength, Logfile);
+
+
 };
 
-void TAlignmentParser::init(TReadGroups* ReadGroupTable, unsigned int MaxSize, TLog* Logfile){
-	maxSize = MaxSize;
+void TAlignmentParser::init(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
 	readGroupTable = ReadGroupTable;
 	logfile = Logfile;
+
+
+	//---------------------
+	//window parameters
+	//---------------------
+	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+
+	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
+	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
+	//check if it is a number
+	if(stringContainsOnly(tmp, "1234567890.Ee-+")){
+		windowsPredefined = false;
+		windowSize = stringToInt(tmp);
+		logfile->list("Setting window size to " + toString(windowSize));
+		if(windowSize < maxReadLength) throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
+	} else {
+		windowsPredefined = true;
+		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
+		predefinedWindows = new TBed(tmp);
+		logfile->done();
+		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
+	}
+	numWindowsOnChr = 0;
+
+	//------------
+	//masks
+	//------------
+	//normal mask
+	if(params.parameterExists("mask")){
+		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
+		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
+		doMasking = true;
+		std::string maskFile = params.getParameterString("mask");
+		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+		logfile->listFlush("Reading file ...");
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
+		logfile->done();
+		logfile->endIndent();
+		//mask->print();
+	} else doMasking = false;
+
+	//reverse masking
+	if(params.parameterExists("regions")){
+		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
+		considerRegions = true;
+		std::string regionsFile = params.getParameterString("regions");
+		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
+		logfile->listFlush("Reading file ...");
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
+		logfile->done();
+		logfile->endIndent();
+	} else considerRegions = false;
+
+	//CpG mask
+	if(params.parameterExists("maskCpG")){
+		if(!fastaReference) throw "Cannot mask CpG sites without reference!";
+		doCpGMasking = true;
+		std::string maskFile = params.getParameterString("maskCpG");
+		logfile->list("Will mask all CpG sites");
+	} else doCpGMasking = false;
+
+	//------------
+	//filters
+	//------------
+	//depth filter
+	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
+		applyDepthFilter = true;
+		int tmpInt;
+		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
+		if(tmpInt < 0) throw "minDepth must be >= 0!";
+		minDepth = tmpInt;
+		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
+		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
+		maxDepth = tmpInt;
+		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
+	} else {
+		applyDepthFilter = false;
+		minDepth = 0;
+		maxDepth = 1000000;
+	}
+
+	//quality filters
+	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
+	if(minPhredInt < 0) throw "minQual must be >= 0!";
+	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
+	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
+	setQualityFilters(minPhredInt+33, maxPhredInt+33);
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
+
+	//quality filters for printing
+	minOutQual = params.getParameterIntWithDefault("minOutQual", 1) + 33;
+	if(minOutQual < 0) throw "minOutQual must be >= 0!";
+	maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
+	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
+	setQualityRangeForPrinting(minOutQual, maxOutQual);
+	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
+
+	//filter for missing reference
+	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
+	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
+
+	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
+	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
+	if(maxRefN < 1.0 && fastaReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
+
+	//------------
+	//other
+	//------------
+
+	if(params.parameterExists("keepDuplicates")){
+		keepDuplicates();
+		logfile->list("Will keep duplicate reads.");
+	}
 };
 
 void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
@@ -95,6 +218,7 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 
 void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
+	fastaReference = reference;
 	fastaBuffer = new TFastaBuffer(reference);
 };
 
@@ -168,32 +292,42 @@ bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & windo
 
 	//decide which alignment to fill (from empty stack or create a new one)
 	TAlignment* alignmentP = window.getNewAlignment();
-	setParsingToTrue();
+
+	//add old alignment if necessary
+	if(oldAlignmentMustBeConsidered){
+		oldAlignmentMustBeConsidered = false;
+		if(!addAlignementToWindow((*alignmentP), window)){
+			gettimeofday(&end, NULL);
+			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+			logfile->conclude("No data in this window.");
+			return false; //still only in next window
+		}
+	}
+
+	//read new alignment
+	readAlignment(bamReader, *alignmentP);
 
 	//pass it to readAlignment
-	readAlignment(bamReader, *alignmentP);
+	setParsingToTrue();
 
 	//if alignment.passedFilters & readGroupInUse:
 		//addAlignementToWindow
 	if(readGroups.readGroupInUse(alignmentP->readGroupId)){
 		//and add to windows
-		if(!addAlignementToWindows(alignment, window)){
+		if(!addAlignementToWindow((*alignmentP), window)){
 			//read is beyond window and should be reconsidered
-			oldAlignementMustBeConsidered = true;
-			break;
+			oldAlignmentMustBeConsidered = true;
+
+			return false;
+		} else {
+			//update previous alignment info
+			previousAlignmentPos = alignmentP->position;
+			previousAlignmentChr = alignmentP->chrNumber;
 		}
+		window.fillSites();
+		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
 	}
-	//TODO: stacks should be in TWindow, but parser checks if alignment is still in window
-
-	//In addAlignementToWindow:
-		//check if it still overlaps with current window
-		//if no, return false, break readData loop
-		//if yes, add all relevant positions$
-		//if only beginning, add relevant positions and break readData loop; clear window
-		//if only end,
-
-	//In clear window:
-		//move all alignments that have start+alignedLength < window end to emptyAlignments
+	return true;
 
 	//apply all masks at the end of break readData loop
 
@@ -203,42 +337,42 @@ bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & windo
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
-/*	if(windowPair.cur->numReadsInWindow > 0){
+	if(window.numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){
 			logfile->listFlush("Masking sites ...");
-			windowPair.cur->applyMask(mask, considerRegions);
+			window.applyMask(mask, considerRegions);
 			logfile->done();
 		} else if(considerRegions){
 			logfile->listFlush("Masking sites outside regions ...");
-			windowPair.cur->applyMask(mask, considerRegions);
+			window.applyMask(mask, considerRegions);
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			windowPair.cur->maskCpG(reference, chrNumber);
+			window.maskCpG(*fastaReference, previousAlignmentChr);
 			logfile->done();
 		} if(applyDepthFilter){
-			windowPair.cur->applyDepthFilter(minDepth, maxDepth);
-		} if(maxRefN < 1.0 && fastaReference == true){
-			windowPair.cur->addReferenceBaseToSites(reference, chrNumber);
-			windowPair.cur->calcFracN();
+			window.applyDepthFilter(minDepth, maxDepth);
+		} if(maxRefN < 1.0 && hasReference == true){
+			window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+			window.calcFracN();
 		}
 
 		//calc sequencing depth
-		windowPair.cur->calcDepth();
+		window.calcDepth();
 
 		//report
-		logfile->conclude("read data from " + toString(windowPair.cur->numReadsInWindow) + " reads.");
-		logfile->conclude("sequencing depth is " + toString(windowPair.cur->depth));
-		logfile->conclude(toString(windowPair.cur->fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
-		logfile->conclude(toString(windowPair.cur->fractionSitesNoData * 100) + "% of all sites have no data");
-		if(windowPair.cur->fractionSitesNoData > maxMissing){
+		logfile->conclude("read data from " + toString(window.numReadsInWindow) + " reads.");
+		logfile->conclude("sequencing depth is " + toString(window.depth));
+		logfile->conclude(toString(window.fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
+		if(window.fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			return false;
 		}
-		if(maxRefN < 1.0 && fastaReference == true){
-			logfile->conclude(toString(windowPair.cur->fractionRefIsN * 100) + "% of all reference bases are 'N'");
-			if(windowPair.cur->fractionRefIsN > maxRefN){
+		if(maxRefN < 1.0 && hasReference == true){
+			logfile->conclude(toString(window.fractionRefIsN * 100) + "% of all reference bases are 'N'");
+			if(window.fractionRefIsN > maxRefN){
 				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
 				return false;
 			}
@@ -247,71 +381,21 @@ bool TAlignmentParser::readData(BamTools::BamReader & bamReader, TWindow & windo
 	} else {
 		logfile->conclude("No data in this window.");
 		return false;
-	}*/
+	}
 };
 
 
-bool TAlignmentParser::addAlignementToWindows(TAlignment* alignment, TWindow & window, int curEnd){
+bool TAlignmentParser::addAlignementToWindow(TAlignment& alignment, TWindow & window){
 	//check if bam file is sorted
-	if(alignment->getPosition() < oldPos)
+	if(alignment.getPosition() < previousAlignmentPos)
 		throw "BAM file must be sorted by position!";
-	oldPos = alignment->getPosition();
 
 	//and add
-	if(alignment->getPosition() >= window.start + window.length){
-		window.addAlignment(alignment);
+	if((alignment.getPosition() >= (window.start + window.length)) && alignment.getPosition() <= window.end){
+		window.addAlignment(&alignment);
 		return true; //continue
 	} else
 		return false;
 }
 
-
-
-
-/*bool TAlignmentParser::addFromRead(TAlignment & alignment){
-	 Note:
-	 * Function returns true if read also maps to next window and
-	 * returns false if end of read is within this (or a previous) window
-
-
-	//TODO: move to alignment parser instead?
-
-	//check if alignment is inside window
-	if(alignment.position >= end) return true;
-	if(alignment.position + alignment.length < start) return false;
-
-	//find which position to consider first
-	++numReadsInWindow;
-	int firstPos = alignment.position - start;
-
-	//std::cout << "[" << start << "," << end <<  "]: firstPos = " << firstPos;
-
-	int p = 0;
-
-	if(firstPos < 0){
-		while(p < alignment.length && (firstPos + alignment.alignedPos[p]) < 0)
-			++p;
-		if(p == alignment.length)
-			return false;
-	}
-	int internalPos;
-
-	 Note:
-	 *  1) Reference is 5' -> 3'
-	 *  2) distance is 0-based!
-	 *  3) Ignoring indels in other mate when calculating distances
-	 *  4) Function add needs first P(C->T), then P(G->A)
-
-
-	for(; p < alignment.length; ++p){
-		if(alignment.aligned[p] && alignment.bases[p].base != N){
-			internalPos = firstPos + alignment.alignedPos[p];
-			if(internalPos >= length)
-				return true; //since part of the read maps to next window
-			sites[internalPos].add(&alignment.bases[p]);
-		}
-	}
-
-	return false;
-}*/
 

@@ -49,34 +49,20 @@ private:
  	long curEnd;
 	std::string filename;
 	TLog* logfile;
-	bool windowsPredefined;
-	TBed* predefinedWindows;
-	int windowSize;
-	int numWindowsOnChr;
-	int windowNumber;
-	int maxReadLength;
-	double maxMissing;
-	double maxRefN;
 	long oldPos;
 	std::string outputName;
-	TBedReader* mask;
-	bool doMasking, considerRegions;
-	bool doCpGMasking;
-	bool applyDepthFilter;
-	size_t minDepth, maxDepth;
-	int minPhredInt, maxPhredInt;
-	int minOutQual, maxOutQual;
+
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
 
 	void jumpToEnd();
-	void restartChromosome(TWindowPair & windowPair);
+	void restartChromosome(TWindow & window);
 	bool iterateChromosome(TWindowPair & windowPair);
 	void moveChromosome(TWindowPair & windowPair);
 	bool iterateWindow(TWindowPair & windowPair);
-	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair);
-	bool readData(TWindow & window);
+//	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair);
+//	bool readData(TWindow & window);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
@@ -87,9 +73,7 @@ private:
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-		if(doMasking){
-			delete mask;
-		}
+
 		if(fastaReference) reference.Close();
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;

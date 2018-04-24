@@ -24,6 +24,7 @@ TWindow::TWindow(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
+	lastAlignmentwithEndInWindow = NULL;
 };
 
 TWindow::TWindow(long Start, long End){
@@ -92,71 +93,56 @@ void TWindow::addAlignment(TAlignment* alignment){
 	usedAlignments.push_back(alignment);
 }
 
-bool TWindow::addFromRead(){
-	/* Note:
-	 * Function returns true if read's start is inside window
-	 * returns false if end of read is within this (or a previous) window
-	 */
-	//go through reads and add them to self
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments; ++usedAlignments){
-		//check if alignment start is inside window
-		if((**alignmentIt).position >= end) return false;
-		++numReadsInWindow;
+void TWindow::cleanUpUsedAlignments(){
+	//move all alignments that for sure are not needed in next window
+	std::move ( usedAlignments.begin(), lastAlignmentwithEndInWindow, emptyAlignments.end());
 
-		//find which position to consider first
+	//now check and move the rest
+	for(std::vector<TAlignment*>::reverse_iterator alignmentIt=usedAlignments.rbegin(); alignmentIt != usedAlignments.rend(); ++alignmentIt){
+		if((**alignmentIt).position + (**alignmentIt).length < end ){
+			emptyAlignments.push_back(*alignmentIt);
+			usedAlignments.pop_back();
+		}
+	}
+}
+
+void TWindow::fillSites(){
+	//add reads in usedAlignments to sites in window
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++usedAlignments){
+
+		//check if alignment start is inside window
+		if((**alignmentIt).position >= end) throw "alignment should be assigned to next window!";
+
+		//genomic position of alignment as seen from window perspective
 		int firstPos = (**alignmentIt).position - start;
 
-		//now add positions <= end to window
+		//set position in read
+		int p = 0;
+
+		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			int p = 0;
-			//why would firstPos + (**alignmentIt).alignedPos[p] be smaller than 0?
 			while(p < (**alignmentIt).length && (firstPos + (**alignmentIt).alignedPos[p]) < 0)
 				++p;
-			if(p == alignment.length)
-				return false;
+			if(p == (**alignmentIt).length)
+				throw "alignment should be assigned to previous window!";
 		}
+		//position in window where first one = 0
+		int internalPos;
 
-	}
-
-	//TODO: check if bases in window
-
-	//check if alignment is inside window
-	if(alignment.position >= end) return true;
-	if(alignment.position + alignment.length < start) return false;
-
-	//find which position to consider first
-	++numReadsInWindow;
-	int firstPos = alignment.position - start;
-
-	//std::cout << "[" << start << "," << end <<  "]: firstPos = " << firstPos;
-
-	int p = 0;
-
-	if(firstPos < 0){
-		while(p < alignment.length && (firstPos + alignment.alignedPos[p]) < 0)
-			++p;
-		if(p == alignment.length)
-			return false;
-	}
-	int internalPos;
-
-	/* Note:
-	 *  1) Reference is 5' -> 3'
-	 *  2) distance is 0-based!
-	 *  3) Ignoring indels in other mate when calculating distances
-	 *  4) Function add needs first P(C->T), then P(G->A)
-	 */
-
-	for(; p < alignment.length; ++p){
-		if(alignment.aligned[p] && alignment.bases[p].base != N){
-			internalPos = firstPos + alignment.alignedPos[p];
-			if(internalPos >= length)
-				return true; //since part of the read maps to next window
-			sites[internalPos].add(&alignment.bases[p]);
+		//p is at first position of read in window
+		for(; p < (**alignmentIt).length; ++p){
+			if((**alignmentIt).aligned[p] && (**alignmentIt).bases[p].base != N){
+				internalPos = firstPos + (**alignmentIt).alignedPos[p];
+				//if read extends past window length
+				if(internalPos >= length)
+					break; //since part of the read maps to next window
+				lastAlignmentwithEndInWindow = alignmentIt;
+				sites[internalPos].add(&(**alignmentIt).bases[p]);
+			}
 		}
+		++numReadsInWindow;
 	}
-
-	return false;
+	cleanUpUsedAlignments();
 }
 
 
@@ -413,7 +399,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 
 }
 
-void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
 	for(int i=0; i<length; ++i){

@@ -26,6 +26,7 @@
 class TWindow{
 private:
 	void fillPGenotype(double* pGenotype);
+	std::vector<TAlignment*>::iterator lastAlignmentwithEndInWindow;
 
 public:
 	long start;
@@ -58,7 +59,8 @@ public:
 	void clear();
 	void move(long Start, long End);
 	void addAlignment(TAlignment* alignment);
-	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
+	void cleanUpUsedAlignments();
+	void fillSites();
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
