@@ -50,7 +50,13 @@ TAlignmentParser::TAlignmentParser(){
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;
 	oldAlignment = NULL;
-	oldAlignementMustBeConsidered = false;
+	oldAlignmentMustBeConsidered = false;
+
+	//initialize iterators
+	chrNumber = -1;
+	chrLength = -1;
+	curStart = -1;
+	curEnd = -1;
 
 	//filters
 	applyQualityFilter = false;
@@ -82,6 +88,13 @@ TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, TParameters & pa
 void TAlignmentParser::init(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
 	readGroupTable = ReadGroupTable;
 	logfile = Logfile;
+
+	//initialize bam stuff
+	//read header
+	bamHeader = bamReader.GetHeader();
+	readGroups.fill(bamHeader);
+	chrIterator = bamHeader.Sequences.End();
+
 
 
 	//---------------------
@@ -189,6 +202,48 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, TParameters & params, T
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && fastaReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
 
+	//--------------------
+	//limit chr and windows
+	//--------------------
+
+	//limit chrs and / or windows
+	useChromosome = new bool[bamHeader.Sequences.Size()];
+	if(params.parameterExists("chr")){
+		logfile->startIndent("Will limit analysis to the following chromosomes:");
+
+		//set all chromosomes to false
+		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
+				useChromosome[i] = false;
+
+		//parse chromosome names
+		std::vector<std::string> vec;
+		fillVectorFromString(params.getParameterString("chr"), vec, ',');
+		int num;
+		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
+			//find chromosome
+			num = 0;
+			for(chrIterator = bamHeader.Sequences.Begin(); chrIterator != bamHeader.Sequences.End(); ++chrIterator, ++num){
+				if(chrIterator->Name == *it){
+					useChromosome[num] = true;
+					logfile->list(*it);
+					break;
+				}
+			}
+			if(chrIterator == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
+		}
+		chrIterator = bamHeader.Sequences.End();
+		limitChr = 1000000;
+		logfile->endIndent();
+	} else {
+		limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
+		if(params.parameterExists("limitChr")) logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
+		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
+			useChromosome[i] = true;
+	}
+	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
+	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+
+
 	//------------
 	//other
 	//------------
@@ -229,6 +284,118 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.alignedPos[alignment.length-1], referenceSequence);
 };
 
+//--------------
+//move genome
+//--------------
+
+
+void TAlignmentParser::restartChromosome(TWindow & window){
+	chrIterator = bamHeader.Sequences.Begin();
+	chrNumber = 0;
+
+	moveChromosome(window);
+}
+
+bool TAlignmentParser::iterateChromosome(TWindow & window){
+	if(chrIterator == bamHeader.Sequences.End()){
+		chrIterator = bamHeader.Sequences.Begin();
+		chrNumber = 0;
+	} else {
+		logfile->endNumbering();
+		//move to next
+		++chrIterator;
+		++chrNumber;
+	}
+
+	//do we use this chromosome? if not, move on!
+	while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+		++chrIterator;
+		++chrNumber;
+	}
+
+	//did we reach end?
+	if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
+		curEnd = 0;
+		chrIterator = bamHeader.Sequences.End();
+		return false;
+	}
+
+	moveChromosome(window);
+	return true;
+}
+
+void TAlignmentParser::moveChromosome(TWindow & window){
+	//jump reader
+	bamReader.Jump(chrNumber, 0);
+	oldAlignementMustBeConsidered = false;
+	chrLength = stringToLong(chrIterator->Length);
+
+	//restart windows
+	curStart = 0;
+	curEnd = 0;
+	oldPos = -1;
+	windowNumber = 0;
+	if(windowsPredefined){
+		predefinedWindows->setChr(chrIterator->Name);
+		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
+		int nextEnd = predefinedWindows->curWindowEnd();
+		if(nextEnd > chrLength) nextEnd = chrLength + 1;
+		else windowPair.next->move(predefinedWindows->curWindowStart(), nextEnd);
+	} else {
+		numWindowsOnChr = ceil(chrLength / (double) windowSize);
+		int nextEnd = windowSize;
+		if(nextEnd > chrLength) nextEnd = chrLength; //!!! removed +1 because we are zero-based. Chedk if true!
+		window.move(0, nextEnd);
+	}
+
+	//advance mask
+	if(doMasking || considerRegions) mask->setChr(chrIterator->Name);
+
+	//write progress
+	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
+}
+
+bool TAlignmentParser::iterateWindow(TWindow & window){
+	if(curEnd > 0) logfile->endIndent();
+
+	//move to next region
+	curStart = window.start;
+	curEnd = window.end;
+	if(curStart >= chrLength || windowNumber >= limitWindows) return false;
+
+	//move next
+	if(windowsPredefined){
+		if(numWindowsOnChr < 1){
+			logfile->conclude("No windows on this chromosome.");
+			return false;
+		}
+		//jump reader if large gap to previous window
+		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
+		if(window.start - window.end > maxReadLength)
+			bamReader.Jump(chrNumber, curStart);
+
+		//now move coordinates of next window
+		if(predefinedWindows->nextWindow()){
+			int nextEnd = predefinedWindows->curWindowEnd();
+			if(nextEnd > chrLength) nextEnd = chrLength;
+			window.move(predefinedWindows->curWindowStart(), nextEnd);
+		} else {
+			window.move(chrLength, chrLength+1);
+		}
+	} else {
+		long nextEnd = curEnd + windowSize;
+		if(nextEnd > chrLength) nextEnd = chrLength;
+		window.move(curEnd, nextEnd);
+	}
+
+	++windowNumber;
+
+	//report
+	logfile->number("Window [" + toString(curStart) + ", " + toString(curEnd) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+	logfile->addIndent();
+
+	return true;
+};
 
 //------------------------------
 //public functions

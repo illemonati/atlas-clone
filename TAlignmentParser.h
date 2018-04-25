@@ -20,6 +20,7 @@
 #include "TAlignment.h"
 #include "TWindow.h"
 #include "TBed.h"
+#include "TBedReader.h"
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -54,26 +55,35 @@ private:
 	bool hasReference;
 
 	//window params
-	bool windowsPredefined;
-	TBed* predefinedWindows;
 	int windowSize;
 	int numWindowsOnChr;
 	int windowNumber;
+ 	long chrLength;
+ 	long curStart;
+ 	long curEnd;
 	unsigned int maxReadLength;
 	double maxMissing;
 	double maxRefN;
 
 	//masks
 	TBedReader* mask;
-	bool doMasking, considerRegions;
-	bool doCpGMasking;
 
 	//filters
-	bool applyDepthFilter;
 	size_t minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
 	int minOutQual, maxOutQual;
 
+	//limit chr and windows
+	long limitWindows;
+	int limitChr;
+	bool* useChromosome;
+
+	//move genome
+ 	int chrNumber;
+	void restartChromosome(TWindow & window);
+	bool iterateChromosome(TWindow & window);
+	void moveChromosome(TWindow & window);
+	bool iterateWindow(TWindow & window);
 
 
 public:
@@ -82,6 +92,17 @@ public:
 	int minQualForPrinting, maxQualForPrinting;
 	int minQual, maxQual;
 	TFastaBuffer* fastaBuffer;
+	bool doMasking, considerRegions;
+	bool doCpGMasking;
+	bool applyDepthFilter;
+	bool windowsPredefined;
+	TBed* predefinedWindows;
+
+	//BAM file
+	BamTools::BamReader bamReader;
+	BamTools::BamRegion bamRegion;
+ 	BamTools::SamHeader bamHeader;
+ 	BamTools::SamSequenceIterator chrIterator;
 
 	//construction
 	TAlignmentParser();
@@ -91,6 +112,11 @@ public:
 			delete fastaBuffer;
 		if(doMasking)
 			delete mask;
+		if(windowsPredefined)
+			delete predefinedWindows;
+		if(useChromosome)
+			delete[] useChromosome;
+
 
 	}
 	void init(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);

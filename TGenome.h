@@ -23,6 +23,8 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
+ 	TAlignmentParser alignmentParser;
+
 	TPMD* pmdObjects;
 	bool hasPMD;
 	TRecalibration* recalObject;
@@ -32,37 +34,19 @@ private:
 	bool recalObjectInitialized;
 	bool recalObjectInitialized2;
 
-	BamTools::BamReader bamReader;
-	BamTools::BamRegion bamRegion;
- 	BamTools::SamHeader bamHeader;
- 	TAlignmentParser alignmentParser;
-	bool oldAlignementMustBeConsidered;
 	BamTools::Fasta reference;
 	bool fastaReference;
- 	BamTools::SamSequenceIterator chrIterator;
  	TReadGroups readGroups;
  	TRandomGenerator* randomGenerator;
  	bool randomGeneratorInitialized;
- 	int chrNumber;
- 	long chrLength;
- 	long curStart;
- 	long curEnd;
+
 	std::string filename;
 	TLog* logfile;
 	long oldPos;
 	std::string outputName;
 
-	long limitWindows;
-	int limitChr;
-	bool* useChromosome;
-
 	void jumpToEnd();
-	void restartChromosome(TWindow & window);
-	bool iterateChromosome(TWindowPair & windowPair);
-	void moveChromosome(TWindowPair & windowPair);
-	bool iterateWindow(TWindowPair & windowPair);
-//	bool addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair);
-//	bool readData(TWindow & window);
+
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
@@ -79,7 +63,6 @@ public:
 		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 		if(useChromosome) delete[] useChromosome;
-		if(windowsPredefined) delete predefinedWindows;
 	};
 
 	//theta estimation
