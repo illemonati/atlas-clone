@@ -80,7 +80,7 @@ TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, TParameters & pa
 	TAlignmentParser();
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
 
-	init(ReadGroupTable, maxReadLength, Logfile);
+	init(ReadGroupTable, params, Logfile);
 
 
 };
