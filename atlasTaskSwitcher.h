@@ -47,7 +47,7 @@ public:
 			if(task == "estimateTheta"){
 				logfile->startIndent("Running an EM algorithm to estimate heterozygosity (task = estimateTheta):");
 				genome.estimateTheta(*parameters);
-			} else if(task == "LLsurface"){
+			} /*else if(task == "LLsurface"){
 				logfile->startIndent("Calculating the LL surface for each window (task = LLSurface):");
 				genome.calcLikelihoodSurfaces(*parameters);
 			} else if(task == "pileup"){
@@ -141,7 +141,7 @@ public:
 				logfile->startIndent("Finding allelic depth distribution (task=createDepthMask:");
 				genome.allelicDepth(*parameters);
 
-			} else throw "Unknown task '" + task + "'!";
+			}*/ else throw "Unknown task '" + task + "'!";
 		}
 		logfile->endIndent();
 	};

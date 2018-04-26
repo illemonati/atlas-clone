@@ -73,7 +73,6 @@ private:
 	int* quality; //pointer to qualities to be used
 	char* baseAsChar; //TODO: to be removed, if possible
 
-	//TODO: make alignmentParser a friend and make these private
 
 
 	//per base data
@@ -113,7 +112,7 @@ private:
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 
 	//functions that access data
-	std::string& name(){return bamAlignment.Filename;};
+	std::string name(){return alignmentName;};
 
 
 
@@ -147,6 +146,7 @@ public:
 	bool passedFilters;
 	int chrNumber;
 	int32_t position;
+	std::string alignmentName;
 
 	//TODO: move these functions to TGenome
 	void recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap);
@@ -161,6 +161,7 @@ public:
 	void addToQualityTable(TQualityTable & qualTable);
 
 	friend class TAlignmentParser;
+	friend class TWindow;
 
 };
 

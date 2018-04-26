@@ -17,28 +17,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	//initialize alignment parser
 	alignmentParser.init(&readGroups, params, logfile);
 
-
-	//initialize iterators
-	oldPos = -1;
-
-	//open BAM file
-	filename = params.getParameterString("bam");
-	logfile->list("Reading data from BAM file '" + filename + "'.");
-	if (!alignmentParser.bamReader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "'!";
-	//load index file
-	if(!alignmentParser.bamReader.LocateIndex())
-		throw "No index file found for BAM file '" + filename + "'!";
-
 	//fill read groups
 	readGroups.fill(alignmentParser.bamHeader);
-
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
 	if(outputName == ""){
 		//guess from filename
-		outputName = filename;
+		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
 	logfile->list("Writing output files with prefix '" + outputName + "'.");
@@ -71,7 +57,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		}
 	}
 
-
 	//limit readGroups
 	if(params.parameterExists("readGroup")){
 		readGroups.filterReadGroups(params.getParameterString("readGroup"));
@@ -80,11 +65,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->endIndent();
 	}
 };
-
-void TGenome::jumpToEnd(){
-	chrIterator = bamHeader.Sequences.End();
-	chrNumber = -1;
-}
 
 /*
 
@@ -262,13 +242,13 @@ void TGenome::initializePostMortemDamage(TParameters & params){
 }
 
 void TGenome::initializeRecalibration(TParameters & params){
-	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
 	if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
-		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
+		recalObject = new TRecalibrationEM(&alignmentParser.bamHeader, filename, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
+		recalObject = new TRecalibrationBQSR(&alignmentParser.bamHeader, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
@@ -296,10 +276,10 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 }
 
 void TGenome::indexBamFile(){
-	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
+	logfile->listFlush("Creating index of BAM file '" + alignmentParser.filename + "' ...");
 	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
+	if(!reader.Open(alignmentParser.filename))
+		throw "Failed to open BAM file '" + alignmentParser.filename + "' for indexing!";
 
 	// create index for BAM file
 	reader.CreateIndex(BamTools::BamIndex::STANDARD);
@@ -337,19 +317,21 @@ void TGenome::estimateTheta(TParameters & params){
 	std::ofstream out; openThetaOutputFile(out, thetaEstimator);
 
 	//check for which segements theta is to be estimated
-	if(params.parameterExists("thetaGenomeWide") || considerRegions){
+	if(params.parameterExists("thetaGenomeWide") || alignmentParser.considerRegions){
 		if(params.parameterExists("thetaGenomeWide"))
 			logfile->startIndent("Estimating theta genome-wide:");
 		else logfile->startIndent("Estimating theta at specific sites:");
 
 		//HACK!!
 		bool onlyBootstrap = params.parameterExists("onlyBootstrap");
-
-		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
+//		removed this for building
+//		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
 		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
-			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
+			//		removed this for building
+
+	//		bootstrapTetaEstimation(numBootstraps, thetaEstimator);
 		}
 	} else
 		estimateThetaWindows(thetaEstimator, out);
@@ -363,52 +345,42 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			while(alignmentParser.readData(windows)){
-				if(windows.cur->fractionSitesNoData > maxMissing){
-					logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-				} if(windows.cur->fractionRefIsN > maxRefN){
-					logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				} else {
-					logfile->startIndent("Estimating Theta:");
+	while(alignmentParser.readDataInWindows(window, readGroups)){
+		logfile->startIndent("Estimating Theta:");
 
-					//measure runtime
-					struct timeval startTime, endTime;
-					gettimeofday(&startTime, NULL);
+		//measure runtime
+		struct timeval startTime, endTime;
+		gettimeofday(&startTime, NULL);
 
-					//adding sites to estimator
-					logfile->listFlush("Calculating emission probabilities ...");
-					thetaEstimator.clear();
-					windows->addSitesToThetaEstimator(recalObject, thetaEstimator);
-					logfile->done();
+		//adding sites to estimator
+		logfile->listFlush("Calculating emission probabilities ...");
+		thetaEstimator.clear();
+		window.addSitesToThetaEstimator(recalObject, thetaEstimator);
+		logfile->done();
 
-					//estimate Theta
-					if(thetaEstimator.estimateTheta()){
-						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end;
-						thetaEstimator.writeResultsToFile(out);
-					}
-
-					//clear theta estimator
-					thetaEstimator.clear();
-
-					//finish
-					gettimeofday(&endTime, NULL);
-					logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-					logfile->endIndent();
-
-				}
-			} else logfile->list("No relevant positions -> skipping this window.");
+		//estimate Theta
+		if(thetaEstimator.estimateTheta()){
+			out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
+			thetaEstimator.writeResultsToFile(out);
 		}
+
+		//clear theta estimator
+		thetaEstimator.clear();
+
+		//finish
+		gettimeofday(&endTime, NULL);
+		logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+		logfile->endIndent();
 	}
 }
+/*
 
 void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
-	if(considerRegions)
+	if(alignmentParser.considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structure:");
@@ -419,7 +391,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 				logfile->listFlush("Calculating emission probabilities ...");
 				try{
 					thetaEstimator.clear();
-					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
+					window.addSitesToThetaEstimator(recalObject, thetaEstimator);
 				} catch(...){
 					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 				}
@@ -436,7 +408,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 		thetaEstimator.estimateTheta();
 	}
 
-	if(considerRegions)
+	if(alignmentParser.considerRegions)
 		out  << "\t-\t-"; //chromosome, start, end
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
@@ -514,7 +486,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 				//open file
 				std::ofstream out;
-				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
+				filename = outputName + alignmentParser.chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
 				out.open(filename.c_str());
 				if(!out) throw "Failed to open output file '" + outputName + "'!";
 
@@ -715,7 +687,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool printIfNoData = true;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
-		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
+		if(alignmentParser.windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		bool invariantSites = false;
 		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
@@ -1291,7 +1263,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	recalObjectEM.runEM(outputName, writeTmpTables);
 }
 
-/*
+
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
 	std::string::size_type posDash = str.find_first_of('-', 1);
@@ -1309,7 +1281,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 		//should be a number
 		vec.push_back(stringToDoubleCheck(str));
 	}
-}*/
+}
 
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
@@ -2881,3 +2853,4 @@ void TGenome::runPMDS(TParameters & params){
 
 }
 
+*/

@@ -11,13 +11,13 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "TAlignmentParser.h"
 #include "TRecalibration.h"
 #include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
+#include "TAlignment.h"
 
 
 //---------------------------------------------------------------
@@ -47,14 +47,14 @@ public:
 	std::vector<TAlignment*> emptyAlignments;
 
 	TWindow();
-	TWindow(long Start, long End);
+//	TWindow(long Start, long End);
 	~TWindow(){
 		clear();
 		if(sitesInitialized){
 			delete[] sites;
 		}
 	};
-	TAlignment* getNewAlignment();
+	TAlignment* getNewAlignment(unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End);
@@ -78,16 +78,16 @@ public:
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
 
 	//add sites to data structures
-	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile);
-	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile);
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityMap & qualMap);
+	void addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap);
+	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
+	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
 	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
 	void addSitesToThetaEstimator(TThetaEstimator & estimator);
 	void addToGLF(TGlfWriter & writer, bool printAll);
-	void addToRecalibrationEM(TRecalibrationEM & recalObject);
-	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset);
+	void addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap);
+	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 
 	//callers
@@ -103,43 +103,5 @@ public:
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 	double calcLogLikelihood();
 };
-
-/*//---------------------------------------------------------------
-//TWindowPair
-//---------------------------------------------------------------
-
-
-class TWindowPair{
-public:
-	TWindow* cur;
-	TWindow* next;
-
-	TWindowPair(){
-		cur = new TWindow();
-		next = new TWindow();
-	};
-	~TWindowPair(){
-		delete cur;
-		delete next;
-	};
-
-	void swap(){
-		TWindow* tmp = cur;
-		cur = next;
-		next = tmp;
-	}
-	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return cur->addFromRead(alignemntParser, pmdObjects);
-	};
-	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return next->addFromRead(alignemntParser, pmdObjects);
-	};
-	void clear(){
-		cur->clear();
-		next->clear();
-	}
-
-};*/
-
 
 #endif /* TWINDOW_H_ */

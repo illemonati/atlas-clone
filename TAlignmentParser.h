@@ -47,20 +47,22 @@ private:
 	int trimmingLength3Prime;
 	int trimmingLength5Prime;
 
-	//tmp variables
-
 	//reference
 	BamTools::Fasta* fastaReference;
 	std::string referenceSequence;
 	bool hasReference;
 
+	//iterators
+ 	int chrNumber;
+ 	long chrLength;
+ //	long curStart;
+ //	long curEnd;
+
 	//window params
 	int windowSize;
 	int numWindowsOnChr;
 	int windowNumber;
- 	long chrLength;
- 	long curStart;
- 	long curEnd;
+
 	unsigned int maxReadLength;
 	double maxMissing;
 	double maxRefN;
@@ -71,7 +73,6 @@ private:
 	//filters
 	size_t minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
-	int minOutQual, maxOutQual;
 
 	//limit chr and windows
 	long limitWindows;
@@ -79,11 +80,11 @@ private:
 	bool* useChromosome;
 
 	//move genome
- 	int chrNumber;
+	void jumpToEnd();
 	void restartChromosome(TWindow & window);
 	bool iterateChromosome(TWindow & window);
 	void moveChromosome(TWindow & window);
-	bool iterateWindow(TWindow & window);
+	bool moveToNextWindow(TWindow & window);
 
 
 public:
@@ -99,6 +100,7 @@ public:
 	TBed* predefinedWindows;
 
 	//BAM file
+	std::string filename;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
@@ -116,8 +118,6 @@ public:
 			delete predefinedWindows;
 		if(useChromosome)
 			delete[] useChromosome;
-
-
 	}
 	void init(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
 
@@ -134,8 +134,10 @@ public:
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
+	bool readDataInWindows(TWindow & window, TReadGroups & readGroups);
 	bool addAlignementToWindow(TAlignment & alignment, TWindow & window);
-	bool readData(BamTools::BamReader & bamReader, TWindow & window, TReadGroups & readGroups);
+	bool readAlignmentsInWindow(TWindow & window, TReadGroups & readGroups);
+	bool applyFilters(TWindow & window);
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 
 };

@@ -16,7 +16,7 @@
 #include "TBed.h"
 #include <typeinfo>
 #include <map>
-#include "TAlignment.h"
+#include "TAlignmentParser.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -40,9 +40,8 @@ private:
  	TRandomGenerator* randomGenerator;
  	bool randomGeneratorInitialized;
 
-	std::string filename;
 	TLog* logfile;
-	long oldPos;
+//	long oldPos;
 	std::string outputName;
 
 	void jumpToEnd();
@@ -57,12 +56,10 @@ private:
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-
 		if(fastaReference) reference.Close();
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
-		if(useChromosome) delete[] useChromosome;
 	};
 
 	//theta estimation

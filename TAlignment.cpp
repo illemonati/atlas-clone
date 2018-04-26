@@ -55,10 +55,13 @@ TAlignment::TAlignment(){
 
 TAlignment::TAlignment(unsigned int MaxSize){
 	TAlignment();
+	maxSize = MaxSize;
 	initStorage();
 }
 
 void TAlignment::clear(){
+	position = -1;
+	alignmentName = "empty";
 	empty = true;
 	parsed = false;
 	recalibrated = false;
@@ -69,26 +72,17 @@ void TAlignment::clear(){
 
 void TAlignment::initStorage(){
 	clear();
-
-	//data
 	bases = new TBase[maxSize];
 
-/*
-	base = new Base[maxSize];
-	baseAsChar = new char[maxSize];
-	context = new BaseContext[maxSize];
-	qualityOriginal = new int[maxSize];
-	qualityRecalibrated = new int[maxSize];
-	errorRates = new double[maxSize];
+	//other
 	aligned = new bool[maxSize];
 	alignedPos = new int[maxSize];
-	distFrom3Prime = new int[maxSize];
-	distFrom5Prime = new int[maxSize];
-	pmdCT = new double[maxSize];
-	pmdGA = new double[maxSize];
+	qualityRecalibrated = new int[maxSize];
+	quality = new int[maxSize];
+	qualityOriginal = new int[maxSize];
+	baseAsChar = new char[maxSize];
 
 	//soft clipped data
-	softClippedEntry = 0;
 	softClippedLength = new int[2];
 	softClippedBase = new char*[2];
 	softClippedQuality = new char*[2];
@@ -96,7 +90,6 @@ void TAlignment::initStorage(){
 	softClippedBase[1] = new char[maxSize];
 	softClippedQuality[0] = new char[maxSize];
 	softClippedQuality[1] = new char[maxSize];
-*/
 
 	storageInitialized = true;
 
@@ -105,6 +98,22 @@ void TAlignment::initStorage(){
 void TAlignment::freeStorage(){
 	if(storageInitialized){
 		delete[] bases;
+
+		delete[] aligned;
+		delete[] alignedPos;
+		delete[] qualityRecalibrated;
+		delete[] quality;
+		delete[] qualityOriginal;
+		delete[] baseAsChar;
+
+		delete[] softClippedLength;
+		delete[] softClippedBase[0];
+		delete[] softClippedBase[1];
+		delete[] softClippedBase;
+		delete[] softClippedQuality[0];
+		delete[] softClippedQuality[1];
+		delete[] softClippedQuality;
+
 /*
 		delete[] base;
 		delete[] baseAsChar;
@@ -117,13 +126,7 @@ void TAlignment::freeStorage(){
 		delete[] distFrom3Prime;
 		delete[] distFrom5Prime;
 
-		delete[] softClippedLength;
-		delete[] softClippedBase[0];
-		delete[] softClippedBase[1];
-		delete[] softClippedBase;
-		delete[] softClippedQuality[0];
-		delete[] softClippedQuality[1];
-		delete[] softClippedQuality;
+
 */
 
 	}
@@ -137,6 +140,7 @@ void TAlignment::fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId){
 	//add basic info
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
+	alignmentName = bamAlignment.Name;
 	isReverseStrand = bamAlignment.IsReverseStrand();
 	isProperPair = bamAlignment.IsProperPair();
 	mappingQuality = bamAlignment.MapQuality;

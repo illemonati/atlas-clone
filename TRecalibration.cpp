@@ -38,15 +38,17 @@ double TRecalibration::getErrorRate(const int & readGroupId, const int & quality
 }
 
 double TRecalibration::getErrorRateFromBase(const TBase & base){
-	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
+	return base.errorRate;
+//	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
 int TRecalibration::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
 	return quality;
 }
 
-int TRecalibration::getQualityFromBase(const TBase & base){
-	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
+int TRecalibration::getQualityFromBase(const TBase & base, TQualityMap & qualMap){
+	return qualMap.errorToQuality(base.errorRate);
+//	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
 
 //---------------------------------------------------------------
@@ -416,7 +418,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 		// - transformed quality
 		// - square of transformed quality
 
-		eps = qualiMap.qualityToErrorMap[(*it)->quality];
+//		eps = qualiMap.qualityToErrorMap[(*it)->quality];
+		eps = (*it)->errorRate;
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
@@ -821,7 +824,7 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
 }
 
-void TRecalibrationEM::addSite(TSite & site){
+void TRecalibrationEM::addSite(TSite & site, TQualityMap & qualiMap){
 	(*curWindow)->addSite(site, qualityMap);
 	++numSitesAdded;
 }
@@ -1332,7 +1335,7 @@ void TBQSR_cell::clearStorage(){
 	}
 }
 
-void TBQSR_cell::addBase(TBase* base, Base & RefBase){
+void TBQSR_cell::addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap){
 	if(!estimationConverged){
 		if(store){
 			if(next == batchSize){
@@ -1525,11 +1528,11 @@ void TBQSR_cellPosition::addToLL(float & D, float & epsilon){
 	LL += log((1.0-D)*epsilon*curEstimate/3.0 + D*(1.0-epsilon*curEstimate));
 }
 
-float TBQSR_cellPosition::getEpsilon(TBase* base){
-	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+float TBQSR_cellPosition::getEpsilon(TBase* base, TQualityMap & qualMap){
+	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
 }
 
-void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
+void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap){
 	if(!estimationConverged){
 		if(store){
 			if(next == batchSize){
@@ -1542,12 +1545,12 @@ void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase){
 
 			//add D to batch
 			pointerToBatch[next].D = getD(base, RefBase);
-			pointerToBatch[next].epsilon = getEpsilon(base);
+			pointerToBatch[next].epsilon = getEpsilon(base, qualiMap);
 			addToDerivatives(pointerToBatch[next].D, pointerToBatch[next].epsilon);
 			++next;
 		} else {
 			float D = getD(base, RefBase);
-			float eps = getEpsilon(base);
+			float eps = getEpsilon(base, qualiMap);
 			addToDerivatives(D, eps);
 		}
 		++numObservationsTmp;
@@ -1668,8 +1671,8 @@ void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualit
 	BQSR_cells_readGroup_position = NULL;
 }
 
-float TBQSR_cellPositionRev::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+float TBQSR_cellPositionRev::getEpsilon(TBase* base, TQualityMap & qualMap){
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	return  epsilonAlpha;
 }
@@ -1702,8 +1705,8 @@ void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityInd
 	BQSR_cells_readGroup_position_rev = NULL;
 }
 
-float TBQSR_cellContext::getEpsilon(TBase* base){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(base->quality)].curEstimate;
+float TBQSR_cellContext::getEpsilon(TBase* base, TQualityMap & qualMap){
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
 	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->posInReadRev].curEstimate;
 	return  epsilonAlpha;
@@ -2195,28 +2198,28 @@ void TRecalibrationBQSR::initializeBQSRReadGroupContextTableFromFile(TParameters
 	logfile->conclude("Considering context");
 }
 
-void TRecalibrationBQSR::addSite(TSite & site){
+void TRecalibrationBQSR::addSite(TSite & site, TQualityMap & qualMap){
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[readGroupMapObject[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
+					BQSR_cells_readGroup_quality[readGroupMapObject[(*it)->readGroup]][qualityIndex->getIndex(qualMap.errorToPhredInt((*it)->errorRate))].addBase(*it, refBase, qualMap);
 			}
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[readGroupMapObject[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
+				BQSR_cells_readGroup_position[readGroupMapObject[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase, qualMap);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
 				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position_reverse[readGroupMapObject[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase);
+				BQSR_cells_readGroup_position_reverse[readGroupMapObject[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase, qualMap);
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_context[readGroupMapObject[(*it)->readGroup]][(*it)->context].addBase(*it, refBase);
+				BQSR_cells_readGroup_context[readGroupMapObject[(*it)->readGroup]][(*it)->context].addBase(*it, refBase, qualMap);
 			}
 		}
 	}

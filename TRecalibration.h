@@ -84,7 +84,7 @@ public:
 	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	double getErrorRateFromBase(const TBase & base);
 	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	virtual int getQualityFromBase(const TBase & base);
+	virtual int getQualityFromBase(const TBase & base, TQualityMap & qualMap);
 //	virtual int getphredInt(const TBase & base){
 //		return base.phredInt;
 //	};
@@ -242,7 +242,7 @@ public:
 	bool recalibrationChangesQualities(){ return true; };
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
-	void addSite(TSite & site);
+	void addSite(TSite & site, TQualityMap & qualiMap);
 	void prepareWindowsforEM();
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
@@ -286,7 +286,7 @@ public:
 	void set(float error){curEstimate = error;};
 	void set(float error, std::string & NumObservations);
 	float getD(TBase* base, Base & RefBase);
-	virtual void addBase(TBase* base, Base & RefBase){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
+	virtual void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
 	virtual void recalculateDerivativesFromDataInMemory(){throw "TBQSR_cell_base::recalculateDerivativesFromDataInMemory() not defined for base class!";};
 	virtual void recalculateLLFromDataInMemory(){throw "TBQSR_cell_base::recalculateLLFromDataInMemory() not defined for base class!";};
 	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
@@ -312,7 +312,7 @@ public:
 	void empty();
 	void clearStorage();
 	void init(float initialError, bool Store, int ReadGroup);
-	void addBase(TBase* base, Base & RefBase);
+	void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap);
 	void addToDerivatives(float & D);
 	void addToLL(float & D);
 	void recalculateDerivativesFromDataInMemory();
@@ -348,8 +348,8 @@ public:
 
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
 	void clearStorage();
-	virtual float getEpsilon(TBase* base);
-	void addBase(TBase* base, Base & RefBase);
+	virtual float getEpsilon(TBase* base, TQualityMap & qualiMap);
+	void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap);
 	void addToDerivatives(float & D, float & epsilon);
 	void addToLL(float & D, float & epsilon);
 	void recalculateDerivativesFromDataInMemory();
@@ -369,7 +369,7 @@ public:
 
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
 	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	float getEpsilon(TBase* base);
+	float getEpsilon(TBase* base, TQualityMap & qualiMap);
 };
 
 class TBQSR_cellContext:public TBQSR_cellPositionRev{
@@ -384,7 +384,7 @@ public:
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
 	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
 	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	float getEpsilon(TBase* base);
+	float getEpsilon(TBase* base, TQualityMap & qualiMap);
 };
 
 //TODO: make class TBQSR_table!
@@ -468,7 +468,7 @@ public:
 
 	bool recalibrationChangesQualities(){ return true; };
 	bool dataHasBeenStored(){ return dataStored; };
-	void addSite(TSite & site);
+	void addSite(TSite & site, TQualityMap & qualiMap);
 	void recalculateDerivativesFromDataInMemory();
 	bool estimateEpsilon(std::string filenameTag);
 	void writeAllToFile(std::string filenameTag);

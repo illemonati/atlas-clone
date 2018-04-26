@@ -24,23 +24,24 @@ TWindow::TWindow(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
-	lastAlignmentwithEndInWindow = NULL;
+	lastAlignmentwithEndInWindow = usedAlignments.end();
 };
 
-TWindow::TWindow(long Start, long End){
+/*TWindow::TWindow(long Start, long End){
+	std::cout << "called correct constructor of TWindow!!!!!!!!!!!!" << std::endl;
 	start = Start;
 	end = End;
 	initSites(end - start); //end NOT in window!
-};
+};*/
 
-TAlignment* TWindow::getNewAlignment(){
+TAlignment* TWindow::getNewAlignment(unsigned int & maxReadLength){
 	TAlignment* alignment;
 	if(emptyAlignments.size() > 0){
-		alignment = emptyAlignments.begin();
+		alignment = *(emptyAlignments.begin());
 		emptyAlignments.pop_back();
 		return alignment;
 	} else
-		return new TAlignment;
+		return new TAlignment(maxReadLength);
 }
 void TWindow::initSites(long newLength){
 	if(sitesInitialized){
@@ -78,6 +79,7 @@ void TWindow::clear(){
 };
 
 void TWindow::move(long Start, long End){
+	std::cout << "moving window!!!!" << std::endl;
 	start = Start;
 	end = End;
 	if(sitesInitialized){
@@ -95,8 +97,8 @@ void TWindow::addAlignment(TAlignment* alignment){
 
 void TWindow::cleanUpUsedAlignments(){
 	//move all alignments that for sure are not needed in next window
-	std::move ( usedAlignments.begin(), lastAlignmentwithEndInWindow, emptyAlignments.end());
-
+	std::move (usedAlignments.begin(), lastAlignmentwithEndInWindow, std::back_inserter(emptyAlignments));
+	//usedAlignments.erase(usedAlignments.begin(), lastAlignmentwithEndInWindow);
 	//now check and move the rest
 	for(std::vector<TAlignment*>::reverse_iterator alignmentIt=usedAlignments.rbegin(); alignmentIt != usedAlignments.rend(); ++alignmentIt){
 		if((**alignmentIt).position + (**alignmentIt).length < end ){
@@ -108,7 +110,7 @@ void TWindow::cleanUpUsedAlignments(){
 
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++usedAlignments){
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
 
 		//check if alignment start is inside window
 		if((**alignmentIt).position >= end) throw "alignment should be assigned to next window!";
@@ -373,17 +375,17 @@ void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, st
 	}
 }
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile){
+void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			bqsr.addSite(sites[i]);
+			bqsr.addSite(sites[i], qualMap);
 		}
 	}
 	logfile->done();
 }
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile){
+void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	//now only run over sites listed in that window
 	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -392,7 +394,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 		pos = it->first - start;
 		if(sites[pos].hasData){
 			sites[pos].setRefBase(it->second.second);
-			bqsr.addSite(sites[pos]);
+			bqsr.addSite(sites[pos], qualMap);
 		}
 	}
 	logfile->done();
@@ -402,6 +404,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
+/*
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
@@ -410,17 +413,18 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 			}
 		}
 	}
+*/
 	logfile->done();
 }
 
-void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-				QTtables.at((*it)->readGroup)->add(recalObject->getQualityFromBase(**it), otherRecalObject->getQualityFromBase(**it));
-				QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(**it), otherRecalObject->getQualityFromBase(**it));
+				QTtables.at((*it)->readGroup)->add(recalObject->getQualityFromBase(**it, qualMap), otherRecalObject->getQualityFromBase(**it, qualMap));
+				QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(**it, qualMap), otherRecalObject->getQualityFromBase(**it, qualMap));
 			}
 		}
 	}
@@ -743,17 +747,17 @@ double TWindow::calcLogLikelihood(){
 	return LL;
 }
 
-void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject){
+void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			recalObject.addSite(sites[i]);
+			recalObject.addSite(sites[i], qualMap);
 		}
 	}
 }
 
-void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset){
+void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	//now only run over sites listed in that window
@@ -762,7 +766,7 @@ void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* 
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
 		if(sites[pos].hasData){
-			recalObject.addSite(sites[pos]);
+			recalObject.addSite(sites[pos], qualMap);
 		}
 	}
 }
