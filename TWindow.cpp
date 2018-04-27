@@ -79,7 +79,6 @@ void TWindow::clear(){
 };
 
 void TWindow::move(long Start, long End){
-	std::cout << "moving window!!!!" << std::endl;
 	start = Start;
 	end = End;
 	if(sitesInitialized){
@@ -110,8 +109,8 @@ void TWindow::cleanUpUsedAlignments(){
 
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
+	std::cout << "##### in fill sites with vector size of " << usedAlignments.size() << std::endl;
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
-
 		//check if alignment start is inside window
 		if((**alignmentIt).position >= end) throw "alignment should be assigned to next window!";
 
@@ -128,9 +127,11 @@ void TWindow::fillSites(){
 			if(p == (**alignmentIt).length)
 				throw "alignment should be assigned to previous window!";
 		}
+
 		//position in window where first one = 0
 		int internalPos;
-
+		std::cout << "p: " << p << " (**alignmentIt).length: " << (**alignmentIt).length << std::endl;
+		std::cout << "(**alignmentIt).alignedPos[p] " << (**alignmentIt).alignedPos[p] << std::endl;
 		//p is at first position of read in window
 		for(; p < (**alignmentIt).length; ++p){
 			if((**alignmentIt).aligned[p] && (**alignmentIt).bases[p].base != N){
@@ -139,6 +140,7 @@ void TWindow::fillSites(){
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
 				lastAlignmentwithEndInWindow = alignmentIt;
+				std::cout << "adding bases to site" << std::endl;
 				sites[internalPos].add(&(**alignmentIt).bases[p]);
 			}
 		}

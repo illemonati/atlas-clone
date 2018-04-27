@@ -133,11 +133,12 @@ void TAlignment::freeStorage(){
 	storageInitialized = false;
 }
 
-void TAlignment::fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId){
+void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	//clear
 	clear();
 
 	//add basic info
+	bamAlignment = BamAlignment;
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
 	alignmentName = bamAlignment.Name;
@@ -204,7 +205,7 @@ void TAlignment::setDistancesFromEnds(){
 	}
 };
 
-void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
+void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* pmdObjects){
 	if(!parsed){
 
 		if(!storageInitialized) throw "Alignment storage was not initialized!";
@@ -218,7 +219,12 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 		//fill context for each base
 		fillContext(genoMap);
 
+		//fill pmd
+		fillPmdProbabilities(pmdObjects);
+
 		parsed = true;
+		std::cout << "length in parse " << length << std::endl;
+		std::cout << "qualities[2] " << qualityOriginal[2] << std::endl;
 	}
 };
 
@@ -233,6 +239,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
+	std::cout << "bamAlignment.CigarData.size() " << bamAlignment.CigarData.size() << std::endl;
 	int counter = 0;
 	for( ; cigarIter != cigarEnd; ++cigarIter, ++counter ){
 		const BamTools::CigarOp& op = (*cigarIter);
@@ -315,6 +322,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	//update length
 	length = k;
+	std::cout << "length in parseBasesAndQual " << length << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
@@ -333,6 +341,7 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 	} else {
 		//forward
 		bases[0].context = genoMap.contextMap[N][bases[0].base];
+		std::cout << "bases[0].readGroup " << bases[0].readGroup << std::endl;
 		for(int d=1; d<length; ++d){
 //			std::cout << "getting Context for " << base[d-1] << ", " << bases[d].base << std::flush;
 			//std::cout << " -> " << genoMap.contextMap[base[d-1]][bases[d].base] << std::endl;
@@ -417,7 +426,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	if(!hasReference) throw "Reference was not added!";
 
 	//get PMD probs
-	fillPmdProbabilities(pmdObjects);
+	//fillPmdProbabilities(pmdObjects);
 
 	//recalibrate quality scores
 	for(int d=0; d<length; ++d){
@@ -495,7 +504,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	double fourEpsThird;
 
 	//get PMD probs
-	fillPmdProbabilities(pmdObjects);
+//	fillPmdProbabilities(pmdObjects);
 
 	//go over all bases in read
 	for(int d=0; d<length; ++d){

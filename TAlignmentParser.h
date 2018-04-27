@@ -136,7 +136,7 @@ public:
 	//read data in windows
 	bool readDataInWindows(TWindow & window, TReadGroups & readGroups);
 	bool addAlignementToWindow(TAlignment & alignment, TWindow & window);
-	bool readAlignmentsInWindow(TWindow & window, TReadGroups & readGroups);
+	bool readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups);
 	bool applyFilters(TWindow & window);
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 
