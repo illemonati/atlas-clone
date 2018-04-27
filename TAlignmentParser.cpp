@@ -97,6 +97,16 @@ TAlignmentParser::TAlignmentParser(){
 	hasReference = false;
 	fastaReference = NULL;
 	fastaBuffer = NULL;
+
+	//post mortem damage and recalibration
+	hasPMD = false;
+	pmdObjects = NULL;
+	doRecalibration = false;
+	doRecalibration2 = false;
+	recalObjectInitialized = false;
+	recalObjectInitialized2 = false;
+	recalObject = NULL;
+	recalObject2 = NULL;
 };
 
 TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
@@ -431,7 +441,97 @@ bool TAlignmentParser::moveToNextWindow(TWindow & window){
 };
 
 //------------------------------
-//public functions
+//initialize PMD and recalibration
+//------------------------------
+void TAlignmentParser::initializePostMortemDamage(TParameters & params){
+	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
+	//create an array of TPMD objects for each read group
+	pmdObjects = new TPMD[readGroups.size()];
+
+	//now fill them!
+	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
+		//all read groups have the same pmd
+		logfile->list("Initializing one PMD function for all read groups.");
+		pmdObjects[0].initialize(params, logfile);
+		for(int i=1; i<readGroups.size(); ++i)
+			pmdObjects[i].initialize(pmdObjects[0]);
+		hasPMD = true;
+	} else if(params.parameterExists("pmdFile")){
+		//read from file for each read group
+		std::string filename = params.getParameterString("pmdFile");
+		logfile->list("Reading PMD from file '" + filename + "'.");
+		std::ifstream file(filename.c_str());
+		if(!file) throw "Failed to open PMD file '" + filename + "'!";
+
+		//parse file that has structure: readGroup PMD(CT) PMD(GA)
+		int lineNum = 0;
+		std::string line;
+		std::vector<std::string> vec;
+		int readGroupId;
+		while(file.good() && !file.eof()){
+			++lineNum;
+			//skip empty lines or those that start with //
+			std::getline(file, line);
+			line = extractBefore(line, "//");
+			trimString(line);
+			if(!line.empty()){
+				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+				//get read group
+				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
+					readGroupId = readGroups.find(vec[0]);
+					//initialize functions
+					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
+				//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
+					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
+				//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
+				}
+			}
+		}
+
+		//close file
+		file.close();
+
+		//test if we have a function for all read groups
+		for(int i=0; i<readGroups.size(); ++i){
+			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+		}
+		hasPMD = true;
+	} else {
+		//no post mortem damage
+		logfile->list("Assuming there is no PMD in the data.");
+		std::string pmdString = "none";
+		for(int i=0; i<readGroups.size(); ++i){
+			pmdObjects[i].initializeFunction(pmdString, pmdGA);
+			pmdObjects[i].initializeFunction(pmdString, pmdCT);
+		}
+	}
+	logfile->endIndent();
+}
+
+void TAlignmentParser::initializeRecalibration(TParameters & params){
+	TReadGroupMap readGroupMap(bamHeader, params, logfile);
+	if(params.parameterExists("recal")){
+		std::string filename = params.getParameterString("recal");
+		recalObject = new TRecalibrationEM(bamHeader, filename, params, logfile, readGroupMap);
+		doRecalibration = true;
+	} else if(params.parameterExists("BQSRQuality")){
+		recalObject = new TRecalibrationBQSR(bamHeader, params, logfile, readGroupMap);
+		doRecalibration = true;
+	} else {
+		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+		doRecalibration = false;
+		recalObject = new TRecalibration(readGroupMap);
+	}
+	recalObjectInitialized = true;
+
+	//check if estimation is required, in which case throw an error!
+	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+}
+
+//------------------------------
+//reading data
 //------------------------------
 bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
 	//make sure container is empty
@@ -519,7 +619,7 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 	//add old alignment if necessary
 	if(oldAlignmentMustBeConsidered){
 		oldAlignmentMustBeConsidered = false;
-		if(!addAlignementToWindow((*oldAlignment), window)){
+		if(!addToWindow((*oldAlignment), window)){
 			logfile->conclude("No data in this window.");
 			return false; //still only in next window
 		} else {
@@ -535,7 +635,7 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 	//pass it to reader
 	if(readAlignment(bamReader, *alignmentP)){
 		if(readGroups.readGroupInUse(alignmentP->readGroupId)){
-			if(!addAlignementToWindow((*alignmentP), window)){
+			if(!addToWindow((*alignmentP), window)){
 				//read is beyond window and should be added to next
 				oldAlignment = alignmentP;
 				oldAlignmentMustBeConsidered = true;
@@ -551,13 +651,19 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 	return false;
 };
 
-bool TAlignmentParser::addAlignementToWindow(TAlignment& alignment, TWindow & window){
+bool TAlignmentParser::addToWindow(TAlignment& alignment, TWindow & window){
 	//check if bam file is sorted
 	if(alignment.getPosition() < previousAlignmentPos)
 		throw "BAM file must be sorted by position!";
 
 	//and add
 	if((alignment.getPosition() >= window.start) && alignment.getPosition() <= window.end){
+		//add missing information to bases
+		alignment.recalibrate(recalObject, qualMap);
+		alignment.addReadGroupInfo();
+		alignment.addPMDInfo();
+
+		//add alignment with complete bases to window
 		window.addAlignment(&alignment);
 		return true; //continue
 	} else

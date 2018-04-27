@@ -79,6 +79,16 @@ private:
 	int limitChr;
 	bool* useChromosome;
 
+	//recal and pmd objects
+	TPMD* pmdObjects;
+	bool hasPMD;
+	TRecalibration* recalObject;
+	TRecalibration* recalObject2;
+	bool doRecalibration;
+	bool doRecalibration2;
+	bool recalObjectInitialized;
+	bool recalObjectInitialized2;
+
 	//move genome
 	void jumpToEnd();
 	void restartChromosome(TWindow & window);
@@ -86,6 +96,8 @@ private:
 	void moveChromosome(TWindow & window);
 	bool moveToNextWindow(TWindow & window);
 
+	void initializePostMortemDamage(TParameters & params);
+	void initializeRecalibration(TParameters & params);
 
 public:
 	//alignment: goal is to make this private!
@@ -118,6 +130,8 @@ public:
 			delete predefinedWindows;
 		if(useChromosome)
 			delete[] useChromosome;
+		if(recalObjectInitialized) delete recalObject;
+		if(pmdObjects) delete[] pmdObjects;
 	}
 	void init(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
 
@@ -135,7 +149,7 @@ public:
 
 	//read data in windows
 	bool readDataInWindows(TWindow & window, TReadGroups & readGroups);
-	bool addAlignementToWindow(TAlignment & alignment, TWindow & window);
+	bool addToWindow(TAlignment & alignment, TWindow & window);
 	bool readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups);
 	bool applyFilters(TWindow & window);
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);

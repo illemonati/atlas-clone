@@ -205,7 +205,7 @@ void TAlignment::setDistancesFromEnds(){
 	}
 };
 
-void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* pmdObjects){
+void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* pmdObjects, TReadGroups & readGroups){
 	if(!parsed){
 
 		if(!storageInitialized) throw "Alignment storage was not initialized!";
@@ -219,8 +219,15 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* p
 		//fill context for each base
 		fillContext(genoMap);
 
+		//necessary for window functions:
+
 		//fill pmd
-		fillPmdProbabilities(pmdObjects);
+
+		//recalibrate
+
+		//fill read group information
+		fillReadGroupInfo(readGroups);
+
 
 		parsed = true;
 		std::cout << "length in parse " << length << std::endl;
@@ -426,7 +433,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	if(!hasReference) throw "Reference was not added!";
 
 	//get PMD probs
-	//fillPmdProbabilities(pmdObjects);
+	fillPmdProbabilities(pmdObjects);
 
 	//recalibrate quality scores
 	for(int d=0; d<length; ++d){
@@ -450,6 +457,13 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	recalibrated = true;
 	changed = true;
 };
+
+void TAlignment::fillReadGroupInfo(TReadGroups & readGroups){
+	int readGroupNum = readGroups.find(readGroup);
+	for(int d=0; d<length; ++d){
+		bases[d].readGroup = readGroupID;
+	}
+}
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	//make sure read is parsed
@@ -504,7 +518,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	double fourEpsThird;
 
 	//get PMD probs
-//	fillPmdProbabilities(pmdObjects);
+	fillPmdProbabilities(pmdObjects);
 
 	//go over all bases in read
 	for(int d=0; d<length; ++d){

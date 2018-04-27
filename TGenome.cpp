@@ -39,11 +39,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		alignmentParser.addReference(&reference);
 	} else fastaReference = false;
 
-	//initialize post mortem damage
+/*	//initialize post mortem damage
 	hasPMD = false;
 	initializePostMortemDamage(params);
 	doRecalibration = false;
-	recalObjectInitialized = false;
+	recalObjectInitialized = false;*/
 
 	//trimming ends
 	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
@@ -172,7 +172,7 @@ bool TGenome::readData(TWindow & window){
 		return false;
 	}
 };
-*/
+
 
 void TGenome::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
@@ -260,7 +260,7 @@ void TGenome::initializeRecalibration(TParameters & params){
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
-
+*/
 void TGenome::initializeRandomGenerator(TParameters & params){
 	logfile->listFlush("Initializing random generator ...");
 
@@ -308,7 +308,7 @@ void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimat
 
 void TGenome::estimateTheta(TParameters & params){
 	//initialize recalibration
-	initializeRecalibration(params);
+	alignmentParser.initializeRecalibration(params);
 
 	//Theta estimator
 	TThetaEstimator thetaEstimator(params, logfile);

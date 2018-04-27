@@ -24,7 +24,7 @@
 class TGenome{
 private:
  	TAlignmentParser alignmentParser;
-
+/*
 	TPMD* pmdObjects;
 	bool hasPMD;
 	TRecalibration* recalObject;
@@ -33,7 +33,7 @@ private:
 	bool doRecalibration2;
 	bool recalObjectInitialized;
 	bool recalObjectInitialized2;
-
+*/
 	BamTools::Fasta reference;
 	bool fastaReference;
  	TReadGroups readGroups;
@@ -46,8 +46,8 @@ private:
 
 	void jumpToEnd();
 
-	void initializePostMortemDamage(TParameters & params);
-	void initializeRecalibration(TParameters & params);
+//	void initializePostMortemDamage(TParameters & params);
+//	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
@@ -57,8 +57,8 @@ public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
 		if(fastaReference) reference.Close();
-		if(recalObjectInitialized) delete recalObject;
-		if(pmdObjects) delete[] pmdObjects;
+//		if(recalObjectInitialized) delete recalObject;
+//		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 	};
 
