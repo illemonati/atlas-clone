@@ -136,7 +136,7 @@ public:
 
 	void filterForBaseQuality(int & minQual, int & maxQual);
 	void clear();
-	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* pmdObjects, TReadGroups* readGroupTable);
+	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 
 	//accessed by TGenome
 	int readGroupId;
@@ -151,7 +151,7 @@ public:
 	//TODO: move these functions to TGenome
 	void recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap);
 	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap);
-	void fillReadGroupInfo(TReadGroups & readGroups);
+	void fillReadGroupInfo(int & readGroupID);
 	void binQualityScores(TQualityMap & qualityMap);
 	void updateOptionalSamField(std::string tag, float value);
 	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);

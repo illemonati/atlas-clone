@@ -30,7 +30,9 @@ private:
 	//variables
 	TGenotypeMap genoMap;
 	TQualityMap qualityMap;
-	TReadGroups* readGroupTable;
+	//TReadGroups* readGroupTable;
+ 	TReadGroups readGroups;
+
 	TLog* logfile;
 	bool _keepDuplicates;
 	bool parse;
@@ -120,7 +122,7 @@ public:
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
+	TAlignmentParser(TParameters & params, TLog* Logfile);
 	~TAlignmentParser(){
 		if(hasReference)
 			delete fastaBuffer;
@@ -133,7 +135,7 @@ public:
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;
 	}
-	void init(TReadGroups* readGroupTable, TParameters & params, TLog* Logfile);
+	void init(TParameters & params, TLog* Logfile);
 
 	//setters
 	void keepDuplicates(){_keepDuplicates = true;};

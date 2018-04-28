@@ -42,7 +42,6 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 //TAlignmentParser
 //-----------------------------------------------------
 TAlignmentParser::TAlignmentParser(){
-	readGroupTable = NULL;
 	logfile = NULL;
 	_keepDuplicates = false;
 	parse = false;
@@ -109,15 +108,14 @@ TAlignmentParser::TAlignmentParser(){
 	recalObject2 = NULL;
 };
 
-TAlignmentParser::TAlignmentParser(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
+TAlignmentParser::TAlignmentParser(TParameters & params, TLog* Logfile){
 	TAlignmentParser();
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
 
-	init(ReadGroupTable, params, Logfile);
+	init(params, Logfile);
 };
 
-void TAlignmentParser::init(TReadGroups* ReadGroupTable, TParameters & params, TLog* Logfile){
-	readGroupTable = ReadGroupTable;
+void TAlignmentParser::init(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
 	//open BAM file
@@ -279,6 +277,27 @@ void TAlignmentParser::init(TReadGroups* ReadGroupTable, TParameters & params, T
 	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
+
+	//-----------------
+	//read groups
+	//-----------------
+
+	readGroups.fill(bamHeader);
+
+	//limit readGroups
+	if(params.parameterExists("readGroup")){
+		readGroups.filterReadGroups(params.getParameterString("readGroup"));
+		logfile->startIndent("Will limit analysis to the following read groups:");
+		readGroups.printReadgroupsInUse(logfile);
+		logfile->endIndent();
+	}
+
+	//------------
+	//recal and pmd
+	//------------
+
+	initializePostMortemDamage(params);
+	initializeRecalibration(params);
 
 	//------------
 	//other
@@ -511,13 +530,13 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
-	TReadGroupMap readGroupMap(bamHeader, params, logfile);
+	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 	if(params.parameterExists("recal")){
 		std::string filename = params.getParameterString("recal");
-		recalObject = new TRecalibrationEM(bamHeader, filename, params, logfile, readGroupMap);
+		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(bamHeader, params, logfile, readGroupMap);
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
@@ -547,7 +566,7 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	//fill alignment
 	std::string readGroup;
 	bamAlignment.GetTag("RG", readGroup);
-	int readGroupId = readGroupTable->find(readGroup);
+	int readGroupId = readGroups.find(readGroup);
 	alignment.fill(bamAlignment, readGroupId);
 
 	//check if insert size is shorter than read, this means we are reading the adaptor sequence
@@ -557,7 +576,7 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 		filtersPassed = false;
 	} else {
 		//apply filters: read group in use and basic QC
-		filtersPassed = readGroupTable->readGroupInUse(readGroupId)
+		filtersPassed = readGroups.readGroupInUse(readGroupId)
 						&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
 						&& bamAlignment.IsPrimaryAlignment()
 						&& (_keepDuplicates || !bamAlignment.IsDuplicate());
@@ -569,6 +588,14 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	if(parse){
 		std::cout << "########### parsing alignment!" << std::endl;
 		alignment.parse(genoMap, qualityMap);
+
+		//add missing information to bases
+		alignment.fillReadGroupInfo(readGroupId);
+
+		if(doRecalibration)
+			alignment.recalibrate(*recalObject, qualityMap);
+		if(hasPMD)
+			alignment.fillPmdProbabilities(pmdObjects);
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 		if(applyQualityFilter)
@@ -658,11 +685,6 @@ bool TAlignmentParser::addToWindow(TAlignment& alignment, TWindow & window){
 
 	//and add
 	if((alignment.getPosition() >= window.start) && alignment.getPosition() <= window.end){
-		//add missing information to bases
-		alignment.recalibrate(recalObject, qualMap);
-		alignment.addReadGroupInfo();
-		alignment.addPMDInfo();
-
 		//add alignment with complete bases to window
 		window.addAlignment(&alignment);
 		return true; //continue

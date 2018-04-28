@@ -36,7 +36,6 @@ private:
 */
 	BamTools::Fasta reference;
 	bool fastaReference;
- 	TReadGroups readGroups;
  	TRandomGenerator* randomGenerator;
  	bool randomGeneratorInitialized;
 

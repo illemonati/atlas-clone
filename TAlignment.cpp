@@ -205,7 +205,7 @@ void TAlignment::setDistancesFromEnds(){
 	}
 };
 
-void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* pmdObjects, TReadGroups & readGroups){
+void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	if(!parsed){
 
 		if(!storageInitialized) throw "Alignment storage was not initialized!";
@@ -226,7 +226,6 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, TPMD* p
 		//recalibrate
 
 		//fill read group information
-		fillReadGroupInfo(readGroups);
 
 
 		parsed = true;
@@ -458,8 +457,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	changed = true;
 };
 
-void TAlignment::fillReadGroupInfo(TReadGroups & readGroups){
-	int readGroupNum = readGroups.find(readGroup);
+void TAlignment::fillReadGroupInfo(int & readGroupID){
 	for(int d=0; d<length; ++d){
 		bases[d].readGroup = readGroupID;
 	}

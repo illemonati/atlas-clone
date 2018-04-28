@@ -15,10 +15,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	initializeRandomGenerator(params);
 
 	//initialize alignment parser
-	alignmentParser.init(&readGroups, params, logfile);
-
-	//fill read groups
-	readGroups.fill(alignmentParser.bamHeader);
+	alignmentParser.init(params, logfile);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -57,13 +54,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		}
 	}
 
-	//limit readGroups
-	if(params.parameterExists("readGroup")){
-		readGroups.filterReadGroups(params.getParameterString("readGroup"));
-		logfile->startIndent("Will limit analysis to the following read groups:");
-		readGroups.printReadgroupsInUse(logfile);
-		logfile->endIndent();
-	}
 };
 
 /*
