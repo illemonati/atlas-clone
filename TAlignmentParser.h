@@ -84,7 +84,6 @@ private:
 	//recal and pmd objects
 	TPMD* pmdObjects;
 	bool hasPMD;
-	TRecalibration* recalObject;
 	TRecalibration* recalObject2;
 	bool doRecalibration;
 	bool doRecalibration2;
@@ -112,6 +111,9 @@ public:
 	bool applyDepthFilter;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
+
+	TRecalibration* recalObject;
+
 
 	//BAM file
 	std::string filename;
@@ -150,7 +152,7 @@ public:
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
-	bool readDataInWindows(TWindow & window, TReadGroups & readGroups);
+	bool readDataInWindows(TWindow & window);
 	bool addToWindow(TAlignment & alignment, TWindow & window);
 	bool readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups);
 	bool applyFilters(TWindow & window);

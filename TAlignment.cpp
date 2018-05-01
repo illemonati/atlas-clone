@@ -146,6 +146,8 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	isProperPair = bamAlignment.IsProperPair();
 	mappingQuality = bamAlignment.MapQuality;
 	readGroupId = ReadGroupId;
+
+	empty = false;
 }
 
 void TAlignment::setFiltersPassed(bool passed){
@@ -207,7 +209,6 @@ void TAlignment::setDistancesFromEnds(){
 
 void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	if(!parsed){
-
 		if(!storageInitialized) throw "Alignment storage was not initialized!";
 
 		//first parse bases and qualities
@@ -229,8 +230,6 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 
 		parsed = true;
-		std::cout << "length in parse " << length << std::endl;
-		std::cout << "qualities[2] " << qualityOriginal[2] << std::endl;
 	}
 };
 
@@ -245,7 +244,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
-	std::cout << "bamAlignment.CigarData.size() " << bamAlignment.CigarData.size() << std::endl;
 	int counter = 0;
 	for( ; cigarIter != cigarEnd; ++cigarIter, ++counter ){
 		const BamTools::CigarOp& op = (*cigarIter);
@@ -328,7 +326,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	//update length
 	length = k;
-	std::cout << "length in parseBasesAndQual " << length << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
@@ -346,12 +343,8 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 		bases[length-1].context = genoMap.contextMap[N][bases[length-1].base];
 	} else {
 		//forward
-		bases[0].context = genoMap.contextMap[N][bases[0].base];
-		std::cout << "bases[0].readGroup " << bases[0].readGroup << std::endl;
 		for(int d=1; d<length; ++d){
-//			std::cout << "getting Context for " << base[d-1] << ", " << bases[d].base << std::flush;
-			//std::cout << " -> " << genoMap.contextMap[base[d-1]][bases[d].base] << std::endl;
-			bases[d].context = genoMap.contextMap[bases[d-1].context][bases[d].context];
+			bases[d].context = genoMap.contextMap[bases[d-1].base][bases[d].base];
 		}
 	}
 };

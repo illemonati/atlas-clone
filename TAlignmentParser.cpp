@@ -355,6 +355,7 @@ void TAlignmentParser::restartChromosome(TWindow & window){
 }
 
 bool TAlignmentParser::iterateChromosome(TWindow & window){
+	std::cout << "iterate chromosome" << std::endl;
 	if(chrIterator == bamHeader.Sequences.End()){
 		chrIterator = bamHeader.Sequences.Begin();
 		chrNumber = 0;
@@ -383,7 +384,6 @@ bool TAlignmentParser::iterateChromosome(TWindow & window){
 }
 
 void TAlignmentParser::moveChromosome(TWindow & window){
-	std::cout << "moving chr" << std::endl;
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
 	oldAlignmentMustBeConsidered = false;
@@ -398,15 +398,19 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		predefinedWindows->setChr(chrIterator->Name);
 		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 		int nextEnd = predefinedWindows->curWindowEnd();
-		if(nextEnd > chrLength) nextEnd = chrLength + 1;
-		else window.move(predefinedWindows->curWindowStart(), nextEnd);
+		if(nextEnd > chrLength)
+			nextEnd = chrLength + 1;
+		else {
+			//moveToNextWindow(window);
+			window.move(predefinedWindows->curWindowStart(), nextEnd);
+			bamReader.Jump(chrNumber, window.start);
+		}
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
 		//TODO:!!! removed +1 because we are zero-based. Check if true!
 		if(nextEnd > chrLength) nextEnd = chrLength;
 		window.move(0, nextEnd);
-		std::cout << "moved window to " << window.start << " and " << window.end << std::endl;
 	}
 
 	//advance mask
@@ -430,16 +434,16 @@ bool TAlignmentParser::moveToNextWindow(TWindow & window){
 			logfile->conclude("No windows on this chromosome.");
 			return false;
 		}
-		//jump reader if large gap to previous window
-		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
-		if(window.start - window.end > maxReadLength)
-			bamReader.Jump(chrNumber, window.start);
 
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
 			int nextEnd = predefinedWindows->curWindowEnd();
 			if(nextEnd > chrLength) nextEnd = chrLength;
 			window.move(predefinedWindows->curWindowStart(), nextEnd);
+			//jump reader if large gap to previous window
+			//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
+			if(window.start - window.end > maxReadLength)
+				bamReader.Jump(chrNumber, window.start);
 		} else {
 			window.move(chrLength, chrLength+1);
 		}
@@ -586,7 +590,6 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	alignment.setFiltersPassed(filtersPassed);
 
 	if(parse){
-		std::cout << "########### parsing alignment!" << std::endl;
 		alignment.parse(genoMap, qualityMap);
 
 		//add missing information to bases
@@ -601,7 +604,6 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 		if(applyQualityFilter)
 			alignment.filterForBaseQuality(minQual, maxQual);
 	}
-
 	return true;
 }
 
@@ -609,10 +611,8 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 //---------------------
 //read data in windows
 //---------------------
-bool TAlignmentParser::readDataInWindows(TWindow & window, TReadGroups & readGroups){
-	std::cout << "reading data in windows" << std::endl;
+bool TAlignmentParser::readDataInWindows(TWindow & window){
 	setParsingToTrue();
-
 	while(iterateChromosome(window)){
 		//report
 		logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
@@ -624,8 +624,13 @@ bool TAlignmentParser::readDataInWindows(TWindow & window, TReadGroups & readGro
 
 			logfile->listFlush("Reading data ...");
 			while(readAlignmentsIntoWindow(window, readGroups)) continue;
+			//for(int i=0; i<window.usedAlignments.size(); ++i){
+				//if((window.usedAlignments[i])->position != 3000046)
+					//std::cout << "position " << i << " in readDataInWindows after readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
+			//}
 			window.fillSites();
 			if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+			window.cleanUpUsedAlignments();
 
 			gettimeofday(&end, NULL);
 			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
@@ -651,6 +656,8 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 			return false; //still only in next window
 		} else {
 			//update previous alignment info
+			std::cout << "position of alignment that was read previously " << (*oldAlignment).position << std::endl;
+
 			previousAlignmentPos = oldAlignment->position;
 			previousAlignmentChr = oldAlignment->chrNumber;
 		}
@@ -663,6 +670,7 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 	if(readAlignment(bamReader, *alignmentP)){
 		if(readGroups.readGroupInUse(alignmentP->readGroupId)){
 			if(!addToWindow((*alignmentP), window)){
+				std::cout << "position of alignment that could not be added " << (*alignmentP).position << std::endl;
 				//read is beyond window and should be added to next
 				oldAlignment = alignmentP;
 				oldAlignmentMustBeConsidered = true;
@@ -672,10 +680,18 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 				previousAlignmentPos = alignmentP->position;
 				previousAlignmentChr = alignmentP->chrNumber;
 			}
+
 		}
 		return true;
 	}
-	return false;
+	else return false;
+//	throw "got to here!";
+//	for(int i=0; i<window.usedAlignments.size(); ++i){
+//		//if((window.usedAlignments[i])->position != 3000046)
+//			std::cout << "position " << i << " in readDataInWindows at the end of readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
+//	}
+//
+//	return false;
 };
 
 bool TAlignmentParser::addToWindow(TAlignment& alignment, TWindow & window){
@@ -686,7 +702,8 @@ bool TAlignmentParser::addToWindow(TAlignment& alignment, TWindow & window){
 	//and add
 	if((alignment.getPosition() >= window.start) && alignment.getPosition() <= window.end){
 		//add alignment with complete bases to window
-		window.addAlignment(&alignment);
+		if((alignment.getPosition() + alignment.length) > window.end) throw "read is overlapping with next window!";
+		window.addAlignment(alignment);
 		return true; //continue
 	} else
 		return false;

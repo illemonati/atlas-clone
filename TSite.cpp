@@ -12,8 +12,6 @@
 //-------------------------------------------------------
 void TSite::clear(){
 	if(hasData){
-		for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
-			delete *it;
 		bases.clear();
 		hasData = false;
 		referenceBase = 'N';

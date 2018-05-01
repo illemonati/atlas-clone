@@ -72,7 +72,9 @@ public:
 		context = Context;
 	};
 
-	virtual ~TBase(){};
+	virtual ~TBase(){
+		std::cout << "in deconstructor of TBase" << std::endl;
+	};
 
 	void fillEmissionProbabilitiesCore(double thisErrorRate);
 
@@ -82,7 +84,6 @@ public:
 	double getEmissionProbability(int genotype){
 		return emissionProbabilities.get(genotype);
 	};
-
 	void printEmissionProbs(){
 		emissionProbabilities.print();
 	}

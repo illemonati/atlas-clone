@@ -297,8 +297,8 @@ void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimat
 
 
 void TGenome::estimateTheta(TParameters & params){
-	//initialize recalibration
-	alignmentParser.initializeRecalibration(params);
+//	//initialize recalibration
+//	alignmentParser.initializeRecalibration(params);
 
 	//Theta estimator
 	TThetaEstimator thetaEstimator(params, logfile);
@@ -335,7 +335,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	TWindow window;
 
 	//iterate through windows
-	while(alignmentParser.readDataInWindows(window, readGroups)){
+	while(alignmentParser.readDataInWindows(window)){
 		logfile->startIndent("Estimating Theta:");
 
 		//measure runtime
@@ -345,7 +345,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 		//adding sites to estimator
 		logfile->listFlush("Calculating emission probabilities ...");
 		thetaEstimator.clear();
-		window.addSitesToThetaEstimator(recalObject, thetaEstimator);
+		window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
 		logfile->done();
 
 		//estimate Theta

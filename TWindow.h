@@ -58,7 +58,7 @@ public:
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End);
-	void addAlignment(TAlignment* alignment);
+	void addAlignment(TAlignment & alignment);
 	void cleanUpUsedAlignments();
 	void fillSites();
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
