@@ -26,7 +26,8 @@
 class TWindow{
 private:
 	void fillPGenotype(double* pGenotype);
-	std::vector<TAlignment*>::iterator lastAlignmentwithEndInWindow;
+	std::vector<TAlignment>::iterator lastAlignmentwithEndInWindow;
+	std::vector<TAlignment>::iterator firstAlignmentwithPosOutsideWindow;
 
 public:
 	long start;
@@ -43,8 +44,8 @@ public:
 	bool referenceBaseAdded;
 
 	//alignment stacks
-	std::vector<TAlignment*> usedAlignments;
-	std::vector<TAlignment*> emptyAlignments;
+	std::vector<TAlignment> usedAlignments;
+	std::vector<TAlignment> emptyAlignments;
 
 	TWindow();
 //	TWindow(long Start, long End);
@@ -54,11 +55,11 @@ public:
 			delete[] sites;
 		}
 	};
-	TAlignment* getNewAlignment(unsigned int & maxReadLength);
+	TAlignment* getEmptyAlignment(unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End);
-	void addAlignment(TAlignment & alignment);
+	void review();
 	void cleanUpUsedAlignments();
 	void fillSites();
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);

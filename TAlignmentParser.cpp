@@ -354,8 +354,7 @@ void TAlignmentParser::restartChromosome(TWindow & window){
 	moveChromosome(window);
 }
 
-bool TAlignmentParser::iterateChromosome(TWindow & window){
-	std::cout << "iterate chromosome" << std::endl;
+/*bool TAlignmentParser::iterateChromosome(TWindow & window){
 	if(chrIterator == bamHeader.Sequences.End()){
 		chrIterator = bamHeader.Sequences.Begin();
 		chrNumber = 0;
@@ -381,7 +380,7 @@ bool TAlignmentParser::iterateChromosome(TWindow & window){
 
 	moveChromosome(window);
 	return true;
-}
+}*/
 
 void TAlignmentParser::moveChromosome(TWindow & window){
 	//jump reader
@@ -420,7 +419,8 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
 }
 
-bool TAlignmentParser::moveToNextWindow(TWindow & window){
+bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
+	std::cout << "coordinates of window in moveToNextWindowOnChr " << window.start << " " << window.end << std::endl;
 	if(window.end > 0) logfile->endIndent();
 
 	//move to next region
@@ -429,6 +429,16 @@ bool TAlignmentParser::moveToNextWindow(TWindow & window){
 	if(window.end >= chrLength || windowNumber >= limitWindows) return false;
 
 	//move next
+	long nextEnd = window.end + windowSize;
+	if(nextEnd > chrLength)
+		nextEnd = chrLength;
+	window.move(window.end, nextEnd);
+
+	return true;
+};
+
+bool TAlignmentParser::nextWindow(TWindow & window){
+	std::cout << "getting next window" << std::endl;
 	if(windowsPredefined){
 		if(numWindowsOnChr < 1){
 			logfile->conclude("No windows on this chromosome.");
@@ -447,22 +457,49 @@ bool TAlignmentParser::moveToNextWindow(TWindow & window){
 		} else {
 			window.move(chrLength, chrLength+1);
 		}
+		//report
+		logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+		logfile->addIndent();
+		return true;
+
 	} else {
-		long nextEnd = window.end + windowSize;
-		if(nextEnd > chrLength)
-			nextEnd = chrLength;
-		window.move(window.end, nextEnd);
+		//we are at beginning of BAM file
+		if(chrIterator == bamHeader.Sequences.End()){
+			chrIterator = bamHeader.Sequences.Begin();
+			chrNumber = 0;
+		}
+		if(moveToNextWindowOnChr(window)){
+			//there is another window on same chr
+			//report
+			logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+			logfile->addIndent();
+			return true;
+
+		} else {
+			//there is no window left on chr
+			//do we use this chromosome? if not, move on!
+			while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+				++chrIterator;
+				++chrNumber;
+			}
+
+			//did we reach end?
+			if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
+				window.end = 0;
+				chrIterator = bamHeader.Sequences.End();
+				return false;
+			}
+
+			moveChromosome(window);
+			++windowNumber;
+
+			//report
+			logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+			logfile->addIndent();
+			return true;
+		}
 	}
-
-	++windowNumber;
-
-	//report
-	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
-	logfile->addIndent();
-
-	return true;
-};
-
+}
 //------------------------------
 //initialize PMD and recalibration
 //------------------------------
@@ -560,18 +597,27 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 	//make sure container is empty
 	alignment.clear();
 
+	std::cout << "-----------------1-------------------" << std::endl;
+
 	if(!bamReader.GetNextAlignment(bamAlignment))
 		return false;
+
+
 
 	//check read length
 	if(bamAlignment.AlignedBases.size() > maxReadLength)
 		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+
+	std::cout << "-----------------2-------------------" << std::endl;
 
 	//fill alignment
 	std::string readGroup;
 	bamAlignment.GetTag("RG", readGroup);
 	int readGroupId = readGroups.find(readGroup);
 	alignment.fill(bamAlignment, readGroupId);
+
+	std::cout << "-----------------3-------------------" << std::endl;
+
 
 	//check if insert size is shorter than read, this means we are reading the adaptor sequence
 	bool filtersPassed = true;
@@ -586,11 +632,22 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 						&& (_keepDuplicates || !bamAlignment.IsDuplicate());
 	}
 
+	std::cout << "-----------------4-------------------" << std::endl;
+
 	//set filter
 	alignment.setFiltersPassed(filtersPassed);
 
 	if(parse){
+
+		std::cout << "qualities before parsing 16 " << bamAlignment.Qualities[16] << std::endl;
+		std::cout << "aligned qualities before parsing " << bamAlignment.AlignedQualities << std::endl;
+
+		std::cout << "-----------------5-------------------" << std::endl;
+
 		alignment.parse(genoMap, qualityMap);
+
+		std::cout << "-----------------6-------------------" << std::endl;
+
 
 		//add missing information to bases
 		alignment.fillReadGroupInfo(readGroupId);
@@ -611,80 +668,58 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 //---------------------
 //read data in windows
 //---------------------
-bool TAlignmentParser::readDataInWindows(TWindow & window){
+bool TAlignmentParser::readDataInWindow(TWindow & window){
+	std::cout << "reading Data in window" << std::endl;
 	setParsingToTrue();
-	while(iterateChromosome(window)){
-		//report
-		logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
-		logfile->addIndent();
-		for(int w=0; w<numWindowsOnChr; ++w){
-			//measure runtime
-			struct timeval start, end;
-			gettimeofday(&start, NULL);
 
-			logfile->listFlush("Reading data ...");
-			while(readAlignmentsIntoWindow(window, readGroups)) continue;
-			//for(int i=0; i<window.usedAlignments.size(); ++i){
-				//if((window.usedAlignments[i])->position != 3000046)
-					//std::cout << "position " << i << " in readDataInWindows after readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
-			//}
-			window.fillSites();
-			if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
-			window.cleanUpUsedAlignments();
+	//measure runtime
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
 
-			gettimeofday(&end, NULL);
-			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+	logfile->listFlush("Reading data ...");
+	while(readAlignmentsIntoWindow(window, readGroups)) continue;
 
-			applyFilters(window);
-			moveToNextWindow(window);
-		}
-/*		while(iterateWindow(window)){
-			std::cout << "after iterateWindow start and end are " <<window.start << " and " << window.end << std::endl;
-			while(readAndFilterWindow(window, readGroups))
-			return true;
-		}*/
-	}
-	return false;
+	//for(int i=0; i<window.usedAlignments.size(); ++i){
+		//if((window.usedAlignments[i])->position != 3000046)
+			//std::cout << "position " << i << " in readDataInWindows after readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
+	//}
+	std::cout << "read alignments into window" << std::endl;
+	window.review();
+	std::cout << "reviewed window" << std::endl;
+	window.fillSites();
+	std::cout << "fillded sites!" << std::endl;
+	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+	window.cleanUpUsedAlignments();
+
+	gettimeofday(&end, NULL);
+	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+
+	applyFilters(window);
+
+	return true;
 }
 
 bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups){
-	//add old alignment if necessary
-	if(oldAlignmentMustBeConsidered){
-		oldAlignmentMustBeConsidered = false;
-		if(!addToWindow((*oldAlignment), window)){
-			logfile->conclude("No data in this window.");
-			return false; //still only in next window
-		} else {
-			//update previous alignment info
-			std::cout << "position of alignment that was read previously " << (*oldAlignment).position << std::endl;
-
-			previousAlignmentPos = oldAlignment->position;
-			previousAlignmentChr = oldAlignment->chrNumber;
-		}
-	}
 	//get alignment to fill from window and make sure it's empty
-	TAlignment* alignmentP = window.getNewAlignment(maxReadLength);
-	alignmentP->clear();
+	TAlignment* alignmentP = window.getEmptyAlignment(maxReadLength);
 
 	//pass it to reader
 	if(readAlignment(bamReader, *alignmentP)){
+		std::cout << "was able to read alignment" << std::endl;
 		if(readGroups.readGroupInUse(alignmentP->readGroupId)){
-			if(!addToWindow((*alignmentP), window)){
+			if(!checkPosition((*alignmentP), window)){
+				//read is beyond window
 				std::cout << "position of alignment that could not be added " << (*alignmentP).position << std::endl;
-				//read is beyond window and should be added to next
-				oldAlignment = alignmentP;
-				oldAlignmentMustBeConsidered = true;
 				return false;
-			} else {
-				//update previous alignment info
-				previousAlignmentPos = alignmentP->position;
-				previousAlignmentChr = alignmentP->chrNumber;
 			}
+			//update previous alignment info
+			previousAlignmentPos = alignmentP->position;
+			previousAlignmentChr = alignmentP->chrNumber;
+			return true;
 
 		}
-		return true;
 	}
-	else return false;
+	return false;
 //	throw "got to here!";
 //	for(int i=0; i<window.usedAlignments.size(); ++i){
 //		//if((window.usedAlignments[i])->position != 3000046)
@@ -694,16 +729,13 @@ bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & 
 //	return false;
 };
 
-bool TAlignmentParser::addToWindow(TAlignment& alignment, TWindow & window){
+bool TAlignmentParser::checkPosition(TAlignment& alignment, TWindow & window){
 	//check if bam file is sorted
 	if(alignment.getPosition() < previousAlignmentPos)
 		throw "BAM file must be sorted by position!";
 
-	//and add
+	//and if alignment is in window
 	if((alignment.getPosition() >= window.start) && alignment.getPosition() <= window.end){
-		//add alignment with complete bases to window
-		if((alignment.getPosition() + alignment.length) > window.end) throw "read is overlapping with next window!";
-		window.addAlignment(alignment);
 		return true; //continue
 	} else
 		return false;

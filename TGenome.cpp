@@ -335,7 +335,8 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	TWindow window;
 
 	//iterate through windows
-	while(alignmentParser.readDataInWindows(window)){
+	while(alignmentParser.nextWindow(window)){
+		alignmentParser.readDataInWindow(window);
 		logfile->startIndent("Estimating Theta:");
 
 		//measure runtime

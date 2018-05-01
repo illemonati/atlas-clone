@@ -257,6 +257,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
+					std::cout << "d " << d << " k " << k << " bamAlignment.Qualities[k] " << bamAlignment.Qualities[k] << " qualityOriginal[d] " << qualityOriginal[d] << std::endl;
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
@@ -326,6 +327,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	//update length
 	length = k;
+	std::cout << "bamAlignment.Qualities " << bamAlignment.Qualities << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };

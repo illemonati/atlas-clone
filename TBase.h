@@ -72,9 +72,7 @@ public:
 		context = Context;
 	};
 
-	virtual ~TBase(){
-		std::cout << "in deconstructor of TBase" << std::endl;
-	};
+	~TBase(){};
 
 	void fillEmissionProbabilitiesCore(double thisErrorRate);
 

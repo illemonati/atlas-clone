@@ -93,9 +93,9 @@ private:
 	//move genome
 	void jumpToEnd();
 	void restartChromosome(TWindow & window);
-	bool iterateChromosome(TWindow & window);
+//	bool iterateChromosome(TWindow & window);
 	void moveChromosome(TWindow & window);
-	bool moveToNextWindow(TWindow & window);
+	bool moveToNextWindowOnChr(TWindow & window);
 
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
@@ -149,11 +149,13 @@ public:
 
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment);
+	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
-	bool readDataInWindows(TWindow & window);
-	bool addToWindow(TAlignment & alignment, TWindow & window);
+	bool nextWindow(TWindow & window);
+	bool readDataInWindow(TWindow & window);
+	bool checkPosition(TAlignment & alignment, TWindow & window);
 	bool readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups);
 	bool applyFilters(TWindow & window);
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
