@@ -335,35 +335,38 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	TWindow window;
 
 	//iterate through windows
-	while(alignmentParser.nextWindow(window)){
-		alignmentParser.readDataInWindow(window);
-		logfile->startIndent("Estimating Theta:");
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(window.passedFilters){
 
-		//measure runtime
-		struct timeval startTime, endTime;
-		gettimeofday(&startTime, NULL);
+			logfile->startIndent("Estimating Theta:");
 
-		//adding sites to estimator
-		logfile->listFlush("Calculating emission probabilities ...");
-		thetaEstimator.clear();
-		window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
-		logfile->done();
+			//measure runtime
+			struct timeval startTime, endTime;
+			gettimeofday(&startTime, NULL);
 
-		//estimate Theta
-		if(thetaEstimator.estimateTheta()){
-			out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
-			thetaEstimator.writeResultsToFile(out);
+			//adding sites to estimator
+			logfile->listFlush("Calculating emission probabilities ...");
+			thetaEstimator.clear();
+			window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
+			logfile->done();
+
+			//estimate Theta
+			if(thetaEstimator.estimateTheta()){
+				out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
+				thetaEstimator.writeResultsToFile(out);
+			}
+
+			//clear theta estimator
+			thetaEstimator.clear();
+
+			//finish
+			gettimeofday(&endTime, NULL);
+			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->endIndent();
 		}
-
-		//clear theta estimator
-		thetaEstimator.clear();
-
-		//finish
-		gettimeofday(&endTime, NULL);
-		logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-		logfile->endIndent();
 	}
-}
+};
+
 /*
 
 void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){

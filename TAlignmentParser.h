@@ -39,6 +39,7 @@ private:
 	int previousAlignmentPos;
 	int previousAlignmentChr;
 	TAlignment* oldAlignment;
+	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
 	//quality filter
@@ -96,13 +97,20 @@ private:
 //	bool iterateChromosome(TWindow & window);
 	void moveChromosome(TWindow & window);
 	bool moveToNextWindowOnChr(TWindow & window);
+	bool moveWindow(TWindow & window);
 
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 
+	bool readAlignment();
+	void fillAlignment(TAlignment & alignment);
+	void readAlignmentsIntoWindow(TWindow & window);
+	void applyFilters(TWindow & window);
+
 public:
 	//alignment: goal is to make this private!
 	BamTools::BamAlignment bamAlignment;
+	int curReadGroupID;
 	int minQualForPrinting, maxQualForPrinting;
 	int minQual, maxQual;
 	TFastaBuffer* fastaBuffer;
@@ -136,6 +144,8 @@ public:
 			delete[] useChromosome;
 		if(recalObjectInitialized) delete recalObject;
 		if(pmdObjects) delete[] pmdObjects;
+		if(oldAlignmentInitialized)
+			delete oldAlignment;
 	}
 	void init(TParameters & params, TLog* Logfile);
 
@@ -148,16 +158,14 @@ public:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment);
+	bool readNextAligment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
 
 	//read data in windows
-	bool nextWindow(TWindow & window);
-	bool readDataInWindow(TWindow & window);
-	bool checkPosition(TAlignment & alignment, TWindow & window);
-	bool readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups);
-	bool applyFilters(TWindow & window);
+	bool readDataInNextWindow(TWindow & window);
+
+
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 
 };

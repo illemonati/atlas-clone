@@ -48,6 +48,7 @@ TAlignmentParser::TAlignmentParser(){
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;
 	oldAlignment = NULL;
+	oldAlignmentInitialized = false;
 	oldAlignmentMustBeConsidered = false;
 
 	//initialize iterators
@@ -136,6 +137,10 @@ void TAlignmentParser::init(TParameters & params, TLog* Logfile){
 	//window parameters
 	//---------------------
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	oldAlignment = new TAlignment(maxReadLength);
+	oldAlignmentInitialized = true;
+
+	std::cout << "CREATED OLD ALIGMNET " << oldAlignment << " initialized = " << oldAlignment->storageInitialized << std::endl;
 
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
@@ -393,6 +398,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 //	curEnd = 0;
 	previousAlignmentPos = -1;
 	windowNumber = 0;
+
 	if(windowsPredefined){
 		predefinedWindows->setChr(chrIterator->Name);
 		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
@@ -420,12 +426,15 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 }
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
-	std::cout << "coordinates of window in moveToNextWindowOnChr " << window.start << " " << window.end << std::endl;
+
 	if(window.end > 0) logfile->endIndent();
+
+	std::cout << "windowNumber = " << windowNumber << std::endl;
 
 	//move to next region
 //	curStart = window.start;
 //	curEnd = window.end;
+	++windowNumber;
 	if(window.end >= chrLength || windowNumber >= limitWindows) return false;
 
 	//move next
@@ -434,12 +443,17 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 		nextEnd = chrLength;
 	window.move(window.end, nextEnd);
 
+	std::cout << "coordinates of window in moveToNextWindowOnChr " << window.start << " " << window.end << std::endl;
+
 	return true;
 };
 
-bool TAlignmentParser::nextWindow(TWindow & window){
+bool TAlignmentParser::moveWindow(TWindow & window){
 	std::cout << "getting next window" << std::endl;
+
+	/*
 	if(windowsPredefined){
+		//NEEDS UPDATING (for predefined windows)
 		if(numWindowsOnChr < 1){
 			logfile->conclude("No windows on this chromosome.");
 			return false;
@@ -463,42 +477,43 @@ bool TAlignmentParser::nextWindow(TWindow & window){
 		return true;
 
 	} else {
-		//we are at beginning of BAM file
+	*/
+		//if at beginning of BAM file
 		if(chrIterator == bamHeader.Sequences.End()){
 			chrIterator = bamHeader.Sequences.Begin();
 			chrNumber = 0;
-		}
-		if(moveToNextWindowOnChr(window)){
-			//there is another window on same chr
-			//report
-			logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
-			logfile->addIndent();
-			return true;
+			moveChromosome(window);
 
+			std::cout << "START!!!!!!!!!!!!!!!!" << std::endl;
 		} else {
-			//there is no window left on chr
-			//do we use this chromosome? if not, move on!
-			while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+			if(!moveToNextWindowOnChr(window)){
+				//there is no window left on chr
+				//do we use this chromosome? if not, move on!
 				++chrIterator;
 				++chrNumber;
+				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+					++chrIterator;
+					++chrNumber;
+				}
+
+				//did we reach end?
+				if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
+					window.end = 0;
+					chrIterator = bamHeader.Sequences.End();
+					return false;
+				}
+
+				moveChromosome(window);
+				++windowNumber;
 			}
-
-			//did we reach end?
-			if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
-				window.end = 0;
-				chrIterator = bamHeader.Sequences.End();
-				return false;
-			}
-
-			moveChromosome(window);
-			++windowNumber;
-
-			//report
-			logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
-			logfile->addIndent();
-			return true;
 		}
-	}
+	//}
+
+	//report
+	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
+	logfile->addIndent();
+	return true;
+
 }
 //------------------------------
 //initialize PMD and recalibration
@@ -593,52 +608,72 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 //------------------------------
 //reading data
 //------------------------------
-bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment & alignment){
+bool TAlignmentParser::readAlignment(){
+	bool filtersPassed;
+	do {
+		if(!bamReader.GetNextAlignment(bamAlignment))
+			return false;
+
+		//check if bam file is sorted
+		if(bamAlignment.RefID != previousAlignmentChr){
+			previousAlignmentPos = -1;
+			previousAlignmentChr = bamAlignment.RefID;
+		}
+		if(bamAlignment.Position < previousAlignmentPos)
+			throw "BAM file must be sorted by position!";
+		previousAlignmentPos = bamAlignment.Position;
+
+		//check read length
+		if(bamAlignment.AlignedBases.size() > maxReadLength)
+			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+
+		//store read group ID
+		std::string readGroup;
+		bamAlignment.GetTag("RG", readGroup);
+		curReadGroupID = readGroups.find(readGroup);
+
+		//filter
+		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
+		filtersPassed = true;
+		//check if insert size is shorter than read, this means we are reading the adaptor sequence
+		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
+			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+			filtersPassed = false;
+		} else {
+			//apply filters: read group in use and basic QC
+			filtersPassed = readGroups.readGroupInUse(curReadGroupID)
+							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
+							&& bamAlignment.IsPrimaryAlignment()
+							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
+		}
+
+
+	} while(!filtersPassed);
+
+	return true;
+}
+
+
+void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//make sure container is empty
-	alignment.clear();
-
-	std::cout << "-----------------1-------------------" << std::endl;
-
-	if(!bamReader.GetNextAlignment(bamAlignment))
-		return false;
-
-
-
-	//check read length
-	if(bamAlignment.AlignedBases.size() > maxReadLength)
-		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
-
-	std::cout << "-----------------2-------------------" << std::endl;
+	alignment.clear(); //necessary? Not do it in TWindow?
 
 	//fill alignment
 	std::string readGroup;
 	bamAlignment.GetTag("RG", readGroup);
 	int readGroupId = readGroups.find(readGroup);
+
 	alignment.fill(bamAlignment, readGroupId);
 
 	std::cout << "-----------------3-------------------" << std::endl;
 
 
-	//check if insert size is shorter than read, this means we are reading the adaptor sequence
-	bool filtersPassed = true;
-	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
-		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-		filtersPassed = false;
-	} else {
-		//apply filters: read group in use and basic QC
-		filtersPassed = readGroups.readGroupInUse(readGroupId)
-						&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
-						&& bamAlignment.IsPrimaryAlignment()
-						&& (_keepDuplicates || !bamAlignment.IsDuplicate());
-	}
-
 	std::cout << "-----------------4-------------------" << std::endl;
 
 	//set filter
-	alignment.setFiltersPassed(filtersPassed);
+	//alignment.setFiltersPassed(filtersPassed);
 
 	if(parse){
-
 		std::cout << "qualities before parsing 16 " << bamAlignment.Qualities[16] << std::endl;
 		std::cout << "aligned qualities before parsing " << bamAlignment.AlignedQualities << std::endl;
 
@@ -661,87 +696,92 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader, TAlignment
 		if(applyQualityFilter)
 			alignment.filterForBaseQuality(minQual, maxQual);
 	}
-	return true;
 }
 
+
+bool TAlignmentParser::readNextAligment(TAlignment & alignment){
+	readAlignment();
+	fillAlignment(alignment);
+}
 
 //---------------------
 //read data in windows
 //---------------------
-bool TAlignmentParser::readDataInWindow(TWindow & window){
-	std::cout << "reading Data in window" << std::endl;
+bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 	setParsingToTrue();
 
+	//move window
+	if(!moveWindow(window))
+		return false;
+
+	//read data
+	readAlignmentsIntoWindow(window);
+
+	return true;
+};
+
+
+void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	//measure runtime
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
-
 	logfile->listFlush("Reading data ...");
-	while(readAlignmentsIntoWindow(window, readGroups)) continue;
 
-	//for(int i=0; i<window.usedAlignments.size(); ++i){
-		//if((window.usedAlignments[i])->position != 3000046)
-			//std::cout << "position " << i << " in readDataInWindows after readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
-	//}
-	std::cout << "read alignments into window" << std::endl;
-	window.review();
-	std::cout << "reviewed window" << std::endl;
+	//check if old alignment is to be used.
+	if(oldAlignmentMustBeConsidered){
+		if(bamAlignment.Position >= window.end)
+			return;
+
+		oldAlignmentMustBeConsidered = false;
+		if(oldAlignment->lastPositionPlusOne > window.start)
+			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
+	}
+
+	//read alignments
+	while(readAlignment()){
+		//fill alignment
+		fillAlignment(*oldAlignment);
+
+		std::cout << "was able to read alignment @ position = " << oldAlignment->position << std::endl;
+
+		//check if alignment is used in current window
+		if(oldAlignment->position >= window.end){
+			oldAlignmentMustBeConsidered = true;
+			break;
+		}
+
+		//check if alignment is entirely before window
+		if(oldAlignment->lastPositionPlusOne > window.start){
+			std::cout << "SWAPPING!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
+			std::cout << "SWAPPING DONE!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+		}
+	}
+
+	std::cout << "------------------------------- END OF WHILE ----------------" << std::endl;
+
+	//fill sites
 	window.fillSites();
-	std::cout << "fillded sites!" << std::endl;
-	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
-	window.cleanUpUsedAlignments();
 
+	std::cout << "------------------------------- SITES FILLED ----------------" << std::endl;
+
+
+	std::cout << "OLD ALIGNMENT = " << oldAlignment << std::endl;
+	window.printStacks();
+
+	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+
+	//report
 	gettimeofday(&end, NULL);
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
+	//apply filters
 	applyFilters(window);
-
-	return true;
-}
-
-bool TAlignmentParser::readAlignmentsIntoWindow(TWindow & window, TReadGroups & readGroups){
-	//get alignment to fill from window and make sure it's empty
-	TAlignment* alignmentP = window.getEmptyAlignment(maxReadLength);
-
-	//pass it to reader
-	if(readAlignment(bamReader, *alignmentP)){
-		std::cout << "was able to read alignment" << std::endl;
-		if(readGroups.readGroupInUse(alignmentP->readGroupId)){
-			if(!checkPosition((*alignmentP), window)){
-				//read is beyond window
-				std::cout << "position of alignment that could not be added " << (*alignmentP).position << std::endl;
-				return false;
-			}
-			//update previous alignment info
-			previousAlignmentPos = alignmentP->position;
-			previousAlignmentChr = alignmentP->chrNumber;
-			return true;
-
-		}
-	}
-	return false;
-//	throw "got to here!";
-//	for(int i=0; i<window.usedAlignments.size(); ++i){
-//		//if((window.usedAlignments[i])->position != 3000046)
-//			std::cout << "position " << i << " in readDataInWindows at the end of readAlignmentsIntoWindows " << (window.usedAlignments[i])->position << std::endl;
-//	}
-//
-//	return false;
 };
 
-bool TAlignmentParser::checkPosition(TAlignment& alignment, TWindow & window){
-	//check if bam file is sorted
-	if(alignment.getPosition() < previousAlignmentPos)
-		throw "BAM file must be sorted by position!";
 
-	//and if alignment is in window
-	if((alignment.getPosition() >= window.start) && alignment.getPosition() <= window.end){
-		return true; //continue
-	} else
-		return false;
-}
-
-bool TAlignmentParser::applyFilters(TWindow & window){
+void TAlignmentParser::applyFilters(TWindow & window){
+	window.passedFilters = false;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){
@@ -773,19 +813,18 @@ bool TAlignmentParser::applyFilters(TWindow & window){
 		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
 		if(window.fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			return false;
+			return;
 		}
 		if(maxRefN < 1.0 && hasReference == true){
 			logfile->conclude(toString(window.fractionRefIsN * 100) + "% of all reference bases are 'N'");
 			if(window.fractionRefIsN > maxRefN){
 				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				return false;
+				return;
 			}
 		}
-		return true;
+		window.passedFilters = true;
 	} else {
 		logfile->conclude("No data in this window.");
-		return false;
 	}
 }
 

@@ -24,10 +24,28 @@ TWindow::TWindow(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
-	lastAlignmentwithEndInWindow = usedAlignments.end();
-	firstAlignmentwithPosOutsideWindow = usedAlignments.end();
+	//lastAlignmentwithEndInWindow = usedAlignments.end();
+	//firstAlignmentwithPosOutsideWindow = usedAlignments.end();
+	passedFilters = false;
+};
+
+TWindow::~TWindow(){
+	//delete sites
+	clear();
+	if(sitesInitialized)
+		delete[] sites;
+
+	//delete alignments
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
+		delete *alignmentIt;
+	usedAlignments.clear();
+
+	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+		delete *alignmentIt;
+	emptyAlignments.clear();
 
 };
+
 
 /*TWindow::TWindow(long Start, long End){
 	std::cout << "called correct constructor of TWindow!!!!!!!!!!!!" << std::endl;
@@ -36,20 +54,27 @@ TWindow::TWindow(){
 	initSites(end - start); //end NOT in window!
 };*/
 
-TAlignment* TWindow::getEmptyAlignment(unsigned int & maxReadLength){
-	TAlignment alignment;
+
+TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
+	//save used alignment on proper stack
+	std::cout << "A) PUSH BACK" << std::endl;
+	usedAlignments.push_back(usedAlignment);
+
+	std::cout << "B)" << std::endl;
+	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
-		alignment = *(emptyAlignments.begin());
-		alignment.clear();
+		std::cout << "C)" << std::endl;
+		TAlignment* alignment = *(emptyAlignments.rbegin());
 		emptyAlignments.pop_back();
-		usedAlignments.push_back(alignment);
-		return &usedAlignments[usedAlignments.size()-1];
+		return alignment;
 	} else {
-		alignment = *(new TAlignment(maxReadLength));
-		usedAlignments.push_back(alignment);
-		return &usedAlignments[usedAlignments.size()-1];
+		std::cout << "D)" << std::endl;
+		TAlignment* alignment = new TAlignment(maxReadLength);
+		std::cout << "CREATED " << alignment << std::endl;;
+		return alignment;
 	}
-}
+};
+
 void TWindow::initSites(long newLength){
 	if(sitesInitialized){
 		clear();
@@ -83,6 +108,7 @@ void TWindow::clear(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
+	passedFilters = false;
 };
 
 void TWindow::move(long Start, long End){
@@ -94,71 +120,103 @@ void TWindow::move(long Start, long End){
 		else
 			clear();
 	} else initSites(end - start);
+
+	cleanUpUsedAlignments();
 };
 
 void TWindow::review(){
-	//set end of window to first alignment that is outside window
-	for(std::vector<TAlignment>::iterator it=usedAlignments.end()-1; it != usedAlignments.begin()-1; --it){
-		if(it->position > end)
-			firstAlignmentwithPosOutsideWindow = it;
-	}
+	//update pointers
+	/*
+	firstAlignmentwithPosOutsideWindow = usedAlignments.end()-1;
+	while((*firstAlignmentwithPosOutsideWindow)->position > end && firstAlignmentwithPosOutsideWindow != usedAlignments.begin())
+		--firstAlignmentwithPosOutsideWindow;
+		*/
+
+	//fillSites();
+	//calcDepth();
 }
 
 void TWindow::cleanUpUsedAlignments(){
-	//move all alignments that for sure are not needed in next window
-	std::move (usedAlignments.begin(), lastAlignmentwithEndInWindow+1, std::back_inserter(emptyAlignments));
-	usedAlignments.erase(usedAlignments.begin(), lastAlignmentwithEndInWindow+1);
-
 	//now check and move the rest
-	for(std::vector<TAlignment>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != firstAlignmentwithPosOutsideWindow; ++alignmentIt){
-		if((*alignmentIt).position + (*alignmentIt).length < end ){
-			(*alignmentIt).clear();
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start)){
+			(*alignmentIt)->clear();
 			emptyAlignments.push_back(*alignmentIt);
 			usedAlignments.erase(alignmentIt);
+		} else
+			++alignmentIt;
+
+		if((*alignmentIt)->position >= end){
+			std::move(alignmentIt, usedAlignments.end(), std::back_inserter(emptyAlignments));
+			usedAlignments.erase(alignmentIt, usedAlignments.end());
+
+			break;
 		}
 	}
+}
+
+void TWindow::printStacks(){
+	std::cout << "USED ALIGMENTS:";
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
+		std::cout << " " << *alignmentIt;
+	std::cout << std::endl;
+
+	std::cout << "EMPTY ALIGMENTS:";
+	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+		std::cout << " " << *alignmentIt;
+	std::cout << std::endl;
+
 }
 
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
-	std::cout << "usedAlignments.size() "<< usedAlignments.size() << std::endl;
-	int a = usedAlignments.size();
-	std::cout << a <<" in used stack has pos " << (usedAlignments[a-1]).position << std::endl;
-	std::cout << a -1<<" in used stack has pos " << (usedAlignments[a-2]).position << std::endl;
-	std::cout << a -2<<" in used stack has pos " << (usedAlignments[a-3]).position << std::endl;
+	std::cout << "usedAlignments.size() = "<< usedAlignments.size() << std::endl;
+
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
+
+		std::cout << "ALIGNMENT " << *alignmentIt << "::::" << std::endl;
 
 
-	for(std::vector<TAlignment>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
 		//check if alignment start is inside window
-		if((*alignmentIt).position >= end){
+
+		std::cout << "(*alignmentIt)->position = " << (*alignmentIt)->position << " >= " << end << std::endl;
+
+		if((*alignmentIt)->position >= end){
 			throw "alignment should be assigned to next window!";
 		}
 
 		//genomic position of alignment as seen from window perspective
-		int firstPos = (*alignmentIt).position - start;
+		int firstPos = (*alignmentIt)->position - start;
 
 		//set position in read
 		int p = 0;
 
 		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			while(p < (*alignmentIt).length && (firstPos + (*alignmentIt).alignedPos[p]) < 0)
+			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->alignedPos[p]) < 0)
 				++p;
-			if(p == (*alignmentIt).length)
+			if(p == (*alignmentIt)->length)
 				throw "alignment should be assigned to previous window!";
 		}
 
 		//position in window where first one = 0
 		int internalPos;
 		//p is at first position of read in window
-		for(; p < (*alignmentIt).length; ++p){
-			if((*alignmentIt).aligned[p] && (*alignmentIt).bases[p].base != N){
-				internalPos = firstPos + (*alignmentIt).alignedPos[p];
+
+		std::cout << &(*alignmentIt) << "\t" << p << "\t" << std::flush;
+		std::cout << (*alignmentIt)->alignmentName << std::flush;
+		std::cout << "\t" << (*alignmentIt)->passedFilters << std::flush;
+		std::cout << "\t" << (*alignmentIt)->parsed << std::flush;
+		std::cout << "\t" << (*alignmentIt)->aligned[p] << std::flush;
+		std::cout << "\t" << (*alignmentIt)->bases[p].base << std::endl;
+
+		for(; p < (*alignmentIt)->length; ++p){
+			if((*alignmentIt)->aligned[p] && (*alignmentIt)->bases[p].base != N){
+				internalPos = firstPos + (*alignmentIt)->alignedPos[p];
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
-				lastAlignmentwithEndInWindow = alignmentIt;
-				sites[internalPos].add(&(*alignmentIt).bases[p]);
+				sites[internalPos].add(&(*alignmentIt)->bases[p]);
 			}
 		}
 		++numReadsInWindow;

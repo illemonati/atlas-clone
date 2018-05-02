@@ -54,6 +54,9 @@ TAlignment::TAlignment(){
 }
 
 TAlignment::TAlignment(unsigned int MaxSize){
+
+	std::cout << "--------------------------------- CONSTRUCTOR ------------------" << std::endl;
+
 	TAlignment();
 	maxSize = MaxSize;
 	initStorage();
@@ -78,7 +81,6 @@ void TAlignment::initStorage(){
 	aligned = new bool[maxSize];
 	alignedPos = new int[maxSize];
 	qualityRecalibrated = new int[maxSize];
-	quality = new int[maxSize];
 	qualityOriginal = new int[maxSize];
 	baseAsChar = new char[maxSize];
 
@@ -102,7 +104,6 @@ void TAlignment::freeStorage(){
 		delete[] aligned;
 		delete[] alignedPos;
 		delete[] qualityRecalibrated;
-		delete[] quality;
 		delete[] qualityOriginal;
 		delete[] baseAsChar;
 
@@ -235,6 +236,10 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
+
+
+	std::cout << "------------------ PARSING " << this << " -----------------" << std::endl;
+
 	// iterate over CigarOps
 	int d = 0; //index regarding data structures
 	int k = 0; //index inside read
@@ -257,7 +262,9 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					std::cout << "d " << d << " k " << k << " bamAlignment.Qualities[k] " << bamAlignment.Qualities[k] << " qualityOriginal[d] " << qualityOriginal[d] << std::endl;
+
+					//std::cout << "d " << d << " k " << k << " bamAlignment.Qualities[k] " << bamAlignment.Qualities[k] << " qualityOriginal[d] " << qualityOriginal[d] << std::endl;
+
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = true;
 					alignedPos[d] = p;
@@ -327,6 +334,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	//update length
 	length = k;
+	lastPositionPlusOne = position + length;
 	std::cout << "bamAlignment.Qualities " << bamAlignment.Qualities << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";

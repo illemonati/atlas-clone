@@ -25,9 +25,17 @@
 //---------------------------------------------------------------
 class TWindow{
 private:
+	TBaseFrequencies baseFreq;
+	TGenotypeMap genoMap;
+	bool referenceBaseAdded;
+
+	//alignment stacks
+	std::vector<TAlignment*> usedAlignments;
+	std::vector<TAlignment*> emptyAlignments;
+
 	void fillPGenotype(double* pGenotype);
-	std::vector<TAlignment>::iterator lastAlignmentwithEndInWindow;
-	std::vector<TAlignment>::iterator firstAlignmentwithPosOutsideWindow;
+	//std::vector<TAlignment*>::iterator lastAlignmentwithEndInWindow;
+	//std::vector<TAlignment*>::iterator firstAlignmentwithPosOutsideWindow;
 
 public:
 	long start;
@@ -39,28 +47,20 @@ public:
 	double depth, fractionSitesNoData, fractionsitesDepthAtLeastTwo;
 	double fractionRefIsN;
 	long numSitesWithData;
-	TBaseFrequencies baseFreq;
-	TGenotypeMap genoMap;
-	bool referenceBaseAdded;
+	bool passedFilters;
 
-	//alignment stacks
-	std::vector<TAlignment> usedAlignments;
-	std::vector<TAlignment> emptyAlignments;
 
 	TWindow();
 //	TWindow(long Start, long End);
-	~TWindow(){
-		clear();
-		if(sitesInitialized){
-			delete[] sites;
-		}
-	};
-	TAlignment* getEmptyAlignment(unsigned int & maxReadLength);
+	~TWindow();
+
+	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End);
 	void review();
 	void cleanUpUsedAlignments();
+	void printStacks();
 	void fillSites();
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
