@@ -187,10 +187,12 @@ void TAtlasTest_pileup::writeBAM(){
 	bamAlignment.RefID = 1;
 	bamAlignment.Position = 0;
 	int m;
+	std::cout << "depths.size() " << depths.size() << std::endl;
 	for(size_t d=0; d<depths.size(); ++d){
 		//firts base
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		m = depths[d]/2;
+		std::cout << "######### m " << m << std::endl;
 		for(i=0; i<m; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 
@@ -299,7 +301,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		unsigned int trueDepth = depths[(truePos-1) / readLength];
 		if(stringToInt(line[3]) != trueDepth){
 			logfile->newLine();
-			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[3] + " instead of " + toString(trueDepth));
 			return false;
 		}
 

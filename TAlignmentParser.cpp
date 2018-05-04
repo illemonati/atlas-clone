@@ -417,7 +417,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 			nextEnd = chrLength + 1;
 		else {
 			//moveToNextWindow(window);
-			window.move(predefinedWindows->curWindowStart(), nextEnd);
+			window.move(predefinedWindows->curWindowStart(), nextEnd, chrIterator->Name);
 			bamReader.Jump(chrNumber, window.start);
 		}
 	} else {
@@ -425,7 +425,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		int nextEnd = windowSize;
 		//TODO:!!! removed +1 because we are zero-based. Check if true!
 		if(nextEnd > chrLength) nextEnd = chrLength;
-		window.move(0, nextEnd);
+		window.move(0, nextEnd, chrIterator->Name);
 	}
 
 	//advance mask
@@ -441,13 +441,16 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 	//move to next region
 	++windowNumber;
-	if(window.end >= chrLength || windowNumber >= limitWindows) return false;
+	if(window.end >= chrLength || windowNumber >= limitWindows){
+		std::cout << window.end << ">=" << chrLength << " || " << windowNumber << ">=" << limitWindows << std::endl;
+		return false;
+	}
 
 	//move next
 	long nextEnd = window.end + windowSize;
 	if(nextEnd > chrLength)
 		nextEnd = chrLength;
-	window.move(window.end, nextEnd);
+	window.move(window.end, nextEnd, chrIterator->Name);
 
 	return true;
 };
@@ -488,17 +491,24 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 			moveChromosome(window);
 		} else {
 			if(!moveToNextWindowOnChr(window)){
+				std::cout << "######### could not move to next window on chromosome!" << std::endl;;
 				//there is no window left on chr
 				++chrIterator;
 				++chrNumber;
 				//do we use this chromosome? if not, move on!
+				if(chrIterator != bamHeader.Sequences.End())
+					std::cout << "chrIterator != bamHeader.Sequences.End()" << std::endl;
+				if(!useChromosome[chrNumber])
+					std::cout << "!useChromosome[chrNumber]" << std::endl;
 				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+					std::cout << "incrementing chromosomes! currently at " << chrIterator->Name << std::endl;
 					++chrIterator;
 					++chrNumber;
 				}
 
 				//did we reach end?
 				if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
+					std::cout << "we reached end!" << std::endl;
 					window.end = 0;
 					chrIterator = bamHeader.Sequences.End();
 					return false;
@@ -585,11 +595,10 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 		//add missing information to bases
 		alignment.fillReadGroupInfo(readGroupId);
+		alignment.fillPmdProbabilities(pmdObjects);
 
 		if(doRecalibration)
 			alignment.recalibrate(*recalObject, qualityMap);
-		if(hasPMD)
-			alignment.fillPmdProbabilities(pmdObjects);
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 		if(applyQualityFilter)
@@ -619,6 +628,8 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 	//read data
 	readAlignmentsIntoWindow(window);
 
+	//window.printPileupToScreen(recalObject);
+
 	return true;
 };
 
@@ -640,6 +651,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	}
 
 	//read alignments
+	int counter = 0;
 	while(readAlignment()){
 		//fill alignment
 		fillAlignment(*oldAlignment);
@@ -651,8 +663,9 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		}
 
 		//check if alignment is entirely before window
-		if(oldAlignment->lastPositionPlusOne > window.start)
+		if(oldAlignment->lastPositionPlusOne > window.start){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
+		}
 	}
 
 	//fill sites

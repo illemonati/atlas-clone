@@ -88,6 +88,7 @@ public:
 	double calculateLogLikelihood(double* genotypeProbabilities);
 	void countAlleles(long**** siteImbalance);
 	void printPileup(gz::ogzstream & out);
+	void printPileupToScreen();
 
 	//MLE Callers
 	void calculateNormalizedGenotypeLikelihoods(uint8_t* normalizedGL, uint32_t & maxLL);

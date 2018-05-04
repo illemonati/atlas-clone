@@ -1097,13 +1097,14 @@ void TGenome::combineBeagleFiles(TParameters & params){
 		}
 	}
 }
+*/
 
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
-	initializeRecalibration(params);
+//	initializeRecalibration(params);
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//open output
 	gz::ogzstream out;
@@ -1119,19 +1120,15 @@ void TGenome::printPileup(TParameters & params){
 	out << "\n";
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			if(readData(windows)){
-				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-				windows.cur->printPileup(recalObject, out, chrIterator->Name);
-			}
-		}
+	while(alignmentParser.readDataInNextWindow(window)){
+		window.printPileup(alignmentParser.recalObject, out);
 	}
 
 	//clean up
 	out.close();
 }
 
+/*
 
 void TGenome::generatePSMCInput(TParameters & params){
 	//initialize recalibration

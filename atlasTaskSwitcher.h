@@ -50,10 +50,10 @@ public:
 			} /*else if(task == "LLsurface"){
 				logfile->startIndent("Calculating the LL surface for each window (task = LLSurface):");
 				genome.calcLikelihoodSurfaces(*parameters);
-			} else if(task == "pileup"){
+			} */else if(task == "pileup"){
 				logfile->startIndent("Printing pileup for each window (task = pileup):");
 				genome.printPileup(*parameters);
-			} else if(task == "recal"){
+			}/* else if(task == "recal"){
 				logfile->startIndent("Estimating error calibration function with EM (task = recal):");
 				genome.estimateErrorCalibrationEM(*parameters);
 			} else if(task == "recalLL"){

@@ -41,6 +41,7 @@ public:
 	long start;
 	long end; //end NOT included in window!
 	long length;
+	std::string chrName;
 	TSite* sites;
 	bool sitesInitialized;
 	int numReadsInWindow;
@@ -57,7 +58,7 @@ public:
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
-	void move(long Start, long End);
+	void move(long Start, long End, std::string ChrName);
 	void review();
 	void cleanUpUsedAlignments();
 	void printStacks();
@@ -69,7 +70,8 @@ public:
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
-	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
+	void printPileup(TRecalibration* recalObject, gz::ogzstream & out);
+	void printPileupToScreen(TRecalibration* recalObject);
 	void calcDepth();
 	void calcFracN();
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);

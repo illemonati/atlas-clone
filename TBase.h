@@ -86,7 +86,7 @@ public:
 		emissionProbabilities.print();
 	}
 //	virtual char getBaseAsChar(){ return '?'; };
-	Base getBaseAsEnum(){ return N;};
+	Base getBaseAsEnum(){ return base;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(base, weight); };
 
 };

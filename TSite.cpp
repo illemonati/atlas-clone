@@ -181,6 +181,13 @@ void TSite::printPileup(gz::ogzstream & out){
 	out << "\t" << getBases() << "\t" << getEmissionProbs();
 }
 
+void TSite::printPileupToScreen(){
+	std::cout << "\t" << referenceBase;
+	std::cout << "\t" << depth() << "\t" << refDepth();
+	std::cout << "\t" << getBases() << "\t" << getEmissionProbs();
+}
+
+
 
 //-----------------------------------------------------------------------
 //MLE Callers
