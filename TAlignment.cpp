@@ -15,6 +15,7 @@ TAlignment::TAlignment(){
 	chrNumber = -1;
 	readGroupId = -1;
 	position = 0;
+	lastPositionPlusOne = 0;
 	isReverseStrand = false;
 	isProperPair = false;
 	mappingQuality = 0;
@@ -54,9 +55,6 @@ TAlignment::TAlignment(){
 }
 
 TAlignment::TAlignment(unsigned int MaxSize){
-
-	std::cout << "--------------------------------- CONSTRUCTOR ------------------" << std::endl;
-
 	TAlignment();
 	maxSize = MaxSize;
 	initStorage();
@@ -236,10 +234,6 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
-
-
-	std::cout << "------------------ PARSING " << this << " -----------------" << std::endl;
-
 	// iterate over CigarOps
 	int d = 0; //index regarding data structures
 	int k = 0; //index inside read
@@ -335,12 +329,9 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	//update length
 	length = k;
 	lastPositionPlusOne = position + length;
-	std::cout << "bamAlignment.Qualities " << bamAlignment.Qualities << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
-
-
 
 void TAlignment::fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){

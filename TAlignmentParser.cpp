@@ -20,7 +20,6 @@ TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
 	curEnd = -1;
 }
 
-
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
 	curChr = chr;
 	curStart = pos;
@@ -51,11 +50,11 @@ TAlignmentParser::TAlignmentParser(){
 	oldAlignmentInitialized = false;
 	oldAlignmentMustBeConsidered = false;
 
+	curReadGroupID = -1;
+
 	//initialize iterators
 	chrNumber = -1;
 	chrLength = -1;
-//	curStart = -1;
-//	curEnd = -1;
 
 	//window parameters
 	windowNumber = -1;
@@ -116,6 +115,21 @@ TAlignmentParser::TAlignmentParser(TParameters & params, TLog* Logfile){
 	init(params, Logfile);
 };
 
+TAlignmentParser::~TAlignmentParser(){
+		if(hasReference)
+			delete fastaBuffer;
+		if(doMasking)
+			delete mask;
+		if(windowsPredefined)
+			delete predefinedWindows;
+		if(useChromosome)
+			delete[] useChromosome;
+		if(recalObjectInitialized) delete recalObject;
+		if(pmdObjects) delete[] pmdObjects;
+		if(oldAlignmentInitialized)
+			delete oldAlignment;
+	}
+
 void TAlignmentParser::init(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
@@ -139,8 +153,6 @@ void TAlignmentParser::init(TParameters & params, TLog* Logfile){
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
 	oldAlignment = new TAlignment(maxReadLength);
 	oldAlignmentInitialized = true;
-
-	std::cout << "CREATED OLD ALIGMNET " << oldAlignment << " initialized = " << oldAlignment->storageInitialized << std::endl;
 
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
@@ -394,8 +406,6 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	chrLength = stringToLong(chrIterator->Length);
 
 	//restart windows
-//	curStart = 0;
-//	curEnd = 0;
 	previousAlignmentPos = -1;
 	windowNumber = 0;
 
@@ -429,11 +439,7 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 	if(window.end > 0) logfile->endIndent();
 
-	std::cout << "windowNumber = " << windowNumber << std::endl;
-
 	//move to next region
-//	curStart = window.start;
-//	curEnd = window.end;
 	++windowNumber;
 	if(window.end >= chrLength || windowNumber >= limitWindows) return false;
 
@@ -443,14 +449,11 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 		nextEnd = chrLength;
 	window.move(window.end, nextEnd);
 
-	std::cout << "coordinates of window in moveToNextWindowOnChr " << window.start << " " << window.end << std::endl;
-
 	return true;
 };
 
 bool TAlignmentParser::moveWindow(TWindow & window){
-	std::cout << "getting next window" << std::endl;
-
+	//returns false when end of genome is reached
 	/*
 	if(windowsPredefined){
 		//NEEDS UPDATING (for predefined windows)
@@ -483,14 +486,12 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 			chrIterator = bamHeader.Sequences.Begin();
 			chrNumber = 0;
 			moveChromosome(window);
-
-			std::cout << "START!!!!!!!!!!!!!!!!" << std::endl;
 		} else {
 			if(!moveToNextWindowOnChr(window)){
 				//there is no window left on chr
-				//do we use this chromosome? if not, move on!
 				++chrIterator;
 				++chrNumber;
+				//do we use this chromosome? if not, move on!
 				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
 					++chrIterator;
 					++chrNumber;
@@ -515,6 +516,206 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 	return true;
 
 }
+
+//------------------------------
+//reading data
+//------------------------------
+bool TAlignmentParser::readAlignment(){
+	bool filtersPassed;
+	do {
+		if(!bamReader.GetNextAlignment(bamAlignment))
+			return false;
+
+		//check if bam file is sorted
+		if(bamAlignment.RefID != previousAlignmentChr){
+			previousAlignmentPos = -1;
+			previousAlignmentChr = bamAlignment.RefID;
+		}
+		if(bamAlignment.Position < previousAlignmentPos)
+			throw "BAM file must be sorted by position!";
+		previousAlignmentPos = bamAlignment.Position;
+
+		//check read length
+		if(bamAlignment.AlignedBases.size() > maxReadLength)
+			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+
+		//store read group ID
+		std::string readGroup;
+		bamAlignment.GetTag("RG", readGroup);
+		curReadGroupID = readGroups.find(readGroup);
+
+		//filter
+		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
+		filtersPassed = true;
+		//check if insert size is shorter than read, this means we are reading the adaptor sequence
+		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
+			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+			filtersPassed = false;
+		} else {
+			//apply filters: read group in use and basic QC
+			filtersPassed = readGroups.readGroupInUse(curReadGroupID)
+							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
+							&& bamAlignment.IsPrimaryAlignment()
+							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
+		}
+
+
+	} while(!filtersPassed);
+
+	return true;
+}
+
+
+void TAlignmentParser::fillAlignment(TAlignment & alignment){
+	//make sure container is empty
+	alignment.clear(); //necessary? Not do it in TWindow?
+
+	//fill alignment
+	std::string readGroup;
+	bamAlignment.GetTag("RG", readGroup);
+	int readGroupId = readGroups.find(readGroup);
+
+	alignment.fill(bamAlignment, readGroupId);
+
+	//set filter
+	//alignment.setFiltersPassed(filtersPassed);
+
+	if(parse){
+		alignment.parse(genoMap, qualityMap);
+
+		//add missing information to bases
+		alignment.fillReadGroupInfo(readGroupId);
+
+		if(doRecalibration)
+			alignment.recalibrate(*recalObject, qualityMap);
+		if(hasPMD)
+			alignment.fillPmdProbabilities(pmdObjects);
+		if(hasReference)
+			fillReferenceSequence(fastaBuffer, alignment);
+		if(applyQualityFilter)
+			alignment.filterForBaseQuality(minQual, maxQual);
+	}
+}
+
+
+bool TAlignmentParser::readNextAligment(TAlignment & alignment){
+	if(readAlignment()){
+		fillAlignment(alignment);
+		return true;
+	}
+	return false;
+}
+
+//---------------------
+//read data in windows
+//---------------------
+bool TAlignmentParser::readDataInNextWindow(TWindow & window){
+	setParsingToTrue();
+
+	//move window
+	if(!moveWindow(window))
+		return false;
+
+	//read data
+	readAlignmentsIntoWindow(window);
+
+	return true;
+};
+
+
+void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
+	//measure runtime
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	logfile->listFlush("Reading data ...");
+
+	//check if old alignment is to be used.
+	if(oldAlignmentMustBeConsidered){
+		if(bamAlignment.Position >= window.end)
+			return;
+
+		oldAlignmentMustBeConsidered = false;
+		if(oldAlignment->lastPositionPlusOne > window.start)
+			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
+	}
+
+	//read alignments
+	while(readAlignment()){
+		//fill alignment
+		fillAlignment(*oldAlignment);
+
+		//check if alignment is used in current window
+		if(oldAlignment->position >= window.end){
+			oldAlignmentMustBeConsidered = true;
+			break;
+		}
+
+		//check if alignment is entirely before window
+		if(oldAlignment->lastPositionPlusOne > window.start)
+			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
+	}
+
+	//fill sites
+	window.fillSites();
+	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+
+	//report
+	gettimeofday(&end, NULL);
+	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+
+	//apply filters
+	applyFilters(window);
+};
+
+
+void TAlignmentParser::applyFilters(TWindow & window){
+	window.passedFilters = false;
+	if(window.numReadsInWindow > 0){
+		//apply masks and filters
+		if(doMasking){
+			logfile->listFlush("Masking sites ...");
+			window.applyMask(mask, considerRegions);
+			logfile->done();
+		} else if(considerRegions){
+			logfile->listFlush("Masking sites outside regions ...");
+			window.applyMask(mask, considerRegions);
+			logfile->done();
+		} else if(doCpGMasking){
+			logfile->listFlush("Masking CpG sites ...");
+			window.maskCpG(*fastaReference, previousAlignmentChr);
+			logfile->done();
+		} if(applyDepthFilter){
+			window.applyDepthFilter(minDepth, maxDepth);
+		} if(maxRefN < 1.0 && hasReference == true){
+			window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+			window.calcFracN();
+		}
+
+		//calc sequencing depth
+		window.calcDepth();
+
+		//report
+		logfile->conclude("read data from " + toString(window.numReadsInWindow) + " reads.");
+		logfile->conclude("sequencing depth is " + toString(window.depth));
+		logfile->conclude(toString(window.fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
+		if(window.fractionSitesNoData > maxMissing){
+			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
+			return;
+		}
+		if(maxRefN < 1.0 && hasReference == true){
+			logfile->conclude(toString(window.fractionRefIsN * 100) + "% of all reference bases are 'N'");
+			if(window.fractionRefIsN > maxRefN){
+				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+				return;
+			}
+		}
+		window.passedFilters = true;
+	} else {
+		logfile->conclude("No data in this window.");
+	}
+}
+
 //------------------------------
 //initialize PMD and recalibration
 //------------------------------
@@ -604,228 +805,4 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
-
-//------------------------------
-//reading data
-//------------------------------
-bool TAlignmentParser::readAlignment(){
-	bool filtersPassed;
-	do {
-		if(!bamReader.GetNextAlignment(bamAlignment))
-			return false;
-
-		//check if bam file is sorted
-		if(bamAlignment.RefID != previousAlignmentChr){
-			previousAlignmentPos = -1;
-			previousAlignmentChr = bamAlignment.RefID;
-		}
-		if(bamAlignment.Position < previousAlignmentPos)
-			throw "BAM file must be sorted by position!";
-		previousAlignmentPos = bamAlignment.Position;
-
-		//check read length
-		if(bamAlignment.AlignedBases.size() > maxReadLength)
-			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
-
-		//store read group ID
-		std::string readGroup;
-		bamAlignment.GetTag("RG", readGroup);
-		curReadGroupID = readGroups.find(readGroup);
-
-		//filter
-		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
-		filtersPassed = true;
-		//check if insert size is shorter than read, this means we are reading the adaptor sequence
-		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
-			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-			filtersPassed = false;
-		} else {
-			//apply filters: read group in use and basic QC
-			filtersPassed = readGroups.readGroupInUse(curReadGroupID)
-							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
-							&& bamAlignment.IsPrimaryAlignment()
-							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
-		}
-
-
-	} while(!filtersPassed);
-
-	return true;
-}
-
-
-void TAlignmentParser::fillAlignment(TAlignment & alignment){
-	//make sure container is empty
-	alignment.clear(); //necessary? Not do it in TWindow?
-
-	//fill alignment
-	std::string readGroup;
-	bamAlignment.GetTag("RG", readGroup);
-	int readGroupId = readGroups.find(readGroup);
-
-	alignment.fill(bamAlignment, readGroupId);
-
-	std::cout << "-----------------3-------------------" << std::endl;
-
-
-	std::cout << "-----------------4-------------------" << std::endl;
-
-	//set filter
-	//alignment.setFiltersPassed(filtersPassed);
-
-	if(parse){
-		std::cout << "qualities before parsing 16 " << bamAlignment.Qualities[16] << std::endl;
-		std::cout << "aligned qualities before parsing " << bamAlignment.AlignedQualities << std::endl;
-
-		std::cout << "-----------------5-------------------" << std::endl;
-
-		alignment.parse(genoMap, qualityMap);
-
-		std::cout << "-----------------6-------------------" << std::endl;
-
-
-		//add missing information to bases
-		alignment.fillReadGroupInfo(readGroupId);
-
-		if(doRecalibration)
-			alignment.recalibrate(*recalObject, qualityMap);
-		if(hasPMD)
-			alignment.fillPmdProbabilities(pmdObjects);
-		if(hasReference)
-			fillReferenceSequence(fastaBuffer, alignment);
-		if(applyQualityFilter)
-			alignment.filterForBaseQuality(minQual, maxQual);
-	}
-}
-
-
-bool TAlignmentParser::readNextAligment(TAlignment & alignment){
-	readAlignment();
-	fillAlignment(alignment);
-}
-
-//---------------------
-//read data in windows
-//---------------------
-bool TAlignmentParser::readDataInNextWindow(TWindow & window){
-	setParsingToTrue();
-
-	//move window
-	if(!moveWindow(window))
-		return false;
-
-	//read data
-	readAlignmentsIntoWindow(window);
-
-	return true;
-};
-
-
-void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
-	//measure runtime
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	logfile->listFlush("Reading data ...");
-
-	//check if old alignment is to be used.
-	if(oldAlignmentMustBeConsidered){
-		if(bamAlignment.Position >= window.end)
-			return;
-
-		oldAlignmentMustBeConsidered = false;
-		if(oldAlignment->lastPositionPlusOne > window.start)
-			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
-	}
-
-	//read alignments
-	while(readAlignment()){
-		//fill alignment
-		fillAlignment(*oldAlignment);
-
-		std::cout << "was able to read alignment @ position = " << oldAlignment->position << std::endl;
-
-		//check if alignment is used in current window
-		if(oldAlignment->position >= window.end){
-			oldAlignmentMustBeConsidered = true;
-			break;
-		}
-
-		//check if alignment is entirely before window
-		if(oldAlignment->lastPositionPlusOne > window.start){
-			std::cout << "SWAPPING!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
-			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
-			std::cout << "SWAPPING DONE!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
-		}
-	}
-
-	std::cout << "------------------------------- END OF WHILE ----------------" << std::endl;
-
-	//fill sites
-	window.fillSites();
-
-	std::cout << "------------------------------- SITES FILLED ----------------" << std::endl;
-
-
-	std::cout << "OLD ALIGNMENT = " << oldAlignment << std::endl;
-	window.printStacks();
-
-	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
-
-	//report
-	gettimeofday(&end, NULL);
-	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
-
-	//apply filters
-	applyFilters(window);
-};
-
-
-void TAlignmentParser::applyFilters(TWindow & window){
-	window.passedFilters = false;
-	if(window.numReadsInWindow > 0){
-		//apply masks and filters
-		if(doMasking){
-			logfile->listFlush("Masking sites ...");
-			window.applyMask(mask, considerRegions);
-			logfile->done();
-		} else if(considerRegions){
-			logfile->listFlush("Masking sites outside regions ...");
-			window.applyMask(mask, considerRegions);
-			logfile->done();
-		} else if(doCpGMasking){
-			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(*fastaReference, previousAlignmentChr);
-			logfile->done();
-		} if(applyDepthFilter){
-			window.applyDepthFilter(minDepth, maxDepth);
-		} if(maxRefN < 1.0 && hasReference == true){
-			window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
-			window.calcFracN();
-		}
-
-		//calc sequencing depth
-		window.calcDepth();
-
-		//report
-		logfile->conclude("read data from " + toString(window.numReadsInWindow) + " reads.");
-		logfile->conclude("sequencing depth is " + toString(window.depth));
-		logfile->conclude(toString(window.fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
-		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
-		if(window.fractionSitesNoData > maxMissing){
-			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			return;
-		}
-		if(maxRefN < 1.0 && hasReference == true){
-			logfile->conclude(toString(window.fractionRefIsN * 100) + "% of all reference bases are 'N'");
-			if(window.fractionRefIsN > maxRefN){
-				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				return;
-			}
-		}
-		window.passedFilters = true;
-	} else {
-		logfile->conclude("No data in this window.");
-	}
-}
-
 

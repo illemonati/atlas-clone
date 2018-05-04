@@ -57,20 +57,15 @@ TWindow::~TWindow(){
 
 TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
 	//save used alignment on proper stack
-	std::cout << "A) PUSH BACK" << std::endl;
 	usedAlignments.push_back(usedAlignment);
 
-	std::cout << "B)" << std::endl;
 	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
-		std::cout << "C)" << std::endl;
 		TAlignment* alignment = *(emptyAlignments.rbegin());
 		emptyAlignments.pop_back();
 		return alignment;
 	} else {
-		std::cout << "D)" << std::endl;
 		TAlignment* alignment = new TAlignment(maxReadLength);
-		std::cout << "CREATED " << alignment << std::endl;;
 		return alignment;
 	}
 };
@@ -170,17 +165,9 @@ void TWindow::printStacks(){
 
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
-	std::cout << "usedAlignments.size() = "<< usedAlignments.size() << std::endl;
-
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
 
-		std::cout << "ALIGNMENT " << *alignmentIt << "::::" << std::endl;
-
-
 		//check if alignment start is inside window
-
-		std::cout << "(*alignmentIt)->position = " << (*alignmentIt)->position << " >= " << end << std::endl;
-
 		if((*alignmentIt)->position >= end){
 			throw "alignment should be assigned to next window!";
 		}
@@ -202,14 +189,6 @@ void TWindow::fillSites(){
 		//position in window where first one = 0
 		int internalPos;
 		//p is at first position of read in window
-
-		std::cout << &(*alignmentIt) << "\t" << p << "\t" << std::flush;
-		std::cout << (*alignmentIt)->alignmentName << std::flush;
-		std::cout << "\t" << (*alignmentIt)->passedFilters << std::flush;
-		std::cout << "\t" << (*alignmentIt)->parsed << std::flush;
-		std::cout << "\t" << (*alignmentIt)->aligned[p] << std::flush;
-		std::cout << "\t" << (*alignmentIt)->bases[p].base << std::endl;
-
 		for(; p < (*alignmentIt)->length; ++p){
 			if((*alignmentIt)->aligned[p] && (*alignmentIt)->bases[p].base != N){
 				internalPos = firstPos + (*alignmentIt)->alignedPos[p];
@@ -310,8 +289,6 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 
 		if(sites[i].hasData)
 			recalObject->calcEmissionProbabilities(sites[i]);
-
-		//std::cout << std::endl;
 	}
 }
 

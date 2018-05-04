@@ -123,16 +123,7 @@ public:
 	TAlignment();
 	TAlignment(unsigned int MaxSize);
 	~TAlignment(){
-
-		std::cout << "###### DECONSTRUCTING " << this << " ..." << std::flush;
-
-		std::cout << " initialized = " << storageInitialized << std::flush;
-
-		//std::cout << " qualityOriginal[0] = " << qualityOriginal[0] << std::flush;
-
 		freeStorage();
-
-		std::cout << " done!" << std::endl;
 	}
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);

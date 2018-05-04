@@ -133,20 +133,7 @@ public:
 	//construction
 	TAlignmentParser();
 	TAlignmentParser(TParameters & params, TLog* Logfile);
-	~TAlignmentParser(){
-		if(hasReference)
-			delete fastaBuffer;
-		if(doMasking)
-			delete mask;
-		if(windowsPredefined)
-			delete predefinedWindows;
-		if(useChromosome)
-			delete[] useChromosome;
-		if(recalObjectInitialized) delete recalObject;
-		if(pmdObjects) delete[] pmdObjects;
-		if(oldAlignmentInitialized)
-			delete oldAlignment;
-	}
+	~TAlignmentParser();
 	void init(TParameters & params, TLog* Logfile);
 
 	//setters
