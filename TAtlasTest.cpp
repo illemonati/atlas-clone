@@ -187,12 +187,10 @@ void TAtlasTest_pileup::writeBAM(){
 	bamAlignment.RefID = 1;
 	bamAlignment.Position = 0;
 	int m;
-	std::cout << "depths.size() " << depths.size() << std::endl;
 	for(size_t d=0; d<depths.size(); ++d){
 		//firts base
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		m = depths[d]/2;
-		std::cout << "######### m " << m << std::endl;
 		for(i=0; i<m; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 

@@ -140,6 +140,7 @@ public:
 	void keepDuplicates(){_keepDuplicates = true;};
 	void setParsingToTrue(){parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
+	std::string chrNumberToName(int chrNumber);
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);

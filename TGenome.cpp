@@ -1121,7 +1121,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		window.printPileup(alignmentParser.recalObject, out);
+		window.printPileup(alignmentParser.recalObject, out, alignmentParser.chrNumberToName(window.chrNumber));
 	}
 
 	//clean up

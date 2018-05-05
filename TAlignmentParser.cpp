@@ -356,6 +356,17 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.alignedPos[alignment.length-1], referenceSequence);
 };
 
+std::string TAlignmentParser::chrNumberToName(int chrNumber){
+	int counter = 0;
+	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt){
+		if(counter == chrNumber)
+			return chrIt->Name;
+		++counter;
+
+	}
+	throw "chrNumber not in header";
+}
+
 //--------------
 //move genome
 //--------------
@@ -417,15 +428,17 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 			nextEnd = chrLength + 1;
 		else {
 			//moveToNextWindow(window);
-			window.move(predefinedWindows->curWindowStart(), nextEnd, chrIterator->Name);
+			window.move(predefinedWindows->curWindowStart(), nextEnd, chrNumber);
 			bamReader.Jump(chrNumber, window.start);
 		}
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
 		//TODO:!!! removed +1 because we are zero-based. Check if true!
-		if(nextEnd > chrLength) nextEnd = chrLength;
-		window.move(0, nextEnd, chrIterator->Name);
+		if(nextEnd > chrLength){
+			nextEnd = chrLength;
+		}
+		window.move(0, nextEnd, chrNumber);
 	}
 
 	//advance mask
@@ -442,7 +455,6 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 	//move to next region
 	++windowNumber;
 	if(window.end >= chrLength || windowNumber >= limitWindows){
-		std::cout << window.end << ">=" << chrLength << " || " << windowNumber << ">=" << limitWindows << std::endl;
 		return false;
 	}
 
@@ -450,7 +462,7 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 	long nextEnd = window.end + windowSize;
 	if(nextEnd > chrLength)
 		nextEnd = chrLength;
-	window.move(window.end, nextEnd, chrIterator->Name);
+	window.move(window.end, nextEnd, chrNumber);
 
 	return true;
 };
@@ -491,24 +503,18 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 			moveChromosome(window);
 		} else {
 			if(!moveToNextWindowOnChr(window)){
-				std::cout << "######### could not move to next window on chromosome!" << std::endl;;
 				//there is no window left on chr
 				++chrIterator;
 				++chrNumber;
+
 				//do we use this chromosome? if not, move on!
-				if(chrIterator != bamHeader.Sequences.End())
-					std::cout << "chrIterator != bamHeader.Sequences.End()" << std::endl;
-				if(!useChromosome[chrNumber])
-					std::cout << "!useChromosome[chrNumber]" << std::endl;
 				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
-					std::cout << "incrementing chromosomes! currently at " << chrIterator->Name << std::endl;
 					++chrIterator;
 					++chrNumber;
 				}
 
 				//did we reach end?
 				if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
-					std::cout << "we reached end!" << std::endl;
 					window.end = 0;
 					chrIterator = bamHeader.Sequences.End();
 					return false;

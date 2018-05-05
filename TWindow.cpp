@@ -15,7 +15,8 @@ TWindow::TWindow(){
 	start = -1;
 	end = -1;
 	length = -1;
-	chrName = "";
+//	chrIterator = NULL;
+	chrNumber = -1;
 	sites = NULL;
 	sitesInitialized = false;
 	depth = -1.0;
@@ -107,11 +108,10 @@ void TWindow::clear(){
 	passedFilters = false;
 };
 
-void TWindow::move(long Start, long End, std::string ChrName){
-	std::cout << "##########3moving from " << start << "," << end << " to " << Start << "," << End << std::endl;
+void TWindow::move(long Start, long End, int ChrNumber){
 	start = Start;
 	end = End;
-	chrName = ChrName;
+	chrNumber = ChrNumber;
 	if(sitesInitialized){
 		if((end - start) != length)
 			initSites(end - start);
@@ -135,41 +135,18 @@ void TWindow::review(){
 }
 
 void TWindow::cleanUpUsedAlignments(){
-	//printStacks();
 	//now check and move the rest
-	int counter = 0;
-	if(usedAlignments.size() > 0){
-		std::vector<TAlignment*>::iterator alignmentIt = (usedAlignments.end() - 1);
-		std::cout << "###############address and position "<< *alignmentIt << std::flush;
-		std::cout << " " << (*alignmentIt)->position << std::endl;
-	}
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		++counter;
-		std::cout << "alignmentIt " << *alignmentIt << " has position " << std::endl;
-//		std::cout << "counter: " << counter << " out of " << usedAlignments.size() << " address " << *alignmentIt << std::endl;
-		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start)){
-			throw "###############this alignment is outside the moved to window, clearing! " + toString(counter);
+		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start && (*alignmentIt)->chrNumber == chrNumber)){
 			(*alignmentIt)->clear();
 			emptyAlignments.push_back(*alignmentIt);
 			usedAlignments.erase(alignmentIt);
 		} else{
-			std::cout << "this alignment is within the moved to window " << *alignmentIt<< std::endl;;
 			++alignmentIt;
-
 		}
 
-//		std::cout << "end: " << std::flush;
-//		std::cout << end << " (*alignmentIt)->changed" << std::flush;
-//		std::cout << (*alignmentIt)->changed << " (*alignmentIt)->position "<< std::flush;
-//		std::cout << (*alignmentIt)->position << std::endl;
-
-
 		if((*alignmentIt)->position >= end){
-			std::cout << "second if statement true for " << *alignmentIt << std::endl;
-
-			std::move(alignmentIt, usedAlignments.end(), std::back_inserter(emptyAlignments));
 			usedAlignments.erase(alignmentIt, usedAlignments.end());
-
 			break;
 		}
 	}
@@ -359,7 +336,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out){
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string chrName){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		recalObject->calcEmissionProbabilities(sites[i]);
@@ -369,7 +346,7 @@ void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out){
 	}
 }
 
-void TWindow::printPileupToScreen(TRecalibration* recalObject){
+void TWindow::printPileupToScreen(TRecalibration* recalObject, std::string & chrName){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		recalObject->calcEmissionProbabilities(sites[i]);
