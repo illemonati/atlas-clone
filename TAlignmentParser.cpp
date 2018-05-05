@@ -663,7 +663,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		fillAlignment(*oldAlignment);
 
 		//check if alignment is used in current window
-		if(oldAlignment->position >= window.end){
+		if(oldAlignment->position >= window.end || oldAlignment->chrNumber != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
 			break;
 		}

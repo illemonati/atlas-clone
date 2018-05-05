@@ -48,15 +48,6 @@ TWindow::~TWindow(){
 
 };
 
-
-/*TWindow::TWindow(long Start, long End){
-	std::cout << "called correct constructor of TWindow!!!!!!!!!!!!" << std::endl;
-	start = Start;
-	end = End;
-	initSites(end - start); //end NOT in window!
-};*/
-
-
 TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
 	//save used alignment on proper stack
 	usedAlignments.push_back(usedAlignment);
@@ -168,7 +159,6 @@ void TWindow::printStacks(){
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
-
 		//check if alignment start is inside window
 		if((*alignmentIt)->position >= end){
 			throw "alignment should be assigned to next window!";
