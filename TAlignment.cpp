@@ -344,6 +344,7 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 		bases[length-1].context = genoMap.contextMap[N][bases[length-1].base];
 	} else {
 		//forward
+		bases[0].context = genoMap.contextMap[N][bases[0].base];
 		for(int d=1; d<length; ++d){
 			bases[d].context = genoMap.contextMap[bases[d-1].base][bases[d].base];
 		}

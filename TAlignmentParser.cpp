@@ -596,6 +596,8 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//set filter
 	//alignment.setFiltersPassed(filtersPassed);
 
+	TQualityMap qualityMap;
+
 	if(parse){
 		alignment.parse(genoMap, qualityMap);
 

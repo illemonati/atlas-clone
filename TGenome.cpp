@@ -1212,7 +1212,7 @@ void TGenome::createDepthMask(TParameters & params){
 	}
 	output.close();
 }
-
+*/
 //---------------------------------------------------
 //recalibration
 //---------------------------------------------------
@@ -1227,33 +1227,34 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		writeTmpTables = true;
 		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
 	}
-	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-	TRecalibrationEM recalObjectEM(&bamHeader, filename, params, logfile, readGroupMap);
+	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
+	TQualityMap qualityMap;
+
+	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, filename, params, logfile, readGroupMap);
 	if(!recalObjectEM.estimatetionRequired){
 		logfile->list("No need to estimate anything. Aborting Program.");
 		return;
 	}
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//add sites to EM object
 	logfile->startIndent("Reading data from windows:");
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)) windows.cur->addToRecalibrationEM(recalObjectEM);
-			else logfile->list("No positions in this window.");
-		}
+	while(alignmentParser.readDataInNextWindow(window)){
+		//read data for current window
+		if(window.passedFilters)
+			window.addToRecalibrationEM(recalObjectEM, qualityMap);
+		else logfile->list("No positions in this window.");
 	}
 	//clean up memory
-	windows.clear();
+	window.clear();
 	logfile->endIndent();
 
 	//run EM iterations
 	recalObjectEM.runEM(outputName, writeTmpTables);
 }
-
+/*
 
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
