@@ -145,7 +145,8 @@ public:
 	double getSteepestGradient();
 	virtual void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
 	void printJacobianToStdOut();
-	virtual double getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context);
+	//virtual double getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context);
+	virtual double getErrorRate(TBase & base);
 };
 
 class TRecalibrationEMModelNoContext:public TRecalibrationEMModel{
@@ -155,7 +156,8 @@ public:
 	double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
 	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
 	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
-	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
+	//double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
+	double getErrorRate(TBase & base);
 };
 
 class TRecalibrationEMSite{
@@ -252,8 +254,8 @@ public:
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
-	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	double getErrorRate(TBase & base);
+	int getQuality(TBase & base);
 };
 
 //---------------------------------------------------------------

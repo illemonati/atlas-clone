@@ -251,11 +251,51 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian.diag() << std::endl << std::endl;
 }
 
+double TRecalibrationEMModel::getErrorRate(TBase & base){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+//	std::cout << "######## originalErrorRate " << originalErrorRate << std::endl;
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+	//	std::cout << "after log transform " << originalErrorRate << std::endl;
+	double eta = betas[base.readGroup][0] * originalErrorRate;
+
+	//	std::cout << "after x2 " << eta << std::endl;
+
+
+	//q[1] is square of transformed quality
+	eta += betas[base.readGroup][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[base.readGroup][2] * (double) base.posInRead;
+
+	//q[3] is square of position
+	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
+
+	//q[4] until q[23] are indicators for the context. Just pick the matching one!
+	eta += betas[base.readGroup][base.context + 4];
+
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	//	std::cout << "exp " << eta << std::endl;
+	//	std::cout << "exp divided " << eta / (1.0 + eta) << std::endl;
+
+	return eta / (1.0 + eta);
+}
+/*
 double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
+//	std::cout << "######## originalErrorRate " << originalErrorRate << std::endl;
 	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
+	//	std::cout << "after log transform " << originalErrorRate << std::endl;
 	double eta = betas[rg][0] * originalErrorRate;
+
+	//	std::cout << "after x2 " << eta << std::endl;
+
 
 	//q[1] is square of transformed quality
 	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
@@ -275,9 +315,12 @@ double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, con
 	if(eta < -23.02685) return 0.0000000001;
 
 	eta = exp(eta);
+	//	std::cout << "exp " << eta << std::endl;
+	//	std::cout << "exp divided " << eta / (1.0 + eta) << std::endl;
+
 	return eta / (1.0 + eta);
 }
-
+*/
 //---------------------------------------------------------------
 //TRecalibrationEMModelNoContext
 //---------------------------------------------------------------
@@ -355,7 +398,7 @@ void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, 
 	for(int i=0; i<20; ++i)
 		out << "\t" << betas[readGroup][4];
 }
-
+/*
 double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
@@ -373,6 +416,32 @@ double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalError
 
 	//add intercept
 	eta += betas[rg][4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}*/
+
+double TRecalibrationEMModelNoContext::getErrorRate(TBase & base){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+	double eta = betas[base.readGroup][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[base.readGroup][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[base.readGroup][2] * (double) base.posInRead;
+
+	//q[3] is square of position
+	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
+
+	//add intercept
+	eta += betas[base.readGroup][4];
 
 	//now calculate epsilon from eta
 	if(eta > 22.2) return 0.9999999999;
@@ -1177,12 +1246,13 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 */
 
-double TRecalibrationEM::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return model->getErrorRate(readGroupId, qualityMap.qualityToErrorMap[quality], pos, context);
+
+double TRecalibrationEM::getErrorRate(TBase & base){
+	return model->getErrorRate(base);
 }
 
-int TRecalibrationEM::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = model->getErrorRate(readGroupId, qualityMap.qualityToErrorMap[quality], pos, context);
+int TRecalibrationEM::getQuality(TBase & base){
+	double q = model->getErrorRate(base);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }

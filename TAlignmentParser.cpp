@@ -833,9 +833,11 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
+	std::cout << "------------- inside initializeRecalibration------------------" << std::endl;
 	std::string task = params.getParameterString("task");
 	if(task == "qualityTransformation"){
 		doRecalibration = false;
+		initializeRecalibrationForQualityTransformation(params);
 	} else {
 		std::cout << "########## initializing recalibration!!!!!!!!!!!!" << std::endl;
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
@@ -859,6 +861,8 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParameters & params){
+	std::cout << "------------- inside initializeRecalibrationForQualityTransformation------------------" << std::endl;
+
 	//TODO: use TAlignmentParser. No need to use windows!
 	//initialize recalibration
 	//compare to a second recalibration definition?
@@ -897,10 +901,11 @@ void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParamete
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	TQualityMap qualMap;
+	//bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
 
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], recalObject->getQualityFromBase(alignment.bases[i], qualMap));
-		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], recalObject->getQualityFromBase(alignment.bases[i], qualMap));
+		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.readGroupId, alignment.quality[i], alignment.bases[i].posInRead, alignment.bases[i].posInReadRev, alignment.bases[i].context)));
+		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.readGroupId, alignment.quality[i], alignment.bases[i].posInRead, alignment.bases[i].posInReadRev, alignment.bases[i].context)));
 	}
 }
 

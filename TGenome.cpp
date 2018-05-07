@@ -1488,7 +1488,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 
 	//initialize recalibration
-	alignmentParser.initializeRecalibrationForQualityTransformation(params);
+//	alignmentParser.initializeRecalibrationForQualityTransformation(params);
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
