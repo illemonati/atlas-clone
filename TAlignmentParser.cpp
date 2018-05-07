@@ -382,34 +382,6 @@ void TAlignmentParser::restartChromosome(TWindow & window){
 	moveChromosome(window);
 }
 
-/*bool TAlignmentParser::iterateChromosome(TWindow & window){
-	if(chrIterator == bamHeader.Sequences.End()){
-		chrIterator = bamHeader.Sequences.Begin();
-		chrNumber = 0;
-	} else {
-		logfile->endNumbering();
-		//move to next
-		++chrIterator;
-		++chrNumber;
-	}
-
-	//do we use this chromosome? if not, move on!
-	while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
-		++chrIterator;
-		++chrNumber;
-	}
-
-	//did we reach end?
-	if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
-		window.end = 0;
-		chrIterator = bamHeader.Sequences.End();
-		return false;
-	}
-
-	moveChromosome(window);
-	return true;
-}*/
-
 void TAlignmentParser::moveChromosome(TWindow & window){
 	//jump reader
 	bamReader.Jump(chrNumber, 0);
@@ -469,33 +441,85 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 bool TAlignmentParser::moveWindow(TWindow & window){
 	//returns false when end of genome is reached
-	/*
 	if(windowsPredefined){
-		//NEEDS UPDATING (for predefined windows)
-		if(numWindowsOnChr < 1){
-			logfile->conclude("No windows on this chromosome.");
-			return false;
+		//if at beginning of BAM file
+		if(chrIterator == bamHeader.Sequences.End()){
+			chrIterator = bamHeader.Sequences.Begin();
+			chrNumber = 0;
+
+			//find first chr with windows
+			do {
+				predefinedWindows->setChr(chrIterator->Name);
+				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
+				if(numWindowsOnChr < 1){
+					logfile->conclude("No windows on this chromosome.");
+					++chrIterator;
+				}
+			} while(numWindowsOnChr < 1);
+
+			if(chrIterator != bamHeader.Sequences.End()){
+				window.start = predefinedWindows->curWindowStart();
+				window.end =  predefinedWindows->curWindowEnd();
+				std::cout << "########## returning true with coordinates " << window.start << "," << window.end << std::endl;
+				return true;
+			} else {
+				throw "found no predefined windows in BED file!";
+				return false;
+			}
 		}
 
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
+			window.start = predefinedWindows->curWindowStart();
+			window.end =  predefinedWindows->curWindowEnd();
+			if(abs(window.start - previousAlignmentPos) > maxReadLength)
+				bamReader.Jump(chrNumber, window.start);
+			std::cout << "#### returning true with coordinates " << window.start << "," << window.end << std::endl;
+			return true;
+		} else {
+			//no more windows left on chr, move chr until there are windows
+			++chrIterator;
+			do {
+				predefinedWindows->setChr(chrIterator->Name);
+				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
+				if(numWindowsOnChr < 1){
+					logfile->conclude("No windows on this chromosome.");
+					++chrIterator;
+				}
+			} while(numWindowsOnChr < 1);
+
+			if(chrIterator == bamHeader.Sequences.End())
+				return false;
+			else{
+				window.start = predefinedWindows->curWindowStart();
+				window.end =  predefinedWindows->curWindowEnd();
+
+				std::cout << "returning true with coordinates " << window.start << "," << window.end << std::endl;
+				return true;
+			}
+		}
+
+		/*if(predefinedWindows->nextWindow()){
+			//jump reader if large gap to previous window
+			//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
+//			if(window.start - windowPair.nextPointer->end > maxReadLength)
+//				bamReader.Jump(chrNumber, curStart);
 			int nextEnd = predefinedWindows->curWindowEnd();
 			if(nextEnd > chrLength) nextEnd = chrLength;
-			window.move(predefinedWindows->curWindowStart(), nextEnd);
+			window.move(predefinedWindows->curWindowStart(), nextEnd, chrNumber);
 			//jump reader if large gap to previous window
 			//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
 			if(window.start - window.end > maxReadLength)
 				bamReader.Jump(chrNumber, window.start);
 		} else {
-			window.move(chrLength, chrLength+1);
+			window.move(chrLength, chrLength+1, chrNumber);
 		}
 		//report
 		logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + "] of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 		logfile->addIndent();
 		return true;
-
+*/
 	} else {
-	*/
 		//if at beginning of BAM file
 		if(chrIterator == bamHeader.Sequences.End()){
 			chrIterator = bamHeader.Sequences.Begin();
@@ -524,7 +548,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				++windowNumber;
 			}
 		}
-	//}
+	}
 
 	//report
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");

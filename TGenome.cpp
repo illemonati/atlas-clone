@@ -367,8 +367,6 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 };
 
-/*
-
 void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
 	if(alignmentParser.considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
@@ -378,19 +376,17 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structure:");
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			if(readData(windows)){
-				//adding sites to estimator
-				logfile->listFlush("Calculating emission probabilities ...");
-				try{
-					thetaEstimator.clear();
-					window.addSitesToThetaEstimator(recalObject, thetaEstimator);
-				} catch(...){
-					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
-				}
-				logfile->done();
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(window.passedFilters){
+			//adding sites to estimator
+			logfile->listFlush("Calculating emission probabilities ...");
+			try{
+				thetaEstimator.clear();
+				window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
+			} catch(...){
+				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
+			logfile->done();
 		}
 	}
 	logfile->endIndent();
@@ -407,9 +403,8 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
-
 }
-
+/*
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
 	if(numBootstraps < 1) throw "Number of bootstraps must be > 1!";
 	logfile->startIndent("Generating " + toString(numBootstraps) + " bootstrap estimates of theta:");
@@ -1447,7 +1442,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	logfile->done();
 	logfile->endIndent();
 }
-
+*/
 void TGenome::printQualityTransformation(TParameters & params){
 	//TODO: use TAlignmentParser. No need to use windows!
 	//initialize recalibration
@@ -1533,7 +1528,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	windows.clear();
 
 }
-
+/*
 void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
 	if(counter % 1000000 == 0){
 		static struct timeval end;
