@@ -42,6 +42,7 @@ private:
 	TLog* logfile;
 //	long oldPos;
 	std::string outputName;
+	int maxReadLength;
 
 	void jumpToEnd();
 

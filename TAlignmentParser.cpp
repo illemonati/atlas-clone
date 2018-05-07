@@ -108,11 +108,11 @@ TAlignmentParser::TAlignmentParser(){
 	recalObject2 = NULL;
 };
 
-TAlignmentParser::TAlignmentParser(TParameters & params, TLog* Logfile){
+TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile){
 	TAlignmentParser();
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
 
-	init(params, Logfile);
+	init(MaxReadLength, params, Logfile);
 };
 
 TAlignmentParser::~TAlignmentParser(){
@@ -130,7 +130,7 @@ TAlignmentParser::~TAlignmentParser(){
 			delete oldAlignment;
 	}
 
-void TAlignmentParser::init(TParameters & params, TLog* Logfile){
+void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
 	//open BAM file
@@ -150,7 +150,7 @@ void TAlignmentParser::init(TParameters & params, TLog* Logfile){
 	//---------------------
 	//window parameters
 	//---------------------
-	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	maxReadLength = MaxReadLength;
 	oldAlignment = new TAlignment(maxReadLength);
 	oldAlignmentInitialized = true;
 
@@ -640,6 +640,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 
 bool TAlignmentParser::readNextAligment(TAlignment & alignment){
+	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
 		fillAlignment(alignment);
 		return true;
@@ -832,22 +833,84 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
-	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+	std::string task = params.getParameterString("task");
+	if(task == "qualityTransformation"){
+		doRecalibration = false;
+	} else {
+		std::cout << "########## initializing recalibration!!!!!!!!!!!!" << std::endl;
+		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+		if(params.parameterExists("recal")){
+			std::string filename = params.getParameterString("recal");
+			recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
+			doRecalibration = true;
+		} else if(params.parameterExists("BQSRQuality")){
+			recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
+			doRecalibration = true;
+		} else {
+			logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+			doRecalibration = false;
+			recalObject = new TRecalibration(readGroupMap);
+		}
+		recalObjectInitialized = true;
+
+		//check if estimation is required, in which case throw an error!
+		if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+	}
+}
+
+void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParameters & params){
+	//TODO: use TAlignmentParser. No need to use windows!
+	//initialize recalibration
+	//compare to a second recalibration definition?
+	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
+	recalObjectInitialized2 = false;
 	if(params.parameterExists("recal")){
-		std::string filename = params.getParameterString("recal");
-		recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
-		doRecalibration = true;
+		std::string nameRecal = params.getParameterString("recal");
+		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile, readGroupMap);
+		if(params.parameterExists("recal2")){
+			std::string nameRecal2 = params.getParameterString("recal2");
+			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile, readGroupMap);
+			doRecalibration2 = true;
+			recalObjectInitialized2 = true;
+		} else if(params.parameterExists("BQSRQuality")){
+			TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+			recalObject2 = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
+			doRecalibration2 = true;
+			recalObjectInitialized2 = true;
+		}
 	} else if(params.parameterExists("BQSRQuality")){
+		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
 		doRecalibration = true;
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
 		doRecalibration = false;
+		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 		recalObject = new TRecalibration(readGroupMap);
 	}
-	recalObjectInitialized = true;
+	//recalObjectInitialized = true;
 
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+}
+
+void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+	TQualityMap qualMap;
+
+	for(int i=0; i<alignment.length; ++i){
+		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], recalObject->getQualityFromBase(alignment.bases[i], qualMap));
+		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], recalObject->getQualityFromBase(alignment.bases[i], qualMap));
+	}
+}
+
+void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+	TQualityMap qualMap;
+
+	for(int i=0; i<alignment.length; ++i){
+		QTtables.at(alignment.readGroupId)->add(recalObject->getQualityFromBase(alignment.bases[i], qualMap), otherRecalObject->getQualityFromBase(alignment.bases[i], qualMap));
+		QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(alignment.bases[i], qualMap), otherRecalObject->getQualityFromBase(alignment.bases[i], qualMap));
+
+	}
 }
 

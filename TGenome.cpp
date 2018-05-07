@@ -15,7 +15,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	initializeRandomGenerator(params);
 
 	//initialize alignment parser
-	alignmentParser.init(params, logfile);
+	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	alignmentParser.init(maxReadLength, params, logfile);
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -41,6 +42,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	initializePostMortemDamage(params);
 	doRecalibration = false;
 	recalObjectInitialized = false;*/
+
+
 
 	//trimming ends
 	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
@@ -1444,7 +1447,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 }
 */
 void TGenome::printQualityTransformation(TParameters & params){
-	//TODO: use TAlignmentParser. No need to use windows!
+/*	//TODO: use TAlignmentParser. No need to use windows!
 	//initialize recalibration
 	//compare to a second recalibration definition?
 	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
@@ -1478,14 +1481,18 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
-
-	//prepare windows
-	TWindowPair windows;
+*/
+	//prepare alignment
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
+
+	//initialize recalibration
+	alignmentParser.initializeRecalibrationForQualityTransformation(params);
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
-	for(int i=0; i<readGroups.size() + 1; ++i){
+	for(int i=0; i<alignmentParser.readGroups.size() + 1; ++i){
 		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
 		QTtables.push_back(QT);
 	}
@@ -1494,20 +1501,17 @@ void TGenome::printQualityTransformation(TParameters & params){
 	std::ofstream out;
 	std::string filename;
 
-	//loop over windows and add to table
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				if(recalObjectInitialized2) windows.cur->addSitesToQualityTransformTable(recalObject, recalObject2, QTtables, logfile);
-				else windows.cur->addSitesToQualityTransformTable(recalObject, QTtables, logfile);
-			}
-		}
+	//add alignments to tables
+	logfile->listFlush("Adding sites to quality transformation tables ...");
+	while(alignmentParser.readNextAligment(alignment)){
+		if(alignmentParser.recalObjectInitialized2) alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, alignmentParser.recalObject2, QTtables, logfile);
+		else alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, QTtables, logfile);
 	}
+	logfile->done();
 
 	//print final tables for read groups
-	for(int i=0; i<readGroups.size(); ++i){
-		filename = outputName + "_" + readGroups.getName(i) + "_qualityTransformation.txt";
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
+		filename = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityTransformation.txt";
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open output file '" + filename + "'!";
 		QTtables[i]->printTable(out);
@@ -1523,12 +1527,8 @@ void TGenome::printQualityTransformation(TParameters & params){
 	QTtables.at(QTtables.size()-1)->printTable(out);
 	out.close();
 	delete QTtables.at(QTtables.size()-1);
-
-	//clean up memory
-	windows.clear();
-
 }
-/*
+
 void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
 	if(counter % 1000000 == 0){
 		static struct timeval end;
@@ -1537,7 +1537,7 @@ void TGenome::reportProgressParsingBamFile(const long & counter, const struct ti
 		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	}
 }
-
+/*
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);

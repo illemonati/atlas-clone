@@ -30,7 +30,6 @@ private:
 	//variables
 	TGenotypeMap genoMap;
 	//TReadGroups* readGroupTable;
- 	TReadGroups readGroups;
 
 	TLog* logfile;
 	bool _keepDuplicates;
@@ -84,11 +83,7 @@ private:
 	//recal and pmd objects
 	TPMD* pmdObjects;
 	bool hasPMD;
-	TRecalibration* recalObject2;
-	bool doRecalibration;
-	bool doRecalibration2;
-	bool recalObjectInitialized;
-	bool recalObjectInitialized2;
+
 
 	//move genome
 	void jumpToEnd();
@@ -118,9 +113,7 @@ public:
 	bool applyDepthFilter;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
-
-	TRecalibration* recalObject;
-
+ 	TReadGroups readGroups;
 
 	//BAM file
 	std::string filename;
@@ -129,11 +122,19 @@ public:
  	BamTools::SamHeader bamHeader;
  	BamTools::SamSequenceIterator chrIterator;
 
+ 	//recalibration
+	TRecalibration* recalObject;
+	TRecalibration* recalObject2;
+	bool doRecalibration;
+	bool doRecalibration2;
+	bool recalObjectInitialized;
+	bool recalObjectInitialized2;
+
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(TParameters & params, TLog* Logfile);
+	TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile);
 	~TAlignmentParser();
-	void init(TParameters & params, TLog* Logfile);
+	void init(int MaxReadLength, TParameters & params, TLog* Logfile);
 
 	//setters
 	void keepDuplicates(){_keepDuplicates = true;};
@@ -151,6 +152,12 @@ public:
 
 	//read data in windows
 	bool readDataInNextWindow(TWindow & window);
+
+	//qualityTransformation
+	void initializeRecalibrationForQualityTransformation(TParameters & params);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+
 
 
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);

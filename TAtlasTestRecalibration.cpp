@@ -471,18 +471,20 @@ TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRec
 bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
-	_testParams.addParameter("out", filenameTag);
-	_testParams.addParameter("chrLength", "2000000");
-	_testParams.addParameter("depth", "2");
-	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
-	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
-	_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
+	if(!_testParams.parameterExists("noSimulation")){
+		_testParams.addParameter("out", filenameTag);
+		_testParams.addParameter("chrLength", "2000000");
+		_testParams.addParameter("depth", "2");
+		_testParams.addParameter("ploidy", "2");
+		_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
+		_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
+		_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
 
-	if(!runTGenomeFromInputfile("simulate"))
-		return false;
+		if(!runTGenomeFromInputfile("simulate"))
+			return false;
 
-	logfile->newLine();
+		logfile->newLine();
+	}
 
 	//1) Run qualityTransformation
 	//-----------------------------

@@ -455,11 +455,11 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 	logfile->done();
 
 }
-
+/*
 void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to quality transformation tables ...");
 	std::vector<TBase*>::iterator it;
-/*
+
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
@@ -468,7 +468,7 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::
 			}
 		}
 	}
-*/
+
 	logfile->done();
 }
 
@@ -485,7 +485,7 @@ void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TReca
 	}
 	logfile->done();
 }
-
+*/
 void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(int i=0; i<length; ++i){
