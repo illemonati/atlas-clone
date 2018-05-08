@@ -89,10 +89,10 @@ public:
 			} */else if(task == "qualityTransformation"){
 				logfile->startIndent("Printing Quality Transformation (task = qualityTransformation):");
 				genome.printQualityTransformation(*parameters);
-			}/* else if(task == "recalBAM"){
+			} else if(task == "recalBAM"){
 				logfile->startIndent("Recalibrating a BAM file (task = recalBAM):");
 				genome.recalibrateBamFile(*parameters);
-			} else if(task == "binQualityScores"){
+			} /*else if(task == "binQualityScores"){
 				logfile->startIndent("Binning quality scores (task = binQualityScores");
 				genome.binQualityScores(*parameters);
 			} else if(task == "assessSoftClipping"){

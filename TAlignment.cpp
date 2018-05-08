@@ -398,6 +398,7 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 			bases[d].base = N;
 	}
 };
+/*
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
 	//make sure read is parsed and has reference
 	if(!parsed) throw "Read was not parsed!";
@@ -405,8 +406,8 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & quality
 	if(recalObject.recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<length; ++d){
-			int k = length - d - 1;
-			bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
+//			int k = length - d - 1;
+			bases[d].errorRate = recalObject.getErrorRate(bases[d]);
 			qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].errorRate);
 
 //			bases[d].error = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
@@ -430,9 +431,9 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 
 	//recalibrate quality scores
 	for(int d=0; d<length; ++d){
-		int k = length - d - 1;
+//		int k = length - d - 1;
 		if(recalObject.recalibrationChangesQualities())
-			bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
+			bases[d].errorRate = recalObject.getErrorRate(bases[d]);
 
 		//now add effect of PMD
 		if(aligned[d]){
@@ -450,6 +451,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 	recalibrated = true;
 	changed = true;
 };
+*/
 
 void TAlignment::fillReadGroupInfo(int & readGroupID){
 	for(int d=0; d<length; ++d){

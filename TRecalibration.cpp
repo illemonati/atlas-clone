@@ -26,30 +26,33 @@ int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGrou
 void TRecalibration::calcEmissionProbabilities(TSite & site){
 	//first calculate for each base
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-		(*it)->fillEmissionProbabilitiesCore(getErrorRateFromBase(**it));
+		(*it)->fillEmissionProbabilitiesCore((**it).errorRate);
 	}
 
 	//then for the site
 	site.calcEmissionProbabilities();
 };
 
-double TRecalibration::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return qualityMap.qualityToErrorMap[quality];
+double TRecalibration::getErrorRate(TBase & base){
+	return base.errorRate;
 }
 
+/*
 double TRecalibration::getErrorRateFromBase(const TBase & base){
 	return base.errorRate;
 //	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
 }
+*/
 
-int TRecalibration::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	return quality;
+int TRecalibration::getQuality(TBase & base){
+	return qualityMap.errorToQuality(base.errorRate);
 }
 
-int TRecalibration::getQualityFromBase(const TBase & base, TQualityMap & qualMap){
-	return qualMap.errorToQuality(base.errorRate);
-//	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
-}
+//int TRecalibration::getQualityFromBase(const TBase & base, TQualityMap & qualMap){
+//	std::cout << "in base classe's getQualityFromBase" << std::endl;
+//	return qualMap.errorToQuality(base.errorRate);
+////	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
+//}
 
 //---------------------------------------------------------------
 //TRecalibrationEMModel
@@ -254,7 +257,6 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 double TRecalibrationEMModel::getErrorRate(TBase & base){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
-//	std::cout << "######## originalErrorRate " << originalErrorRate << std::endl;
 	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
 	//	std::cout << "after log transform " << originalErrorRate << std::endl;
 	double eta = betas[base.readGroup][0] * originalErrorRate;
@@ -2848,17 +2850,17 @@ void TRecalibrationBQSR::reopenEstimation(){
 	}
 }
 
-double TRecalibrationBQSR::getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = BQSR_cells_readGroup_quality[readGroupId][qualityIndex->getIndex(quality)].curEstimate;
-	if(considerPosition) q *= BQSR_cells_readGroup_position[readGroupId][pos].curEstimate;
-	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[readGroupId][posRev].curEstimate;
-	if(considerContext) q *= BQSR_cells_readGroup_context[readGroupId][context].curEstimate;
+double TRecalibrationBQSR::getErrorRate(TBase & base){
+	double q = BQSR_cells_readGroup_quality[base.readGroup][qualityIndex->getIndex(qualityMap.errorToQuality(base.errorRate))].curEstimate;
+	if(considerPosition) q *= BQSR_cells_readGroup_position[base.readGroup][base.posInRead].curEstimate;
+	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[base.readGroup][base.posInReadRev].curEstimate;
+	if(considerContext) q *= BQSR_cells_readGroup_context[base.readGroup][base.context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
 }
 
-int TRecalibrationBQSR::getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context){
-	double q = getErrorRate(readGroupId, quality, pos, posRev, context);
+int TRecalibrationBQSR::getQuality(TBase & base){
+	double q = getErrorRate(base);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }

@@ -630,7 +630,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		alignment.fillPmdProbabilities(pmdObjects);
 
 		if(doRecalibration)
-			alignment.recalibrate(*recalObject, qualityMap);
+			recalibrate(alignment);
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 		if(applyQualityFilter)
@@ -833,13 +833,12 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
-	std::cout << "------------- inside initializeRecalibration------------------" << std::endl;
 	std::string task = params.getParameterString("task");
-	if(task == "qualityTransformation"){
+	if(task == "qualityTransformation" || task == "recalBAM"){
+		//don't change base error rates in fillAlignment!
 		doRecalibration = false;
 		initializeRecalibrationForQualityTransformation(params);
 	} else {
-		std::cout << "########## initializing recalibration!!!!!!!!!!!!" << std::endl;
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 		if(params.parameterExists("recal")){
 			std::string filename = params.getParameterString("recal");
@@ -861,11 +860,7 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParameters & params){
-	std::cout << "------------- inside initializeRecalibrationForQualityTransformation------------------" << std::endl;
-
-	//TODO: use TAlignmentParser. No need to use windows!
-	//initialize recalibration
-	//compare to a second recalibration definition?
+	//are we comparing to original quality or to another recalibration?
 	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
 	recalObjectInitialized2 = false;
 	if(params.parameterExists("recal")){
@@ -893,29 +888,76 @@ void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParamete
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 		recalObject = new TRecalibration(readGroupMap);
 	}
-	//recalObjectInitialized = true;
 
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
 
+void TAlignmentParser::recalibrate(TAlignment & alignment){
+	//make sure read is parsed and has reference
+	if(!alignment.parsed) throw "Read was not parsed!";
+
+	TQualityMap qualMap;
+
+	if(recalObject->recalibrationChangesQualities()){
+		//recalibrate quality scores
+		for(int d=0; d<alignment.length; ++d){
+			alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
+			alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+		}
+
+		alignment.quality = alignment.qualityRecalibrated;
+		alignment.changed = true;
+	} else alignment.changed = false;
+	alignment.recalibrated = true;
+};
+
+void TAlignmentParser::recalibrateWithPMD(TAlignment & alignment){
+	//make sure read is parsed and has reference
+	if(!alignment.parsed) throw "Read was not parsed!";
+	if(!hasReference) throw "Reference was not added!";
+
+	TQualityMap qualMap;
+
+	//recalibrate quality scores
+	for(int d=0; d<alignment.length; ++d){
+//		int k = length - d - 1;
+		if(recalObject->recalibrationChangesQualities())
+			alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
+
+		//now add effect of PMD
+		if(alignment.aligned[d]){
+			if(alignment.bases[d].base == T && referenceSequence[alignment.alignedPos[d]] == 'C')
+				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+			else if(alignment.bases[d].base == A && referenceSequence[alignment.alignedPos[d]] == 'G')
+				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+		}
+
+		alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+	}
+
+	//set pointer to recalibrated scores
+	alignment.quality = alignment.qualityRecalibrated;
+	alignment.recalibrated = true;
+	alignment.changed = true;
+};
+
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	TQualityMap qualMap;
-	//bases[d].errorRate = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
 
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.readGroupId, alignment.quality[i], alignment.bases[i].posInRead, alignment.bases[i].posInReadRev, alignment.bases[i].context)));
-		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.readGroupId, alignment.quality[i], alignment.bases[i].posInRead, alignment.bases[i].posInReadRev, alignment.bases[i].context)));
+		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
 	}
 }
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	TQualityMap qualMap;
-
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(recalObject->getQualityFromBase(alignment.bases[i], qualMap), otherRecalObject->getQualityFromBase(alignment.bases[i], qualMap));
-		QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(alignment.bases[i], qualMap), otherRecalObject->getQualityFromBase(alignment.bases[i], qualMap));
+		QTtables.at(alignment.readGroupId)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(QTtables.size() - 1)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
 
 	}
 }
+
 

@@ -1447,48 +1447,10 @@ void TGenome::printQualityDistribution(TParameters & params){
 }
 */
 void TGenome::printQualityTransformation(TParameters & params){
-/*	//TODO: use TAlignmentParser. No need to use windows!
-	//initialize recalibration
-	//compare to a second recalibration definition?
-	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
-	recalObjectInitialized2 = false;
-	if(params.parameterExists("recal")){
-		std::string nameRecal = params.getParameterString("recal");
-		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile, readGroupMap);
-		if(params.parameterExists("recal2")){
-			std::string nameRecal2 = params.getParameterString("recal2");
-			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile, readGroupMap);
-			doRecalibration2 = true;
-			recalObjectInitialized2 = true;
-		} else if(params.parameterExists("BQSRQuality")){
-			TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-			recalObject2 = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
-			doRecalibration2 = true;
-			recalObjectInitialized2 = true;
-		}
-	} else if(params.parameterExists("BQSRQuality")){
-		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
-		doRecalibration = true;
-	} else {
-		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-		doRecalibration = false;
-		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibration(readGroupMap);
-	}
-	//recalObjectInitialized = true;
-
-	//check if estimation is required, in which case throw an error!
-	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
-*/
 	//prepare alignment
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
-
-	//initialize recalibration
-//	alignmentParser.initializeRecalibrationForQualityTransformation(params);
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
@@ -1537,33 +1499,29 @@ void TGenome::reportProgressParsingBamFile(const long & counter, const struct ti
 		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 	}
 }
-/*
+
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
 
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_recalibrated.bam";
-	BamTools::RefVector references = bamReader.GetReferenceData();
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, bamHeader, references))
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//do we also account for PMD?
 	bool withPMD = params.parameterExists("withPMD");
-	if(!withPMD && hasPMD) logfile->list("Note: PMD will not be reflected in the quality scores (preferred option when using ATLAS). If you want the quality scores to reflect pmd, use \"withPMD\"!");
-	else if(withPMD && hasPMD) logfile->list("Probability of PMD will be reflected in new quality scores");
-	else if(withPMD && !hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
+	if(!withPMD && alignmentParser.hasPMD) logfile->list("Note: PMD will not be reflected in the quality scores (preferred option when using ATLAS). If you want the quality scores to reflect pmd, use \"withPMD\"!");
+	else if(withPMD && alignmentParser.hasPMD) logfile->list("Probability of PMD will be reflected in new quality scores");
+	else if(withPMD && !alignmentParser.hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
 	if(withPMD && !fastaReference) throw "Cannot run recalBAM withPMD without reference!";
 
 	//other tmp variables
 	long counter = 0;
-	TQualityMap qualMap;
 	TGenotypeMap genoMap;
 
 	//prepare reporting
@@ -1573,33 +1531,30 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
     //now parse through bam file and write alignments
 	if(withPMD){
-		while(alignmentParser.readAlignment(bamReader, alignment)){
-	        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
-				++counter;
-				if(!fastaReference) throw "Cannot take PMD into account in BAM quality scores without reference!";
-				alignmentParser.addReference(&reference);
+		while(alignmentParser.readNextAligment(alignment)){
+			++counter;
+			if(!fastaReference) throw "Cannot take PMD into account in BAM quality scores without reference!";
+			alignmentParser.addReference(&reference);
 
-				alignment.recalibrate(*recalObject, pmdObjects, alignmentParser.fastaBuffer, qualMap);
-				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
+			alignmentParser.recalibrateWithPMD(alignment);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
-				reportProgressParsingBamFile(counter, start);
-			}
+			reportProgressParsingBamFile(counter, start);
         }
 	} else {
-		while(alignmentParser.readAlignment(bamReader, alignment)){
-	        if(useChromosome[alignment.chrNumber] && alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
-				++counter;
+		while(alignmentParser.readNextAligment(alignment)){
+			++counter;
 
-				alignment.recalibrate(*recalObject, qualMap);
-				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
+			alignmentParser.recalibrate(alignment);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
-				reportProgressParsingBamFile(counter, start);
-	        }
+			reportProgressParsingBamFile(counter, start);
 		}
 	}
 
 	//close bam writer
 	bamWriter.Close();
+	logfile->done();
 
 	//report
 	reportProgressParsingBamFile(counter, start);
@@ -1619,7 +1574,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	reader.Close();
 	logfile->done();
 }
-
+/*
 void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;

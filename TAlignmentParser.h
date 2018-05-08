@@ -82,7 +82,6 @@ private:
 
 	//recal and pmd objects
 	TPMD* pmdObjects;
-	bool hasPMD;
 
 
 	//move genome
@@ -130,6 +129,10 @@ public:
 	bool recalObjectInitialized;
 	bool recalObjectInitialized2;
 
+	//PMD
+	bool hasPMD;
+
+
 	//construction
 	TAlignmentParser();
 	TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile);
@@ -146,12 +149,16 @@ public:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions to read and parse
-	bool readNextAligment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
+	void recalibrate(TAlignment & alignment);
+	void recalibrateWithPMD(TAlignment & alignment);
 
-	//read data in windows
+	//reading data requires windows
 	bool readDataInNextWindow(TWindow & window);
+
+	//reading data only requires alignments
+	bool readNextAligment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
 
 	//qualityTransformation
 	void initializeRecalibrationForQualityTransformation(TParameters & params);

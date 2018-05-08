@@ -375,7 +375,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "4");
 	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
+	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
 	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "fixed(" + qualDistString + ")");
 

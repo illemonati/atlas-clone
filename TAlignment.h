@@ -153,8 +153,6 @@ public:
 	std::string alignmentName;
 
 	//TODO: move these functions to TGenome
-	void recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap);
-	void recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap);
 	void fillReadGroupInfo(int & readGroupID);
 	void binQualityScores(TQualityMap & qualityMap);
 	void updateOptionalSamField(std::string tag, float value);

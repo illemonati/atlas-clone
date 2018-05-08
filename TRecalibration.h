@@ -81,10 +81,11 @@ public:
 	};*/
 
 	void calcEmissionProbabilities(TSite & site);
-	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	double getErrorRateFromBase(const TBase & base);
-	virtual int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	virtual int getQualityFromBase(const TBase & base, TQualityMap & qualMap);
+//	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	virtual double getErrorRate(TBase & base);
+//	double getErrorRateFromBase(const TBase & base);
+	virtual int getQuality(TBase & base);
+//	virtual int getQualityFromBase(const TBase & base, TQualityMap & qualMap);
 //	virtual int getphredInt(const TBase & base){
 //		return base.phredInt;
 //	};
@@ -485,8 +486,9 @@ public:
 	void calculateAndPrintLLSurfaceContext(std::string & filenameTag);
 	bool allConverged();
 	void reopenEstimation();
-	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
-	int getQuality(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+//	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
+	double getErrorRate(TBase & base);
+	int getQuality(TBase & base);
 };
 
 
