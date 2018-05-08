@@ -12,7 +12,7 @@
 //----------------------------------
 //TSimulatorRead
 //----------------------------------
-TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator){
+TSimulatorRead::TSimulatorRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator){
 	//set variables
 	randomGenerator = RandomGenerator;
 	maxPrintPhredInt = MaxPrintPhredInt;
@@ -39,6 +39,10 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int MaxPrintPhredInt, 
 	bamAlignment.AddTag("RG", "Z", _name);
 	bamAlignment.MapQuality = 50;
 	bamAlignment.Name = "*";
+	readNamePrefix = "ATL:0:A:1:" + toString(readGroupNumber) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	readXPos = 1;
+	readYPos = 1;
+
 	bases = NULL;
 	phredIntQualities = NULL;
 	fragmentLength = 0;
@@ -174,6 +178,14 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
+
+	//set read name
+	++readXPos;
+	if(readXPos == 65536){
+		++readYPos;
+		readXPos = 1;
+	}
+	bamAlignment.Name = readNamePrefix + toString(readXPos) + ":" + toString(readYPos);
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
