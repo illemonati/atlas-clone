@@ -153,7 +153,6 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 	K = new double[9];
 
 	//other variables
-	g1 = 0; g2 = 0;
 	distance = -1.0;
 
 	//set how to calculate distances
@@ -195,24 +194,34 @@ void TEMforDistanceEstimation::calculateDistance(){
 		distance += phi[i] * distanceWeight[i];
 }
 
-void TEMforDistanceEstimation::guessPi(int** genoQual1, int** genoQual2, long numSites){
+void TEMforDistanceEstimation::guessPi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2){
+	//check sizes are equal
+	if(genoQual1.size() != genoQual2.size())
+		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
+
 	//just estimate pi as average posterior probability
 	pi.clear();
-	double sum1, sum2, tmp;
-	int i;
+	double sum1, sum2;
+
+	std::cout << "SIZE = " << genoQual1.size() << std::endl;
 
 	//now loop over sites
-	for(long s=0; s<numSites; ++s){
+	std::vector<int*>::iterator it1 = genoQual1.begin();
+	std::vector<int*>::iterator it2 = genoQual2.begin();
+	for(; it1 != genoQual1.end(); ++it1, ++it2){
+
+		std::cout << "DATA = " << (*it1)[0] << "|" << (*it1)[1] << "|" << (*it1)[2] << std::endl;
+
 		sum1 = 0.0; sum2 = 0.0;
-		for(i=0; i<10; ++i){
-			sum1 += phredToLik[genoQual1[s][i]];
-			sum2 += phredToLik[genoQual2[s][i]];
+		for(int i=0; i<10; ++i){
+			sum1 += phredToLik[(*it1)[i]];
+			sum2 += phredToLik[(*it2)[i]];
 		}
-		for(i=0; i<10; ++i){
-			tmp = phredToLik[genoQual1[s][i]] / sum1;
+		for(int i=0; i<10; ++i){
+			double tmp = phredToLik[(*it1)[i]] / sum1;
 			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
 			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
-			tmp = phredToLik[genoQual2[s][i]] / sum2;
+			tmp = phredToLik[(*it2)[i]] / sum2;
 			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
 			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
 		}
@@ -222,33 +231,38 @@ void TEMforDistanceEstimation::guessPi(int** genoQual1, int** genoQual2, long nu
 	pi.normalize();
 }
 
-void TEMforDistanceEstimation::guessPhi(int** genoQual1, int** genoQual2, long numSites){
+void TEMforDistanceEstimation::guessPhi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2){
+	//check sizes are equal
+	if(genoQual1.size() != genoQual2.size())
+		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
+
 	//set to zero
 	for(int i=0; i<9; ++i)
 		phi[i] = 0.0;
 
 	//now loop over sites and add posterior probs
-	double sum1, sum2, tmp;
-	int i;
-	for(long s=0; s<numSites; ++s){
+	double sum1, sum2;
+	std::vector<int*>::iterator it1 = genoQual1.begin();
+	std::vector<int*>::iterator it2 = genoQual2.begin();
+	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		sum1 = 0.0; sum2 = 0.0;
-		for(i=0; i<10; ++i){
-			sum1 += phredToLik[genoQual1[s][i]];
-			sum2 += phredToLik[genoQual2[s][i]];
+		for(int i=0; i<10; ++i){
+			sum1 += phredToLik[(*it1)[i]];
+			sum2 += phredToLik[(*it2)[i]];
 		}
-		for(g1 = 0; g1<10; ++g1){
-			tmp = (phredToLik[genoQual1[s][g1]] / sum1);
-			for(g2 = 0; g2<10; ++g2){
-				phi[genoToPhiMap(g1,g2)] += tmp * (phredToLik[genoQual2[s][g2]] / sum2);
+		for(int g1 = 0; g1<10; ++g1){
+			double tmp = (phredToLik[(*it1)[g1]] / sum1);
+			for(int g2 = 0; g2<10; ++g2){
+				phi[genoToPhiMap(g1,g2)] += tmp * (phredToLik[(*it2)[g2]] / sum2);
 			}
 		}
 	}
 
 	//normalize
 	sum1 = 0.0;
-	for(i=0; i<9; ++i)
+	for(int i=0; i<9; ++i)
 		sum1 += phi[i];
-	for(i=0; i<9; ++i)
+	for(int i=0; i<9; ++i)
 		phi[i] /= sum1;
 }
 
@@ -435,22 +449,18 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[GT][AC] = tmp;
 }
 
-bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon){
+bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2, int maxNumIterations, double epsilon){
 	//prepare estimates
 	logfile->listFlush("Estimating initial base frequencies pi ...");
-	guessPi(genoQual1, genoQual2, numSites);
+	guessPi(genoQual1, genoQual2);
 	logfile->done();
 	logfile->conclude("Initial pi are A=" + toString(pi.freq[0]) + ", C=" + toString(pi.freq[1]) + ", G=" + toString(pi.freq[2]) + " and T=" + toString(pi.freq[3]) + ".");
 	logfile->listFlush("Estimating initial genotype classes phi ...");
-	guessPhi(genoQual1, genoQual2, numSites);
+	guessPhi(genoQual1, genoQual2);
 	logfile->done();
 	logfile->conclude("Initial phi are " + concatenateString(phi, 9, ", ") + ".");
 
 	//variables
-	long s;
-	double sum;
-	int i;
-	int b;
 	double old_LL, LL = 0.0;
 	double LL_diff;
 
@@ -467,19 +477,21 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		fill_P_g_given_phi_pi(phi, pi);
 
 		//set P_G to zero
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
 				P_G[g1][g2] = 0.0;
 			}
 		}
 
 		//loop across loci to calculate P_G
-		for(s=0; s<numSites; ++s){
+		std::vector<int*>::iterator it1 = genoQual1.begin();
+		std::vector<int*>::iterator it2 = genoQual2.begin();
+		for(; it1 != genoQual1.end(); ++it1, ++it2){
 			//calculate P_G per site
-			sum = 0.0;
-			for(g1 = 0; g1<10; ++g1){
-				for(g2 = 0; g2<10; ++g2){
-					P_G_one_site[g1][g2] = phredToLik[genoQual1[s][g1]] * phredToLik[genoQual2[s][g2]] * probGeno[g1][g2];
+			double sum = 0.0;
+			for(int g1 = 0; g1<10; ++g1){
+				for(int g2 = 0; g2<10; ++g2){
+					P_G_one_site[g1][g2] = phredToLik[(*it1)[g1]] * phredToLik[(*it2)[g2]] * probGeno[g1][g2];
 
 					//std::cout << g1 << "/" << g2 << ": " <<  phredToLik[genoQual1[s][g1]] << " * " << phredToLik[genoQual2[s][g2]] << " * " << probGeno[g1][g2] << " = " << P_G_one_site[g1][g2] << std::endl;
 
@@ -488,8 +500,8 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 			}
 
 			//now add to P_G
-			for(g1 = 0; g1<10; ++g1){
-				for(g2 = 0; g2<10; ++g2){
+			for(int g1 = 0; g1<10; ++g1){
+				for(int g2 = 0; g2<10; ++g2){
 					P_G[g1][g2] += P_G_one_site[g1][g2] / sum;
 				}
 			}
@@ -500,25 +512,25 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		}
 
 		//update phi
-		for(i=0; i<9; ++i)
+		for(int i=0; i<9; ++i)
 			phi[i] = 0.0;
 
-		sum = 0.0;
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
+		double sum = 0.0;
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
 				phi[genoToPhiMap(g1,g2)] += P_G[g1][g2];
 				sum += P_G[g1][g2];
 			}
 		}
 
-		for(i=0; i<9; ++i)
+		for(int i=0; i<9; ++i)
 			phi[i] /= sum;
 
 		//update pi
 		pi.clear();
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
-				for(b=0; b<4; ++b)
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
+				for(int b=0; b<4; ++b)
 					if(genoToBaseMap(g1, g2, b)) pi.add((Base) b, P_G[g1][g2]);
 			}
 		}
@@ -722,8 +734,10 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//initialize storage for two windows
 	//TODO: share across pairs? Do all pairs at once?
-	int** genoQual1 = new int*[windowLen];
-	int** genoQual2 = new int*[windowLen];
+
+	std::vector<int*> genoQual1, genoQual2;
+	genoQual1.reserve(windowLen);
+	genoQual2.reserve(windowLen);
 	for(int i=0; i<windowLen; ++i){
 		genoQual1[i] = new int[10];
 		genoQual2[i] = new int[10];
@@ -765,7 +779,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 				isGood2 = g2.readNextWindow(genoQual2, curChr, windowStart, windowEnd);
 				if(isGood2){
 					//estimate distance
-					EM_object.estimatePhiWithEM(genoQual1, genoQual2, windowLen, maxNumEMIterations, epsilonForEM);
+					EM_object.estimatePhiWithEM(genoQual1, genoQual2, maxNumEMIterations, epsilonForEM);
 
 					//write to file
 					writeDistanceEstimates(out, curChr, windowStart, windowEnd, numSitesWithData, EM_object);
@@ -781,7 +795,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 				for(int g=1; g<10; ++g){
 					std::cout << "," << genoQual1[i][g];
 				}
-				std::cout << "\tSample 2:" << genoQual2[i][0];
+				std::cout << "\tSample 2: " << genoQual2[i][0];
 				for(int g=1; g<10; ++g){
 					std::cout << "," << genoQual2[i][g];
 				}
@@ -799,6 +813,13 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		if(g1.eof() && g2.eof())
 			keepReading = false;
 	}
+
+	//clean up memory
+	for(int i=0; i<windowLen; ++i){
+		delete[] genoQual1[i];
+		delete[] genoQual2[i];
+	}
+
 	logfile->endIndent();
 
 }

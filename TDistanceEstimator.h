@@ -49,6 +49,7 @@ public:
 		for(int i=0; i<10; ++i){
 			for(int j=0; j<10; ++j)
 				delete[] genotypeCombinationHasBase[i][j];
+			delete[] genotypeCombinationHasBase[i];
 		}
 		delete[] genotypeCombinationHasBase;
 	};
@@ -76,12 +77,11 @@ private:
 	double** probGeno;
 	double** P_G;
 	double** P_G_one_site;
-	int g1, g2; //index variables
 	double* distanceWeight; //weight for each phi class towards the distance.
 
 	void calculateDistance();
-	void guessPi(int** genoQual1, int** genoQual2, long numSites);
-	void guessPhi(int** genoQual1, int** genoQual2, long numSites);
+	void guessPi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
+	void guessPhi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
 	void fill_K(TBaseFrequencies  & thesePi);
 	void fill_P_g_given_phi_pi(double* phi, TBaseFrequencies & pi);
 
@@ -95,7 +95,7 @@ public:
 	~TEMforDistanceEstimation(){
 		delete[] phi;
 		delete[] K;
-		for(g1=0; g1<10; ++g1){
+		for(int g1=0; g1<10; ++g1){
 			delete[] probGeno[g1];
 			delete[] P_G[g1];
 			delete[] P_G_one_site[g1];
@@ -106,7 +106,7 @@ public:
 		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon);
+	bool estimatePhiWithEM(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2, int maxNumIterations, double epsilon);
 };
 
 //--------------------------------------------
