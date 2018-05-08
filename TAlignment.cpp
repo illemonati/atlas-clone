@@ -256,11 +256,11 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-
-					//std::cout << "d " << d << " k " << k << " bamAlignment.Qualities[k] " << bamAlignment.Qualities[k] << " qualityOriginal[d] " << qualityOriginal[d] << std::endl;
-
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					aligned[d] = true;
+					if(baseAsChar[d] == 'N')
+						aligned[d] = false;
+					else
+						aligned[d] = true;
 					alignedPos[d] = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
@@ -336,18 +336,14 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 void TAlignment::fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){
 		//reverse
-		for(int d=0; d<(length-1); ++d){
-//			std::cout << "getting Context for " << base[d-1] << ", " << bases[d].base << std::flush;
-			//std::cout << " -> " << genoMap.contextMap[base[d-1]][bases[d].base] << std::endl;
+		for(int d=0; d<(length-1); ++d)
 			bases[d].context = genoMap.contextMap[bases[d+1].base][bases[d].base];
-		}
 		bases[length-1].context = genoMap.contextMap[N][bases[length-1].base];
 	} else {
 		//forward
 		bases[0].context = genoMap.contextMap[N][bases[0].base];
-		for(int d=1; d<length; ++d){
+		for(int d=1; d<length; ++d)
 			bases[d].context = genoMap.contextMap[bases[d-1].base][bases[d].base];
-		}
 	}
 };
 

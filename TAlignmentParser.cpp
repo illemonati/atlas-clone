@@ -902,8 +902,10 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 	if(recalObject->recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
-			alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-			alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+			if(alignment.aligned[d]){
+				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
+				alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+			}
 		}
 
 		alignment.quality = alignment.qualityRecalibrated;

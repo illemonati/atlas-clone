@@ -51,6 +51,7 @@ TWindow::~TWindow(){
 TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
 	//save used alignment on proper stack
 	usedAlignments.push_back(usedAlignment);
+	//std::cout << "sizeof(*usedAlignment) "<< sizeof(*usedAlignment) << std::endl;
 
 	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
@@ -126,6 +127,7 @@ void TWindow::review(){
 }
 
 void TWindow::cleanUpUsedAlignments(){
+	std::cout << "sum of alignments before clean up " << usedAlignments.size() + emptyAlignments.size() << std::endl;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start && (*alignmentIt)->chrNumber == chrNumber)){
@@ -141,6 +143,8 @@ void TWindow::cleanUpUsedAlignments(){
 			break;
 		}
 	}
+	std::cout << "sum of alignments after clean up " << usedAlignments.size() + emptyAlignments.size() << std::endl;
+
 }
 
 void TWindow::printStacks(){

@@ -256,13 +256,8 @@ void TRecalibrationEMModel::printJacobianToStdOut(){
 
 double TRecalibrationEMModel::getErrorRate(TBase & base){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
-	// q[0] is transformed quality
 	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
-	//	std::cout << "after log transform " << originalErrorRate << std::endl;
 	double eta = betas[base.readGroup][0] * originalErrorRate;
-
-	//	std::cout << "after x2 " << eta << std::endl;
-
 
 	//q[1] is square of transformed quality
 	eta += betas[base.readGroup][1] * originalErrorRate * originalErrorRate;
@@ -273,56 +268,19 @@ double TRecalibrationEMModel::getErrorRate(TBase & base){
 	//q[3] is square of position
 	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
 
+	if(base.context > 20) std::cout << "context is " << base.context << std::endl;
 	//q[4] until q[23] are indicators for the context. Just pick the matching one!
 	eta += betas[base.readGroup][base.context + 4];
 
-
 	//now calculate epsilon from eta
 	if(eta > 22.2) return 0.9999999999;
 	if(eta < -23.02685) return 0.0000000001;
 
 	eta = exp(eta);
-	//	std::cout << "exp " << eta << std::endl;
-	//	std::cout << "exp divided " << eta / (1.0 + eta) << std::endl;
 
 	return eta / (1.0 + eta);
 }
-/*
-double TRecalibrationEMModel::getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context){
-	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
-	// q[0] is transformed quality
-//	std::cout << "######## originalErrorRate " << originalErrorRate << std::endl;
-	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
-	//	std::cout << "after log transform " << originalErrorRate << std::endl;
-	double eta = betas[rg][0] * originalErrorRate;
 
-	//	std::cout << "after x2 " << eta << std::endl;
-
-
-	//q[1] is square of transformed quality
-	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
-
-	//q[2] is position
-	eta += betas[rg][2] * (double) posInRead;
-
-	//q[3] is square of position
-	eta += betas[rg][3] * (double) (posInRead * posInRead);
-
-	//q[4] until q[23] are indicators for the context. Just pick the matching one!
-	eta += betas[rg][context + 4];
-
-
-	//now calculate epsilon from eta
-	if(eta > 22.2) return 0.9999999999;
-	if(eta < -23.02685) return 0.0000000001;
-
-	eta = exp(eta);
-	//	std::cout << "exp " << eta << std::endl;
-	//	std::cout << "exp divided " << eta / (1.0 + eta) << std::endl;
-
-	return eta / (1.0 + eta);
-}
-*/
 //---------------------------------------------------------------
 //TRecalibrationEMModelNoContext
 //---------------------------------------------------------------
