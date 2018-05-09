@@ -551,7 +551,7 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
-void TGenome::indexBamFile(){
+void TGenome::indexBamFile(std::string & filename){
 	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
 	BamTools::BamReader reader;
 	if(!reader.Open(filename))
@@ -2088,7 +2088,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	bamWriter.Close();
 
 	//now generate bam index
-	indexBamFile();
+	indexBamFile(filename);
 
 	//report
 	reportProgressParsingBamFile(counter, start);

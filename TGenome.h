@@ -83,7 +83,7 @@ private:
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
-	void indexBamFile();
+	void indexBamFile(std::string & filename);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
