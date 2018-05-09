@@ -904,11 +904,11 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 		for(int d=0; d<alignment.length; ++d){
 			if(alignment.aligned[d]){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-				alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+//				alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
 			}
 		}
 
-		alignment.quality = alignment.qualityRecalibrated;
+//		alignment.quality = alignment.qualityRecalibrated;
 		alignment.changed = true;
 	} else alignment.changed = false;
 	alignment.recalibrated = true;
@@ -935,11 +935,11 @@ void TAlignmentParser::recalibrateWithPMD(TAlignment & alignment){
 				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		}
 
-		alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
+//		alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
 	}
 
 	//set pointer to recalibrated scores
-	alignment.quality = alignment.qualityRecalibrated;
+//	alignment.quality = alignment.qualityRecalibrated;
 	alignment.recalibrated = true;
 	alignment.changed = true;
 };

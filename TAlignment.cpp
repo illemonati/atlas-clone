@@ -29,10 +29,8 @@ TAlignment::TAlignment(){
 	bases = NULL;
 	aligned = NULL;
 	alignedPos = NULL;
-	qualityRecalibrated = NULL;
 	quality = NULL;
 	qualityOriginal = NULL;
-	baseAsChar = NULL;
 	softClippedEntry = 0;
 	softClippedLength = NULL;
 	softClippedBase = NULL;
@@ -78,9 +76,7 @@ void TAlignment::initStorage(){
 	//other
 	aligned = new bool[maxSize];
 	alignedPos = new int[maxSize];
-	qualityRecalibrated = new int[maxSize];
 	qualityOriginal = new int[maxSize];
-	baseAsChar = new char[maxSize];
 
 	//soft clipped data
 	softClippedLength = new int[2];
@@ -101,9 +97,7 @@ void TAlignment::freeStorage(){
 
 		delete[] aligned;
 		delete[] alignedPos;
-		delete[] qualityRecalibrated;
 		delete[] qualityOriginal;
-		delete[] baseAsChar;
 
 		delete[] softClippedLength;
 		delete[] softClippedBase[0];
@@ -254,10 +248,9 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					if(baseAsChar[d] == 'N')
+					if(bases[d].base == N)
 						aligned[d] = false;
 					else
 						aligned[d] = true;
@@ -275,7 +268,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					++softClippedLength[softClippedEntry];
 					//need to initialize quality for quality filter and bases for context
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = -1;
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
@@ -287,7 +279,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
@@ -307,7 +298,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					baseAsChar[d] = bamAlignment.QueryBases[k];
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;

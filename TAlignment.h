@@ -69,9 +69,9 @@ private:
 	char** softClippedBase;
 	char** softClippedQuality;
 	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
-	int* qualityRecalibrated;
+//	int* qualityRecalibrated;
 	int* quality; //pointer to qualities to be used
-	char* baseAsChar; //TODO: to be removed, if possible
+//	char* baseAsChar; //TODO: to be removed, if possible
 
 
 

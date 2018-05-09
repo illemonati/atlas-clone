@@ -11,11 +11,6 @@
 //-------------------------------------------------------
 //TBase
 //-------------------------------------------------------
-/*
-void TBase::fillEmissionProbabilities(TPMD & pmdObject){
-	fillEmissionProbabilitiesCore(pmdObject, errorRate);
-}
-*/
 
 void TBase::fillEmissionProbabilitiesCore(double thisErrorRate){
 	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
@@ -68,58 +63,5 @@ void TBase::fillEmissionProbabilitiesCore(double thisErrorRate){
 		emissionProbabilities.set(GT, 0.5 - errorOneThird);
 	}
 };
-
-/*void TBaseDiploidC::fillEmissionProbabilitiesCore(double thisErrorRate){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = thisErrorRate / 3.0;
-	double oneMinusError = 1.0 - thisErrorRate;
-
-	emissionProbabilities.set(AA , errorOneThird);
-	emissionProbabilities.set(CC , (1.0 - PMD_CT) * oneMinusError + PMD_CT * errorOneThird);
-	emissionProbabilities.set(GG , errorOneThird);
-	emissionProbabilities.set(TT , errorOneThird);
-	emissionProbabilities.set(AC , ((1.0 - PMD_CT) * oneMinusError + (1.0 + PMD_CT) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AG , errorOneThird);
-	emissionProbabilities.set(AT , errorOneThird);
-	emissionProbabilities.set(CG , emissionProbabilities.get(AC));
-	emissionProbabilities.set(CT , emissionProbabilities.get(AC));
-	emissionProbabilities.set(GT , errorOneThird);
-};
-
-void TBaseDiploidG::fillEmissionProbabilitiesCore(double thisErrorRate){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = thisErrorRate / 3.0;
-	double oneMinusError = 1.0 - thisErrorRate;
-
-	emissionProbabilities.set(AA, errorOneThird);
-	emissionProbabilities.set(CC, errorOneThird);
-	emissionProbabilities.set(GG, (1.0 - PMD_GA) * oneMinusError + PMD_GA * errorOneThird);
-	emissionProbabilities.set(TT, errorOneThird);
-	emissionProbabilities.set(AC, errorOneThird);
-	emissionProbabilities.set(AG, ((1.0 - PMD_GA) * oneMinusError + (1.0 + PMD_GA) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AT, errorOneThird);
-	emissionProbabilities.set(CG, emissionProbabilities.get(AG));
-	emissionProbabilities.set(CT, errorOneThird);
-	emissionProbabilities.set(GT, emissionProbabilities.get(AG));
-
-};
-
-void TBaseDiploidT::fillEmissionProbabilitiesCore(double thisErrorRate){
-	//pre-calculate all emission probabilities given the error rate and the distance from either end of the read
-	double errorOneThird = thisErrorRate / 3.0;
-	double oneMinusError = 1.0 - thisErrorRate;
-
-	emissionProbabilities.set(AA, errorOneThird);
-	emissionProbabilities.set(CC, (1.0 - PMD_CT) * errorOneThird + PMD_CT * oneMinusError);
-	emissionProbabilities.set(GG, errorOneThird);
-	emissionProbabilities.set(TT, oneMinusError);
-	emissionProbabilities.set(AC, (PMD_CT * oneMinusError + (2.0 - PMD_CT) * errorOneThird) / 2.0);
-	emissionProbabilities.set(AG, errorOneThird);
-	emissionProbabilities.set(AT, 0.5 - errorOneThird);
-	emissionProbabilities.set(CG, emissionProbabilities.get(AC));
-	emissionProbabilities.set(CT, ((1.0 + PMD_CT) * oneMinusError + (1.0 - PMD_CT) * errorOneThird) / 2.0);
-	emissionProbabilities.set(GT, 0.5 - errorOneThird);
-};*/
-
 
 
