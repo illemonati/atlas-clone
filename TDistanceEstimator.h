@@ -119,6 +119,7 @@ private:
 	double epsilonForEM;
 
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
 
 	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd);

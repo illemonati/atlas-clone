@@ -104,6 +104,7 @@ public:
 class TGlfReader:public TGlfHandle{
 private:
 	bool reachedEndOfChr;
+	uint32_t HeaderLen;
 	uint32_t offset;
 	uint32_t depth_mask;
 	uint32_t tmpInt32;
@@ -140,7 +141,6 @@ public:
 	int depth;
 	int RMS_mappingQual;
 	int genotypeQualities[10];
-	uint32_t HeaderLen;
 
 	TGlfReader(){
 		init();
@@ -163,8 +163,8 @@ public:
 	void rewind();
 	bool readNext();
 	bool jumpToEndOfChr();
-	bool readNextWindow(int** genoLikelihoods, std::string chr, long start, long end);
-
+	bool readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end);
+	void fillGenotypeQualities(int* destination);
 
 	//printing
 	void printChr();

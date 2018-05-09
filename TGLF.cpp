@@ -124,6 +124,7 @@ bool TGlfReader::readChr(){
 	_chrLength = tmpInt32;
 	position = 0;
 
+	delete[] tmp;
 	return true;
 };
 
@@ -230,7 +231,7 @@ bool TGlfReader::jumpToEndOfChr(){
 	return true;
 };
 
-bool TGlfReader::readNextWindow(int** genoLikelihoods, std::string chr, long start, long end){
+bool TGlfReader::readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end){
 	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
 	if(chromosomeParsed(chr)) return false;
@@ -289,7 +290,12 @@ bool TGlfReader::readNextWindow(int** genoLikelihoods, std::string chr, long sta
 	}
 
 	return true;
-}
+};
+
+void TGlfReader::fillGenotypeQualities(int* destination){
+	//assumes pointer points to
+	memcpy(destination, genotypeQualities, 10*sizeof(int));
+};
 
 //printing
 void TGlfReader::printChr(){

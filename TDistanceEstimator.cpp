@@ -203,15 +203,10 @@ void TEMforDistanceEstimation::guessPi(std::vector<int*> & genoQual1, std::vecto
 	pi.clear();
 	double sum1, sum2;
 
-	std::cout << "SIZE = " << genoQual1.size() << std::endl;
-
 	//now loop over sites
 	std::vector<int*>::iterator it1 = genoQual1.begin();
 	std::vector<int*>::iterator it2 = genoQual2.begin();
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
-
-		std::cout << "DATA = " << (*it1)[0] << "|" << (*it1)[1] << "|" << (*it1)[2] << std::endl;
-
 		sum1 = 0.0; sum2 = 0.0;
 		for(int i=0; i<10; ++i){
 			sum1 += phredToLik[(*it1)[i]];
@@ -640,8 +635,8 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	delete[] glfs;
 }
 
-/*
-void TDistanceEstimator::estimateDistanceInWindows(TGlfReader & g1, TGlfReader & g2, long windowLen){
+
+void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen){
 	//initialize variables
 	std::string curChr = "";
 	long lastPosOfCurWindow = windowLen;
@@ -650,61 +645,61 @@ void TDistanceEstimator::estimateDistanceInWindows(TGlfReader & g1, TGlfReader &
 	bool isGood2 = true;
 
 	//initialize storage for two windows
-
+	std::vector<int*> genoQual1, genoQual2;
 
 	//read first positions
 	if(!g1.readNext()) throw "Failed to read first position from GLF '" + g1.name() + "'!";
 	if(!g2.readNext()) throw "Failed to read first position from GLF '" + g2.name() + "'!";
 
-	//parse GLFs in windows
-	while(keepReading){
-
-		//if on new chromosome, window is done
-		if(g1.chr != curChr){
-			//something happens
-		}
-
-		if(isGood1 && isGood2){
-			//keep adding to window
-			if(g2.position == g1.position){
-				//add data
-
-				//advance both
-				isGood1 = g1.readNext();
-				isGood2 = g2.readNext();
-			} else if(g2.position < g1.position){
-				//add data
-
-				//advance g2
-				isGood2 = g2.readNext();
-			} else {
-				//add data
-
-				//advance g1
+	//parse GLFs. Only keep sites where both individuals have data!
+	//if not both are good at least one file reach end. So we are done!
+	while(isGood1 && isGood2){
+		//if on new chromosome, make sure both files are moved
+		if(g1.chr() != curChr || g2.chr() != curChr){
+			if(g2.chr() == curChr){
+				//g1 is still on old chromosome -> move to new chromosome
+				g1.jumpToEndOfChr();
 				isGood1 = g1.readNext();
 			}
-		} else if(isGood1 && !isGood2){
-			//think about case in which one  file has reached end
-		} else if(!isGood1 && isGood2){
+			if(g2.chr() == curChr){
+				//g2 is still on old chromosome -> move to new chromosome
+				g2.jumpToEndOfChr();
+				isGood2 = g2.readNext();
+			}
 
+			//make sure chromosomes match!
+			if(g1.chr() == g2.chr())
+				throw "Chromosomes do not match in files '" + g1.name() + "' and '" + g2.name() + "'!";
+
+			//set curChr
+			curChr = g1.chr();
+		}
+
+		//keep adding to window
+		if(g2.position == g1.position){
+			//add data
+			genoQual1.push_back(new int[10]);
+			genoQual2.push_back(new int[10]);
+			g1.fillGenotypeQualities(*genoQual1.rbegin());
+			g2.fillGenotypeQualities(*genoQual2.rbegin());
+
+			//advance both
+			isGood1 = g1.readNext();
+			isGood2 = g2.readNext();
+		} else if(g2.position < g1.position){
+			//advance g2
+			isGood2 = g2.readNext();
 		} else {
-			//reached end!
-
+			//advance g1
+			isGood1 = g1.readNext();
 		}
-
-		//is window done?
-		//TODO: needs to also be called after a chromosom jump!!
-		if(g1.position > lastPosOfCurWindow && g2.position > lastPosOfCurWindow){
-			//do calculations for this window
-		}
-
-
-
 	}
 
-	//do calculations for last window
+	//now estimate
+	std::cout << "FOUND " << genoQual1.size() << " common sites!" << std::endl;
+
 }
-*/
+
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t" << numsitesWithData;
@@ -734,10 +729,9 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//initialize storage for two windows
 	//TODO: share across pairs? Do all pairs at once?
-
 	std::vector<int*> genoQual1, genoQual2;
-	genoQual1.reserve(windowLen);
-	genoQual2.reserve(windowLen);
+	genoQual1.resize(windowLen);
+	genoQual2.resize(windowLen);
 	for(int i=0; i<windowLen; ++i){
 		genoQual1[i] = new int[10];
 		genoQual2[i] = new int[10];
