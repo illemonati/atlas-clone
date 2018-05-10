@@ -60,35 +60,28 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 };
 
 void TSite::calcEmissionProbabilities(double* vec){
-	//assumes that emission probabilities were calculated for TBase!
-
 	//do in log if coverage is high
 	if(bases.size() < 50){
-		for(int i=0; i<numGenotypes; ++i){
+		//initialize
+		for(int i=0; i<numGenotypes; ++i)
 			vec[i] = 1.0;
-		}
-		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
-			for(int i=0; i<numGenotypes; ++i){
-				vec[i] *= (*baseIterator)->getEmissionProbability(i);
-			}
-		}
+		//multiply over emission probabilities of bases
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
+			(*baseIterator)->addToEmissionProbProduct(vec);
+
 	} else {
-		for(int i=0; i<numGenotypes; ++i){
+		//initialize
+		for(int i=0; i<numGenotypes; ++i)
 			vec[i] = 0.0;
-		}
-		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
-			for(int i=0; i<numGenotypes; ++i){
-				vec[i] += log((*baseIterator)->getEmissionProbability(i));
-			}
-		}
+		//sum over log(emission probability) of bases
+		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
+			(*baseIterator)->addToEmissionProbSum(vec);
 		//now standardize before delog
 		double max = vec[0];
-		for(int i=1; i<numGenotypes; ++i){
+		for(int i=1; i<numGenotypes; ++i)
 			if(vec[i] > max) max = vec[i];
-		}
-		for(int i=0; i<numGenotypes; ++i){
+		for(int i=0; i<numGenotypes; ++i)
 			vec[i] = exp(vec[i] - max);
-		}
 	}
 }
 
@@ -99,9 +92,8 @@ void TSite::calcEmissionProbabilities(){
 std::string TSite::getBases(){
 	if(!hasData) return "-";
 	std::string b = "";
-	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
 		b += getBaseAsChar((*baseIterator)->getBaseAsEnum());
-	}
 	return b;
 }
 

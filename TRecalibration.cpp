@@ -22,7 +22,7 @@ int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGrou
 	}
 	return -1;
 }
-
+/*
 void TRecalibration::calcEmissionProbabilities(TSite & site){
 	//first calculate for each base
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
@@ -32,6 +32,7 @@ void TRecalibration::calcEmissionProbabilities(TSite & site){
 	//then for the site
 	site.calcEmissionProbabilities();
 };
+*/
 
 double TRecalibration::getErrorRate(TBase & base){
 	return base.errorRate;

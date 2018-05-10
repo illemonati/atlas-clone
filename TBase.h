@@ -46,7 +46,7 @@ public:
 	double PMD_CT, PMD_GA;
 	int readGroup;
 	BaseContext context;
-	TEmissionProbabilities emissionProbabilities;
+//	TEmissionProbabilities emissionProbabilities;
 
 	TBase(){
 		base = N;
@@ -73,7 +73,10 @@ public:
 	};
 
 	~TBase(){};
+	void addToEmissionProbProduct(double genotypeLikelihoods[10]);
+	void addToEmissionProbSum(double genotypeLikelihoods[10]);
 
+/*
 	void fillEmissionProbabilitiesCore(double thisErrorRate);
 
 	double getEmissionProbability(Genotype genotype){
@@ -86,6 +89,8 @@ public:
 		emissionProbabilities.print();
 	}
 //	virtual char getBaseAsChar(){ return '?'; };
+
+ */
 	Base getBaseAsEnum(){ return base;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(base, weight); };
 
