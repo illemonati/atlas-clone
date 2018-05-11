@@ -86,8 +86,8 @@ private:
 	double* distanceWeight; //weight for each phi class towards the distance.
 
 	void calculateDistance();
-	void guessPi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
-	void guessPhi(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
+	void guessPi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
+	void guessPhi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 	void fill_K(TBaseFrequencies  & thesePi);
 	void fill_P_g_given_phi_pi(double* phi, TBaseFrequencies & pi);
 
@@ -112,7 +112,7 @@ public:
 		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
+	bool estimatePhiWithEM(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 };
 
 
@@ -140,7 +140,7 @@ private:
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
 	bool moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2);
 	bool advance(TGlfReader & g1, TGlfReader & g2);
-	void readCommonSites(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2, TGlfReader & g1, TGlfReader & g2);
+	void readCommonSites(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2, TGlfReader & g1, TGlfReader & g2);
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, TGlfReader & g1, TGlfReader & g2, gz::ogzstream & out);
 
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, long windowLen);

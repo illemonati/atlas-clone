@@ -102,7 +102,6 @@ void TGlfReader::init(){
 	_lenRead = 0;
 	_eof = true;
 
-	genotypeQualitiesMissingData = new int[10];
 	for(int i=0; i<10; ++i)
 		genotypeQualitiesMissingData[i] = 0;
 };
@@ -165,11 +164,7 @@ void TGlfReader::readSNPRecord(){
 	RMS_mappingQual = (int) tmpInt8;
 
 	//genotype likelihoods
-	read(tmpInt8_10, 10*sizeof(uint8_t));
-
-	for(int i=0; i<10; ++i){
-		genotypeQualities[i] = (int) tmpInt8_10[i];
-	}
+	read(genotypeQualities, 10*sizeof(uint8_t));
 };
 
 
@@ -256,7 +251,7 @@ bool TGlfReader::jumpToNextChr(){
 	return readNext();
 };
 
-bool TGlfReader::readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end){
+bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::string chr, long start, long end){
 	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
 	if(chromosomeParsed(chr)) return false;
@@ -317,9 +312,9 @@ bool TGlfReader::readNextWindow(std::vector<int*> & genoLikelihoods, std::string
 	return true;
 };
 
-void TGlfReader::fillGenotypeQualities(int* destination){
+void TGlfReader::fillGenotypeQualities(uint8_t* destination){
 	//assumes pointer points to
-	memcpy(destination, genotypeQualities, 10*sizeof(int));
+	memcpy(destination, genotypeQualities, 10*sizeof(uint8_t));
 };
 
 //printing

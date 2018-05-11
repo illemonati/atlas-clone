@@ -115,13 +115,12 @@ private:
 	uint32_t depth_mask;
 	uint32_t tmpInt32;
 	uint8_t tmpInt8;
-	uint8_t tmpInt8_10[10];
 	int SNPRecordSize;
 	uint8_t tmpRecordStorage[19];
 	long _chrLength;
 	int _lenRead;
 	bool _eof;
-	int* genotypeQualitiesMissingData;
+	uint8_t genotypeQualitiesMissingData[10];
 	std::vector<std::string> chromosomesAlreadyParsed;
 
 	void init();
@@ -147,7 +146,7 @@ public:
 	int maxLL;
 	int depth;
 	int RMS_mappingQual;
-	int genotypeQualities[10];
+	uint8_t genotypeQualities[10];
 
 	TGlfReader(){
 		init();
@@ -158,7 +157,7 @@ public:
 	};
 	~TGlfReader(){
 		close();
-		delete[] genotypeQualitiesMissingData;
+		//delete[] genotypeQualitiesMissingData;
 	};
 
 	//get details
@@ -172,8 +171,8 @@ public:
 	bool readNext();
 	bool jumpToEndOfChr();
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end);
-	void fillGenotypeQualities(int* destination);
+	bool readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::string chr, long start, long end);
+	void fillGenotypeQualities(uint8_t* destination);
 
 	//printing
 	void printChr();
