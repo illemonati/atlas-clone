@@ -35,11 +35,11 @@ public:
 			runSimulations(*parameters, logfile);
 		} else if(task == "printGLF"){
 			logfile->startIndent("Printing a GLF file to screen (task=printGLF):");
-			TDistanceEstimator distEst(logfile);
+			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.printGLF(*parameters);
 		} else if(task == "estimateDist"){
 			logfile->startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
-			TDistanceEstimator distEst(logfile);
+			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.estimateDistances(*parameters);
 		} else {
 			//now all task that DO require TGenome

@@ -153,8 +153,15 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 	K = new double[9];
 
 	//other variables
-	g1 = 0; g2 = 0;
 	distance = -1.0;
+
+	//read EM parameters
+	logfile->startIndent("Parameters of EM algorithm:");
+	maxNumEMIterations = params.getParameterIntWithDefault("iterations", 100);
+	logfile->list("Will run up to " + toString(maxNumEMIterations) + " iterations.");
+	epsilonForEM = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	logfile->list("Will run EM until deltaLL < " + toString(epsilonForEM) + ".");
+	logfile->endIndent();
 
 	//set how to calculate distances
 	distanceWeight = new double[9];
@@ -183,6 +190,17 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 			distanceWeight[6] = 1.0; //case aa/bc
 			distanceWeight[7] = 1.0; //case ab/cc
 			distanceWeight[8] = 1.0; //case ab/cd
+		} else if(distType == "squaredDiff"){
+			//squared difference between genotypes
+			distanceWeight[0] = 0.0; //case aa/aa
+			distanceWeight[1] = 1.0; //case ab/aa
+			distanceWeight[2] = 1.0; //case aa/ab
+			distanceWeight[3] = 4.0; //case aa/bb
+			distanceWeight[4] = 0.0; //case ab/ab
+			distanceWeight[5] = 1.0; //case ab/ac
+			distanceWeight[6] = 4.0; //case aa/bc
+			distanceWeight[7] = 4.0; //case ab/cc
+			distanceWeight[8] = 4.0; //case ab/cd
 		} else
 			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
 	}
@@ -195,24 +213,29 @@ void TEMforDistanceEstimation::calculateDistance(){
 		distance += phi[i] * distanceWeight[i];
 }
 
-void TEMforDistanceEstimation::guessPi(int** genoQual1, int** genoQual2, long numSites){
+void TEMforDistanceEstimation::guessPi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2){
+	//check sizes are equal
+	if(genoQual1.size() != genoQual2.size())
+		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
+
 	//just estimate pi as average posterior probability
 	pi.clear();
-	double sum1, sum2, tmp;
-	int i;
+	double sum1, sum2;
 
 	//now loop over sites
-	for(long s=0; s<numSites; ++s){
+	std::vector<uint8_t*>::iterator it1 = genoQual1.begin();
+	std::vector<uint8_t*>::iterator it2 = genoQual2.begin();
+	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		sum1 = 0.0; sum2 = 0.0;
-		for(i=0; i<10; ++i){
-			sum1 += phredToLik[genoQual1[s][i]];
-			sum2 += phredToLik[genoQual2[s][i]];
+		for(int i=0; i<10; ++i){
+			sum1 += phredToLik[(*it1)[i]];
+			sum2 += phredToLik[(*it2)[i]];
 		}
-		for(i=0; i<10; ++i){
-			tmp = phredToLik[genoQual1[s][i]] / sum1;
+		for(int i=0; i<10; ++i){
+			double tmp = phredToLik[(*it1)[i]] / sum1;
 			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
 			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
-			tmp = phredToLik[genoQual2[s][i]] / sum2;
+			tmp = phredToLik[(*it2)[i]] / sum2;
 			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
 			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
 		}
@@ -222,33 +245,38 @@ void TEMforDistanceEstimation::guessPi(int** genoQual1, int** genoQual2, long nu
 	pi.normalize();
 }
 
-void TEMforDistanceEstimation::guessPhi(int** genoQual1, int** genoQual2, long numSites){
+void TEMforDistanceEstimation::guessPhi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2){
+	//check sizes are equal
+	if(genoQual1.size() != genoQual2.size())
+		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
+
 	//set to zero
 	for(int i=0; i<9; ++i)
 		phi[i] = 0.0;
 
 	//now loop over sites and add posterior probs
-	double sum1, sum2, tmp;
-	int i;
-	for(long s=0; s<numSites; ++s){
+	double sum1, sum2;
+	std::vector<uint8_t*>::iterator it1 = genoQual1.begin();
+	std::vector<uint8_t*>::iterator it2 = genoQual2.begin();
+	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		sum1 = 0.0; sum2 = 0.0;
-		for(i=0; i<10; ++i){
-			sum1 += phredToLik[genoQual1[s][i]];
-			sum2 += phredToLik[genoQual2[s][i]];
+		for(int i=0; i<10; ++i){
+			sum1 += phredToLik[(*it1)[i]];
+			sum2 += phredToLik[(*it2)[i]];
 		}
-		for(g1 = 0; g1<10; ++g1){
-			tmp = (phredToLik[genoQual1[s][g1]] / sum1);
-			for(g2 = 0; g2<10; ++g2){
-				phi[genoToPhiMap(g1,g2)] += tmp * (phredToLik[genoQual2[s][g2]] / sum2);
+		for(int g1 = 0; g1<10; ++g1){
+			double tmp = (phredToLik[(*it1)[g1]] / sum1);
+			for(int g2 = 0; g2<10; ++g2){
+				phi[genoToPhiMap(g1,g2)] += tmp * (phredToLik[(*it2)[g2]] / sum2);
 			}
 		}
 	}
 
 	//normalize
 	sum1 = 0.0;
-	for(i=0; i<9; ++i)
+	for(int i=0; i<9; ++i)
 		sum1 += phi[i];
-	for(i=0; i<9; ++i)
+	for(int i=0; i<9; ++i)
 		phi[i] /= sum1;
 }
 
@@ -435,28 +463,24 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[GT][AC] = tmp;
 }
 
-bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon){
+bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2){
 	//prepare estimates
 	logfile->listFlush("Estimating initial base frequencies pi ...");
-	guessPi(genoQual1, genoQual2, numSites);
+	guessPi(genoQual1, genoQual2);
 	logfile->done();
 	logfile->conclude("Initial pi are A=" + toString(pi.freq[0]) + ", C=" + toString(pi.freq[1]) + ", G=" + toString(pi.freq[2]) + " and T=" + toString(pi.freq[3]) + ".");
 	logfile->listFlush("Estimating initial genotype classes phi ...");
-	guessPhi(genoQual1, genoQual2, numSites);
+	guessPhi(genoQual1, genoQual2);
 	logfile->done();
 	logfile->conclude("Initial phi are " + concatenateString(phi, 9, ", ") + ".");
 
 	//variables
-	long s;
-	double sum;
-	int i;
-	int b;
 	double old_LL, LL = 0.0;
 	double LL_diff;
 
 	//now run EM
 	logfile->startIndent("Estimating phi using an EM algorithm:");
-	for(int iter=0; iter<maxNumIterations; ++iter){
+	for(int iter=0; iter<maxNumEMIterations; ++iter){
 		logfile->listFlush("Running EM iteration " + toString(iter+1) + " ...");
 		//save old LL
 		old_LL = LL;
@@ -467,19 +491,21 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		fill_P_g_given_phi_pi(phi, pi);
 
 		//set P_G to zero
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
 				P_G[g1][g2] = 0.0;
 			}
 		}
 
 		//loop across loci to calculate P_G
-		for(s=0; s<numSites; ++s){
+		std::vector<uint8_t*>::iterator it1 = genoQual1.begin();
+		std::vector<uint8_t*>::iterator it2 = genoQual2.begin();
+		for(; it1 != genoQual1.end(); ++it1, ++it2){
 			//calculate P_G per site
-			sum = 0.0;
-			for(g1 = 0; g1<10; ++g1){
-				for(g2 = 0; g2<10; ++g2){
-					P_G_one_site[g1][g2] = phredToLik[genoQual1[s][g1]] * phredToLik[genoQual2[s][g2]] * probGeno[g1][g2];
+			double sum = 0.0;
+			for(int g1 = 0; g1<10; ++g1){
+				for(int g2 = 0; g2<10; ++g2){
+					P_G_one_site[g1][g2] = phredToLik[(*it1)[g1]] * phredToLik[(*it2)[g2]] * probGeno[g1][g2];
 
 					//std::cout << g1 << "/" << g2 << ": " <<  phredToLik[genoQual1[s][g1]] << " * " << phredToLik[genoQual2[s][g2]] << " * " << probGeno[g1][g2] << " = " << P_G_one_site[g1][g2] << std::endl;
 
@@ -488,8 +514,8 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 			}
 
 			//now add to P_G
-			for(g1 = 0; g1<10; ++g1){
-				for(g2 = 0; g2<10; ++g2){
+			for(int g1 = 0; g1<10; ++g1){
+				for(int g2 = 0; g2<10; ++g2){
 					P_G[g1][g2] += P_G_one_site[g1][g2] / sum;
 				}
 			}
@@ -500,25 +526,25 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		}
 
 		//update phi
-		for(i=0; i<9; ++i)
+		for(int i=0; i<9; ++i)
 			phi[i] = 0.0;
 
-		sum = 0.0;
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
+		double sum = 0.0;
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
 				phi[genoToPhiMap(g1,g2)] += P_G[g1][g2];
 				sum += P_G[g1][g2];
 			}
 		}
 
-		for(i=0; i<9; ++i)
+		for(int i=0; i<9; ++i)
 			phi[i] /= sum;
 
 		//update pi
 		pi.clear();
-		for(g1 = 0; g1<10; ++g1){
-			for(g2 = 0; g2<10; ++g2){
-				for(b=0; b<4; ++b)
+		for(int g1 = 0; g1<10; ++g1){
+			for(int g2 = 0; g2<10; ++g2){
+				for(int b=0; b<4; ++b)
 					if(genoToBaseMap(g1, g2, b)) pi.add((Base) b, P_G[g1][g2]);
 			}
 		}
@@ -530,8 +556,8 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		if(iter > 0 ){
 			LL_diff = LL - old_LL;
 			logfile->conclude("LL = " + toString(LL) + " (deltaLL = " + toString(LL_diff) + ").");
-			if(LL_diff < epsilon){
-				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilon));
+			if(LL_diff < epsilonForEM){
+				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilonForEM));
 				calculateDistance();
 				logfile->conclude("Resulting distance is " + toString(distance));
 				logfile->endIndent();
@@ -540,7 +566,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 		} else
 			logfile->conclude("LL = " + toString(LL) + ".");
 	}
-	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumIterations) + ") without converging!");
+	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumEMIterations) + ") without converging!");
 	calculateDistance();
 	logfile->conclude("Resulting distance is " + toString(distance));
 	logfile->endIndent();
@@ -550,14 +576,20 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(int** genoQual1, int** genoQual
 //----------------------------------------------------
 //TDistanceEstimator
 //----------------------------------------------------
-TDistanceEstimator::TDistanceEstimator(TLog* Logfile){
+TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	maxNumEMIterations = 0;
 	epsilonForEM = 0.0;
+	numGLFs = 0;
+	glfs = NULL;
+	readersOpened = false;
+
+	//outputname
+	outputName = params.getParameterStringWithDefault("out", "ATLAS");
+	logfile->list("Writing output files with prefix '" + outputName + "'.");
 }
 
 void TDistanceEstimator::printGLF(TParameters & params){
-
 	//test first to parse GLF files
 	std::string glf = params.getParameterString("glf");
 	TGlfReader reader(glf);
@@ -566,152 +598,233 @@ void TDistanceEstimator::printGLF(TParameters & params){
 	reader.printToEnd();
 }
 
-//------------------------------------------------------------------
-void TDistanceEstimator::estimateDistances(TParameters & params){
-	//open all GLF files specified
-	std::vector<std::string> glfNames;
-	params.fillParameterIntoVector("glf", glfNames, ',');
-	int numGLFs = glfNames.size();
+void TDistanceEstimator::openGLF(TParameters & params){
+	params.fillParameterIntoVector("glf", GLFNames, ',');
+	numGLFs = GLFNames.size();
 	if(numGLFs < 2)
 		throw "At least two GLF files have to be provided to estimate distances!";
 
 	//open files
-	TGlfReader* glfs = new TGlfReader[numGLFs];
+	glfs = new TGlfReader[numGLFs];
+	readersOpened = true;
 	logfile->startIndent("Opening GLF files:");
-	int g1 = 0;
-	for(std::vector<std::string>::iterator it=glfNames.begin(); it != glfNames.end(); ++it, ++g1){
+	int g = 0;
+	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
 		logfile->listFlush("Opening GLF '" + *it + "' ...");
-		glfs[g1].open(*it);
+		glfs[g].open(*it);
 		logfile->done();
 	}
 	logfile->endIndent();
+}
 
-	//create estimate object
+void TDistanceEstimator::closeGLF(){
+	if(readersOpened){
+		//close all glf handlers
+		for(int g=0; g<numGLFs; ++g)
+			glfs[g].close();
+
+		delete[] glfs;
+		GLFNames.clear();
+		numGLFs = 0;
+		readersOpened = false;
+	}
+}
+
+//------------------------------------------------------------------
+void TDistanceEstimator::estimateDistances(TParameters & params){
+	//open all GLF files specified
+	openGLF(params);
+
+	//open EM object
 	TEMforDistanceEstimation EM_object(logfile, params);
 
-
-	//read EM parameters
-	logfile->startIndent("Parameters of EM algorithm:");
-	maxNumEMIterations = params.getParameterIntWithDefault("iterations", 100);
-	logfile->list("Will run up to " + toString(maxNumEMIterations) + " iterations.");
-	epsilonForEM = params.getParameterDoubleWithDefault("maxEps", 0.000001);
-	logfile->list("Will run EM until deltaLL < " + toString(epsilonForEM) + ".");
-
 	//in windows or whole genome?
-	long windowLen = params.getParameterLongWithDefault("window", 1000000);
-	logfile->list("Will estimate genetic distance in windows of length " + toString(windowLen) + ".");
+	long windowLen = params.getParameterLongWithDefault("window", -1);
+	if(windowLen < 0)
+		estimateDistanceGenomeWide(EM_object);
+	else
+		estimateDistanceInWindows(EM_object, windowLen);
 
-	//now calculate all pairwise distances
-	int g2;
-	std::string filename;
-	for(g1=0; g1<(numGLFs-1); ++g1){
-		for(g2 = g1+1; g2 < numGLFs; ++g2){
-			logfile->startIndent("Estimating distance between individuals " + toString(g1+1) + "(" + glfNames[g1] + ") and " + toString(g2+1) + " (" + glfNames[g2] + "):");
+	//close files
+	closeGLF();
+}
 
-			//output file
-			filename = glfNames[g1] + "_" + glfNames[g2] + "_distanceEstimates.txt.gz";
-			logfile->list("Will write estimates to file '" + filename + "'.");
+//--------------------------------------------
+// Estimation Genome Wide
+//--------------------------------------------
+void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object){
+	logfile->list("Will estimate genetic distances genome wide.");
 
-			//now run estimation
-			estimateDistanceInWindows(EM_object, filename, glfs[g1], glfs[g2], windowLen);
+	//open output file
+	std::string filename = outputName + "_distanceEstimates.txt.gz";
+	gz::ogzstream out(filename.c_str());
+	if(!out)
+		throw "Failed to open output file '" + filename + "'!";
 
-			//rewind GLFs
-			glfs[g1].rewind();
-			glfs[g2].rewind();
+	//write header to output file
+	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
+
+	//prepare storage for distance matrix
+	double** distMatrix = new double*[numGLFs];
+	for(int g=0; g<numGLFs; ++g){
+		distMatrix[g] = new double[numGLFs];
+		distMatrix[g][g] = 0.0;
+	}
+
+	//loop over all pairs
+	for(int g1=0; g1<(numGLFs-1); ++g1){
+		for(int g2 = g1+1; g2 < numGLFs; ++g2){
+			logfile->startIndent("Estimating distance between individuals " + toString(g1+1) + " (" + GLFNames[g1] + ") and " + toString(g2+1) + " (" + GLFNames[g2] + "):");
+
+			//write names to file
+			out << GLFNames[g1] << "\t" << GLFNames[g2];
+
+			//run estimation
+			estimateDistanceGenomeWide(EM_object, glfs[g1], glfs[g2], out);
+
+			//write to matrix
+			distMatrix[g1][g2] = EM_object.distance;
+			distMatrix[g2][g1] = EM_object.distance;
 			logfile->endIndent();
 		}
 	}
 
-	//close all glf handlers
-	for(g1=0; g1<numGLFs; ++g1)
-		glfs[g1].close();
-	delete[] glfs;
-}
+	out.close();
 
-/*
-void TDistanceEstimator::estimateDistanceInWindows(TGlfReader & g1, TGlfReader & g2, long windowLen){
-	//initialize variables
-	std::string curChr = "";
-	long lastPosOfCurWindow = windowLen;
-	bool keepReading = true;
-	bool isGood1 = true;
-	bool isGood2 = true;
+	//open matrix file
+	filename = outputName + "_distanceMatrix.txt";
+	std::ofstream distMatrixFile(filename.c_str());
+	if(!distMatrixFile)
+		throw "Failed to open output file '" + filename + "'!";
 
-	//initialize storage for two windows
+	//write header to matrix file
+	distMatrixFile << "/";
+	for(int g=0; g<numGLFs; ++g)
+		distMatrixFile << "\t" << GLFNames[g];
+	distMatrixFile << "\n";
 
-
-	//read first positions
-	if(!g1.readNext()) throw "Failed to read first position from GLF '" + g1.name() + "'!";
-	if(!g2.readNext()) throw "Failed to read first position from GLF '" + g2.name() + "'!";
-
-	//parse GLFs in windows
-	while(keepReading){
-
-		//if on new chromosome, window is done
-		if(g1.chr != curChr){
-			//something happens
-		}
-
-		if(isGood1 && isGood2){
-			//keep adding to window
-			if(g2.position == g1.position){
-				//add data
-
-				//advance both
-				isGood1 = g1.readNext();
-				isGood2 = g2.readNext();
-			} else if(g2.position < g1.position){
-				//add data
-
-				//advance g2
-				isGood2 = g2.readNext();
-			} else {
-				//add data
-
-				//advance g1
-				isGood1 = g1.readNext();
-			}
-		} else if(isGood1 && !isGood2){
-			//think about case in which one  file has reached end
-		} else if(!isGood1 && isGood2){
-
-		} else {
-			//reached end!
-
-		}
-
-		//is window done?
-		//TODO: needs to also be called after a chromosom jump!!
-		if(g1.position > lastPosOfCurWindow && g2.position > lastPosOfCurWindow){
-			//do calculations for this window
-		}
-
-
-
+	//write rows
+	for(int g1 = 0; g1 < numGLFs; ++g1){
+		distMatrixFile << GLFNames[g1];
+		for(int g2 = 0; g2 < numGLFs; ++g2)
+			distMatrixFile << "\t" << distMatrix[g1][g2];
+		distMatrixFile << "\n";
 	}
 
-	//do calculations for last window
-}
-*/
-
-void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object){
-	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t" << numsitesWithData;
-	//write pi
-	for(int b=0; b<4; ++b)
-		out << "\t" << EM_object.pi[b];
-	//write phi
-	for(int b=0; b<9; ++b)
-		out << "\t" << EM_object.phi[b];
-	//write distance
-	out << "\t" << EM_object.distance;
-	out << "\n";
+	//close file
+	distMatrixFile.close();
 }
 
-void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd){
-	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t0";
-	for(int i=0; i<14; ++i)
-		out << "\t-";
-	out << "\n";
+bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
+	while(g1.chr() != g2.chr()){
+		//advance the one laging behind
+		if(g1.chrNumber() < g2.chrNumber()){
+			if(!g1.jumpToNextChr()) return false;
+		} else if(g1.chrNumber() > g2.chrNumber()){
+			if(!g2.jumpToNextChr()) return false;
+		} else
+			throw "Different chromosomes in files " + g1.name() + "' and '" + g2.name() + "'!";
+	}
+
+	return true;
+}
+
+
+bool TDistanceEstimator::advance(TGlfReader & g1, TGlfReader & g2){
+	//advance
+	if(g2.position == g1.position){
+		//advance both
+		if(!g1.readNext()) return false;
+		if(!g2.readNext()) return false;
+	} else if(g2.position < g1.position){
+		//advance g2
+		if(!g2.readNext()) return false;
+	} else {
+		//advance g1
+		if(!g2.readNext()) return false;
+	}
+
+	//make sure we are on same chromosome
+	return(moveToNextCommonChr(g1, g2));
+};
+
+void TDistanceEstimator::readCommonSites(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2, TGlfReader & g1, TGlfReader & g2){
+	//parse GLFs. Only keep sites where both individuals have data!
+
+	//rewind GLFs
+	g1.rewind();
+	g2.rewind();
+
+	//if not both are good at least one file reach end. So we are done!
+	while(advance(g1, g2)){
+		if(g2.position == g1.position){
+			//add data
+			genoQual1.push_back(new uint8_t[10]);
+			genoQual2.push_back(new uint8_t[10]);
+			g1.fillGenotypeQualities(*genoQual1.rbegin());
+			g2.fillGenotypeQualities(*genoQual2.rbegin());
+		}
+	}
+};
+
+void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, TGlfReader & g1, TGlfReader & g2, gz::ogzstream & out){
+	//initialize storage for two windows
+	logfile->listFlush("Reading common sites ...");
+	std::vector<uint8_t*> genoQual1, genoQual2;
+	readCommonSites(genoQual1, genoQual2, g1, g2);
+	logfile->done();
+	logfile->conclude("Read data for " + toString(genoQual1.size()) + " sites.");
+
+	//now estimate
+	if(genoQual1.size() > 0){
+		logfile->startIndent("Estimating genetic distance:");
+		EM_object.estimatePhiWithEM(genoQual1, genoQual2);
+		writeDistanceEstimates(out, genoQual1.size(), EM_object);
+		logfile->endIndent();
+	} else {
+		logfile->conclude("Not enough data to estimate distance.");
+		writeDistanceEstimatesNoData(out);
+	}
+
+	//clean up memory
+	logfile->listFlush("Cleaning up memory ...");
+	for(std::vector<uint8_t*>::iterator it=genoQual1.begin(); it!=genoQual1.end(); ++it)
+		delete[] *it;
+	for(std::vector<uint8_t*>::iterator it=genoQual2.begin(); it!=genoQual2.end(); ++it)
+		delete[] *it;
+	genoQual1.clear();
+	genoQual2.clear();
+	logfile->done();
+};
+
+
+//--------------------------------------------
+// Estimation in windows
+//--------------------------------------------
+void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, long windowLen){
+	logfile->list("Will estimate genetic distance in windows of length " + toString(windowLen) + ".");
+	if(windowLen < 100)
+		throw "Window size must be at least 100bp!";
+
+	//loop over all pairs
+	for(int g1=0; g1<(numGLFs-1); ++g1){
+		for(int g2 = g1+1; g2 < numGLFs; ++g2){
+			logfile->startIndent("Estimating distance between individuals " + toString(g1+1) + " (" + GLFNames[g1] + ") and " + toString(g2+1) + " (" + GLFNames[g2] + "):");
+
+			//output file
+			std::string filename = outputName + "_" + GLFNames[g1] + "_" + GLFNames[g2] + "_distanceEstimates.txt.gz";
+			logfile->list("Will write estimates to file '" + filename + "'.");
+
+			//rewind GLFs
+			glfs[g1].rewind();
+			glfs[g2].rewind();
+
+			//now run estimation
+			estimateDistanceInWindows(EM_object, filename, glfs[g1], glfs[g2], windowLen);
+
+			logfile->endIndent();
+		}
+	}
 }
 
 void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen){
@@ -722,11 +835,12 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//initialize storage for two windows
 	//TODO: share across pairs? Do all pairs at once?
-	int** genoQual1 = new int*[windowLen];
-	int** genoQual2 = new int*[windowLen];
+	std::vector<uint8_t*> genoQual1, genoQual2;
+	genoQual1.resize(windowLen);
+	genoQual2.resize(windowLen);
 	for(int i=0; i<windowLen; ++i){
-		genoQual1[i] = new int[10];
-		genoQual2[i] = new int[10];
+		genoQual1[i] = new uint8_t[10];
+		genoQual2[i] = new uint8_t[10];
 	}
 
 	//open output file
@@ -765,7 +879,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 				isGood2 = g2.readNextWindow(genoQual2, curChr, windowStart, windowEnd);
 				if(isGood2){
 					//estimate distance
-					EM_object.estimatePhiWithEM(genoQual1, genoQual2, windowLen, maxNumEMIterations, epsilonForEM);
+					EM_object.estimatePhiWithEM(genoQual1, genoQual2);
 
 					//write to file
 					writeDistanceEstimates(out, curChr, windowStart, windowEnd, numSitesWithData, EM_object);
@@ -781,7 +895,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 				for(int g=1; g<10; ++g){
 					std::cout << "," << genoQual1[i][g];
 				}
-				std::cout << "\tSample 2:" << genoQual2[i][0];
+				std::cout << "\tSample 2: " << genoQual2[i][0];
 				for(int g=1; g<10; ++g){
 					std::cout << "," << genoQual2[i][g];
 				}
@@ -799,26 +913,50 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		if(g1.eof() && g2.eof())
 			keepReading = false;
 	}
+
+	//clean up memory
+	for(int i=0; i<windowLen; ++i){
+		delete[] genoQual1[i];
+		delete[] genoQual2[i];
+	}
+
 	logfile->endIndent();
 
 }
 
-//void TDistanceEstimator::estimatePhis(int** genoQual1, int** genoQual2, long numSites){
-	//variables
 
+//--------------------------------------------
+// Writing estimates
+//--------------------------------------------
+void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int numsitesWithData, TEMforDistanceEstimation & EM_object){
+	out << chr << "\t" << windowStart << "\t" << windowEnd;
+	writeDistanceEstimates(out, numsitesWithData, EM_object);
+}
 
-	//estimate starting values
+void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
+	out << "\t" << numsitesWithData;
+	//write pi
+	for(int b=0; b<4; ++b)
+		out << "\t" << EM_object.pi[b];
+	//write phi
+	for(int b=0; b<9; ++b)
+		out << "\t" << EM_object.phi[b];
+	//write distance
+	out << "\t" << EM_object.distance;
+	out << "\n";
+}
 
+void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd){
+	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t";
+	writeDistanceEstimatesNoData(out);
+}
 
-	//run EM on these sites
-
-//}
-
-
-
-
-
-
+void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out){
+	out << "\t0";
+	for(int i=0; i<14; ++i)
+		out << "\t-";
+	out << "\n";
+}
 
 
 
