@@ -117,7 +117,7 @@ private:
 	uint8_t tmpInt8;
 	uint8_t tmpInt8_10[10];
 	int SNPRecordSize;
-	uint8_t* tmpRecordStorage;
+	uint8_t tmpRecordStorage[19];
 	long _chrLength;
 	int _lenRead;
 	bool _eof;
@@ -159,14 +159,9 @@ public:
 	~TGlfReader(){
 		close();
 		delete[] genotypeQualitiesMissingData;
-
-		std::cout << "DELETE tmp storage ..................................." << std::flush;
-		std::cout << filename << std::endl;
-
-		delete[] tmpRecordStorage;
 	};
 
-	//get detailes
+	//get details
 	long chrLength(){ return _chrLength; };
 	bool eof(){ return _eof;};
 

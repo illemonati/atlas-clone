@@ -190,6 +190,17 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 			distanceWeight[6] = 1.0; //case aa/bc
 			distanceWeight[7] = 1.0; //case ab/cc
 			distanceWeight[8] = 1.0; //case ab/cd
+		} else if(distType == "squaredDiff"){
+			//squared difference between genotypes
+			distanceWeight[0] = 0.0; //case aa/aa
+			distanceWeight[1] = 1.0; //case ab/aa
+			distanceWeight[2] = 1.0; //case aa/ab
+			distanceWeight[3] = 4.0; //case aa/bb
+			distanceWeight[4] = 0.0; //case ab/ab
+			distanceWeight[5] = 1.0; //case ab/ac
+			distanceWeight[6] = 4.0; //case aa/bc
+			distanceWeight[7] = 4.0; //case ab/cc
+			distanceWeight[8] = 4.0; //case ab/cd
 		} else
 			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
 	}
@@ -565,13 +576,17 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<int*> & genoQual1, 
 //----------------------------------------------------
 //TDistanceEstimator
 //----------------------------------------------------
-TDistanceEstimator::TDistanceEstimator(TLog* Logfile){
+TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 	logfile = Logfile;
 	maxNumEMIterations = 0;
 	epsilonForEM = 0.0;
 	numGLFs = 0;
 	glfs = NULL;
 	readersOpened = false;
+
+	//outputname
+	outputName = params.getParameterStringWithDefault("out", "ATLAS");
+	logfile->list("Writing output files with prefix '" + outputName + "'.");
 }
 
 void TDistanceEstimator::printGLF(TParameters & params){
@@ -605,20 +620,10 @@ void TDistanceEstimator::openGLF(TParameters & params){
 void TDistanceEstimator::closeGLF(){
 	if(readersOpened){
 		//close all glf handlers
-		for(int g=0; g<numGLFs; ++g){
-
-			std::cout << "CLOSE '" << glfs[g].name() << "'" << std::endl;
-
+		for(int g=0; g<numGLFs; ++g)
 			glfs[g].close();
-		}
-
-		std::cout << "DELETE ...." << std::endl;
 
 		delete[] glfs;
-
-
-		std::cout << "DELETE DONE...." << std::endl;
-
 		GLFNames.clear();
 		numGLFs = 0;
 		readersOpened = false;
@@ -651,13 +656,20 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	logfile->list("Will estimate genetic distances genome wide.");
 
 	//open output file
-	std::string filename = "distanceEstimates.txt.gz";
+	std::string filename = outputName + "_distanceEstimates.txt.gz";
 	gz::ogzstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open output file '" + filename + "'!";
 
 	//write header to output file
 	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
+
+	//prepare storage for distance matrix
+	double** distMatrix = new double*[numGLFs];
+	for(int g=0; g<numGLFs; ++g){
+		distMatrix[g] = new double[numGLFs];
+		distMatrix[g][g] = 0.0;
+	}
 
 	//loop over all pairs
 	for(int g1=0; g1<(numGLFs-1); ++g1){
@@ -669,11 +681,38 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 
 			//run estimation
 			estimateDistanceGenomeWide(EM_object, glfs[g1], glfs[g2], out);
+
+			//write to matrix
+			distMatrix[g1][g2] = EM_object.distance;
+			distMatrix[g2][g1] = EM_object.distance;
 			logfile->endIndent();
 		}
 	}
 
 	out.close();
+
+	//open matrix file
+	filename = outputName + "_distanceMatrix.txt";
+	std::ofstream distMatrixFile(filename.c_str());
+	if(!distMatrixFile)
+		throw "Failed to open output file '" + filename + "'!";
+
+	//write header to matrix file
+	distMatrixFile << "/";
+	for(int g=0; g<numGLFs; ++g)
+		distMatrixFile << "\t" << GLFNames[g];
+	distMatrixFile << "\n";
+
+	//write rows
+	for(int g1 = 0; g1 < numGLFs; ++g1){
+		distMatrixFile << GLFNames[g1];
+		for(int g2 = 0; g2 < numGLFs; ++g2)
+			distMatrixFile << "\t" << distMatrix[g1][g2];
+		distMatrixFile << "\n";
+	}
+
+	//close file
+	distMatrixFile.close();
 }
 
 bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
@@ -756,7 +795,6 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	genoQual1.clear();
 	genoQual2.clear();
 	logfile->done();
-
 };
 
 
@@ -774,7 +812,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 			logfile->startIndent("Estimating distance between individuals " + toString(g1+1) + " (" + GLFNames[g1] + ") and " + toString(g2+1) + " (" + GLFNames[g2] + "):");
 
 			//output file
-			std::string filename = GLFNames[g1] + "_" + GLFNames[g2] + "_distanceEstimates.txt.gz";
+			std::string filename = outputName + "_" + GLFNames[g1] + "_" + GLFNames[g2] + "_distanceEstimates.txt.gz";
 			logfile->list("Will write estimates to file '" + filename + "'.");
 
 			//rewind GLFs

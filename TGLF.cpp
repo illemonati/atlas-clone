@@ -102,12 +102,6 @@ void TGlfReader::init(){
 	_lenRead = 0;
 	_eof = true;
 
-	//tmp storage for skipping
-	SNPRecordSize = 2 * sizeof(uint32_t) + 11 * sizeof(uint8_t);
-	tmpRecordStorage = new uint8_t[SNPRecordSize];
-
-	std::cout << " SNPRecordSize = " << SNPRecordSize << std::endl;
-
 	genotypeQualitiesMissingData = new int[10];
 	for(int i=0; i<10; ++i)
 		genotypeQualitiesMissingData[i] = 0;
@@ -215,9 +209,7 @@ void TGlfReader::open(){
 	_eof = false;
 
 	//read info of first chromosome
-	std::cout << "size = " << chromosomesAlreadyParsed.size() << std::endl;
 	chromosomesAlreadyParsed.clear();
-	std::cout << "size = " << chromosomesAlreadyParsed.size() << std::endl;
 	readChr();
 };
 
@@ -245,7 +237,11 @@ bool TGlfReader::jumpToEndOfChr(){
 
 	//tmp variables
 	while(recordType != 0){
-		skipRecord();
+
+
+		//skipRecord();
+		readSNPRecord();
+
 		if(!readRecordType()) return false;
 	}
 

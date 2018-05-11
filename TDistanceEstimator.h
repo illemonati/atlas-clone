@@ -125,6 +125,7 @@ private:
 	TLog* logfile;
 	int maxNumEMIterations;
 	double epsilonForEM;
+	std::string outputName;
 
 	//GLF files
 	int numGLFs;
@@ -151,7 +152,7 @@ private:
 	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:
-	TDistanceEstimator(TLog* Logfile);
+	TDistanceEstimator(TLog* Logfile, TParameters & params);
 	~TDistanceEstimator(){
 		closeGLF();
 	};
