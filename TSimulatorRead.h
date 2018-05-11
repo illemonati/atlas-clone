@@ -23,6 +23,8 @@ protected:
 	TRandomGenerator* randomGenerator;
 	int maxPrintPhredInt;
 	std::string _name;
+	std::string readNamePrefix;
+	int readXPos, readYPos;
 
 	//read length
 	TSimulatorReadLength* readLengthDist;
@@ -66,7 +68,7 @@ protected:
 	void applyPMD(Base* _bases, int & len, int & fragmentLength);
 
 public:
-	TSimulatorRead(std::string readGroupName, int MaxPrintQual, TRandomGenerator* RandomGenerator);
+	TSimulatorRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
 	~TSimulatorRead(){
 		if(readLengthInitialized){
 			delete readLengthDist;

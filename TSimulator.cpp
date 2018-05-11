@@ -490,9 +490,10 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		logfile->startIndent("Initializing " + toString(readGroupNames.size()) + " read groups:");
 
 		//now initialize
-		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it){
+		int rgNumber = 1;
+		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it, ++rgNumber){
 			logfile->startIndent("Initializing readgroup '" + *it + "':");
-			readSimulators.push_back(new TSimulatorRead(*it, maxPrintQual, randomGenerator));
+			readSimulators.push_back(new TSimulatorRead(*it, rgNumber, maxPrintQual, randomGenerator));
 			readSimsIt = readSimulators.end() - 1;
 
 			//read length
@@ -564,7 +565,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			name = "SimReadGroup" + toString(i+1);
 			readGroupNames.push_back(name);
 			logfile->startIndent("Initializing readgroup '" + name + "':");
-			readSimulators.push_back(new TSimulatorRead(name, maxPrintQual, randomGenerator));
+			readSimulators.push_back(new TSimulatorRead(name, i+1, maxPrintQual, randomGenerator));
 			readSimsIt = readSimulators.end() - 1;
 			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
