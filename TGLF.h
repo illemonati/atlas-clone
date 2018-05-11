@@ -24,24 +24,26 @@ protected:
 	std::string filename;
 	gzFile gzfp;
 	bool isOpen;
-	long positionInFile;
 	uint32_t offset;
 	std::string version;
 	uint8_t zero8, one8;
 	uint32_t zero32;
 	std::string curChr;
+	int curChrNumber;
 	std::string header;
+	long positionInFile;
 
 public:
 	TGlfHandle(){
 		isOpen = false;
 		gzfp = NULL;
-		positionInFile = 0;
 		offset = 0;
 		version = "GLF3";
 		zero8 = 0;
 		one8 = 1;
 		zero32 = 0;
+		curChrNumber = 0;
+		positionInFile = 0;
 	};
 
 	void close(){
@@ -57,6 +59,10 @@ public:
 
 	std::string chr(){
 		return curChr;
+	};
+
+	int chrNumber(){
+		return curChrNumber;
 	};
 };
 
@@ -110,10 +116,10 @@ private:
 	uint32_t tmpInt32;
 	uint8_t tmpInt8;
 	uint8_t tmpInt8_10[10];
-	uint8_t tmpRecordStorage[19];
+	int SNPRecordSize;
+	uint8_t* tmpRecordStorage;
 	long _chrLength;
 	int _lenRead;
-	int _i;
 	bool _eof;
 	int* genotypeQualitiesMissingData;
 	std::vector<std::string> chromosomesAlreadyParsed;
@@ -126,12 +132,13 @@ private:
 		positionInFile += _lenRead;
 		return true;
 	};
+	void open();
 	bool readChr();
 	bool chromosomeParsed(std::string & chr);
 	bool readRecordType();
 	void readSNPRecord();
 	inline void skipRecord(){
-		read(&tmpRecordStorage, 152); //just parse data of one SNP record into garbage
+		read(&tmpRecordStorage, SNPRecordSize); //just parse data of one SNP record into garbage
 	};
 
 public:
@@ -152,6 +159,11 @@ public:
 	~TGlfReader(){
 		close();
 		delete[] genotypeQualitiesMissingData;
+
+		std::cout << "DELETE tmp storage ..................................." << std::flush;
+		std::cout << filename << std::endl;
+
+		delete[] tmpRecordStorage;
 	};
 
 	//get detailes
@@ -159,10 +171,12 @@ public:
 	bool eof(){ return _eof;};
 
 	//open file and parse header
+	void setFilename(std::string Filename);
 	void open(std::string Filename);
 	void rewind();
 	bool readNext();
 	bool jumpToEndOfChr();
+	bool jumpToNextChr();
 	bool readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end);
 	void fillGenotypeQualities(int* destination);
 

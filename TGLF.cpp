@@ -31,7 +31,6 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	if(gzfp == NULL)
 		throw "Failed to open file '" + filename + "' for writing!";
 	isOpen = true;
-	positionInFile = 0;
 	curChr = "";
 
 	//write header
@@ -53,6 +52,7 @@ void TGlfWriter::newChromosome(std::string name, uint32_t length){
 	//set oldPos and curChr
 	oldPos = 0;
 	curChr = name;
+	++curChrNumber;
 };
 
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL){
@@ -93,13 +93,21 @@ void TGlfReader::init(){
 	depth = 0;
 	RMS_mappingQual = 0;
 	curChr = "";
+	curChrNumber = 0;
+	positionInFile = 0;
 	_chrLength = 0;
 	depth_mask = 0xFFFFFF;
 	tmpInt32 = 0;
 	tmpInt8 = 0;
 	_lenRead = 0;
-	_i = 0;
 	_eof = true;
+
+	//tmp storage for skipping
+	SNPRecordSize = 2 * sizeof(uint32_t) + 11 * sizeof(uint8_t);
+	tmpRecordStorage = new uint8_t[SNPRecordSize];
+
+	std::cout << " SNPRecordSize = " << SNPRecordSize << std::endl;
+
 	genotypeQualitiesMissingData = new int[10];
 	for(int i=0; i<10; ++i)
 		genotypeQualitiesMissingData[i] = 0;
@@ -119,6 +127,7 @@ bool TGlfReader::readChr(){
 	char* tmp = new char[len];
 	read(tmp, len*sizeof(char));
 	curChr.assign(tmp, len);
+	++curChrNumber;
 
 	read(&tmpInt32, sizeof(uint32_t));
 	_chrLength = tmpInt32;
@@ -164,29 +173,38 @@ void TGlfReader::readSNPRecord(){
 	//genotype likelihoods
 	read(tmpInt8_10, 10*sizeof(uint8_t));
 
-	for(_i=0; _i<10; ++_i){
-		genotypeQualities[_i] = (int) tmpInt8_10[_i];
+	for(int i=0; i<10; ++i){
+		genotypeQualities[i] = (int) tmpInt8_10[i];
 	}
 };
 
 
 //PUBLIC
-void TGlfReader::open(std::string Filename){
+void TGlfReader::setFilename(std::string Filename){
 	filename = Filename;
+};
+
+void TGlfReader::open(std::string Filename){
+	setFilename(Filename);
+	open();
+};
+
+void TGlfReader::open(){
 	gzfp = NULL;
 	gzfp = gzopen(filename.c_str(),"rb");
 
 	if(gzfp == NULL)
 		throw "Failed to open file '" + filename + "' for reading!";
 	isOpen = true;
-	positionInFile = 0;
 	curChr = "";
+	curChrNumber = 0;
+	positionInFile = 0;
 
 	//parse header
 	//version
 	char buffer[4];
 	read(buffer, 4*sizeof(char));
-	version = buffer;
+	version.assign(buffer, 4);
 
 	read(&HeaderLen, sizeof(uint32_t));
 
@@ -197,14 +215,16 @@ void TGlfReader::open(std::string Filename){
 	_eof = false;
 
 	//read info of first chromosome
+	std::cout << "size = " << chromosomesAlreadyParsed.size() << std::endl;
 	chromosomesAlreadyParsed.clear();
+	std::cout << "size = " << chromosomesAlreadyParsed.size() << std::endl;
 	readChr();
 };
 
 void TGlfReader::rewind(){
 	//go back to beginning of file
 	close();
-	open(filename);
+	open();
 };
 
 bool TGlfReader::readNext(){
@@ -228,7 +248,16 @@ bool TGlfReader::jumpToEndOfChr(){
 		skipRecord();
 		if(!readRecordType()) return false;
 	}
+
 	return true;
+};
+
+bool TGlfReader::jumpToNextChr(){
+	if(!jumpToEndOfChr()){
+		return false;
+	}
+	readChr();
+	return readNext();
 };
 
 bool TGlfReader::readNextWindow(std::vector<int*> & genoLikelihoods, std::string chr, long start, long end){

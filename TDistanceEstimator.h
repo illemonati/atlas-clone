@@ -72,6 +72,12 @@ private:
 	TGenoToPhiMap genoToPhiMap;
 	TGenocombinationToBaseMap genoToBaseMap;
 	TQualityMap phredToLik;
+
+	//settings
+	int maxNumEMIterations;
+	double epsilonForEM;
+
+	//tmp variables
 	double old_LL;
 	double* K; //normalizing constant
 	double** probGeno;
@@ -106,8 +112,10 @@ public:
 		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2, int maxNumIterations, double epsilon);
+	bool estimatePhiWithEM(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2);
 };
+
+
 
 //--------------------------------------------
 //TDistanceEstimator
@@ -118,15 +126,35 @@ private:
 	int maxNumEMIterations;
 	double epsilonForEM;
 
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
-	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
+	//GLF files
+	int numGLFs;
+	std::vector<std::string> GLFNames;
+	TGlfReader* glfs;
+	bool readersOpened;
 
-	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void openGLF(TParameters & params);
+	void closeGLF();
+
+
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
+	bool moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2);
+	bool advance(TGlfReader & g1, TGlfReader & g2);
+	void readCommonSites(std::vector<int*> & genoQual1, std::vector<int*> & genoQual2, TGlfReader & g1, TGlfReader & g2);
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, TGlfReader & g1, TGlfReader & g2, gz::ogzstream & out);
+
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, long windowLen);
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
+
+	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd);
+	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:
 	TDistanceEstimator(TLog* Logfile);
-	~TDistanceEstimator(){};
+	~TDistanceEstimator(){
+		closeGLF();
+	};
 
 	void printGLF(TParameters & params);
 	void estimateDistances(TParameters & params);
