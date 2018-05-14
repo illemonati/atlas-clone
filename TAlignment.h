@@ -56,14 +56,14 @@ private:
 	unsigned int maxSize;
 	int length;
 
-	int* alignedPos;
+//	int* alignedPos;
 
 	bool parsed;
 	bool changed;
 
 	//per base data
 	TBase* bases;
-	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
+//	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
 	//soft clipped data
 	int* softClippedLength;
 	char** softClippedBase;

@@ -1539,11 +1539,15 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			alignmentParser.recalibrateWithPMD(alignment);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
 
+			//if(counter % 1000 == 0){
+				std::cout << "counter " << counter << std::endl;
+			//}
 			reportProgressParsingBamFile(counter, start);
         }
 	} else {
 		while(alignmentParser.readNextAligment(alignment)){
 			++counter;
+			std::cout << "counter " << counter << std::endl;
 
 			alignmentParser.recalibrate(alignment);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);

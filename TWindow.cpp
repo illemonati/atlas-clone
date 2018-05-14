@@ -174,7 +174,7 @@ void TWindow::fillSites(){
 
 		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->alignedPos[p]) < 0)
+			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
 				++p;
 			if(p == (*alignmentIt)->length)
 				throw "alignment should be assigned to previous window!";
@@ -184,8 +184,8 @@ void TWindow::fillSites(){
 		int internalPos;
 		//p is at first position of read in window
 		for(; p < (*alignmentIt)->length; ++p){
-			if((*alignmentIt)->aligned[p] && (*alignmentIt)->bases[p].base != N){
-				internalPos = firstPos + (*alignmentIt)->alignedPos[p];
+			if((*alignmentIt)->bases[p].alignedPos && (*alignmentIt)->bases[p].base != N){
+				internalPos = firstPos + (*alignmentIt)->bases[p].alignedPos;
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window

@@ -46,6 +46,8 @@ public:
 	double PMD_CT, PMD_GA;
 	int readGroup;
 	BaseContext context;
+	bool aligned;
+	int alignedPos;
 //	TEmissionProbabilities emissionProbabilities;
 
 	TBase(){
@@ -58,9 +60,11 @@ public:
 		PMD_GA = -1.0;
 		readGroup = -1;
 		context = cNN;
+		aligned = false;
+		alignedPos = -1;
 	}
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos){
 		base = Base;
 		errorRate = ErrorRate;
 //		quality = Quality;
@@ -70,6 +74,8 @@ public:
 		PMD_GA = thisPMD_GA;
 		readGroup = ReadGroup;
 		context = Context;
+		aligned = Aligned;
+		alignedPos = AlignedPos;
 	};
 
 	~TBase(){};

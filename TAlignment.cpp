@@ -27,8 +27,6 @@ TAlignment::TAlignment(){
 	hasReference = false;
 
 	bases = NULL;
-	aligned = NULL;
-	alignedPos = NULL;
 	quality = NULL;
 	qualityOriginal = NULL;
 	softClippedEntry = 0;
@@ -74,8 +72,6 @@ void TAlignment::initStorage(){
 	bases = new TBase[maxSize];
 
 	//other
-	aligned = new bool[maxSize];
-	alignedPos = new int[maxSize];
 	qualityOriginal = new int[maxSize];
 
 	//soft clipped data
@@ -94,9 +90,6 @@ void TAlignment::initStorage(){
 void TAlignment::freeStorage(){
 	if(storageInitialized){
 		delete[] bases;
-
-		delete[] aligned;
-		delete[] alignedPos;
 		delete[] qualityOriginal;
 
 		delete[] softClippedLength;
@@ -251,10 +244,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					if(bases[d].base == N)
-						aligned[d] = false;
+						bases[d].aligned = false;
 					else
-						aligned[d] = true;
-					alignedPos[d] = p;
+						bases[d].aligned = true;
+					bases[d].alignedPos = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -270,8 +263,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = -1;
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					aligned[d] = false;
-					alignedPos[d] = -1;
+					bases[d].aligned = false;
+					bases[d].alignedPos = -1;
 				}
 				break;
 
@@ -281,8 +274,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					aligned[d] = false;
-					alignedPos[d] = -1;
+					bases[d].aligned = false;
+					bases[d].alignedPos = -1;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -300,8 +293,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					aligned[d] = false;
-					alignedPos[d] = p;
+					bases[d].aligned = false;
+					bases[d].alignedPos = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -467,8 +460,8 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(int d=0; d<length; ++d){
-			if(aligned[d] && bases[d].base != N){
-				ref = genoMap.flipBase(referenceSequence[alignedPos[d]]);
+			if(bases[d].aligned && bases[d].base != N){
+				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
 				read = genoMap.baseToFlippedBase[bases[d].base];
 				pmdTables.addForward(readGroupId, bases[d].posInReadRev, ref, read);
 				pmdTables.addReverse(readGroupId, bases[d].posInRead, ref, read);
@@ -476,8 +469,8 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 		}
 	} else {
 		for(int d=0; d<length; ++d){
-			if(aligned[d] && bases[d].base != N){
-				ref = genoMap.getBase(referenceSequence[alignedPos[d]]);
+			if(bases[d].aligned && bases[d].base != N){
+				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
 				pmdTables.addForward(readGroupId, bases[d].posInRead, ref, bases[d].base);
 				pmdTables.addReverse(readGroupId, bases[d].posInReadRev, ref, bases[d].base);
 			}
@@ -503,13 +496,13 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//go over all bases in read
 	for(int d=0; d<length; ++d){
 		//limit to aligned positions
-		if(aligned[d]){
+		if(bases[d].aligned){
 			//Prepare variables
 			epsThird = bases[d].errorRate / 3.0;
 			fourEpsThird = 4.0 * epsThird;
 
 			//calc likelihoods
-			if(referenceSequence[alignedPos[d]] == 'A'){
+			if(referenceSequence[bases[d].alignedPos] == 'A'){
 				if(bases[d].base == A){
 					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + bases[d].PMD_GA*pi/3.0*(1.0-fourEpsThird);
 					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
@@ -527,7 +520,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
 			}
-			else if (referenceSequence[alignedPos[d]] == 'C'){
+			else if (referenceSequence[bases[d].alignedPos] == 'C'){
 				if(bases[d].base == A){
 					probPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi + pi*bases[d].PMD_GA*(1.0-fourEpsThird);
 					probNoPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi;
@@ -545,7 +538,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probNoPMD = epsThird;
 				}
 			}
-			else if (referenceSequence[alignedPos[d]] == 'G'){
+			else if (referenceSequence[bases[d].alignedPos] == 'G'){
 				if(bases[d].base == A){
 					probPMD = bases[d].PMD_GA*(3.0-3.0*pi+4.0*bases[d].errorRate+4.0*bases[d].errorRate*pi) + bases[d].errorRate - fourEpsThird*pi + pi;
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
@@ -563,7 +556,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
 			}
-			else if(referenceSequence[alignedPos[d]] == 'T'){
+			else if(referenceSequence[bases[d].alignedPos] == 'T'){
 				if(bases[d].base == A){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - epsThird*pi*bases[d].PMD_CT + pi*bases[d].PMD_GA*(1.0-bases[d].errorRate);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
@@ -687,8 +680,8 @@ void TAlignment::print(TGenotypeMap & genoMap){
 	std::cout << "POS:\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		if(aligned[d])
-			std::cout << alignedPos[d];
+		if(bases[d].aligned)
+			std::cout << bases[d].alignedPos;
 		else
 			std::cout << "-";
 	}

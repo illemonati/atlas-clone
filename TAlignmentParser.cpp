@@ -353,7 +353,7 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	if(!hasReference) //is this check really necessary?
 		throw "No reference provided!";
 
-	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.alignedPos[alignment.length-1], referenceSequence);
+	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.bases[alignment.length-1].alignedPos, referenceSequence);
 };
 
 std::string TAlignmentParser::chrNumberToName(int chrNumber){
@@ -902,13 +902,10 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 	if(recalObject->recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
-			if(alignment.aligned[d]){
+			if(alignment.bases[d].aligned)
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-//				alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
-			}
 		}
 
-//		alignment.quality = alignment.qualityRecalibrated;
 		alignment.changed = true;
 	} else alignment.changed = false;
 	alignment.recalibrated = true;
@@ -921,21 +918,23 @@ void TAlignmentParser::recalibrateWithPMD(TAlignment & alignment){
 
 	TQualityMap qualMap;
 
-	//recalibrate quality scores
 	for(int d=0; d<alignment.length; ++d){
 //		int k = length - d - 1;
-		if(recalObject->recalibrationChangesQualities())
-			alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
+		if(alignment.bases[d].aligned){
+			//recalibrate quality scores
+			if(recalObject->recalibrationChangesQualities())
+				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
 
-		//now add effect of PMD
-		if(alignment.aligned[d]){
-			if(alignment.bases[d].base == T && referenceSequence[alignment.alignedPos[d]] == 'C')
+			if(alignment.bases[d].context > 20) throw "there is a invalid context in alignment " + alignment.alignmentName + " at position " + toString(d);
+
+			//now add effect of PMD
+			if(alignment.bases[d].base == T && referenceSequence[alignment.bases[d].alignedPos] == 'C')
 				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(alignment.bases[d].base == A && referenceSequence[alignment.alignedPos[d]] == 'G')
+			else if(alignment.bases[d].base == A && referenceSequence[alignment.bases[d].alignedPos] == 'G')
 				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+		} else {
+			alignment.bases[d].errorRate = qualMap.qualityToErrorMap[alignment.qualityOriginal[d]];
 		}
-
-//		alignment.qualityRecalibrated[d] = qualMap.errorToQuality(alignment.bases[d].errorRate);
 	}
 
 	//set pointer to recalibrated scores
