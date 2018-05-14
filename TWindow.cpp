@@ -143,8 +143,6 @@ void TWindow::cleanUpUsedAlignments(){
 			break;
 		}
 	}
-	std::cout << "sum of alignments after clean up " << usedAlignments.size() + emptyAlignments.size() << std::endl;
-
 }
 
 void TWindow::printStacks(){
