@@ -910,6 +910,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 		variantVCF << "##fileformat=VCFv4.2\n";
 		variantVCF << "##source=ATLAS_Simulation\n";
 		variantVCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+		variantVCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSample1\n";
 	}
 
 	//prepare mutation table
