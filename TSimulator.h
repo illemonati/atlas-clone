@@ -99,6 +99,7 @@ private:
 	void fillMutationTable(float** & mutTable, double theta);
 	void simulateDiploidHaplotypesCurChromosome(Base** haplotypes, float** & mutTable, Base* ref);
 	void writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile);
+	void writeVCFwithVariantPositions(Base** haplotypes, Base* ref, const std::string & chr, gz::ogzstream & vcf);
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
 

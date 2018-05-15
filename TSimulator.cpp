@@ -821,7 +821,7 @@ void TSimulator::simulateDiploidHaplotypesCurChromosome(Base** haplotypes, float
 				ref[l] = static_cast<Base> (haplotypes[randomGenerator->pickOne(2)][l]);
 		}
 	}
-}
+};
 
 void TSimulator::writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile){
 	//0-based
@@ -830,14 +830,34 @@ void TSimulator::writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & inv
 			invariantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 		} else variantSitesFile << chrIt->name << "\t" << l << "\t" << l+1 << "\t" << toBase[haplotypes[0][l]] << "\t" << toBase[haplotypes[1][l]] << "\n";
 	}
-}
+};
+
+void TSimulator::writeVCFwithVariantPositions(Base** haplotypes, Base* ref, const std::string & chr, gz::ogzstream & vcf){
+	//0-based
+	for(int l=0; l<chrIt->length; ++l){
+		if(haplotypes[0][l] != ref[l] || haplotypes[1][l] != ref[l]){
+			vcf << chr << "\t" << l+1 << "\t.\t" << toBase[ref[l]]  << "\t";
+			if(haplotypes[0][l] != ref[l])
+				vcf << toBase[haplotypes[0][l]];
+			else
+				vcf << toBase[haplotypes[1][l]];
+
+			vcf << "\t50\t.\t.\tGT\t";
+			if(haplotypes[0][l] != haplotypes[1][l])
+				vcf << "0/1\n";
+			else
+				vcf << "1/1\n";
+		}
+	}
+};
+
 
 void TSimulator::simulateSingleIndividual(double theta, std::string & outname){
 	std::vector<double> thetas;
 	for(unsigned int i=0; i<chromosomes.size(); ++i)
 		thetas.push_back(theta);
 	simulateSingleIndividual(thetas, outname);
-}
+};
 
 void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string & outname){
 	//one theta per chromosome
@@ -859,19 +879,37 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	gz::ogzstream genoFile;
 	gz::ogzstream invariantSitesFile;
 	gz::ogzstream variantSitesFile;
+	gz::ogzstream variantVCF;
 
 	if(writeTrueGenotypes){
 		//open file for true genotypes
 		filename = outname + "_trueGenotypes.txt.gz";
 		genoFile.open(filename.c_str());
+		if(!genoFile)
+			throw "Failed to open file '" + filename + "' for writing!";
 
 		//open file for invariant positions
 		filename = outname + "_invariantSites.bed.gz";
 		invariantSitesFile.open(filename.c_str());
+		if(!invariantSitesFile)
+			throw "Failed to open file '" + filename + "' for writing!";
 
 		//open file for variant positions
 		filename = outname + "_variantSites.bed.gz";
 		variantSitesFile.open(filename.c_str());
+		if(!variantSitesFile)
+			throw "Failed to open file '" + filename + "' for writing!";
+
+		//open vcf file of variant positions
+		filename = outname + "_variantSites.vcf.gz";
+		variantVCF.open(filename.c_str());
+		if(!variantVCF)
+			throw "Failed to open file '" + filename + "' for writing!";
+
+		//write info
+		variantVCF << "##fileformat=VCFv4.2\n";
+		variantVCF << "##source=ATLAS_Simulation\n";
+		variantVCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	}
 
 	//prepare mutation table
@@ -907,6 +945,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 			logfile->listFlush("Writing true genotypes ...");
 			haplotypes.writeGenotypes(genoFile, chrIt->name, genoMap);
 			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef(), invariantSitesFile, variantSitesFile);
+			writeVCFwithVariantPositions(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef(), chrIt->name, variantVCF);
 			logfile->done();
 		}
 
@@ -924,6 +963,7 @@ void TSimulator::simulateSingleIndividual(std::vector<double> theta, std::string
 	invariantSitesFile.close();
 	variantSitesFile.close();
 	referenceObj.close();
+	variantVCF.close();
 
 	//clear memory
 	for(int i=0; i<4; ++i)
