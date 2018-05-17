@@ -143,8 +143,8 @@ private:
 			std::string line;
 			std::getline(*myStream, line);
 
+			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
 
-			fillVectorFromStringAny(line, vec, "\t ");
 			//skip empty lines
 			if(vec.size() > 0){
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
