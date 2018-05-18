@@ -127,7 +127,6 @@ void TWindow::review(){
 }
 
 void TWindow::cleanUpUsedAlignments(){
-	std::cout << "sum of alignments before clean up " << usedAlignments.size() + emptyAlignments.size() << std::endl;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start && (*alignmentIt)->chrNumber == chrNumber)){

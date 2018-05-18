@@ -452,10 +452,10 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				predefinedWindows->setChr(chrIterator->Name);
 				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 				if(numWindowsOnChr < 1){
-					logfile->conclude("No windows on this chromosome.");
+					logfile->conclude("No windows on " + chrIterator->Name + ".");
 					++chrIterator;
 				}
-			} while(numWindowsOnChr < 1);
+			} while(numWindowsOnChr < 1 && chrIterator != bamHeader.Sequences.End());
 
 			if(chrIterator != bamHeader.Sequences.End()){
 				window.start = predefinedWindows->curWindowStart();
@@ -483,7 +483,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				predefinedWindows->setChr(chrIterator->Name);
 				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 				if(numWindowsOnChr < 1){
-					logfile->conclude("No windows on this chromosome.");
+					logfile->conclude("No windows on chromosome " + chrIterator->Name + ".");
 					++chrIterator;
 				}
 			} while(numWindowsOnChr < 1);
@@ -629,8 +629,10 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		alignment.fillReadGroupInfo(readGroupId);
 		alignment.fillPmdProbabilities(pmdObjects);
 
-		if(doRecalibration)
+		if(doRecalibration){
 			recalibrate(alignment);
+
+		}
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 		if(applyQualityFilter)
@@ -654,14 +656,16 @@ bool TAlignmentParser::readNextAligment(TAlignment & alignment){
 bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 	setParsingToTrue();
 
+	std::cout << "in readDataInNextWindow and window has coordinates " << window.start << ", " << window.end << std::endl;
 	//move window
-	if(!moveWindow(window))
+	if(!moveWindow(window)){
+		std::cout << "moveWindow returning false!" << std::endl;
 		return false;
+
+	}
 
 	//read data
 	readAlignmentsIntoWindow(window);
-
-	//window.printPileupToScreen(recalObject);
 
 	return true;
 };
@@ -899,11 +903,17 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 
 	TQualityMap qualMap;
 
+	std::cout << "alignment name: " << alignment.name() << std::endl;
+
 	if(recalObject->recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
-			if(alignment.bases[d].aligned)
+			if(alignment.bases[d].aligned){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
+//				int tmpQual = qualMap.errorToPhredInt(alignment.bases[d].errorRate);
+//				alignment.bases[d].errorRate = qualMap.phredIntToErrorMap[tmpQual];
+				std::cout << "d: " << d << " ##### alignment.bases[d].errorRate "<< alignment.bases[d].errorRate << " corresponsd to phredInt " << qualMap.errorToPhredInt(alignment.bases[d].errorRate) << std::endl;
+			}
 		}
 
 		alignment.changed = true;
@@ -947,8 +957,8 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	TQualityMap qualMap;
 
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
-		QTtables.at(QTtables.size() - 1)->add(alignment.quality[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
 	}
 }
 

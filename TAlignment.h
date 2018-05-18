@@ -70,7 +70,7 @@ private:
 	char** softClippedQuality;
 	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
 //	int* qualityRecalibrated;
-	int* quality; //pointer to qualities to be used
+//	int* quality; //pointer to qualities to be used
 //	char* baseAsChar; //TODO: to be removed, if possible
 
 
@@ -132,8 +132,8 @@ public:
 	int getPosition(){return position;};
 
 	//functions to write / print alignment
-	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting);
-	void print(TGenotypeMap & genoMap);
+	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
+	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
 
 	//accessed by alignmentParser
 
@@ -156,12 +156,12 @@ public:
 	void fillReadGroupInfo(int & readGroupID);
 	void binQualityScores(TQualityMap & qualityMap);
 	void updateOptionalSamField(std::string tag, float value);
-	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator);
+	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
 
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
 	void assessSoftClipping(int & S_left, int & middle, int & S_right);
-	void addToQualityTable(TQualityTable & qualTable);
+	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
 
 	friend class TAlignmentParser;
 	friend class TWindow;

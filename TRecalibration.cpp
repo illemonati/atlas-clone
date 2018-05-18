@@ -269,7 +269,6 @@ double TRecalibrationEMModel::getErrorRate(TBase & base){
 	//q[3] is square of position
 	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
 
-	if(base.context > 20) std::cout << "context is " << base.context << " and base aligned status is " << base.aligned << std::endl;
 	//q[4] until q[23] are indicators for the context. Just pick the matching one!
 	eta += betas[base.readGroup][base.context + 4];
 

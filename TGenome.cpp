@@ -1523,6 +1523,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	//other tmp variables
 	long counter = 0;
 	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1537,20 +1538,16 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			alignmentParser.addReference(&reference);
 
 			alignmentParser.recalibrateWithPMD(alignment);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 
-			//if(counter % 1000 == 0){
-				std::cout << "counter " << counter << std::endl;
-			//}
 			reportProgressParsingBamFile(counter, start);
         }
 	} else {
 		while(alignmentParser.readNextAligment(alignment)){
 			++counter;
-			std::cout << "counter " << counter << std::endl;
 
 			alignmentParser.recalibrate(alignment);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 
 			reportProgressParsingBamFile(counter, start);
 		}

@@ -27,7 +27,7 @@ TAlignment::TAlignment(){
 	hasReference = false;
 
 	bases = NULL;
-	quality = NULL;
+//	quality = NULL;
 	qualityOriginal = NULL;
 	softClippedEntry = 0;
 	softClippedLength = NULL;
@@ -64,7 +64,7 @@ void TAlignment::clear(){
 	recalibrated = false;
 	changed = false;
 	passedFilters = false;
-	quality = qualityOriginal;
+//	quality = qualityOriginal;
 }
 
 void TAlignment::initStorage(){
@@ -347,6 +347,7 @@ void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 			bases[d].base = N;
 		}
 	}
+	changed = true;
 };
 
 void TAlignment::filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting){
@@ -376,6 +377,7 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 		for(int d=0; d<trimmingLength5Prime; ++d)
 			bases[d].base = N;
 	}
+	changed = true;
 };
 /*
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
@@ -444,7 +446,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
-		quality[d] = qualityMap.illuminaQualityBins[quality[d]];
+		bases[d].errorRate = qualityMap.qualityToError(qualityMap.illuminaQualityBins[qualityOriginal[d]]);
 	}
 	changed = true;
 };
@@ -604,10 +606,13 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right){
 	}
 };
 
-void TAlignment::addToQualityTable(TQualityTable & qualTable){
+void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap){
 	//make sure read is parsed
 	if(!parsed) throw "Read was not parsed!";
-	qualTable.add(quality, length);
+	for(int d=0; d<length; ++d){
+		const int qual = qualMap.errorToQuality(bases[d].errorRate);
+		qualTable.add(qual);
+	}
 };
 
 
@@ -620,12 +625,12 @@ void TAlignment::updateOptionalSamField(std::string tag, float value){
 	else bamAlignment.EditTag(tag, "f", value);
 };
 
-void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator){
+void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap){
 	for(int d=0; d<length; ++d){
 		double r = randomGenerator.getRand();
 		if(r < fraction){
 			bases[d].base = N;
-			quality[d] = 0;
+			bases[d].errorRate = qualMap.qualityToError(0);
 		}
 	}
 	changed = true;
@@ -634,7 +639,7 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
-void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting){
+void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap){
 	if(changed){
 		//means that read has been modified.
 		//Currently quality recalibration is the only possible change.
@@ -646,7 +651,8 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 //		tmpString2.clear();
 		for(int d=0; d<length; ++d){
 			tmpString += genoMap.baseToChar[bases[d].base];
-			tmpString2 += (char) quality[d];
+
+			tmpString2 += (char) qualMap.errorToQuality(bases[d].errorRate);
 		}
 		bamAlignment.QueryBases = tmpString;
 		bamAlignment.Qualities = tmpString2;
@@ -660,7 +666,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 		throw "Read '" + bamAlignment.Name + "' could not be written!";
 };
 
-void TAlignment::print(TGenotypeMap & genoMap){
+void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "NAME:\t" << bamAlignment.Name << std::endl;
 	std::cout << "LEN:\t" << length << std::endl;
 
@@ -673,7 +679,7 @@ void TAlignment::print(TGenotypeMap & genoMap){
 	//print qualities
 	std::cout << "QUAL:\t";
 	for(int d=0; d<length; ++d)
-		std::cout << (char) quality[d];
+		std::cout << (char) qualMap.errorToQuality(bases[d].errorRate);
 	std::cout << std::endl;
 
 	//print aligned pos
