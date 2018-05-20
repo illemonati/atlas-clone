@@ -59,7 +59,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 };
 
-/*
+
 
 bool TGenome::addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair){
 	//check if bam file is sorted
@@ -407,7 +407,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
 }
-/*
+
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
 	if(numBootstraps < 1) throw "Number of bootstraps must be > 1!";
 	logfile->startIndent("Generating " + toString(numBootstraps) + " bootstrap estimates of theta:");
@@ -1095,7 +1095,7 @@ void TGenome::combineBeagleFiles(TParameters & params){
 		}
 	}
 }
-*/
+
 
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
@@ -1126,7 +1126,7 @@ void TGenome::printPileup(TParameters & params){
 	out.close();
 }
 
-/*
+
 
 void TGenome::generatePSMCInput(TParameters & params){
 	//initialize recalibration
@@ -1210,7 +1210,7 @@ void TGenome::createDepthMask(TParameters & params){
 	}
 	output.close();
 }
-*/
+
 //---------------------------------------------------
 //recalibration
 //---------------------------------------------------
@@ -1252,7 +1252,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//run EM iterations
 	recalObjectEM.runEM(outputName, writeTmpTables);
 }
-/*
+
 
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
@@ -1445,7 +1445,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	logfile->done();
 	logfile->endIndent();
 }
-*/
+
 void TGenome::printQualityTransformation(TParameters & params){
 	//prepare alignment
 	TAlignment alignment(maxReadLength);
@@ -1575,7 +1575,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	reader.Close();
 	logfile->done();
 }
-/*
+
 void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -2796,4 +2796,4 @@ void TGenome::runPMDS(TParameters & params){
 
 }
 
-*/
+

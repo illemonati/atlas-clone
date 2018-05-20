@@ -47,16 +47,16 @@ public:
 			if(task == "estimateTheta"){
 				logfile->startIndent("Running an EM algorithm to estimate heterozygosity (task = estimateTheta):");
 				genome.estimateTheta(*parameters);
-			} /*else if(task == "LLsurface"){
+			} else if(task == "LLsurface"){
 				logfile->startIndent("Calculating the LL surface for each window (task = LLSurface):");
 				genome.calcLikelihoodSurfaces(*parameters);
-			} */else if(task == "pileup"){
+			} else if(task == "pileup"){
 				logfile->startIndent("Printing pileup for each window (task = pileup):");
 				genome.printPileup(*parameters);
 			} else if(task == "recal"){
 				logfile->startIndent("Estimating error calibration function with EM (task = recal):");
 				genome.estimateErrorCalibrationEM(*parameters);
-			} /*else if(task == "recalLL"){
+			} else if(task == "recalLL"){
 				logfile->startIndent("Calculating LL for error calibration function (task = recalLL):");
 				genome.calculateLikelihoodErrorCalibrationEM(*parameters);
 			} else if(task == "BQSR"){
@@ -86,13 +86,13 @@ public:
 			} else if(task == "qualityDist"){
 				logfile->startIndent("Printing Quality Distribution (task = qualityDist):");
 				genome.printQualityDistribution(*parameters);
-			} */else if(task == "qualityTransformation"){
+			} else if(task == "qualityTransformation"){
 				logfile->startIndent("Printing Quality Transformation (task = qualityTransformation):");
 				genome.printQualityTransformation(*parameters);
 			} else if(task == "recalBAM"){
 				logfile->startIndent("Recalibrating a BAM file (task = recalBAM):");
 				genome.recalibrateBamFile(*parameters);
-			} /*else if(task == "binQualityScores"){
+			} else if(task == "binQualityScores"){
 				logfile->startIndent("Binning quality scores (task = binQualityScores");
 				genome.binQualityScores(*parameters);
 			} else if(task == "assessSoftClipping"){
@@ -141,7 +141,7 @@ public:
 				logfile->startIndent("Finding allelic depth distribution (task=createDepthMask:");
 				genome.allelicDepth(*parameters);
 
-			}*/ else throw "Unknown task '" + task + "'!";
+			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile->endIndent();
 	};
