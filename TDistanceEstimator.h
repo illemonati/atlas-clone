@@ -49,6 +49,7 @@ public:
 		for(int i=0; i<10; ++i){
 			for(int j=0; j<10; ++j)
 				delete[] genotypeCombinationHasBase[i][j];
+			delete[] genotypeCombinationHasBase[i];
 		}
 		delete[] genotypeCombinationHasBase;
 	};
@@ -71,17 +72,22 @@ private:
 	TGenoToPhiMap genoToPhiMap;
 	TGenocombinationToBaseMap genoToBaseMap;
 	TQualityMap phredToLik;
+
+	//settings
+	int maxNumEMIterations;
+	double epsilonForEM;
+
+	//tmp variables
 	double old_LL;
 	double* K; //normalizing constant
 	double** probGeno;
 	double** P_G;
 	double** P_G_one_site;
-	int g1, g2; //index variables
 	double* distanceWeight; //weight for each phi class towards the distance.
 
 	void calculateDistance();
-	void guessPi(int** genoQual1, int** genoQual2, long numSites);
-	void guessPhi(int** genoQual1, int** genoQual2, long numSites);
+	void guessPi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
+	void guessPhi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 	void fill_K(TBaseFrequencies  & thesePi);
 	void fill_P_g_given_phi_pi(double* phi, TBaseFrequencies & pi);
 
@@ -95,7 +101,7 @@ public:
 	~TEMforDistanceEstimation(){
 		delete[] phi;
 		delete[] K;
-		for(g1=0; g1<10; ++g1){
+		for(int g1=0; g1<10; ++g1){
 			delete[] probGeno[g1];
 			delete[] P_G[g1];
 			delete[] P_G_one_site[g1];
@@ -106,8 +112,10 @@ public:
 		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(int** genoQual1, int** genoQual2, long numSites, int maxNumIterations, double epsilon);
+	bool estimatePhiWithEM(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 };
+
+
 
 //--------------------------------------------
 //TDistanceEstimator
@@ -117,15 +125,37 @@ private:
 	TLog* logfile;
 	int maxNumEMIterations;
 	double epsilonForEM;
+	std::string outputName;
 
+	//GLF files
+	int numGLFs;
+	std::vector<std::string> GLFNames;
+	TGlfReader* glfs;
+	bool readersOpened;
+
+	void openGLF(TParameters & params);
+	void closeGLF();
+
+
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
+	bool moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2);
+	bool advance(TGlfReader & g1, TGlfReader & g2);
+	void readCommonSites(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2, TGlfReader & g1, TGlfReader & g2);
+	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, TGlfReader & g1, TGlfReader & g2, gz::ogzstream & out);
+
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, long windowLen);
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen);
 
-	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int & numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd);
+	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:
-	TDistanceEstimator(TLog* Logfile);
-	~TDistanceEstimator(){};
+	TDistanceEstimator(TLog* Logfile, TParameters & params);
+	~TDistanceEstimator(){
+		closeGLF();
+	};
 
 	void printGLF(TParameters & params);
 	void estimateDistances(TParameters & params);

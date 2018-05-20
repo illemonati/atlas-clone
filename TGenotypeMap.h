@@ -423,6 +423,11 @@ public:
 		//Note: no check on range!
 		return phredIntToErrorMap[phred];
 	};
+
+	double& operator[](uint8_t & phred){
+		//Note: no check on range!
+		return phredIntToErrorMap[phred];
+	};
 };
 
 

@@ -253,7 +253,7 @@ void TGenome::initializeRecalibration(TParameters & params){
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
-*/
+
 void TGenome::initializeRandomGenerator(TParameters & params){
 	logfile->listFlush("Initializing random generator ...");
 
@@ -1768,7 +1768,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	bamWriter.Close();
 
 	//now generate bam index
-	indexBamFile();
+	indexBamFile(filename);
 
 	//report
 	reportProgressParsingBamFile(counter, start);

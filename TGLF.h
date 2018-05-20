@@ -24,24 +24,26 @@ protected:
 	std::string filename;
 	gzFile gzfp;
 	bool isOpen;
-	long positionInFile;
 	uint32_t offset;
 	std::string version;
 	uint8_t zero8, one8;
 	uint32_t zero32;
 	std::string curChr;
+	int curChrNumber;
 	std::string header;
+	long positionInFile;
 
 public:
 	TGlfHandle(){
 		isOpen = false;
 		gzfp = NULL;
-		positionInFile = 0;
 		offset = 0;
 		version = "GLF3";
 		zero8 = 0;
 		one8 = 1;
 		zero32 = 0;
+		curChrNumber = 0;
+		positionInFile = 0;
 	};
 
 	void close(){
@@ -57,6 +59,10 @@ public:
 
 	std::string chr(){
 		return curChr;
+	};
+
+	int chrNumber(){
+		return curChrNumber;
 	};
 };
 
@@ -104,17 +110,17 @@ public:
 class TGlfReader:public TGlfHandle{
 private:
 	bool reachedEndOfChr;
+	uint32_t HeaderLen;
 	uint32_t offset;
 	uint32_t depth_mask;
 	uint32_t tmpInt32;
 	uint8_t tmpInt8;
-	uint8_t tmpInt8_10[10];
+	int SNPRecordSize;
 	uint8_t tmpRecordStorage[19];
 	long _chrLength;
 	int _lenRead;
-	int _i;
 	bool _eof;
-	int* genotypeQualitiesMissingData;
+	uint8_t genotypeQualitiesMissingData[10];
 	std::vector<std::string> chromosomesAlreadyParsed;
 
 	void init();
@@ -125,12 +131,13 @@ private:
 		positionInFile += _lenRead;
 		return true;
 	};
+	void open();
 	bool readChr();
 	bool chromosomeParsed(std::string & chr);
 	bool readRecordType();
 	void readSNPRecord();
 	inline void skipRecord(){
-		read(&tmpRecordStorage, 152); //just parse data of one SNP record into garbage
+		read(&tmpRecordStorage, SNPRecordSize); //just parse data of one SNP record into garbage
 	};
 
 public:
@@ -139,8 +146,7 @@ public:
 	int maxLL;
 	int depth;
 	int RMS_mappingQual;
-	int genotypeQualities[10];
-	uint32_t HeaderLen;
+	uint8_t genotypeQualities[10];
 
 	TGlfReader(){
 		init();
@@ -151,20 +157,22 @@ public:
 	};
 	~TGlfReader(){
 		close();
-		delete[] genotypeQualitiesMissingData;
+		//delete[] genotypeQualitiesMissingData;
 	};
 
-	//get detailes
+	//get details
 	long chrLength(){ return _chrLength; };
 	bool eof(){ return _eof;};
 
 	//open file and parse header
+	void setFilename(std::string Filename);
 	void open(std::string Filename);
 	void rewind();
 	bool readNext();
 	bool jumpToEndOfChr();
-	bool readNextWindow(int** genoLikelihoods, std::string chr, long start, long end);
-
+	bool jumpToNextChr();
+	bool readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::string chr, long start, long end);
+	void fillGenotypeQualities(uint8_t* destination);
 
 	//printing
 	void printChr();
