@@ -59,201 +59,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 };
 
-
-
-bool TGenome::addAlignementToWindows(TAlignment & alignment, TWindowPair & windowPair){
-	//check if bam file is sorted
-	if(alignment.getPosition() < oldPos)
-		throw "BAM file must be sorted by position!";
-	oldPos = alignment.getPosition();
-
-	//and add
-	if(alignment.position >= curStart){
-		//check if still within current window and add to window
-		if(alignment.position >= curEnd) return false;
-		else {
-			if(windowPair.addToCur(alignmentParser, pmdObjects)){
-				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.addToNext(alignmentParser, pmdObjects);
-			}
-		}
-	}
-	return true; //continue
-}
-
-bool TGenome::readData(TWindow & window){
-	logfile->listFlush("Reading data ...");
-
-	TAlignment alignment;
-	alignmentParser.setParsingToTrue();
-
-	//measure runtime
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-
-
-	//parse through reads
-	if(oldAlignementMustBeConsidered){
-		oldAlignementMustBeConsidered = false;
-		if(!addAlignementToWindows(alignment, window)){
-			//next read is for a later window
-			oldAlignementMustBeConsidered = true;
-			gettimeofday(&end, NULL);
-			logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
-			logfile->conclude("No data in this window.");
-			return false; //still only in next window
-		}
-	}
-
-
-	while(alignmentParser.readData()){
-		if(alignment.passedFilters && readGroups.readGroupInUse(alignment.readGroupId)){
-			//and add to windows
-			if(!addAlignementToWindows(alignment, window)){
-				//read is beyond window and should be reconsidered
-				break;
-			}
-		}
-	}
-
-	gettimeofday(&end, NULL);
-	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
-
-	if(windowPair.cur->numReadsInWindow > 0){
-		//apply masks and filters
-		if(doMasking){
-			logfile->listFlush("Masking sites ...");
-			windowPair.cur->applyMask(mask, considerRegions);
-			logfile->done();
-		} else if(considerRegions){
-			logfile->listFlush("Masking sites outside regions ...");
-			windowPair.cur->applyMask(mask, considerRegions);
-			logfile->done();
-		} else if(doCpGMasking){
-			logfile->listFlush("Masking CpG sites ...");
-			windowPair.cur->maskCpG(reference, chrNumber);
-			logfile->done();
-		} if(applyDepthFilter){
-			windowPair.cur->applyDepthFilter(minDepth, maxDepth);
-		} if(maxRefN < 1.0 && fastaReference == true){
-			windowPair.cur->addReferenceBaseToSites(reference, chrNumber);
-			windowPair.cur->calcFracN();
-		}
-
-		//calc sequencing depth
-		windowPair.cur->calcDepth();
-
-		//report
-		logfile->conclude("read data from " + toString(windowPair.cur->numReadsInWindow) + " reads.");
-		logfile->conclude("sequencing depth is " + toString(windowPair.cur->depth));
-		logfile->conclude(toString(windowPair.cur->fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
-		logfile->conclude(toString(windowPair.cur->fractionSitesNoData * 100) + "% of all sites have no data");
-		if(windowPair.cur->fractionSitesNoData > maxMissing){
-			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-			return false;
-		}
-		if(maxRefN < 1.0 && fastaReference == true){
-			logfile->conclude(toString(windowPair.cur->fractionRefIsN * 100) + "% of all reference bases are 'N'");
-			if(windowPair.cur->fractionRefIsN > maxRefN){
-				logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-				return false;
-			}
-		}
-		return true;
-	} else {
-		logfile->conclude("No data in this window.");
-		return false;
-	}
-};
-
-
-void TGenome::initializePostMortemDamage(TParameters & params){
-	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
-	//create an array of TPMD objects for each read group
-	pmdObjects = new TPMD[readGroups.size()];
-
-	//now fill them!
-	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
-		//all read groups have the same pmd
-		logfile->list("Initializing one PMD function for all read groups.");
-		pmdObjects[0].initialize(params, logfile);
-		for(int i=1; i<readGroups.size(); ++i)
-			pmdObjects[i].initialize(pmdObjects[0]);
-		hasPMD = true;
-	} else if(params.parameterExists("pmdFile")){
-		//read from file for each read group
-		std::string filename = params.getParameterString("pmdFile");
-		logfile->list("Reading PMD from file '" + filename + "'.");
-		std::ifstream file(filename.c_str());
-		if(!file) throw "Failed to open PMD file '" + filename + "'!";
-
-		//parse file that has structure: readGroup PMD(CT) PMD(GA)
-		int lineNum = 0;
-		std::string line;
-		std::vector<std::string> vec;
-		int readGroupId;
-		while(file.good() && !file.eof()){
-			++lineNum;
-			//skip empty lines or those that start with //
-			std::getline(file, line);
-			line = extractBefore(line, "//");
-			trimString(line);
-			if(!line.empty()){
-				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
-				if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
-				//get read group
-				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
-					readGroupId = readGroups.find(vec[0]);
-					//initialize functions
-					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
-				//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
-					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
-				//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
-				}
-			}
-		}
-
-		//close file
-		file.close();
-
-		//test if we have a function for all read groups
-		for(int i=0; i<readGroups.size(); ++i){
-			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
-			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
-		}
-		hasPMD = true;
-	} else {
-		//no post mortem damage
-		logfile->list("Assuming there is no PMD in the data.");
-		std::string pmdString = "none";
-		for(int i=0; i<readGroups.size(); ++i){
-			pmdObjects[i].initializeFunction(pmdString, pmdGA);
-			pmdObjects[i].initializeFunction(pmdString, pmdCT);
-		}
-	}
-	logfile->endIndent();
-}
-
-void TGenome::initializeRecalibration(TParameters & params){
-	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
-	if(params.parameterExists("recal")){
-		std::string filename = params.getParameterString("recal");
-		recalObject = new TRecalibrationEM(&alignmentParser.bamHeader, filename, params, logfile, readGroupMap);
-		doRecalibration = true;
-	} else if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(&alignmentParser.bamHeader, params, logfile, readGroupMap);
-		doRecalibration = true;
-	} else {
-		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-		doRecalibration = false;
-		recalObject = new TRecalibration(readGroupMap);
-	}
-	recalObjectInitialized = true;
-
-	//check if estimation is required, in which case throw an error!
-	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
-}
-
 void TGenome::initializeRandomGenerator(TParameters & params){
 	logfile->listFlush("Initializing random generator ...");
 
@@ -268,11 +73,11 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	randomGeneratorInitialized = true;
 }
 
-void TGenome::indexBamFile(){
-	logfile->listFlush("Creating index of BAM file '" + alignmentParser.filename + "' ...");
+void TGenome::indexBamFile(std::string & filename){
+	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
 	BamTools::BamReader reader;
 	if(!reader.Open(alignmentParser.filename))
-		throw "Failed to open BAM file '" + alignmentParser.filename + "' for indexing!";
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
 	reader.CreateIndex(BamTools::BamIndex::STANDARD);
@@ -446,68 +251,62 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 }
 
 void TGenome::calcLikelihoodSurfaces(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//Theta estimator
 	TThetaEstimator estimator(logfile);
 
 	//iterate through windows
 	std::string filename;
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//check if we have data -> can be extended to ensure
-				logfile->startIndent("Calculating likelihood surface for Theta:");
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//read data for current window
+		if(window.passedFilters){
+			//check if we have data -> can be extended to ensure
+			logfile->startIndent("Calculating likelihood surface for Theta:");
 
-				//measure runtime
-				struct timeval startTime, endTime;
-				gettimeofday(&startTime, NULL);
+			//measure runtime
+			struct timeval startTime, endTime;
+			gettimeofday(&startTime, NULL);
 
-				//adding sites to estimator
-				logfile->listFlush("Calculating emission probabilities ...");
-				windows.cur->addSitesToThetaEstimator(recalObject, estimator);
-				logfile->done();
+			//adding sites to estimator
+			logfile->listFlush("Calculating emission probabilities ...");
+			window.addSitesToThetaEstimator(alignmentParser.recalObject, estimator);
+			logfile->done();
 
-				//open file
-				std::ofstream out;
-				filename = outputName + alignmentParser.chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
-				out.open(filename.c_str());
-				if(!out) throw "Failed to open output file '" + outputName + "'!";
+			//open file
+			std::ofstream out;
+			filename = outputName + alignmentParser.chrIterator->Name + "_" + toString(window.start) + "_LLsurface.txt";
+			out.open(filename.c_str());
+			if(!out) throw "Failed to open output file '" + outputName + "'!";
 
 
-				//estimate Theta
-				logfile->listFlush("Calculating likelihood surface ...");
-				estimator.calcLikelihoodSurface(out, steps);
-				logfile->done();
+			//estimate Theta
+			logfile->listFlush("Calculating likelihood surface ...");
+			estimator.calcLikelihoodSurface(out, steps);
+			logfile->done();
 
-				//clear theta estimator
-				estimator.clear();
+			//clear theta estimator
+			estimator.clear();
 
-				//finish
-				out.close();
-				gettimeofday(&endTime, NULL);
-				logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
-				logfile->endIndent();
-			}
+			//finish
+			out.close();
+			gettimeofday(&endTime, NULL);
+			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->endIndent();
+
 		}
 	}
 }
-
+/*
 //------------------------------------------
 //Callers
 //------------------------------------------
 void TGenome::callMLEGenotypes(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//set all booleans in the booleans class
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = false;
@@ -525,8 +324,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	if(params.parameterExists("sites")){
 		bool invariantSites = false;
 
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, alignmentParser.windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), alignmentParser.windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 
 	//if not, how much information should be printed?
@@ -1096,7 +895,7 @@ void TGenome::combineBeagleFiles(TParameters & params){
 	}
 }
 
-
+*/
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
 //	initializeRecalibration(params);
@@ -1125,9 +924,7 @@ void TGenome::printPileup(TParameters & params){
 	//clean up
 	out.close();
 }
-
-
-
+/*
 void TGenome::generatePSMCInput(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -1210,7 +1007,7 @@ void TGenome::createDepthMask(TParameters & params){
 	}
 	output.close();
 }
-
+*/
 //---------------------------------------------------
 //recalibration
 //---------------------------------------------------
@@ -1252,8 +1049,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//run EM iterations
 	recalObjectEM.runEM(outputName, writeTmpTables);
 }
-
-
+/*
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 	//it is either a number, or a sequence min-max:num steps
 	std::string::size_type posDash = str.find_first_of('-', 1);
@@ -1445,7 +1241,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	logfile->done();
 	logfile->endIndent();
 }
-
+*/
 void TGenome::printQualityTransformation(TParameters & params){
 	//prepare alignment
 	TAlignment alignment(maxReadLength);
@@ -1575,6 +1371,8 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	reader.Close();
 	logfile->done();
 }
+
+/*
 
 void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
@@ -2796,4 +2594,4 @@ void TGenome::runPMDS(TParameters & params){
 
 }
 
-
+*/

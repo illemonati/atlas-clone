@@ -29,6 +29,7 @@ class TAlignmentParser{
 private:
 	//variables
 	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 	//TReadGroups* readGroupTable;
 
 	TLog* logfile;

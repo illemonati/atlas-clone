@@ -46,8 +46,6 @@ private:
 
 	void jumpToEnd();
 
-//	void initializePostMortemDamage(TParameters & params);
-//	void initializeRecalibration(TParameters & params);
 	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
