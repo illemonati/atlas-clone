@@ -2274,7 +2274,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			continue;
 
 		} else if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
-			logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size");
+			if(bamAlignment.IsProperPair()){
+				logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size (" + toString(abs(bamAlignment.InsertSize)) + "<" + toString(bamAlignment.AlignedBases.size()) + ")");
+			//	std::cout << "aligned bases: "<< bamAlignment.AlignedBases << std::endl;
+			}
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 			continue;
 
