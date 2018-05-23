@@ -52,7 +52,6 @@ private:
 	bool recalibrated;
 
 	//data
-	BamTools::BamAlignment bamAlignment;
 	unsigned int maxSize;
 	int length;
 
@@ -119,11 +118,17 @@ private:
 public:
 
 	bool storageInitialized;
+	BamTools::BamAlignment bamAlignment;
+
 
 	TAlignment();
 	TAlignment(unsigned int MaxSize);
+	TAlignment(TAlignment & Alignment);
+
 	~TAlignment(){
+		std::cout << "deconstructor is called" << std::endl;
 		freeStorage();
+		std::cout << "done with deconstructor" << std::endl;
 	}
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
@@ -132,6 +137,7 @@ public:
 	int getPosition(){return position;};
 
 	//functions to write / print alignment
+	void setToSingleEnd();
 	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
 	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
 

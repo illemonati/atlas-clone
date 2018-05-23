@@ -56,6 +56,34 @@ TAlignment::TAlignment(unsigned int MaxSize){
 	initStorage();
 }
 
+TAlignment::TAlignment(TAlignment & Alignment){
+	//details
+	empty = true;
+	maxSize = Alignment.maxSize;
+	alignmentName = Alignment.alignmentName;
+	length = Alignment.length;
+	chrNumber = Alignment.chrNumber;
+	readGroupId = Alignment.readGroupId;
+	readGroup = Alignment.readGroup;
+	position = Alignment.position;
+	lastPositionPlusOne = Alignment.lastPositionPlusOne;
+	isReverseStrand = Alignment.isReverseStrand;
+	isProperPair = Alignment.isProperPair;
+	mappingQuality = Alignment.mappingQuality;
+	passedFilters = Alignment.passedFilters;
+	parsed = Alignment.parsed;
+	changed = Alignment.changed;
+	storageInitialized = Alignment.storageInitialized;
+	recalibrated = Alignment.recalibrated;
+	hasReference = Alignment.hasReference;
+	qualityOriginal = Alignment.qualityOriginal;
+	softClippedEntry = Alignment.softClippedEntry;
+	softClippedLength = Alignment.softClippedLength;
+	softClippedBase = Alignment.softClippedBase;
+	softClippedQuality = Alignment.softClippedQuality;
+	bases = Alignment.bases;
+}
+
 void TAlignment::clear(){
 	position = -1;
 	alignmentName = "empty";
@@ -88,6 +116,8 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
+	std::cout << "in free storage" << std::endl;
+	std::cout << "storageInitialized " << storageInitialized << std::endl;
 	if(storageInitialized){
 		delete[] bases;
 		delete[] qualityOriginal;
@@ -117,6 +147,7 @@ void TAlignment::freeStorage(){
 
 	}
 	storageInitialized = false;
+	std::cout << "free storage is done" << std::endl;
 }
 
 void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
@@ -639,6 +670,22 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
+void TAlignment::setToSingleEnd(){
+	bamAlignment.Length = bamAlignment.AlignedBases.size();
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, bamAlignment.Length));
+	bamAlignment.SetIsFirstMate(false);
+	bamAlignment.SetIsSecondMate(false);
+	bamAlignment.SetIsPaired(false);
+	bamAlignment.SetIsProperPair(false);
+	bamAlignment.SetIsMateReverseStrand(false);
+	bamAlignment.SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
+	bamAlignment.MateRefID = -1;
+	bamAlignment.MatePosition = -1;
+	bamAlignment.InsertSize = 0;
+}
+
+
 void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap){
 	if(changed){
 		//means that read has been modified.
@@ -664,6 +711,8 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 	//now write alignment
 	if(!bamWriter.SaveAlignment(bamAlignment))
 		throw "Read '" + bamAlignment.Name + "' could not be written!";
+
+	std::cout << "was able to save alignment" << std::endl;
 };
 
 void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){

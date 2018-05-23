@@ -110,10 +110,10 @@ public:
 			} else if(task == "PMDS"){
 				logfile->startIndent("Filtering for ancient reads using PMDS (Skoglund et al. 2014, task = PMDS):");
 				genome.runPMDS(*parameters);
-			} else if(task == "mergeReads"){
+			}*/ else if(task == "mergeReads"){
 				logfile->startIndent("Merging paired-end reads (task = mergeReads):");
 				genome.mergePairedEndReads(*parameters);
-			} else if(task == "PSMC"){
+			}/* else if(task == "PSMC"){
 				logfile->startIndent("Generating a PSMC Input file probabilistically (task = PSMC):");
 				genome.generatePSMCInput(*parameters);
 			} else if(task == "downsample"){
