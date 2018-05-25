@@ -665,6 +665,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 
 	//prepare windows
 	TWindowPairDiploid windows;
+	thetaEstimator.clear();
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structure:");
@@ -674,7 +675,6 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
 				try{
-					thetaEstimator.clear();
 					windows.cur->addSitesToThetaEstimator(recalObject, thetaEstimator);
 				} catch(...){
 					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
@@ -697,7 +697,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
-
+	thetaEstimator.clear();
 }
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
@@ -2274,7 +2274,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			continue;
 
 		} else if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
-			logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size");
+			if(bamAlignment.IsProperPair()){
+				logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size (" + toString(abs(bamAlignment.InsertSize)) + "<" + toString(bamAlignment.AlignedBases.size()) + ")");
+			//	std::cout << "aligned bases: "<< bamAlignment.AlignedBases << std::endl;
+			}
 			readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
 			continue;
 
