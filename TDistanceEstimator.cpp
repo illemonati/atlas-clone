@@ -741,7 +741,7 @@ bool TDistanceEstimator::advance(TGlfReader & g1, TGlfReader & g2){
 		if(!g2.readNext()) return false;
 	} else {
 		//advance g1
-		if(!g2.readNext()) return false;
+		if(!g1.readNext()) return false;
 	}
 
 	//make sure we are on same chromosome
@@ -757,6 +757,9 @@ void TDistanceEstimator::readCommonSites(std::vector<uint8_t*> & genoQual1, std:
 
 	//if not both are good at least one file reach end. So we are done!
 	while(advance(g1, g2)){
+
+		//std::cout << "@\t" << g1.chr() << ":" << g1.position << "\t" << g2.chr() << ":" << g2.position << std::endl;
+
 		if(g2.position == g1.position){
 			//add data
 			genoQual1.push_back(new uint8_t[10]);
