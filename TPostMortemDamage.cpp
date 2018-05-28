@@ -82,7 +82,7 @@ void TPMDTable::empty(){
 };
 
 void TPMDTable::add(const int & pos, const Base & ref, const Base & read){
-	if(pos < 0) throw "position in TPMDTable add function is < 0!";
+	if(pos < 0) throw "position in TPMDTable add function is < 0! (" + toString(pos) + ")";
 	if(pos < maxLength)
 		++counts[pos][ref][read];
 };

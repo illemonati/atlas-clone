@@ -78,6 +78,8 @@ TAlignmentParser::TAlignmentParser(){
 	recalibrated = false;
 	qualityRecalibrated = NULL;
 	aligned = NULL;
+	numInsertions = -1;
+	numDeletions = -1;
 	alignedPos = NULL;
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
@@ -184,6 +186,8 @@ void TAlignmentParser::parseBasesQualities(){
 	int p = 0; //index regarding reference position (!= k for indels)
 	softClippedEntry = 0; //softclipped bases to be added
 	softClippedLength[0] = 0; softClippedLength[1] = 0;
+	numInsertions = 0;
+	numDeletions = 0;
 
 	cigarIter = bamAlignment.CigarData.begin();
 	cigarEnd  = bamAlignment.CigarData.end();
@@ -232,6 +236,7 @@ void TAlignmentParser::parseBasesQualities(){
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
 					errorRates[d] = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					aligned[d] = false;
+					++numInsertions;
 					alignedPos[d] = -1;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
@@ -242,6 +247,7 @@ void TAlignmentParser::parseBasesQualities(){
 			case (BamTools::Constants::BAM_CIGAR_DEL_CHAR) :
 				p += op.Length;
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
+				++numDeletions;
 				break;
 
 			// for 'N' - skipped region: copy but say that bases were not aligned
@@ -269,6 +275,7 @@ void TAlignmentParser::parseBasesQualities(){
 
 	//update length
 	length = k;
+	if (bamAlignment.Name == "HWI-ST858:204:C5RR4ACXX:5:2306:15332:24179") std::cout << "k " << k << std::endl;
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
@@ -317,10 +324,11 @@ void TAlignmentParser::setDistancesFromEnds(){
 	if(isProperPair){
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
-			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
-			int k = abs(bamAlignment.InsertSize) - length;
-			int p = length - 1;
+			//hence distance from 5' is given by f(dist since beginning of fragment) = f(insert - len + pos)
+			//and distance from 3' is given as f(end of fragment) = f(len - pos - 1)
+			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
+			int p = length - 1 - softClippedLength[1];
+			int insertionsPassed = 0;
 			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = p - d;
 				distFrom3Prime[d] = k + d;
@@ -331,10 +339,10 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//And distance from 5' is given by (length of fragment) - pos -1
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
-			int p = abs(bamAlignment.InsertSize) - 1;
+			int p = abs(bamAlignment.InsertSize) - 1 + numInsertions - numDeletions;
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = d;
-				distFrom3Prime[d] = p - d;
+				distFrom5Prime[d] = d - softClippedLength[0];
+				distFrom3Prime[d] = p - d + softClippedLength[0];
 			}
 		}
 	} else {
@@ -345,8 +353,8 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = p - d;
-				distFrom3Prime[d] = d;
+				distFrom5Prime[d] = p - d - softClippedLength[1];
+				distFrom3Prime[d] = d - softClippedLength[0];
 			}
 
 		} else {
@@ -354,8 +362,8 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int d=0; d<length; ++d){
-				distFrom5Prime[d] = d;
-				distFrom3Prime[d] = p - d;
+				distFrom5Prime[d] = d - softClippedLength[0];
+				distFrom3Prime[d] = p - d - softClippedLength[1];
 			}
 		}
 	}

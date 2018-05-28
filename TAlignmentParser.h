@@ -117,8 +117,10 @@ public:
 	char* baseAsChar; //TODO: to be removed, if possible
 	BaseContext* context;
 	int* quality; //pointer to qualities to be used
-	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
+	bool* aligned; //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int* alignedPos;
+	int numInsertions;
+	int numDeletions;
 	int* distFrom3Prime;
 	int* distFrom5Prime;
 	double* pmdCT;
