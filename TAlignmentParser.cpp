@@ -214,7 +214,8 @@ void TAlignmentParser::parseBasesQualities(){
 			//for 'S' - soft clip: ignore bases, but increase k
 			case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 				//add bases to softclipped entries
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
+				//soft-clipped bases on 5' are before bamAlignment.Position
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
 					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
@@ -275,8 +276,7 @@ void TAlignmentParser::parseBasesQualities(){
 
 	//update length
 	length = k;
-	if (bamAlignment.Name == "HWI-ST858:204:C5RR4ACXX:5:2306:15332:24179") std::cout << "k " << k << std::endl;
-	if(length != bamAlignment.Length)
+	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
 
@@ -317,6 +317,31 @@ void TAlignmentParser::trimRead(){
 			base[d] = N;
 	}
 };
+
+int TAlignmentParser::measureOverlap(){
+	if(isProperPair && passedFilters){
+		parse();
+
+		if(!isReverseStrand){
+			int k = length - softClippedLength[1] - 1;
+
+			while(alignedPos[k] < 0){
+				--k;
+			}
+			int endPos = bamAlignment.Position + alignedPos[k];
+			int overlap = endPos - bamAlignment.MatePosition;
+			if(overlap < 0)
+				//there is no overlap
+				return 0;
+			else
+				return overlap;
+		} else
+			//not relevant
+			return -1;
+	} else
+		//not relevant
+		return -1;
+}
 
 
 void TAlignmentParser::setDistancesFromEnds(){
@@ -432,18 +457,17 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	readGroupId = readGroupTable->find(readGroup);
 
 	//check if read passes basic QC
-	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
 
 	//check read length
 	if(bamAlignment.AlignedBases.size() > maxSize)
 		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
 
-	//check if insert size is shorter than read, this means we are reading the adaptor sequence
-	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
+	//check if insert size is shorter than read-insertions+deletions, this means we are reading the adaptor sequence
+	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= (bamAlignment.AlignedBases.length() + numInsertions)){
 		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 		passedFilters = false;
 	}
-
 	return true;
 }
 

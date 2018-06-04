@@ -146,6 +146,7 @@ public:
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
+	int measureOverlap();
 
 	//functions to read and parse
 	bool readAlignment(BamTools::BamReader & bamReader);
