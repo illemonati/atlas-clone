@@ -325,9 +325,8 @@ int TAlignmentParser::measureOverlap(){
 		if(!isReverseStrand){
 			int k = length - softClippedLength[1] - 1;
 
-			while(alignedPos[k] < 0){
+			while(alignedPos[k] < 0)
 				--k;
-			}
 			int endPos = bamAlignment.Position + alignedPos[k];
 			int overlap = endPos - bamAlignment.MatePosition;
 			if(overlap < 0)

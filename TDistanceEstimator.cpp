@@ -177,7 +177,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 		for(int i=0; i<9; ++i)
 			distanceWeight[i] = vec[i];
 	} else {
-		std::string distType = params.getParameterStringWithDefault("distType", "probMismatch");
+		std::string distType = params.getParameterStringWithDefault("distType", "squaredDiff");
 		logfile->list("Using distance type '" + distType + "'.");
 		if(distType == "probMismatch"){
 			//probability that a random allele from each individual is different
