@@ -1343,7 +1343,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			++counter;
 
 			alignmentParser.recalibrate(alignment);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+			alignment.save(bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 			reportProgressParsingBamFile(counter, start);
 		}

@@ -74,8 +74,8 @@ TAlignmentParser::TAlignmentParser(){
 
 	//filters
 	applyQualityFilter = false;
-	minQual = 33;
-	maxQual = 126;
+	minQual = 0;
+	maxQual = 93;
 	applyDepthFilter = false;
 	minDepth = 0;
 	maxDepth = 10000;
@@ -901,8 +901,6 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 		for(int d=0; d<alignment.length; ++d){
 			if(alignment.bases[d].aligned){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-				int tmpQual = qualMap.errorToPhredInt(alignment.bases[d].errorRate);
-				alignment.bases[d].errorRate = qualMap.phredIntToErrorMap[tmpQual];
 			}
 		}
 

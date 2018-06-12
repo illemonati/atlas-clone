@@ -189,7 +189,6 @@ void TWindow::fillSites(){
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
 				sites[internalPos].add(&(*alignmentIt)->bases[p]);
-				std::cout << "error rate " << (*alignmentIt)->bases[p].errorRate << std::endl;
 			}
 		}
 		++numReadsInWindow;
