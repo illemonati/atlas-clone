@@ -901,8 +901,8 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 		for(int d=0; d<alignment.length; ++d){
 			if(alignment.bases[d].aligned){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-//				int tmpQual = qualMap.errorToPhredInt(alignment.bases[d].errorRate);
-//				alignment.bases[d].errorRate = qualMap.phredIntToErrorMap[tmpQual];
+				int tmpQual = qualMap.errorToPhredInt(alignment.bases[d].errorRate);
+				alignment.bases[d].errorRate = qualMap.phredIntToErrorMap[tmpQual];
 			}
 		}
 

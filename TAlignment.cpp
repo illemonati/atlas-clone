@@ -116,8 +116,6 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
-	std::cout << "in free storage" << std::endl;
-	std::cout << "storageInitialized " << storageInitialized << std::endl;
 	if(storageInitialized){
 		delete[] bases;
 		delete[] qualityOriginal;
@@ -147,7 +145,6 @@ void TAlignment::freeStorage(){
 
 	}
 	storageInitialized = false;
-	std::cout << "free storage is done" << std::endl;
 }
 
 void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
@@ -711,8 +708,6 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 	//now write alignment
 	if(!bamWriter.SaveAlignment(bamAlignment))
 		throw "Read '" + bamAlignment.Name + "' could not be written!";
-
-	std::cout << "was able to save alignment" << std::endl;
 };
 
 void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){

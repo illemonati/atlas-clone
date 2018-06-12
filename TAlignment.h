@@ -126,9 +126,7 @@ public:
 	TAlignment(TAlignment & Alignment);
 
 	~TAlignment(){
-		std::cout << "deconstructor is called" << std::endl;
 		freeStorage();
-		std::cout << "done with deconstructor" << std::endl;
 	}
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
