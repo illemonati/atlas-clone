@@ -77,6 +77,8 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	recalibrated = Alignment.recalibrated;
 	hasReference = Alignment.hasReference;
 	qualityOriginal = Alignment.qualityOriginal;
+	numInsertions = -1;
+	numDeletions = -1;
 	softClippedEntry = Alignment.softClippedEntry;
 	softClippedLength = Alignment.softClippedLength;
 	softClippedBase = Alignment.softClippedBase;
@@ -164,10 +166,6 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	empty = false;
 }
 
-void TAlignment::setFiltersPassed(bool passed){
-	passedFilters = passed;
-};
-
 void TAlignment::setReferenceAdded(){
 	hasReference = true;
 }
@@ -179,8 +177,8 @@ void TAlignment::setDistancesFromEnds(){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
-			int k = abs(bamAlignment.InsertSize) - length;
-			int p = length - 1;
+			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
+			int p = length - 1 - softClippedLength[1];
 			for(int d=0; d<length; ++d){
 				bases[d].posInRead = p - d;
 				bases[d].posInReadRev = k + d;
@@ -191,10 +189,10 @@ void TAlignment::setDistancesFromEnds(){
 			//And distance from 5' is given by (length of fragment) - pos -1
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
-			int p = abs(bamAlignment.InsertSize) - 1;
+			int p = abs(bamAlignment.InsertSize) - 1 + numInsertions - numDeletions;
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d;
-				bases[d].posInReadRev = p - d;
+				bases[d].posInRead = d - softClippedLength[0];
+				bases[d].posInReadRev = p - d + softClippedLength[0];
 			}
 		}
 	} else {
@@ -205,8 +203,8 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = p - d;
-				bases[d].posInReadRev = d;
+				bases[d].posInRead = p - d - softClippedLength[1];
+				bases[d].posInReadRev = d - softClippedLength[0];
 			}
 
 		} else {
@@ -214,8 +212,8 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d;
-				bases[d].posInReadRev = p - d;
+				bases[d].posInRead = d - softClippedLength[0];
+				bases[d].posInReadRev = p - d - softClippedLength[1];
 			}
 		}
 	}
@@ -234,15 +232,6 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 		//fill context for each base
 		fillContext(genoMap);
 
-		//necessary for window functions:
-
-		//fill pmd
-
-		//recalibrate
-
-		//fill read group information
-
-
 		parsed = true;
 	}
 };
@@ -255,6 +244,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	int p = 0; //index regarding reference position (!= k for indels)
 	softClippedEntry = 0; //softclipped bases to be added
 	softClippedLength[0] = 0; softClippedLength[1] = 0;
+	numInsertions = 0;
+	numDeletions = 0;
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
@@ -283,7 +274,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			//for 'S' - soft clip: ignore bases, but increase k
 			case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 				//add bases to softclipped entries
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
+					//soft-clipped bases on 5' are before bamAlignment.Position
 					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
 					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
 					++softClippedLength[softClippedEntry];
@@ -303,6 +295,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					bases[d].aligned = false;
+					++numInsertions;
 					bases[d].alignedPos = -1;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
@@ -313,6 +306,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_DEL_CHAR) :
 				p += op.Length;
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
+				++numDeletions;
 				break;
 
 			// for 'N' - skipped region: copy but say that bases were not aligned
@@ -340,7 +334,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	//update length
 	length = k;
 	lastPositionPlusOne = position + length;
-	if(length != bamAlignment.Length)
+	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
 
@@ -407,6 +401,8 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 	}
 	changed = true;
 };
+
+
 /*
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
 	//make sure read is parsed and has reference
@@ -633,6 +629,32 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right){
 		}
 	}
 };
+
+int TAlignment::measureOverlap(){
+	//make sure read is parsed
+	if(!parsed) throw "Read was not parsed!";
+
+	if(isProperPair && passedFilters){
+		if(!isReverseStrand){
+			int k = length - softClippedLength[1] - 1;
+			while(bases[k].alignedPos < 0)
+				--k;
+			int endPos = position + bases[k].alignedPos;
+			int overlap = endPos - bamAlignment.MatePosition;
+
+			if(overlap < 0)
+				//there is no overlap
+				return 0;
+			else
+				return overlap;
+		} else
+			//not relevant
+			return -1;
+
+	} else
+		//not relevant
+		return -1;
+}
 
 void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap){
 	//make sure read is parsed

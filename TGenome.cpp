@@ -1465,7 +1465,53 @@ void TGenome::assessSoftClipping(TParameters & params){
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
 }
+*/
+void TGenome::assessOverlap(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
 
+	//initialize table
+	int* counts = new int[maxReadLength]();
+
+	//other variables
+	float numProperPairs = 0.0;
+	int counter = 0;
+
+	//open output file
+	std::string filename = outputName + "_overlapStats.txt";
+	std::ofstream out(filename.c_str());
+	if(!out)
+		throw "Failed to open file '" + filename + "' for writing!";
+	out << "overlap\tcount\t\proportion\n";
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start;
+    	gettimeofday(&start, NULL);
+
+	//now parse through bam file and write alignments
+    while(alignmentParser.readNextAligment(alignment)){
+		int overlap = alignment.measureOverlap();
+		if(overlap >= 0){
+			++counts[overlap];
+			++numProperPairs;
+		}
+
+		//report
+		++counter;
+		reportProgressParsingBamFile(counter, start);
+	}
+
+	//write counts to table
+	for(int i=0; i<maxReadLength; ++i){
+       		out << i << "\t" << counts[i] << "\t" << (float) counts[i] / numProperPairs << "\n";
+	}
+
+	out.close();
+	delete[] counts;
+}
+/*
 void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");

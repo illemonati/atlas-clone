@@ -588,7 +588,8 @@ bool TAlignmentParser::readAlignment(){
 		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
 		filtersPassed = true;
 		//check if insert size is shorter than read, this means we are reading the adaptor sequence
-		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
+		//TODO: should add insertions to bamAlignment.AlignedBases.length()
+		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){;// + alignment.numInsertions)){
 			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 		} else {
@@ -596,10 +597,9 @@ bool TAlignmentParser::readAlignment(){
 			filtersPassed = readGroups.readGroupInUse(curReadGroupID)
 							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
 							&& bamAlignment.IsPrimaryAlignment()
+							&& !bamAlignment.IsSupplementary()
 							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
 		}
-
-
 	} while(!filtersPassed);
 
 	return true;
@@ -618,16 +618,15 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	alignment.fill(bamAlignment, readGroupId);
 
 	if(parse){
+		//add all info from bamAlignment to bases
 		alignment.parse(genoMap, qualMap);
 
 		//add missing information to bases
 		alignment.fillReadGroupInfo(readGroupId);
 		alignment.fillPmdProbabilities(pmdObjects);
 
-		if(doRecalibration){
+		if(doRecalibration)
 			recalibrate(alignment);
-
-		}
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 		if(applyQualityFilter)

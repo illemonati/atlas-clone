@@ -63,32 +63,15 @@ private:
 	//per base data
 	TBase* bases;
 //	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
-	//soft clipped data
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
 	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
+	int numInsertions;
+	int numDeletions;
 //	int* qualityRecalibrated;
 //	int* quality; //pointer to qualities to be used
 //	char* baseAsChar; //TODO: to be removed, if possible
-
-
-
-	//per base data
-/*	Base* base;
-	BaseContext* context;
-	double* errorRates;
-
-	int* distFrom3Prime;
-	int* distFrom5Prime;
-	double* pmdCT;
-	double* pmdGA;
-
-	//soft clipped data
-	int* softClippedLength;
-	char** softClippedBase;
-	char** softClippedQuality;
-*/
 	uint8_t softClippedEntry; //0 means start, 1 means end of read
 
 
@@ -130,7 +113,6 @@ public:
 	}
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
-	void setFiltersPassed(bool passed);
 	void setReferenceAdded();
 	int getPosition(){return position;};
 
@@ -165,6 +147,7 @@ public:
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
 	void assessSoftClipping(int & S_left, int & middle, int & S_right);
+	int measureOverlap();
 	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
 
 	friend class TAlignmentParser;

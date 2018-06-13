@@ -46,7 +46,7 @@ public:
 	double PMD_CT, PMD_GA;
 	int readGroup;
 	BaseContext context;
-	bool aligned;
+	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int alignedPos;
 //	TEmissionProbabilities emissionProbabilities;
 
