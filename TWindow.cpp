@@ -226,7 +226,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 
 void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	int pos;
-	long first = start;
+	long first = 0;
 	if(doInverseMasking){
 		if(mask->hasPositionsInWindow(start)){
 			std::vector<long> thesePos = mask->getPositionInWindow(start);
