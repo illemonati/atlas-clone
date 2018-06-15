@@ -2011,7 +2011,7 @@ void TGenome::assessOverlap(TParameters & params){
 	std::ofstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
-	out << "overlap\tcount\t\proportion\n";
+	out << "overlap\tcount\tproportion\n";
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");

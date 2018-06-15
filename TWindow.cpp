@@ -741,7 +741,7 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			recalObject.addSite(sites[i]);
-			std::cout << "#pos " << start + i << " depth " << sites[i].depth() << std::endl;
+			//std::cout << "#pos " << start + i << " depth " << sites[i].depth() << std::endl;
 		}
 	}
 }
