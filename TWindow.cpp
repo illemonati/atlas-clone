@@ -86,7 +86,7 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 
 	//check if alignment is inside window
 	if(alignmentParser.position >= end) return true;
-	if(alignmentParser.position + alignmentParser.length < start) return false;
+	if(alignmentParser.position + alignmentParser.lastAlignedPos < start) return false;
 
 	//find which position to consider first
 	++numReadsInWindow;
@@ -741,6 +741,7 @@ void TWindowHaploid::addToRecalibrationEM(TRecalibrationEM & recalObject){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			recalObject.addSite(sites[i]);
+			std::cout << "#pos " << start + i << " depth " << sites[i].depth() << std::endl;
 		}
 	}
 }

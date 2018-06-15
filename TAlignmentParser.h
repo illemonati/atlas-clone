@@ -101,6 +101,7 @@ public:
 
 	//details
 	int length;
+	int lastAlignedPos;
 	int chrNumber;
 	std::string readGroup;
 	int readGroupId;

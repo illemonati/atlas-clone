@@ -927,6 +927,7 @@ void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
 
 void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out){
 	logfile->listFlush("Bootstrapping sites ...");
+
 	data->bootstrap(randomGenerator);
 	logfile->done();
 
