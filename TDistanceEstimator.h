@@ -62,6 +62,34 @@ public:
 	};
 };
 
+//----------------------------------------------------
+//TDistanceClass
+//----------------------------------------------------
+class TDistance{
+public:
+	TDistance();
+	virtual ~TDistance(){
+		delete[] distanceWeight;
+	}
+	double* distanceWeight; //weight for each phi class towards the distance.
+	virtual double calculateDistance(double* phi);
+};
+
+class TDistanceProbMismatch:public TDistance{
+public:
+	TDistanceProbMismatch();
+};
+
+class TDistanceEuclidian:public TDistance{
+public:
+	double calculateDistance(double* phi);
+};
+
+class TDistanceUser:public TDistance{
+public:
+	TDistanceUser(std::vector<double> vec);
+};
+
 //--------------------------------------------
 //TDistanceEstimate
 //--------------------------------------------
@@ -83,9 +111,10 @@ private:
 	double** probGeno;
 	double** P_G;
 	double** P_G_one_site;
-	double* distanceWeight; //weight for each phi class towards the distance.
+	//double* distanceWeight; //weight for each phi class towards the distance.
+	TDistance* distanceObject;
 
-	void calculateDistance();
+//	void calculateDistance();
 	void guessPi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 	void guessPhi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
 	void fill_K(TBaseFrequencies  & thesePi);
@@ -109,7 +138,8 @@ public:
 		delete[] probGeno;
 		delete[] P_G;
 		delete[] P_G_one_site;
-		delete[] distanceWeight;
+		delete distanceObject;
+	//	delete[] distanceWeight;
 	};
 
 	bool estimatePhiWithEM(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2);
