@@ -6,7 +6,6 @@
  */
 
 #include "TGenome.h"
-
 //-------------------------------------------------------
 //TGenome
 //-------------------------------------------------------
@@ -321,7 +320,10 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 		//jump reader if large gap to previous window
 		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
 		if(windowPair.curPointer->start - windowPair.nextPointer->end > maxReadLength)
-			bamReader.Jump(chrNumber, curStart);
+			if(curStart-maxReadLength < 0)
+				bamReader.Jump(chrNumber, 0);
+			else
+				bamReader.Jump(chrNumber, curStart-maxReadLength);
 
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
@@ -353,7 +355,8 @@ bool TGenome::addAlignementToWindows(TAlignmentParser & alignment, TWindowPair &
 	oldPos = alignment.position;
 
 	//and add
-	if(alignment.position >= curStart){
+	int readEnd = alignment.position + alignment.lastAlignedPos;
+	if(alignment.position >= curStart || readEnd >= curStart){ //
 		//check if still within current window and add to window
 		if(alignment.position >= curEnd) return false;
 		else {
@@ -601,7 +604,14 @@ void TGenome::estimateTheta(TParameters & params){
 		//HACK!!
 		bool onlyBootstrap = params.parameterExists("onlyBootstrap");
 
-		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
+		int numBootstraps = 0;
+		if(params.parameterExists("bootstraps")){
+			int numBootstraps = params.getParameterInt("bootstraps");
+			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
+		} else
+			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+
 		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
@@ -659,7 +669,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 }
 
-void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps){
 	if(considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -697,7 +707,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
-	thetaEstimator.clear();
+	if(numBootstraps == 0) thetaEstimator.clear();
 }
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
@@ -2001,7 +2011,7 @@ void TGenome::assessOverlap(TParameters & params){
 	std::ofstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
-	out << "overlap\tcount\t\proportion\n";
+	out << "overlap\tcount\tproportion\n";
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");

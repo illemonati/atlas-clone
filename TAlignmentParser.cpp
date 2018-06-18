@@ -274,8 +274,9 @@ void TAlignmentParser::parseBasesQualities(){
 		}
 	}
 
-	//update length
+	//update length and last aligned position
 	length = k;
+	lastAlignedPos = p - 1;
 	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };

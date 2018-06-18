@@ -74,7 +74,6 @@ protected:
 	int numGenotypes;
 	long numSitesCoveredTwiceOrMore;
 	long totNumSitesAdded;
-	long numSitesWithData;
 	double cumulativeDepth;
 
 	TBaseFrequencies initialBaseFreq;
@@ -110,6 +109,7 @@ public:
 		if(numBootstrapRepsPerEntryInitialized)
 			delete[] numBootstrapRepsPerEntry;
 	};
+	long numSitesWithData;
 
 	void add(TSite & site);
 	void clear();
