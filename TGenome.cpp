@@ -850,7 +850,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->endIndent();
 
 	//estimate Theta ratio
-	thetaEstimatorRatio.estimateRatio();
+	thetaEstimatorRatio.estimateRatio(*randomGenerator, outputName);
 
 	//clean up
 }
