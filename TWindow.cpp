@@ -426,18 +426,37 @@ void TWindowDiploid::_initSites(){
 	sites = new TSiteDiploid[length];
 };
 
-void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator){
+void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimatorData* thetaDataContainer){
 	//first calculate emission probabilities
 	calculateEmissionProbabilities(recalObject);
 
 	//now add sites
-	addSitesToThetaEstimator(estimator);
+	addSitesToThetaEstimator(thetaDataContainer);
 }
 
-void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimator & estimator){
+void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){
-		estimator.add(sites[i]);
+		thetaDataContainer->add(sites[i]);
+	}
+}
+
+void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+	calculateEmissionProbabilities(recalObject);
+
+	addSitesToThetaEstimator(thetaDataContainer, region);
+}
+
+void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+	//assumes that emission probabilities were calculated
+	//only add sites from regions
+	if(region.hasPositionsInWindow(start)){
+		std::vector<long> thesePos = region.getPositionInWindow(start);
+		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+			int pos = *it - start;
+			if(pos < length)
+				thetaDataContainer->add(sites[pos]);
+		}
 	}
 }
 

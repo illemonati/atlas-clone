@@ -8,7 +8,7 @@
 #ifndef TTHETAESTIMATOR_H_
 #define TTHETAESTIMATOR_H_
 
-#include "TSite.h"
+#include "TThetaEstimatorData.h"
 #include "TRandomGenerator.h"
 #include <stdio.h>
 
@@ -32,197 +32,76 @@ struct Theta{
 };
 
 //---------------------------------------------------------------
-//TThetaEstimatorTemporaryFile
+//TThetaEstimator
 //---------------------------------------------------------------
-class TThetaEstimatorTemporaryFile{
-private:
-	std::string filename;
-	gzFile fp;
-	int sizeOfData;
-
-	bool isOpen;
-	bool isOpenForWriting;
-	bool isOpenForReading;
-	bool wasWritten;
-
-public:
-	TThetaEstimatorTemporaryFile();
-	TThetaEstimatorTemporaryFile(std::string filename, int numGenotypes);
-	~TThetaEstimatorTemporaryFile(){
-		clean();
-	};
-
-	void init(std::string filename, int numGenotypes);
-
-	void openForWriting();
-	void openForReading();
-	void close();
-	void clean();
-	bool isEOF();
-
-	void save(double* data);
-	bool read(double* data);
-};
-
-
-//---------------------------------------------------------------
-//TThetaEstimatorData
-//---------------------------------------------------------------
-class TThetaEstimatorData{
+class TThetaEstimator_base{
 protected:
-	//counters
+	TLog* logfile;
+
+	//data
+	TThetaEstimatorData* data;
+	bool dataInitialized;
+	bool useTmpFile;
+	std::string tmpFileName;
 	int numGenotypes;
-	long numSitesCoveredTwiceOrMore;
-	long totNumSitesAdded;
-	double cumulativeDepth;
+	TGenotypeMap genoMap;
 
-	TBaseFrequencies initialBaseFreq;
-	bool isBootstrapped;
-	long numBootstrappedSites;
-	int maxKforPoissonPlusOne;
-	double* poissonProb;
-	uint8_t* numBootstrapRepsPerEntry;
-	bool numBootstrapRepsPerEntryInitialized;
+	//initial theta
+	double initalTheta;
+	double initThetaSearchFactor;
+	int initThetaNumSearchIterations;
 
-	bool readState;
-	long curSite;
-	uint8_t curRep;
-	double* pointerToData;
-
-	//tmp variables
-	int g;
-	double sum;
+	//estimation
+	int minSitesWithData;
+	double* baseFreq;
+	double* pGenotype; //P(g|pi, theta)
+	double* P_G; // see paper
 	double* P_g_oneSite;
+	Theta theta;
+	bool extraVerbose;
 
-	virtual void saveSite(TSite & site){ throw "Not available in TThetaEstimatorData base class!"; };
-	virtual void emptyStorage(){};
-	void fillPoissonForBootstrap(const double lambda);
-	virtual void _begin(){ throw "Not available in TThetaEstimatorData base class!"; };
-	virtual void readNext(){ throw "Not available in TThetaEstimatorData base class!"; };
+	void initTmpStorage();
+	void readParametersRegardingInitialSearch(TParameters & params);
+	void fillPGenotype(double* & pGeno, double & expTheta);
+	void fillPGenotype(double & expTheta);
+	void fillP_G();
+	double calcLogLikelihood();
+
+	void findGoodStartingTheta(TThetaEstimatorData* thisData);
 
 public:
-	TThetaEstimatorData(int NumGenotypes);
-	virtual ~TThetaEstimatorData(){
-		clear();
-		delete[] poissonProb;
+	TThetaEstimator_base(TLog* Logfile);
+	TThetaEstimator_base(TParameters & params, TLog* Logfile);
+
+	~TThetaEstimator_base(){
+		if(dataInitialized)
+			delete data;
+		delete[] P_G;
+		delete[] pGenotype;
+		delete[] baseFreq;
 		delete[] P_g_oneSite;
-		if(numBootstrapRepsPerEntryInitialized)
-			delete[] numBootstrapRepsPerEntry;
-	};
-	long numSitesWithData;
-
-	void add(TSite & site);
-	void clear();
-	void bootstrap(TRandomGenerator & randomGenerator);
-	void clearBootstrap();
-
-	virtual bool begin();
-	virtual bool next();
-	virtual bool isEnd(){ throw "Not available in TThetaEstimatorData base class!"; };
-	virtual double* curGenotypeLikelihoods(){ throw "Not available in TThetaEstimatorData base class!"; };
-
-	long size(){return totNumSitesAdded;};
-	long sizeWithData(){
-		if(isBootstrapped)
-			return numBootstrappedSites;
-		return numSitesWithData;
 	};
 
-	void writeHeader(std::ofstream & out);
-	void writeSize(std::ofstream & out);
-	void fillBaseFreq(double* baseFreq);
-	virtual void fillP_G(double* & P_G, double* & pGenotype);
-	virtual double calcLogLikelihood(double* & pGenotype);
+	TThetaEstimatorData* pointerToDataContainer(){ return data; };
+
+	void fillPGenotype(double* & pGeno);
+
 };
-
-
-class TThetaEstimatorDataVector:public TThetaEstimatorData{
-private:
-	std::vector<double*> sites;
-	std::vector<double*>::iterator siteIt;
-
-	void saveSite(TSite & site);
-	void emptyStorage();
-	void readNext();
-
-public:
-	TThetaEstimatorDataVector(int NumGenotypes);
-	virtual ~TThetaEstimatorDataVector(){
-		clear();
-	};
-
-	void _begin();
-	bool isEnd();
-	double* curGenotypeLikelihoods();
-	void fillP_G(double* & P_G, double* & pGenotype);
-	double calcLogLikelihood(double* & pGenotype);
-};
-
-
-class TThetaEstimatorDataFile:public TThetaEstimatorData{
-protected:
-	std::string dataFileName;
-
-	TThetaEstimatorTemporaryFile sites;
-
-	void saveSite(TSite & site);
-	void emptyStorage();
-	void readNext();
-
-public:
-	TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName);
-	~TThetaEstimatorDataFile(){
-		delete[] pointerToData;
-		clear();
-	};
-
-	void _begin();
-	bool isEnd();
-	double* curGenotypeLikelihoods();
-};
-
 
 //---------------------------------------------------------------
 //TThetaEstimator
 //---------------------------------------------------------------
-class TThetaEstimator{
+class TThetaEstimator:public TThetaEstimator_base{
 private:
-	TLog* logfile;
-
-	TThetaEstimatorData* data;
-
 	//EM parameters
 	int numIterations;
 	int numThetaOnlyUpdates;
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
-	double initalTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
-	bool extraVerbose;
-
-	//estimation
-	int numGenotypes;
-	double* P_G; // see paper
-	double* pGenotype; //P(g|pi, theta)
-	double* baseFreq;
-	TGenotypeMap genoMap;
-	Theta theta;
-	int minSitesWithData;
-
-	//tmp variables
-	int g;
-	double sum;
-	double* P_g_oneSite;
 
 	void init();
-	void fillPGenotype(double* & pGeno, double & expTheta);
-	void fillPGenotype(double & expTheta);
-	void fillP_G();
-	double calcLogLikelihood();
 	double calcFisherInfo(double* deriv_pGenotype);
-	void findGoodStartingTheta();
 	void runEMForTheta();
 	void estimateConfidenceInterval();
 
@@ -230,18 +109,11 @@ public:
 	TThetaEstimator(TParameters & params, TLog* Logfile);
 	TThetaEstimator(TLog* Logfile);
 
-	~TThetaEstimator(){
-		delete[] P_G;
-		delete[] pGenotype;
-		delete[] baseFreq;
-		delete[] P_g_oneSite;
-		delete data;
-	};
+	~TThetaEstimator(){};
 
 	void clear();
 	void add(TSite & site);
 	long sizeWithData(){ return data->sizeWithData();};
-	void fillPGenotype(double* & pGeno);
 	bool estimateTheta();
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
@@ -252,5 +124,32 @@ public:
 	void bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out);
 };
 
+
+//---------------------------------------------------------------
+//TThetaEstimatorRatio
+//---------------------------------------------------------------
+class TThetaEstimatorRatio:public TThetaEstimator_base{
+private:
+	//second data
+	TThetaEstimatorData* data2;
+	bool data2Initialized;
+
+	//MCMC parameters
+	int numIterations;
+	int burnin;
+
+
+
+public:
+	TThetaEstimatorRatio(TParameters & params, TLog* Logfile);
+	~TThetaEstimatorRatio(){
+		if(data2Initialized)
+			delete data2;
+	};
+
+	TThetaEstimatorData* pointerToDataContainer2(){ return data2; };
+
+	void estimateRatio();
+};
 
 #endif /* TTHETAESTIMATOR_H_ */

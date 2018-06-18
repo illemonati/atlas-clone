@@ -93,8 +93,10 @@ public:
 
 	TWindowDiploid(long Start, long End):TWindow(Start, End){};
 	void _initSites();
-	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
-	void addSitesToThetaEstimator(TThetaEstimator & estimator);
+	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimatorData* thetaDataContainer);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
+	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimatorData* thetaDataContainer, TBedReader & region);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
 	void callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF);
 	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
