@@ -832,6 +832,9 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structures:");
 	while(iterateChromosome(windows)){
+		region1.setChr(chrIterator->Name);
+		region2.setChr(chrIterator->Name);
+
 		while(iterateWindow(windows)){
 			if(readData(windows)){
 				//adding sites to estimator
