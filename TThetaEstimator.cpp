@@ -7,409 +7,154 @@
 
 #include "TThetaEstimator.h"
 
-//-------------------------------------------------------
-//TThetaEstimatorTemporaryFile
-//-------------------------------------------------------
-TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(){
-	init("", 0);
+
+
+//---------------------------------------------------------------
+//TThetaEstimator_base
+//---------------------------------------------------------------
+TThetaEstimator_base::TThetaEstimator_base(TLog* Logfile){
+	logfile = Logfile;
+	numGenotypes = 10;
+	initTmpStorage();
+
+	useTmpFile = false;
+	minSitesWithData = 0;
+	data = NULL;
+	dataInitialized = false;
+	extraVerbose = false;
 };
 
-TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename, int numGenotypes){
-	init(Filename, numGenotypes);
+TThetaEstimator_base::TThetaEstimator_base(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
+	numGenotypes = 10;
+	initTmpStorage();
+
+	//data
+	useTmpFile = params.parameterExists("useTmpFile");
+	if(useTmpFile){
+		tmpFileName = params.getParameterStringWithDefault("useTmpFile", "temporaryDataForThetaEstimation");
+		logfile->list("Will write temporary data to file(s) with prefix '" + tmpFileName + "'.");
+		data = new TThetaEstimatorDataFile(numGenotypes, tmpFileName + ".tmp.gz");
+	} else
+		data = new TThetaEstimatorDataVector(numGenotypes);
+	dataInitialized = true;
+
+	//minimum window size
+	minSitesWithData = params.getParameterIntWithDefault("minSitesWithData", 1000);
+
+	//extra verbosity
+	extraVerbose = params.parameterExists("extraVerbose");
 };
 
-void TThetaEstimatorTemporaryFile::init(std::string Filename, int numGenotypes){
-	filename = Filename;
-	fp = NULL;
-	sizeOfData = sizeof(double) * numGenotypes;
-
-	isOpen = false;
-	isOpenForReading = false;
-	isOpenForWriting = false;
-	wasWritten = false;
+void TThetaEstimator_base::initTmpStorage(){
+	//initialize arrays
+	pGenotype = new double[numGenotypes];
 }
 
-void TThetaEstimatorTemporaryFile::openForWriting(){
-	if(sizeOfData == 0)
-		throw "Can not open temporary data file for theta: file was not initialized!";
-
-	//if file was written, remove it
-	clean();
-
-	//now open
-	fp = gzopen(filename.c_str(),"wb");
-	isOpenForWriting = true;
-	isOpenForReading = false;
-	wasWritten = true;
-
-	isOpen = true;
-};
-
-void TThetaEstimatorTemporaryFile::openForReading(){
-	if(!wasWritten)
-		throw "Can not parse temporary file: file was never written!";
-
-	//make sure file is closed
-	close();
-
-	//now open
-	fp = gzopen(filename.c_str(),"rb");
-	isOpenForWriting = false;
-	isOpenForReading = true;
-
-	isOpen = true;
-};
-
-void TThetaEstimatorTemporaryFile::close(){
-	if(isOpen){
-		gzclose(fp);
-		isOpen = false;
-		isOpenForWriting = false;
-		isOpenForReading = false;
-	}
-};
-
-void TThetaEstimatorTemporaryFile::clean(){
-	close();
-	if(wasWritten){
-		remove(filename.c_str());
-		wasWritten = false;
-	}
-};
-
-bool TThetaEstimatorTemporaryFile::isEOF(){
-	if(!isOpenForReading) return true;
-	return gzeof(fp);
-}
-
-void TThetaEstimatorTemporaryFile::save(double* data){
-	if(!isOpenForWriting) throw "Can not add data to '" + filename + "': file is closed!";
-
-	gzwrite(fp, data, sizeOfData);
-};
-
-bool TThetaEstimatorTemporaryFile::read(double* data){
-	if(!isOpenForReading) throw "Can not read data from '" + filename + "': file is closed!";
-	if(gzread(fp, data, sizeOfData)!=sizeOfData){
-		//is end-of-file?
-		if(gzeof(fp)) return false;
-
-		//is error
-		throw "Failed to read data from temporary file!";
-	}
-	return true;
-};
-
-//-------------------------------------------------------
-//TThetaEstimatorData
-//-------------------------------------------------------
-TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
-	numGenotypes = NumGenotypes;
-	pointerToData = NULL;
-	numSitesCoveredTwiceOrMore = 0;
-	totNumSitesAdded = 0;
-	numSitesWithData = 0;
-	cumulativeDepth = 0.0;
-	sum = 0.0;
-	g = 0;
-	P_g_oneSite = new double[numGenotypes];
-
-	isBootstrapped = false;
-	numBootstrappedSites = false;
-	maxKforPoissonPlusOne = 16; //maximum number of bootstrapping copies to consider.
-	poissonProb = new double[maxKforPoissonPlusOne];
-
-	readState = false;
-	curSite = 0;
-	curRep = 0;
-	numBootstrapRepsPerEntry = NULL;
-	numBootstrapRepsPerEntryInitialized = false;
-};
-
-void TThetaEstimatorData::clear(){
-	initialBaseFreq.clear();
-	numSitesCoveredTwiceOrMore = 0;
-	totNumSitesAdded = 0;
-	numSitesWithData = 0;
-	cumulativeDepth = 0.0;
-	emptyStorage();
-	clearBootstrap();
-};
-
-void TThetaEstimatorData::add(TSite & site){
-	//assumes that emission probabilities were calculated!!
-	++totNumSitesAdded;
-
-	//add if site has data
-	if(site.hasData){
-		++numSitesWithData;
-		cumulativeDepth += site.depth();
-
-		saveSite(site);
-
-		//add site to base frequency estimation
-		site.addToBaseFrequencies(initialBaseFreq);
-
-		//count sites covered >=2
-		if(site.depth() > 1)
-			++numSitesCoveredTwiceOrMore;
-	}
-};
-
-void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
-	initialBaseFreq.normalize();
-	for(int i=0; i<4; ++i)
-		baseFreq[i] = initialBaseFreq[i];
-};
-
-void TThetaEstimatorData::fillP_G(double* & P_G, double* & pGenotype){
-	//assumes that pGenotype is set!
-	for(g=0; g<numGenotypes; ++g)
-		P_G[g] = 0.0;
-
-	//calculate P_g for each site
-	double* d;
-	begin();
-	do{
-		sum = 0.0;
-		d = curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  d[g] * pGenotype[g];
-			sum += P_g_oneSite[g];
-		}
-		for(g=0; g<numGenotypes; ++g)
-			P_G[g] += P_g_oneSite[g] / sum;
-
-	} while(next());
-};
-
-double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
-	double LL = 0.0;
-	double* d;
-	begin();
-	do{
-		sum = 0.0;
-		d = curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g)
-			sum +=  d[g] * pGenotype[g];
-		LL += log(sum);
-	} while(next());
-
-	return LL;
-};
-
-void TThetaEstimatorData::writeHeader(std::ofstream & out){
-	out << "\tdepth\tfracMissing\tfracTwoOrMore";
-};
-
-void TThetaEstimatorData::writeSize(std::ofstream & out){
-	if(isBootstrapped){
-		out << "\tNA\t" << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded << "\tNA";	//estimated params
-			out << "\t" << "NA";
+void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & params){
+	logfile->startIndent("Parameters of the initial theta search:");
+	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	logfile->list("Will start with an initial theta of " + toString(initalTheta) + ".");
+	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
+	if(initThetaNumSearchIterations > 0){
+		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
+		initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
+		logfile->list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
 	} else {
-		out << "\t" << cumulativeDepth / (double) totNumSitesAdded << "\t" << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded << "\t" << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;	//estimated params
+		initThetaSearchFactor = 0;
 	}
+	logfile->endIndent();
 };
 
-void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda){
-	double tmp = exp(-lambda);
-	poissonProb[0] = tmp;
-	for(int k=1; k<maxKforPoissonPlusOne; ++k){
-		tmp = tmp * lambda / (double) k;
-		poissonProb[k] = poissonProb[k-1] + tmp;
-	}
-
-	//make sure last of cumulative is 1.0
-	if(poissonProb[maxKforPoissonPlusOne-1] < 0.99999)
-		throw "Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!";
-	poissonProb[maxKforPoissonPlusOne-1] = 1.0;
-}
-
-void TThetaEstimatorData::bootstrap(TRandomGenerator & randomGenerator){
-	//make sure we start empty
-	clearBootstrap();
-
-	if(!numBootstrapRepsPerEntryInitialized){
-		numBootstrapRepsPerEntry = new uint8_t[numSitesWithData];
-		numBootstrapRepsPerEntryInitialized = true;
-	}
-
-	fillPoissonForBootstrap(1.0);
-
-	//now pick among sites with data with replacement and store for each entry how many times it was chosen
-	numBootstrappedSites = 0.0;
-	for(long l=0; l<numSitesWithData; ++l){
-		//do we use this site in the bootstrap?
-		numBootstrapRepsPerEntry[l] = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
-		numBootstrappedSites += numBootstrapRepsPerEntry[l];
-	}
-
-	//set pointer
-	isBootstrapped = true;
-};
-
-void TThetaEstimatorData::clearBootstrap(){
-	numBootstrappedSites = 0;
-	isBootstrapped = false;
-};
-
-bool TThetaEstimatorData::begin(){
-	curSite = 0; //first site is at index zero
-	curRep = 1; //index starts at one
-
-	_begin();
-
-	if(isBootstrapped){
-		while(readState && numBootstrapRepsPerEntry[curSite] == 0){
-			readNext();
+void TThetaEstimator_base::fillPGenotype(double* & pGeno, const double & expTheta, const double* baseFrequencies){
+	//assumes that base frequencies are set!
+	static int i;
+	static int j;
+	for(i=0; i<4; ++i){
+		//homozygous genotypes
+		pGeno[genoMap.getGenotype(i,i)] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
+		//heterozygous genotypes
+		for(j=i+1; j<4; ++j){
+			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
 		}
 	}
-
-	return(readState);
 };
 
-bool TThetaEstimatorData::next(){
-	if(!isBootstrapped)
-		readNext();
-	else {
-		if(curRep < numBootstrapRepsPerEntry[curSite]){
-			++curRep;
-			return true;
-		} else {
-			curRep = 1;
-			readNext();
-			while(readState && numBootstrapRepsPerEntry[curSite] == 0){
-				readNext();
-			}
+void TThetaEstimator_base::fillPGenotype(double* & pGeno, const Theta & thisTheta){
+	fillPGenotype(pGeno, thisTheta.expTheta, thisTheta.baseFreq);
+}
+
+void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag){
+	logfile->listFlush("Estimating initial parameters" + tag + " ...");
+
+	//set base frequencies to initial base frequencies
+	thisData->fillBaseFreq(thisTheta.baseFreq);
+
+	//variables
+	double initTheta = initalTheta;
+	double oldTheta = initTheta;
+	double expTheta = exp(-initTheta);
+
+	//calc initial LL
+	fillPGenotype(pGenotype, expTheta, theta.baseFreq);
+	thisTheta.LL = data->calcLogLikelihood(pGenotype);
+
+	//run iterations
+	double oldLL = thisTheta.LL;
+	double factor = initThetaSearchFactor;
+	int numUpdates;
+	for(int i=0; i<initThetaNumSearchIterations; ++i){
+		//first test increase in theta
+		numUpdates = -1;
+		do{
+			++numUpdates;
+			oldLL = thisTheta.LL;
+			oldTheta = initTheta;
+			initTheta *= factor;
+			expTheta = exp(-initTheta);
+			fillPGenotype(pGenotype, expTheta, theta.baseFreq);
+			thisTheta.LL = data->calcLogLikelihood(pGenotype);
+		} while(oldLL < thisTheta.LL);
+		if(numUpdates == 0){
+			//then test decrease in theta
+			initTheta = oldTheta;
+			thisTheta.LL = oldLL;
+			//maybe smaller?
+			do{
+				oldLL = thisTheta.LL;
+				oldTheta = initTheta;
+				initTheta /= factor;
+				expTheta = exp(-initTheta);
+				fillPGenotype(pGenotype, expTheta, theta.baseFreq);
+				thisTheta.LL = data->calcLogLikelihood(pGenotype);
+			} while(oldLL < thisTheta.LL);
 		}
+		factor = sqrt(factor);
+		initTheta = oldTheta;
+		thisTheta.LL = oldLL;
+	}
+	//return previous
+	thisTheta.setTheta(oldTheta);
+	thisTheta.LL = oldLL;
+
+	//check if values make sense. If theta < 1/(10*windowsize), set it to 1/(10*windowsize)
+	if(thisTheta.theta < 0.1/(double) thisData->size()){
+		thisTheta.setTheta(0.1/(double) thisData->size());
+	} else if(thisTheta.theta > 1.0){
+		thisTheta.setTheta(1.0);
 	}
 
-	return(readState);
-};
-
-//-------------------------------------------------------
-//TThetaEstimatorDataVector
-//-------------------------------------------------------
-TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){};
-
-void TThetaEstimatorDataVector::saveSite(TSite & site){
-	//store emission probabilities
-	sites.push_back(new double[10]);
-	pointerToData = *sites.rbegin();
-
-	for(int g=0; g<numGenotypes; ++g){
-		pointerToData[g] = site.emissionProbabilities[g];
-	}
-};
-
-
-void TThetaEstimatorDataVector::emptyStorage(){
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
-		delete[] (*siteIt);
-	sites.clear();
-};
-
-void TThetaEstimatorDataVector::readNext(){
-	++siteIt;
-	++curSite;
-
-	//readState = (siteIt == sites.end())
-
-	if(siteIt == sites.end())
-		readState = false;
+	//conclude
+	logfile->done();
+	logfile->conclude("Initial base frequencies: " + thisTheta.getBaseFrequencyString());
+	logfile->conclude("Initial theta = ", thisTheta.theta);
 }
-
-void TThetaEstimatorDataVector::_begin(){
-	siteIt = sites.begin();
-	readState = true;
-};
-
-bool TThetaEstimatorDataVector::isEnd(){
-	return siteIt == sites.end();
-};
-
-double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
-	return *siteIt;
-}
-
-void TThetaEstimatorDataVector::fillP_G(double* & P_G, double* & pGenotype){
-	//assumes that pGenotype is set!
-	for(g=0; g<numGenotypes; ++g)
-		P_G[g] = 0.0;
-
-	//calculate P_g for each site
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
-		sum = 0.0;
-		for(g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  (*siteIt)[g] * pGenotype[g];
-			sum += P_g_oneSite[g];
-		}
-		for(g=0; g<numGenotypes; ++g)
-			P_G[g] += P_g_oneSite[g] / sum;
-
-	}
-};
-
-double TThetaEstimatorDataVector::calcLogLikelihood(double* & pGenotype){
-	double LL = 0.0;
-
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
-		sum = 0.0;
-		for(g=0; g<numGenotypes; ++g)
-			sum +=  (*siteIt)[g] * pGenotype[g];
-		LL += log(sum);
-	}
-
-	return LL;
-};
-
-//-------------------------------------------------------
-//TThetaEstimatorDataFile
-//-------------------------------------------------------
-TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName):TThetaEstimatorData(NumGenotypes){
-	dataFileName = TmpFileName;
-	sites.init(dataFileName, numGenotypes);
-	sites.openForWriting();
-
-	pointerToData = new double[numGenotypes];
-};
-
-void TThetaEstimatorDataFile::emptyStorage(){
-	sites.clean();
-};
-
-void TThetaEstimatorDataFile::saveSite(TSite & site){
-	sites.save(site.emissionProbabilities);
-};
-
-void TThetaEstimatorDataFile::readNext(){
-	++curSite;
-	if(curSite >= numSitesWithData)
-		readState = false;
-	else
-		readState = sites.read(pointerToData);
-}
-
-void TThetaEstimatorDataFile::_begin(){
-	sites.openForReading();
-	--curSite;
-	readNext(); //read first! This is required to match begin() of a vector
-}
-
-bool TThetaEstimatorDataFile::isEnd(){
-	return sites.isEOF();
-};
-
-double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
-	return pointerToData;
-};
 
 //-------------------------------------------------------
 //TThetaEstimator
 //-------------------------------------------------------
-TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
-	logfile = Logfile;
-	numGenotypes = 10;
+TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile):TThetaEstimator_base(params, Logfile){
+	initAdditionalTmpStorage();
 
 	//parse
 	logfile->startIndent("Parameters of EM algorithm:");
@@ -424,42 +169,14 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile){
 	logfile->list("Will run Newton-Raphson algorithm up to " + toString(NewtonRaphsonNumIterations) + " times.");
 	NewtonRaphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
 	logfile->list("Will run Newton-Raphson algorithm until max(F) < " + toString(NewtonRaphsonMaxF) + ".");
+	logfile->endIndent();
 
 	//params regarding initial search
-	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
-	logfile->list("Will start with an initial theta of " + toString(initalTheta) + ".");
-	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
-	if(initThetaNumSearchIterations > 0){
-		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
-		initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
-		logfile->list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
-	} else {
-		initThetaSearchFactor = 0;
-	}
-
-	//minimum window size
-	minSitesWithData = params.getParameterIntWithDefault("minSitesWithData", 1000);
-
-	//counters and tmp variables
-	init();
-
-	//storing data in file?
-	if(params.parameterExists("useTmpFile")){
-		std::string dataFileName = params.getParameterStringWithDefault("useTmpFile", "temporaryDataForThetaEstimation.tmp.gz");
-		logfile->list("Will write temporary data to file '" + dataFileName + "'.");
-		data = new TThetaEstimatorDataFile(numGenotypes, dataFileName);
-	} else data = new TThetaEstimatorDataVector(numGenotypes);
-
-	//extra verbosity
-	extraVerbose = params.parameterExists("extraVerbose");
-
-	//done
-	logfile->endIndent();
+	readParametersRegardingInitialSearch(params);
 }
 
-TThetaEstimator::TThetaEstimator(TLog* Logfile){
-	logfile = Logfile;
-	numGenotypes = 10;
+TThetaEstimator::TThetaEstimator(TLog* Logfile):TThetaEstimator_base(logfile){
+	initAdditionalTmpStorage();
 
 	//set EM parameters to default
 	numIterations = -1;
@@ -470,21 +187,13 @@ TThetaEstimator::TThetaEstimator(TLog* Logfile){
 	initalTheta = 0.0;
 	initThetaSearchFactor = -1;
 	initThetaNumSearchIterations = -1;
+};
 
-	init();
-}
-
-void TThetaEstimator::init(){
+void TThetaEstimator::initAdditionalTmpStorage(){
 	//initialize arrays
-	pGenotype = new double[numGenotypes];
 	P_G = new double[numGenotypes];
 	P_g_oneSite = new double[numGenotypes];
-	baseFreq = new double[4];
-
-	//tmp stuff
-	g = 0;
-	sum = 0.0;
-}
+};
 
 void TThetaEstimator::clear(){
 	data->clear();
@@ -494,67 +203,28 @@ void TThetaEstimator::add(TSite & site){
 	data->add(site);
 };
 
-void TThetaEstimator::fillPGenotype(double* & pGeno, double & expTheta){
-	//assumes that base frequencies are set!
-	static int i;
-	static int j;
-	for(i=0; i<4; ++i){
-		//homozygous genotypes
-		pGeno[genoMap.getGenotype(i,i)] = baseFreq[i] * (expTheta + baseFreq[i] * (1.0 - expTheta));
-		//heterozygous genotypes
-		for(j=i+1; j<4; ++j){
-			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFreq[i] * baseFreq[j] *  (1.0 - expTheta);
-		}
-	}
-}
-
-void TThetaEstimator::fillPGenotype(double & expTheta){
-	fillPGenotype(pGenotype, expTheta);
-}
-
-void TThetaEstimator::fillPGenotype(double* & pGeno){
-	double expTheta = exp(-theta.theta);
-	fillPGenotype(pGeno, expTheta);
-}
-
 void TThetaEstimator::fillP_G(){
 	//assumes that pGenotype is set!
-	for(g=0; g<numGenotypes; ++g)
+	for(int g=0; g<numGenotypes; ++g)
 		P_G[g] = 0.0;
 
 	//calculate P_g for each site
 	double* d;
 	data->begin();
 	do{
-		sum = 0.0;
+		double sum = 0.0;
 		d = data->curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g){
+		for(int g=0; g<numGenotypes; ++g){
 			P_g_oneSite[g] =  d[g] * pGenotype[g];
 			sum += P_g_oneSite[g];
 		}
-		for(g=0; g<numGenotypes; ++g)
+		for(int g=0; g<numGenotypes; ++g)
 			P_G[g] += P_g_oneSite[g] / sum;
 
 	} while(data->next());
 };
 
-
-double TThetaEstimator::calcLogLikelihood(){
-	double LL = 0.0;
-	double* d;
-	data->begin();
-	do{
-		sum = 0.0;
-		d = data->curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g)
-			sum +=  d[g] * pGenotype[g];
-		LL += log(sum);
-	} while(data->next());
-
-	return LL;
-};
-
-double TThetaEstimator::calcFisherInfo(double* deriv_pGenotype){
+double TThetaEstimator::calcFisherInfo(double* _pGenotype, double* deriv_pGenotype){
 //sum Ri over all sites
 	double FisherInfo = 0.0;
 	double Ri, Ri_a, Ri_b;
@@ -565,9 +235,9 @@ double TThetaEstimator::calcFisherInfo(double* deriv_pGenotype){
 		//calc Ri
 		Ri_a = 0.0; Ri_b = 0.0;
 		d = data->curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g){
+		for(int g=0; g<numGenotypes; ++g){
 			Ri_a += d[g] * deriv_pGenotype[g];
-			Ri_b += d[g] * pGenotype[g];
+			Ri_b += d[g] * _pGenotype[g];
 		}
 		Ri = Ri_a / Ri_b;
 
@@ -578,68 +248,6 @@ double TThetaEstimator::calcFisherInfo(double* deriv_pGenotype){
 	return(FisherInfo);
 };
 
-void TThetaEstimator::findGoodStartingTheta(){
-	//set base frequencies to initial base frequencies
-	data->fillBaseFreq(baseFreq);
-
-	//variables
-	double initTheta = initalTheta;
-	double oldTheta = initTheta;
-	double expTheta = exp(-initTheta);
-
-	//calc initial LL
-	fillPGenotype(expTheta);
-	theta.LL = calcLogLikelihood();
-	//theta.LL = data->calcLogLikelihood(pGenotype);
-
-
-	//run iterations
-	double oldLL = theta.LL;
-	double factor = initThetaSearchFactor;
-	int numUpdates;
-	for(int i=0; i<initThetaNumSearchIterations; ++i){
-		//first test increase in theta
-		numUpdates = -1;
-		do{
-			++numUpdates;
-			oldLL = theta.LL;
-			oldTheta = initTheta;
-			initTheta *= factor;
-			expTheta = exp(-initTheta);
-			fillPGenotype(expTheta);
-			theta.LL = calcLogLikelihood();
-			//theta.LL = data->calcLogLikelihood(pGenotype);
-		} while(oldLL < theta.LL);
-		if(numUpdates == 0){
-			//then test decrease in theta
-			initTheta = oldTheta;
-			theta.LL = oldLL;
-			//maybe smaller?
-			do{
-				oldLL = theta.LL;
-				oldTheta = initTheta;
-				initTheta /= factor;
-				expTheta = exp(-initTheta);
-				fillPGenotype(expTheta);
-				theta.LL = calcLogLikelihood();
-				//theta.LL = data->calcLogLikelihood(pGenotype);
-			} while(oldLL < theta.LL);
-		}
-		factor = sqrt(factor);
-		initTheta = oldTheta;
-		theta.LL = oldLL;
-	}
-	//return previous
-	theta.setTheta(oldTheta);
-	theta.LL = oldLL;
-
-	//check if values make sense. If theta < 1/(10*windowsize), set it to 1/(10*windowsize)
-	if(theta.theta < 0.1/(double) data->size()){
-		theta.setTheta(0.1/(double) data->size());
-	} else if(theta.theta > 1.0){
-		theta.setTheta(1.0);
-	}
-}
 
 void TThetaEstimator::runEMForTheta(){
 	//prepare storage
@@ -653,6 +261,7 @@ void TThetaEstimator::runEMForTheta(){
 	int failedAttempts = 0;
 	double oldTheta, rho, mu = data->sizeWithData();
 	double oldLL = -9e100;
+	double* baseFreq = theta.baseFreq; //store pointer for cleaner code
 
 	//start EM loop
 	int numThetaOnlyUpdatesDone = numThetaOnlyUpdates; //do regular step first
@@ -664,7 +273,7 @@ void TThetaEstimator::runEMForTheta(){
 		rho = theta.expTheta / (1.0 - theta.expTheta);
 
 		//b) calculate	substitution probabilities
-		fillPGenotype(theta.expTheta);
+		fillPGenotype(pGenotype, theta);
 
 		//c) Calculate all genotype probabilities for all sites
 		fillP_G();
@@ -785,9 +394,8 @@ void TThetaEstimator::runEMForTheta(){
 
 				//test with theta = 0.0
 				theta.setTheta(0.0);
-				fillPGenotype(theta.expTheta);
-				theta.LL = calcLogLikelihood();
-				//theta.LL = data->calcLogLikelihood(pGenotype);
+				fillPGenotype(pGenotype, theta);
+				theta.LL = data->calcLogLikelihood(pGenotype);
 
 				if(theta.LL < oldLL){
 					theta.setTheta(oldTheta);
@@ -810,20 +418,20 @@ void TThetaEstimator::estimateConfidenceInterval(){
 	//This function assumes that EM has already been run!
 
 	//calculate P(g|theta, pi)
-	fillPGenotype(theta.expTheta);
+	fillPGenotype(pGenotype, theta);
 
 	//calclate d/dtheta P(g|theta, pi)
 	double deriv_pGenotype[numGenotypes];
 	for(int k=0; k<4; ++k){
 		//homozygous genotype
-		deriv_pGenotype[genoMap.getGenotype(k, k)] = (baseFreq[k] * baseFreq[k] - baseFreq[k]) * theta.expTheta;
+		deriv_pGenotype[genoMap.getGenotype(k, k)] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
 		//heterozygous genotypes
 		for(int l=k+1; l<4; ++l){
-			deriv_pGenotype[genoMap.getGenotype(k, l)] = 2.0 * baseFreq[k] * baseFreq[l] * theta.expTheta;
+			deriv_pGenotype[genoMap.getGenotype(k, l)] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
 		}
 	}
 
-	double FisherInfo = calcFisherInfo(deriv_pGenotype);
+	double FisherInfo = calcFisherInfo(pGenotype, deriv_pGenotype);
 
 	//estimate confidence interval
 	//TODO: Fisher Info can be negative -> SQRT will be nan!
@@ -840,11 +448,7 @@ bool TThetaEstimator::estimateTheta(){
 	}
 
 	//estimate starting parameters
-	logfile->listFlush("Estimating initial parameters ...");
-	findGoodStartingTheta();
-	logfile->done();
-	logfile->conclude("Initial base frequencies: Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]));
-	logfile->conclude("Starting EM with theta = ", theta.theta);
+	findGoodStartingTheta(data, theta, "");
 
 	//Run EM
 	if(extraVerbose){
@@ -872,7 +476,7 @@ void TThetaEstimator::setTheta(double Theta){
 
 void TThetaEstimator::setBaseFreq(TBaseFrequencies & BaseFreq){
 	for(int i=0; i<4; ++i)
-		baseFreq[i] = BaseFreq[i];
+		theta.baseFreq[i] = BaseFreq[i];
 }
 
 void TThetaEstimator::writeHeader(std::ofstream & out){
@@ -893,7 +497,7 @@ void TThetaEstimator::writeResultsToFile(std::ofstream & out){
 
 	//estimated params
 	for(int i=0; i<4; ++i)
-		out << "\t" << baseFreq[i];
+		out << "\t" << theta.baseFreq[i];
 	writeThetas(out);
 }
 
@@ -905,23 +509,17 @@ void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
 	double minLogTheta = -5.0;
 	double maxLogTheta = -1.0;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
-	double theta;
-	double LL;
-	double expTheta;
-	double logTheta;
 
 	for(int i=0; i<steps; ++i){
 		//calc theta and expTheta
-		logTheta = minLogTheta + stepSize*i;
-		theta = pow(10.0, logTheta);
-		expTheta = exp(-theta);
+		theta.setLogTheta(minLogTheta + stepSize*i);
 
 		//calculate	substitution probabilities and Likelihood
-		fillPGenotype(expTheta);
-		LL = data->calcLogLikelihood(pGenotype);
+		fillPGenotype(pGenotype, theta);
+		theta.LL = data->calcLogLikelihood(pGenotype);
 
 		//write results
-		out << std::setprecision(12) << logTheta << "\t" << theta << "\t" << LL << "\n";
+		out << std::setprecision(12) << theta.logTheta << "\t" << theta.theta << "\t" << theta.LL << "\n";
 	}
 }
 
@@ -939,6 +537,232 @@ void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::of
 
 	//clean up
 	data->clearBootstrap();
-}
+};
 
+//---------------------------------------------------------------
+//TThetaEstimatorRatio
+//---------------------------------------------------------------
+TThetaEstimatorRatio::TThetaEstimatorRatio(TParameters & params, TLog* Logfile):TThetaEstimator_base(params, Logfile){
+	initAdditionalTmpStorage();
+	clearCounters();
+
+	//data2
+	if(useTmpFile){
+		data2 = new TThetaEstimatorDataFile(numGenotypes, tmpFileName + "2.tmp.gz");
+	} else
+		data2 = new TThetaEstimatorDataVector(numGenotypes);
+	data2Initialized = true;
+
+	//MCMC params
+	logfile->startIndent("Parameters of MCMC algorithm:");
+	burnin = params.getParameterIntWithDefault("burnin", 1000);
+	logfile->list("Will run a burnin of " + toString(burnin) + " iterations.");
+	numIterations = params.getParameterIntWithDefault("iterations", 10000);
+	logfile->list("Will run MCMC for " + toString(numIterations) + " iterations.");
+	thinning = params.getParameterIntWithDefault("thinning", 1);
+	if(thinning < 1 || thinning > numIterations)
+		throw "Thinning must be > 1 and < number iterations!";
+	if(thinning > 1){
+		if(thinning == 2)
+			logfile->list("Will print every second iterations to the output file (thinning = 2)");
+		else if(thinning == 3)
+			logfile->list("Will print every second iterations to the output file (thinning = 3)");
+		else
+			logfile->list("Will print every " + toString(thinning) + "th iterations to the output file (thinning = " + toString(thinning) + ")");
+	}
+
+	//normal prior on ratio phi = log(theta_1 / theta_2)
+	phiPriorMean = params.getParameterDoubleWithDefault("phiPriorMean", 0.0);
+	phiPriorVar = params.getParameterDoubleWithDefault("phiPriorVar", 1.0);
+	phiPriorOneOverTwoVar = 1.0 / 2.0 / phiPriorVar;
+	logfile->list("Will assume a normal prior on phi ~ N(" + toString(phiPriorMean) + ", " + toString(phiPriorVar) + ").");
+
+	//proposal kernel
+	sdProposalKernelTheta1 = params.getParameterDoubleWithDefault("sdProposalTheta", 0.1);
+	sdProposalKernelTheta2 = sdProposalKernelTheta1;
+	sdProposalKernelBaseFreq1 = params.getParameterDoubleWithDefault("sdProposalFreq", 0.01);
+	sdProposalKernelBaseFreq2 = sdProposalKernelBaseFreq1;
+	logfile->list("Will use initial proposal kernel standard deviations of " + toString(sdProposalKernelTheta1) + " and " + toString(sdProposalKernelBaseFreq1) + " for thetas and base frequencies, respectively.");
+	logfile->endIndent();
+
+	//params regarding initial search
+	readParametersRegardingInitialSearch(params);
+};
+
+void TThetaEstimatorRatio::initAdditionalTmpStorage(){
+	tmpBaseFreq = new double[4];
+};
+
+void TThetaEstimatorRatio::clearCounters(){
+	numAcceptedTheta1 = 0;
+	numAcceptedTheta2 = 0;
+	numAcceptedBaseFreq1 = 0;
+	numAcceptedBaseFreq2 = 0;
+};
+
+void TThetaEstimatorRatio::concludeAcceptanceRate(const int & numAccepted, const int & length, std::string name){
+	double acceptanceRate = (double) numAccepted / (double) length;
+	logfile->conclude("Acceptance rate " + name + " = " + toString(acceptanceRate));
+};
+
+void TThetaEstimatorRatio::concludeAcceptanceRateUpdateProposal(const int & numAccepted, const int & length, double & sd, std::string name){
+	double acceptanceRate = (double) numAccepted / (double) length;
+	sd *= acceptanceRate * 3.0;
+	logfile->conclude("Acceptance rate " + name + " = " + toString(acceptanceRate) + " (updated proposal sd to " + toString(sd) + ")");
+};
+
+void TThetaEstimatorRatio::concludeAcceptanceRates(const int & length){
+	concludeAcceptanceRate(numAcceptedTheta1, length, "theta 1");
+	concludeAcceptanceRate(numAcceptedTheta2, length, "theta 2");
+	concludeAcceptanceRate(numAcceptedBaseFreq1, length, "base frequencies 1");
+	concludeAcceptanceRate(numAcceptedBaseFreq2, length, "base frequencies 1");
+};
+
+void TThetaEstimatorRatio::concludeAcceptanceRatesUpdateProposal(const int & length){
+	concludeAcceptanceRateUpdateProposal(numAcceptedTheta1, length, sdProposalKernelTheta1, "theta 1");
+	concludeAcceptanceRateUpdateProposal(numAcceptedTheta2, length, sdProposalKernelTheta2, "theta 2");
+	concludeAcceptanceRateUpdateProposal(numAcceptedBaseFreq1, length, sdProposalKernelBaseFreq1, "base frequencies 1");
+	concludeAcceptanceRateUpdateProposal(numAcceptedBaseFreq2, length, sdProposalKernelBaseFreq2, "base frequencies 1");
+};
+
+void TThetaEstimatorRatio::estimateRatio(TRandomGenerator & randomGenerator, std::string ouputName){
+	logfile->startIndent("Running MCMC to estimate phi = log(theta1 / theta2):");
+
+	//check if there is sufficient data
+	logfile->list(toString(data->sizeWithData()) + " sites with data available for region 1.");
+	if(data->numSitesWithData < minSitesWithData)
+		throw "Not enough sites for region 1!";
+	logfile->list(toString(data2->sizeWithData()) + " sites with data available for region 2.");
+	if(data2->numSitesWithData < minSitesWithData)
+		throw "Not enough sites for region 2!";
+
+	//get good starting values
+	findGoodStartingTheta(data, theta, " region 1");
+	findGoodStartingTheta(data2, theta2, " region 2");
+
+	//first run burnin
+	clearCounters();
+	if(burnin > 0){
+		int oldProg = 0;
+		std::string progressString = "Running burnin of length " + toString(burnin) + " ...";
+		logfile->listFlush(progressString + "(0%)");
+		for(int i=0; i<burnin; ++i){
+			oneMCMCIteration(randomGenerator);
+
+			//print progress
+			int prog = (double) i / (double) burnin * 100.0;
+			if(prog > oldProg){
+				oldProg = prog;
+				logfile->listOverFlush(progressString + "(" + toString(oldProg) + "%)");
+			}
+		}
+		logfile->overList(progressString + "done!   ");
+		concludeAcceptanceRatesUpdateProposal(burnin);
+	}
+
+
+	//open MCMC output file
+	ouputName += "_thetaRatioMCMC.txt.gz";
+	logfile->list("Will write MCMC chain to file '" + ouputName + "'.");
+	gz::ogzstream out(ouputName.c_str());
+	if(!out) throw "Failed to open file '" + ouputName + "' for writing!";
+
+	//write header
+	out << "log_theta_1\tlog_theta_2\tlog_phi\n";
+
+	//now run chain with sampling
+	clearCounters();
+	int oldProg = 0;
+	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
+	logfile->listFlush(progressString + "(0%)");
+	for(int i=0; i<numIterations; ++i){
+		oneMCMCIteration(randomGenerator);
+
+		//print to file
+		if(i % thinning == 0){
+			out << theta.logTheta << "\t" << theta2.logTheta << "\t" << theta.logTheta - theta2.logTheta << "\n";
+		}
+
+		//print progress
+		int prog = (double) i / (double) numIterations * 100.0;
+		if(prog > oldProg){
+			oldProg = prog;
+			logfile->listOverFlush(progressString + " (" + toString(oldProg) + "%)");
+		}
+	}
+	logfile->overList(progressString + " done!   ");
+	concludeAcceptanceRates(numIterations);
+
+	//clean up
+	logfile->endIndent();
+	out.close();
+};
+
+bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, const double & thisSdProposalKernel, TRandomGenerator & randomGenerator){
+	//propose
+	double newLogTheta = randomGenerator.getNormalRandom(thisTheta.logTheta, thisSdProposalKernel);
+	double newExpTheta = exp(-exp(newLogTheta)); //we update log(theta) but need exp(-theta)
+
+	//calc LL
+	fillPGenotype(pGenotype, newExpTheta, thisTheta.baseFreq);
+	double newLL = thisData->calcLogLikelihood(pGenotype);
+
+	//calc hastings ratio with prior
+	//we use a uniform prior on log(theta)
+	//and normal on log(phi) = log(theta) - log(theta2)
+	double logH = newLL - thisTheta.LL ;
+	double newLogPhiMinusMean = newLogTheta - otherLogThetaMean;
+	double oldLogPhiMinusMean = thisTheta.logTheta - otherLogThetaMean;
+	logH += phiPriorOneOverTwoVar * (oldLogPhiMinusMean*oldLogPhiMinusMean - newLogPhiMinusMean*newLogPhiMinusMean);
+
+	//accept or reject
+	if(log(randomGenerator.getRand()) < logH){
+		thisTheta.setLogTheta(newLogTheta, newLL);
+		return true;
+	} else return false;
+};
+
+bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel, TRandomGenerator & randomGenerator){
+	//propose: select one frequency at random and shift this one
+	//make sure frequencies are not outside [0,1]
+	int numOutsideRange = 1;
+	while(numOutsideRange > 0){
+		int thisFreq = randomGenerator.pickOne(4);
+		double delta = randomGenerator.getNormalRandom(0.0, thisSdProposalKernel);
+		tmpBaseFreq[thisFreq] = thisTheta.baseFreq[thisFreq] + delta;
+
+		numOutsideRange = 0;
+
+		for(int i=0; i<4; ++i){
+			if(i != thisFreq)
+				tmpBaseFreq[i] = thisTheta.baseFreq[i] - (delta / 3.0);
+			if(tmpBaseFreq[i] < 0.0 || tmpBaseFreq[i] > 1.0)
+				++numOutsideRange;
+		}
+	}
+
+	//calc LL & hastings ratio (use uniform prior, i.e. all combinations are equally likely)
+	fillPGenotype(pGenotype, thisTheta.expTheta, tmpBaseFreq);
+	double newLL = thisData->calcLogLikelihood(pGenotype);
+	double logH = newLL - thisTheta.LL;
+
+	//accept or reject
+	if(log(randomGenerator.getRand()) < logH){
+		double* tmp = thisTheta.baseFreq;
+		thisTheta.baseFreq = tmpBaseFreq;
+		tmpBaseFreq = tmp;
+		thisTheta.LL = newLL;
+		return true;
+	} else return false;
+};
+
+void TThetaEstimatorRatio::oneMCMCIteration(TRandomGenerator & randomGenerator){
+	//update theta
+	numAcceptedTheta1 += updateTheta(data, theta, theta2.logTheta - phiPriorMean, sdProposalKernelTheta1, randomGenerator);
+	numAcceptedTheta2 += updateTheta(data2, theta2, theta.logTheta + phiPriorMean, sdProposalKernelTheta2, randomGenerator);
+
+	//update base frequencies
+	numAcceptedBaseFreq1 += updateBaseFrequencies(data, theta, sdProposalKernelBaseFreq1, randomGenerator);
+	numAcceptedBaseFreq2 += updateBaseFrequencies(data2, theta2, sdProposalKernelBaseFreq2, randomGenerator);
+};
 

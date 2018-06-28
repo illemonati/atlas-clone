@@ -106,7 +106,8 @@ public:
 	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
 	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
-	void calcLikelihoodSurfaces(TParameters & params);
+	void calcThetaLikelihoodSurfaces(TParameters & params);
+	void estimateThetaRatio(TParameters & params);
 
 	//callers
 	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
