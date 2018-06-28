@@ -763,17 +763,20 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &
 			if(vec.size() > 0){
 				//find read group
 				it = vec.begin();
-				if(!bamHeader->ReadGroups.Contains(*it)) throw "Read group '" + *it + "' does not exist in the BAM header!";
-				rg = readGroupMapObject[findReadGroupIndex(*it, bamHeader->ReadGroups)];
-				rgFound[rg] = true;
+				if(bamHeader->ReadGroups.Contains(*it)) {
+					rg = readGroupMapObject[findReadGroupIndex(*it, bamHeader->ReadGroups)];
+					rgFound[rg] = true;
 
-				//remove read group name from vector
-				vec.erase(vec.begin());
-				vec.erase(vec.end() - 1);
+					//remove read group name from vector
+					vec.erase(vec.begin());
+					vec.erase(vec.end() - 1);
 
-				//add to model
-				if(!model->setParams(vec, rg))
-					throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Are you using the right model? Is your recal file corrupted?";
+					//add to model
+					if(!model->setParams(vec, rg))
+						throw "Issues reading reclibration for readGroup '" + *it + "' on line " + toString(lineNum) + "! Are you using the right model? Is your recal file corrupted?";
+				} else {
+					logfile->warning("Read group '" + *it + "' does not exist in the BAM header! Are you using the correct recal file?");
+				}
 			}
 		}
 
