@@ -319,11 +319,12 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 		}
 		//jump reader if large gap to previous window
 		//TODO:: check if this does not mean we miss reads starting prior to the window but extending into it.
-		if(windowPair.curPointer->start - windowPair.nextPointer->end > maxReadLength)
+		if(windowPair.nextPointer->start - windowPair.curPointer->end > maxReadLength){
 			if(curStart-maxReadLength < 0)
 				bamReader.Jump(chrNumber, 0);
 			else
 				bamReader.Jump(chrNumber, curStart-maxReadLength);
+		}
 
 		//now move coordinates of next window
 		if(predefinedWindows->nextWindow()){
