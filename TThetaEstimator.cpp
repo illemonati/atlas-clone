@@ -96,8 +96,8 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 	double expTheta = exp(-initTheta);
 
 	//calc initial LL
-	fillPGenotype(pGenotype, expTheta, theta.baseFreq);
-	thisTheta.LL = data->calcLogLikelihood(pGenotype);
+	fillPGenotype(pGenotype, expTheta, thisTheta.baseFreq);
+	thisTheta.LL = thisData->calcLogLikelihood(pGenotype);
 
 	//run iterations
 	double oldLL = thisTheta.LL;
@@ -112,8 +112,8 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 			oldTheta = initTheta;
 			initTheta *= factor;
 			expTheta = exp(-initTheta);
-			fillPGenotype(pGenotype, expTheta, theta.baseFreq);
-			thisTheta.LL = data->calcLogLikelihood(pGenotype);
+			fillPGenotype(pGenotype, expTheta, thisTheta.baseFreq);
+			thisTheta.LL = thisData->calcLogLikelihood(pGenotype);
 		} while(oldLL < thisTheta.LL);
 		if(numUpdates == 0){
 			//then test decrease in theta
@@ -125,8 +125,8 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 				oldTheta = initTheta;
 				initTheta /= factor;
 				expTheta = exp(-initTheta);
-				fillPGenotype(pGenotype, expTheta, theta.baseFreq);
-				thisTheta.LL = data->calcLogLikelihood(pGenotype);
+				fillPGenotype(pGenotype, expTheta, thisTheta.baseFreq);
+				thisTheta.LL = thisData->calcLogLikelihood(pGenotype);
 			} while(oldLL < thisTheta.LL);
 		}
 		factor = sqrt(factor);
