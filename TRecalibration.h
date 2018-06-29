@@ -200,6 +200,9 @@ public:
 	};
 	int getMaxDepth();
 	virtual void addSite(TSite & site, TQualityMap & qualiMap);
+	long numSites();
+	long numSitesDepthTwoOrMore();
+	long cumulativeDepth();
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon);
 	double calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon);
 	double calcQ(TRecalibrationEMModel* & model, float* & tmpEpsilon);
@@ -219,7 +222,6 @@ public:
 	//variables for EM
 	bool estimatetionRequired;
 	bool equalBaseFrequencies;
-	long numSitesAdded;
 	int numEMIterations;
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
@@ -243,6 +245,9 @@ public:
 	bool requiresEstimation(){ return estimatetionRequired;};
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site);
+	long numSites();
+	long numSitesDepthTwoOrMore();
+	long cumulativeDepth();
 	void prepareWindowsforEM();
 	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);

@@ -642,7 +642,29 @@ int TRecalibrationEMWindow::getMaxDepth(){
 };
 
 void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
-	sites.push_back(new TRecalibrationEMSite(site, readGroupMap, qualiMap));
+	if(site.hasData)
+		sites.push_back(new TRecalibrationEMSite(site, readGroupMap, qualiMap));
+}
+
+long TRecalibrationEMWindow::numSites(){
+	return sites.size();
+}
+
+long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
+	long _numSites = 0;
+	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
+		if((*site)->numReads > 1)
+		++_numSites;
+	}
+	return _numSites;
+}
+
+long TRecalibrationEMWindow::cumulativeDepth(){
+	long cumulDepth = 0;
+	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
+		cumulDepth += (*site)->numReads;
+	}
+	return cumulDepth;
 }
 
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon){
@@ -685,7 +707,6 @@ void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
 //---------------------------------------------------------------
 TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, std::string &name, TParameters & args, TLog* Logfile, TReadGroupMap& ReadGroupMap):TRecalibration(ReadGroupMap){
 	//read groups and log file
-	numSitesAdded = 0;
 	equalBaseFrequencies = false;
 	bamHeader = BamHeader;
 	readGroupNames = new std::string[readGroupMapObject.origNumReadGroups];
@@ -826,8 +847,32 @@ void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
 
 void TRecalibrationEM::addSite(TSite & site){
 	(*curWindow)->addSite(site, qualityMap);
-	++numSitesAdded;
 }
+
+long TRecalibrationEM::numSites(){
+	long _numSites = 0;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		_numSites += (*curWindow)->numSites();
+	}
+	return _numSites;
+}
+
+long TRecalibrationEM::numSitesDepthTwoOrMore(){
+	long _numSites = 0;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		_numSites += (*curWindow)->numSitesDepthTwoOrMore();
+	}
+	return _numSites;
+}
+
+long TRecalibrationEM::cumulativeDepth(){
+	long cumulDepth = 0;
+	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		cumulDepth += (*curWindow)->cumulativeDepth();
+	}
+	return cumulDepth;
+}
+
 
 void TRecalibrationEM::prepareWindowsforEM(){
 	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
@@ -943,10 +988,18 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 }
 
 void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
-	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
-	if(numSitesAdded < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+	//print available data
+	logfile->startIndent("Available data for recal:");
+	long _numSites = numSites();
+	logfile->list("Number of sites with data: " + toString(_numSites));
+	logfile->list("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
+	if(_numSites < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+	logfile->endIndent();
 
-	//initialize tmp variable sin windows
+	//run EM
+	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
+
+	//initialize tmp variables in windows
 	prepareWindowsforEM();
 
 	double LL, deltaLL, oldLL = 0.0;
