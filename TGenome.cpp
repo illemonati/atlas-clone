@@ -2171,6 +2171,9 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
 		//check if this RG needs to be parsed
+		std::string tmp;
+		bamAlignment.GetTag("RG", tmp);
+		readGroupId = readGroups.find(tmp);
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
@@ -2178,7 +2181,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
 			else if(bamAlignment.Length > singleEndRGIT->second.maxLen){
 				if(allowForLarger) bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-				else logfile->warning("Length of read in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+				else logfile->warning("Length of read " + bamAlignment.Name + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
 			}
 		}
 
