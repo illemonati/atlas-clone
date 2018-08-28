@@ -3090,9 +3090,9 @@ void TGenome::estimatePMD(TParameters & params){
 	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 
 	//prepare PMD table
-	int maxLength = params.getParameterIntWithDefault("length", 50);
-	logfile->list("Estimating PMD at the first " + toString(maxLength) + " positions.");
-	TPMDTables pmdTables(&readGroups, maxLength, readGroupMap);
+	int maxLengthForInference = params.getParameterIntWithDefault("length", 50);
+	logfile->list("Estimating PMD at the first " + toString(maxLengthForInference) + " positions.");
+	TPMDTables pmdTables(&readGroups, maxLengthForInference, maxReadLength, readGroupMap);
 
 	//measure progress and runtime
 	struct timeval start;
