@@ -131,11 +131,11 @@ public:
 			} else if(task == "BAMDiagnostics"){
 				logfile->startIndent("Estimating approximate depth, read length frequencies and mapping quality frequencies (task = BAMDiagnostics):");
 				genome.diagnoseBamFile(*parameters);
-			} else if(task == "depthPerWindow"){
-				logfile->startIndent("Estimating depth per window (task = depthPerWindow):");
+			} else if(task == "writeDepthPerWindow"){
+				logfile->startIndent("Estimating depth per window (task = writeDepthPerWindow):");
 				genome.estimateApproximateDepthPerWindow(*parameters);
-			} else if(task == "depthPerSite"){
-				logfile->startIndent("Estimating depth per site (task = depthPerSite):");
+			} else if(task == "depthPerSiteDist"){
+				logfile->startIndent("Estimating depth per site (task = depthPerSiteDist):");
 				genome.estimateDepthPerSite(*parameters);
 			} else if(task == "writeDepthPerSite"){
 				logfile->startIndent("Writing depth per site (task = writeDepthPerSite):");
