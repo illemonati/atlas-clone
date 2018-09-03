@@ -659,7 +659,7 @@ void TSiteDiploid::callMLEGenotypeKnownAllelesBeagle(TGenotypeMap & genoMap, TRa
 		out << "\t" << emissionProbs[2] / sumEmissionProbs;
 	}
 	else if(!printOnlyGL) out << chr << "_" << pos + start + 1 << "\tN\tN\t0.333\t0.333\t0.333";
-	else out << "0.333\t0.333\t0.333";
+	else out << "\t0.333\t0.333\t0.333";
 	out << "\n";
 }
 
