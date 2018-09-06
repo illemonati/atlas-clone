@@ -1460,6 +1460,12 @@ void TGenome::printPileup(TParameters & params){
 	//prepare windows
 	TWindowPairDiploid windows;
 
+	bool printOnlySitesWithData = false;
+	if(params.parameterExists("printOnlySitesWithData")){
+		printOnlySitesWithData = true;
+		logfile->list("Will print only sites with data");
+	}
+
 	//open output
 	gz::ogzstream out;
 	std::string filename = outputName + "_pileup.txt.gz";
@@ -1478,7 +1484,7 @@ void TGenome::printPileup(TParameters & params){
 		while(iterateWindow(windows)){
 			if(readData(windows)){
 				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-				windows.cur->printPileup(recalObject, out, chrIterator->Name);
+				windows.cur->printPileup(recalObject, out, chrIterator->Name, printOnlySitesWithData);
 			}
 		}
 	}

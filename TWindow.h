@@ -57,7 +57,7 @@ public:
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
-	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr);
+	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printOnlySitesWithData);
 	virtual void calcDepth();
 	void calcFracN();
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);

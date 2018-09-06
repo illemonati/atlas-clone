@@ -261,13 +261,15 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr){
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){
-		recalObject->calcEmissionProbabilities(sites[i]);
-		out << chr << "\t" << start + i + 1;
-		sites[i].printPileup(out);
-		out << "\n";
+		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
+			recalObject->calcEmissionProbabilities(sites[i]);
+			out << chr << "\t" << start + i + 1;
+			sites[i].printPileup(out);
+			out << "\n";
+		}
 	}
 }
 
