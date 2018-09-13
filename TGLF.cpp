@@ -325,7 +325,7 @@ void TGlfReader::printChr(){
 void TGlfReader::printSite(){
 	std::cout << curChr << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	for(int i=0; i<10; ++i)
-		std::cout << "\t" << genotypeQualities[i];
+		std::cout << "\t" << unsigned(genotypeQualities[i]);
 	std::cout << "\n";
 };
 
