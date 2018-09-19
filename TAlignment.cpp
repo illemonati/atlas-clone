@@ -29,6 +29,8 @@ TAlignment::TAlignment(){
 	bases = NULL;
 //	quality = NULL;
 	qualityOriginal = NULL;
+	numInsertions = -1;
+	numDeletions = -1;
 	softClippedEntry = 0;
 	softClippedLength = NULL;
 	softClippedBase = NULL;
@@ -77,8 +79,8 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	recalibrated = Alignment.recalibrated;
 	hasReference = Alignment.hasReference;
 	qualityOriginal = Alignment.qualityOriginal;
-	numInsertions = -1;
-	numDeletions = -1;
+	numInsertions = Alignment.numInsertions;
+	numDeletions = Alignment.numDeletions;
 	softClippedEntry = Alignment.softClippedEntry;
 	softClippedLength = Alignment.softClippedLength;
 	softClippedBase = Alignment.softClippedBase;

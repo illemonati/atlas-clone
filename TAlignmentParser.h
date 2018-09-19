@@ -91,6 +91,7 @@ private:
 //	bool iterateChromosome(TWindow & window);
 	void moveChromosome(TWindow & window);
 	bool moveToNextWindowOnChr(TWindow & window);
+	bool moveToNextPredefinedWindow(TWindow & window);
 	bool moveWindow(TWindow & window);
 
 	void initializePostMortemDamage(TParameters & params);

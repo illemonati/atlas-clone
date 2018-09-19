@@ -51,7 +51,6 @@ TWindow::~TWindow(){
 TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
 	//save used alignment on proper stack
 	usedAlignments.push_back(usedAlignment);
-	//std::cout << "sizeof(*usedAlignment) "<< sizeof(*usedAlignment) << std::endl;
 
 	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
@@ -127,9 +126,11 @@ void TWindow::review(){
 }
 
 void TWindow::cleanUpUsedAlignments(){
+//	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start && (*alignmentIt)->chrNumber == chrNumber)){
+//			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
 			(*alignmentIt)->clear();
 			emptyAlignments.push_back(*alignmentIt);
 			usedAlignments.erase(alignmentIt);
@@ -139,15 +140,17 @@ void TWindow::cleanUpUsedAlignments(){
 
 		if((*alignmentIt)->position >= end){
 			usedAlignments.erase(alignmentIt, usedAlignments.end());
+//			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
 			break;
 		}
+//		std::cout << std::endl;
 	}
 }
 
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
-		std::cout << " " << *alignmentIt;
+		std::cout << " " << *alignmentIt << ":" << (*alignmentIt)->alignmentName << " pos " << (*alignmentIt)->position;
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
@@ -175,8 +178,11 @@ void TWindow::fillSites(){
 		if(firstPos < 0){
 			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
 				++p;
-			if(p == (*alignmentIt)->length)
-				throw "alignment should be assigned to previous window!";
+			if(p == (*alignmentIt)->length){
+				std::cout << "alignment address " << *alignmentIt << std::endl;
+//				std::cout << (*(alignmentIt-1))->alignmentName << " " << (*(alignmentIt-1))->position << std::endl;
+				throw "alignment should be assigned to previous window! Name: " + (*alignmentIt)->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString((*alignmentIt)->position);
+			}
 		}
 
 		//position in window where first one = 0
