@@ -147,6 +147,22 @@ std::string TPMDTable::getPMDStringGA(){
 	return s + "]";
 };
 
+std::string TPMDTable::getGTString(){
+	calculateSums();
+	std::string s = "Empiric[";
+	double tmpGT, tmpTG;  //tmpRefRead
+	for(int p=0; p<maxLength; ++p){
+		if(p>0) s += ",";
+		if(sums[p][T] < 1 || sums[p][A] < 1) s += "0.0";
+		else {
+			tmpGT = (double) counts[p][G][T] / (double) sums[p][G];
+			tmpTG = (double) counts[p][T][G] / (double) sums[p][T];
+			s += toString(std::max(0.0, (tmpGT - tmpTG)/(1.0 - tmpTG)));
+		}
+	}
+	return s + "]";
+};
+
 //function to fit an exponential model
 void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams){
 	F.zeros();
@@ -425,6 +441,17 @@ void TPMDTables::writePMDFile(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->getPMDStringCT() << "\t" << reverse[readGroupMapObject[i]]->getPMDStringGA() << "\n";
+	}
+	out.close();
+}
+
+void TPMDTables::writeGTFile(std::string filename){
+	std::ofstream out(filename.c_str());
+	if(!out) throw "Failed to open file '" + filename + "'!";
+
+	//loop over all read groups
+	for(int i=0; i<origNumReadGroups; ++i){
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->getGTString() << "\n";
 	}
 	out.close();
 }

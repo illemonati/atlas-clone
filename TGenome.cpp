@@ -3143,6 +3143,54 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->done();
 }
 
+void TGenome::estimateGTPattern(TParameters & params){
+	//make sure FASTA is open
+	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
+
+	//prepare readGroup map
+	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+
+	//prepare PMD table
+	int maxLengthForInference = params.getParameterIntWithDefault("length", 50);
+	logfile->list("Estimating GT pattern at the first " + toString(maxLengthForInference) + " positions.");
+	TPMDTables pmdTables(&readGroups, maxLengthForInference, maxReadLength, readGroupMap);
+
+	//measure progress and runtime
+	struct timeval start;
+	long numreadsAdded = 0;
+	gettimeofday(&start, NULL);
+
+	//iterate through BAM file
+	while(alignmentParser.readAlignment(bamReader)){
+        if(useChromosome[alignmentParser.chrNumber] && alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId))
+			alignmentParser.addToPMDTables(pmdTables);
+
+		//report
+		++numreadsAdded;
+		reportProgressParsingBamFile(numreadsAdded, start);
+	}
+
+	//report
+	reportProgressParsingBamFile(numreadsAdded, start);
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+
+	//print tables and data
+	std::string filename = outputName + "_PMD_Table.txt";
+	logfile->listFlush("Writing PMD table to '" + filename + "' ...");
+	pmdTables.writeTable(filename);
+	logfile->done();
+	filename = outputName + "_PMD_Table_counts.txt";
+	logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
+	pmdTables.writeTableWithCounts(filename);
+	logfile->done();
+	filename = outputName + "_GT_Empiric.txt";
+	pmdTables.writeGTFile(filename);
+	logfile->listFlush("Writing GT empiric pattern to '" + filename + "' ...");
+
+
+	logfile->done();
+}
 
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)

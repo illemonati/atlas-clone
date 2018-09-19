@@ -41,6 +41,7 @@ public:
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDStringCT();
 	std::string getPMDStringGA();
+	std::string getGTString();
 	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, int maxReadLength, TLog* logfile);
 };
 
@@ -60,6 +61,7 @@ public:
 	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void addReverse(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);
+	void writeGTFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
 	void fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile);

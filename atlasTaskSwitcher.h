@@ -113,6 +113,9 @@ public:
 			} else if(task == "estimatePMD"){
 				logfile->startIndent("Estimating Post-Mortem Damage (PMD) patterns (task = estimatePMD):");
 				genome.estimatePMD(*parameters);
+			} else if(task == "estimateGTPattern"){
+				logfile->startIndent("Estimating Post-Mortem Damage (PMD) patterns (task = estimatePMD):");
+				genome.estimateGTPattern(*parameters);
 			} else if(task == "PMDS"){
 				logfile->startIndent("Filtering for ancient reads using PMDS (Skoglund et al. 2014, task = PMDS):");
 				genome.runPMDS(*parameters);
