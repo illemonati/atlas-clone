@@ -2568,7 +2568,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	//close bam writer
 	bamWriter.Close();
-	delete pairedReadGroups;
+	delete[] pairedReadGroups;
 
 	//report
 	reportProgressParsingBamFile(counter, start);
