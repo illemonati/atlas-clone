@@ -87,7 +87,7 @@ private:
 
 	//move genome
 	void jumpToEnd();
-	void restartChromosome(TWindow & window);
+	void restartChromosomes(TWindow & window);
 //	bool iterateChromosome(TWindow & window);
 	void moveChromosome(TWindow & window);
 	bool moveToNextWindowOnChr(TWindow & window);

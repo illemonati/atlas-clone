@@ -107,6 +107,10 @@ private:
 
 		//close file
 		bedFile.close();
+//		for(std::map<std::string, TBedChromosome*>::iterator chrIt = chromosomes.begin(); chrIt != chromosomes.end(); ++chrIt){
+//			std::cout << "in map chr name: " << chrIt->first << " windows number "<<  chrIt->second->size() << std::endl;
+//
+//		}
 	};
 
 public:
