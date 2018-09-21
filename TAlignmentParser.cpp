@@ -735,7 +735,6 @@ void TAlignmentParser::applyFilters(TWindow & window){
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);
 		} if(maxRefN < 1.0 && hasReference == true){
-			window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
 			window.calcFracN();
 		}
 

@@ -52,7 +52,6 @@ private:
 	//reference
 	BamTools::Fasta* fastaReference;
 	std::string referenceSequence;
-	bool hasReference;
 
 	//iterators
  	int chrNumber;
@@ -122,6 +121,9 @@ public:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	BamTools::SamSequenceIterator chrIterator;
+
+ 	//reference
+	bool hasReference;
 
  	//recalibration
 	TRecalibration* recalObject;

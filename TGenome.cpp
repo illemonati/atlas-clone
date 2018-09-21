@@ -302,7 +302,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 		}
 	}
 }
-/*
+
 //------------------------------------------
 //Callers
 //------------------------------------------
@@ -342,7 +342,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 			gVCF = true;
 			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
 			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
-			if(!fastaReference) throw "Can not print VCF file without reference!";
+			if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
 			logfile->list("Will print output in gVCF format");
 		}
 	}
@@ -357,7 +357,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	}
 
 	if(params.parameterExists("vcf")){
-		if(!fastaReference) throw "Can not print VCF file without reference!";
+		if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 	}
 
@@ -372,7 +372,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 
 	if(params.parameterExists("vcf") || gVCF){
-		if(!fastaReference) throw "Can not print VCF file without reference!";
+		if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 		std::string sName = params.getParameterStringWithDefault("sampleName", outputName);
 
@@ -422,26 +422,25 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	}
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles || beagle) subset->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			if((!limitToSitesWithKnownAlleles && !beagle) || subset->hasPositionsInWindow(windows.cur->start)){
-				//read data for current window
-				if(readData(windows) || printIfNoData){
-					//call genotypes
-					logfile->listFlush("Calling MLE genotypes ...");
-					if(limitToSitesWithKnownAlleles || beagle){
-						windows.cur->addReferenceBaseToSites(subset);
-						windows.cur->callMLEGenotypeKnownAlleles(recalObject, subset, *randomGenerator, out, chrIterator->Name, writeVCF, noAltIfHomoRef, beagle, printOnlyGL);
-					} else {
-						if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-						windows.cur->callMLEGenotype(recalObject, *randomGenerator, out, chrIterator->Name, printIfNoData, fastaReference, writeVCF, gVCF, noAltIfHomoRef);
-					}
-					logfile->done();
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(limitToSitesWithKnownAlleles || beagle) subset->setChr(alignmentParser.chrIterator->Name);
+		//read data for current window
+		if(window.passedFilters || printIfNoData){
+			if((!limitToSitesWithKnownAlleles && !beagle) || subset->hasPositionsInWindow(window.start)){
+				//call genotypes
+				logfile->listFlush("Calling MLE genotypes ...");
+				if(limitToSitesWithKnownAlleles || beagle){
+					if(!alignmentParser.hasReference)
+						throw "Must provide reference!";
+					window.callMLEGenotypeKnownAlleles(alignmentParser.recalObject, subset, *randomGenerator, out, alignmentParser.chrIterator->Name, writeVCF, noAltIfHomoRef, beagle, printOnlyGL);
+				} else {
+					window.callMLEGenotype(alignmentParser.recalObject, *randomGenerator, out, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF, gVCF, noAltIfHomoRef);
 				}
+				logfile->done();
+
 			}
 		}
 	}
@@ -464,9 +463,6 @@ bool TGenome::initThetaEstimatorForCallers(TParameters & params, TThetaEstimator
 }
 
 void TGenome::callBayesianGenotypes(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
@@ -480,7 +476,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	if(params.parameterExists("sites")){
 		if(alignmentParser.windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		bool invariantSites = false;
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+		if(alignmentParser.hasReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 	} else {
@@ -493,7 +489,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	gz::ogzstream output;
 	std::string outputFileName;
 	if(params.parameterExists("vcf")){
-		if(!fastaReference) throw "Can not print VCF file without reference!";
+		if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 		//open file
 		outputFileName = outputName + "_BayesianGenotypes.vcf.gz";
@@ -518,7 +514,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 		//write header
 		output << "chr\tpos";
-		if(fastaReference) output << "\tRef";
+		if(alignmentParser.hasReference) output << "\tRef";
 		if(limitToSitesWithKnownAlleles) output << "\talt\tdepth\tP(RR|D)\tP(RA|D)\tP(AA|D)\tMAP\tQ\n";
 		else output << "\tdepth\tP(AA|D)\tP(AC|D)\tP(AG|D)\tP(AT|D)\tP(CC|D)\tP(CG|D)\tP(CT|D)\tP(GG|D)\tP(GT|D)\tP(TT|D)\tMAP\tQ\n";
 	}
@@ -587,9 +583,6 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 }
 
 void TGenome::callAllelePresence(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
@@ -728,9 +721,6 @@ void TGenome::callAllelePresence(TParameters & params){
 }
 
 void TGenome::randomBaseCaller(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	bool printIfNoData = false;
 	if(params.parameterExists("printAll")){
 		printIfNoData = true;
@@ -751,28 +741,22 @@ void TGenome::randomBaseCaller(TParameters & params){
 	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows) || printIfNoData){
-				//call random allele
-				logfile->listFlush("Calling random base ...");
-				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-				windows.cur->callRandomBase(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
-				logfile->done();
+	while(alignmentParser.readDataInNextWindow(window)){
+		//read data for current window
+		if(window.passedFilters || printIfNoData){
+			//call random allele
+			logfile->listFlush("Calling random base ...");
+			window.callRandomBase(*randomGenerator, randomBases, alignmentParser.chrIterator->Name, printIfNoData);
+			logfile->done();
 
-			} else logfile->list("No positions in this window.");
-		}
+		} else logfile->list("No positions in this window.");
 	}
 }
 
 void TGenome::majorityBaseCaller(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	bool printIfNoData = false;
 	if(params.parameterExists("printAll")){
 		printIfNoData = true;
@@ -793,21 +777,18 @@ void TGenome::majorityBaseCaller(TParameters & params){
 	randomBases << "chr\tpos\tref\tdepth\tpileup\trandom_base\n";
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows) || printIfNoData){
-				//call random allele
-				logfile->listFlush("Calling random base ...");
-				if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-				windows.cur->majorityCall(*randomGenerator, randomBases, chrIterator->Name, printIfNoData);
-				logfile->done();
+	while(alignmentParser.readDataInNextWindow(window)){
+		//read data for current window
+		if(window.passedFilters || printIfNoData){
+			//call random allele
+			logfile->listFlush("Calling random base ...");
+			window.majorityCall(*randomGenerator, randomBases, alignmentParser.chrIterator->Name, printIfNoData);
+			logfile->done();
 
-			} else logfile->list("No positions in this window.");
-		}
+		} else logfile->list("No positions in this window.");
 	}
 }
 
@@ -816,9 +797,6 @@ void TGenome::majorityBaseCaller(TParameters & params){
 // I/O
 //---------------------------------------------------
 void TGenome::writeGLF(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//print all?
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData)
@@ -830,7 +808,7 @@ void TGenome::writeGLF(TParameters & params){
 	TGlfWriter writer(outputFileName);
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -895,7 +873,7 @@ void TGenome::combineBeagleFiles(TParameters & params){
 	}
 }
 
-*/
+
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
 //	initializeRecalibration(params);
@@ -924,11 +902,8 @@ void TGenome::printPileup(TParameters & params){
 	//clean up
 	out.close();
 }
-/*
-void TGenome::generatePSMCInput(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
 
+void TGenome::generatePSMCInput(TParameters & params){
 	//read in parameters required
 	double theta = params.getParameterDoubleWithDefault("theta", 0.001);
 	logfile->list("Using theta = " + toString(theta));
@@ -939,7 +914,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence));
 	int blockSize = params.getParameterIntWithDefault("block", 100);
 	//make sure window size is a multiple of block length!
-	if(windowSize % blockSize != 0) throw "Window size is not a multiple of block size!";
+	if(alignmentParser.windowSize % blockSize != 0) throw "Window size is not a multiple of block size!";
 
 	//open output file
 	std::ofstream output;
@@ -950,7 +925,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	int nCharOnLine = 0;
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
@@ -963,9 +938,9 @@ void TGenome::generatePSMCInput(TParameters & params){
 
 			//set base frequencies
 			logfile->listFlush("Calculating emission probabilities ...");
-			windows.cur->calculateEmissionProbabilities(recalObject);
-			windows.cur->estimateBaseFrequencies();
-			thetaEstimator.setBaseFreq(windows.cur->baseFreq);
+			window.calculateEmissionProbabilities(recalObject);
+			window.estimateBaseFrequencies();
+			thetaEstimator.setBaseFreq(window.baseFreq);
 			logfile->done();
 
 			//create PSMC input
@@ -992,22 +967,21 @@ void TGenome::createDepthMask(TParameters & params){
 	output.open(outputFileName.c_str());
 	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 	//prepare windows
-	TWindowPair windows;
+	TWindow windows;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		//write chromosome to file
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//read data for current window
+		if(window.passedFilters){
 			logfile->listFlush("Writing sites to mask to output file ...");
-			windows.cur->createDepthMask(minDepthForMask, maxDepthForMask, output, chrIterator->Name);
+			window.createDepthMask(minDepthForMask, maxDepthForMask, output, chrIterator->Name);
 			logfile->done();
 		}
 	}
 	output.close();
 }
-*/
+
 //---------------------------------------------------
 //recalibration
 //---------------------------------------------------
