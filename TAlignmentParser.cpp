@@ -464,7 +464,7 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 		throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
 
 	//check if insert size is shorter than read-insertions+deletions, this means we are reading the adaptor sequence
-	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= (bamAlignment.AlignedBases.length() + numInsertions)){
+	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) < (bamAlignment.AlignedBases.length() + numInsertions)){
 		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 		passedFilters = false;
 	}
