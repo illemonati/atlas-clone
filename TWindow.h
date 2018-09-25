@@ -69,7 +69,7 @@ public:
 	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
-	void calculateEmissionProbabilities(TRecalibration* recalObject);
+	void calculateEmissionProbabilities();
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string chrName);
 	void printPileupToScreen(TRecalibration* recalObject, std::string & chrName);

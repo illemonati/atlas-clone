@@ -378,9 +378,16 @@ std::string TAlignmentParser::chrNumberToName(int chrNumber){
 		if(counter == chrNumber)
 			return chrIt->Name;
 		++counter;
-
 	}
 	throw "chrNumber not in header";
+}
+
+long TAlignmentParser::calcReferenceLength(){
+	int chrNum = 0;
+	long totLength = 0;
+    for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator, ++chrNum)
+        if(useChromosome[chrNum]) totLength += stringToLong(chrIterator->Length);
+    return totLength;
 }
 
 //--------------
@@ -517,22 +524,16 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				moveChromosome(window);
 
 
-				if(chrIterator == bamHeader.Sequences.End()){
-	//				throw "after move chromosome, about to return false for move window";
+				if(chrIterator == bamHeader.Sequences.End())
 					return false;
-				}
-				std::cout << "incrementing windows c" << std::endl;
-
 				++windowNumber;
 			}
 		}
 
 	} else {
 		//if at beginning of BAM file
-		if(chrIterator == bamHeader.Sequences.End()){
+		if(chrIterator == bamHeader.Sequences.End())
 			restartChromosomes(window);
-			std::cout << "####### at beginning of BAM file" << std::endl;
-		}
 		else {
 			if(!moveToNextWindowOnChr(window)){
 				//there is no window left on chr
@@ -548,10 +549,8 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				//did we reach end?
 				if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
 					window.end = 0;
-//					chrIterator = bamHeader.Sequences.End();
 					return false;
 				}
-
 				moveChromosome(window);
 			}
 		}
@@ -596,7 +595,7 @@ bool TAlignmentParser::readAlignment(){
 		filtersPassed = true;
 		//check if insert size is shorter than read, this means we are reading the adaptor sequence
 		//TODO: should add insertions to bamAlignment.AlignedBases.length()
-		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){;// + alignment.numInsertions)){
+		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= bamAlignment.AlignedBases.length()){
 			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 		} else {

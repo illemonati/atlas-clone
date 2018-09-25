@@ -144,13 +144,17 @@ public:
 	void init(int MaxReadLength, TParameters & params, TLog* Logfile);
 
 	//setters
+	void setQualityFilters(int minQual, int maxQual);
+	void setQualityRangeForPrinting(int minQual, int maxQual);
+	void setReadTrimming(int trim3Prime, int trim5Prime);
+
 	void keepDuplicates(){_keepDuplicates = true;};
 	void setParsingToTrue(){parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);
-	void setQualityFilters(int minQual, int maxQual);
-	void setQualityRangeForPrinting(int minQual, int maxQual);
-	void setReadTrimming(int trim3Prime, int trim5Prime);
+	long calcReferenceLength();
+
+
 
 	//functions to read and parse
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);

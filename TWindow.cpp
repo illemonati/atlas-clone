@@ -282,7 +282,7 @@ void TWindow::estimateBaseFrequencies(){
 	baseFreq.normalize();
 }
 
-void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
+void TWindow::calculateEmissionProbabilities(){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
