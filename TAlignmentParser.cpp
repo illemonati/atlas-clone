@@ -261,11 +261,27 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	//CpG mask
 	if(params.parameterExists("maskCpG")){
-		if(!fastaReference) throw "Cannot mask CpG sites without reference!";
+		if(!hasReference) throw "Cannot mask CpG sites without reference!";
 		doCpGMasking = true;
 		std::string maskFile = params.getParameterString("maskCpG");
 		logfile->list("Will mask all CpG sites");
 	} else doCpGMasking = false;
+
+	//-------------
+	//sites
+	//-------------
+	TSiteSubset* subset = NULL;
+
+	//only call at specific sites?
+	if(params.parameterExists("sites")){
+		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
+
+		bool invariantSites = false;
+
+		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), fastaReference, bamHeader, windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		limitToSitesWithKnownAlleles = true;
+	}
 
 	//------------
 	//filters
