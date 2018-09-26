@@ -921,7 +921,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
 		if(nCharOnLine > 0) output << '\n';
 		output << '>' << chrIterator->Name << '\n';
@@ -1169,10 +1169,9 @@ void TGenome::printQualityDistribution(TParameters & params){
     long counter = 0;
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readNextAligment(alignment)){
+	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
-        if(useChromosome[alignment.chrNumber] && alignment.passedFilters){
-
+        if(alignment.passedFilters){
 			//update and write (only if alignment qualities could be calculated)
 			alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
 
@@ -1227,7 +1226,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//add alignments to tables
 	logfile->listFlush("Adding sites to quality transformation tables ...");
-	while(alignmentParser.readNextAligment(alignment)){
+	while(alignmentParser.readNextAlignment(alignment)){
 		if(alignmentParser.recalObjectInitialized2) alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, alignmentParser.recalObject2, QTtables, logfile);
 		else alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, QTtables, logfile);
 	}
@@ -1282,8 +1281,9 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	else if(withPMD && !alignmentParser.hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
 	if(withPMD && !alignmentParser.hasReference) throw "Cannot run recalBAM withPMD without reference!";
 
-	//should we exclude reads that don't pass filter?
-	??????;
+	//should we include reads that don't pass filter?
+	bool allReads = false;
+	if(params.parameterExists("allReads")) allReads = true;
 
 	//other tmp variables
 	long counter = 0;
@@ -1297,15 +1297,19 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
     //now parse through bam file and write alignments
 	if(withPMD){
-		while(alignmentParser.readAlignment()){
+		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
+			if(!alignment.passedFilters || !allReads)
+				continue;
 			alignmentParser.recalibrateWithPMD(alignment);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 			reportProgressParsingBamFile(counter, start);
         }
 	} else {
-		while(alignmentParser.readAlignment()){
+		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
+			if(!alignment.passedFilters || !allReads)
+				continue;
 			alignmentParser.recalibrate(alignment);
 			alignment.save(bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			reportProgressParsingBamFile(counter, start);
@@ -1341,9 +1345,9 @@ void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_binnedQualityScores.bam";
-	BamTools::RefVector references = bamReader.GetReferenceData();
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, bamHeader, references))
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//initialize alignment reading
@@ -1361,7 +1365,7 @@ void TGenome::binQualityScores(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment()){
+	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
 		//update and write (only if alignment qualities could be calculated)
@@ -1409,7 +1413,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//now parse through bam file and write alignments
-	while(alignmentParser.readAlignment()){
+	while(alignmentParser.readNextAlignment(alignment)){
 		alignment.assessSoftClipping(S_left, middle, S_right);
 
 		//report
@@ -1454,7 +1458,7 @@ void TGenome::assessOverlap(TParameters & params){
     	gettimeofday(&start, NULL);
 
 	//now parse through bam file and write alignments
-    while(alignmentParser.readNextAligment(alignment)){
+    while(alignmentParser.readNextAlignment(alignment)){
 		int overlap = alignment.measureOverlap();
 		if(overlap >= 0){
 			++counts[overlap];
@@ -1501,19 +1505,19 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 		if(!vec.empty()){
 			if(vec.size() != 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
-			readGroupId = readGroups.find(vec[0]);
+			readGroupId = alignmentParser.readGroups.find(vec[0]);
 			len = stringToInt(vec[1]);
 			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 
 			//add a new readgroup for the truncated reads to the header
 			readGroup = vec[0] + "_truncated";
-			bamHeader.ReadGroups.Add(readGroup);
-			readGroups.fill(bamHeader);
-			truncatedReadGroupId = readGroups.find(readGroup);
+			alignmentParser.bamHeader.ReadGroups.Add(readGroup);
+			alignmentParser.readGroups.fill(alignmentParser.bamHeader);
+			truncatedReadGroupId = alignmentParser.readGroups.find(readGroup);
 
 			//copy original tags to truncated read groups
-			trunc = bamHeader.ReadGroups.Begin()+truncatedReadGroupId;
-			orig = bamHeader.ReadGroups.Begin()+readGroupId;
+			trunc = alignmentParser.bamHeader.ReadGroups.Begin()+truncatedReadGroupId;
+			orig = alignmentParser.bamHeader.ReadGroups.Begin()+readGroupId;
 			trunc->Library = orig->Library;
 			trunc->PlatformUnit = orig->PlatformUnit;
 			trunc->PredictedInsertSize = orig->PredictedInsertSize;
@@ -1533,14 +1537,14 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	filename = outputName + "_splitRG.bam";
-	BamTools::RefVector references = bamReader.GetReferenceData();
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, bamHeader, references))
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
 	long counter = 0;
- 	BamTools::BamAlignment bamAlignment;
+// 	BamTools::BamAlignment bamAlignment;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1677,7 +1681,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
-	while (alignmentParser.readAlignment()){
+	while (alignmentParser.readNextAlignment(alignment)){
 		//get read group info
 		bamAlignment.GetTag("RG", readGroup);
 		oldId = alignmentParser.readGroups.find(readGroup);
@@ -1762,7 +1766,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readNextAligment(alignment)){
+	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
 		std::cout << "parsed " << alignment.alignmentName << std::endl;
 		if((readsToOmit.count(alignment.alignmentName) > 0)){
@@ -2012,7 +2016,7 @@ void TGenome::downSampleBamFile(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment()){
+	while (alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
         if(!alignment.passedFilters) continue;
@@ -2069,8 +2073,7 @@ void TGenome::downSampleReads(TParameters & params){
     gettimeofday(&start, NULL);
 
     //now parse through bam file and write alignments
-	while(alignmentParser.readAlignment()){
-
+	while (alignmentParser.readNextAlignment(alignment)){
 		alignment.downsampleAlignment(fraction, *randomGenerator, qualMap);
 		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
@@ -2147,7 +2150,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //now parse through bam file and sum number of aligned bases
     //TODO: avoid getting properties from bamAlignment, use alignmentParser
-    while(alignmentParser.readAlignment()){
+	while (alignmentParser.readNextAlignment(alignment)){
     	//filters
         if(!alignment.passedFilters) continue;
         if(!useChromosome[alignment.chrNumber]) continue;
@@ -2515,7 +2518,7 @@ void TGenome::estimatePMD(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//iterate through BAM file
-	while(alignmentParser.readAlignment()){
+	while (alignmentParser.readNextAlignment(alignment)){
         if(useChromosome[alignment.chrNumber] && alignment.passedFilters)
 			alignment.addToPMDTables(pmdTables, genoMap);
 
@@ -2592,7 +2595,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	//now parse through bam file and write alignments
 	double PMDS;
-	while(alignmentParser.readAlignment()){
+	while (alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
         if(alignment.passedFilters){

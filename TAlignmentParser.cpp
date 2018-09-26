@@ -368,9 +368,12 @@ void TAlignmentParser::addReference(BamTools::Fasta* reference){
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
 	if(!hasReference) //is this check really necessary?
 		throw "No reference provided!";
-
 	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.bases[alignment.length-1].alignedPos, referenceSequence);
 };
+
+bool chrChange(){
+	if()
+}
 
 std::string TAlignmentParser::chrNumberToName(int chrNumber){
 	int counter = 0;
@@ -449,10 +452,8 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		window.move(0, nextEnd, chrNumber);
 	}
 
-
-	if(chrIterator == bamHeader.Sequences.End()){
+	if(chrIterator == bamHeader.Sequences.End())
 		return;
-	}
 
 	//advance mask
 	if(doMasking || considerRegions) mask->setChr(chrIterator->Name);
@@ -564,7 +565,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 }
 
 //------------------------------
-//reading data
+//reading alignments
 //------------------------------
 bool TAlignmentParser::readAlignment(){
 	bool filtersPassed;
@@ -640,11 +641,21 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	}
 }
 
+//------------------------
+//read data in alignments
+//------------------------
 
-bool TAlignmentParser::readNextAligment(TAlignment & alignment){
+bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
 		fillAlignment(alignment);
+		if(previousAlignmentPos == -1){
+			while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
+				++chrIterator;
+				++chrNumber;
+			}
+			bamReader.Jump(chrNumber, 0);
+		}
 		return true;
 	}
 	return false;

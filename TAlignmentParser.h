@@ -166,7 +166,7 @@ public:
 	bool readDataInNextWindow(TWindow & window);
 
 	//reading data only requires alignments
-	bool readNextAligment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
+	bool readNextAlignment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
 
 	//qualityTransformation
 	void initializeRecalibrationForQualityTransformation(TParameters & params);
