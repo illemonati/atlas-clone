@@ -677,6 +677,11 @@ void TAlignment::updateOptionalSamField(std::string tag, float value){
 	else bamAlignment.EditTag(tag, "f", value);
 };
 
+void TAlignment::updateOptionalSamField(std::string tag, std::string value){
+	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "Z", value);
+	else bamAlignment.EditTag(tag, "Z", value);
+};
+
 void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap){
 	for(int d=0; d<length; ++d){
 		double r = randomGenerator.getRand();

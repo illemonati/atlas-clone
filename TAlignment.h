@@ -142,6 +142,7 @@ public:
 	void fillReadGroupInfo(int & readGroupID);
 	void binQualityScores(TQualityMap & qualityMap);
 	void updateOptionalSamField(std::string tag, float value);
+	void updateOptionalSamField(std::string tag, std::string value);
 	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
 
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);

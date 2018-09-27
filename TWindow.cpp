@@ -160,6 +160,50 @@ void TWindow::printStacks(){
 
 }
 
+void TWindow::fillSitesSubset(TSiteSubset & subset){
+	//add reads in usedAlignments to sites in window
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
+		//check if alignment start is inside window
+		if((*alignmentIt)->position >= end){
+			throw "alignment should be assigned to next window!";
+		}
+
+		//genomic position of alignment as seen from window perspective
+		int firstPos = (*alignmentIt)->position - start;
+
+		//set position in read
+		int p = 0;
+
+		//is the beginning of the read part of previous window? increase starting p for adding bases!
+		if(firstPos < 0){
+			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
+				++p;
+			if(p == (*alignmentIt)->length){
+//				std::cout << (*(alignmentIt-1))->alignmentName << " " << (*(alignmentIt-1))->position << std::endl;
+				throw "alignment should be assigned to previous window! Name: " + (*alignmentIt)->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString((*alignmentIt)->position);
+			}
+		}
+
+		//get positions that are used
+		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+
+		//position in window where first one = 0
+		int internalPos;
+		//p is at first position of read in window
+		for(; p < (*alignmentIt)->length; ++p){
+			if((*alignmentIt)->bases[p].alignedPos && (*alignmentIt)->bases[p].base != N){
+				internalPos = firstPos + (*alignmentIt)->bases[p].alignedPos;
+				//if read extends past window length
+				if(internalPos >= length)
+					break; //since part of the read maps to next window
+				if(thesePos.find(internalPos))
+					sites[internalPos].add(&(*alignmentIt)->bases[p]);
+			}
+		}
+		++numReadsInWindow;
+	}
+}
+
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
@@ -700,7 +744,7 @@ void TWindow::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & o
 	}
 }
 
-void TWindow::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
+void TWindow::callAllelePresenceKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
 		//calc prior probabilities on Genotypes

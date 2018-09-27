@@ -95,7 +95,7 @@ public:
 		}
 	};
 
-	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
+	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool variantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -113,15 +113,15 @@ public:
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
-		if(!invariantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
-		if(invariantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(variantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(!variantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
 
 		//identify window
 		findOrCreateWindow(pos);
 		windowIt->second->addPosition(pos, ref, alt);
 	};
 
-	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool invariantSites){
+	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool variantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -151,11 +151,11 @@ public:
 			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			return false;
 		}
-		if(ref == alt && !invariantSites){
+		if(ref == alt && variantSites){
 			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			//return false;
 			throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
-		}if(ref != alt && invariantSites){
+		}if(ref != alt && !variantSites){
 			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			//return false;
 			throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
@@ -198,7 +198,7 @@ private:
 	std::map<std::string, TSiteSubsetChr*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
-	bool invariantSites;
+	bool variantSites;
 
 	void readFile(TLog* logfile){
 		logfile->listFlush("Reading sites to be used from '" + filename + "' ...");
@@ -230,7 +230,7 @@ private:
 				}
 
 				//add positions
-				chrIt->second->addPosition(vec, chrIt->first, invariantSites);
+				chrIt->second->addPosition(vec, chrIt->first, variantSites);
 			}
 		}
 
@@ -278,7 +278,7 @@ private:
 				}
 
 				//add positions
-				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error, invariantSites)){
+				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error, variantSites)){
 					//conflict with fasta -> add to vector
 					conflictsWithReference.push_back(error);
 				}
@@ -311,18 +311,18 @@ private:
 
 public:
 	std::string filename;
-	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & InvariantSites){
+	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & VariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
-		invariantSites = InvariantSites;
+		variantSites = VariantSites;
 		readFile(logfile);
 		curChr = "";
 	};
 
-	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & InvariantSites){
+	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & VariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
-		invariantSites = InvariantSites;
+		variantSites = VariantSites;
 		readFile(reference, bamHeader, logfile);
 		curChr = "";
 	};

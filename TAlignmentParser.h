@@ -113,6 +113,8 @@ public:
 	bool applyDepthFilter;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
+	bool sitesProvided;
+	TSiteSubset* subset = NULL;
  	TReadGroups readGroups;
 
 	//BAM file
@@ -124,6 +126,7 @@ public:
 
  	//reference
 	bool hasReference;
+	bool chrChanged;
 
  	//recalibration
 	TRecalibration* recalObject;
@@ -153,8 +156,6 @@ public:
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);
 	long calcReferenceLength();
-
-
 
 	//functions to read and parse
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);

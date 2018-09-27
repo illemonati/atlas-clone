@@ -320,9 +320,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	//only call at specific sites?
 	if(params.parameterExists("sites")){
 		bool invariantSites = false;
-
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, alignmentParser.windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), alignmentParser.windowSize, logfile, invariantSites);
+//		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, alignmentParser.windowSize, logfile, invariantSites);
+//		else subset = new TSiteSubset(params.getParameterString("sites"), alignmentParser.windowSize, logfile, invariantSites);
 		limitToSitesWithKnownAlleles = true;
 
 	//if not, how much information should be printed?
@@ -469,17 +468,16 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = true;
-	TSiteSubset* subset = NULL;
-	if(params.parameterExists("sites")){
-		if(alignmentParser.windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
-		bool invariantSites = false;
-		if(alignmentParser.hasReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		limitToSitesWithKnownAlleles = true;
-	} else {
-		printIfNoData = params.parameterExists("printAll");
-		if(printIfNoData) logfile->list("Will print all sites, even those without data");
-	}
+//	TSiteSubset* subset = NULL;
+//	if(params.parameterExists("sites")){
+//		if(alignmentParser.windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
+//		bool invariantSites = false;
+////		if(alignmentParser.hasReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+////		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+//		limitToSitesWithKnownAlleles = true;
+	printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData) logfile->list("Will print all sites, even those without data");
+
 
 	//open output: vcf or flat file?
 	bool writeVCF = false;
@@ -520,51 +518,39 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(window.start)){
-				if(window.passedFilters){
-					//check if we have data -> can be extended to ensure
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(window.passedFilters){
+			//estimate Theta?
+			if(estimateTheta){
+				//adding sites to estimator
+				logfile->listFlush("Calculating emission probabilities ...");
+				window.addSitesToThetaEstimator(alignmentParser.recalObject, *thetaEstimator);
+				logfile->done();
 
-					} else {
-						//estimate Theta?
-						if(estimateTheta){
-							//adding sites to estimator
-							logfile->listFlush("Calculating emission probabilities ...");
-							window.addSitesToThetaEstimator(recalObject, *thetaEstimator);
-							logfile->done();
+				//estimate Theta
+				thetaEstimator->estimateTheta();
 
-							//estimate Theta
-							thetaEstimator->estimateTheta();
+				//write results to file
+				outTheta << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t";
+				thetaEstimator->writeResultsToFile(outTheta);
 
-							//write results to file
-							outTheta << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t";
-							thetaEstimator->writeResultsToFile(outTheta);
+				//clear theta estimator
+				(*thetaEstimator).clear();
 
-							//clear theta estimator
-							(*thetaEstimator).clear();
-
-						} else {
-							window.calculateEmissionProbabilities();
-							window.estimateBaseFrequencies();
-							thetaEstimator->setBaseFreq(window.baseFreq);
-						}
-
-						//call Bayesian genotypes
-						logfile->listFlush("Calling Bayesian Genotypes ...");
-						if(limitToSitesWithKnownAlleles){
-							window.addReferenceBaseToSites(subset);
-							window.callBayesianGenotypeKnownAlleles(subset, *thetaEstimator, *randomGenerator, output, chrIterator->Name, writeVCF);
-						} else {
-							if(fastaReference) window.addReferenceBaseToSites(reference, chrNumber);
-							window.callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
-						}
-						logfile->done();
-					}
-				}
+			} else {
+				window.calculateEmissionProbabilities();
+				window.estimateBaseFrequencies();
+				thetaEstimator->setBaseFreq(window.baseFreq);
 			}
+
+			//call Bayesian genotypes
+			logfile->listFlush("Calling Bayesian Genotypes ...");
+			if(limitToSitesWithKnownAlleles){
+				window.callBayesianGenotypeKnownAlleles(alignmentParser.subset, *thetaEstimator, *randomGenerator, output, alignmentParser.chrIterator->Name, writeVCF);
+			} else {
+				window.callBayesianGenotype(*thetaEstimator, *randomGenerator, output, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF);
+			}
+			logfile->done();
 		}
 	}
 
@@ -573,10 +559,12 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		outTheta.close();
 		delete thetaEstimator;
 	}
-	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
 void TGenome::callAllelePresence(TParameters & params){
+	//prepare windows
+	TWindow window;
+
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
@@ -587,14 +575,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = false;
 	bool noAltIfHomoRef = false;
-	TSiteSubset* subset = NULL;
-	if(params.parameterExists("sites")){
-		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
-		bool invariantSites = false;
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		limitToSitesWithKnownAlleles = true;
-	} if(params.parameterExists("noAltIfHomoRef")){
+	if(params.parameterExists("noAltIfHomoRef")){
 		noAltIfHomoRef = true;
 		logfile->list("Will not print alternative alleles when genotype is 0/0");
 	} else {
@@ -613,7 +594,7 @@ void TGenome::callAllelePresence(TParameters & params){
 	gz::ogzstream outAllelePresence;
 	std::string outputFileName;
 	if(params.parameterExists("vcf")){
-		if(!fastaReference) throw "Can not print VCF file without reference!";
+		if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
 
 		//open file
@@ -644,65 +625,48 @@ void TGenome::callAllelePresence(TParameters & params){
 		outAllelePresence << "chr\tpos";
 		if(limitToSitesWithKnownAlleles) outAllelePresence << "\tRef\tAlt\tdepth\tP(Ref|D)\tP(Alt|D)\tMAP\tQ\n";
 		else {
-			if(fastaReference) outAllelePresence << "\tRef";
+			if(alignmentParser.hasReference) outAllelePresence << "\tRef";
 			outAllelePresence << "\tdepth\tP(A|D)\tP(C|D)\tP(G|D)\tP(T|D)\tMAP\tQ\n";
 		}
 	}
 
-	//prepare windows
-	TWindow window;
-
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
-		while(iterateWindow(windows)){
-			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){
-				//read data for current window
-				//TODO: ask Dan if following line should actually be if(readData || printIfNoData)
-				if(readData(windows) || printIfNoData){
-					//check if we have data -> can be extended to ensure
-					if(windows.cur->fractionSitesNoData > maxMissing && estimateTheta){
-						logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
-					} if(windows.cur->fractionRefIsN > maxRefN && estimateTheta){
-						logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
-					} else {
-						//estimate Theta?
-						if(estimateTheta){
-							//adding sites to estimator
-							logfile->listFlush("Calculating emission probabilities ...");
-							(*thetaEstimator).clear();
-							window.addSitesToThetaEstimator(recalObject, *thetaEstimator);
-							logfile->done();
+	while(alignmentParser.readDataInNextWindow(window)){
+			//check if we have data -> can be extended to ensure
+		if(window.passedFilters){
+			//estimate Theta?
+			if(estimateTheta){
+				//adding sites to estimator
+				logfile->listFlush("Calculating emission probabilities ...");
+				(*thetaEstimator).clear();
+				window.addSitesToThetaEstimator(alignmentParser.recalObject, *thetaEstimator);
+				logfile->done();
 
-							//estimate Theta
-							thetaEstimator->estimateTheta();
+				//estimate Theta
+				thetaEstimator->estimateTheta();
 
-							//write results to file
-							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
-							thetaEstimator->writeResultsToFile(outTheta);
+				//write results to file
+				outTheta << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t";
+				thetaEstimator->writeResultsToFile(outTheta);
 
-							//clear theta estimator
-							(*thetaEstimator).clear();
+				//clear theta estimator
+				(*thetaEstimator).clear();
 
-						} else {
-							window.calculateEmissionProbabilities();
-							window.estimateBaseFrequencies();
-							thetaEstimator->setBaseFreq(window.baseFreq);
-						}
+			} else {
+				window.calculateEmissionProbabilities();
+				window.estimateBaseFrequencies();
+				thetaEstimator->setBaseFreq(window.baseFreq);
+			}
 
-						//call allele presence
-						logfile->listFlush("Calling allele presence ...");
-						if(limitToSitesWithKnownAlleles){
-							windows.cur->addReferenceBaseToSites(subset);
-							windows.cur->callAllelePresenceKnwonAlleles(subset, *thetaEstimator, *randomGenerator, outAllelePresence, chrIterator->Name, writeVCF, noAltIfHomoRef);
-						} else {
-							window.callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
-						}
-						logfile->done();
-					}
-				}
-			} else logfile->list("No positions in this window.");
-		}
+			//call allele presence
+			logfile->listFlush("Calling allele presence ...");
+			if(limitToSitesWithKnownAlleles){
+				window.callAllelePresenceKnownAlleles(alignmentParser.subset, *thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, writeVCF, noAltIfHomoRef);
+			} else {
+				window.callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF, noAltIfHomoRef);
+			}
+			logfile->done();
+		} else logfile->list("No positions in this window.");
 	}
 
 	//clean up
@@ -710,7 +674,6 @@ void TGenome::callAllelePresence(TParameters & params){
 		outTheta.close();
 		delete thetaEstimator;
 	}
-	if(limitToSitesWithKnownAlleles) delete subset;
 }
 
 void TGenome::randomBaseCaller(TParameters & params){
@@ -804,17 +767,15 @@ void TGenome::writeGLF(TParameters & params){
 	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
-		writer.newChromosome(chrIterator->Name, stringToLong(chrIterator->Length));
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows)){
-				//write to GLF
-				logfile->listFlush("Adding window to GLF file ...");
-				window.calculateEmissionProbabilities();
-				window.addToGLF(writer, printIfNoData);
-				logfile->done();
-			}
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(alignmentParser.chrChanged)
+			writer.newChromosome(alignmentParser.chrIterator->Name, stringToLong(alignmentParser.chrIterator->Length));
+		if(window.passedFilters){
+			//write to GLF
+			logfile->listFlush("Adding window to GLF file ...");
+			window.calculateEmissionProbabilities();
+			window.addToGLF(writer, printIfNoData);
+			logfile->done();
 		}
 	}
 	//clean up
@@ -923,12 +884,11 @@ void TGenome::generatePSMCInput(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		if(nCharOnLine > 0) output << '\n';
-		output << '>' << chrIterator->Name << '\n';
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
-
+		if(alignmentParser.chrChanged){
+			if(nCharOnLine > 0) output << '\n';
+				output << '>' << alignmentParser.chrIterator->Name << '\n';
+		}
+		if(window.passedFilters){
 			//set base frequencies
 			logfile->listFlush("Calculating emission probabilities ...");
 			window.calculateEmissionProbabilities();
@@ -1095,11 +1055,6 @@ void TGenome::BQSR(TParameters & params){
 	bool invariantSites = false;
 	TSiteSubset* subset = NULL;
 
-	if(params.parameterExists("sites")){
-		subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		invariantSites = true;
-	}
-
 	//loop over bam until BQSR converges
 	while(!hasConverged){
 		++loopNumber;
@@ -1108,24 +1063,15 @@ void TGenome::BQSR(TParameters & params){
 
 		if(!bqsr.dataHasBeenStored()){
 			logfile->startIndent("Reading data from BAM file:");
-			while(iterateChromosome(windows)){
-				if(invariantSites) subset->setChr(chrIterator->Name);
-				while(iterateWindow(windows)){
-					if((invariantSites && subset->hasPositionsInWindow(windows.cur->start)) || !invariantSites){
-						//read data for current window
-						if(readData(windows)){
-							//add reference data
-							windows.cur->addReferenceBaseToSites(reference, chrNumber);
-
-							//add the base to BQSR
-							if(invariantSites) windows.cur->addSitesToBQSR(bqsr, subset, logfile);
-							else windows.cur->addSitesToBQSR(bqsr, logfile);
-						}
-					} else logfile->list("No positions in this window.");
-				}
+			while(alignmentParser.readDataInNextWindow(window)){
+				if(window.passedFilters){
+					//add the base to BQSR
+					if(invariantSites) window.addSitesToBQSR(bqsr, alignmentParser.subset, logfile, alignmentParser.qualMap);
+					else window.addSitesToBQSR(bqsr, logfile, alignmentParser.qualMap);
+				} else logfile->list("No positions in this window.");
 			}
 			//clean up memory
-			windows.clear();
+			window.clear();
 			logfile->endIndent();
 		}
 
@@ -1544,7 +1490,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
-// 	BamTools::BamAlignment bamAlignment;
+	TAlignment alignment;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1554,21 +1500,25 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 
     //now parse through bam file and write alignments
-	while (bamReader.GetNextAlignment(bamAlignment)){
+	while (alignmentParser.readNextAlignment(alignment)){
 		//check if this RG needs to be parsed
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
-			if(bamAlignment.Length == singleEndRGIT->second.maxLen)
-				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(bamAlignment.Length > singleEndRGIT->second.maxLen){
-				if(allowForLarger) bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
+			if(alignment.length == singleEndRGIT->second.maxLen)
+				alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
+//				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
+			else if(alignment.length > singleEndRGIT->second.maxLen){
+				if(allowForLarger)
+					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
 				else logfile->warning("Length of read in read group '" + readGroup + "' is > max length provided! Ignoring read.");
 			}
 		}
 
 		//write
-		bamWriter.SaveAlignment(bamAlignment);
+		void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
+
+		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
 		++counter;
@@ -1620,6 +1570,11 @@ void TGenome::mergeReadGroups(TParameters & params){
 			}
 		}
 	}
+
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	TReadGroups newReadGroupObject;
 	newReadGroupObject.fill(newHeader);
 	logfile->done();
@@ -2153,8 +2108,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
     	//filters
         if(!alignment.passedFilters) continue;
-        if(!useChromosome[alignment.chrNumber]) continue;
-        if(!alignment.passedFilters) continue;
         if(alignment.isProperPair){
         	if(!alignment.isReverseStrand){
         		++numProperPairs;
@@ -2274,11 +2227,9 @@ void TGenome::allelicDepth(TParameters & params){
 	//prepare windows
 	TWindow window;
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
+		if(window.passedFilters){
 			window.countAlleles(siteCounts, maxAllelicDepth);
 			logfile->listFlush("Adding imbalance values to table ...");
 			logfile->write(" done!");
@@ -2316,19 +2267,16 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	output << "chr\tstart\tend\tdepth" << std::endl;
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
-
+		if(window.passedFilters){
 			//write to file
 			logfile->listFlush("Writing sequencing depth estimates to file ...");
-			if(windows.cur->depth == -1.0) output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << "0" << "\n";
-			else output << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t" << windows.cur->depth << "\n";
+			if(window.depth == -1.0) output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
+			else output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
 			logfile->done();
 		}
 	}
@@ -2386,16 +2334,14 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 	outputQuantiles << "percent\tquantile" << std::endl;
 
 	//prepare windows
-	TWindowPair windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
+		if(window.passedFilters){
 			logfile->listFlush("Adding depth to table ...");
-			windows.cur->calcDepthPerSite(siteDepth, maxCov);
+			window.calcDepthPerSite(siteDepth, maxCov);
 			logfile->done();
 		}
 	}
@@ -2474,14 +2420,12 @@ void TGenome::writeDepthPerSite(TParameters & params){
 	out << "chr\tpos\tdepth" << std::endl;
 
 	//prepare windows
-	TWindow windows;
+	TWindow window;
 
 	//iterate through windows
-	while(iterateChromosome(windows)){
+	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		while(iterateWindow(windows)){
-			//read data for current window
-			readData(windows);
+		if(window.passedFilters){
 			logfile->listFlush("Writing depth per site ...");
 			window.printDepthPerSite(out, alignmentParser.chrIterator->Name);
 			logfile->done();
@@ -2519,7 +2463,7 @@ void TGenome::estimatePMD(TParameters & params){
 
 	//iterate through BAM file
 	while (alignmentParser.readNextAlignment(alignment)){
-        if(useChromosome[alignment.chrNumber] && alignment.passedFilters)
+        if(alignment.passedFilters)
 			alignment.addToPMDTables(pmdTables, genoMap);
 
 		//report

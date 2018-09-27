@@ -65,6 +65,7 @@ TAlignmentParser::TAlignmentParser(){
 	maxRefN = 1.0;
 	windowsPredefined = false;
 	predefinedWindows = NULL;
+	sitesProvided = false;
 
 	//masks
 	doMasking = false;
@@ -96,6 +97,7 @@ TAlignmentParser::TAlignmentParser(){
 	hasReference = false;
 	fastaReference = NULL;
 	fastaBuffer = NULL;
+	chrChanged = false;
 
 	//post mortem damage and recalibration
 	hasPMD = false;
@@ -122,10 +124,14 @@ TAlignmentParser::~TAlignmentParser(){
 			delete mask;
 		if(windowsPredefined)
 			delete predefinedWindows;
+		if(subset)
+			delete subset;
 		if(useChromosome)
 			delete[] useChromosome;
-		if(recalObjectInitialized) delete recalObject;
-		if(pmdObjects) delete[] pmdObjects;
+		if(recalObjectInitialized)
+			delete recalObject;
+		if(pmdObjects)
+			delete[] pmdObjects;
 		if(oldAlignmentInitialized)
 			delete oldAlignment;
 	}
@@ -270,17 +276,20 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//-------------
 	//sites
 	//-------------
-	TSiteSubset* subset = NULL;
 
 	//only call at specific sites?
 	if(params.parameterExists("sites")){
+		bool variantSites;
+		if(params.getParameterString("sites") == "invariant")
+			variantSites = true;
+		else if(params.getParameterString("sites") == "variant")
+			variantSites = true;
+		else
+			throw "sites must be specified as variant or invariant!";
 		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
-
-		bool invariantSites = false;
-
-		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), fastaReference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		limitToSitesWithKnownAlleles = true;
+		sitesProvided = true;
+		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, variantSites);
 	}
 
 	//------------
@@ -387,10 +396,6 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.bases[alignment.length-1].alignedPos, referenceSequence);
 };
 
-bool chrChange(){
-	if()
-}
-
 std::string TAlignmentParser::chrNumberToName(int chrNumber){
 	int counter = 0;
 	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt){
@@ -473,6 +478,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 
 	//advance mask
 	if(doMasking || considerRegions) mask->setChr(chrIterator->Name);
+	if(sitesProvided) subset->setChr(chrIterator->Name);
 
 	//write progress
 	logfile->endIndent();
@@ -483,12 +489,19 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 	if(window.end > 0) logfile->endIndent();
 
-	//move to next region
-	++windowNumber;
+
+	//if sites defined
+	int counter = 0;
+	do{
+		//move possible?
+		++windowNumber;
+		++counter;
+	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < chrLength);
+
 	if(window.end >= chrLength || windowNumber >= limitWindows)
 		return false;
 
-	//move next
+	//calculate new end
 	long nextEnd = window.end + windowSize;
 	if(nextEnd > chrLength)
 		nextEnd = chrLength;
@@ -593,7 +606,9 @@ bool TAlignmentParser::readAlignment(){
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
-		}
+			chrChanged = true;
+		} else
+			chrChanged = false;
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position!";
 		previousAlignmentPos = bamAlignment.Position;
@@ -730,8 +745,13 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	}
 
 	//fill sites
-	window.fillSites();
-	if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+	if(sitesProvided){
+		window.fillSites(subset);
+		window.addReferenceBaseToSites(subset);
+	} else {
+		window.fillSites();
+		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+	}
 
 	//report
 	gettimeofday(&end, NULL);
@@ -978,7 +998,6 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	for(int i=0; i<alignment.length; ++i){
 		QTtables.at(alignment.readGroupId)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
 		QTtables.at(QTtables.size() - 1)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
-
 	}
 }
 
