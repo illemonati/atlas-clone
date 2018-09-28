@@ -160,13 +160,12 @@ void TWindow::printStacks(){
 
 }
 
-void TWindow::fillSitesSubset(TSiteSubset & subset){
+void TWindow::fillSitesSubset(TSiteSubset* subset){
 	//add reads in usedAlignments to sites in window
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
 		//check if alignment start is inside window
-		if((*alignmentIt)->position >= end){
+		if((*alignmentIt)->position >= end)
 			throw "alignment should be assigned to next window!";
-		}
 
 		//genomic position of alignment as seen from window perspective
 		int firstPos = (*alignmentIt)->position - start;
@@ -196,7 +195,7 @@ void TWindow::fillSitesSubset(TSiteSubset & subset){
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
-				if(thesePos.find(internalPos))
+				if(thesePos.find(internalPos) != thesePos.end())
 					sites[internalPos].add(&(*alignmentIt)->bases[p]);
 			}
 		}
@@ -550,14 +549,6 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
-void TWindow::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator){
-	//first calculate emission probabilities
-	calculateEmissionProbabilities(recalObject);
-
-	//now add sites
-	addSitesToThetaEstimator(estimator);
-}
-
 void TWindow::addSitesToThetaEstimator(TThetaEstimator & estimator){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){

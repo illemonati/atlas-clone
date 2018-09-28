@@ -53,8 +53,10 @@ public:
 
 
 	TWindow();
-//	TWindow(long Start, long End);
 	~TWindow();
+
+	//getters
+	TBaseFrequencies getBaseFreq(){return baseFreq;};
 
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
@@ -63,7 +65,7 @@ public:
 	void review();
 	void cleanUpUsedAlignments();
 	void printStacks();
-	void fillSitesSubset(TSiteSubset & subset);
+	void fillSitesSubset(TSiteSubset* subset);
 	void fillSites();
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
@@ -88,7 +90,7 @@ public:
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
-	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
+//	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
 	void addSitesToThetaEstimator(TThetaEstimator & estimator);
 	void addToGLF(TGlfWriter & writer, bool printAll);
 	void addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap);

@@ -27,9 +27,7 @@
 //-----------------------------------------------------
 class TAlignmentParser{
 private:
-	//variables
-	TGenotypeMap genoMap;
-	TQualityMap qualMap;
+
 	//TReadGroups* readGroupTable;
 
 	TLog* logfile;
@@ -48,10 +46,6 @@ private:
 	bool trimReads;
 	int trimmingLength3Prime;
 	int trimmingLength5Prime;
-
-	//reference
-	BamTools::Fasta* fastaReference;
-	std::string referenceSequence;
 
 	//iterators
  	int chrNumber;
@@ -79,10 +73,6 @@ private:
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
-
-	//recal and pmd objects
-	TPMD* pmdObjects;
-
 
 	//move genome
 	void jumpToEnd();
@@ -117,6 +107,10 @@ public:
 	TSiteSubset* subset = NULL;
  	TReadGroups readGroups;
 
+	//maps
+	TGenotypeMap genoMap;
+	TQualityMap qualMap;
+
 	//BAM file
 	std::string filename;
 	BamTools::BamReader bamReader;
@@ -127,6 +121,8 @@ public:
  	//reference
 	bool hasReference;
 	bool chrChanged;
+	BamTools::Fasta* fastaReference;
+	std::string referenceSequence;
 
  	//recalibration
 	TRecalibration* recalObject;
@@ -138,13 +134,17 @@ public:
 
 	//PMD
 	bool hasPMD;
-
+	TPMD* pmdObjects;
 
 	//construction
 	TAlignmentParser();
 	TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile);
 	~TAlignmentParser();
 	void init(int MaxReadLength, TParameters & params, TLog* Logfile);
+
+	//getters
+	int getWindowSize(){return windowSize;}
+	int getMaxPhredInt(){return maxPhredInt;}
 
 	//setters
 	void setQualityFilters(int minQual, int maxQual);

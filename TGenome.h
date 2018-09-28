@@ -54,7 +54,7 @@ private:
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-		if(fastaReference) reference.Close();
+//		if(alignmentParser.fastaReference) reference.Close();
 //		if(recalObjectInitialized) delete recalObject;
 //		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;

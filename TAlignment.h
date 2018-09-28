@@ -115,6 +115,7 @@ public:
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
 	void setReferenceAdded();
 	int getPosition(){return position;};
+	int getLength(){return length;};
 
 	//functions to write / print alignment
 	void setToSingleEnd();

@@ -152,7 +152,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			thetaEstimator.clear();
-			window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
+			window.addSitesToThetaEstimator(thetaEstimator);
 			logfile->done();
 
 			//estimate Theta
@@ -187,7 +187,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 			logfile->listFlush("Calculating emission probabilities ...");
 			try{
 				thetaEstimator.clear();
-				window.addSitesToThetaEstimator(alignmentParser.recalObject, thetaEstimator);
+				window.addSitesToThetaEstimator(thetaEstimator);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
@@ -272,7 +272,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
-			window.addSitesToThetaEstimator(alignmentParser.recalObject, estimator);
+			window.addSitesToThetaEstimator(estimator);
 			logfile->done();
 
 			//open file
@@ -524,7 +524,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 			if(estimateTheta){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
-				window.addSitesToThetaEstimator(alignmentParser.recalObject, *thetaEstimator);
+				window.addSitesToThetaEstimator(*thetaEstimator);
 				logfile->done();
 
 				//estimate Theta
@@ -540,7 +540,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 			} else {
 				window.calculateEmissionProbabilities();
 				window.estimateBaseFrequencies();
-				thetaEstimator->setBaseFreq(window.baseFreq);
+				TBaseFrequencies baseFreq =  window.getBaseFreq();
+				thetaEstimator->setBaseFreq(baseFreq);
 			}
 
 			//call Bayesian genotypes
@@ -639,7 +640,7 @@ void TGenome::callAllelePresence(TParameters & params){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
 				(*thetaEstimator).clear();
-				window.addSitesToThetaEstimator(alignmentParser.recalObject, *thetaEstimator);
+				window.addSitesToThetaEstimator(*thetaEstimator);
 				logfile->done();
 
 				//estimate Theta
@@ -655,7 +656,8 @@ void TGenome::callAllelePresence(TParameters & params){
 			} else {
 				window.calculateEmissionProbabilities();
 				window.estimateBaseFrequencies();
-				thetaEstimator->setBaseFreq(window.baseFreq);
+				TBaseFrequencies baseFreq =  window.getBaseFreq();
+				thetaEstimator->setBaseFreq(baseFreq);
 			}
 
 			//call allele presence
@@ -868,7 +870,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence));
 	int blockSize = params.getParameterIntWithDefault("block", 100);
 	//make sure window size is a multiple of block length!
-	if(alignmentParser.windowSize % blockSize != 0) throw "Window size is not a multiple of block size!";
+	if(alignmentParser.getWindowSize() % blockSize != 0) throw "Window size is not a multiple of block size!";
 
 	//open output file
 	std::ofstream output;
@@ -893,7 +895,8 @@ void TGenome::generatePSMCInput(TParameters & params){
 			logfile->listFlush("Calculating emission probabilities ...");
 			window.calculateEmissionProbabilities();
 			window.estimateBaseFrequencies();
-			thetaEstimator.setBaseFreq(window.baseFreq);
+			TBaseFrequencies baseFreq =  window.getBaseFreq();
+			thetaEstimator.setBaseFreq(baseFreq);
 			logfile->done();
 
 			//create PSMC input
@@ -1097,12 +1100,12 @@ void TGenome::printQualityDistribution(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//Assemble quality distribution
-	int maxQinPrintQualityDistribution = alignmentParser.maxPhredInt + 33;
+	int maxQinPrintQualityDistribution = alignmentParser.getMaxPhredInt() + 33;
 	logfile->list("Will assemble quality distribution up to a quality of " + toString(maxQinPrintQualityDistribution-33) + " (" + (char) maxQinPrintQualityDistribution + ").");
 
 	//initialize tables: one overall, one per read group
 	std::vector<TQualityTable> qualDist;
-	for(int i=0; i<alignmentParser.readGroups.numGroups; ++i)
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i)
 		qualDist.emplace_back(maxQinPrintQualityDistribution);
 
 	//other tmp variables
@@ -1134,7 +1137,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	//print per read group table
 	logfile->startIndent("Writing distributions:");
 	std::string outFileName;
-	for(int i=0; i<alignmentParser.readGroups.numGroups; ++i){
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
 		//open output file
 		outFileName = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityDistribution.txt";
 		logfile->listFlush("Writing distribution for read group '" + alignmentParser.readGroups.getName(i) + "' to '" + outFileName + "' ...");
@@ -1146,7 +1149,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	outFileName = outputName + "_total_qualityDistribution.txt";
 	logfile->listFlush("Writing total distribution to '" + outFileName + " ...");
 	TQualityTable allQualDist(maxQinPrintQualityDistribution);
-	for(int i=0; i<alignmentParser.readGroups.numGroups; ++i)
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i)
 		allQualDist.add(qualDist[i]);
 	allQualDist.write(outFileName);
 	logfile->done();
@@ -1161,7 +1164,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 	//create table to store counts
 	std::vector<TQualityTransformTable*> QTtables;
-	for(int i=0; i<alignmentParser.readGroups.numGroups + 1; ++i){
+	for(int i=0; i<alignmentParser.readGroups.size() + 1; ++i){
 		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
 		QTtables.push_back(QT);
 	}
@@ -1179,7 +1182,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	logfile->done();
 
 	//print final tables for read groups
-	for(int i=0; i<alignmentParser.readGroups.numGroups; ++i){
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
 		filename = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityTransformation.txt";
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open output file '" + filename + "'!";
@@ -1396,7 +1399,7 @@ void TGenome::assessOverlap(TParameters & params){
 	std::ofstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
-	out << "overlap\tcount\t\proportion\n";
+	out << "overlap\tcount\tproportion\n";
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1505,10 +1508,10 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
-			if(alignment.length == singleEndRGIT->second.maxLen)
+			if(alignment.getLength() == singleEndRGIT->second.maxLen)
 				alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
 //				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(alignment.length > singleEndRGIT->second.maxLen){
+			else if(alignment.getLength() > singleEndRGIT->second.maxLen){
 				if(allowForLarger)
 					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
 				else logfile->warning("Length of read in read group '" + readGroup + "' is > max length provided! Ignoring read.");
@@ -1580,8 +1583,8 @@ void TGenome::mergeReadGroups(TParameters & params){
 	logfile->done();
 
 	//report and construct map
-	int* readGroupMap = new int[alignmentParser.readGroups.numGroups];
-	for(int i=0; i<alignmentParser.readGroups.numGroups; ++i) readGroupMap[i] = -1;
+	int* readGroupMap = new int[alignmentParser.readGroups.size()];
+	for(int i=0; i<alignmentParser.readGroups.size(); ++i) readGroupMap[i] = -1;
 	logfile->startIndent("The following read groups will be merged:");
 	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 	int oldId;
@@ -1600,7 +1603,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	//now add read groups that will not be merged
 	bool printed = false;
 	std::string name;
-	for(int i = 0; i < alignmentParser.readGroups.numGroups; ++i){
+	for(int i = 0; i < alignmentParser.readGroups.size(); ++i){
 		//check if it is mapped, otherwise add
 		if(readGroupMap[i] < 0){
 			if(!printed){
@@ -2091,7 +2094,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
     int numProperPairs = 0;
     long sumFragLen = 0;
     long sumSquaredFragLen = 0;
-    int numReadGroups = alignmentParser.readGroups.numGroups;
+    int numReadGroups = alignmentParser.readGroups.size();
 
     long** MQ = new long*[numReadGroups];
     long** RL = new long*[numReadGroups];

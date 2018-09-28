@@ -288,7 +288,9 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 			throw "sites must be specified as variant or invariant!";
 		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
 		sitesProvided = true;
-		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+//		TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & VariantSites){
+
+		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
 		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, variantSites);
 	}
 
@@ -746,7 +748,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 	//fill sites
 	if(sitesProvided){
-		window.fillSites(subset);
+		window.fillSitesSubset(subset);
 		window.addReferenceBaseToSites(subset);
 	} else {
 		window.fillSites();
