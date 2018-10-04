@@ -95,7 +95,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	//reference
 	hasReference = false;
-	fastaReference = NULL;
+//	fastaReference = NULL;
 	fastaBuffer = NULL;
 	chrChanged = false;
 
@@ -139,6 +139,10 @@ TAlignmentParser::~TAlignmentParser(){
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
+	//---------------------
+	//Bamtools
+	//---------------------
+
 	//open BAM file
 	filename = params.getParameterString("bam");
 	logfile->list("Reading data from BAM file '" + filename + "'.");
@@ -148,10 +152,19 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	if(!bamReader.LocateIndex())
 		throw "No index file found for BAM file '" + filename + "'!";
 
-
 	//initialize bam stuff
 	bamHeader = bamReader.GetHeader();
 	chrIterator = bamHeader.Sequences.End();
+
+//	//open FASTA reference
+//	if(params.parameterExists("fasta")){
+//		std::string fastaFile = params.getParameterString("fasta");
+//		std::string fastaIndex = fastaFile + ".fai";
+//		logfile->list("Reading reference sequence aaa from '" + fastaFile + "'");
+//		if(!fastaReference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+//		hasReference = true;
+//		addReference(&fastaReference);
+//	} else hasReference = false;
 
 	//---------------------
 	//window parameters
@@ -178,10 +191,9 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	numWindowsOnChr = 0;
 
 	//--------------------
-	//limit chr and windows
+	//limit chrs and / or windows
 	//--------------------
 
-	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
 	if(params.parameterExists("chr")){
 		logfile->startIndent("Will limit analysis to the following chromosomes:");
@@ -278,20 +290,18 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//-------------
 
 	//only call at specific sites?
-	if(params.parameterExists("sites")){
-		bool variantSites;
-		if(params.getParameterString("sites") == "invariant")
-			variantSites = true;
-		else if(params.getParameterString("sites") == "variant")
-			variantSites = true;
-		else
-			throw "sites must be specified as variant or invariant!";
-		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
+	if(params.parameterExists("invariantSites") && params.parameterExists("variantSites"))
+		throw "Can only use variant OR invariant sites!";
+	if(params.parameterExists("invariantSites")){
+		bool variantSites = false;
+		if(hasReference) subset = new TSiteSubset(params.getParameterString("invariantSites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+		else subset = new TSiteSubset(params.getParameterString("invariantSites"), windowSize, logfile, variantSites);
 		sitesProvided = true;
-//		TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & VariantSites){
-
-		if(hasReference) subset = new TSiteSubset(params.getParameterString("sites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, variantSites);
+	} else if(params.parameterExists("variantSites")){
+		bool variantSites = true;
+		if(hasReference) subset = new TSiteSubset(params.getParameterString("variantSites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+		else subset = new TSiteSubset(params.getParameterString("variantSites"), windowSize, logfile, variantSites);
+		sitesProvided = true;
 	}
 
 	//------------
@@ -386,10 +396,10 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 	trimReads = true;
 };
 
-void TAlignmentParser::addReference(BamTools::Fasta* reference){
+void TAlignmentParser::addReference(BamTools::Fasta & reference){
 	hasReference = true;
 	fastaReference = reference;
-	fastaBuffer = new TFastaBuffer(reference);
+	fastaBuffer = new TFastaBuffer(&reference);
 };
 
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
@@ -752,7 +762,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		window.addReferenceBaseToSites(subset);
 	} else {
 		window.fillSites();
-		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+		if(hasReference) window.addReferenceBaseToSites(fastaReference, previousAlignmentChr);
 	}
 
 	//report
@@ -778,7 +788,7 @@ void TAlignmentParser::applyFilters(TWindow & window){
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(*fastaReference, previousAlignmentChr);
+			window.maskCpG(fastaReference, previousAlignmentChr);
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

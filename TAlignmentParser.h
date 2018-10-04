@@ -23,6 +23,28 @@
 #include "TBedReader.h"
 
 //-----------------------------------------------------
+//TFastaBuffer
+//-----------------------------------------------------
+//a buffer class to speed up adding the reference sequence to each read
+//This class makes use of the fact that bam files are sorted, hence the buffer can always start at the current position
+
+class TFastaBuffer{
+private:
+	BamTools::Fasta* reference;
+	int bufferSize;
+	std::string referenceSequence;
+
+	int curChr;
+	long curStart, curEnd;
+
+	void moveTo(const int & chr, const int32_t & pos);
+
+public:
+	TFastaBuffer(BamTools::Fasta* Reference);
+	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
+};
+
+//-----------------------------------------------------
 //TAlignmentParser
 //-----------------------------------------------------
 class TAlignmentParser{
@@ -97,7 +119,6 @@ public:
 	int curReadGroupID;
 	int minQualForPrinting, maxQualForPrinting;
 	int minQual, maxQual;
-	TFastaBuffer* fastaBuffer;
 	bool doMasking, considerRegions;
 	bool doCpGMasking;
 	bool applyDepthFilter;
@@ -121,8 +142,9 @@ public:
  	//reference
 	bool hasReference;
 	bool chrChanged;
-	BamTools::Fasta* fastaReference;
+	BamTools::Fasta fastaReference;
 	std::string referenceSequence;
+	TFastaBuffer* fastaBuffer;
 
  	//recalibration
 	TRecalibration* recalObject;
@@ -159,7 +181,7 @@ public:
 
 	//functions to read and parse
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
-	void addReference(BamTools::Fasta* reference);
+	void addReference(BamTools::Fasta & reference);
 	void recalibrate(TAlignment & alignment);
 	void recalibrateWithPMD(TAlignment & alignment);
 

@@ -16,27 +16,7 @@
 #include "bamtools/utils/bamtools_fasta.h"
 #include "bamtools/api/BamWriter.h"
 
-//-----------------------------------------------------
-//TFastaBuffer
-//-----------------------------------------------------
-//a buffer class to speed up adding the reference sequence to each read
-//This class makes use of the fact that bam files are sorted, hence the buffer can always start at the current position
 
-class TFastaBuffer{
-private:
-	BamTools::Fasta* reference;
-	int bufferSize;
-	std::string referenceSequence;
-
-	int curChr;
-	long curStart, curEnd;
-
-	void moveTo(const int & chr, const int32_t & pos);
-
-public:
-	TFastaBuffer(BamTools::Fasta* Reference);
-	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
-};
 
 class TAlignmentParser;
 

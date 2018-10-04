@@ -32,18 +32,9 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string fastaFile = params.getParameterString("fasta");
 		std::string fastaIndex = fastaFile + ".fai";
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
-		BamTools::Fasta reference;
 		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
-		alignmentParser.addReference(&reference);
+		alignmentParser.addReference(reference);
 	}
-
-/*	//initialize post mortem damage
-	hasPMD = false;
-	initializePostMortemDamage(params);
-	doRecalibration = false;
-	recalObjectInitialized = false;*/
-
-
 
 	//trimming ends
 	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
@@ -56,7 +47,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
 		}
 	}
-
 };
 
 void TGenome::initializeRandomGenerator(TParameters & params){
@@ -305,7 +295,6 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 //------------------------------------------
 void TGenome::callMLEGenotypes(TParameters & params){
 	//set all booleans in the booleans class
-	bool limitToSitesWithKnownAlleles = false;
 	bool printIfNoData = false;
 	bool noAltIfHomoRef = false;
 
@@ -313,38 +302,27 @@ void TGenome::callMLEGenotypes(TParameters & params){
 	bool writeVCF = false;
 	bool beagle = false, printOnlyGL = false;
 
-
 	std::string indName;
 	TSiteSubset* subset = NULL;
 
-	//only call at specific sites?
-	if(params.parameterExists("sites")){
-		bool invariantSites = false;
-//		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, alignmentParser.windowSize, logfile, invariantSites);
-//		else subset = new TSiteSubset(params.getParameterString("sites"), alignmentParser.windowSize, logfile, invariantSites);
-		limitToSitesWithKnownAlleles = true;
-
-	//if not, how much information should be printed?
-	} else {
-		if(params.parameterExists("printAll")){
-			printIfNoData = true;
-			logfile->list("Will print all sites, even those without data");
-		}
-		if(params.parameterExists("noAltIfHomoRef")){
-			noAltIfHomoRef = true;
-			logfile->list("Will not print alternative alleles when genotype is 0/0");
-		}
-		if(params.parameterExists("gVCF")){
-			gVCF = true;
-			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
-			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
-			if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
-			logfile->list("Will print output in gVCF format");
-		}
+	if(params.parameterExists("printAll")){
+		printIfNoData = true;
+		logfile->list("Will print all sites, even those without data");
+	}
+	if(params.parameterExists("noAltIfHomoRef")){
+		noAltIfHomoRef = true;
+		logfile->list("Will not print alternative alleles when genotype is 0/0");
+	}
+	if(params.parameterExists("gVCF")){
+		gVCF = true;
+		if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
+		if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
+		if(!alignmentParser.hasReference) throw "Can not print VCF file without reference!";
+		logfile->list("Will print output in gVCF format");
 	}
 
 	if(params.parameterExists("beagle")){
-		if(limitToSitesWithKnownAlleles == false) throw "Need sites file specifying major and minor alleles for beagle format!";
+		if(alignmentParser.sitesProvided == false) throw "Need sites file specifying major and minor alleles for beagle format!";
 		beagle=true;
 		logfile->list("Will print output in beagle format");
 		printOnlyGL = params.parameterExists("printOnlyGL");
@@ -386,7 +364,6 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		out << "##source=ATLAS\n";
 		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 		out << "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n";
-//		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
 		out << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
@@ -413,7 +390,7 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 		//write header
 		out << "chr\tpos\tRef";
-		if(limitToSitesWithKnownAlleles) out << "\tAlt\tdepth\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
+		if(alignmentParser.sitesProvided) out << "\tAlt\tdepth\tL(RR)\tL(RA)\tL(AA)\tMLE\tQ\n";
 		else out << "\tdepth\tL(AA)\tL(AC)\tL(AG)\tL(AT)\tL(CC)\tL(CG)\tL(CT)\tL(GG)\tL(GT)\tL(TT)\tMLE\tQ\n";
 	}
 
@@ -422,22 +399,18 @@ void TGenome::callMLEGenotypes(TParameters & params){
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		if(limitToSitesWithKnownAlleles || beagle) subset->setChr(alignmentParser.chrIterator->Name);
 		//read data for current window
 		if(window.passedFilters || printIfNoData){
-			if((!limitToSitesWithKnownAlleles && !beagle) || subset->hasPositionsInWindow(window.start)){
-				//call genotypes
-				logfile->listFlush("Calling MLE genotypes ...");
-				if(limitToSitesWithKnownAlleles || beagle){
-					if(!alignmentParser.hasReference)
-						throw "Must provide reference!";
-					window.callMLEGenotypeKnownAlleles(alignmentParser.recalObject, subset, *randomGenerator, out, alignmentParser.chrIterator->Name, writeVCF, noAltIfHomoRef, beagle, printOnlyGL);
-				} else {
-					window.callMLEGenotype(alignmentParser.recalObject, *randomGenerator, out, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF, gVCF, noAltIfHomoRef);
-				}
-				logfile->done();
-
+			//call genotypes
+			logfile->listFlush("Calling MLE genotypes ...");
+			if(alignmentParser.sitesProvided || beagle){
+				if(!alignmentParser.hasReference)
+					throw "Must provide reference!";
+				window.callMLEGenotypeKnownAlleles(alignmentParser.recalObject, subset, *randomGenerator, out, alignmentParser.chrIterator->Name, writeVCF, noAltIfHomoRef, beagle, printOnlyGL);
+			} else {
+				window.callMLEGenotype(alignmentParser.recalObject, *randomGenerator, out, alignmentParser.chrIterator->Name, printIfNoData, &(alignmentParser.fastaReference), writeVCF, gVCF, noAltIfHomoRef);
 			}
+			logfile->done();
 		}
 	}
 	//clean up
@@ -549,7 +522,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 			if(limitToSitesWithKnownAlleles){
 				window.callBayesianGenotypeKnownAlleles(alignmentParser.subset, *thetaEstimator, *randomGenerator, output, alignmentParser.chrIterator->Name, writeVCF);
 			} else {
-				window.callBayesianGenotype(*thetaEstimator, *randomGenerator, output, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF);
+				window.callBayesianGenotype(*thetaEstimator, *randomGenerator, output, alignmentParser.chrIterator->Name, printIfNoData, &(alignmentParser.fastaReference), writeVCF);
 			}
 			logfile->done();
 		}
@@ -665,7 +638,7 @@ void TGenome::callAllelePresence(TParameters & params){
 			if(limitToSitesWithKnownAlleles){
 				window.callAllelePresenceKnownAlleles(alignmentParser.subset, *thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, writeVCF, noAltIfHomoRef);
 			} else {
-				window.callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, printIfNoData, alignmentParser.fastaReference, writeVCF, noAltIfHomoRef);
+				window.callAllelePresence(*thetaEstimator, *randomGenerator, outAllelePresence, alignmentParser.chrIterator->Name, printIfNoData, &(alignmentParser.fastaReference), writeVCF, noAltIfHomoRef);
 			}
 			logfile->done();
 		} else logfile->list("No positions in this window.");

@@ -56,7 +56,7 @@ public:
 			} else if(task == "recal"){
 				logfile->startIndent("Estimating error calibration function with EM (task = recal):");
 				genome.estimateErrorCalibrationEM(*parameters);
-			} /*else if(task == "recalLL"){
+			} else if(task == "recalLL"){
 				logfile->startIndent("Calculating LL for error calibration function (task = recalLL):");
 				genome.calculateLikelihoodErrorCalibrationEM(*parameters);
 			} else if(task == "BQSR"){
@@ -86,13 +86,13 @@ public:
 			} else if(task == "qualityDist"){
 				logfile->startIndent("Printing Quality Distribution (task = qualityDist):");
 				genome.printQualityDistribution(*parameters);
-			} */else if(task == "qualityTransformation"){
+			} else if(task == "qualityTransformation"){
 				logfile->startIndent("Printing Quality Transformation (task = qualityTransformation):");
 				genome.printQualityTransformation(*parameters);
 			} else if(task == "recalBAM"){
 				logfile->startIndent("Recalibrating a BAM file (task = recalBAM):");
 				genome.recalibrateBamFile(*parameters);
-			}/* else if(task == "binQualityScores"){
+			} else if(task == "binQualityScores"){
 				logfile->startIndent("Binning quality scores (task = binQualityScores");
 				genome.binQualityScores(*parameters);
 			} else if(task == "assessSoftClipping"){
@@ -113,10 +113,10 @@ public:
 			} else if(task == "PMDS"){
 				logfile->startIndent("Filtering for ancient reads using PMDS (Skoglund et al. 2014, task = PMDS):");
 				genome.runPMDS(*parameters);
-			}*/ else if(task == "mergeReads"){
+			} else if(task == "mergeReads"){
 				logfile->startIndent("Merging paired-end reads (task = mergeReads):");
 				genome.mergePairedEndReads(*parameters);
-			}/* else if(task == "PSMC"){
+			} else if(task == "PSMC"){
 				logfile->startIndent("Generating a PSMC Input file probabilistically (task = PSMC):");
 				genome.generatePSMCInput(*parameters);
 			} else if(task == "downsample"){
@@ -144,7 +144,7 @@ public:
 				logfile->startIndent("Finding allelic depth distribution (task=createDepthMask:");
 				genome.allelicDepth(*parameters);
 
-			} */else throw "Unknown task '" + task + "'!";
+			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile->endIndent();
 	};

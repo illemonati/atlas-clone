@@ -579,6 +579,8 @@ void TPMD::initializeFunction(std::string pmdString, PMDType type){
 		std::string::size_type pos = pmdString.find_first_of('[');
 		if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
 		std::string name = pmdString.substr(0,pos);
+		std::vector<std::string> pmdStringVec;
+		fillVectorFromStringWhiteSpace(pmdString, pmdStringVec);
 
 		//switch between functions
 		if(name == "Empiric"){

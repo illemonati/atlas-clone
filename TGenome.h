@@ -34,8 +34,7 @@ private:
 	bool recalObjectInitialized;
 	bool recalObjectInitialized2;
 */
-//	BamTools::Fasta reference;
-//	bool fastaReference;
+	BamTools::Fasta reference;
  	TRandomGenerator* randomGenerator;
  	bool randomGeneratorInitialized;
 
