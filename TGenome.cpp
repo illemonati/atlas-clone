@@ -944,17 +944,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		out << "##fileformat=VCFv4.2\n";
-		out << "##source=ATLAS\n";
-		out << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		out << "##FORMAT=<ID=AD,Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\">\n";
-//		if(!limitToSitesWithKnownAlleles) out << "##INFO=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled relative likelihoods of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
-		out << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-		out << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Approximate read depth (reads with MQ=255 or with bad mates are filtered)\">\n";
-		out << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype Quality\">\n";
-		out << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled genotype likelihoods\">\n";
-		out << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"Phred-scaled likelihoods for all genotypes in alphabetical order\">\n";
-		out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sName << "\n";
+		writeVcfHeader(&out, limitToSitesWithKnownAlleles);
+
 	} else if(beagle){
 		//open file
 		outputFileName = outputName + "_MLEGenotypes.beagle.gz";
@@ -1021,6 +1012,22 @@ bool TGenome::initThetaEstimatorForCallers(TParameters & params, TThetaEstimator
 	}
 }
 
+void TGenome::writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles){
+	//write header
+	(*output) << "##fileformat=VCFv4.2\n";
+	(*output) << "##source=atlas\n";
+	(*output) << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	if(!limitToSitesWithKnownAlleles) (*output) << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+	(*output) << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+	(*output) << "##FORMAT=<ID=GP,Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
+	(*output) << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	(*output) << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
+	(*output) << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"All phred-scaled normalized genotype likelihoods\">\n";
+	(*output) << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+	(*output) << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Allelic depth\">\n";
+	(*output) << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+}
+
 void TGenome::callBayesianGenotypes(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -1060,13 +1067,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		output << "##fileformat=VCFv4.2\n";
-		output << "##source=estimHet\n";
-		output << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-		if(!limitToSitesWithKnownAlleles) output << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
-		output << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-		output << "##FORMAT=<ID=GP,Number=1,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
-		output << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
+		writeVcfHeader(&output, limitToSitesWithKnownAlleles);
+
 	} else {
 		//open file
 		outputFileName = outputName + "_BayesianGenotypes.txt.gz";

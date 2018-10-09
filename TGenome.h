@@ -111,6 +111,7 @@ public:
 
 	//callers
 	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
+	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles);
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
 	void callAllelePresence(TParameters & params);
