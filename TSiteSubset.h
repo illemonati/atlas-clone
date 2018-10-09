@@ -345,6 +345,8 @@ public:
 	};
 
 	bool hasPositionsInWindow(const long & windowStart){
+		std::cout << "chromosome length: " <<std::flush;
+		std::cout << chromosomes.size() << std::endl;
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()){
 			return false;

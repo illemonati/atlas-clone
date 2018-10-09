@@ -405,7 +405,10 @@ void TAlignmentParser::addReference(BamTools::Fasta & reference){
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
 	if(!hasReference) //is this check really necessary?
 		throw "No reference provided!";
+	std::string referenceSequence;
 	fastaBuffer->fill(alignment.chrNumber, alignment.position, alignment.position + alignment.bases[alignment.length-1].alignedPos, referenceSequence);
+	alignment.referenceSequence = referenceSequence;
+	alignment.hasReference = true;
 };
 
 std::string TAlignmentParser::chrNumberToName(int chrNumber){
@@ -611,8 +614,9 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 bool TAlignmentParser::readAlignment(){
 	bool filtersPassed;
 	do {
-		if(!bamReader.GetNextAlignment(bamAlignment))
+		if(!bamReader.GetNextAlignment(bamAlignment)){
 			return false;
+		}
 
 		//check if bam file is sorted
 		if(bamAlignment.RefID != previousAlignmentChr){
@@ -691,6 +695,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
+		alignment.passedFilters = true;
 		fillAlignment(alignment);
 		if(previousAlignmentPos == -1){
 			while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
@@ -967,36 +972,6 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 		alignment.changed = true;
 	} else alignment.changed = false;
 	alignment.recalibrated = true;
-};
-
-void TAlignmentParser::recalibrateWithPMD(TAlignment & alignment){
-	//make sure read is parsed and has reference
-	if(!alignment.parsed) throw "Read was not parsed!";
-	if(!hasReference) throw "Reference was not added!";
-
-	for(int d=0; d<alignment.length; ++d){
-//		int k = length - d - 1;
-		if(alignment.bases[d].aligned){
-			//recalibrate quality scores
-			if(recalObject->recalibrationChangesQualities())
-				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-
-			if(alignment.bases[d].context > 20) throw "there is a invalid context in alignment " + alignment.alignmentName + " at position " + toString(d);
-
-			//now add effect of PMD
-			if(alignment.bases[d].base == T && referenceSequence[alignment.bases[d].alignedPos] == 'C')
-				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(alignment.bases[d].base == A && referenceSequence[alignment.bases[d].alignedPos] == 'G')
-				alignment.bases[d].errorRate = 1.0 - ((1.0 - alignment.bases[d].errorRate)*(1.0 - alignment.bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
-		} else {
-			alignment.bases[d].errorRate = qualMap.qualityToErrorMap[alignment.qualityOriginal[d]];
-		}
-	}
-
-	//set pointer to recalibrated scores
-//	alignment.quality = alignment.qualityRecalibrated;
-	alignment.recalibrated = true;
-	alignment.changed = true;
 };
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){

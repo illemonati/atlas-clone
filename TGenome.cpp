@@ -1223,7 +1223,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			++counter;
 			if(!alignment.passedFilters || !allReads)
 				continue;
-			alignmentParser.recalibrateWithPMD(alignment);
+			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 			reportProgressParsingBamFile(counter, start);
         }
@@ -2416,6 +2416,7 @@ void TGenome::writeDepthPerSite(TParameters & params){
 //PMD
 //---------------------------------------------------
 void TGenome::estimatePMD(TParameters & params){
+	std::cout << "in estimatePMD" << std::endl;
 	//make sure FASTA is open
 	if(!alignmentParser.hasReference) throw "Can not estimate PMD without a provided FASTA reference!";
 
@@ -2439,8 +2440,8 @@ void TGenome::estimatePMD(TParameters & params){
 
 	//iterate through BAM file
 	while (alignmentParser.readNextAlignment(alignment)){
-        if(alignment.passedFilters)
-			alignment.addToPMDTables(pmdTables, genoMap);
+		//alignment is only filled if filters are passed
+		alignment.addToPMDTables(pmdTables, genoMap);
 
 		//report
 		++numreadsAdded;

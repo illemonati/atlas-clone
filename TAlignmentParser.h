@@ -42,6 +42,9 @@ private:
 public:
 	TFastaBuffer(BamTools::Fasta* Reference);
 	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
+	int getCurChr(){return curChr;};
+	long getCurStart(){return curStart;};
+	long getCurEnd(){return curEnd;};
 };
 
 //-----------------------------------------------------
@@ -143,7 +146,6 @@ public:
 	bool hasReference;
 	bool chrChanged;
 	BamTools::Fasta fastaReference;
-	std::string referenceSequence;
 	TFastaBuffer* fastaBuffer;
 
  	//recalibration
@@ -183,7 +185,6 @@ public:
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta & reference);
 	void recalibrate(TAlignment & alignment);
-	void recalibrateWithPMD(TAlignment & alignment);
 
 	//reading data requires windows
 	bool readDataInNextWindow(TWindow & window);

@@ -115,6 +115,22 @@ void TPMDTable::writeTableWithCounts(std::ofstream & out, std::string prefix){
 	}
 };
 
+std::string TPMDTable::getPMDString(int first, int second){
+	calculateSums();
+	std::string s = "Empiric[";
+	double tmpFirstToSecond, tmpSecondToFirst;  //tmpRefRead
+	for(int p=0; p<maxLength; ++p){
+		if(p>0) s += ",";
+		if(sums[p][second] < 1 || sums[p][first] < 1) s += "0.0";
+		else {
+			tmpFirstToSecond = (double) counts[p][first][second] / (double) sums[p][first];
+			tmpSecondToFirst = (double) counts[p][second][first] / (double) sums[p][second];
+			s += toString(std::max(0.0, (tmpFirstToSecond - tmpSecondToFirst)/(1.0 - tmpSecondToFirst)));
+		}
+	}
+	return s + "]";
+};
+/*
 std::string TPMDTable::getPMDStringCT(){
 	calculateSums();
 	std::string s = "Empiric[";
@@ -146,7 +162,7 @@ std::string TPMDTable::getPMDStringGA(){
 	}
 	return s + "]";
 };
-
+*/
 //function to fit an exponential model
 void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams){
 	F.zeros();
@@ -420,7 +436,10 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->getPMDStringCT() << "\t" << reverse[readGroupMapObject[i]]->getPMDStringGA() << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tCT\t" << forward[readGroupMapObject[i]]->getPMDString(C, T) << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tGA\t" << reverse[readGroupMapObject[i]]->getPMDString(G, A) << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tGT\t" << forward[readGroupMapObject[i]]->getPMDString(G, T) << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tCA\t" << reverse[readGroupMapObject[i]]->getPMDString(C, A) << "\n";
 	}
 	out.close();
 }

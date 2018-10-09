@@ -127,6 +127,7 @@ public:
 	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
 
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
+	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
 	void assessSoftClipping(int & S_left, int & middle, int & S_right);
 	int measureOverlap();

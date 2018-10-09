@@ -39,15 +39,16 @@ public:
 	void add(const int & pos, const Base & ref, const Base & read);
 	void writeTable(std::ofstream & out, std::string prefix);
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
-	std::string getPMDStringCT();
-	std::string getPMDStringGA();
+	std::string getPMDString(int first, int second);
+//	std::string getPMDStringCT();
+//	std::string getPMDStringGA();
 	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile);
 };
 
 class TPMDTables{
 public:
-	TReadGroups& readGroups;
 	TReadGroupMap& readGroupMapObject;
+	TReadGroups& readGroups;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;

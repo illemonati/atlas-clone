@@ -24,6 +24,7 @@ TAlignment::TAlignment(){
 	changed = false;
 	storageInitialized = false;
 	recalibrated = false;
+	std::string referenceSequence = "";
 	hasReference = false;
 
 	bases = NULL;
@@ -78,6 +79,7 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	storageInitialized = Alignment.storageInitialized;
 	recalibrated = Alignment.recalibrated;
 	hasReference = Alignment.hasReference;
+	referenceSequence = Alignment.referenceSequence;
 	qualityOriginal = Alignment.qualityOriginal;
 	numInsertions = Alignment.numInsertions;
 	numDeletions = Alignment.numDeletions;
@@ -485,6 +487,8 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//tmp variables
 	Base ref, read;
 
+	std::cout << "adding alignment " << position << std::endl;
+
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(int d=0; d<length; ++d){
@@ -504,6 +508,34 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 			}
 		}
 	}
+};
+
+void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap){
+	//make sure read is parsed and has reference
+	if(!parsed) throw "Read was not parsed!";
+	if(!hasReference) throw "Reference was not added!";
+
+	for(int d=0; d<length; ++d){
+//		int k = length - d - 1;
+		if(bases[d].aligned){
+			//recalibrate quality scores
+			if(recalObject->recalibrationChangesQualities())
+				bases[d].errorRate = recalObject->getErrorRate(bases[d]);
+
+			if(bases[d].context > 20) throw "there is a invalid context in alignment " + alignmentName + " at position " + toString(d);
+
+			//now add effect of PMD
+			if(bases[d].base == T && referenceSequence[bases[d].alignedPos] == 'C')
+				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
+			else if(bases[d].base == A && referenceSequence[bases[d].alignedPos] == 'G')
+				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
+		} else {
+			bases[d].errorRate = qualMap.qualityToErrorMap[qualityOriginal[d]];
+		}
+	}
+
+	recalibrated = true;
+	changed = true;
 };
 
 
