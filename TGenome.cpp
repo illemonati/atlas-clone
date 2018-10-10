@@ -1040,6 +1040,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
+	bool noAltIfHomoRef = false;
 	bool printIfNoData = true;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
@@ -1060,6 +1061,10 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	if(params.parameterExists("vcf")){
 		if(!fastaReference) throw "Can not print VCF file without reference!";
 		writeVCF = true;
+		if(params.parameterExists("noAltIfHomoRef")){
+			noAltIfHomoRef = true;
+			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
 		//open file
 		outputFileName = outputName + "_BayesianGenotypes.vcf.gz";
 		logfile->list("Writing Bayesian genotypes in VCF format to '" + outputFileName + "'");
@@ -1129,7 +1134,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							windows.cur->callBayesianGenotypeKnownAlleles(subset, *thetaEstimator, *randomGenerator, output, chrIterator->Name, writeVCF);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-							windows.cur->callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF);
+							windows.cur->callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
 						}
 						logfile->done();
 					}
