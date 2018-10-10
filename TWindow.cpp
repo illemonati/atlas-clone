@@ -486,7 +486,7 @@ void TWindowDiploid::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TS
 	}
 }
 
-void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
+void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef, bool printPP, bool onlyPhredGP){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -497,7 +497,7 @@ void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGe
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				std::string basesString = sites[i].getBases();
-				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, basesString);
+				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
 				out << "\n";
 			}
 		} else {
@@ -505,7 +505,7 @@ void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGe
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
 					std::string basesString = sites[i].getBases();
-					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, basesString);
+					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
 					out << "\n";
 				}
 			}

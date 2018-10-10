@@ -1042,6 +1042,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 	bool limitToSitesWithKnownAlleles = false;
 	bool noAltIfHomoRef = false;
 	bool printIfNoData = true;
+	bool printPP = false;
+	bool onlyPhredGP = false;
 	TSiteSubset* subset = NULL;
 	if(params.parameterExists("sites")){
 		if(windowsPredefined) throw "Using site subsets is currently not implemented if windows are predefined from a BED file.";
@@ -1064,6 +1066,16 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		if(params.parameterExists("noAltIfHomoRef")){
 			noAltIfHomoRef = true;
 			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
+		if(params.parameterExists("printPP")){
+			printPP = true;
+			logfile->list("Will print the phred scaled posterior probabilities for all genotypes");
+		}
+		if(params.parameterExists("onlyPhredGP")){
+			onlyPhredGP = true;
+			logfile->list("Will print GP in phred format");
+		} else {
+			logfile->list("Will print GP as phred(1-posterior probability)");
 		}
 		//open file
 		outputFileName = outputName + "_BayesianGenotypes.vcf.gz";
@@ -1134,7 +1146,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							windows.cur->callBayesianGenotypeKnownAlleles(subset, *thetaEstimator, *randomGenerator, output, chrIterator->Name, writeVCF);
 						} else {
 							if(fastaReference) windows.cur->addReferenceBaseToSites(reference, chrNumber);
-							windows.cur->callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef);
+							windows.cur->callBayesianGenotype(*thetaEstimator, *randomGenerator, output, chrIterator->Name, printIfNoData, fastaReference, writeVCF, noAltIfHomoRef, printPP, onlyPhredGP);
 						}
 						logfile->done();
 					}
