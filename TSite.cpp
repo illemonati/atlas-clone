@@ -771,11 +771,11 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		int MAPGenotype;
 		calculateGenotypePosteriorProbabilities(pGenotype, randomGenerator, postProb, MAPGenotype);
 
-		//calc normalized likelihoods
-		double quality, maxGenotypeProb;
-		int MLGenotype;
-		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
-		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
+//		//calc normalized likelihoods
+//		double quality, maxGenotypeProb;
+//		int MLGenotype;
+//		double* emissionProbabilitiesPhredScaled = new double[numGenotypes];
+//		calculateNormalizedGenotypeLikelihoodsAndQuality(randomGenerator, emissionProbabilitiesPhredScaled, quality, maxGenotypeProb, MLGenotype);
 
 		//find alternative allele
 		//if MAP genotype contains non ref allele, these are the alternatives
@@ -879,10 +879,10 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 		out << ";PP=" << round(makePhred(postProb[0]));
 		for(int i=1; i<numGenotypes; ++i)
 			out << "," << round(makePhred(postProb[i]));
-		//all likelihoods
-		out << ";GG=" << round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
-		for(int i=1; i<numGenotypes; ++i)
-			out << "," << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
+//		//all likelihoods
+//		out << ";GG=" << round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
+//		for(int i=1; i<numGenotypes; ++i)
+//			out << "," << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
 
 		//print format and genotype field
 		if(referenceBase != 'N') out << "\tGT:DP:AD:GQ:GP\t" <<  genoVCF << ":" <<  bases.size()<< ":" << AD << ":" << round(makePhred(1.0 - postProb[MAPGenotype])) << ':' << GP;
