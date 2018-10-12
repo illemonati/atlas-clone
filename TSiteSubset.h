@@ -319,11 +319,11 @@ public:
 		curChr = "";
 	};
 
-	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & VariantSites){
+	TSiteSubset(std::string Filename, BamTools::Fasta* reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & VariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
 		variantSites = VariantSites;
-		readFile(reference, bamHeader, logfile);
+		readFile(*reference, bamHeader, logfile);
 		curChr = "";
 	};
 

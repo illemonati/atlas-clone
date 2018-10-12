@@ -33,7 +33,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		std::string fastaIndex = fastaFile + ".fai";
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
 		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
-		alignmentParser.addReference(reference);
+		alignmentParser.addReference(&reference);
 	}
 
 	//trimming ends
@@ -1699,7 +1699,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
-		std::cout << "parsed " << alignment.alignmentName << std::endl;
 		if((readsToOmit.count(alignment.alignmentName) > 0)){
 			continue;
 
@@ -2416,7 +2415,6 @@ void TGenome::writeDepthPerSite(TParameters & params){
 //PMD
 //---------------------------------------------------
 void TGenome::estimatePMD(TParameters & params){
-	std::cout << "in estimatePMD" << std::endl;
 	//make sure FASTA is open
 	if(!alignmentParser.hasReference) throw "Can not estimate PMD without a provided FASTA reference!";
 

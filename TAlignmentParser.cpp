@@ -95,7 +95,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	//reference
 	hasReference = false;
-//	fastaReference = NULL;
+	fastaReference = NULL;
 	fastaBuffer = NULL;
 	chrChanged = false;
 
@@ -118,23 +118,24 @@ TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog
 };
 
 TAlignmentParser::~TAlignmentParser(){
-		if(hasReference)
-			delete fastaBuffer;
-		if(doMasking)
-			delete mask;
-		if(windowsPredefined)
-			delete predefinedWindows;
-		if(subset)
-			delete subset;
-		if(useChromosome)
-			delete[] useChromosome;
-		if(recalObjectInitialized)
-			delete recalObject;
-		if(pmdObjects)
-			delete[] pmdObjects;
-		if(oldAlignmentInitialized)
-			delete oldAlignment;
+	if(hasReference){
+		delete fastaBuffer;
 	}
+	if(doMasking)
+		delete mask;
+	if(windowsPredefined)
+		delete predefinedWindows;
+	if(subset)
+		delete subset;
+	if(useChromosome)
+		delete[] useChromosome;
+	if(recalObjectInitialized)
+		delete recalObject;
+	if(pmdObjects)
+		delete[] pmdObjects;
+	if(oldAlignmentInitialized)
+		delete oldAlignment;
+}
 
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
@@ -310,7 +311,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//depth filter
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
 		applyDepthFilter = true;
-		int tmpInt;
+		unsigned int tmpInt;
 		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
 		if(tmpInt < 0) throw "minDepth must be >= 0!";
 		minDepth = tmpInt;
@@ -396,10 +397,10 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 	trimReads = true;
 };
 
-void TAlignmentParser::addReference(BamTools::Fasta & reference){
+void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
 	fastaReference = reference;
-	fastaBuffer = new TFastaBuffer(&reference);
+	fastaBuffer = new TFastaBuffer(reference);
 };
 
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
@@ -767,7 +768,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		window.addReferenceBaseToSites(subset);
 	} else {
 		window.fillSites();
-		if(hasReference) window.addReferenceBaseToSites(fastaReference, previousAlignmentChr);
+		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
 	}
 
 	//report
@@ -793,7 +794,7 @@ void TAlignmentParser::applyFilters(TWindow & window){
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(fastaReference, previousAlignmentChr);
+			window.maskCpG(*fastaReference, previousAlignmentChr);
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

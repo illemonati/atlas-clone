@@ -487,8 +487,6 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//tmp variables
 	Base ref, read;
 
-	std::cout << "adding alignment " << position << std::endl;
-
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
 		for(int d=0; d<length; ++d){
