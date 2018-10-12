@@ -741,7 +741,7 @@ bool TDistanceEstimator::advance(TGlfReader & g1, TGlfReader & g2){
 		if(!g2.readNext()) return false;
 	} else {
 		//advance g1
-		if(!g2.readNext()) return false;
+		if(!g1.readNext()) return false;
 	}
 
 	//make sure we are on same chromosome

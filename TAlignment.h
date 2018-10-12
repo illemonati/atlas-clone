@@ -42,7 +42,7 @@ private:
 
 	//per base data
 	TBase* bases;
-//	bool* aligned; //whether or not base is aligned to ref. Insertions are not aligned
+//	bool* aligned; //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
@@ -72,6 +72,8 @@ private:
 	//functions to modify data
 	void filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
+	void setReadTrimming(int trim3Prime, int trim5Prime);
+	int measureOverlap();
 
 	//functions that access data
 	std::string name(){return alignmentName;};

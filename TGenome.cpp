@@ -177,7 +177,6 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			try{
-				thetaEstimator.clear();
 				window.addSitesToThetaEstimator(thetaEstimator);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
@@ -199,6 +198,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
+	thetaEstimator.clear();
 }
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){

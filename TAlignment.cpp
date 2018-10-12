@@ -174,29 +174,55 @@ void TAlignment::setReferenceAdded(){
 	hasReference = true;
 }
 
+int TAlignmentParser::measureOverlap(){
+	if(isProperPair && passedFilters){
+		parse();
+
+		if(!isReverseStrand){
+			int k = length - softClippedLength[1] - 1;
+
+			while(alignedPos[k] < 0){
+				--k;
+			}
+
+			int endPos = bamAlignment.Position + alignedPos[k];
+			int overlap = endPos - bamAlignment.MatePosition;
+			if(overlap < 0)
+				//there is no overlap
+				return 0;
+			else
+				return overlap;
+		} else
+			//not relevant
+			return -1;
+	} else
+		//not relevant
+		return -1;
+}
+
 void TAlignment::setDistancesFromEnds(){
 	//is it paired-end?
 	if(isProperPair){
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
-			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
+			//hence distance from 5' is given by f(dist since beginning of fragment) = f(insert - len + pos)
+			//and distance from 3' is given as f(end of fragment) = f(len - pos - 1)
 			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
 			int p = length - 1 - softClippedLength[1];
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = p - d;
-				bases[d].posInReadRev = k + d;
+				bases[d].posInRead = p - d; //dist from 5'
+				bases[d].posInReadRev = k + d; //dist from 3'
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
-			//Hence distance from 3' is given as a function of pos
-			//And distance from 5' is given by (length of fragment) - pos -1
+			//Hence distance from 5' is given as a function of pos
+			//And distance from 3' is given by (length of fragment) - pos -1
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			int p = abs(bamAlignment.InsertSize) - 1 + numInsertions - numDeletions;
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d - softClippedLength[0];
-				bases[d].posInReadRev = p - d + softClippedLength[0];
+				bases[d].posInRead = d - softClippedLength[0]; //dist from 5'
+				bases[d].posInReadRev = p - d + softClippedLength[0]; //dist from 3'
 			}
 		}
 	} else {
@@ -207,8 +233,8 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = p - d - softClippedLength[1];
-				bases[d].posInReadRev = d - softClippedLength[0];
+				bases[d].posInRead = p - d - softClippedLength[1]; //dist from 5'
+				bases[d].posInReadRev = d - softClippedLength[0]; //dist from 3'
 			}
 
 		} else {
@@ -216,8 +242,8 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d - softClippedLength[0];
-				bases[d].posInReadRev = p - d - softClippedLength[1];
+				bases[d].posInRead = d - softClippedLength[0]; //dist from 5'
+				bases[d].posInReadRev = p - d - softClippedLength[1]; //dist from 3'
 			}
 		}
 	}
@@ -262,7 +288,9 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_MATCH_CHAR)    :
 			case (BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR) :
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
+
+				//soft-clipped bases on 5' are before bamAlignment.Position
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
@@ -387,6 +415,7 @@ void TAlignment::filterForPrintingBaseQuality(std::string & qual, int & minQualF
 };
 
 void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime){
+	//TODO: check if these distances correspond to those calculated in setDistances function
 	//set base to N at ends of read
 	if(isReverseStrand){
 		//distance from 3' is just pos
