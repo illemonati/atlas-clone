@@ -14,7 +14,9 @@
 #include "TSite.h"
 #include <algorithm>
 
-enum PMDType {pmdCT=0, pmdGA};
+enum PMDType {pmdCT=0, pmdGA, pmdGT, pmdCA};
+
+
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
@@ -165,25 +167,22 @@ public:
 //------------------------------------------------------
 class TPMD{
 private:
-	TPMDFunction* myFunctions[2];
-	bool functionsInitialized[2];
+	TPMDFunction* myFunctions[4];
+	bool functionsInitialized[4];
 
 public:
 	TPMD(){
-		myFunctions[pmdCT] = NULL;
-		myFunctions[pmdGA] = NULL;
-		functionsInitialized[pmdCT] = false;
-		functionsInitialized[pmdGA] = false;
+		for(int pmdType=0; pmdType<4; ++pmdType){
+			myFunctions[pmdType] = NULL;
+			functionsInitialized[pmdType] = false;
+		}
 	};
 
 	TPMD(TParameters & params, TLog* logfile){
-		myFunctions[pmdCT] = NULL;
-		myFunctions[pmdGA] = NULL;
-		functionsInitialized[pmdCT] = false;
-		functionsInitialized[pmdGA] = false;
-
+		TPMD();
 		initialize(params, logfile);
 	};
+
 	TPMD(TPMD & other){initialize(other);};
 	~TPMD(){
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];

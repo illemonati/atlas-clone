@@ -168,6 +168,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 
 	//prepare windows
 	TWindow window;
+	thetaEstimator.clear();
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structure:");

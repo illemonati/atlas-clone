@@ -18,6 +18,7 @@
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
+
 void TPMDTable::calculateSums(){
 	if(!sumsCalculated){
 		sums = new long*[maxLength];
@@ -578,10 +579,12 @@ void TPMD::initialize(TPMD & other){
 		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
 		other.myFunctions[i]->getCopy(myFunctions[i]);
 		functionsInitialized[i] = true;
+		throw "initializing in wrong place";
 	}
 }
 
 void TPMD::initializeFunction(std::string pmdString, PMDType type){
+	std::cout << "type passed to TPMD initialize " << type << " and the initialization status " << functionsInitialized[type] <<std::endl;
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]

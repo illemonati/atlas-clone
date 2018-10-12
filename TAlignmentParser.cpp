@@ -830,6 +830,21 @@ void TAlignmentParser::applyFilters(TWindow & window){
 //------------------------------
 //initialize PMD and recalibration
 //------------------------------
+
+PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
+	if(pmdType == "CT")
+		return pmdCT;
+	else if(pmdType == "GA")
+		return pmdGA;
+	else if(pmdType == "GT")
+		return pmdGT;
+	else if(pmdType == "CA")
+		return pmdCA;
+	else {
+		throw "unknown pmdType: " + pmdType + "!";
+	}
+}
+
 void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
 	//create an array of TPMD objects for each read group
@@ -864,14 +879,20 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 			if(!line.empty()){
 				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
 				if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
-				//get read group
 				if(readGroups.readGroupExists(vec[0])){ //ignore if it does not exist
+					//get read group and PMD type
 					readGroupId = readGroups.find(vec[0]);
-					//initialize functions
-					pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
-				//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
-					pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
-				//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
+					if(!params.parameterExists("oldPMDFormat")){
+						PMDType pmdType = getEnumPMDType(vec[1]);
+						//initialize functions
+						pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);
+					} else {
+						//initialize functions
+						pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
+					//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
+						pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
+					//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
+					}
 				}
 			}
 		}

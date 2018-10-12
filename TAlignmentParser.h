@@ -109,6 +109,7 @@ private:
 	bool moveToNextPredefinedWindow(TWindow & window);
 	bool moveWindow(TWindow & window);
 
+	PMDType getEnumPMDType(std::string pmdType);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 
