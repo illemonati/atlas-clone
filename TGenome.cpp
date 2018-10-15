@@ -944,7 +944,8 @@ void TGenome::callMLEGenotypes(TParameters & params){
 		if(!out) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		writeVcfHeader(&out, limitToSitesWithKnownAlleles);
+		bool onlyPhredGP = false;
+		writeVcfHeader(&out, limitToSitesWithKnownAlleles, onlyPhredGP);
 
 	} else if(beagle){
 		//open file
@@ -1012,14 +1013,18 @@ bool TGenome::initThetaEstimatorForCallers(TParameters & params, TThetaEstimator
 	}
 }
 
-void TGenome::writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles){
+void TGenome::writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP){
 	//write header
 	(*output) << "##fileformat=VCFv4.2\n";
 	(*output) << "##source=atlas\n";
 	(*output) << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	if(!limitToSitesWithKnownAlleles) (*output) << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
+	if(!limitToSitesWithKnownAlleles)
+		(*output) << "##INFO=<ID=PP,Number=10,Type=Integer,Description=\"Phred-scaled posterior probabilities of all genotypes in the order AA, AC, AG, AT, CC, CG, CT, GG, GT and TT\">\n";
 	(*output) << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-	(*output) << "##FORMAT=<ID=GP,Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
+	if(onlyPhredGP)
+		(*output) << "##FORMAT=<ID=GP,Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\">\n";
+	else
+		(*output) << "##FORMAT=<ID=GP,Number=G,Type=Integer,Description=\"Genotype posterior probabilities round(phred(1-Posterior Prob))\">\n";
 	(*output) << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 	(*output) << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
 	(*output) << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"All phred-scaled normalized genotype likelihoods\">\n";
@@ -1084,7 +1089,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 		if(!output) throw "Failed to open output file '" + outputFileName + "'!";
 
 		//write header
-		writeVcfHeader(&output, limitToSitesWithKnownAlleles);
+		writeVcfHeader(&output, limitToSitesWithKnownAlleles, onlyPhredGP);
 
 	} else {
 		//open file

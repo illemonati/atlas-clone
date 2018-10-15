@@ -896,6 +896,7 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 				} else {
 					GP +=  "," + toString(round(makePhred(1 - postProb[genoMap.getGenotype(referenceBase, genoSecond[altAllele])])));
 					GP +=  "," + toString(round(makePhred(1 - postProb[genoMap.getGenotype(genoSecond[altAllele], genoSecond[altAllele])])));
+
 				}
 			}
 			genoVCF = "0/0";
