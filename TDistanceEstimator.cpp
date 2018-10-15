@@ -128,7 +128,57 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 	}
 };
 
+//----------------------------------------------------
+//TDistanceClass
+//----------------------------------------------------
+TDistance::TDistance(){
+	//distanceWeight = new double[9];
 
+	//squared difference between genotypes
+	distanceWeight[0] = 0.0; //case aa/aa
+	distanceWeight[1] = 1.0; //case ab/aa
+	distanceWeight[2] = 1.0; //case aa/ab
+	distanceWeight[3] = 4.0; //case aa/bb
+	distanceWeight[4] = 0.0; //case ab/ab
+	distanceWeight[5] = 1.0; //case ab/ac
+	distanceWeight[6] = 4.0; //case aa/bc
+	distanceWeight[7] = 4.0; //case ab/cc
+	distanceWeight[8] = 4.0; //case ab/cd
+}
+
+
+double TDistance::calculateDistance(double* phi){
+	double distance = 0.0;
+	for(int i=0; i<9; ++i)
+		distance += phi[i] * distanceWeight[i];
+	return distance;
+}
+
+
+
+TDistanceProbMismatch::TDistanceProbMismatch(){
+	//probability that a random allele from each individual is different
+	distanceWeight[0] = 0.0; //case aa/aa
+	distanceWeight[1] = 0.5; //case ab/aa
+	distanceWeight[2] = 0.5; //case aa/ab
+	distanceWeight[3] = 1.0; //case aa/bb
+	distanceWeight[4] = 0.5; //case ab/ab
+	distanceWeight[5] = 0.75; //case ab/ac
+	distanceWeight[6] = 1.0; //case aa/bc
+	distanceWeight[7] = 1.0; //case ab/cc
+	distanceWeight[8] = 1.0; //case ab/cd
+}
+
+
+
+double TDistanceEuclidian::calculateDistance(double* phi){
+	return sqrt(TDistance::calculateDistance(phi));
+}
+
+TDistanceUser::TDistanceUser(std::vector<double> vec){
+	for(int i=0; i<9; ++i)
+		distanceWeight[i] = vec[i];
+}
 //----------------------------------------------------
 //TDistanceEstimate
 //----------------------------------------------------
@@ -164,7 +214,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 	logfile->endIndent();
 
 	//set how to calculate distances
-	distanceWeight = new double[9];
+//	distanceWeight = new double[9];
 	if(params.parameterExists("distWeights")){
 		logfile->list("Using user-provided distance weights.");
 		std::vector<double> vec;
@@ -174,44 +224,22 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 		if(vec.size() != 9)
 			throw "Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
 
-		for(int i=0; i<9; ++i)
-			distanceWeight[i] = vec[i];
+		distanceObject = new TDistanceUser(vec);
+
 	} else {
 		std::string distType = params.getParameterStringWithDefault("distType", "squaredDiff");
 		logfile->list("Using distance type '" + distType + "'.");
 		if(distType == "probMismatch"){
-			//probability that a random allele from each individual is different
-			distanceWeight[0] = 0.0; //case aa/aa
-			distanceWeight[1] = 0.5; //case ab/aa
-			distanceWeight[2] = 0.5; //case aa/ab
-			distanceWeight[3] = 1.0; //case aa/bb
-			distanceWeight[4] = 0.5; //case ab/ab
-			distanceWeight[5] = 0.75; //case ab/ac
-			distanceWeight[6] = 1.0; //case aa/bc
-			distanceWeight[7] = 1.0; //case ab/cc
-			distanceWeight[8] = 1.0; //case ab/cd
+			distanceObject = new TDistanceProbMismatch();
 		} else if(distType == "squaredDiff"){
-			//squared difference between genotypes
-			distanceWeight[0] = 0.0; //case aa/aa
-			distanceWeight[1] = 1.0; //case ab/aa
-			distanceWeight[2] = 1.0; //case aa/ab
-			distanceWeight[3] = 4.0; //case aa/bb
-			distanceWeight[4] = 0.0; //case ab/ab
-			distanceWeight[5] = 1.0; //case ab/ac
-			distanceWeight[6] = 4.0; //case aa/bc
-			distanceWeight[7] = 4.0; //case ab/cc
-			distanceWeight[8] = 4.0; //case ab/cd
+			distanceObject = new TDistance();
+		} else if(distType == "euclidian"){
+			distanceObject = new TDistanceEuclidian();
 		} else
 			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
 	}
-	logfile->conclude("Using distance weights " + concatenateString(distanceWeight, 9, ", ") + ".");
+	logfile->conclude("Using distance weights " + concatenateString(distanceObject->distanceWeight, 9, ", ") + ".");
 };
-
-void TEMforDistanceEstimation::calculateDistance(){
-	distance = 0.0;
-	for(int i=0; i<9; ++i)
-		distance += phi[i] * distanceWeight[i];
-}
 
 void TEMforDistanceEstimation::guessPi(std::vector<uint8_t*> & genoQual1, std::vector<uint8_t*> & genoQual2){
 	//check sizes are equal
@@ -558,7 +586,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint8_t*> & genoQua
 			logfile->conclude("LL = " + toString(LL) + " (deltaLL = " + toString(LL_diff) + ").");
 			if(LL_diff < epsilonForEM){
 				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilonForEM));
-				calculateDistance();
+				distance = distanceObject->calculateDistance(phi);
 				logfile->conclude("Resulting distance is " + toString(distance));
 				logfile->endIndent();
 				return true;
@@ -567,7 +595,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint8_t*> & genoQua
 			logfile->conclude("LL = " + toString(LL) + ".");
 	}
 	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumEMIterations) + ") without converging!");
-	calculateDistance();
+	distance = distanceObject->calculateDistance(phi);
 	logfile->conclude("Resulting distance is " + toString(distance));
 	logfile->endIndent();
 	return false;

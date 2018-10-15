@@ -34,6 +34,7 @@ private:
 	//data
 	unsigned int maxSize;
 	int length;
+	int lastAlignedPos;
 
 //	int* alignedPos;
 
@@ -118,7 +119,7 @@ public:
 	bool passedFilters;
 	int chrNumber;
 	int32_t position;
-	int32_t lastPositionPlusOne;
+//	int32_t lastPositionPlusOne;
 	std::string alignmentName;
 
 	//TODO: move these functions to TGenome

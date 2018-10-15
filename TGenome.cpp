@@ -112,11 +112,18 @@ void TGenome::estimateTheta(TParameters & params){
 
 		//HACK!!
 		bool onlyBootstrap = params.parameterExists("onlyBootstrap");
-		estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap);
+
+		int numBootstraps = 0;
+		if(params.parameterExists("bootstraps")){
+			int numBootstraps = params.getParameterInt("bootstraps");
+			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
+		} else
+			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+
 		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
-			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
 		}
 	} else
 		estimateThetaWindows(thetaEstimator, out);
@@ -142,7 +149,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			thetaEstimator.clear();
-			window.addSitesToThetaEstimator(thetaEstimator);
+			window.addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
 			logfile->done();
 
 			//estimate Theta
@@ -162,7 +169,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 };
 
-void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData){
+void void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps){
 	if(alignmentParser.considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -177,7 +184,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimator);
+				window.addSitesToThetaEstimator(thetaEstimator, thetaEstimator.pointerToDataContainer());
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
@@ -198,7 +205,8 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	else
 		out  << "genome-wide\t-\t-"; //chromosome, start, end
 	thetaEstimator.writeResultsToFile(out);
-	thetaEstimator.clear();
+	if(numBootstraps == 0)
+		thetaEstimator.clear();
 }
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
@@ -238,7 +246,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	logfile->endIndent();
 }
 
-void TGenome::calcLikelihoodSurfaces(TParameters & params){
+void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 	//read params
 	int steps = params.getParameterIntWithDefault("steps", 100);
 
@@ -263,7 +271,7 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
-			window.addSitesToThetaEstimator(estimator);
+			window.addSitesToThetaEstimator(estimator, estimator.pointerToDataContainer());
 			logfile->done();
 
 			//open file
@@ -289,6 +297,61 @@ void TGenome::calcLikelihoodSurfaces(TParameters & params){
 
 		}
 	}
+}
+
+void TGenome::estimateThetaRatio(TParameters & params){
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//Theta estimator
+	TThetaEstimatorRatio thetaEstimatorRatio(params, logfile);
+
+	//read the two regions to be used
+	logfile->startIndent("Reading regions:");
+
+	//region 1
+	std::string regionsFile1 = params.getParameterString("regions1");
+	logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
+	TBedReader region1(regionsFile1, windowSize, bamHeader.Sequences, logfile);
+	logfile->done();
+
+	//region 2
+	std::string regionsFile2 = params.getParameterString("regions2");
+	logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
+	TBedReader region2(regionsFile2, windowSize, bamHeader.Sequences, logfile);
+	logfile->done();
+	logfile->endIndent();
+
+	//prepare windows
+	TWindowPairDiploid windows;
+
+	//add sites to estimator
+	logfile->startIndent("Adding sites to data structures:");
+	while(iterateChromosome(windows)){
+		region1.setChr(chrIterator->Name);
+		region2.setChr(chrIterator->Name);
+
+		while(iterateWindow(windows)){
+			if(readData(windows)){
+				//adding sites to estimator
+				logfile->listFlush("Calculating emission probabilities ...");
+				windows.cur->calculateEmissionProbabilities(recalObject);
+				try{
+					windows.cur->addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), region1);
+					windows.cur->addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), region2);
+				} catch(...){
+					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
+				}
+				logfile->done();
+			}
+		}
+	}
+	logfile->endIndent();
+
+	//estimate Theta ratio
+	thetaEstimatorRatio.estimateRatio(*randomGenerator, outputName);
+
+	//clean up
 }
 
 //------------------------------------------
@@ -498,7 +561,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 			if(estimateTheta){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
-				window.addSitesToThetaEstimator(*thetaEstimator);
+				window.addSitesToThetaEstimator(recalObject, thetaEstimator->pointerToDataContainer());
 				logfile->done();
 
 				//estimate Theta
@@ -614,7 +677,7 @@ void TGenome::callAllelePresence(TParameters & params){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
 				(*thetaEstimator).clear();
-				window.addSitesToThetaEstimator(*thetaEstimator);
+				window.addSitesToThetaEstimator(recalObject, thetaEstimator->pointerToDataContainer());
 				logfile->done();
 
 				//estimate Theta

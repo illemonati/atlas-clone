@@ -740,7 +740,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 			return;
 
 		oldAlignmentMustBeConsidered = false;
-		if(oldAlignment->lastPositionPlusOne > window.start)
+		if(oldAlignment->lastAlignedPos > window.start)
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 	}
 
@@ -751,13 +751,14 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		fillAlignment(*oldAlignment);
 
 		//check if alignment is used in current window
-		if(oldAlignment->position >= window.end || oldAlignment->chrNumber != window.chrNumber){
+		int readEnd = oldAlignment->position + oldAlignment->lastAlignedPos;
+		if(oldAlignment->position >= window.end || readEnd >= start || oldAlignment->chrNumber != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
 			break;
 		}
 
 		//check if alignment end is after window start
-		if(oldAlignment->lastPositionPlusOne > window.start){
+		if(oldAlignment->lastAlignedPos > window.start){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 		}
 	}

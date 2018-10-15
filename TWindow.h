@@ -90,8 +90,8 @@ public:
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
-//	void addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimator & estimator);
-	void addSitesToThetaEstimator(TThetaEstimator & estimator);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, bool printAll);
 	void addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap);
 	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset, TQualityMap & qualMap);

@@ -14,9 +14,10 @@
 #include "bamtools/api/BamWriter.h"
 #include "TLog.h"
 #include "TBed.h"
+#include "TAlignmentParser.h"
 #include <typeinfo>
 #include <map>
-#include "TAlignmentParser.h"
+#include <algorithm>
 
 //---------------------------------------------------------------
 //TGenome
@@ -63,9 +64,10 @@ public:
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
 	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
-	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData);
+	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
-	void calcLikelihoodSurfaces(TParameters & params);
+	void calcThetaLikelihoodSurfaces(TParameters & params);
+	void estimateThetaRatio(TParameters & params);
 
 	//callers
 	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);

@@ -15,7 +15,8 @@ TAlignment::TAlignment(){
 	chrNumber = -1;
 	readGroupId = -1;
 	position = 0;
-	lastPositionPlusOne = 0;
+	lastAlignedPos = 0;
+//	lastPositionPlusOne = 0;
 	isReverseStrand = false;
 	isProperPair = false;
 	mappingQuality = 0;
@@ -69,7 +70,8 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	readGroupId = Alignment.readGroupId;
 	readGroup = Alignment.readGroup;
 	position = Alignment.position;
-	lastPositionPlusOne = Alignment.lastPositionPlusOne;
+	lastAlignedPos = Alignment.lastAlignedPos;
+//	lastPositionPlusOne = Alignment.lastPositionPlusOne;
 	isReverseStrand = Alignment.isReverseStrand;
 	isProperPair = Alignment.isProperPair;
 	mappingQuality = Alignment.mappingQuality;
@@ -172,32 +174,6 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 
 void TAlignment::setReferenceAdded(){
 	hasReference = true;
-}
-
-int TAlignmentParser::measureOverlap(){
-	if(isProperPair && passedFilters){
-		parse();
-
-		if(!isReverseStrand){
-			int k = length - softClippedLength[1] - 1;
-
-			while(alignedPos[k] < 0){
-				--k;
-			}
-
-			int endPos = bamAlignment.Position + alignedPos[k];
-			int overlap = endPos - bamAlignment.MatePosition;
-			if(overlap < 0)
-				//there is no overlap
-				return 0;
-			else
-				return overlap;
-		} else
-			//not relevant
-			return -1;
-	} else
-		//not relevant
-		return -1;
 }
 
 void TAlignment::setDistancesFromEnds(){
@@ -363,9 +339,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 		}
 	}
 
-	//update length
+	//update length and last aligned position
 	length = k;
 	lastPositionPlusOne = position + length;
+	lastAlignedPos = p - 1;
 	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };

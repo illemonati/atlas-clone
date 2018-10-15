@@ -549,10 +549,23 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 //-------------------------------------------------------
 //TwindowDiploid
 //-------------------------------------------------------
-void TWindow::addSitesToThetaEstimator(TThetaEstimator & estimator){
+void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){
-		estimator.add(sites[i]);
+		thetaDataContainer->add(sites[i]);
+	}
+}
+
+void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+	//assumes that emission probabilities were calculated
+	//only add sites from regions
+	if(region.hasPositionsInWindow(start)){
+		std::vector<long> thesePos = region.getPositionInWindow(start);
+		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
+			int pos = *it - start;
+			if(pos < length)
+				thetaDataContainer->add(sites[pos]);
+		}
 	}
 }
 

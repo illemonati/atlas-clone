@@ -49,7 +49,7 @@ public:
 				genome.estimateTheta(*parameters);
 			} else if(task == "LLsurface"){
 				logfile->startIndent("Calculating the LL surface for each window (task = LLSurface):");
-				genome.calcLikelihoodSurfaces(*parameters);
+				genome.calcThetaLikelihoodSurfaces(*parameters);
 			} else if(task == "pileup"){
 				logfile->startIndent("Printing pileup for each window (task = pileup):");
 				genome.printPileup(*parameters);
