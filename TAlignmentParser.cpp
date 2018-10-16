@@ -81,6 +81,7 @@ TAlignmentParser::TAlignmentParser(){
 	numInsertions = -1;
 	numDeletions = -1;
 	alignedPos = NULL;
+	lastAlignedPos = -1;
 	distFrom3Prime = NULL;
 	distFrom5Prime = NULL;
 	pmdCT = NULL;
@@ -353,7 +354,6 @@ void TAlignmentParser::setDistancesFromEnds(){
 			//and distance from 3' is given as f(end of fragment) = f(len - pos - 1)
 			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
 			int p = length - 1 - softClippedLength[1];
-			int insertionsPassed = 0;
 			for(int d=0; d<length; ++d){
 				distFrom5Prime[d] = p - d;
 				distFrom3Prime[d] = k + d;
@@ -398,8 +398,6 @@ void TAlignmentParser::fillContext(){
 	if(isReverseStrand){
 		//reverse
 		for(int d=0; d<(length-1); ++d){
-//			std::cout << "getting Context for " << base[d-1] << ", " << base[d] << std::flush;
-			//std::cout << " -> " << genoMap.contextMap[base[d-1]][base[d]] << std::endl;
 			context[d] = genoMap.contextMap[base[d+1]][base[d]];
 		}
 		context[length-1] = genoMap.contextMap[N][base[length-1]];
