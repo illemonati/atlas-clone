@@ -147,7 +147,7 @@ std::string TPMDTable::getPMDStringGA(){
 	return s + "]";
 };
 
-std::string TPMDTable::getGTString(){
+std::string TPMDTable::getPMDStringGT(){
 	calculateSums();
 	std::string s = "Empiric[";
 	double tmpGT, tmpTG;  //tmpRefRead
@@ -158,6 +158,22 @@ std::string TPMDTable::getGTString(){
 			tmpGT = (double) counts[p][G][T] / (double) sums[p][G];
 			tmpTG = (double) counts[p][T][G] / (double) sums[p][T];
 			s += toString(std::max(0.0, (tmpGT - tmpTG)/(1.0 - tmpTG)));
+		}
+	}
+	return s + "]";
+};
+
+std::string TPMDTable::getPMDStringCA(){
+	calculateSums();
+	std::string s = "Empiric[";
+	double tmpCA, tmpAC;  //tmpRefRead
+	for(int p=0; p<maxLength; ++p){
+		if(p>0) s += ",";
+		if(sums[p][T] < 1 || sums[p][A] < 1) s += "0.0";
+		else {
+			tmpCA = (double) counts[p][G][T] / (double) sums[p][G];
+			tmpAC = (double) counts[p][T][G] / (double) sums[p][T];
+			s += toString(std::max(0.0, (tmpCA - tmpAC)/(1.0 - tmpAC)));
 		}
 	}
 	return s + "]";
@@ -451,7 +467,7 @@ void TPMDTables::writeGTFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->getGTString() << "\n";
+		if(readGroups->inUse[i]) out << readGroups->getName(i) << "\t" << forward[readGroupMapObject[i]]->getPMDStringGT() << "\t" << reverse[readGroupMapObject[i]]->getPMDStringCA() << "\n";
 	}
 	out.close();
 }
