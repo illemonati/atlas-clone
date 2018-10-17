@@ -132,7 +132,7 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //TDistanceClass
 //----------------------------------------------------
 TDistance::TDistance(){
-	//distanceWeight = new double[9];
+	distanceWeight = new double[9];
 
 	//squared difference between genotypes
 	distanceWeight[0] = 0.0; //case aa/aa
@@ -146,15 +146,12 @@ TDistance::TDistance(){
 	distanceWeight[8] = 4.0; //case ab/cd
 }
 
-
 double TDistance::calculateDistance(double* phi){
 	double distance = 0.0;
 	for(int i=0; i<9; ++i)
 		distance += phi[i] * distanceWeight[i];
 	return distance;
 }
-
-
 
 TDistanceProbMismatch::TDistanceProbMismatch(){
 	//probability that a random allele from each individual is different
@@ -168,8 +165,6 @@ TDistanceProbMismatch::TDistanceProbMismatch(){
 	distanceWeight[7] = 1.0; //case ab/cc
 	distanceWeight[8] = 1.0; //case ab/cd
 }
-
-
 
 double TDistanceEuclidian::calculateDistance(double* phi){
 	return sqrt(TDistance::calculateDistance(phi));
