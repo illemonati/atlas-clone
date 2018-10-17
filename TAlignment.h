@@ -74,7 +74,6 @@ private:
 	void filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
-	int measureOverlap();
 
 	//functions that access data
 	std::string name(){return alignmentName;};
@@ -119,7 +118,7 @@ public:
 	bool passedFilters;
 	int chrNumber;
 	int32_t position;
-//	int32_t lastPositionPlusOne;
+	int32_t lastPositionPlusOne;
 	std::string alignmentName;
 
 	//TODO: move these functions to TGenome

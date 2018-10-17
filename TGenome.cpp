@@ -149,7 +149,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			thetaEstimator.clear();
-			window.addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
+			window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer());
 			logfile->done();
 
 			//estimate Theta
@@ -169,7 +169,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 };
 
-void void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps){
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps){
 	if(alignmentParser.considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -184,7 +184,7 @@ void void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimator, thetaEstimator.pointerToDataContainer());
+				window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer());
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
@@ -271,7 +271,7 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
-			window.addSitesToThetaEstimator(estimator, estimator.pointerToDataContainer());
+			window.addSitesToThetaEstimator(estimator.pointerToDataContainer());
 			logfile->done();
 
 			//open file
@@ -300,50 +300,48 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 }
 
 void TGenome::estimateThetaRatio(TParameters & params){
-	//initialize recalibration
-	initializeRecalibration(params);
-
 	//Theta estimator
 	TThetaEstimatorRatio thetaEstimatorRatio(params, logfile);
 
 	//read the two regions to be used
 	logfile->startIndent("Reading regions:");
 
+	int windowSize = alignmentParser.getWindowSize();
+
 	//region 1
 	std::string regionsFile1 = params.getParameterString("regions1");
 	logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
-	TBedReader region1(regionsFile1, windowSize, bamHeader.Sequences, logfile);
+	TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader.Sequences, logfile);
 	logfile->done();
 
 	//region 2
 	std::string regionsFile2 = params.getParameterString("regions2");
 	logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
-	TBedReader region2(regionsFile2, windowSize, bamHeader.Sequences, logfile);
+	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, logfile);
 	logfile->done();
 	logfile->endIndent();
 
 	//prepare windows
-	TWindowPairDiploid windows;
+	TWindow window;
 
 	//add sites to estimator
 	logfile->startIndent("Adding sites to data structures:");
-	while(iterateChromosome(windows)){
-		region1.setChr(chrIterator->Name);
-		region2.setChr(chrIterator->Name);
-
-		while(iterateWindow(windows)){
-			if(readData(windows)){
-				//adding sites to estimator
-				logfile->listFlush("Calculating emission probabilities ...");
-				windows.cur->calculateEmissionProbabilities(recalObject);
-				try{
-					windows.cur->addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), region1);
-					windows.cur->addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), region2);
-				} catch(...){
-					throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
-				}
-				logfile->done();
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(alignmentParser.chrChanged){
+			region1.setChr(alignmentParser.chrIterator->Name);
+			region2.setChr(alignmentParser.chrIterator->Name);
+		}
+		if(window.passedFilters){
+			//adding sites to estimator
+			logfile->listFlush("Calculating emission probabilities ...");
+			try{
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), region1);
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), region2);
+			} catch(...){
+				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
+			logfile->done();
 		}
 	}
 	logfile->endIndent();
@@ -561,7 +559,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 			if(estimateTheta){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
-				window.addSitesToThetaEstimator(recalObject, thetaEstimator->pointerToDataContainer());
+				window.addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
 				logfile->done();
 
 				//estimate Theta
@@ -677,7 +675,7 @@ void TGenome::callAllelePresence(TParameters & params){
 				//adding sites to estimator
 				logfile->listFlush("Calculating emission probabilities ...");
 				(*thetaEstimator).clear();
-				window.addSitesToThetaEstimator(recalObject, thetaEstimator->pointerToDataContainer());
+				window.addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
 				logfile->done();
 
 				//estimate Theta

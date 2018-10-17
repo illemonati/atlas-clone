@@ -63,7 +63,7 @@ struct Theta{
 };
 
 //---------------------------------------------------------------
-//TThetaEstimator
+//TThetaEstimator_base
 //---------------------------------------------------------------
 class TThetaEstimator_base{
 protected:
@@ -75,9 +75,7 @@ protected:
 	bool useTmpFile;
 	std::string tmpFileName;
 	int numGenotypes;
-	long numSitesCoveredTwiceOrMore;
-	long totNumSitesAdded;
-	double cumulativeDepth;
+	TGenotypeMap genoMap;
 
 	//initial theta
 	double initalTheta;
@@ -100,8 +98,6 @@ protected:
 public:
 	TThetaEstimator_base(TLog* Logfile);
 	TThetaEstimator_base(TParameters & params, TLog* Logfile);
-
-	long numSitesWithData;
 
 	virtual ~TThetaEstimator_base(){
 		if(dataInitialized)

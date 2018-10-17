@@ -642,9 +642,9 @@ bool TAlignmentParser::readAlignment(){
 		//filter
 		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
 		filtersPassed = true;
-		//check if insert size is shorter than read-insertions+deletions, this means we are reading the adaptor sequence
+		//check if insert size is shorter than read length-insertions+deletions=alignedBases + numInsertions, this means we are reading the adaptor sequence
 		//TODO: should add insertions to bamAlignment.AlignedBases.length()
-		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= (bamAlignment.AlignedBases.length()+alignment.numInsertions)){
+		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) <= (bamAlignment.AlignedBases.length()+bamAlignment.NumInsertions)){
 			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 		} else {
@@ -752,7 +752,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 		//check if alignment is used in current window
 		int readEnd = oldAlignment->position + oldAlignment->lastAlignedPos;
-		if(oldAlignment->position >= window.end || readEnd >= start || oldAlignment->chrNumber != window.chrNumber){
+		if(oldAlignment->position >= window.end || readEnd >= window.start || oldAlignment->chrNumber != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
 			break;
 		}
