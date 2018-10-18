@@ -256,7 +256,7 @@ double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
 	return LL;
 }
 
-std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile){
+std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, int maxReadLength, TLog* logfile){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);
@@ -394,23 +394,27 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	arma::mat Fisher = inv(J);
 
 	//now return string
-	if(a < 0) logfile->warning("Read group " + readGroupName + " was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
+	if((mu + (1-mu) * ( a*exp(-b*maxReadLength) + c )) < 0)
+		logfile->warning("Read group " + readGroupName + " was estimated to have a negative exponential damage pattern at the maxReadLength " + toString(maxReadLength) + ". This may be due to a lack of data");
+
+	//if(a < 0) logfile->warning("Read group " + readGroupName + " was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
 
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
-TPMDTables::TPMDTables(TReadGroups &ReadGroups, int maxLength, TReadGroupMap &ReadGroupMap):readGroupMapObject(ReadGroupMap),readGroups(ReadGroups){
+TPMDTables::TPMDTables(TReadGroups &ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap &ReadGroupMap):readGroupMapObject(ReadGroupMap),readGroups(ReadGroups){
 	readGroups = ReadGroups;
+	maxReadLength = MaxReadLength;
 	readGroupMapObject = ReadGroupMap;
 	origNumReadGroups = readGroupMapObject.getOrigNumReadGroups();
 	numReadGroups = readGroupMapObject.getNumReadGroups();
 	forward = new TPMDTable*[numReadGroups];
 	reverse = new TPMDTable*[numReadGroups];
 	for(int i=0; i<numReadGroups; ++i){
-		forward[i] = new TPMDTable(maxLength);
-		reverse[i] = new TPMDTable(maxLength);
+		forward[i] = new TPMDTable(maxLengthForInference);
+		reverse[i] = new TPMDTable(maxLengthForInference);
 	}
 };
 
@@ -480,8 +484,8 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 
 	//loop over all read groups, fit and write exponential model
 	for(int i=0; i<readGroups.size(); ++i){
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups.getName(i), logfile)
-			<< "\t" << reverse[readGroupMapObject[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups.getName(i), logfile) << "\n";
+		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups.getName(i), maxReadLength, logfile)
+			<< "\t" << reverse[readGroupMapObject[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups.getName(i), maxReadLength, logfile) << "\n";
 	}
 	out.close();
 }

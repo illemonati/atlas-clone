@@ -16,7 +16,7 @@ TAlignment::TAlignment(){
 	readGroupId = -1;
 	position = 0;
 	lastAlignedPos = 0;
-//	lastPositionPlusOne = 0;
+	lastPositionPlusOne = 0;
 	isReverseStrand = false;
 	isProperPair = false;
 	mappingQuality = 0;
@@ -71,7 +71,7 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	readGroup = Alignment.readGroup;
 	position = Alignment.position;
 	lastAlignedPos = Alignment.lastAlignedPos;
-//	lastPositionPlusOne = Alignment.lastPositionPlusOne;
+	lastPositionPlusOne = Alignment.lastPositionPlusOne;
 	isReverseStrand = Alignment.isReverseStrand;
 	isProperPair = Alignment.isProperPair;
 	mappingQuality = Alignment.mappingQuality;
@@ -369,7 +369,7 @@ void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
 };
 
 //--------------------------------------
-//functions to access and modify data
+//functions to modify data
 //--------------------------------------
 void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 	//set base to N if outside quality filter
@@ -468,6 +468,7 @@ void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFa
 };
 */
 
+
 void TAlignment::fillReadGroupInfo(int & readGroupID){
 	for(int d=0; d<length; ++d){
 		bases[d].readGroup = readGroupID;
@@ -484,6 +485,30 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	}
 	changed = true;
 };
+
+void TAlignment::updateOptionalSamField(std::string tag, float value){
+	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
+	else bamAlignment.EditTag(tag, "f", value);
+};
+
+void TAlignment::updateOptionalSamField(std::string tag, std::string value){
+	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "Z", value);
+	else bamAlignment.EditTag(tag, "Z", value);
+};
+
+void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap){
+	for(int d=0; d<length; ++d){
+		double r = randomGenerator.getRand();
+		if(r < fraction){
+			bases[d].base = N;
+			bases[d].errorRate = qualMap.qualityToError(0);
+		}
+	}
+	changed = true;
+}
+//--------------------------------------
+//functions to fill other classes
+//--------------------------------------
 
 void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//make sure read is parsed and has reference
@@ -705,29 +730,7 @@ void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qual
 
 
 
-//--------------------------------------------
-//functions to modify alignment
-//--------------------------------------------
-void TAlignment::updateOptionalSamField(std::string tag, float value){
-	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
-	else bamAlignment.EditTag(tag, "f", value);
-};
 
-void TAlignment::updateOptionalSamField(std::string tag, std::string value){
-	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "Z", value);
-	else bamAlignment.EditTag(tag, "Z", value);
-};
-
-void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap){
-	for(int d=0; d<length; ++d){
-		double r = randomGenerator.getRand();
-		if(r < fraction){
-			bases[d].base = N;
-			bases[d].errorRate = qualMap.qualityToError(0);
-		}
-	}
-	changed = true;
-}
 
 //--------------------------------------------
 //functions to write / print alignment

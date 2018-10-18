@@ -739,7 +739,11 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 }
 
 bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
-	while(g1.chr() != g2.chr()){
+	std::string chr1 = g1.chr();
+	eraseAllOccurences(chr1,"chr");
+	std::string chr2 = g2.chr();
+	eraseAllOccurences(chr2,"chr");
+	while(chr1 != chr2){
 		//advance the one laging behind
 		if(g1.chrNumber() < g2.chrNumber()){
 			if(!g1.jumpToNextChr()) return false;
@@ -747,6 +751,11 @@ bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
 			if(!g2.jumpToNextChr()) return false;
 		} else
 			throw "Different chromosomes in files " + g1.name() + "' and '" + g2.name() + "'!";
+
+		chr1 = g1.chr();
+		eraseAllOccurences(chr1,"chr");
+		chr2 = g2.chr();
+		eraseAllOccurences(chr2,"chr");
 	}
 
 	return true;

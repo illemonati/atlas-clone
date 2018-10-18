@@ -376,13 +376,15 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string chrName){
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string chrName, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilities();
-		out << chrName << "\t" << start + i + 1;
-		sites[i].printPileup(out);
-		out << "\n";
+		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
+			sites[i].calcEmissionProbabilities();
+			out << chrName << "\t" << start + i + 1;
+			sites[i].printPileup(out);
+			out << "\n";
+		}
 	}
 }
 
@@ -595,7 +597,7 @@ void TWindow::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubs
 	}
 }
 
-void TWindow::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF){
+void TWindow::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef, bool printPP, bool onlyPhredGP){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -605,14 +607,16 @@ void TWindow::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out);
+				std::string basesString = sites[i].getBases();
+				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out);
+					std::string basesString = sites[i].getBases();
+					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
 					out << "\n";
 				}
 			}

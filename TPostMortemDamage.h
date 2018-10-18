@@ -44,19 +44,20 @@ public:
 	std::string getPMDString(int first, int second);
 //	std::string getPMDStringCT();
 //	std::string getPMDStringGA();
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, TLog* logfile);
+	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, int maxReadLength, TLog* logfile);
 };
 
 class TPMDTables{
 public:
 	TReadGroupMap& readGroupMapObject;
 	TReadGroups& readGroups;
+	int maxReadLength;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;
 	TPMDTable** reverse;
 
-	TPMDTables(TReadGroups& ReadGroups, int maxLength, TReadGroupMap & ReadGroupMapObject);
+	TPMDTables(TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap & ReadGroupMapObject);
 	~TPMDTables();
 //	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);

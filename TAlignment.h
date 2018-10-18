@@ -105,7 +105,6 @@ public:
 	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
 
 	//accessed by alignmentParser
-
 	void filterForBaseQuality(int & minQual, int & maxQual);
 	void clear();
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
