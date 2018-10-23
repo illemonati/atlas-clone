@@ -169,10 +169,10 @@ std::string TPMDTable::getPMDStringCA(){
 	double tmpCA, tmpAC;  //tmpRefRead
 	for(int p=0; p<maxLength; ++p){
 		if(p>0) s += ",";
-		if(sums[p][T] < 1 || sums[p][A] < 1) s += "0.0";
+		if(sums[p][A] < 1 || sums[p][C] < 1) s += "0.0";
 		else {
-			tmpCA = (double) counts[p][G][T] / (double) sums[p][G];
-			tmpAC = (double) counts[p][T][G] / (double) sums[p][T];
+			tmpCA = (double) counts[p][C][A] / (double) sums[p][C];
+			tmpAC = (double) counts[p][A][C] / (double) sums[p][A];
 			s += toString(std::max(0.0, (tmpCA - tmpAC)/(1.0 - tmpAC)));
 		}
 	}
