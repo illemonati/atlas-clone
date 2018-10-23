@@ -1272,11 +1272,14 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
 	if(counter % 1000000 == 0){
-		static struct timeval end;
-		gettimeofday(&end, NULL);
-		float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-		logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
+		reportProgressParsingBamFileNoCheck(counter, start);
 	}
+}
+void TGenome::reportProgressParsingBamFileNoCheck(const long & counter, const struct timeval & start){
+	static struct timeval end;
+	gettimeofday(&end, NULL);
+	float runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 }
 
 void TGenome::recalibrateBamFile(TParameters & params){
@@ -2567,9 +2570,9 @@ void TGenome::estimatePMD(TParameters & params){
 	}
 
 	//report
-	reportProgressParsingBamFile(numreadsAdded, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
+	reportProgressParsingBamFileNoCheck(numreadsAdded, start);
 
 	//print tables and data
 	std::string filename = outputName + "_PMD_Table.txt";
