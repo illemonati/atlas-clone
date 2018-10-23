@@ -266,15 +266,16 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
 
 				//soft-clipped bases on 5' are before bamAlignment.Position
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					if(bases[d].base == N)
 						bases[d].aligned = false;
-					else
+					else {
 						bases[d].aligned = true;
-					bases[d].alignedPos = p;
+						bases[d].alignedPos = p;
+					}
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -520,6 +521,7 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
+		std::cout << "reverse" << std::endl;
 		for(int d=0; d<length; ++d){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
