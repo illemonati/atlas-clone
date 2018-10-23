@@ -116,7 +116,7 @@ void TPMDTable::writeTableWithCounts(std::ofstream & out, std::string prefix){
 	}
 };
 
-std::string TPMDTable::getPMDString(int first, int second){
+std::string TPMDTable::getPMDString(Base first, Base second){
 	calculateSums();
 	std::string s = "Empiric[";
 	double tmpFirstToSecond, tmpSecondToFirst;  //tmpRefRead
