@@ -13,6 +13,7 @@
 #include "TGenome.h"
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
+#include "TVcfDiagnostics.h"
 
 //---------------------------------------------------------------------------
 //Switch task
