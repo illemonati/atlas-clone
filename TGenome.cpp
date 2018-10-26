@@ -2560,12 +2560,15 @@ void TGenome::estimatePMD(TParameters & params){
 	gettimeofday(&start, NULL);
 
 	//iterate through BAM file
-	while (alignmentParser.readNextAlignment(alignment)){
+	while(alignmentParser.readNextAlignment(alignment)){
 		//alignment is only filled if filters are passed
 		alignment.addToPMDTables(pmdTables, genoMap);
+		std::cout << alignment.name() << std::endl;
 
 		//report
 		++numreadsAdded;
+		if(numreadsAdded > 10)
+			break;
 		reportProgressParsingBamFile(numreadsAdded, start);
 	}
 
@@ -2637,7 +2640,7 @@ void TGenome::runPMDS(TParameters & params){
 
 	//now parse through bam file and write alignments
 	double PMDS;
-	while (alignmentParser.readNextAlignment(alignment)){
+	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
         if(alignment.passedFilters){

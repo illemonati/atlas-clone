@@ -619,16 +619,33 @@ bool TAlignmentParser::readAlignment(){
 			return false;
 		}
 
+		std::cout << "read alignment " << bamAlignment.Name << std::endl;
+
 		//check if bam file is sorted
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
+			chrNumber = previousAlignmentChr;
 			chrChanged = true;
 		} else
 			chrChanged = false;
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position!";
 		previousAlignmentPos = bamAlignment.Position;
+
+		//jump to next chromosome if not in use
+		if(previousAlignmentChr != -1 && !useChromosome[chrNumber]){
+			std::cout << "entered correct if statement" << std::endl;
+			while(chrNumber < bamHeader.Sequences.Size() && !useChromosome[chrNumber]){
+				++chrIterator;
+				++chrNumber;
+				std::cout << "chrNumber is now " << chrNumber << std::endl;
+
+			}
+			if(!bamReader.Jump(chrNumber, 0))
+				throw "jump didnt work!";
+			std::cout << "jumping to chrNumber " << chrNumber << std::endl;
+		}
 
 		//check read length
 		if(bamAlignment.AlignedBases.size() > maxReadLength)
@@ -653,6 +670,7 @@ bool TAlignmentParser::readAlignment(){
 							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
 							&& bamAlignment.IsPrimaryAlignment()
 							&& !bamAlignment.IsSupplementary()
+							&& useChromosome[chrNumber]
 							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
 		}
 	} while(!filtersPassed);
@@ -698,13 +716,6 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	if(readAlignment()){
 		alignment.passedFilters = true;
 		fillAlignment(alignment);
-		if(previousAlignmentPos == -1){
-			while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
-				++chrIterator;
-				++chrNumber;
-			}
-			bamReader.Jump(chrNumber, 0);
-		}
 		return true;
 	}
 	return false;

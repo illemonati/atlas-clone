@@ -371,7 +371,7 @@ void TVcfParser::addToInfo(TVcfLine & line, std::string & Id, std::string & Data
 	}
 }
 
-GTLikelihoods TVcfParser::genotypeLiklihoods(TVcfLine & line, unsigned int & s){
+GTLikelihoods TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	GTLikelihoods gt;
 	if(line.samples[s].missing){
@@ -390,7 +390,24 @@ GTLikelihoods TVcfParser::genotypeLiklihoods(TVcfLine & line, unsigned int & s){
 	return gt;
 }
 
-void TVcfParser::fillGenotypeLiklihoods(TVcfLine & line, unsigned int & s, double* gtl){
+GTLikelihoods TVcfParser::genotypeLikelihoodsPhred(TVcfLine & line, unsigned int & s){
+	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
+	GTLikelihoods gt;
+	if(line.samples[s].missing){
+		gt.AA=-1; gt.AB=-1; gt.BB=-1;
+	} else {
+		int col=getFormatCol(line, "PL");
+		std::string d=line.samples[s].data[col];
+		gt.AA=stringToDouble(extractBefore(d, ','));
+		d.erase(0,1);
+		gt.AB=stringToDouble(extractBefore(d, ','));
+		d.erase(0,1);
+		gt.BB=stringToDouble(d);
+	}
+	return gt;
+}
+
+void TVcfParser::fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, double* gtl){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	if(line.samples[s].missing){
 		gtl[0] = 1.0; gtl[1] = 1.0; gtl[2] = 1.0;

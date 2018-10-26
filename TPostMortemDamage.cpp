@@ -588,7 +588,6 @@ void TPMD::initialize(TPMD & other){
 }
 
 void TPMD::initializeFunction(std::string pmdString, PMDType type){
-	std::cout << "type passed to TPMD initialize " << type << " and the initialization status " << functionsInitialized[type] <<std::endl;
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]

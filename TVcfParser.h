@@ -225,8 +225,9 @@ public:
 	bool sampleIsMissing(TVcfLine & line, unsigned int & sample);
 	bool sampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s);
 	float sampleGenotypeQuality(TVcfLine & line, unsigned int & sample);
-	GTLikelihoods genotypeLiklihoods(TVcfLine & line, unsigned int & sample);
-	void fillGenotypeLiklihoods(TVcfLine & line, unsigned int & s, double* gtl);
+	GTLikelihoods genotypeLikelihoods(TVcfLine & line, unsigned int & sample);
+	GTLikelihoods genotypeLikelihoodsPhred(TVcfLine & line, unsigned int & sample);
+	void fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, double* gtl);
 	std::string sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample);
 	std::string sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample);
 	int phred(double x);

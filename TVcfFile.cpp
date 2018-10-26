@@ -115,14 +115,17 @@ void TVcfFile::printFilters(){
 }
 */
 
-GTLikelihoods TVcfFile_base::genotypeLiklihoods(TVcfLine* line, unsigned int s){
-	return parser.genotypeLiklihoods(*line, s);
+GTLikelihoods TVcfFile_base::_genotypeLikelihoods(TVcfLine* line, unsigned int s){
+	return parser.genotypeLikelihoods(*line, s);
+}
+
+GTLikelihoods TVcfFile_base::_genotypeLikelihoodsPhred(TVcfLine* line, unsigned int s){
+	return parser.genotypeLikelihoodsPhred(*line, s);
 }
 
 void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, double* gtl){
-	parser.fillGenotypeLiklihoods(*line, sample, gtl);
+	parser.fillGenotypeLikelihoods(*line, sample, gtl);
 }
-
 
 int TVcfFile_base::sampleNumber(std::string & Name){
 	return parser.getSampleNum(Name);
@@ -256,10 +259,10 @@ int TVcfFileSingleLine::depthAsIntNoCheckForMissingSample(std::string tag, unsig
 }
 
 GTLikelihoods TVcfFileSingleLine::genotypeLikelihoods(unsigned int sample){
-	return genotypeLiklihoods(&tempLine ,sample);
+	return _genotypeLikelihoods(&tempLine ,sample);
 }
 GTLikelihoods TVcfFileSingleLine::genotypeLikelihoodsPhred(unsigned int sample){
-	return genotypeLiklihoodsPhred(tempLine ,sample);
+	return _genotypeLikelihoodsPhred(&tempLine ,sample);
 }
 void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, double* gtl){
 	fillGenotypeLiklihoods(&tempLine, sample, gtl);

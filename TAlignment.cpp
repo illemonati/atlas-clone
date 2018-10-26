@@ -521,7 +521,6 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 
 	//check if it is forward or reverse strand!
 	if(isReverseStrand){
-		std::cout << "reverse" << std::endl;
 		for(int d=0; d<length; ++d){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);

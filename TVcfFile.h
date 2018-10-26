@@ -65,8 +65,8 @@ public:
 	void enableSampleParsing(){usedParsers.push_back(&TVcfParser::parseSamples);};
 
 	//retrieve info
-	GTLikelihoods genotypeLiklihoods(TVcfLine* line, unsigned int sample);
-	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
+	GTLikelihoods _genotypeLikelihoods(TVcfLine* line, unsigned int sample);
+	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
 	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, double* gtl);
 	int sampleNumber(std::string & Name);
 	int numSamples();
@@ -119,6 +119,7 @@ public:
 	virtual int fieldContentAsInt(std::string tag, unsigned int sample);
 	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
 	GTLikelihoods genotypeLikelihoods(unsigned int sample);
+	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
 	void fillGenotypeLikelihoods(unsigned int sample, double* gtl);
 	//variant info
 	long position();

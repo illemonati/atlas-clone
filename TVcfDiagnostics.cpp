@@ -205,7 +205,7 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	    delete[] table[i];
 	delete[] table;
 }
-
+/*
 void VcfDiagnostics::filterAllelicImbalance(){
 	//open vcf file
 	if(verbose) std::cerr << " - Filtering sites with allelic imbalance:" << std::endl;
@@ -296,6 +296,6 @@ void VcfDiagnostics::filterAllelicImbalance(){
 	sitesInfoOut.close();
 }
 
-
+*/
 
 

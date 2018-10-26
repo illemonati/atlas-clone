@@ -76,7 +76,6 @@ private:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	//functions that access data
-	std::string name(){return alignmentName;};
 
 
 
@@ -98,6 +97,7 @@ public:
 	void setReferenceAdded();
 	int getPosition(){return position;};
 	int getLength(){return length;};
+	std::string name(){return alignmentName;};
 
 	//functions to write / print alignment
 	void setToSingleEnd();
