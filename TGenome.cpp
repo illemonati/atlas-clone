@@ -2563,7 +2563,7 @@ void TGenome::estimatePMD(TParameters & params){
 	while(alignmentParser.readNextAlignment(alignment)){
 		//alignment is only filled if filters are passed
 		alignment.addToPMDTables(pmdTables, genoMap);
-		std::cout << alignment.name() << std::endl;
+		std::cout << "added this alignemnt to tables: "<< alignment.name() << std::endl;
 
 		//report
 		++numreadsAdded;

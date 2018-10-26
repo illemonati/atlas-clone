@@ -181,7 +181,8 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		windowsPredefined = false;
 		windowSize = stringToInt(tmp);
 		logfile->list("Setting window size to " + toString(windowSize));
-		if(windowSize < maxReadLength) throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
+		if(windowSize < maxReadLength)
+			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
 	} else {
 		windowsPredefined = true;
 		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
@@ -616,6 +617,7 @@ bool TAlignmentParser::readAlignment(){
 	bool filtersPassed;
 	do {
 		if(!bamReader.GetNextAlignment(bamAlignment)){
+			std::cout << "########## returning false a" << std::endl;
 			return false;
 		}
 
@@ -640,11 +642,13 @@ bool TAlignmentParser::readAlignment(){
 				++chrIterator;
 				++chrNumber;
 				std::cout << "chrNumber is now " << chrNumber << std::endl;
+				std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
 
 			}
 			if(!bamReader.Jump(chrNumber, 0))
 				throw "jump didnt work!";
 			std::cout << "jumping to chrNumber " << chrNumber << std::endl;
+			std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
 		}
 
 		//check read length
@@ -670,7 +674,7 @@ bool TAlignmentParser::readAlignment(){
 							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
 							&& bamAlignment.IsPrimaryAlignment()
 							&& !bamAlignment.IsSupplementary()
-							&& useChromosome[chrNumber]
+							&& useChromosome[bamAlignment.RefID]
 							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
 		}
 	} while(!filtersPassed);

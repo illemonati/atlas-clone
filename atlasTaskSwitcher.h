@@ -13,7 +13,7 @@
 #include "TGenome.h"
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
-#include "TVcfDiagnostics.h"
+#include "vcf_utils/TVcfDiagnostics.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -42,6 +42,10 @@ public:
 			logfile->startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
 			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.estimateDistances(*parameters);
+		} else if(task == "VCFDiagnostics"){
+			logfile->startIndent("Diagnosing VCF files (task=VCFDiagnostics):");
+			VcfDiagnostics VcfDiagnoser(parameters, logfile);
+			VcfDiagnoser.assessAllelicImbalance();
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

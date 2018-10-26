@@ -9,7 +9,7 @@
 #define TATLASTESTRECALIBRATION_H_
 
 #include "TAtlasTest.h"
-#include "TSimulatorQualityTransformation.h"
+#include "../simulation/TSimulatorQualityTransformation.h"
 
 //------------------------------------------
 //TAtlasTest_recalSimulation
@@ -36,8 +36,6 @@ public:
 	bool run();
 	bool checkRecalFile();
 };
-
-
 
 //------------------------------------------
 //TAtlasTest_BQSRSimulation

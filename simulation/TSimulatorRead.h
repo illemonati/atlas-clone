@@ -8,9 +8,9 @@
 #ifndef TSIMULATORREAD_H_
 #define TSIMULATORREAD_H_
 
-#include "TGenotypeMap.h"
+#include "../TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
-#include "TPostMortemDamage.h"
+#include "../TPostMortemDamage.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
 
