@@ -617,11 +617,11 @@ bool TAlignmentParser::readAlignment(){
 	bool filtersPassed;
 	do {
 		if(!bamReader.GetNextAlignment(bamAlignment)){
-			std::cout << "########## returning false a" << std::endl;
+//			std::cout << "########## returning false a" << std::endl;
 			return false;
 		}
 
-		std::cout << "read alignment " << bamAlignment.Name << std::endl;
+//		std::cout << "read alignment " << bamAlignment.Name << std::endl;
 
 		//check if bam file is sorted
 		if(bamAlignment.RefID != previousAlignmentChr){

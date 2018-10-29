@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <typeinfo>
 #include <sstream>
-#include "gzstream.h"
+#include "../gzstream.h"
 #include "TVcfDiagnostics.h"
 
 //---------------------------------------------------
@@ -49,6 +49,24 @@ int VcfDiagnostics::baseToNumber(char base, std::string & marker){
 	else if(base == 'G') return 2;
 	else if (base == 'T') return 3;
 	else throw "unknown base " + toString(base) + " at marker " + marker;
+}
+
+void VcfDiagnostics::initializeCountsTable(int** table, int nrows, int ncols){
+	table = new int*[nrows];
+	for(int i=0; i<nrows; ++i){
+		table[i] = new int[nrows];
+	}
+
+	for(int i=0; i<ncols; ++i){
+		for(int j=0; j<ncols; ++j)
+			table[i][j] = 0;
+	}
+}
+
+void VcfDiagnostics::deleteCountsTable(int** table, int nrows){
+	for(int i = 0; i < nrows; ++i)
+	    delete[] table[i];
+	delete[] table;
 }
 
 void VcfDiagnostics::vcfToBeagle(){
@@ -121,28 +139,37 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	vcfFile.enableSampleParsing();
 	vcfFile.enableVariantParsing();
 
-	//prepare output
+	//output
 	std::string outname = params->getParameterString("outname") + "_allelicDepth.txt";
-	if(verbose) std::cerr << "    - Writing files to '" << outname  << std::endl;
-	int maxDP = params->getParameterIntWithDefault("maxDepth", 1000);
+	logfile->list("Writing files to '" + outname + ".");
 
 	//limit input?
+	int maxDP = params->getParameterIntWithDefault("maxDepth", 1000);
+	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
+
 	long inputLines = params->getParameterLongWithDefault("inputLines", -1);
 	if(inputLines <= 0){
-		if(verbose)
-			std::cerr << "    - Reading whole vcf." << std::endl;
+		logfile->list("Reading whole vcf.");
 	} else
-		std::cerr << "    - Limiting input to " << inputLines << " lines." << std::endl;
+		logfile->list("Limiting input to " + toString(inputLines) + " lines.");
 
-	//initialize table
-	long** table = new long*[maxDP];
-	for(int i=0; i<maxDP; ++i){
-		table[i] = new long[maxDP];
+	//initialize tables
+	std::string qualityString = params->getParameterStringWithDefault("qualities", "0,10,20,30,40,50");
+	std::vector<int> qualities;
+	fillVectorFromString(qualityString, qualities, ',');
+
+	std::vector<int**> countTables;
+	for(unsigned int i=0; i<qualities.size(); ++i){
+		int** table;
+		initializeCountsTable(table, maxDP, maxDP);
+		countTables.push_back(table);
 	}
 
-	for(int i=0; i<maxDP; ++i){
-		for(int j=0; j<maxDP; ++j)
-			table[i][j] = 0;
+	//map for filling correct table
+	std::map<int,int> qualityIndeces;
+	std::map<int,int>::iterator it;
+	for(unsigned int i=0; i<qualities.size(); ++i){
+		qualityIndeces.insert(std::pair<int, int>(qualities[i], i));
 	}
 
 	//temp variables
@@ -167,10 +194,14 @@ void VcfDiagnostics::assessAllelicImbalance(){
 				int numRef = stringToInt(tmp[0]);
 				int numAlt = stringToInt(tmp[1]);
 				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
-					std::cerr << "WARNING: DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.";
+					logfile->warning("WARNING: DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.");
 					continue;
 				}
-				++table[numRef][numAlt];
+				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
+				it = qualityIndeces.find(quality);
+				if(it != qualityIndeces.end()){
+	//				++(countTables.at(*it)[numRef][numAlt]);
+				}
 			}
 		}
 		if(verbose && counter % 1000000 == 0)
@@ -181,7 +212,7 @@ void VcfDiagnostics::assessAllelicImbalance(){
 		}
 	}
 
-	std::cerr << "    - Done reading vcf!" << std::endl;;
+	logfile->done();
 
 	//write table
 	//header
@@ -194,16 +225,14 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	for(int i=0; i<maxDP; ++i){
 		outTable << "ref_" << i;
 		for(int j=0; j<maxDP; ++j)
-			outTable << "\t" << table[i][j];
+			//outTable << "\t" << table[i][j];
 		outTable << "\n";
 	}
 
 	//clean up
 	outTable.close();
 
-	for(int i = 0; i < maxDP; ++i)
-	    delete[] table[i];
-	delete[] table;
+
 }
 /*
 void VcfDiagnostics::filterAllelicImbalance(){

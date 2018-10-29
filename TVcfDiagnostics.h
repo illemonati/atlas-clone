@@ -8,13 +8,13 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include "stringFunctions.h"
+#include "../stringFunctions.h"
 #include <vector>
-#include "TParameters.h"
+#include "../TParameters.h"
 #include <iostream>
 #include <fstream>
 #include "TVcfFile.h"
-#include "TRandomGenerator.h"
+#include "../TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -47,8 +47,8 @@ private:
 
 	void openVCF(TVcfFile_base & vcfFile);
 	void initializeRandomGenerator();
-	void defineExpectedFormats(bool & twoSingleVCF);
-	void checkColumnNumbers(std::string & trueLine, std::vector<std::string> & trueVec, bool twoSingleVCF, int trueLineNum, int numSamples);
+	void initializeCountsTable(int** table, int nrows, int ncols);
+	void deleteCountsTable(int** table, int nrows);
 	std::pair<char, char> getGenotypeFromIndex(int index);
 
 public:

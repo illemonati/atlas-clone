@@ -673,7 +673,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 }
 
-void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right){
+void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_string_right, TGenotypeMap & genoMap){
 	//count S, not S, S pattern from cigar string
 	S_left = 0;
 	S_right = 0;
@@ -685,13 +685,31 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right){
 
 	for( ; cigarIter != cigarEnd; ++cigarIter ){
 		if(cigarIter->Type == 'S'){
-			if(reachedMiddle) S_right += cigarIter->Length;
-			else S_left += cigarIter->Length;
+			if(reachedMiddle){
+				S_right += cigarIter->Length;
+				for(unsigned int i=0; i<cigarIter->Length; ++i)
+					S_string_right += genoMap.baseToChar[bases[i].base];
+			}
+			else{
+				S_left += cigarIter->Length;
+				for(unsigned int i=0; i<cigarIter->Length; ++i)
+					S_string_left += genoMap.baseToChar[bases[i].base];
+			}
 		} else {
 			reachedMiddle = true;
 			middle += cigarIter->Length;
+			for(unsigned int i=0; i<cigarIter->Length; ++i)
+				S_string_middle += genoMap.baseToChar[bases[i].base];
 		}
 	}
+
+	//return "-" if string is empty
+	if(S_string_left.size() == 0)
+		S_string_left = "-";
+	if(S_string_middle.size() == 0)
+		S_string_middle = "-";
+	if(S_string_right.size() == 0)
+		S_string_right = "-";
 };
 
 int TAlignment::measureOverlap(){

@@ -130,7 +130,7 @@ public:
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
-	void assessSoftClipping(int & S_left, int & middle, int & S_right);
+	void assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_string_right, TGenotypeMap & genoMap);
 	int measureOverlap();
 	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
 

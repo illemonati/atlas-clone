@@ -29,7 +29,7 @@ $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
 
 
 %.o: %.cpp
-	$(CXX) -O3 -c -Ibamtools $(OBJFLAG) $< -o $@
+	$(CXX) -O3 -c -Ibamtools -Isimulation -Ivcf_utils -Iintegration_tests $(OBJFLAG) $< -o $@
 
 
 .PHONY : clean

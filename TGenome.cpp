@@ -1416,16 +1416,36 @@ void TGenome::assessSoftClipping(TParameters & params){
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
 
+	//limit input / output
+	bool printAll = false;
+	if(params.parameterExists("printAll")){
+		printAll = true;
+		logfile->list("Writing soft clipping stats for all alignments to file.");
+	} else
+		logfile->list("Writing only stats for reads with soft clipping to file.");
+
+	bool printSequences = false;
+	if(params.parameterExists("printSequences")){
+		printSequences = true;
+		logfile->list("Writing soft clipped bases to file.");
+	} else
+		logfile->list("Writing only counts of soft clipped bases to file.");
+
 	//open output file
 	std::string filename = outputName + "_clippingStats.txt.gz";
 	gz::ogzstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
-	out << "Read\tposition\tClippedLeft\tnNotClipped\tnClippedRight\n";
+	if(printSequences)
+		out << "Read\tposition\tnClippedLeft\tsClippedLeft\tnNotClipped\tsNotClipped\tnClippedRight\tsClippedRight\n";
+	else
+		out << "Read\tposition\tnClippedLeft\tnNotClipped\tnClippedRight\n";
 
 	//other temp variables
 	std::vector<BamTools::CigarOp>::iterator it;
 	int S_left, S_right, middle;
+	std::string S_string_left, S_string_middle, S_string_right;
+	TGenotypeMap genoMap;
 	long counter = 0;
 
 	//prepare reporting
@@ -1435,10 +1455,20 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		alignment.assessSoftClipping(S_left, middle, S_right);
+		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_string_right, genoMap);
 
 		//report
-		out << alignmentParser.bamAlignment.Name << "\t" << alignmentParser.bamAlignment.Position << "\t" << S_left << "\t" << middle << "\t" << S_right << "\n";
+		if(S_left + S_right > 0 || printAll){
+			out << alignmentParser.bamAlignment.Name << "\t";
+			out	<< alignmentParser.bamAlignment.Position << "\t";
+			out	<< S_left << "\t";
+			if(printSequences) out	<< S_string_left << "\t";
+			out	<< middle  << "\t";
+			if(printSequences) out	<< S_string_middle << "\t";
+			out	<< S_right << "\t";
+			if(printSequences) out	<< S_string_right << "\n";
+			if(!printSequences) out << "\n";
+		}
 
 		//report
 		++counter;
