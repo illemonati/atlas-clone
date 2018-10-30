@@ -20,6 +20,22 @@ VcfDiagnostics::VcfDiagnostics(TParameters* Params, TLog* Logfile){
 	randomGeneratorInitialized = false;
 	randomGenerator = NULL;
 	chr=-1;
+
+	//open vcf file
+	openVCF(vcfFile);
+
+	//outputname
+	outname = params->getParameterStringWithDefault("out", "");
+	if(outname == ""){
+		//guess from filename
+		outname = vcfFile.filename;
+		outname = extractBeforeLast(outname, ".");
+		if(isZipped)
+			//if zipped there is extra .gz
+			outname = extractBeforeLast(outname, ".");
+
+	}
+	logfile->list("Writing output files with prefix '" + outname + "'.");
 }
 
 //open input stream
@@ -29,16 +45,18 @@ void VcfDiagnostics::openVCF(TVcfFile_base & vcfFile){
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading vcf from file '" + filename + "'.");
 		vcfFile.openStream(filename, false);
+		isZipped = false;
 	} else {
 		logfile->list("Reading vcf from gzipped file '" + filename + "'.");
 		vcfFile.openStream(filename, true);
+		isZipped = true;
 	}
 }
 
 void VcfDiagnostics::initializeRandomGenerator(){
 	if(!randomGeneratorInitialized){
 		randomGenerator=new TRandomGenerator();
-		if(verbose) std::cerr << " - Randomgenerator initialized with seed " << randomGenerator->usedSeed << std::endl;
+		logfile->list("Random generator initialized with seed " + toString(randomGenerator->usedSeed));
 		randomGeneratorInitialized=true;
 	}
 }
@@ -51,28 +69,11 @@ int VcfDiagnostics::baseToNumber(char base, std::string & marker){
 	else throw "unknown base " + toString(base) + " at marker " + marker;
 }
 
-void VcfDiagnostics::initializeCountsTable(int** table, int nrows, int ncols){
-	table = new int*[nrows];
-	for(int i=0; i<nrows; ++i){
-		table[i] = new int[nrows];
-	}
-
-	for(int i=0; i<ncols; ++i){
-		for(int j=0; j<ncols; ++j)
-			table[i][j] = 0;
-	}
-}
-
-void VcfDiagnostics::deleteCountsTable(int** table, int nrows){
-	for(int i = 0; i < nrows; ++i)
-	    delete[] table[i];
-	delete[] table;
-}
+//----------------------
+// countstable
+//----------------------
 
 void VcfDiagnostics::vcfToBeagle(){
-	//open vcf file
-	openVCF(vcfFile);
-
 	//enable parsers
 	vcfFile.enablePositionParsing();
 	vcfFile.enableFormatParsing();
@@ -81,8 +82,6 @@ void VcfDiagnostics::vcfToBeagle(){
 	vcfFile.enableInfoParsing();
 
 	//open output files:
-	std::string outname = params->getParameterString("out");
-	if(verbose) std::cerr << " - Writing genotype likelihoods in beagle format to '" << outname << ".beagle.gz" << std::endl;
 	gz::ogzstream beagleFile((outname + (std::string) ".beagle.gz").c_str());
 
 	//other variables
@@ -127,12 +126,18 @@ void VcfDiagnostics::vcfToBeagle(){
 
 }
 
+int VcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder){
+	int lastPassedFilterIndex = 0;
+	for(unsigned int i=0; i<filtersAscendingOrder.size(); ++i){
+		if(obsValue < filtersAscendingOrder[i])
+			break;
+		else
+			lastPassedFilterIndex = i;
+	}
+	return lastPassedFilterIndex;
+}
+
 void VcfDiagnostics::assessAllelicImbalance(){
-	//open vcf file
-	if(verbose) std::cerr << " - assessing allelic imbalance:" << std::endl;
-
-	openVCF(vcfFile);
-
 	//enable parsers
 	vcfFile.enablePositionParsing();
 	vcfFile.enableFormatParsing();
@@ -140,11 +145,10 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	vcfFile.enableVariantParsing();
 
 	//output
-	std::string outname = params->getParameterString("outname") + "_allelicDepth.txt";
-	logfile->list("Writing files to '" + outname + ".");
+	logfile->list("Writing files to '" + outname + "_allelicDepth.txt'");
 
 	//limit input?
-	int maxDP = params->getParameterIntWithDefault("maxDepth", 1000);
+	int maxDP = params->getParameterIntWithDefault("maxDepth", 100);
 	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
 	long inputLines = params->getParameterLongWithDefault("inputLines", -1);
@@ -154,85 +158,72 @@ void VcfDiagnostics::assessAllelicImbalance(){
 		logfile->list("Limiting input to " + toString(inputLines) + " lines.");
 
 	//initialize tables
+	logfile->startIndent("Initializing count tables:");
 	std::string qualityString = params->getParameterStringWithDefault("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
 	fillVectorFromString(qualityString, qualities, ',');
 
-	std::vector<int**> countTables;
+	std::vector<TCountTable*> countTables;
 	for(unsigned int i=0; i<qualities.size(); ++i){
-		int** table;
-		initializeCountsTable(table, maxDP, maxDP);
-		countTables.push_back(table);
+		countTables.emplace_back(new TCountTable(maxDP, maxDP, outname + "_qual" + toString(qualities[i]) + "_allelicDepth.txt", logfile));
 	}
-
-	//map for filling correct table
-	std::map<int,int> qualityIndeces;
-	std::map<int,int>::iterator it;
-	for(unsigned int i=0; i<qualities.size(); ++i){
-		qualityIndeces.insert(std::pair<int, int>(qualities[i], i));
-	}
+	logfile->endIndent();
 
 	//temp variables
 	int counter = 0;
 	int numHet = 0;
 
-	//open log file for sites
-	std::ofstream outTable(outname.c_str());
-	if(!outTable)
-		throw "Failed to open file '" + outname + " for writing!";
-
+	logfile->startIndent("Parsing vcf file:");
 	while(vcfFile.next()){
 		++counter;
 
-		//count allelic depth across all samples
+		//get allelic depth at hetero sites across all samples. One table per quality filter.
 		for(int i=0; i < vcfFile.numSamples(); ++i){
 			if(!vcfFile.sampleIsMissing(i) && vcfFile.sampleIsHeteroRefNonref(i)){
 				++numHet;
+
+				//which position in table does site correspond to?
 				std::vector<std::string> tmp;
 				std::string tag="AD";
 				fillVectorFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
 				int numRef = stringToInt(tmp[0]);
 				int numAlt = stringToInt(tmp[1]);
+				if(numRef == 0 || numAlt == 0)
+					throw "Call at position " + toString(vcfFile.position()) + " is heterozygous but reference or alternative allelic depth is 0!";
 				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
 					logfile->warning("WARNING: DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.");
 					continue;
 				}
+
+				//add count to correct table
 				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
-				it = qualityIndeces.find(quality);
-				if(it != qualityIndeces.end()){
-	//				++(countTables.at(*it)[numRef][numAlt]);
-				}
+				int index = findLastPassedFilterIndex(quality, qualities);
+//				std::cout << "quality " << quality << " index " << index << " qualities[index] " << qualities[index] << std::endl;
+//				std::cout << "before " << (countTables.at(index))->table[numRef][numAlt] << std::endl;
+				++(countTables.at(index))->table[numRef][numAlt];
+//				std::cout << "after " << (countTables.at(index))->table[numRef][numAlt] << std::endl;
+
 			}
 		}
 		if(verbose && counter % 1000000 == 0)
-			std::cerr << "    - read " << counter << " lines, " << numHet << " heterozygous sites were found." << std::endl;
+			logfile->list("read " + toString(counter) + " lines, " + toString(numHet) + " heterozygous sites were found.");
 		if(inputLines != -1 && counter > inputLines){
-			std::cerr << "    - reached input limit!" << std::endl;
+			logfile->list("reached input limit!");
 			break;
 		}
 	}
 
-	logfile->done();
+	logfile->endIndent("done!");
 
-	//write table
-	//header
-	outTable << "ref_depth/alt_depth";
-	for(int i=0; i<maxDP; ++i){
-		outTable << "\talt_" << i;
+	std::string description = "ref_depth/alt_depth";
+	std::string rowPrefix = "ref_";
+	std::string colPrefix = "alt_";
+
+
+	//write tables
+	for(unsigned int i=0; i<countTables.size(); ++i){
+		countTables[i]->writeTable(description, rowPrefix, colPrefix);
 	}
-	outTable << "\n";
-
-	for(int i=0; i<maxDP; ++i){
-		outTable << "ref_" << i;
-		for(int j=0; j<maxDP; ++j)
-			//outTable << "\t" << table[i][j];
-		outTable << "\n";
-	}
-
-	//clean up
-	outTable.close();
-
-
 }
 /*
 void VcfDiagnostics::filterAllelicImbalance(){

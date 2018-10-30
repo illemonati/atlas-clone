@@ -33,6 +33,71 @@ class TGenotype{
 		};
 };
 
+class TCountTable{
+private:
+	int nrows;
+	int ncols;
+	int initializationValue;
+	std::ofstream out;
+
+public:
+	int** table;
+
+	TCountTable(int Nrows, int Ncols, std::string Outname, TLog* Logfile){
+		nrows = Nrows;
+		ncols = Ncols;
+		initializationValue = 0;
+		initialize();
+		openOut(Outname, Logfile);
+	}
+
+	void initialize(){
+		table = new int*[nrows];
+		for(int i=0; i<nrows; ++i){
+			table[i] = new int[nrows];
+		}
+
+		for(int i=0; i<ncols; ++i){
+			for(int j=0; j<ncols; ++j)
+				table[i][j] = initializationValue;
+		}
+	}
+
+	void openOut(std::string & outname, TLog* logfile){
+		logfile->list("Writing count table to '" + outname + "'.");
+		out.open(outname.c_str());
+		if(!out)
+			throw "Failed to open file '" + outname + " for writing!";
+	}
+
+	void writeTable(std::string & description, std::string & rowPrefix, std::string & colPrefix){
+		//header
+		out << description; //this goes in top left corner
+		for(int i=0; i<ncols; ++i){
+			out << "\t" << colPrefix << i;
+		}
+		out << "\n";
+
+		//write rows
+		for(int i=0; i<nrows; ++i){
+			out << rowPrefix << i;
+			for(int j=0; j<ncols; ++j)
+				out << "\t" << table[i][j];
+			out << "\n";
+		}
+	}
+
+	~TCountTable(){
+		//delete table
+		for(int i = 0; i < nrows; ++i)
+		    delete[] table[i];
+		delete[] table;
+
+		//close file
+		out.close();
+	}
+};
+
 class VcfDiagnostics{
 private:
 	TParameters* params;
@@ -44,11 +109,11 @@ private:
 	TRandomGenerator* randomGenerator;
 	bool randomGeneratorInitialized;
 	TVcfFileSingleLine vcfFile;
+	std::string outname;
+	bool isZipped;
 
 	void openVCF(TVcfFile_base & vcfFile);
 	void initializeRandomGenerator();
-	void initializeCountsTable(int** table, int nrows, int ncols);
-	void deleteCountsTable(int** table, int nrows);
 	std::pair<char, char> getGenotypeFromIndex(int index);
 
 public:
@@ -56,6 +121,7 @@ public:
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 	int baseToNumber(char base, std::string & marker);
 	void vcfToBeagle();
+	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
 	void assessAllelicImbalance();
 	void filterAllelicImbalance();
 	void vcfToInvariantBed();
