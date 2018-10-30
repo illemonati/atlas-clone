@@ -621,8 +621,6 @@ bool TAlignmentParser::readAlignment(){
 			return false;
 		}
 
-//		std::cout << "read alignment " << bamAlignment.Name << std::endl;
-
 		//check if bam file is sorted
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
@@ -681,7 +679,6 @@ bool TAlignmentParser::readAlignment(){
 
 	return true;
 }
-
 
 void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//make sure container is empty
@@ -762,6 +759,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	//read alignments
 	int counter = 0;
 	while(readAlignment()){
+		std::cout << "oldAlignment->alignmentName " << oldAlignment->alignmentName << std::endl;
 		//fill alignment
 		fillAlignment(*oldAlignment);
 
@@ -798,6 +796,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 void TAlignmentParser::applyFilters(TWindow & window){
 	window.passedFilters = false;
+	std::cout << "window.numReadsInWindow " << window.numReadsInWindow << std::endl;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){

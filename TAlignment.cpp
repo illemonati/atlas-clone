@@ -253,6 +253,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	numInsertions = 0;
 	numDeletions = 0;
 
+	if(alignmentName == "A00574:12:H3WTLDSXX:1:1327:13449:6558")
+		std::cout << "querybases " << bamAlignment.QueryBases << std::endl;
+
+
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
 	int counter = 0;
@@ -678,38 +682,57 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 	S_left = 0;
 	S_right = 0;
 	middle = 0;
-	static bool reachedMiddle = false;
+	S_string_left = "";
+	S_string_middle = "";
+	S_string_right = "";
+	bool reachedMiddle = false;
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
 
-	for( ; cigarIter != cigarEnd; ++cigarIter ){
+	//position in read, i is position in cigar type
+	int p = 0;
+
+//	for(bamAlignment.CigarData.begin() ; cigarIter != cigarEnd; ++cigarIter ){
+//		if(alignmentName == "A00574:12:H3WTLDSXX:1:1540:8015:35759"){
+//			std::cout << "cigarIter->Type " << cigarIter->Type << " cigarIter->length " << cigarIter->Length << std::endl;
+//		}
+//	}
+
+	for(bamAlignment.CigarData.begin() ; cigarIter != cigarEnd; ++cigarIter ){
+//		if(alignmentName == "A00574:12:H3WTLDSXX:1:1540:8015:35759"){
+//			std::cout << "cigarIter->Type " << cigarIter->Type << " cigarIter->length " << cigarIter->Length << std::endl;
+//		}
+
 		if(cigarIter->Type == 'S'){
 			if(reachedMiddle){
 				S_right += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i)
-					S_string_right += genoMap.baseToChar[bases[i].base];
+				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
+					S_string_right += bamAlignment.QueryBases[p];
 			}
 			else{
 				S_left += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i)
-					S_string_left += genoMap.baseToChar[bases[i].base];
+				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
+					S_string_left += bamAlignment.QueryBases[p];
 			}
 		} else {
+			if(cigarIter->Type == 'D')
+				continue;
 			reachedMiddle = true;
 			middle += cigarIter->Length;
-			for(unsigned int i=0; i<cigarIter->Length; ++i)
-				S_string_middle += genoMap.baseToChar[bases[i].base];
+			for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
+				S_string_middle += bamAlignment.QueryBases[p];
 		}
 	}
 
 	//return "-" if string is empty
-	if(S_string_left.size() == 0)
+	if(S_left == 0)
 		S_string_left = "-";
-	if(S_string_middle.size() == 0)
+	if(middle == 0)
 		S_string_middle = "-";
-	if(S_string_right.size() == 0)
+	if(S_right == 0){
 		S_string_right = "-";
+	}
 };
 
 int TAlignment::measureOverlap(){

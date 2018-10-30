@@ -1360,8 +1360,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	logfile->done();
 }
 
-
-
 void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1414,7 +1412,6 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
 
 	//limit input / output
 	bool printAll = false;
