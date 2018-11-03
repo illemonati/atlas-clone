@@ -610,15 +610,6 @@ TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 	logfile->list("Writing output files with prefix '" + outputName + "'.");
 }
 
-void TDistanceEstimator::printGLF(TParameters & params){
-	//test first to parse GLF files
-	std::string glf = params.getParameterString("glf");
-	TGlfReader reader(glf);
-
-	//print file
-	reader.printToEnd();
-}
-
 void TDistanceEstimator::openGLF(TParameters & params){
 	params.fillParameterIntoVector("glf", GLFNames, ',');
 	numGLFs = GLFNames.size();

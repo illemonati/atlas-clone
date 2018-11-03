@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <string.h>
 #include <vector>
+#include "TLog.h"
 //#include <bitset>
 
 //----------------------------------------------------
@@ -179,6 +180,24 @@ public:
 	void printSite();
 	void printToEnd();
 
+};
+
+//----------------------------------------------------
+//TGlfMultiReader
+//----------------------------------------------------
+class TGlfMultiReader{
+private:
+	int numGLFs;
+	std::vector<std::string> GLFNames;
+	TGlfReader* glfs;
+	bool readersOpened;
+
+public:
+	TGlfMultiReader();
+	TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile);
+
+	void openGLFs(const std::vector<std::string> & Filenames, TLog* logfile);
+	void closeGLF();
 };
 
 #endif /* TGLF_H_ */

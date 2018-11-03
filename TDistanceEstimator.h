@@ -187,7 +187,6 @@ public:
 		closeGLF();
 	};
 
-	void printGLF(TParameters & params);
 	void estimateDistances(TParameters & params);
 
 };

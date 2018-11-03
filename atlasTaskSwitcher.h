@@ -35,8 +35,9 @@ public:
 			runSimulations(*parameters, logfile);
 		} else if(task == "printGLF"){
 			logfile->startIndent("Printing a GLF file to screen (task=printGLF):");
-			TDistanceEstimator distEst(logfile, *parameters);
-			distEst.printGLF(*parameters);
+			std::string glf = parameters->getParameterString("glf");
+			TGlfReader reader(glf);
+			reader.printToEnd();
 		} else if(task == "estimateDist"){
 			logfile->startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
 			TDistanceEstimator distEst(logfile, *parameters);

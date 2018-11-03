@@ -345,3 +345,47 @@ void TGlfReader::printToEnd(){ //For debugging
 		printSite();
 	}
 };
+
+//----------------------------------------------------
+//TGlfMultiReader
+//----------------------------------------------------
+TGlfMultiReader::TGlfMultiReader(){
+	numGLFs = 0;
+	readersOpened = false;
+	glfs = NULL;
+};
+
+TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile){
+	openGLFs(FileNames, logfile);
+};
+
+void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog* logfile){
+	GLFNames = FileNames;
+	numGLFs = GLFNames.size();
+
+	//open files
+	glfs = new TGlfReader[numGLFs];
+	readersOpened = true;
+	logfile->startIndent("Opening GLF files:");
+	int g = 0;
+	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
+		logfile->listFlush("Opening GLF '" + *it + "' ...");
+		glfs[g].open(*it);
+		logfile->done();
+	}
+	logfile->endIndent();
+};
+
+void TGlfMultiReader::closeGLF(){
+	if(readersOpened){
+		//close all glf handlers
+		for(int g=0; g<numGLFs; ++g)
+			glfs[g].close();
+
+		delete[] glfs;
+		GLFNames.clear();
+		numGLFs = 0;
+		readersOpened = false;
+	}
+};
+
