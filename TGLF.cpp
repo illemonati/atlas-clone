@@ -106,10 +106,26 @@ void TGlfReader::init(){
 		genotypeQualitiesMissingData[i] = 0;
 };
 
+std::string TGlfReader::getNameOfParsedChr(int chrNumber){
+	if(curChrNumber == chrNumber)
+		return curChr;
+	else if(curChrNumber > chrNumber)
+		return chromosomesAlreadyParsed[chrNumber].first;
+	else throw "TGlfReader does not know name of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
+};
+
+long TGlfReader::getLengthOfParsedChr(int chrNumber){
+	if(curChrNumber == chrNumber)
+		return _chrLength;
+	else if(curChrNumber > chrNumber)
+		return chromosomesAlreadyParsed[chrNumber].second;
+	else throw "TGlfReader does not know length of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
+};
+
 bool TGlfReader::readChr(){
 	//store current chromosome name in list of chromosomes parsed
 	if(curChr != "")
-		chromosomesAlreadyParsed.push_back(curChr);
+		chromosomesAlreadyParsed.push_back(std::pair<std::string, long>(curChr, _chrLength));
 
 	//read chromosome info
 	uint32_t len;
@@ -131,8 +147,8 @@ bool TGlfReader::readChr(){
 };
 
 bool TGlfReader::chromosomeParsed(std::string & chr){
-	for(std::vector<std::string>::iterator it=chromosomesAlreadyParsed.begin(); it!=chromosomesAlreadyParsed.end(); ++it){
-		if(*it == chr)
+	for(std::vector< std::pair<std::string, long> >::iterator it=chromosomesAlreadyParsed.begin(); it!=chromosomesAlreadyParsed.end(); ++it){
+		if(it->first == chr)
 			return true;
 	}
 	return false;
@@ -350,18 +366,55 @@ void TGlfReader::printToEnd(){ //For debugging
 //TGlfMultiReader
 //----------------------------------------------------
 TGlfMultiReader::TGlfMultiReader(){
-	numGLFs = 0;
-	readersOpened = false;
-	GLFs = NULL;
+	init();
 };
 
 TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile){
+	init();
 	openGLFs(FileNames, logfile);
 };
 
-void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog* logfile){
-	GLFNames = FileNames;
+TGlfMultiReader::TGlfMultiReader(TParameters & params, TLog* logfile){
+	init();
+	openGLFs(params, logfile);
+};
+
+void TGlfMultiReader::init(){
+	numGLFs = 0;
+	readersOpened = false;
+	GLFs = NULL;
+	data = NULL;
+	GLFIsActive = NULL;
+	hasData = NULL;
+	dataInitialized = false;
+	numActiveFiles = 0;
+
+	_position = -1;
+	_curChrNumber = 0;
+	_curChrLength = 0;
+	_curChrName = "";
+	_numActiveFilesWithData = 0;
+
+	for(int i=0; i<10; ++i)
+			genotypeQualitiesMissingData[i] = 0;
+
+};
+
+TGlfMultiReader::~TGlfMultiReader(){
+	if(dataInitialized){
+		delete[] data;
+		delete[] hasData;
+	}
+
+	if(readersOpened){
+		delete[] GLFIsActive;
+		closeGLF();
+	}
+};
+
+void TGlfMultiReader::_openGLFs(TLog* logfile){
 	numGLFs = GLFNames.size();
+	GLFIsActive = new bool[numGLFs];
 
 	//open files
 	GLFs = new TGlfReader[numGLFs];
@@ -374,6 +427,19 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 		logfile->done();
 	}
 	logfile->endIndent();
+
+	_setAllInactive();
+};
+
+
+void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog* logfile){
+	GLFNames = FileNames;
+	_openGLFs(logfile);
+};
+
+void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
+	params.fillParameterIntoVector("glf", GLFNames, ',');
+	_openGLFs(logfile);
 };
 
 void TGlfMultiReader::closeGLF(){
@@ -392,9 +458,9 @@ void TGlfMultiReader::closeGLF(){
 //-------------------------------------
 //set active / inactive
 //-------------------------------------
-int TGlfMultiReader::_getGLIndexFromName(const std::string & name){
+int TGlfMultiReader::_getGLFIndexFromName(const std::string & name){
 	int index = 0;
-	for(std::vector<int>::iterator it=GLFNames.begin(); it!=GLFNames.end(); ++it, ++index){
+	for(std::vector<std::string>::iterator it=GLFNames.begin(); it!=GLFNames.end(); ++it, ++index){
 		if(*it == name) return index;
 	}
 	throw "GLF with name '" + name + "' not in TGlfMultiReader!";
@@ -403,7 +469,7 @@ int TGlfMultiReader::_getGLIndexFromName(const std::string & name){
 void TGlfMultiReader::_setActive(const int index){
 	if(index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
 	if(!GLFIsActive[index]){
-		GLFIsActive[index = true];
+		GLFIsActive[index] = true;
 		activeGLFs.push_back(index);
 		pointerToActiveGLFs.push_back(&GLFs[index]);
 	}
@@ -416,27 +482,44 @@ void TGlfMultiReader::_setAllInactive(){
 	pointerToActiveGLFs.clear();
 };
 
-int TGlfMultiReader::_minChrNumber(){
+int TGlfMultiReader::_minChrNumberActiveFiles(){
 	int minChr = 9999999;
-	for(std::vector<TGlfReader>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
-		if(it->curChrNumber < minChr)
-			minChr = it->curChrNumber;
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
+		if((*it)->chrNumber() < minChr){
+			minChr = (*it)->chrNumber();
+		}
 	}
 	return minChr;
 };
 
-void TGlfMultiReader::_prepareParsing(){
-	for(std::vector<int>::iterator it =  activeGLFs.begin(); it!=activeGLFs.end(); ++it){
-		GLFs[*it].rewind();
+void TGlfMultiReader::_setCurChrName(){
+	//find active file on cur chromosome number and set name
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
+		if((*it)->chrNumber() == _curChrNumber){
+			_curChrName = (*it)->chr();
+			break;
+		}
 	}
+};
 
-	//find minimal chromosome across all active files
-	curChrNumber = 0;
-	//set cur Position and curChr to beginning
+void TGlfMultiReader::_prepareParsing(){
+	numActiveFiles = pointerToActiveGLFs.size();
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it)
+		(*it)->rewind();
 
-	position = 0;
+	//start at first chromosome, position 0 (one before first position).
+	_curChrNumber = 0;
+	_curChrLength = -1;
+	_position = 1;
 
-
+	//initialize data
+	if(dataInitialized){
+		delete[] data;
+		delete[] hasData;
+	}
+	data = new uint8_t*[numActiveFiles];
+	hasData = new bool[numActiveFiles];
+	dataInitialized = true;
 }
 
 void TGlfMultiReader::setActive(const int index){
@@ -464,14 +547,14 @@ void TGlfMultiReader::setActive(const std::string & name1, const std::string & n
 	setActive(index1, index2);
 };
 
-void TGlfMultiReader::setActive(const std::vector<int> & indexes){
+void TGlfMultiReader::setActive(std::vector<int> & indexes){
 	_setAllInactive();
 	for(std::vector<int>::iterator it=indexes.begin(); it!=indexes.end(); ++it)
 		_setActive(*it);
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setActive(const std::vector<std::string> & names){
+void TGlfMultiReader::setActive(std::vector<std::string> & names){
 	_setAllInactive();
 	for(std::vector<std::string>::iterator it=names.begin(); it!=names.end(); ++it){
 		int index = _getGLFIndexFromName(*it);
@@ -487,53 +570,75 @@ void TGlfMultiReader::setAllActive(){
 	_prepareParsing();
 };
 
-
 //-------------------------------------
 //Looping over active files
 //-------------------------------------
-bool TGlfMultiReader::moveToNextCommonChr(){
-	std::string chr1 = g1.chr();
-	std::string chr2 = g2.chr();
+bool TGlfMultiReader::moveToNextChromosome(){
+	//increment chromosome number
+	++_curChrNumber;
 
-	//
+	//advance all active files behind in chromosome number
+	bool allFilesReachedEnd = true;
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
+		while(!(*it)->eof() && (*it)->chrNumber() < _curChrNumber)
+			(*it)->jumpToNextChr();
+		if(!(*it)->eof()) allFilesReachedEnd = false;
+	}
 
-	while(chr1 != chr2){
-		//advance the one laging behind
-		if(g1.chrNumber() < g2.chrNumber()){
-			if(!g1.jumpToNextChr()) return false;
-		} else if(g1.chrNumber() > g2.chrNumber()){
-			if(!g2.jumpToNextChr()) return false;
-		} else
-			throw "Different chromosomes in files " + g1.name() + "' and '" + g2.name() + "'!";
+	//check if we reached end of all files
+	if(allFilesReachedEnd) return false;
 
-		chr1 = g1.chr();
-		eraseAllOccurences(chr1,"chr");
-		chr2 = g2.chr();
-		eraseAllOccurences(chr2,"chr");
+	//get name and length from first active file
+	_position = 1;
+	_curChrName = pointerToActiveGLFs[0]->getNameOfParsedChr(_curChrNumber);
+	_curChrLength = pointerToActiveGLFs[0]->getLengthOfParsedChr(_curChrNumber);
+
+	//check that all files share the same name and length for this chromosome
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
+		if((*it)->chrNumber() == _curChrNumber){
+			if(_curChrName != (*it)->chr())
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + (*it)->name() + "'!";
+			if(_curChrLength != (*it)->chrLength())
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + (*it)->name() + "'!";
+		}
 	}
 
 	return true;
-}
-
-
+};
 
 bool TGlfMultiReader::readNext(){
-
-
-
-	//advance
-	if(g2.position == g1.position){
-		//advance both
-		if(!g1.readNext()) return false;
-		if(!g2.readNext()) return false;
-	} else if(g2.position < g1.position){
-		//advance g2
-		if(!g2.readNext()) return false;
-	} else {
-		//advance g1
-		if(!g1.readNext()) return false;
+	//advance position counter
+	++_position;
+	if(_position > _curChrLength){
+		if(!moveToNextChromosome()) return false;
 	}
 
-	//make sure we are on same chromosome
-	return(moveToNextCommonChr(g1, g2));
+	//advance all files behind position
+	_numActiveFilesWithData = 0;
+	int i=0;
+	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it, ++i){
+		if(!(*it)->eof() && (*it)->chrNumber() == _curChrNumber && (*it)->position < _position)
+			(*it)->readNext();
+		if(!(*it)->eof() && (*it)->chrNumber() == _curChrNumber && (*it)->position == _position){
+			data[i] = (*it)->genotypeQualities;
+			hasData[i] = true;
+			++_numActiveFilesWithData;
+		} else {
+			data[i] = genotypeQualitiesMissingData;
+			hasData[i] = false;
+		}
+	}
+
+	//filter sites (i.e., jump to next)
+
+	return true;
+};
+
+void TGlfMultiReader::print(){
+	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChrName << std::endl;
+	for(int i=0; i<numActiveFiles; ++i){
+		std::cout << "File " << i << ":";
+		for(int g=0; g<10; ++g) std::cout << "\t" << unsigned(data[i][g]);
+		std::cout << std::endl;
+	}
 }

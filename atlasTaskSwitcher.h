@@ -13,6 +13,7 @@
 #include "TGenome.h"
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
+#include "TMajorMinor.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -42,6 +43,9 @@ public:
 			logfile->startIndent("Estimating the genetic distance between individuals (task=estimateDist):");
 			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.estimateDistances(*parameters);
+		} else if(task == "majorMinor"){
+			TMajorMinor majorMinor(logfile);
+			majorMinor.estimateMajorMinor(*parameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);
