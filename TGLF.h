@@ -189,8 +189,25 @@ class TGlfMultiReader{
 private:
 	int numGLFs;
 	std::vector<std::string> GLFNames;
-	TGlfReader* glfs;
+	TGlfReader* GLFs;
 	bool readersOpened;
+
+	//active files
+	//Object will loop only over active files
+	int numActiveFiles;
+	bool* GLFIsActive;
+	std::vector<int> activeGLFs;
+	std::vector<TGlfReader*> pointerToActiveGLFs;
+	int _getGLFIndexFromName(const std::string & name);
+	void _setActive(const int index);
+	void _setAllInactive();
+	int _minChrNumber();
+	void _prepareParsing();
+
+	//Moving along active files
+	long position;
+	int curChrNumber;
+	bool moveToNextCommonChr();
 
 public:
 	TGlfMultiReader();
@@ -198,6 +215,18 @@ public:
 
 	void openGLFs(const std::vector<std::string> & Filenames, TLog* logfile);
 	void closeGLF();
+
+	//set active / inactive
+
+
+	void setActive(const int index);
+	void setActive(const std::string & name);
+	void setActive(const int index1, const int index2);
+	void setActive(const std::string & name1, const std::string & name1);
+	void setActive(const std::vector<int> & indexes);
+	void setActive(const std::vector<std::string> & names);
+	void setAllActive();
+
 };
 
 #endif /* TGLF_H_ */

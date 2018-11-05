@@ -734,7 +734,7 @@ bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
 	eraseAllOccurences(chr2,"chr");
 
 	while(chr1 != chr2){
-		//advance the one laging behind
+		//advance the one lagging behind
 		if(g1.chrNumber() < g2.chrNumber()){
 			if(!g1.jumpToNextChr()) return false;
 		} else if(g1.chrNumber() > g2.chrNumber()){

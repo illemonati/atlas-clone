@@ -7,7 +7,7 @@
 // Provides FASTA reading/indexing functionality.
 // ***************************************************************************
 
-#include "utils/bamtools_fasta.h"
+#include "bamtools_fasta.h"
 using namespace BamTools;
 
 #include <cstdio>

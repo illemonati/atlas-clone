@@ -352,7 +352,7 @@ void TGlfReader::printToEnd(){ //For debugging
 TGlfMultiReader::TGlfMultiReader(){
 	numGLFs = 0;
 	readersOpened = false;
-	glfs = NULL;
+	GLFs = NULL;
 };
 
 TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile){
@@ -364,13 +364,13 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 	numGLFs = GLFNames.size();
 
 	//open files
-	glfs = new TGlfReader[numGLFs];
+	GLFs = new TGlfReader[numGLFs];
 	readersOpened = true;
 	logfile->startIndent("Opening GLF files:");
 	int g = 0;
 	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
 		logfile->listFlush("Opening GLF '" + *it + "' ...");
-		glfs[g].open(*it);
+		GLFs[g].open(*it);
 		logfile->done();
 	}
 	logfile->endIndent();
@@ -380,12 +380,159 @@ void TGlfMultiReader::closeGLF(){
 	if(readersOpened){
 		//close all glf handlers
 		for(int g=0; g<numGLFs; ++g)
-			glfs[g].close();
+			GLFs[g].close();
 
-		delete[] glfs;
+		delete[] GLFs;
 		GLFNames.clear();
 		numGLFs = 0;
 		readersOpened = false;
 	}
 };
 
+//-------------------------------------
+//set active / inactive
+//-------------------------------------
+int TGlfMultiReader::_getGLIndexFromName(const std::string & name){
+	int index = 0;
+	for(std::vector<int>::iterator it=GLFNames.begin(); it!=GLFNames.end(); ++it, ++index){
+		if(*it == name) return index;
+	}
+	throw "GLF with name '" + name + "' not in TGlfMultiReader!";
+};
+
+void TGlfMultiReader::_setActive(const int index){
+	if(index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
+	if(!GLFIsActive[index]){
+		GLFIsActive[index = true];
+		activeGLFs.push_back(index);
+		pointerToActiveGLFs.push_back(&GLFs[index]);
+	}
+};
+
+void TGlfMultiReader::_setAllInactive(){
+	for(int i=0; i<numGLFs; ++i)
+		GLFIsActive[i] = false;
+	activeGLFs.clear();
+	pointerToActiveGLFs.clear();
+};
+
+int TGlfMultiReader::_minChrNumber(){
+	int minChr = 9999999;
+	for(std::vector<TGlfReader>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
+		if(it->curChrNumber < minChr)
+			minChr = it->curChrNumber;
+	}
+};
+
+void TGlfMultiReader::_prepareParsing(){
+	for(std::vector<int>::iterator it =  activeGLFs.begin(); it!=activeGLFs.end(); ++it){
+		GLFs[*it].rewind();
+	}
+
+	//find minimal chromosome across all active files
+
+	//set cur Position and curChr to beginning
+
+	position = 0;
+	curChrNumber = 0;
+
+}
+
+void TGlfMultiReader::setActive(const int index){
+	if(index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActiveOnly(const int index)!";
+	_setAllInactive();
+	_setActive(index);
+	_prepareParsing();
+};
+
+void TGlfMultiReader::setActive(const std::string & name){
+	int index = _getGLFIndexFromName(name);
+	setActive(index);
+};
+
+void TGlfMultiReader::setActive(const int index1, const int index2){
+	_setAllInactive();
+	_setActive(index1);
+	_setActive(index2);
+	_prepareParsing();
+};
+
+void TGlfMultiReader::setActive(const std::string & name1, const std::string & name2){
+	int index1 = _getGLFIndexFromName(name1);
+	int index2 = _getGLFIndexFromName(name2);
+	setActive(index1, index2);
+};
+
+void TGlfMultiReader::setActive(const std::vector<int> & indexes){
+	_setAllInactive();
+	for(std::vector<int>::iterator it=indexes.begin(); it!=indexes.end(); ++it)
+		_setActive(*it);
+	_prepareParsing();
+};
+
+void TGlfMultiReader::setActive(const std::vector<std::string> & names){
+	_setAllInactive();
+	for(std::vector<std::string>::iterator it=names.begin(); it!=names.end(); ++it){
+		int index = _getGLFIndexFromName(*it);
+		_setActive(index);
+	}
+	_prepareParsing();
+};
+
+void TGlfMultiReader::setAllActive(){
+	activeGLFs.clear();
+	for(int i=0; i<numGLFs; ++i)
+		_setActive(i);
+	_prepareParsing();
+};
+
+
+//-------------------------------------
+//Looping over active files
+//-------------------------------------
+bool TGlfMultiReader::moveToNextCommonChr(){
+	std::string chr1 = g1.chr();
+	std::string chr2 = g2.chr();
+
+	//
+
+	while(chr1 != chr2){
+		//advance the one laging behind
+		if(g1.chrNumber() < g2.chrNumber()){
+			if(!g1.jumpToNextChr()) return false;
+		} else if(g1.chrNumber() > g2.chrNumber()){
+			if(!g2.jumpToNextChr()) return false;
+		} else
+			throw "Different chromosomes in files " + g1.name() + "' and '" + g2.name() + "'!";
+
+		chr1 = g1.chr();
+		eraseAllOccurences(chr1,"chr");
+		chr2 = g2.chr();
+		eraseAllOccurences(chr2,"chr");
+	}
+
+	return true;
+}
+
+
+
+bool TGlfMultiReader::readNext(){
+
+
+
+	//advance
+	if(g2.position == g1.position){
+		//advance both
+		if(!g1.readNext()) return false;
+		if(!g2.readNext()) return false;
+	} else if(g2.position < g1.position){
+		//advance g2
+		if(!g2.readNext()) return false;
+	} else {
+		//advance g1
+		if(!g1.readNext()) return false;
+	}
+
+	//make sure we are on same chromosome
+	return(moveToNextCommonChr(g1, g2));
+}
