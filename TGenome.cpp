@@ -1441,7 +1441,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 	//other temp variables
 	std::vector<BamTools::CigarOp>::iterator it;
 	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_string_right;
+	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
 	TGenotypeMap genoMap;
 	long counter = 0;
 
@@ -1452,7 +1452,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_string_right, genoMap);
+		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
 
 		//report
 		if(S_left + S_right > 0 || printAll){
@@ -1474,6 +1474,55 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//close output file
 	out.close();
+
+	//report
+	reportProgressParsingBamFile(counter, start);
+	logfile->list("Reached end of BAM file!");
+	logfile->removeIndent();
+}
+
+void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_softClippedBasesRemoved.bam";
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	//other temp variables
+	TAlignment alignment;
+	std::vector<BamTools::CigarOp>::iterator it;
+	int S_left, S_right, middle;
+	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
+	TGenotypeMap genoMap;
+	long counter = 0;
+
+	//prepare reporting
+	logfile->startIndent("Parsing through BAM file:");
+	struct timeval start;
+    gettimeofday(&start, NULL);
+	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
+
+
+    //now parse through bam file and write alignments
+	while (alignmentParser.readNextAlignment(alignment)){
+		alignment.removeSoftClippedBases(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+
+		//write
+		bamWriter.SaveAlignment(alignment.bamAlignment);
+//		alignment.bamAlignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+
+		//report
+		++counter;
+		reportProgressParsingBamFile(counter, start);
+	}
+
+	//close bam writer
+	bamWriter.Close();
+
+	//now generate bam index
+	indexBamFile(filename);
 
 	//report
 	reportProgressParsingBamFile(counter, start);
@@ -1621,8 +1670,6 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		}
 
 		//write
-		void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
-
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report

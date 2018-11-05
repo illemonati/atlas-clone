@@ -95,6 +95,7 @@ public:
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 	void assessSoftClipping(TParameters & params);
+	void removeSoftClippedBasesFromReads(TParameters & params);
 	void assessOverlap(TParameters & params);
 	void splitSingleEndReadGroups(TParameters & params);
 	void mergeReadGroups(TParameters & params);

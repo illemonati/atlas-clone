@@ -677,7 +677,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 }
 
-void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_string_right, TGenotypeMap & genoMap){
+void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
 	//count S, not S, S pattern from cigar string
 	S_left = 0;
 	S_right = 0;
@@ -693,17 +693,7 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 	//position in read, i is position in cigar type
 	int p = 0;
 
-//	for(bamAlignment.CigarData.begin() ; cigarIter != cigarEnd; ++cigarIter ){
-//		if(alignmentName == "A00574:12:H3WTLDSXX:1:1540:8015:35759"){
-//			std::cout << "cigarIter->Type " << cigarIter->Type << " cigarIter->length " << cigarIter->Length << std::endl;
-//		}
-//	}
-
-	for(bamAlignment.CigarData.begin() ; cigarIter != cigarEnd; ++cigarIter ){
-//		if(alignmentName == "A00574:12:H3WTLDSXX:1:1540:8015:35759"){
-//			std::cout << "cigarIter->Type " << cigarIter->Type << " cigarIter->length " << cigarIter->Length << std::endl;
-//		}
-
+	for(; cigarIter != cigarEnd; ++cigarIter ){
 		if(cigarIter->Type == 'S'){
 			if(reachedMiddle){
 				S_right += cigarIter->Length;
@@ -720,8 +710,10 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 				continue;
 			reachedMiddle = true;
 			middle += cigarIter->Length;
-			for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
+			for(unsigned int i=0; i<cigarIter->Length; ++i, ++p){
 				S_string_middle += bamAlignment.QueryBases[p];
+				S_qualities_middle += bamAlignment.QueryBases[p];
+			}
 		}
 	}
 
@@ -734,6 +726,65 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 		S_string_right = "-";
 	}
 };
+
+void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
+	assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+
+	if(S_left + S_right > 0){
+
+
+		//adapt CIGAR string
+		std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
+		std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
+
+		bamAlignment.CigarData.clear();
+		for(; cigarIter != cigarEnd; ++cigarIter ){
+			const BamTools::CigarOp& op = (*cigarIter);
+			switch ( op.Type ) {
+
+				// for 'M', '=' or 'X': just copy
+				case (BamTools::Constants::BAM_CIGAR_MATCH_CHAR)    :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR) :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_SEQMATCH_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_INS_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_DEL_CHAR) :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_DEL_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR, op.Length));
+						break;
+				case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
+						break;
+				// for 'H' - hard clip: do nothing as these bases are not present in SEQ
+				case (BamTools::Constants::BAM_CIGAR_HARDCLIP_CHAR) :
+						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_HARDCLIP_CHAR, op.Length));
+						break;;
+				// invalid CIGAR op-code
+				default:
+					throw (std::string) "CIGAR operation type '" + op.Type + "' not supported!";
+
+
+
+			}
+		}
+
+		bamAlignment.QueryBases = S_string_middle;
+		bamAlignment.Qualities = S_qualities_middle;
+
+		std::cout << bamAlignment.QueryBases << std::endl;
+
+	}
+
+	changed = true;
+}
 
 int TAlignment::measureOverlap(){
 	//make sure read is parsed
