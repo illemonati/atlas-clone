@@ -422,6 +422,7 @@ int TGlfMultiReader::_minChrNumber(){
 		if(it->curChrNumber < minChr)
 			minChr = it->curChrNumber;
 	}
+	return minChr;
 };
 
 void TGlfMultiReader::_prepareParsing(){
@@ -430,11 +431,11 @@ void TGlfMultiReader::_prepareParsing(){
 	}
 
 	//find minimal chromosome across all active files
-
+	curChrNumber = 0;
 	//set cur Position and curChr to beginning
 
 	position = 0;
-	curChrNumber = 0;
+
 
 }
 
