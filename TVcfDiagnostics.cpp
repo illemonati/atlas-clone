@@ -198,11 +198,9 @@ void VcfDiagnostics::assessAllelicImbalance(){
 				//add count to correct table
 				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
 				int index = findLastPassedFilterIndex(quality, qualities);
-//				std::cout << "quality " << quality << " index " << index << " qualities[index] " << qualities[index] << std::endl;
-//				std::cout << "before " << (countTables.at(index))->table[numRef][numAlt] << std::endl;
-				++(countTables.at(index))->table[numRef][numAlt];
-//				std::cout << "after " << (countTables.at(index))->table[numRef][numAlt] << std::endl;
-
+				for(int i=0; i<(index+1); ++i){
+					++(countTables.at(i))->table[numRef][numAlt];
+				}
 			}
 		}
 		if(verbose && counter % 1000000 == 0)
