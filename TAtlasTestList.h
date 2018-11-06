@@ -11,7 +11,7 @@
 #include "TAtlasTest.h"
 #include "TAtlasTestRecalibration.h"
 #include "TAtlasTestPMD.h"
-#include "../TParameters.h"
+#include "TParameters.h"
 
 
 //------------------------------------------

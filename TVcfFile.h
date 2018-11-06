@@ -14,8 +14,8 @@
 #include <fstream>
 #include "TVcfParser.h"
 #include <algorithm>
-#include "../TLog.h"
-#include "../gzstream.h"
+#include "TLog.h"
+#include "gzstream.h"
 
 typedef void (TVcfParser::*pt2Function)(TVcfLine &);
 //---------------------------------------------------------------------------------------------------------

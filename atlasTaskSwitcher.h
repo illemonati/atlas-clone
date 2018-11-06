@@ -103,6 +103,9 @@ public:
 			} else if(task == "assessSoftClipping"){
 				logfile->startIndent("Assessing level of soft clipping in BAM file:");
 				genome.assessSoftClipping(*parameters);
+			} else if(task == "removeSoftClippedBasesFromReads"){
+				logfile->startIndent("Removing soft clipped bases from reads:");
+				genome.removeSoftClippedBasesFromReads(*parameters);
 			} else if(task == "assessReadOverlap"){
 				logfile->startIndent("Estimating overlap distribution in BAM file:");
 				genome.assessOverlap(*parameters);

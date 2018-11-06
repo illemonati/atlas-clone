@@ -8,9 +8,9 @@
 #ifndef TSIMULATORREADLENGTH_H_
 #define TSIMULATORREADLENGTH_H_
 
-#include "../stringFunctions.h"
-#include "../TRandomGenerator.h"
-#include "../TLog.h"
+#include "stringFunctions.h"
+#include "TRandomGenerator.h"
+#include "TLog.h"
 
 //---------------------------------------------------------
 //TSimulatorReadLength
