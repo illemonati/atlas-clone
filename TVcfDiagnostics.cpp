@@ -191,13 +191,14 @@ void VcfDiagnostics::assessAllelicImbalance(){
 				if(numRef == 0 || numAlt == 0)
 					throw "Call at position " + toString(vcfFile.position()) + " is heterozygous but reference or alternative allelic depth is 0!";
 				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
-					logfile->warning("WARNING: DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.");
+					logfile->warning("DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.");
 					continue;
 				}
 
 				//add count to correct table
 				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
 				int index = findLastPassedFilterIndex(quality, qualities);
+				if(index == 4) throw "stopped";
 				for(int i=0; i<(index+1); ++i){
 					++(countTables.at(i))->table[numRef][numAlt];
 				}
@@ -221,7 +222,14 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	//write tables
 	for(unsigned int i=0; i<countTables.size(); ++i){
 		countTables[i]->writeTable(description, rowPrefix, colPrefix);
+		delete countTables[i];
 	}
+
+	//clean up
+//	for(int i=0; i<countTables.size(); ++i){
+//		delete countTables.at(i);
+//	}
+
 }
 /*
 void VcfDiagnostics::filterAllelicImbalance(){

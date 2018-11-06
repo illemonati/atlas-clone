@@ -39,6 +39,7 @@ private:
 	int ncols;
 	int initializationValue;
 	std::ofstream out;
+	std::string outname;
 
 public:
 	int** table;
@@ -47,8 +48,11 @@ public:
 		nrows = Nrows;
 		ncols = Ncols;
 		initializationValue = 0;
+		outname = Outname;
 		initialize();
 		openOut(Outname, Logfile);
+		std::cout << "nrows " << nrows << std::endl;
+		std::cout << "ncols " << ncols << std::endl;
 	}
 
 	void initialize(){
