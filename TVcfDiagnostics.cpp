@@ -198,7 +198,6 @@ void VcfDiagnostics::assessAllelicImbalance(){
 				//add count to correct table
 				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
 				int index = findLastPassedFilterIndex(quality, qualities);
-				if(index == 4) throw "stopped";
 				for(int i=0; i<(index+1); ++i){
 					++(countTables.at(i))->table[numRef][numAlt];
 				}
