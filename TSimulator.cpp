@@ -1432,8 +1432,8 @@ void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs,
 	} else {
 		int numHaplotypes = 2 * numInd;
 
-		std::string f = "alleleCounts.txt";
-		std::ofstream oo(f.c_str());
+		//std::string f = "alleleCounts.txt";
+		//std::ofstream oo(f.c_str());
 
 		for(int l=0; l<chrIt->length; ++l){
 			//pick alleles
@@ -1442,7 +1442,7 @@ void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs,
 
 			//pick derived allele frequency
 			alleleCount = sfs->getRandomAlleleCount(randomGenerator);
-			oo << alleleCount << "\n";
+			//oo << alleleCount << "\n";
 
 			//pick haplotypes that are derived
 			if(alleleCount == 0){
@@ -1477,7 +1477,7 @@ void TSimulator::simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs,
 			}
 		}
 
-		oo.close();
+		//oo.close();
 	}
 }
 
@@ -1567,7 +1567,7 @@ void TSimulator::simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndivid
 	//open file for true genotypes
 	gz::ogzstream genoFile;
 	if(writeTrueGenotypes){
-		filename = outname + "_trueGenotypes.txt";
+		filename = outname + "_trueGenotypes.txt.gz";
 		genoFile.open(filename.c_str());
 	}
 

@@ -16,6 +16,8 @@
 #include <vector>
 #include "TParameters.h"
 #include "stringFunctions.h"
+#include "TGenotypeMap.h"
+#include "TRandomGenerator.h"
 
 
 //----------------------------------------------------
@@ -194,6 +196,8 @@ private:
 	std::vector<std::string> GLFNames;
 	TGlfReader* GLFs;
 	bool readersOpened;
+	TGenotypeMap genoMap;
+
 	void _openGLFs(TLog* logfile);
 
 	//active files
@@ -254,6 +258,10 @@ public:
 	//parse
 	bool readNext();
 	void print();
+	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
+	void writeVCFHeader(gz::ogzstream & vcf);
+	void writeSiteToVCF(gz::ogzstream & vcf, int variantQuality, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator);
+
 };
 
 #endif /* TGLF_H_ */

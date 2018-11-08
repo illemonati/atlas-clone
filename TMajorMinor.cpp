@@ -7,64 +7,151 @@
 
 #include "TMajorMinor.h"
 
-TMajorMinor::TMajorMinor(TLog* Logfile){
-	logfile = Logfile;
+//---------------------------------------------------
+// TMajorMinorEstimatorBase
+//---------------------------------------------------
+
+TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(int NumSamples){
+	numSamples = NumSamples;
+	genotypeLikelihoods = new double[3*numSamples];
+	mleGenotypeFrequencies = new double[3];
 };
 
+TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
+	delete[] genotypeLikelihoods;
+	delete[] mleGenotypeFrequencies;
+};
 
+double TMajorMinorEstimatorBase::calculateLogLikelihood(double* genotypeFrequencies){
+	double LL = 0.0;
+	for(int i = 0; i < 3 * numSamples; i += 3){
+		LL += log(genotypeLikelihoods[i] * genotypeFrequencies[0]
+			    + genotypeLikelihoods[i+1] * genotypeFrequencies[1]
+		        + genotypeLikelihoods[i+2] * genotypeFrequencies[2]);
+	}
+	return LL;
+};
 
-void TMajorMinor::fillInitialEstimateOfGenotypeFrequencies(double* genoFreq, const int & numSamples, double* genotypeLikelihoods){
+void TMajorMinorEstimatorBase::fillLikelihoods(uint8_t** phred, Genotype* genotypes){
+	for(int i=0; i<numSamples; ++i){
+		int ind = 3*i;
+		genotypeLikelihoods[ind]     = qualiMap[ phred[i][genotypes[0]] ];
+		genotypeLikelihoods[ind + 1] = qualiMap[ phred[i][genotypes[1]] ];
+		genotypeLikelihoods[ind + 2] = qualiMap[ phred[i][genotypes[2]] ];
+	}
+};
+
+void TMajorMinorEstimatorBase::guessGenotypeFrequencies(double* genotypeFrequencies){
 	//calculate by using MLE genotype for each individual
-	genoFreq[0] = 0.0; genoFreq[1] = 0.0; genoFreq[2] = 0.0;
+	genotypeFrequencies[0] = 0.0; genotypeFrequencies[1] = 0.0; genotypeFrequencies[2] = 0.0;
 	for(int i = 0 ; i < 3 * numSamples; i += 3){
 		if(genotypeLikelihoods[i + 1] > genotypeLikelihoods[i]){
-			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i + 1]) genoFreq[2] += 1.0;
-			else genoFreq[1] += 1.0;
+			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i + 1]) genotypeFrequencies[2] += 1.0;
+			else genotypeFrequencies[1] += 1.0;
 		} else {
-			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i]) genoFreq[2] += 1.0;
-			else genoFreq[0] += 1.0;
+			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i]) genotypeFrequencies[2] += 1.0;
+			else genotypeFrequencies[0] += 1.0;
 		}
-		/*
-		for(int g = 0; g<3; ++g){
-			genoFreq[g] += genotypeLikelihoods[i][g];
-		}
-		*/
 	}
 
 	double sum = 0.0;
 	for(int g = 0; g<3; ++g){
-		genoFreq[g] /= (double) numSamples;
-		if(genoFreq[g] <= 0.0) genoFreq[g] = 0.01;
-		if(genoFreq[g] >= 1.0) genoFreq[g] = 0.99;
-		sum += genoFreq[g];
+		genotypeFrequencies[g] /= (double) numSamples;
+		if(genotypeFrequencies[g] <= 0.0) genotypeFrequencies[g] = 0.01;
+		if(genotypeFrequencies[g] >= 1.0) genotypeFrequencies[g] = 0.99;
+		sum += genotypeFrequencies[g];
 	}
 	for(int g = 0; g<3; ++g){
-		genoFreq[g] /= sum;
+		genotypeFrequencies[g] /= sum;
 	}
 };
 
-void TMajorMinor::estimateGenotypeFrequencies(double* genotypeFrequencies, const int & numSamples, double* genotypeLikelihoods, const double & epsilonF){
+int TMajorMinorEstimatorBase::findMLAllelicCombination(uint8_t** phred){
+	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(uint8_t** phred) not implemented for base class!";
+};
+
+std::pair<Base,Base>  TMajorMinorEstimatorBase::estimateMajorMinor(uint8_t** phred){
+	int mleCombination = findMLAllelicCombination(phred);
+
+	//which one is major?
+	if(mleGenotypeFrequencies[0] > mleGenotypeFrequencies[2])
+		return std::pair<Base,Base>(genoMap.alleleicCombinationToBase[mleCombination][0], genoMap.alleleicCombinationToBase[mleCombination][1]);
+	else
+		return std::pair<Base,Base>(genoMap.alleleicCombinationToBase[mleCombination][1], genoMap.alleleicCombinationToBase[mleCombination][0]);
+};
+
+//---------------------------------------------------
+// TMajorMinorEstimatorSkotte
+//---------------------------------------------------
+TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(int NumSamples):TMajorMinorEstimatorBase(NumSamples){
+	genotypeLikelihoods = new double[3*numSamples];
+
+	priorGenotypeFrequencies = new double[3];
+	priorGenotypeFrequencies[0] = 0.25;
+	priorGenotypeFrequencies[1] = 0.50;
+	priorGenotypeFrequencies[2] = 0.25;
+};
+
+TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){
+	delete[] priorGenotypeFrequencies;
+};
+
+
+int TMajorMinorEstimatorSkotte::findMLAllelicCombination(uint8_t** phred){
+	int mleCombination = 0;
+	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[0]);
+	double maxLL = calculateLogLikelihood(priorGenotypeFrequencies);
+	for(int i=1; i<6; ++i){
+		fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[i]);
+		double LL = calculateLogLikelihood(priorGenotypeFrequencies);
+		if(LL > maxLL){
+			maxLL = LL;
+			mleCombination = i;
+		}
+	}
+
+	//now guess genotype frequencies at MLE
+	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[mleCombination]);
+	guessGenotypeFrequencies(mleGenotypeFrequencies);
+
+	return mleCombination;
+}
+
+//---------------------------------------------------
+// TMajorMinorEstimatorMLE
+//---------------------------------------------------
+TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(int NumSamples, double MaxF):TMajorMinorEstimatorBase(NumSamples){
+	maxF = MaxF;
+
+	genotypeFrequencies = new double*[6];
+	for(int i=0; i<6; ++i) genotypeFrequencies[i] = new double[3];
+}
+
+TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
+	for(int i=0; i<6; ++i) delete[] genotypeFrequencies[i];
+	delete[] genotypeFrequencies;
+};
+
+void TMajorMinorEstimatorMLE::estimateGenotypeFrequenciesEM(double* genotypeFrequencies){
 	//prepare variables
-	double sum;
-	int i, g;
 	double weightsNull[3];
 	double genoFreq_old[3];
 
 	//estimate initial frequencies from MLEs
-	fillInitialEstimateOfGenotypeFrequencies(genotypeFrequencies, numSamples, genotypeLikelihoods);
+	guessGenotypeFrequencies(genotypeFrequencies);
 
 	//run EM for max 1000 steps
 	for(int s=0; s<1000; ++s){
 		//set genofreq and calc P(g|f)
-		for(g=0; g<3; ++g){
+		for(int g=0; g<3; ++g){
 			genoFreq_old[g] = genotypeFrequencies[g];
 			genotypeFrequencies[g] = 0.0;
 		}
 
 		//estimate new genotype frequencies
-		for(i = 0; i < 3 * numSamples; i += 3){
-			sum = 0.0;
-			for(g = 0; g < 3; ++g){
+		for(int i = 0; i < 3 * numSamples; i += 3){
+			double sum = 0.0;
+			for(int g = 0; g < 3; ++g){
 				weightsNull[g] = genotypeLikelihoods[i + g] * genoFreq_old[g];
 				sum += weightsNull[g];
 			}
@@ -77,37 +164,56 @@ void TMajorMinor::estimateGenotypeFrequencies(double* genotypeFrequencies, const
 		genotypeFrequencies[1] = 1.0 - genotypeFrequencies[0] - genotypeFrequencies[2];
 
 		//check if we stop
-		if(fabs(genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF) break;
+		if(fabs(genotypeFrequencies[0] - genoFreq_old[0]) < maxF && fabs(genotypeFrequencies[2] - genoFreq_old[2]) < maxF) break;
 	}
 };
 
-void TMajorMinor::calculateLogLikelihood(const int & numSamples, double* genotypeLikelihoods, double* genotypeFrequencies){
-
+double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(uint8_t** phred, const int alleleicCombination){
+	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[alleleicCombination]);
+	estimateGenotypeFrequenciesEM(genotypeFrequencies[alleleicCombination]);
+	return calculateLogLikelihood(genotypeFrequencies[alleleicCombination]);
 }
 
-void TMajorMinor::fillLikelihoods(const int & numSamples, uint8_t** phred, double* genotypeLikelihoods, int aa, int ab, int bb){
-	for(int i=0; i<numSamples; ++i){
-		int ind = 3*i;
-		genotypeLikelihoods[ind] = qualiMap[ phred[i][aa] ];
-		genotypeLikelihoods[ind + 1] = qualiMap[ phred[i][ab] ];
-		genotypeLikelihoods[ind + 2] = qualiMap[ phred[i][bb] ];
+int TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
+	int mleCombination = 0;
+	double maxLL = estimateGenotypeFrequencies(phred, 0);
+	for(int i=1; i<6; ++i){
+		double LL = estimateGenotypeFrequencies(phred, i);
+		if(LL > maxLL){
+			maxLL = LL;
+			mleCombination = i;
+		}
 	}
+	mleGenotypeFrequencies = genotypeFrequencies[mleCombination];
+	return mleCombination;
 }
 
-void TMajorMinor::getMLEOfMajorMinor(const int & numSamples, uint8_t** phred, double* genotypeLikelihoods, const double & epsilonF){
-	//prepare variables
-	double genotypeFrequencies[3];
-	double LL[6];
+//---------------------------------------------------
+// TMajorMinor
+//---------------------------------------------------
+TMajorMinor::TMajorMinor(TLog* Logfile){
+	logfile = Logfile;
+	vcfOpened = false;
+};
 
-	//run across all six allele combinations: A/C, A/G, A/T, C/G, C/T and G/T
-	// A/C
-	fillLikelihoods(numSamples, phred, genotypeLikelihoods, 0, 1, 4);
-	estimateGenotypeFrequencies(genotypeFrequencies, numSamples, genotypeLikelihoods, epsilonF);
+void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader){
+	if(vcfOpened) closeVCF();
 
+	//open vcf file
+	filenameTag += "vcf.gz";
+	vcf.open(filenameTag.c_str());
+	vcfOpened = true;
 
+	//write info
+	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
+	vcf << "##fileformat=VCFv4.2\n";
+	vcf << "##source=ATLAS_GLF_Caller\n";
+	glfReader.writeVCFHeader(vcf);
+};
 
-
-
+void TMajorMinor::closeVCF(){
+	vcf.close();
+	vcfOpened = false;
 };
 
 
@@ -116,21 +222,55 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
 
+	//estimation method
+	std::string method = params.getParameterStringWithDefault("method", "MLE");
+	TMajorMinorEstimatorBase* MMEstimator;
+	if(method == "Skotte"){
+		logfile->list("Will estimate major / minor alleles using the method of Skotte et al. (2012).");
+		MMEstimator = new TMajorMinorEstimatorSkotte(glfReader.numSamples());
+	} else if(method == "MLE"){
+		double maxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
+		MMEstimator = new TMajorMinorEstimatorMLE(glfReader.numSamples(), maxF);
+	} else throw "Unknown MajorMinor method '" + method + "'!";
+
 	//TODO: think about filters
 
 	//variables
 	double* genotypeLikelihoods = new double[3*glfReader.numSamples()];
+	double** genotypeFrequencies = new double*[6];
+	for(int i=0; i<6; ++i) genotypeFrequencies[i] = new double[3];
 
 	while(glfReader.readNext()){
 		//DEBUG: print
-		glfReader.print();
+		//glfReader.print();
 
-
+		//TODO: think about filters
 
 		//do major minor
+		std::pair<Base,Base> majorMinor = MMEstimator->estimateMajorMinor(glfReader.data);
 
+
+
+		//DEBUG
+		std::cout << glfReader.chr() << " at " << glfReader.position() << " -> " << genoMap.baseToChar[majorMinor.first] << "/" << genoMap.baseToChar[majorMinor.second] << std::endl;
+
+		//TODO: write to VCF
 
 
 
 	}
+
+
+	//clean storage
+	delete[] genotypeLikelihoods;
+	for(int i=0; i<6; ++i) delete[] genotypeFrequencies[i];
+	delete[] genotypeFrequencies;
 };
+
+
+
+//---------------------------------------------------
+// Skotte
+//---------------------------------------------------
+

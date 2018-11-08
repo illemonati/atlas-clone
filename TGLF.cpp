@@ -641,4 +641,93 @@ void TGlfMultiReader::print(){
 		for(int g=0; g<10; ++g) std::cout << "\t" << unsigned(data[i][g]);
 		std::cout << std::endl;
 	}
-}
+};
+
+void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep){
+	//sample names are file names without glf ending
+	if(numActiveFiles > 0){
+		for(int i=0; i<numActiveFiles; ++i){
+			std::string name = GLFs[i].name();
+			out << sep << readBeforeLast(name, ".glf");
+		}
+	}
+};
+
+void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf){
+	//make sure the header matches the format used in writeSiteToVCF
+	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
+	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+
+	//also write header with sample names
+	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	writeSampleNamesOfActiveFiles(vcf, "\t");
+	vcf << '\n';
+
+};
+
+void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int variantQuality, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator){
+
+	PASS ALLELIC CONBINATION INSTEAD!
+
+	//TODO: find way to harmonize code with MLE caller in TSite
+	//write position
+	vcf << _curChrName << '\t' << _position <<"\t.\t";
+
+	//write major and minor
+	vcf << genoMap.baseToChar[genoMap.genotypeToBase[refHomIndex][0]] << '\t' << genoMap.baseToChar[genoMap.genotypeToBase[altHomIndex][0]] << '\t';
+
+	//write quality of variant
+	vcf << variantQuality << '\t';
+
+	//write filter, info and format
+	vcf << "\t.\t.\tGT:GQ:DP:PL";
+
+	//now write active samples
+	for(int i=0; i<numActiveFiles; ++i){
+		if(hasData[i]){
+			//find min qual
+			int minQual = data[i][refHomIndex];
+			if(data[i][hetIndex] < minQual) minQual = data[i][hetIndex];
+			if(data[i][altHomIndex] < minQual) minQual = data[i][altHomIndex];
+
+			//get all genotypes with minQual (=MLE)
+			std::vector<int> mleGenotypes;
+			if(data[i][refHomIndex] == minQual) mleGenotypes.push_back(0);
+			if(data[i][hetIndex] == minQual) mleGenotypes.push_back(1);
+			if(data[i][altHomIndex] == minQual) mleGenotypes.push_back(2);
+
+			//write MLE genoytpe
+			int mleGeno = mleGenotypes[randomGenerator.pickOne(mleGenotypes.size())];
+			if(mleGeno == 0) vcf << "\t0/0;";
+			else if(mleGeno == 1) vcf << "\t0/1;";
+			else vcf << "\t1/1;";
+
+			//write genotype quality
+			if(mleGenotypes.size() > 1) vcf << "0;";
+			else {
+				//find second highest quality
+				int secondLowestQual = 999;
+				if(data[i][refHomIndex] > minQual) secondLowestQual = data[i][refHomIndex];
+				if(data[i][hetIndex] > minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
+				if(data[i][altHomIndex] == minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
+				vcf << round(secondLowestQual - minQual) << ";";
+			}
+
+			//write depth
+			vcf << GLFs[i].depth << ';';
+
+			//write likelihoods
+			vcf << data[i][refHomIndex] - minQual << "," << data[i][hetIndex] - minQual << "," << data[i][altHomIndex] - minQual;
+
+		} else {
+			vcf << "\t.";
+		}
+	}
+
+	//end of line
+	vcf << '\n';
+
+
+};
