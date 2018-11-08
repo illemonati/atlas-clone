@@ -1030,6 +1030,7 @@ void TGenome::writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAl
 	(*output) << "##FORMAT=<ID=GG,Number=10,Type=Integer,Description=\"All phred-scaled normalized genotype likelihoods\">\n";
 	(*output) << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
 	(*output) << "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"Allelic depth\">\n";
+	(*output) << "##FORMAT=<ID=AI,Number=R,Type=Float,Description=\"Allelic imbalance\">\n";
 	(*output) << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << outputName << "\n";
 }
 
