@@ -338,7 +338,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//find alternative alleles
 		std::string genoVCF;
-		std::string PL, AD, rest;
+		std::string PL, AD, AI, rest;
 		if(referenceBase != 'N') PL = toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
@@ -536,6 +536,29 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			}
 		}
 
+		//prepare to calculate AI for info field
+		std::vector<double> vec;
+		char del=',';
+		fillVectorFromString(AD,vec,del);
+
+		//old GATK version
+	//	AI = toString(vec[0] / bases.size());
+	//	for(unsigned int i=1; i<vec.size(); ++i){
+	//		AI += ',' + toString(vec[i] / bases.size());
+	//	}
+
+		//calculate probability of AI
+		double cumul = 0.0;
+		double logHalf = log(0.5);
+		if(vec[1] < vec[0]){
+			for(unsigned int i = 0; i <= vec[1]; ++i)
+				cumul += exp(randomGenerator.binomCoeffLn(bases.size(), i) + logHalf*bases.size());
+		} else {
+			for(unsigned int i = vec[1]; i <= bases.size(); ++i)
+				cumul += exp(randomGenerator.binomCoeffLn(bases.size(), i) + logHalf*bases.size());
+		}
+		AI = toString(cumul);
+
 		//print (no) variant quality and (no) filter
 		out << "\t.\t.";
 
@@ -548,11 +571,11 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 		if(referenceBase != 'N'){
 			if(!gVCF){
-				out << "\tGT:AD:DP:GQ:PL:GG\t" <<  genoVCF << ':' << AD << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
+				out << "\tGT:AD:AI:DP:GQ:PL:GG\t" <<  genoVCF << ':' << AD << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
 				for(int i=1; i<numGenotypes; ++i){
 					out << "," << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
 				}
-			} else 	out << "\tGT:AD:DP:GQ:PL\t" <<  genoVCF << ':' << AD << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
+			} else 	out << "\tGT:AD:AI:DP:GQ:PL\t" <<  genoVCF << ':' << AD << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
 		}
 		else{
 			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
@@ -760,7 +783,7 @@ void TSite::callBayesianGenotypeVCF(double* pGenotype, TGenotypeMap & genoMap, T
 	if(hasData){
 		//variables for allelic depth
 		int R_AD=0, A_AD=0;
-		std::string AD, rest;
+		std::string AD, AI, rest;
 
 		//print reference allele
 		out << "\t.\t" << referenceBase;
