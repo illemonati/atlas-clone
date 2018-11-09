@@ -38,6 +38,8 @@ void TRandomGenerator::init(){
 	factorialTableInitialized = false;
 	factorialTableLn = NULL;
 	factorialTableLnInitialized = false;
+	binomPValueTableInitialized = false;
+	binomPValueTable = NULL;
 }
 
 #define MBIG 1000000000L
@@ -202,17 +204,34 @@ double TRandomGenerator::binomDensity(int n, int k, double p){
 }
 
 double TRandomGenerator::binomPValue(int k, int l){
+	static const int TABLESIZE = 100;
 	double cumul = 0.0;
 	double logHalf = -0.6931472 ;  // = log(0.5);
 	int n = l+k;
-	if(k < l){
-		for(unsigned int i = 0; i <= k; ++i)
-			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
-	} else {
-		for(unsigned int i = k; i <= n; ++i)
-			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
+	if (n < TABLESIZE){
+		if(!binomPValueTableInitialized){
+			binomPValueTable = new double[TABLESIZE*TABLESIZE];
+			binomPValueTable[0] = 1.0;
+			for(int i=1; i<TABLESIZE; i++) {
+				for(int j=0; j<=floor(i/2); j++) {
+					for(signed int m = 0; m <= j; ++m){
+						binomPValueTable[j*TABLESIZE+(TABLESIZE-j)] = exp(binomCoeffLn(i, m) + logHalf*n);
+					}
+				}
+			}
+			binomPValueTableInitialized = true;
+			return binomPValueTable[std::min(k,l)*TABLESIZE+std::max(k,l)];
+			}
+		else {
+			return binomPValueTable[std::min(k,l)*TABLESIZE+std::max(k,l)];
+		}
 	}
-	return cumul;
+	else {
+		for(signed int i = 0; i <= std::min(k,l); ++i){
+			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
+		}
+		return cumul;
+	}
 }
 
 //--------------------------------------------------------

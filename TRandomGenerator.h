@@ -22,6 +22,8 @@ public:
 	bool factorialTableInitialized;
 	double* factorialTableLn;
 	bool factorialTableLnInitialized;
+	bool binomPValueTableInitialized;
+	double* binomPValueTable;
 
 	TRandomGenerator(long addToSeed){
 		setSeed(addToSeed);
