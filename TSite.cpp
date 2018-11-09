@@ -338,7 +338,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//find alternative alleles
 		std::string genoVCF;
-		std::string PL, AD, AI, rest;
+		std::string PL, AD, AI, AB, rest;
 		if(referenceBase != 'N') PL = toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
@@ -541,11 +541,13 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		char del=',';
 		fillVectorFromString(AD,vec,del);
 		AI = toString(randomGenerator.binomPValue(vec[0], vec[1]));
-		//old GATK version
-	//	AI = toString(vec[0] / bases.size());
-	//	for(unsigned int i=1; i<vec.size(); ++i){
-	//		AI += ',' + toString(vec[i] / bases.size());
-	//	}
+
+		//calculate AB for info field
+		AB = toString(vec[0] / (vec[0] + vec[1]));
+		for(unsigned int i=1; i<vec.size(); ++i){
+			AB += ',' + toString(vec[i] / bases.size());
+		}
+
 		//print (no) variant quality and (no) filter
 		out << "\t.\t.";
 
@@ -558,11 +560,11 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		}
 		if(referenceBase != 'N'){
 			if(!gVCF){
-				out << "\tGT:AD:AI:DP:GQ:PL:GG\t" <<  genoVCF << ':' << AD << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
+				out << "\tGT:AD:AB:AI:DP:GQ:PL:GG\t" <<  genoVCF << ':' << AD << ":" << AB << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);
 				for(int i=1; i<numGenotypes; ++i){
 					out << "," << round(emissionProbabilitiesPhredScaled[i] - maxGenotypeProb);
 				}
-			} else 	out << "\tGT:AD:AI:DP:GQ:PL\t" <<  genoVCF << ':' << AD << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
+			} else 	out << "\tGT:AD:AB:AI:DP:GQ:PL\t" <<  genoVCF << ':' << AD << ":" << AB << ":" << AI << ":" <<  bases.size() << ":" << round(quality) << ':' << PL;
 		}
 		else{
 			out << "\tGT:DP:GQ\t" << genoVCF << ":" <<  bases.size() << ':' << round(quality);
