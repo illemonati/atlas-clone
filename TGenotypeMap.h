@@ -26,6 +26,7 @@ public:
 	Base** genotypeToBase; //mapping genotypes to bases
 	Base** alleleicCombinationToBase; //mapping the allelic combination to the two bases
 	Genotype** alleleicCombinationToGenotypes; //mapping the alleleic combinations to the homozygous, heterozygosu and other homozygous genotype
+	char** alleleicCombinationToBaseChar; //mapping the allelic combination to the two bases
 
 	char* baseToChar;
 	Base* baseToFlippedBase;
@@ -114,6 +115,15 @@ public:
 		alleleicCombinationToBase[4] = new Base[2]; alleleicCombinationToBase[4][0] = C; alleleicCombinationToBase[4][1] = T;
 		alleleicCombinationToBase[5] = new Base[2]; alleleicCombinationToBase[5][0] = G; alleleicCombinationToBase[5][1] = T;
 
+		//fill alleleicCombinationToBaseChar
+		alleleicCombinationToBaseChar = new char*[6];
+		alleleicCombinationToBaseChar[0] = new char[2]; alleleicCombinationToBaseChar[0][0] = 'A'; alleleicCombinationToBaseChar[0][1] = 'C';
+		alleleicCombinationToBaseChar[1] = new char[2]; alleleicCombinationToBaseChar[1][0] = 'A'; alleleicCombinationToBaseChar[1][1] = 'G';
+		alleleicCombinationToBaseChar[2] = new char[2]; alleleicCombinationToBaseChar[2][0] = 'A'; alleleicCombinationToBaseChar[2][1] = 'T';
+		alleleicCombinationToBaseChar[3] = new char[2]; alleleicCombinationToBaseChar[3][0] = 'C'; alleleicCombinationToBaseChar[3][1] = 'G';
+		alleleicCombinationToBaseChar[4] = new char[2]; alleleicCombinationToBaseChar[4][0] = 'C'; alleleicCombinationToBaseChar[4][1] = 'T';
+		alleleicCombinationToBaseChar[5] = new char[2]; alleleicCombinationToBaseChar[5][0] = 'G'; alleleicCombinationToBaseChar[5][1] = 'T';
+
 		//fill alleleicCombinationToGenotypes (hom, het, hom2)
 		alleleicCombinationToGenotypes = new Genotype*[6];
 		alleleicCombinationToGenotypes[0] = new Genotype[3]; alleleicCombinationToGenotypes[0][0] = AA; alleleicCombinationToGenotypes[0][1] = AC; alleleicCombinationToGenotypes[0][2] = CC;
@@ -138,6 +148,15 @@ public:
 		delete[] contextMap;
 		delete[] baseToChar;
 		delete[] baseToFlippedBase;
+
+		for(int i=0; i<6; ++i){
+			delete[] alleleicCombinationToBase[i];
+			delete[] alleleicCombinationToBaseChar[i];
+			delete[] alleleicCombinationToGenotypes[i];
+		}
+		delete[] alleleicCombinationToBase;
+		delete[] alleleicCombinationToBaseChar;
+		delete[] alleleicCombinationToGenotypes;
 	};
 
 	//TODO: also make an array to speed up?

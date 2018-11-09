@@ -667,10 +667,7 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf){
 
 };
 
-void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int variantQuality, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator){
-
-	PASS ALLELIC CONBINATION INSTEAD!
-
+void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int L10L_polymorphic, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator){
 	//TODO: find way to harmonize code with MLE caller in TSite
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
@@ -679,7 +676,16 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int variantQuality, in
 	vcf << genoMap.baseToChar[genoMap.genotypeToBase[refHomIndex][0]] << '\t' << genoMap.baseToChar[genoMap.genotypeToBase[altHomIndex][0]] << '\t';
 
 	//write quality of variant
-	vcf << variantQuality << '\t';
+	//variant quality is relative LL of fixed versus polymorphic model
+	//Note: we work in phred scale!
+	double LL_fixed_phred = 0.0;
+	for(int i=0; i<numActiveFiles; ++i){
+		if(hasData[i]){
+			LL_fixed_phred += data[i][refHomIndex];
+		}
+	}
+
+	vcf << 10.0 * L10L_polymorphic - LL_fixed_phred << '\t';
 
 	//write filter, info and format
 	vcf << "\t.\t.\tGT:GQ:DP:PL";

@@ -24,12 +24,14 @@ protected:
 	double* genotypeLikelihoods;
 	double* mleGenotypeFrequencies;
 
-	double calculateLogLikelihood(double* genotypeFrequencies);
+	double calculateLog10Likelihood(double* genotypeFrequencies);
 	void fillLikelihoods(uint8_t** phred, Genotype* genotypes);
 	void guessGenotypeFrequencies(double* genotypeFrequencies);
 	virtual int findMLAllelicCombination(uint8_t** phred);
 
 public:
+	double L10L_atMLE;
+
 	TMajorMinorEstimatorBase(int NumSamples);
 	virtual ~TMajorMinorEstimatorBase();
 
@@ -68,6 +70,7 @@ public:
 class TMajorMinor{
 private:
 	TLog* logfile;
+	TRandomGenerator* randomGenerator;
 	TGenotypeMap genoMap;
 	gz::ogzstream vcf;
 	bool vcfOpened;
@@ -76,7 +79,7 @@ private:
 	void closeVCF();
 
 public:
-	TMajorMinor(TLog* Logfile);
+	TMajorMinor(TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 	void estimateMajorMinor(TParameters & params);
 
