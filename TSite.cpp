@@ -540,25 +540,12 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		std::vector<double> vec;
 		char del=',';
 		fillVectorFromString(AD,vec,del);
-
+		AI = toString(randomGenerator.binomPValue(vec[0], vec[1]));
 		//old GATK version
 	//	AI = toString(vec[0] / bases.size());
 	//	for(unsigned int i=1; i<vec.size(); ++i){
 	//		AI += ',' + toString(vec[i] / bases.size());
 	//	}
-
-		//calculate probability of AI
-		double cumul = 0.0;
-		double logHalf = log(0.5);
-		if(vec[1] < vec[0]){
-			for(unsigned int i = 0; i <= vec[1]; ++i)
-				cumul += exp(randomGenerator.binomCoeffLn(bases.size(), i) + logHalf*bases.size());
-		} else {
-			for(unsigned int i = vec[1]; i <= bases.size(); ++i)
-				cumul += exp(randomGenerator.binomCoeffLn(bases.size(), i) + logHalf*bases.size());
-		}
-		AI = toString(cumul);
-
 		//print (no) variant quality and (no) filter
 		out << "\t.\t.";
 

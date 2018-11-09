@@ -65,6 +65,7 @@ public:
 	double binomCoeffLn(int n, int k);
 	int binomCoeff(int n, int k);
 	double binomDensity(int n, int k, double p);
+	double binomPValue(int k, int l);
 
 	//gamma
 	double gammaln(double z);

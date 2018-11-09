@@ -201,7 +201,19 @@ double TRandomGenerator::binomDensity(int n, int k, double p){
 	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
 }
 
-
+double TRandomGenerator::binomPValue(int k, int l){
+	double cumul = 0.0;
+	double logHalf = -0.6931472 ;  // = log(0.5);
+	int n = l+k;
+	if(k < l){
+		for(unsigned int i = 0; i <= k; ++i)
+			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
+	} else {
+		for(unsigned int i = k; i <= n; ++i)
+			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
+	}
+	return cumul;
+}
 
 //--------------------------------------------------------
 //Uniform Distribution
