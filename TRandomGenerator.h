@@ -23,7 +23,7 @@ public:
 	double* factorialTableLn;
 	bool factorialTableLnInitialized;
 	bool binomPValueTableInitialized;
-	double* binomPValueTable;
+	double** binomPValueTable;
 
 	TRandomGenerator(long addToSeed){
 		setSeed(addToSeed);
@@ -42,6 +42,8 @@ public:
 			delete[] factorialTable;
 		if(factorialTableLnInitialized)
 			delete[] factorialTableLn;
+		if(binomPValueTableInitialized)
+			delete[] binomPValueTable;
 	};
 	void setSeed(long addToSeed, bool seedIsFixed=false);
 

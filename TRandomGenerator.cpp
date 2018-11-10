@@ -205,29 +205,32 @@ double TRandomGenerator::binomDensity(int n, int k, double p){
 
 double TRandomGenerator::binomPValue(int k, int l){
 	static const int TABLESIZE = 100;
-	double cumul = 0.0;
 	double logHalf = -0.6931472 ;  // = log(0.5);
-	int n = l+k;
+	int n = l + k;
 	if (n < TABLESIZE){
 		if(!binomPValueTableInitialized){
-			binomPValueTable = new double[TABLESIZE*TABLESIZE];
-			binomPValueTable[0] = 1.0;
-			for(int i=1; i<TABLESIZE; i++) {
-				for(int j=0; j<=floor(i/2); j++) {
-					for(signed int m = 0; m <= j; ++m){
-						binomPValueTable[j*TABLESIZE+(TABLESIZE-j)] = exp(binomCoeffLn(i, m) + logHalf*n);
+			binomPValueTable = new double*[TABLESIZE];
+			for(int i=0; i<TABLESIZE; i++) {
+				binomPValueTable[i] = new double[TABLESIZE];
+			}
+			for(int i=0; i<TABLESIZE; i++) {
+				for(int j=0; j<=int(floor(i/2)); j++) {
+					binomPValueTable[i][j] = 0.0;
+					for(int m = 0; m <= j; m++){
+					binomPValueTable[i][j] += exp(binomCoeffLn(i, m) + logHalf*i);
 					}
 				}
 			}
 			binomPValueTableInitialized = true;
-			return binomPValueTable[std::min(k,l)*TABLESIZE+std::max(k,l)];
-			}
+			return binomPValueTable[n][std::min(k,l)];
+		}
 		else {
-			return binomPValueTable[std::min(k,l)*TABLESIZE+std::max(k,l)];
+			return binomPValueTable[n][std::min(k,l)];
 		}
 	}
 	else {
-		for(signed int i = 0; i <= std::min(k,l); ++i){
+		double cumul = 0.0;
+		for(int i = 0; i <= std::min(k,l); i++){
 			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
 		}
 		return cumul;
