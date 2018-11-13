@@ -19,47 +19,55 @@ class TMajorMinorEstimatorBase{
 protected:
 	TQualityMap qualiMap;
 	TGenotypeMap genoMap;
+	TRandomGenerator* randomGenerator;
 
 	int numSamples;
 	double* genotypeLikelihoods;
-	double* mleGenotypeFrequencies;
+	double* L10L_perCombination;
 
 	double calculateLog10Likelihood(double* genotypeFrequencies);
 	void fillLikelihoods(uint8_t** phred, Genotype* genotypes);
 	void guessGenotypeFrequencies(double* genotypeFrequencies);
-	virtual int findMLAllelicCombination(uint8_t** phred);
+	void calculateL10LPerCombination();
+	void chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
+	virtual void findMLAllelicCombination(uint8_t** phred);
 
 public:
-	double L10L_atMLE;
+	Base minor, major;
+	int allelicCombination;
+	double L10L;
+	int variantQuality;
+	double* genotypeFrequencies;
 
-	TMajorMinorEstimatorBase(int NumSamples);
+
+	TMajorMinorEstimatorBase(int NumSamples, TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorBase();
 
-	std::pair<Base,Base>  estimateMajorMinor(uint8_t** phred);
+	void estimateMajorMinor(uint8_t** phred);
 };
 
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
 private:
 	double* priorGenotypeFrequencies;
 
-	int findMLAllelicCombination(uint8_t** phred);
+	void findMLAllelicCombination(uint8_t** phred);
 
 public:
-	TMajorMinorEstimatorSkotte(int NumSamples);
+	TMajorMinorEstimatorSkotte(int NumSamples, TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorSkotte();
 };
 
 class TMajorMinorEstimatorMLE:public TMajorMinorEstimatorBase{
 private:
 	double maxF;
-	double** genotypeFrequencies;
+	double** tmpGenotypeFrequencies;
 
 	void estimateGenotypeFrequenciesEM(double* genotypeFrequencies);
 	double estimateGenotypeFrequencies(uint8_t** phred, const int alleleicCombination);
-	int findMLAllelicCombination(uint8_t** phred);
+	void findMLAllelicCombination(uint8_t** phred);
 
 public:
-	TMajorMinorEstimatorMLE(int NumSamples, double MaxF);
+	TMajorMinorEstimatorMLE(int NumSamples, TRandomGenerator* RandomGenerator, double MaxF);
 	~TMajorMinorEstimatorMLE();
 
 };
@@ -79,7 +87,7 @@ private:
 	void closeVCF();
 
 public:
-	TMajorMinor(TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TMajorMinor(TParameters & params, TLog* Logfile);
 
 	void estimateMajorMinor(TParameters & params);
 

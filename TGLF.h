@@ -251,6 +251,7 @@ public:
 	//access data
 	int numSamples(){ return numGLFs; };
 	int numActiveSamples(){ return numActiveFiles; };
+	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
 	int chrNumber(){return _curChrNumber;};
 	std::string chr(){return _curChrName;};
 	long position(){return _position;};
@@ -260,7 +261,7 @@ public:
 	void print();
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf);
-	void writeSiteToVCF(gz::ogzstream & vcf, int variantQuality, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator);
+	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator);
 
 };
 

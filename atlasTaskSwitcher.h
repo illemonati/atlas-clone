@@ -44,7 +44,7 @@ public:
 			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.estimateDistances(*parameters);
 		} else if(task == "majorMinor"){
-			TMajorMinor majorMinor(logfile);
+			TMajorMinor majorMinor(*parameters, logfile);
 			majorMinor.estimateMajorMinor(*parameters);
 		} else {
 			//now all task that DO require TGenome

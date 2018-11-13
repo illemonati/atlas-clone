@@ -667,7 +667,7 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf){
 
 };
 
-void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int L10L_polymorphic, int & refHomIndex, int & hetIndex, int & altHomIndex, TRandomGenerator & randomGenerator){
+void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator){
 	//TODO: find way to harmonize code with MLE caller in TSite
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
@@ -685,7 +685,7 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int L10L_polymorphic, 
 		}
 	}
 
-	vcf << 10.0 * L10L_polymorphic - LL_fixed_phred << '\t';
+	vcf << varianTQuality << '\t';
 
 	//write filter, info and format
 	vcf << "\t.\t.\tGT:GQ:DP:PL";
@@ -705,7 +705,7 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, int L10L_polymorphic, 
 			if(data[i][altHomIndex] == minQual) mleGenotypes.push_back(2);
 
 			//write MLE genoytpe
-			int mleGeno = mleGenotypes[randomGenerator.pickOne(mleGenotypes.size())];
+			int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
 			if(mleGeno == 0) vcf << "\t0/0;";
 			else if(mleGeno == 1) vcf << "\t0/1;";
 			else vcf << "\t1/1;";
