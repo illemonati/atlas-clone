@@ -111,7 +111,7 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(uint8_t** phred){
 	for(int i=0; i<numSamples; ++i){
 		LL_fixed_phred += phred[i][refHomIndex];
 	}
-	variantQuality = round(10.0 * L10L) - LL_fixed_phred;
+	variantQuality = LL_fixed_phred - round(-10.0 * L10L);
 };
 
 //---------------------------------------------------
@@ -246,7 +246,7 @@ TMajorMinor::TMajorMinor(TParameters & params, TLog* Logfile){
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 };
 
-void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader){
+void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods){
 	if(vcfOpened) closeVCF();
 
 	//open vcf file
@@ -258,7 +258,7 @@ void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader){
 	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
 	vcf << "##fileformat=VCFv4.2\n";
 	vcf << "##source=ATLAS_GLF_Caller\n";
-	glfReader.writeVCFHeader(vcf);
+	glfReader.writeVCFHeader(vcf, usePhredLikelihoods);
 };
 
 void TMajorMinor::closeVCF(){
@@ -283,6 +283,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
 		MMEstimator = new TMajorMinorEstimatorMLE(glfReader.numSamples(), randomGenerator, maxF);
 	} else throw "Unknown MajorMinor method '" + method + "'!";
+	bool usePhredLikelihoods = params.parameterExists("phredLik");
 
 	//think about filters
 	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
@@ -297,7 +298,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	logfile->list("Will write output files with tag '" + outname + "'.");
 
 	//open vcf file
-	openVCF(outname, glfReader);
+	openVCF(outname, glfReader, usePhredLikelihoods);
 
 	while(glfReader.readNext()){
 		//filter on missingness
@@ -310,7 +311,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 			if(MMEstimator->variantQuality >= minVariantQuality){
 
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator);
+				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 			}
 		} //end filter on missngness
 	}

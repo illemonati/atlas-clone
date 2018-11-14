@@ -260,9 +260,8 @@ public:
 	bool readNext();
 	void print();
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
-	void writeVCFHeader(gz::ogzstream & vcf);
-	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator);
-
+	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
+	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 };
 
 #endif /* TGLF_H_ */

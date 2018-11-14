@@ -653,12 +653,15 @@ void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::st
 	}
 };
 
-void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf){
+void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods){
 	//make sure the header matches the format used in writeSiteToVCF
 	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
 	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+	if(usePhredLikelihoods)
+		vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+	else
+		vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
 
 	//also write header with sample names
 	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
@@ -667,7 +670,7 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf){
 
 };
 
-void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator){
+void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	//TODO: find way to harmonize code with MLE caller in TSite
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
@@ -725,8 +728,10 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 			vcf << GLFs[i].depth << ';';
 
 			//write likelihoods
-			vcf << data[i][refHomIndex] - minQual << "," << data[i][hetIndex] - minQual << "," << data[i][altHomIndex] - minQual;
-
+			if(usePhredLikelihoods)
+				vcf << (data[i][refHomIndex] - minQual) << "," << (data[i][hetIndex] - minQual) << "," << (data[i][altHomIndex] - minQual);
+			else
+				vcf << (data[i][refHomIndex] - minQual) / -10.0 << "," << (data[i][hetIndex] - minQual) / -10.0 << "," << (data[i][altHomIndex] - minQual) / -10.0;
 		} else {
 			vcf << "\t.";
 		}
