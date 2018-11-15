@@ -293,6 +293,13 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	if(minVariantQuality > 0)
 		logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data.");
 
+	//limit input
+	long maxPos = params.getParameterDoubleWithDefault("maxPos", 0);
+	if(maxPos > 0)
+		logfile->list("Will stop at input position " + toString(maxPos) + ".");
+	if(maxPos < 0)
+		throw "maxPos cannot be negative!";
+
 	//filename tag
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_majorMinor");
 	logfile->list("Will write output files with tag '" + outname + "'.");
@@ -300,7 +307,14 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open vcf file
 	openVCF(outname, glfReader, usePhredLikelihoods);
 
+	//vars
+	logfile->startIndent("Parsing through glf files:");
+	struct timeval start;
+    gettimeofday(&start, NULL);
+    long counter = 0;
+
 	while(glfReader.readNext()){
+		++counter;
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 
@@ -314,7 +328,22 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 			}
 		} //end filter on missngness
+
+		//report progress
+		if(counter % 1000000 == 0){
+			static struct timeval end;
+			gettimeofday(&end, NULL);
+			float runtime = (end.tv_sec  - start.tv_sec)/60.0;
+			logfile->list("Parsed " + toString(counter) + " positions in " + toString(runtime) + " min.");
+		}
+
+		//break?
+		if(maxPos > 0 && counter == maxPos)
+			break;
 	}
+
+	logfile->list("Reached end of glf files!");
+	logfile->removeIndent();
 
 	//clean storage
 	closeVCF();
