@@ -225,8 +225,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
 				if(sites[i].hasData) recalObject->calcEmissionProbabilities(sites[i]);
-				std::string basesString = sites[i].getBases();
-				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
+				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef);
 				out << "\n";
 			}
 		} else {
@@ -234,8 +233,7 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
 					recalObject->calcEmissionProbabilities(sites[i]);
-					std::string basesString = sites[i].getBases();
-					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
+					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef);
 					out << "\n";
 				}
 			}
@@ -496,16 +494,14 @@ void TWindowDiploid::callBayesianGenotype(TThetaEstimator & estimator, TRandomGe
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				std::string basesString = sites[i].getBases();
-				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
+				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){ //10056
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					std::string basesString = sites[i].getBases();
-					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
+					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP);
 					out << "\n";
 				}
 			}
@@ -567,16 +563,14 @@ void TWindowDiploid::callAllelePresence(TThetaEstimator & estimator, TRandomGene
 		if(printAll){
 			for(int i=0; i<length; ++i){
 				out << chr << "\t" << start + i + 1;
-				std::string baseString = sites[i].getBases();
-				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
+				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
 				out << "\n";
 			}
 		} else {
 			for(int i=0; i<length; ++i){
 				if(sites[i].hasData){
 					out << chr << "\t" << start + i + 1;
-					std::string baseString = sites[i].getBases();
-					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
+					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef);
 					out << "\n";
 				}
 			}
@@ -655,8 +649,7 @@ void TWindowDiploid::callAllelePresenceKnwonAlleles(TSiteSubset* subset, TThetaE
 			pos = it->first - start;
 			out << chr << "\t" << it->first + 1;
 			if(isVCF){
-				std::string basesString = sites[pos].getBases();
-				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
+				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef);
 			} else {
 				sites[pos].callAllelePresenceKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
 			}

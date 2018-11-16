@@ -10,9 +10,12 @@
 class TRandomGenerator{
 private:
 	long _Idum;
+	int binomPValueTableSize;
+
 	double ran3();
 	double _lowerIncompleteGamma(double alpha, double z);
 	double _upperIncompleteGamma(double alpha, double z);
+	double _binomPValue(const int & k, const int & l);
 	long get_randomSeedFromCurrentTime(long & addToSeed);
 	void init();
 
@@ -42,8 +45,12 @@ public:
 			delete[] factorialTable;
 		if(factorialTableLnInitialized)
 			delete[] factorialTableLn;
-		if(binomPValueTableInitialized)
+		if(binomPValueTableInitialized){
+			for(int i=0; i<binomPValueTableSize; ++i)
+				delete[] binomPValueTable[i];
 			delete[] binomPValueTable;
+		}
+
 	};
 	void setSeed(long addToSeed, bool seedIsFixed=false);
 

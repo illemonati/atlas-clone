@@ -40,6 +40,7 @@ void TRandomGenerator::init(){
 	factorialTableLnInitialized = false;
 	binomPValueTableInitialized = false;
 	binomPValueTable = NULL;
+	binomPValueTableSize = 100;
 }
 
 #define MBIG 1000000000L
@@ -203,38 +204,38 @@ double TRandomGenerator::binomDensity(int n, int k, double p){
 	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
 }
 
-double TRandomGenerator::binomPValue(int k, int l){
-	static const int TABLESIZE = 100;
-	double logHalf = -0.6931472 ;  // = log(0.5);
+double TRandomGenerator::_binomPValue(const int & k, const int & l){
+	double cumul = 0.0;
+	int n = k + l;
+	for(int i = 0; i <= std::min(k,l); i++){
+		cumul += exp(binomCoeffLn(n, i) + -0.6931472*n); // -0.6931472 is log(0.5)
+	}
+	return cumul;
+}
+
+double TRandomGenerator::binomPValue(const int k, const int l){
 	int n = l + k;
-	if (n < TABLESIZE){
+	if (n < binomPValueTableSize){
 		if(!binomPValueTableInitialized){
-			binomPValueTable = new double*[TABLESIZE];
-			for(int i=0; i<TABLESIZE; i++) {
-				binomPValueTable[i] = new double[TABLESIZE];
-			}
-			for(int i=0; i<TABLESIZE; i++) {
-				for(int j=0; j<=int(floor(i/2)); j++) {
-					binomPValueTable[i][j] = 0.0;
-					for(int m = 0; m <= j; m++){
-					binomPValueTable[i][j] += exp(binomCoeffLn(i, m) + logHalf*i);
-					}
-				}
+			binomPValueTable = new double*[binomPValueTableSize];
+
+			//loop over all entries
+			for(int i=0; i<binomPValueTableSize; i++) {
+				//get row size
+				int rowLength = floor(i/2) + 1;
+
+				//allocate memory
+				binomPValueTable[i] = new double[rowLength];
+
+				//fill row
+				for(int j=0; j<rowLength; j++)
+					binomPValueTable[i][j] = _binomPValue(j, i-j);
 			}
 			binomPValueTableInitialized = true;
-			return binomPValueTable[n][std::min(k,l)];
 		}
-		else {
-			return binomPValueTable[n][std::min(k,l)];
-		}
+		return binomPValueTable[n][std::min(k,l)];
 	}
-	else {
-		double cumul = 0.0;
-		for(int i = 0; i <= std::min(k,l); i++){
-			cumul += exp(binomCoeffLn(n, i) + logHalf*n);
-		}
-		return cumul;
-	}
+	else return _binomPValue(k, l);
 }
 
 //--------------------------------------------------------
