@@ -38,6 +38,7 @@ protected:
 
 	//output choices
 	bool _printSitesWithNoData;
+	bool _printNoAltIfHomoRef;
 
 	//output file
 	std::string filename;
@@ -46,38 +47,39 @@ protected:
 	std::string genotypeFormatString;
 
 	//temp variables for calling
-	int numGenotypes;
-	double perGenotypeMetric[10]; //could be likelihood or posterior prob per genotype, depending on metric
 	std::string calledGenotype;
 	std::vector<int> genotypesWithHighestMetric;
 	std::vector<char> altAlleles;
+	int alleleCounts[4];
+	bool allelesCounted;
 
 	//functions regarding VCF file
 	void setAcceptableFields(TVCFFieldVector* fields, std::string tags);
 	void printField(TVCFFieldVector* fields, std::string tag);
 	void writeVCFHeader(const std::string & sampleName);
 
-	//calling
-	virtual void fillCallingMetric(TSite & site){ throw "fillCallingMetric() not defined for base class TCaller!"; };
-	virtual void callGenotype(TSite & site);
-
-
 	//function to write info fields
-	std::vector<std::string (TCaller::*)(const TSite & site)> VCFInfoFunctionsVec;
+	std::vector<std::string (TCaller::*)(TSite & site)> VCFInfoFunctionsVec;
 	void fillInfoFieldFunctionPointers();
-	virtual std::string getVCFInfoString_DP(const TSite & site);
+	virtual std::string getVCFInfoString_DP(TSite & site);
 
 	//functions to write genotype fields
-	std::vector<std::string (TCaller::*)(const TSite & site)> VCFGenotypeFunctionsVec;
+	std::vector<std::string (TCaller::*)(TSite & site)> VCFGenotypeFunctionsVec;
 	void fillGenotypeFieldFunctionPointers();
-	virtual std::string getVCFGenotypeString_GT(const TSite & site);
-	virtual std::string getVCFGenotypeString_DP(const TSite & site);
-	virtual std::string getVCFGenotypeString_GQ(const TSite & site){ throw "Function std::string getVCFGenotypeString_GQ(const TSite & site) not defined for base class TCaller!"; };
+	virtual std::string getVCFGenotypeString_GT(TSite & site);
+	virtual std::string getVCFGenotypeString_DP(TSite & site);
+	virtual std::string getVCFGenotypeString_GQ(TSite & site){ throw "Function std::string getVCFGenotypeString_GQ(const TSite & site) not defined for base class TCaller!"; };
+	virtual std::string getVCFGenotypeString_AD(TSite & site);
 
 	//write VCF
-	std::string composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site)> & vec, const TSite & site);
+	std::string composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site);
 	void writeCallToVCF(const std::string & chr, const long pos, TSite & site);
 
+	//call
+	void countAlleles(TSite & site);
+	virtual void callGenotype(TSite & site);
+	template <typename T> int pickIndexWithHighestMetric(T* metric, const int size, double & maxMetric);
+	template <typename T> int pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex);
 
 public:
 
@@ -99,6 +101,7 @@ public:
 
 	//other output options
 	void setPrintSitesWithNoData(bool print){ _printSitesWithNoData = print; };
+	void setNoAltIfHomoRef(bool print){ _printNoAltIfHomoRef = print; };
 	bool printSitesWithNoData(){ return _printSitesWithNoData; };
 
 	void reportSettings(TLog* logfile);
@@ -116,12 +119,34 @@ class TCallerRandomBase:public TCaller{
 private:
 	virtual void callGenotype(TSite & site);
 
-
 public:
 	TCallerRandomBase(TRandomGenerator* RandomGenerator);
-
 };
 
+//------------------------------------------------------
+// TCallerMajorityCall
+//------------------------------------------------------
+class TCallerMajorityBase:public TCaller{
+private:
+	double highestCounts;
+	virtual void callGenotype(TSite & site);
+
+public:
+	TCallerMajorityBase(TRandomGenerator* RandomGenerator);
+};
+
+//------------------------------------------------------
+// TCallerAllelePresence
+//------------------------------------------------------
+class TCallerAllelePresence:public TCaller{
+private:
+	int alleleCounts[4];
+	double highestCounts;
+	virtual void callGenotype(TSite & site);
+
+public:
+	TCallerAllelePresence(TRandomGenerator* RandomGenerator);
+};
 
 //------------------------------------------------------
 // TCallerDiploid
@@ -130,6 +155,8 @@ class TCallerDiploid:public TCaller{
 protected:
 	//output choices
 	bool peformImbalanceTest;
+	int numGenotypes;
+	double perGenotypeMetric[10]; //either likelihood or posterior probability
 
 public:
 	TCallerDiploid(TRandomGenerator* RandomGenerator);
@@ -156,7 +183,7 @@ public:
 //------------------------------------------------------
 // TCallerBayes
 //------------------------------------------------------
-class TCallerBayes:public TCaller{
+class TCallerBayes:public TCallerDiploid{
 private:
 	double genotypePriorProbabilities[10];
 

@@ -174,10 +174,9 @@ void TSite::countAlleles(int* alleleCounts){
 	alleleCounts[1] = 0;
 	alleleCounts[2] = 0;
 	alleleCounts[3] = 0;
-	alleleCounts[4] = 0;
 
-	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
-		++alleleCounts[(*baseIterator)->getBaseAsEnum()];
+	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
+		++alleleCounts[(*it)->getBaseAsEnum()];
 };
 
 void TSite::countAllelesForImbalance(long**** siteImbalance){

@@ -24,14 +24,14 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 
 	//set acceptable tags
 	setAcceptableFields(&VCFInfoFields, "DP");
-	setAcceptableFields(&VCFGenotypeFields, "GT,DP");
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
 
 	//set default tags to print
 	printInfoFields("DP");
 	printGenotypeFields("GT,DP");
 
 	//tmp variables
-	numGenotypes = 10;
+	allelesCounted = false;
 };
 
 TCaller::~TCaller(){
@@ -126,18 +126,6 @@ void TCaller::writeVCFHeader(const std::string & sampleName){
 	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" << sampleName << "\n";
 };
 
-
-
-void TCaller::callGenotype(TSite & site){
-
-
-	calledGenotype = '0';
-	std::vector<int> altAlleles;
-
-
-
-};
-
 //-------------------------------------------------------------------------------------------
 // Info fields
 //-------------------------------------------------------------------------------------------
@@ -158,8 +146,7 @@ void TCaller::fillInfoFieldFunctionPointers(){
 
 };
 
-std::string TCaller::getVCFInfoString_DP(const TSite & site){
-	std::cout << "==============> IN FUNCTION TCaller::getVCGInfoString_DP(const TSite & site)" << std::endl;
+std::string TCaller::getVCFInfoString_DP(TSite & site){
 	return "DP=" + toString(site.bases.size());
 };
 
@@ -183,6 +170,9 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_DP );
 		else if(*it == "GQ")
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_GQ );
+		else if(*it == "AD"){
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AD );
+		}
 		else throw "No function defined for VCF " + VCFGenotypeFields.type() + " field '" + *it + "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!";
 
 		//add to format string
@@ -191,24 +181,32 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 	}
 };
 
-std::string TCaller::getVCFGenotypeString_GT(const TSite & site){
+std::string TCaller::getVCFGenotypeString_GT(TSite & site){
 	return calledGenotype;
 };
 
-std::string TCaller::getVCFGenotypeString_DP(const TSite & site){
+std::string TCaller::getVCFGenotypeString_DP(TSite & site){
 	return toString(site.bases.size());
+};
+
+std::string TCaller::getVCFGenotypeString_AD(TSite & site){
+	countAlleles(site);
+	std::string ret = toString(alleleCounts[genoMap.getBase(site.referenceBase)]);
+	for(std::vector<char>::iterator it = altAlleles.begin(); it != altAlleles.end(); ++it)
+		ret += ',' + toString(alleleCounts[genoMap.getBase(*it)]);
+	return ret;
 };
 
 
 //-------------------------------------------------------------------------------------------
 // writing VCF
 //-------------------------------------------------------------------------------------------
-std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site)> & vec, const TSite & site){
+std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site){
 	//no info fields?
 	if(vec.empty()) return ".";
 
 	//add first info
-	std::vector<std::string (TCaller::*)(const TSite & site)>::iterator it = vec.begin();
+	std::vector<std::string (TCaller::*)(TSite & site)>::iterator it = vec.begin();
 	std::string info = (this->*(*it))(site);
 	++it;
 
@@ -247,6 +245,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & si
 
 	//clean up storage
 	altAlleles.clear();
+	allelesCounted = false;
 };
 
 /*
@@ -278,11 +277,31 @@ void TSite::calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & 
 */
 
 
+//-------------------------------------------------------------------------------------------
+// calling
+//-------------------------------------------------------------------------------------------
+void TCaller::countAlleles(TSite & site){
+	if(!allelesCounted){
+		site.countAlleles(alleleCounts);
+		allelesCounted = true;
+	}
+};
+
+void TCaller::callGenotype(TSite & site){
+	calledGenotype = '0/0';
+	std::vector<int> altAlleles;
+};
+
+
 void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	//check if there is data
 	if(site.hasData){
 		//call
 		callGenotype(site);
+
+		//apply filter on alternative alleles
+		if(_printNoAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
+			altAlleles.clear();
 
 		//check if we write
 		writeCallToVCF(chr, pos, site);
@@ -291,6 +310,44 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 		if(_printSitesWithNoData)
 			vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0"; //TO: check for Bayesian case?
 	}
+};
+
+template <typename T> int TCaller::pickIndexWithHighestMetric(T* metric, const int size, double & maxMetric){
+	//find maximum
+	maxMetric = 0.0;
+	for(int i=0; i<size; ++i){
+		if(metric[i] > maxMetric)
+			maxMetric = metric[i];
+	}
+
+	//get vec of all index at maximum
+	std::vector<int> vec;
+	for(int i=0; i<size; ++i){
+		if(metric[i] == maxMetric)
+			vec.push_back(i);
+	}
+
+	//return random index among those at max
+	return vec[randomGenerator->pickOne(vec.size())];
+};
+
+template <typename T> int TCaller::pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex){
+	//find maximum
+	double max = 0.0;
+	for(int i=0; i<size; ++i){
+		if(i != excludeIndex && metric[i] > max)
+			max = metric[i];
+	}
+
+	//get vec of all index at maximum
+	std::vector<int> vec;
+	for(int i=0; i<size; ++i){
+		if(i != excludeIndex && metric[i] == max)
+			vec.push_back(i);
+	}
+
+	//return random index among those at max
+	return vec[randomGenerator->pickOne(vec.size())];
 };
 
 
@@ -312,6 +369,71 @@ void TCallerRandomBase::callGenotype(TSite & site){
 	//decide on alt
 	if(allele == site.referenceBase){
 		calledGenotype = "0";
+	} else {
+		altAlleles.push_back(allele);
+		calledGenotype = "1";
+	}
+};
+
+/////////////////////////////////////////////////////////
+// TCallerMajorityCall
+/////////////////////////////////////////////////////////
+TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
+	//caller settings
+	callerName = "Majority Base Caller";
+	filenameExtention = "_majorityBase.vcf";
+	defaultInfoFields = "DP";
+	defaultGenotypeFields = "GT,DP";
+
+	//initialize allele counts
+	highestCounts = 0;
+};
+
+void TCallerMajorityBase::callGenotype(TSite & site){
+	//get per allele counts
+	countAlleles(site);
+	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
+	char allele = genoMap.baseToChar[majorityIndex];
+
+	//decide on alt
+	if(allele == site.referenceBase){
+		calledGenotype = "0";
+
+		//find second most common as alternative allele
+		int second = pickIndexWithSecondHighestMetric(alleleCounts, 4, majorityIndex);
+		altAlleles.push_back(genoMap.baseToChar[second]);
+	} else {
+		altAlleles.push_back(allele);
+		calledGenotype = "1";
+	}
+};
+
+/////////////////////////////////////////////////////////
+// TCallerAllelePresence
+/////////////////////////////////////////////////////////
+TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
+	//caller settings
+	callerName = "Allele Presence Caller";
+	filenameExtention = "_allelePresence.vcf";
+	defaultInfoFields = "DP";
+	defaultGenotypeFields = "GT,DP";
+
+	//initialize allele counts
+	highestCounts = 0;
+};
+
+void TCallerAllelePresence::callGenotype(TSite & site){
+	//get per allele counts
+
+	site.countAlleles(alleleCounts);
+	int majority = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
+	char allele = genoMap.getBaseAsChar(majority);
+
+	//decide on alt
+	if(allele == site.referenceBase){
+		calledGenotype = "0";
+
+		int majority = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
 	} else {
 		altAlleles.push_back(allele);
 		calledGenotype = "1";
@@ -353,9 +475,10 @@ void TCallerMLE::fillCallingMetric(TSite & site){
 //------------------------------------------------------
 // TCallerBayes
 //------------------------------------------------------
-TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
+TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomGenerator){
 
 };
+
 
 void TCallerBayes::setPrior(double* GenotypePriorProbabilities){
 	for(int i=0; i<numGenotypes; ++i)

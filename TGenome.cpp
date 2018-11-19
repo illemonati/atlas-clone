@@ -878,6 +878,8 @@ void TGenome::callGenotypesNew(TParameters & params){
 	std::string method = params.getParameterStringWithDefault("method", "MLE");
 	if(method == "randomBase"){
 		caller = new TCallerRandomBase(randomGenerator);
+	} else if(method == "majorityBase"){
+		caller = new TCallerMajorityBase(randomGenerator);
 	} else if(method == "allelePresence"){
 
 	} else if(method == "MLE"){
@@ -895,6 +897,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 	if(params.parameterExists("genoFields"))
 		caller->printGenotypeFields(params.getParameterString("genoFields"));
 	if(params.parameterExists("printAll")) caller->setPrintSitesWithNoData(true);
+	if(params.parameterExists("noAltIfHomoRef")) caller->setNoAltIfHomoRef(true);
 
 	//report output settings
 	caller->reportSettings(logfile);
