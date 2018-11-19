@@ -65,6 +65,9 @@ public:
 			} else if(task == "BQSR"){
 				logfile->startIndent("Estimating recalibration parameters (task = BQSR):");
 				genome.BQSR(*parameters);
+			} else if(task == "callNEW"){
+				logfile->startIndent("Calling with NEW genotype caller (task = callNEW):");
+				genome.callGenotypesNew(*parameters);
 			} else if(task == "callMLE"){
 				logfile->startIndent("Calling MLE Genotypes (task = callMLE):");
 				genome.callMLEGenotypes(*parameters);

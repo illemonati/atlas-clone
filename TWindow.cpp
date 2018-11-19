@@ -128,7 +128,7 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 }
 
 
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
+void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, const int & refId){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
@@ -217,7 +217,18 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 
 		//std::cout << std::endl;
 	}
-}
+};
+
+void TWindow::call(TCaller & caller, TRecalibration & recalObject, const std::string & chr, BamTools::Fasta & reference, const int & refID){
+	//add reference to sites
+	addReferenceBaseToSites(reference, refID);
+
+	//loop over sites and call
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData) recalObject.calcEmissionProbabilities(sites[i]);
+		caller.call(chr, start + i + 1, sites[i]);
+	}
+};
 
 void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
 	if(isVCF){
@@ -328,7 +339,7 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	//calculate and return imbalance
 	for(int i=0; i<length; ++i){
 		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
-			sites[i].countAlleles(siteImbalance);
+			sites[i].countAllelesForImbalance(siteImbalance);
 		else if(sites[i].depth()  == 0){
 			++siteImbalance[0][0][0][0];
 		}

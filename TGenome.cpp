@@ -858,6 +858,124 @@ void TGenome::estimateThetaRatio(TParameters & params){
 
 	//clean up
 }
+
+
+//------------------------------------------
+//Callers (NEW)
+//------------------------------------------
+void TGenome::callGenotypesNew(TParameters & params){
+	//make sure FASTA is open
+	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
+
+	//initialize recalibration
+	initializeRecalibration(params);
+
+	//--------------------------
+	//initialize caller
+	//--------------------------
+	logfile->startIndent("Initializing caller:");
+	TCaller* caller;
+	std::string method = params.getParameterStringWithDefault("method", "MLE");
+	if(method == "randomBase"){
+		caller = new TCallerRandomBase(randomGenerator);
+	} else if(method == "allelePresence"){
+
+	} else if(method == "MLE"){
+		caller = new TCallerRandomBase(randomGenerator);
+	} else if(method == "Bayesian"){
+
+	} else if(method == "gVCF"){
+
+		caller->printSitesWithNoData();
+	} else throw "Unknown calling method '" + method + "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.";
+
+	//read output settings
+	if(params.parameterExists("infoFields"))
+		caller->printInfoFields(params.getParameterString("infoFields"));
+	if(params.parameterExists("genoFields"))
+		caller->printGenotypeFields(params.getParameterString("genoFields"));
+	if(params.parameterExists("printAll")) caller->setPrintSitesWithNoData(true);
+
+	//report output settings
+	caller->reportSettings(logfile);
+
+	//open output file
+	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
+	caller->openVCF(outputName, sampleName);
+
+	logfile->endIndent();
+
+	//--------------------------
+	// Subset
+	// -> split function (or loop) into with and without subset
+	//--------------------------
+	/*
+	//do we limit to site subset?
+	TSiteSubset* subset = NULL;
+
+	//only call at specific sites?
+	if(params.parameterExists("sites")){
+		bool invariantSites = false;
+
+		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
+		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
+		limitToSitesWithKnownAlleles = true;
+
+	//if not, how much information should be printed?
+	} else {
+		if(params.parameterExists("noAltIfHomoRef")){
+			noAltIfHomoRef = true;
+			logfile->list("Will not print alternative alleles when genotype is 0/0");
+		}
+		if(params.parameterExists("gVCF")){
+			gVCF = true;
+			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
+			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
+			if(!fastaReference) throw "Can not print VCF file without reference!";
+			logfile->list("Will print output in gVCF format");
+		}
+	}
+
+	if(params.parameterExists("beagle")){
+		if(limitToSitesWithKnownAlleles == false) throw "Need sites file specifying major and minor alleles for beagle format!";
+		beagle=true;
+		logfile->list("Will print output in beagle format");
+		printOnlyGL = params.parameterExists("printOnlyGL");
+		if(printOnlyGL) logfile->list("Will print only genotype likelihoods");
+		indName = params.getParameterStringWithDefault("indName", outputName);
+	}
+
+	if(params.parameterExists("vcf")){
+		if(!fastaReference) throw "Can not print VCF file without reference!";
+		writeVCF = true;
+	}
+
+	if((writeVCF + gVCF + beagle) > 1) throw "More than one output format specified!";
+	*/
+
+	//prepare windows
+	//Allow for haploid windows for some callers?
+	TWindowPairDiploid windows;
+
+	//iterate through windows
+	while(iterateChromosome(windows)){
+		while(iterateWindow(windows)){
+			//read data for current window
+			if(readData(windows) || caller->printSitesWithNoData()){
+				//call genotypes
+				logfile->listFlush("Calling genotypes ...");
+				//TODO: window should know chromosome name and number
+				windows.cur->call(*caller, *recalObject, chrIterator->Name, reference, chrNumber);
+				logfile->done();
+			}
+		}
+	}
+
+	//clean up
+	delete caller;
+}
+
+
 //------------------------------------------
 //Callers
 //------------------------------------------

@@ -18,7 +18,7 @@
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
-
+#include "TCaller.h"
 
 //---------------------------------------------------------------
 //TWindow
@@ -50,12 +50,13 @@ public:
 	void clear();
 	void move(long Start, long End);
 	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
-	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
+	void addReferenceBaseToSites(BamTools::Fasta & reference, const int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
+	void call(TCaller & caller, TRecalibration & recalObject, const std::string & chr, BamTools::Fasta & reference, const int & refID);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printOnlySitesWithData);
 	virtual void calcDepth();

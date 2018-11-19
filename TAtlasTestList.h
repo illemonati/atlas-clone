@@ -26,7 +26,7 @@ template<typename T> TAtlasTest* createInstance(TParameters & params, TLog* logf
 
 class TAtlasTestList{
 private:
-	//maps test names to constuctor functions
+	//maps test names to constructor functions
 	std::vector< std::pair<std::string, TAtlasTest*(*)(TParameters &, TLog*)> > testMap;
 	std::vector< std::pair<std::string, TAtlasTest*(*)(TParameters &, TLog*)> >::iterator testMapIt;
 

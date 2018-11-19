@@ -167,10 +167,20 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 		sum +=  emissionProbabilities[i] * genotypeProbabilities[i];
 	}
 	return log(sum);
-}
+};
 
+void TSite::countAlleles(int* alleleCounts){
+	alleleCounts[0] = 0;
+	alleleCounts[1] = 0;
+	alleleCounts[2] = 0;
+	alleleCounts[3] = 0;
+	alleleCounts[4] = 0;
 
-void TSite::countAlleles(long**** siteImbalance){
+	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
+		++alleleCounts[(*baseIterator)->getBaseAsEnum()];
+};
+
+void TSite::countAllelesForImbalance(long**** siteImbalance){
 	//calculate and return imbalance
 	int b[4] = {0};
 	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
@@ -363,12 +373,6 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 
 	if(hasData){
-		//print reference allele
-		out << "\t.\t" << referenceBase;
-
-		//allelic depth
-		int R_AD=0, A_AD=0, B_AD=0, C_AD=0;
-
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
 		int MLGenotype;
@@ -377,7 +381,10 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 
 		//find alternative alleles
 		std::string genoVCF;
-		std::string PL, AD, AI, AB, rest;
+		std::string altAlleles;
+		std::string PL;
+		int alleleCounts[5]; countAlleles(alleleCounts);
+
 		if(referenceBase != 'N') PL = toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, referenceBase)] - maxGenotypeProb)); //for PL field in VCF
 		std::string geno = genoMap.getGenotypeString(MLGenotype);
 
@@ -389,7 +396,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				}
 
 				if(geno[0] == geno[1]){
-					out << "\t" << geno[0];
+					altAlleles = geno[0];
 					genoVCF = "1/1";
 
 					if(gVCF){
@@ -418,7 +425,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					}
 				}
 				else {
-					out << "\t" << geno[0] << ',' << geno[1];
+					altAlleles = geno[0] << ',' << geno[1];
 					genoVCF = "1/2";
 
 					if(referenceBase != 'N'){
@@ -455,7 +462,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					}
 				}
 			} else { //geno[1]=ref
-				out << "\t" << geno[0];
+				altAlleles = geno[0];
 				genoVCF = "0/1";
 				if(referenceBase != 'N'){
 					PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[0])] - maxGenotypeProb));
@@ -488,7 +495,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 				}
 			}
 		} else if(geno[1] != referenceBase){  //geno[0]=ref
-			out << "\t" << geno[1];
+			altAlleles = geno[1];
 			genoVCF = "0/1";
 			if(referenceBase != 'N'){
 				PL +=  "," + toString(round(emissionProbabilitiesPhredScaled[genoMap.getGenotype(referenceBase, geno[1])] - maxGenotypeProb));
@@ -535,13 +542,16 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 			}
 
 			//what to print in alt field
-			if(gVCF) out << "\t<NON_REF>";
-			else if (noAltIfHomoRef) out << "\t."; //for programs like vcf-tools that are confused by alt alleles when homozygous ref
+			if(gVCF) altAlleles = "<NON_REF>";
+			else if (noAltIfHomoRef) out << "."; //for programs like vcf-tools that are confused by alt alleles when homozygous ref
 			else {
-				if(genoSecond[0] != referenceBase) out << "\t" << genoSecond[0];
-				else out << "\t" << genoSecond[1];
+				if(genoSecond[0] != referenceBase) altAlleles = genoSecond[0];
+				else altAlleles = genoSecond[1];
 			}
 		}
+
+		//print ref and alt
+		out << "\t.\t" << referenceBase << "\t" << altAlleles;
 
 		//print (no) variant quality and (no) filter
 		out << "\t.\t.";
@@ -550,9 +560,6 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 		out << "\tDP=" << bases.size(); // << ";bases=" << basesString;
 
 		//print format and genotype and all normalized likelihoodsfield
-		if(genoVCF.size() == 0){
-			std::cout << "ref=" << referenceBase << " "<< geno[0] << geno[1] << std::endl;
-		}
 		if(referenceBase != 'N'){
 			if(!gVCF){
 				out << "\tGT:AD:AB:AI:DP:GQ:PL:GG\t" <<  genoVCF << ':' << compileADString(MLGenotype, genoMap, randomGenerator, noAltIfHomoRef) << ":" <<  bases.size() << ":" << round(quality) << ':' << PL << ':'<< round(emissionProbabilitiesPhredScaled[0] - maxGenotypeProb);

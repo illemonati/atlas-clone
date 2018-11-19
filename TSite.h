@@ -80,7 +80,8 @@ public:
 	std::string getBases();
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
-	void countAlleles(long**** siteImbalance);
+	void countAlleles(int* alleleCounts);
+	void countAllelesForImbalance(long**** siteImbalance);
 	void printPileup(gz::ogzstream & out);
 
 	//MLE Callers

@@ -17,6 +17,7 @@
 #include <typeinfo>
 #include <map>
 #include <algorithm>
+#include "TCaller.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -110,7 +111,8 @@ public:
 	void estimateThetaRatio(TParameters & params);
 
 	//callers
-	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
+	void callGenotypesNew(TParameters & params);
+
 	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP);
 	void callMLEGenotypes(TParameters & params);
 	void callBayesianGenotypes(TParameters & params);
