@@ -883,9 +883,9 @@ void TGenome::callGenotypesNew(TParameters & params){
 	} else if(method == "allelePresence"){
 		caller = new TCallerAllelePresence(randomGenerator);
 	} else if(method == "MLE"){
-		caller = new TCallerRandomBase(randomGenerator);
+		caller = new TCallerMLE(randomGenerator);
 	} else if(method == "Bayesian"){
-
+		caller = new TCallerBayes(randomGenerator);
 	} else if(method == "gVCF"){
 
 		caller->printSitesWithNoData();
@@ -901,6 +901,23 @@ void TGenome::callGenotypesNew(TParameters & params){
 
 	//report output settings
 	caller->reportSettings(logfile);
+
+	//prior setting
+/*
+ * Create class TPrior for TCaller? Could make sense!
+	bool estimateThetaPerWindow = false;
+		if(params.parameterExists("theta")){
+			double theta = params.getParameterDouble("theta");
+			logfile->list("Using theta = " + toString(theta));
+			thetaEstimator = new TThetaEstimator(logfile);
+			thetaEstimator->setTheta(theta);
+			return false;
+		} else {
+			//prepare theta estimator
+			thetaEstimator = new TThetaEstimator(params, logfile);
+			return true;
+		}
+*/
 
 	//open output file
 	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
@@ -967,6 +984,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 			if(readData(windows) || caller->printSitesWithNoData()){
 				//call genotypes
 				logfile->listFlush("Calling genotypes ...");
+
 				//TODO: window should know chromosome name and number
 				windows.cur->call(*caller, *recalObject, chrIterator->Name, reference, chrNumber);
 				logfile->done();

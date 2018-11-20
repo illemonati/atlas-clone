@@ -146,7 +146,10 @@ public:
 		add("DP", "Number=1,Type=Integer,Description=\"Total Depth\">");
 		add("GQ", "Number=1,Type=Integer,Description=\"Genotype quality\"");
 		add("AD", "Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\"");
-		add("AP", "Number=4,Type=Integer,Description=\"Allelic posterior probabilities for the four alleles A, C, G and T\"");
+		add("AP", "Number=4,Type=Integer,Description=\"Phred-scaled allelic posterior probabilities for the four alleles A, C, G and T\"");
+		add("GL", "Number=G,Type=Float,Description=\"Normalized genotype likelihoods\"");
+		add("PL", "Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\"");
+		add("GP", "Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\"");
 	};
 };
 

@@ -304,9 +304,11 @@ std::string TSite::compileADString(const int & genotype, TGenotypeMap & genoMap,
 	int A1_AD = 0;
 	int A2_AD = 0;
 
+	Base referenceBaseAsBase = genoMap.getBase(referenceBase);
+
 	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
 		Base tmp = (*baseIterator)->getBaseAsEnum();
-		if(tmp == referenceBase) ++R_AD;
+		if(tmp == referenceBaseAsBase) ++R_AD;
 		else if(tmp == first) ++A1_AD;
 		else if(tmp == second) ++A2_AD;
 	}
@@ -315,14 +317,14 @@ std::string TSite::compileADString(const int & genotype, TGenotypeMap & genoMap,
 	std::string AD;
 	double AI;
 	double AB;
-	if(first == referenceBase){
+	if(first == referenceBaseAsBase){
 		if(first == second && noAltIfHomoRef)
 			AD = toString(R_AD);
 		else
 			AD = toString(R_AD) + ',' + toString(A2_AD);
 		AB = (double) R_AD / (double) (R_AD + A2_AD);
 		AI = randomGenerator.binomPValue(R_AD, A2_AD);
-	} else if(second == referenceBase){
+	} else if(second == referenceBaseAsBase){
 		AD = toString(R_AD) + ',' + toString(A1_AD);
 		AB = (double) R_AD / (double) (R_AD + A1_AD);
 		AI = randomGenerator.binomPValue(R_AD, A1_AD);

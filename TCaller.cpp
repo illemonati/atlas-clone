@@ -27,7 +27,7 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
 
 	//set default tags to print
-	printInfoFields("DP");
+	printInfoFields("");
 	printGenotypeFields("GT,DP");
 
 	//tmp variables
@@ -175,6 +175,12 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AD );
 		else if(*it == "AP")
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AP );
+		else if(*it == "GL")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_GL );
+		else if(*it == "PL")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_PL );
+		else if(*it == "GP")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_GP );
 		else throw "No function defined for VCF " + VCFGenotypeFields.type() + " field '" + *it + "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!";
 
 		//add to format string
@@ -322,9 +328,9 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	}
 };
 
-template <typename T> int TCaller::pickIndexWithHighestMetric(T* metric, const int size, double & maxMetric){
+template <typename T> int TCaller::pickIndexWithHighestMetric(T* metric, const int size){
 	//find maximum
-	maxMetric = 0.0;
+	double maxMetric = 0.0;
 	for(int i=0; i<size; ++i){
 		if(metric[i] > maxMetric)
 			maxMetric = metric[i];
@@ -372,10 +378,6 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 	//set acceptable tags
 	setAcceptableFields(&VCFInfoFields, "DP");
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
-
-	//set default tags to print
-	defaultInfoFields = "DP";
-	defaultGenotypeFields = "GT,DP";
 };
 
 void TCallerRandomBase::callGenotype(TSite & site){
@@ -398,17 +400,12 @@ TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCal
 	//caller settings
 	callerName = "Majority Base Caller";
 	filenameExtention = "_majorityBase.vcf";
-	defaultInfoFields = "DP";
-	defaultGenotypeFields = "GT,DP";
-
-	//initialize allele counts
-	highestCounts = 0.0;
 };
 
 void TCallerMajorityBase::callGenotype(TSite & site){
 	//get per allele counts
 	countAlleles(site);
-	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
+	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4);
 
 	//decide on alt
 	if(majorityIndex == referenceBase){
@@ -431,12 +428,9 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	callerName = "Allele Presence Caller";
 	filenameExtention = "_allelePresence.vcf";
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,AP");
-	defaultInfoFields = "DP";
-	defaultGenotypeFields = "GT,DP";
-
 
 	//initialize allele counts
-	highestPostProb = 0.0;
+	MAP = -1;
 };
 
 void TCallerAllelePresence::callGenotype(TSite & site){
@@ -450,7 +444,7 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 	allelePostProb[3] = posteriorProb[AT] + posteriorProb[CT] + posteriorProb[GT] + posteriorProb[TT];
 
 	//find map
-	int MAP = pickIndexWithHighestMetric(allelePostProb, 4, highestPostProb);
+	MAP = pickIndexWithHighestMetric(allelePostProb, 4);
 
 	//decide on alt
 	if(MAP == referenceBase){
@@ -466,7 +460,7 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 };
 
 std::string TCallerAllelePresence::getVCFGenotypeString_GQ(TSite & site){
-	return toString(qualMap.errorToPhredInt(1.0 - highestPostProb));
+	return toString(qualMap.errorToPhredInt(1.0 - allelePostProb[MAP]));
 };
 
 std::string TCallerAllelePresence::getVCFGenotypeString_AP(TSite & site){
@@ -482,58 +476,144 @@ std::string TCallerAllelePresence::getVCFGenotypeString_AP(TSite & site){
 // common function between MLE, Bayes and gvcf callers
 /////////////////////////////////////////////////////////
 TCallerDiploid::TCallerDiploid(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
-	peformImbalanceTest = false;
+	indexOfMax = -1;
+	indexOfSecond = -1;
 };
 
+void TCallerDiploid::callGenotypeFromMetric(double* metric){
+	indexOfMax = pickIndexWithHighestMetric(metric, 10);
+	indexOfSecond = pickIndexWithSecondHighestMetric(metric, 10, indexOfMax);
 
+	//decide on alternative alleles
+	if(genoMap.genotypeToBase[indexOfMax][0] == referenceBase){
+		if(genoMap.genotypeToBase[indexOfMax][1] == referenceBase){
+			calledGenotype = "0/0";
+			//MLE is homozygous reference -> find second best allele
+			if(genoMap.genotypeToBase[indexOfSecond][0] == referenceBase)
+				altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][1]);
+			else
+				altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][0]);
+		} else {
+			altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
+			calledGenotype = "0/1";
+		}
+	} else {
+		if(genoMap.genotypeToBase[indexOfMax][1] == referenceBase){
+			altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+			calledGenotype = "0/1";
+		} else {
+			if(genoMap.genotypeToBase[indexOfMax][0] == genoMap.genotypeToBase[indexOfMax][1]){
+				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+				calledGenotype = "1/1";
+			} else {
+				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
+				calledGenotype = "1/2";
+			}
+		}
+	}
+};
+
+std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
+	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
+
+	//first for reference base
+	std::string ret = toString(metric[genoMap.genotypeMap[referenceBase][referenceBase]]);
+
+	//now for alternative alleles
+	if(altAlleles.size() > 0){
+		ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[0]]]);
+		ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[0]]]);
+
+		if(altAlleles.size() > 1){
+			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[1]]]);
+			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[1]]]);
+			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[1]][altAlleles[1]]]);
+		}
+
+		if(altAlleles.size() > 2){
+			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[2]]]);
+			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[2]]]);
+			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[1]][altAlleles[2]]]);
+			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[2]][altAlleles[2]]]);
+		}
+	}
+
+	return ret;
+};
 
 /////////////////////////////////////////////////////////
 // TCallerMLE
-//------------------------------------------------------
+/////////////////////////////////////////////////////////
 TCallerMLE::TCallerMLE(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomGenerator){
+	//caller settings
+	callerName = "MLE Caller";
+	filenameExtention = "_MaximumLikelihood.vcf";
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,GL,PL");
 
+	//set default tags to print
+	printGenotypeFields("GT,DP,AD,GQ,PL");
 };
 
-void TCallerMLE::fillCallingMetric(TSite & site){
-	//fill with likelihoods, normalized by maximum
-	//find maximum
-	double maxGenotypeProb = site.emissionProbabilities[0];
-	for(int i=1; i<numGenotypes; ++i){
-		if(site.emissionProbabilities[i] > maxGenotypeProb)
-			maxGenotypeProb = site.emissionProbabilities[i];
-	}
+void TCallerMLE::callGenotype(TSite & site){
+	callGenotypeFromMetric(site.emissionProbabilities);
+};
 
+std::string TCallerMLE::getVCFGenotypeString_GQ(TSite & site){
+	return toString(qualMap.errorToPhredInt(site.emissionProbabilities[indexOfSecond] / site.emissionProbabilities[indexOfMax]));
+};
+
+std::string TCallerMLE::getVCFGenotypeString_GL(TSite & site){
 	//normalize
-	for(int i=0; i<numGenotypes; ++i){
-		perGenotypeMetric[i] = site.emissionProbabilities[i] / maxGenotypeProb;
-	}
+	double tmp[10];
+	for(int g=0; g<10; ++g)
+		tmp[g] = site.emissionProbabilities[genoMap.genotypeMap[referenceBase][referenceBase]] / site.emissionProbabilities[indexOfMax];
+
+	//get string
+	return getPerGenotypeMetricString(tmp);
 };
 
+std::string TCallerMLE::getVCFGenotypeString_PL(TSite & site){
+	//normalize
+	double tmp[10];
+	double phredMax = qualMap.errorToPhred(site.emissionProbabilities[indexOfMax]);
+	for(int g=0; g<10; ++g)
+		tmp[g] = round(qualMap.errorToPhred(site.emissionProbabilities[g]) - phredMax);
 
+	//get string
+	std::string x = getPerGenotypeMetricString(tmp);
+	std::cout << x << std::endl;
+	return x;
+	//return getPerGenotypeMetricString(tmp);
+};
 
 //------------------------------------------------------
 // TCallerBayes
 //------------------------------------------------------
 TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomGenerator){
-
+	//caller settings
+	callerName = "Bayesian Caller";
+	filenameExtention = "_MaximumAPosteriori.vcf";
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,GP");
+	printGenotypeFields("GT,DP,AD,GQ,GP");
 };
 
 
-void TCallerBayes::setPrior(double* GenotypePriorProbabilities){
-	for(int i=0; i<numGenotypes; ++i)
-		genotypePriorProbabilities[i] = GenotypePriorProbabilities[i];
+void TCallerBayes::callGenotype(TSite & site){
+	//calculate posterior probabilities
+	site.calculateP_g(genotypePrior, posteriorProb);
+
+	//call
+	callGenotypeFromMetric(site.emissionProbabilities);
 };
 
-void TCallerBayes::fillCallingMetric(TSite & site){
-	double tot = 0.0;
+std::string TCallerBayes::getVCFGenotypeString_GP(TSite & site){
+	//phred
+	double tmp[10];
+	for(int g=0; g<10; ++g)
+		tmp[g] = qualMap.errorToPhredInt(posteriorProb[g]);
 
-	for(int i=0; i<numGenotypes; ++i){
-		perGenotypeMetric[i] = site.emissionProbabilities[i] * genotypePriorProbabilities[i];
-		tot += perGenotypeMetric[i];
-	}
-
-	//normalize
-	for(int i=0; i<numGenotypes; ++i)
-		perGenotypeMetric[i] /= tot;
+	//get string
+	return getPerGenotypeMetricString(tmp);
 };
 
