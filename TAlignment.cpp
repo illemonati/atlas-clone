@@ -17,6 +17,7 @@ TAlignment::TAlignment(){
 	position = 0;
 	lastAlignedPos = 0;
 	lastPositionPlusOne = 0;
+	lastAlignedPositionWithRespectToRef = 0;
 	isReverseStrand = false;
 	isProperPair = false;
 	mappingQuality = 0;
@@ -72,6 +73,7 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	position = Alignment.position;
 	lastAlignedPos = Alignment.lastAlignedPos;
 	lastPositionPlusOne = Alignment.lastPositionPlusOne;
+	lastAlignedPositionWithRespectToRef = Alignment.lastAlignedPositionWithRespectToRef;
 	isReverseStrand = Alignment.isReverseStrand;
 	isProperPair = Alignment.isProperPair;
 	mappingQuality = Alignment.mappingQuality;
@@ -253,10 +255,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	numInsertions = 0;
 	numDeletions = 0;
 
-	if(alignmentName == "A00574:12:H3WTLDSXX:1:1327:13449:6558")
-		std::cout << "querybases " << bamAlignment.QueryBases << std::endl;
-
-
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
 	int counter = 0;
@@ -301,7 +299,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 				}
 				break;
 
-			//for 'I' - insertion: copy bases, but put aligned pos to
+			//for 'I' - insertion: copy bases, but put aligned pos to -1
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
@@ -346,8 +344,11 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 	//update length and last aligned position
 	length = k;
+	//TODO: check if we need lastPositionPlusOne and lastAlignedPos
+	lastAlignedPositionWithRespectToRef = position + p - 1;
 	lastPositionPlusOne = position + length;
-	lastAlignedPos = p - 1;
+	lastAlignedPos = p - 1; //why -1??
+	//std::cout << alignmentName << " lastAlignedPos " << lastAlignedPos << " lastAlignedPositionWithRespectToRef " << lastAlignedPositionWithRespectToRef << " lastPositionPlusOne " << lastPositionPlusOne << std::endl;
 	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };

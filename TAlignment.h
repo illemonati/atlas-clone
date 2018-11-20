@@ -118,6 +118,7 @@ public:
 	int chrNumber;
 	int32_t position;
 	int32_t lastPositionPlusOne;
+	int32_t lastAlignedPositionWithRespectToRef;
 	std::string alignmentName;
 
 	//TODO: move these functions to TGenome

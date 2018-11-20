@@ -138,6 +138,7 @@ TAlignmentParser::~TAlignmentParser(){
 }
 
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
+
 	logfile = Logfile;
 
 	//---------------------
@@ -208,16 +209,19 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		std::vector<std::string> vec;
 		fillVectorFromString(params.getParameterString("chr"), vec, ',');
 		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
+			std::cout << "chr to limit to name: " << *it << std::endl;
 			//find chromosome
 			int num = 0;
-			for(BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin(); chrIt != bamHeader.Sequences.End(); ++chrIt, ++num){
+			BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin();
+			for( ; chrIt != bamHeader.Sequences.End(); ++chrIt, ++num){
 				if(chrIt->Name == *it){
 					useChromosome[num] = true;
 					logfile->list(*it);
 					break;
 				}
-				if(chrIt == bamHeader.Sequences.End()) throw "Chromosome '" + *it + "' is not present in the bam header!";
 			}
+			if(chrIt == bamHeader.Sequences.End())
+				throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
 		logfile->endIndent();
 
@@ -230,20 +234,30 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 				useChromosome[num] = false;
 
 			limitChr = params.getParameterIntWithDefault("limitChr", 1000000);
+			if(limitChr > bamHeader.Sequences.Size())
+				throw "Chromosome limit exceeds number of chromosomes in genome!";
+
 			logfile->list("Will limit analysis to the first " + toString(limitChr) + " chromosomes.");
 
 			num = 0;
-			for(BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin(); chrIt != bamHeader.Sequences.End(); ++chrIt, ++num){
+			BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin();
+			for( ; chrIt != bamHeader.Sequences.End(); ++chrIt, ++num){
 				if(num == limitChr)
 					break;
 				useChromosome[num] = true;
 				logfile->list(chrIt->Name);
 			}
+
 		} else {
 			for(int i=0; i<bamHeader.Sequences.Size(); ++i)
 				useChromosome[i] = true;
 		}
 	}
+
+	int num = 0;
+	for(BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin(); chrIt != bamHeader.Sequences.End(); ++chrIt, ++num)
+		std::cout << "useChromosome, num " << num << ": " << useChromosome[num] << std::endl;;
+
 
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
@@ -440,6 +454,7 @@ void TAlignmentParser::jumpToEnd(){
 }
 
 void TAlignmentParser::restartChromosomes(TWindow & window){
+	std::cout << "!!!!!!!!! restarting chromosomes" << std::endl;
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
 
@@ -447,6 +462,7 @@ void TAlignmentParser::restartChromosomes(TWindow & window){
 }
 
 void TAlignmentParser::moveChromosome(TWindow & window){
+	std::cout << "!!!!! moving chromosome. chrNumber is now: " << chrNumber << std::endl;
 	//jump reader
 	oldAlignmentMustBeConsidered = false;
 	chrLength = stringToLong(chrIterator->Length);
@@ -475,9 +491,14 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		bamReader.Jump(chrNumber, window.start);
 
 	} else {
+		std::cout << "chrNumber " << chrNumber << "in use: " << useChromosome[chrNumber]<< std::endl;
 		while(!useChromosome[chrNumber]){
 			++chrIterator;
 			++chrNumber;
+			std::cout << "chrNumber in moveChr " << chrNumber << std::endl;
+			chrLength = stringToLong(chrIterator->Length);
+			std::cout << "chrLength " << chrLength << std::endl;
+			throw "done!";
 			chrLength = stringToLong(chrIterator->Length);
 		}
 		bamReader.Jump(chrNumber, 0);
@@ -614,10 +635,10 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 //reading alignments
 //------------------------------
 bool TAlignmentParser::readAlignment(){
-	bool filtersPassed;
+	bool filtersPassed = false;
 	do {
 		if(!bamReader.GetNextAlignment(bamAlignment)){
-//			std::cout << "########## returning false a" << std::endl;
+			std::cout << "########## returning false a" << std::endl;
 			return false;
 		}
 
@@ -625,29 +646,30 @@ bool TAlignmentParser::readAlignment(){
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
-			chrNumber = previousAlignmentChr;
-			chrChanged = true;
-		} else
-			chrChanged = false;
+//			chrNumber = previousAlignmentChr;
+//			chrChanged = true;
+		} //else
+//			chrChanged = false;
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position!";
 		previousAlignmentPos = bamAlignment.Position;
 
-		//jump to next chromosome if not in use
-		if(previousAlignmentChr != -1 && !useChromosome[chrNumber]){
-			std::cout << "entered correct if statement" << std::endl;
-			while(chrNumber < bamHeader.Sequences.Size() && !useChromosome[chrNumber]){
-				++chrIterator;
-				++chrNumber;
-				std::cout << "chrNumber is now " << chrNumber << std::endl;
-				std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
-
-			}
-			if(!bamReader.Jump(chrNumber, 0))
-				throw "jump didnt work!";
-			std::cout << "jumping to chrNumber " << chrNumber << std::endl;
-			std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
-		}
+//		//jump to next chromosome if not in use
+//		if(previousAlignmentChr != -1 && !useChromosome[chrNumber]){
+//			std::cout << "entered correct if statement" << std::endl;
+//			while(chrNumber < bamHeader.Sequences.Size() && !useChromosome[chrNumber]){
+//				++chrIterator;
+//				++chrNumber;
+//
+//				std::cout << "chrNumber is now " << chrNumber << std::endl;
+//				std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
+//
+//			}
+//			if(!bamReader.Jump(chrNumber, 0))
+//				throw "jump didnt work!";
+//			std::cout << "jumping to chrNumber " << chrNumber << std::endl;
+//			std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
+//		}
 
 		//check read length
 		if(bamAlignment.AlignedBases.size() > maxReadLength)
@@ -726,6 +748,7 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 //read data in windows
 //---------------------
 bool TAlignmentParser::readDataInNextWindow(TWindow & window){
+	std::cout << "readDataInNextWindow" << std::endl;
 	setParsingToTrue();
 
 	//move window
@@ -748,30 +771,32 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 	//check if old alignment is to be used.
 	if(oldAlignmentMustBeConsidered){
-		if(bamAlignment.Position >= window.end)
+		if(bamAlignment.Position >= window.end){
 			return;
+		}
 
 		oldAlignmentMustBeConsidered = false;
-		if(oldAlignment->lastAlignedPos > window.start)
+		if(oldAlignment->lastAlignedPositionWithRespectToRef >= window.start)
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 	}
 
 	//read alignments
 	int counter = 0;
 	while(readAlignment()){
-		std::cout << "oldAlignment->alignmentName " << oldAlignment->alignmentName << std::endl;
 		//fill alignment
 		fillAlignment(*oldAlignment);
+		++counter;
 
-		//check if alignment is used in current window
-		int readEnd = oldAlignment->position + oldAlignment->lastAlignedPos;
-		if(oldAlignment->position >= window.end || readEnd >= window.start || oldAlignment->chrNumber != window.chrNumber){
+		//check if alignment starts after current window end -> break
+		if(oldAlignment->position >= window.end || oldAlignment->chrNumber != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
+			std::cout << "breaking after " << counter << " reads!!!!" << std::endl;
 			break;
 		}
 
-		//check if alignment end is after window start
-		if(oldAlignment->lastAlignedPos > window.start){
+		//check if alignment end is after window start (don't need to check for end again)
+		//if read continues outside of window, this is dealt with by window object
+		if(oldAlignment->position > window.start){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 		}
 	}

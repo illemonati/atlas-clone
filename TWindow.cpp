@@ -129,7 +129,7 @@ void TWindow::cleanUpUsedAlignments(){
 //	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastPositionPlusOne > start && (*alignmentIt)->chrNumber == chrNumber)){
+		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber)){
 //			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
 			(*alignmentIt)->clear();
 			emptyAlignments.push_back(*alignmentIt);
