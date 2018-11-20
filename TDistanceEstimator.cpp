@@ -610,15 +610,6 @@ TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 	logfile->list("Writing output files with prefix '" + outputName + "'.");
 }
 
-void TDistanceEstimator::printGLF(TParameters & params){
-	//test first to parse GLF files
-	std::string glf = params.getParameterString("glf");
-	TGlfReader reader(glf);
-
-	//print file
-	reader.printToEnd();
-}
-
 void TDistanceEstimator::openGLF(TParameters & params){
 	params.fillParameterIntoVector("glf", GLFNames, ',');
 	numGLFs = GLFNames.size();
@@ -743,7 +734,7 @@ bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
 	eraseAllOccurences(chr2,"chr");
 
 	while(chr1 != chr2){
-		//advance the one laging behind
+		//advance the one lagging behind
 		if(g1.chrNumber() < g2.chrNumber()){
 			if(!g1.jumpToNextChr()) return false;
 		} else if(g1.chrNumber() > g2.chrNumber()){

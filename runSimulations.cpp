@@ -85,7 +85,7 @@ void runSimulations(TParameters & params, TLog* logfile){
 				simulator.simulatePopulationFromSFS(thetas, sampleSize, outname);
 			}
 			logfile->endIndent();
-		}
+		} else throw "Either argument sfs or theta must be provided to simulate population samples!";
 	}
 	logfile->endIndent();
 

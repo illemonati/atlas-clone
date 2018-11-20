@@ -74,6 +74,8 @@ std::string extractPath(std::string & s);
 
 //read
 std::string readAfterLast(std::string & s, char delim);
+std::string readBeforeLast(std::string & s, std::string delim);
+std::string readBeforeLast(std::string & s, char delim);
 
 //manipulate
 void trimString(std::string & s);
@@ -87,9 +89,6 @@ std::string concatenateString(std::vector<std::string> & vec, std::string delim)
 std::string concatenateString(std::vector<int> & vec, std::string delim);
 std::string concatenateString(std::vector<double> & vec, std::string delim);
 std::string concatenateString(double* array, int length, std::string delim);
-
-//read
-std::string readAfterLast(std::string & s, char delim);
 
 //split into vector
 void fillVectorFromString(std::string s, std::vector<std::string> & vec, std::string delim);

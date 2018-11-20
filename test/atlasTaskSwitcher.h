@@ -44,7 +44,7 @@ public:
 			TDistanceEstimator distEst(logfile, *parameters);
 			distEst.estimateDistances(*parameters);
 		} else if(task == "majorMinor"){
-			TMajorMinor majorMinor(*parameters, logfile);
+			TMajorMinor majorMinor(logfile);
 			majorMinor.estimateMajorMinor(*parameters);
 		} else {
 			//now all task that DO require TGenome
@@ -70,9 +70,6 @@ public:
 			} else if(task == "BQSR"){
 				logfile->startIndent("Estimating recalibration parameters (task = BQSR):");
 				genome.BQSR(*parameters);
-			} else if(task == "callNEW"){
-				logfile->startIndent("Calling with NEW genotype caller (task = callNEW):");
-				genome.callGenotypesNew(*parameters);
 			} else if(task == "callMLE"){
 				logfile->startIndent("Calling MLE Genotypes (task = callMLE):");
 				genome.callMLEGenotypes(*parameters);
@@ -91,6 +88,9 @@ public:
 			} else if(task == "glf"){
 				logfile->startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
 				genome.writeGLF(*parameters);
+			} else if(task == "combineBeagleFiles"){
+				logfile->startIndent("combining beagle files (task = combineBeagleFiles):");
+				genome.combineBeagleFiles(*parameters);
 			} else if(task == "qualityDist"){
 				logfile->startIndent("Printing Quality Distribution (task = qualityDist):");
 				genome.printQualityDistribution(*parameters);

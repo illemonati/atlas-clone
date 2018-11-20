@@ -24,6 +24,10 @@ public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
 	Base** genotypeToBase; //mapping genotypes to bases
+	Base** alleleicCombinationToBase; //mapping the allelic combination to the two bases
+	Genotype** alleleicCombinationToGenotypes; //mapping the alleleic combinations to the homozygous, heterozygosu and other homozygous genotype
+	char** alleleicCombinationToBaseChar; //mapping the allelic combination to the two bases
+
 	char* baseToChar;
 	Base* baseToFlippedBase;
 	int numGenotypes;
@@ -101,6 +105,33 @@ public:
 		baseToFlippedBase[G] = C;
 		baseToFlippedBase[T] = A;
 		baseToFlippedBase[N] = N;
+
+		//fill alleleicCombinationToBase
+		alleleicCombinationToBase = new Base*[6];
+		alleleicCombinationToBase[0] = new Base[2]; alleleicCombinationToBase[0][0] = A; alleleicCombinationToBase[0][1] = C;
+		alleleicCombinationToBase[1] = new Base[2]; alleleicCombinationToBase[1][0] = A; alleleicCombinationToBase[1][1] = G;
+		alleleicCombinationToBase[2] = new Base[2]; alleleicCombinationToBase[2][0] = A; alleleicCombinationToBase[2][1] = T;
+		alleleicCombinationToBase[3] = new Base[2]; alleleicCombinationToBase[3][0] = C; alleleicCombinationToBase[3][1] = G;
+		alleleicCombinationToBase[4] = new Base[2]; alleleicCombinationToBase[4][0] = C; alleleicCombinationToBase[4][1] = T;
+		alleleicCombinationToBase[5] = new Base[2]; alleleicCombinationToBase[5][0] = G; alleleicCombinationToBase[5][1] = T;
+
+		//fill alleleicCombinationToBaseChar
+		alleleicCombinationToBaseChar = new char*[6];
+		alleleicCombinationToBaseChar[0] = new char[2]; alleleicCombinationToBaseChar[0][0] = 'A'; alleleicCombinationToBaseChar[0][1] = 'C';
+		alleleicCombinationToBaseChar[1] = new char[2]; alleleicCombinationToBaseChar[1][0] = 'A'; alleleicCombinationToBaseChar[1][1] = 'G';
+		alleleicCombinationToBaseChar[2] = new char[2]; alleleicCombinationToBaseChar[2][0] = 'A'; alleleicCombinationToBaseChar[2][1] = 'T';
+		alleleicCombinationToBaseChar[3] = new char[2]; alleleicCombinationToBaseChar[3][0] = 'C'; alleleicCombinationToBaseChar[3][1] = 'G';
+		alleleicCombinationToBaseChar[4] = new char[2]; alleleicCombinationToBaseChar[4][0] = 'C'; alleleicCombinationToBaseChar[4][1] = 'T';
+		alleleicCombinationToBaseChar[5] = new char[2]; alleleicCombinationToBaseChar[5][0] = 'G'; alleleicCombinationToBaseChar[5][1] = 'T';
+
+		//fill alleleicCombinationToGenotypes (hom, het, hom2)
+		alleleicCombinationToGenotypes = new Genotype*[6];
+		alleleicCombinationToGenotypes[0] = new Genotype[3]; alleleicCombinationToGenotypes[0][0] = AA; alleleicCombinationToGenotypes[0][1] = AC; alleleicCombinationToGenotypes[0][2] = CC;
+		alleleicCombinationToGenotypes[1] = new Genotype[3]; alleleicCombinationToGenotypes[1][0] = AA; alleleicCombinationToGenotypes[1][1] = AG; alleleicCombinationToGenotypes[1][2] = GG;
+		alleleicCombinationToGenotypes[2] = new Genotype[3]; alleleicCombinationToGenotypes[2][0] = AA; alleleicCombinationToGenotypes[2][1] = AT; alleleicCombinationToGenotypes[2][2] = TT;
+		alleleicCombinationToGenotypes[3] = new Genotype[3]; alleleicCombinationToGenotypes[3][0] = CC; alleleicCombinationToGenotypes[3][1] = CG; alleleicCombinationToGenotypes[3][2] = GG;
+		alleleicCombinationToGenotypes[4] = new Genotype[3]; alleleicCombinationToGenotypes[4][0] = CC; alleleicCombinationToGenotypes[4][1] = CT; alleleicCombinationToGenotypes[4][2] = TT;
+		alleleicCombinationToGenotypes[5] = new Genotype[3]; alleleicCombinationToGenotypes[5][0] = GG; alleleicCombinationToGenotypes[5][1] = GT; alleleicCombinationToGenotypes[5][2] = TT;
 	};
 
 	~TGenotypeMap(){
@@ -117,6 +148,15 @@ public:
 		delete[] contextMap;
 		delete[] baseToChar;
 		delete[] baseToFlippedBase;
+
+		for(int i=0; i<6; ++i){
+			delete[] alleleicCombinationToBase[i];
+			delete[] alleleicCombinationToBaseChar[i];
+			delete[] alleleicCombinationToGenotypes[i];
+		}
+		delete[] alleleicCombinationToBase;
+		delete[] alleleicCombinationToBaseChar;
+		delete[] alleleicCombinationToGenotypes;
 	};
 
 	//TODO: also make an array to speed up?
@@ -197,6 +237,20 @@ public:
 		if(num==8) return "GT";
 		if(num==9) return "TT";
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
+	};
+
+	std::string getGenotypeString(Genotype geno){
+		if(geno==0) return "AA";
+		if(geno==1) return "AC";
+		if(geno==2) return "AG";
+		if(geno==3) return "AT";
+		if(geno==4) return "CC";
+		if(geno==5) return "CG";
+		if(geno==6) return "CT";
+		if(geno==7) return "GG";
+		if(geno==8) return "GT";
+		if(geno==9) return "TT";
+		throw "GenotypeMap: Unknown genotype with number " + toString((int) geno) + "!";
 	};
 
 	std::string getGenotypeStringKnownAlleles(int num, char ref, char alt){
