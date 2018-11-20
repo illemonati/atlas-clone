@@ -75,7 +75,7 @@ public:
 	};
 	void calcEmissionProbabilities(double* vec);
 	void calcEmissionProbabilities();
-	void calculateP_g(double* & genotypeProbabilities, double* & P_g);
+	void calculateP_g(double* genotypeProbabilities, double* P_g);
 	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();

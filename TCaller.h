@@ -26,9 +26,6 @@ protected:
 	std::string filenameExtention;
 	std::string defaultInfoFields, defaultGenotypeFields;
 
-	//std::vector<std::string> acceptableVCFInfoFields;
-	//std::vector<VCFGenotypeFieldTag> acceptableVCFGenotypeFields;
-
 	//lookup stuff
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
@@ -49,9 +46,12 @@ protected:
 	//temp variables for calling
 	std::string calledGenotype;
 	std::vector<int> genotypesWithHighestMetric;
-	std::vector<char> altAlleles;
+	int referenceBase;
+	std::vector<int> altAlleles; //order of Base enums: A, C, G, T, N
 	int alleleCounts[4];
 	bool allelesCounted;
+	double genotypePrior[10]; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	void setPrior(double* GenotypePrior){ for(int g=0; g<10; ++g) genotypePrior[g] = GenotypePrior[g]; };
 
 	//functions regarding VCF file
 	void setAcceptableFields(TVCFFieldVector* fields, std::string tags);
@@ -73,6 +73,7 @@ protected:
 
 	//write VCF
 	std::string composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site);
+	virtual void writeAlternativeAllelesToVCF();
 	void writeCallToVCF(const std::string & chr, const long pos, TSite & site);
 
 	//call
@@ -140,8 +141,9 @@ public:
 //------------------------------------------------------
 class TCallerAllelePresence:public TCaller{
 private:
-	int alleleCounts[4];
-	double highestCounts;
+	double posteriorProb[10];
+	double allelePostProb[4];
+	double highestPostProb;
 	virtual void callGenotype(TSite & site);
 
 public:

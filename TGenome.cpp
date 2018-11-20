@@ -881,7 +881,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 	} else if(method == "majorityBase"){
 		caller = new TCallerMajorityBase(randomGenerator);
 	} else if(method == "allelePresence"){
-
+		caller = new TCallerAllelePresence(randomGenerator);
 	} else if(method == "MLE"){
 		caller = new TCallerRandomBase(randomGenerator);
 	} else if(method == "Bayesian"){

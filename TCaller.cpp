@@ -32,6 +32,7 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 
 	//tmp variables
 	allelesCounted = false;
+	for(int g=0; g<10; ++g) genotypePrior[g] = 1.0 / 10.0; //equal prior for all genotypes by default
 };
 
 TCaller::~TCaller(){
@@ -191,9 +192,12 @@ std::string TCaller::getVCFGenotypeString_DP(TSite & site){
 
 std::string TCaller::getVCFGenotypeString_AD(TSite & site){
 	countAlleles(site);
-	std::string ret = toString(alleleCounts[genoMap.getBase(site.referenceBase)]);
-	for(std::vector<char>::iterator it = altAlleles.begin(); it != altAlleles.end(); ++it)
-		ret += ',' + toString(alleleCounts[genoMap.getBase(*it)]);
+	std::string ret;
+	if(referenceBase == N) ret = "0";
+	else ret = toString(alleleCounts[referenceBase]);
+
+	for(std::vector<int>::iterator it = altAlleles.begin(); it != altAlleles.end(); ++it)
+		ret += ',' + toString(alleleCounts[*it]);
 	return ret;
 };
 
@@ -217,19 +221,23 @@ std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(TSite
 	return info;
 };
 
+void TCaller::writeAlternativeAllelesToVCF(){
+	if(altAlleles.size() == 0){
+		vcf << '.';
+	} else {
+		vcf << genoMap.baseToChar[altAlleles[0]];
+		for(size_t i=1; i<altAlleles.size(); ++i)
+			vcf << ',' << genoMap.baseToChar[altAlleles[i]];
+	}
+};
+
 void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & site){
 	//write chr, position and (no) variant ID
 	vcf << chr << '\t' << pos << "\t.\t";
 
 	//write reference and alternative alleles
 	vcf << site.referenceBase << "\t";
-	if(altAlleles.size() == 0){
-		vcf << '.';
-	} else {
-		vcf << altAlleles[0];
-		for(size_t i=1; i<altAlleles.size(); ++i)
-			vcf << ',' << altAlleles[i];
-	}
+	writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
 	vcf << "\t.\t.";
@@ -297,6 +305,7 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	//check if there is data
 	if(site.hasData){
 		//call
+		referenceBase = genoMap.getBase(site.referenceBase);
 		callGenotype(site);
 
 		//apply filter on alternative alleles
@@ -364,10 +373,10 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(TSite & site){
 	//randomly pick a base
-	char allele = site.bases[randomGenerator->pickOne(site.bases.size())]->getBase();
+	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->getBaseAsEnum();
 
 	//decide on alt
-	if(allele == site.referenceBase){
+	if(allele == referenceBase){
 		calledGenotype = "0";
 	} else {
 		altAlleles.push_back(allele);
@@ -386,24 +395,23 @@ TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCal
 	defaultGenotypeFields = "GT,DP";
 
 	//initialize allele counts
-	highestCounts = 0;
+	highestCounts = 0.0;
 };
 
 void TCallerMajorityBase::callGenotype(TSite & site){
 	//get per allele counts
 	countAlleles(site);
 	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
-	char allele = genoMap.baseToChar[majorityIndex];
 
 	//decide on alt
-	if(allele == site.referenceBase){
+	if(majorityIndex == referenceBase){
 		calledGenotype = "0";
 
 		//find second most common as alternative allele
 		int second = pickIndexWithSecondHighestMetric(alleleCounts, 4, majorityIndex);
-		altAlleles.push_back(genoMap.baseToChar[second]);
+		altAlleles.push_back(second);
 	} else {
-		altAlleles.push_back(allele);
+		altAlleles.push_back(majorityIndex);
 		calledGenotype = "1";
 	}
 };
@@ -419,36 +427,47 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	defaultGenotypeFields = "GT,DP";
 
 	//initialize allele counts
-	highestCounts = 0;
+	highestPostProb = 0.0;
+
 };
 
 void TCallerAllelePresence::callGenotype(TSite & site){
-	//get per allele counts
+	//calculate posterior probabilities
+	site.calculateP_g(genotypePrior, posteriorProb);
 
-	site.countAlleles(alleleCounts);
-	int majority = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
-	char allele = genoMap.getBaseAsChar(majority);
+	//sum for each base
+	allelePostProb[0] = posteriorProb[AA] + posteriorProb[AC] + posteriorProb[AG] + posteriorProb[AT];
+	allelePostProb[1] = posteriorProb[AC] + posteriorProb[CC] + posteriorProb[CG] + posteriorProb[CT];
+	allelePostProb[2] = posteriorProb[AG] + posteriorProb[CG] + posteriorProb[GG] + posteriorProb[GT];
+	allelePostProb[3] = posteriorProb[AT] + posteriorProb[CT] + posteriorProb[GT] + posteriorProb[TT];
+
+	//find map
+	int MAP = pickIndexWithHighestMetric(allelePostProb, 4, highestPostProb);
 
 	//decide on alt
-	if(allele == site.referenceBase){
+	if(MAP == referenceBase){
 		calledGenotype = "0";
 
-		int majority = pickIndexWithHighestMetric(alleleCounts, 4, highestCounts);
+		//find second most common as alternative allele
+		int second = pickIndexWithSecondHighestMetric(alleleCounts, 4, MAP);
+		altAlleles.push_back(second);
 	} else {
-		altAlleles.push_back(allele);
+		altAlleles.push_back(MAP);
 		calledGenotype = "1";
 	}
 };
 
-
 /////////////////////////////////////////////////////////
 // TCallerDiploid
+// common function between MLE, Bayes and gvcf callers
 /////////////////////////////////////////////////////////
 TCallerDiploid::TCallerDiploid(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
 	peformImbalanceTest = false;
 };
 
-//------------------------------------------------------
+
+
+/////////////////////////////////////////////////////////
 // TCallerMLE
 //------------------------------------------------------
 TCallerMLE::TCallerMLE(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomGenerator){

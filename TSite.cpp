@@ -139,7 +139,7 @@ std::string TSite::getEmissionProbs(){
 	return b;
 }
 
-void TSite::calculateP_g(double* & genotypeProbabilities, double* & P_g){
+void TSite::calculateP_g(double* genotypeProbabilities, double* P_g){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
 	for(int i=0; i<numGenotypes; ++i){
