@@ -607,6 +607,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				//there is no window left on chr
 				++chrIterator;
 				++chrNumber;
+				std::cout << "could not move to next window on chr. incremented chrNumber to " << chrNumber << std::endl;
 
 				//do we use this chromosome? if not, move on!
 				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
@@ -615,7 +616,8 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				}
 
 				//did we reach end?
-				if(chrIterator == bamHeader.Sequences.End() || chrNumber >= limitChr){
+				if(chrIterator == bamHeader.Sequences.End() || (limitChr != -1 && chrNumber >= limitChr)){
+					std::cout << "reached end or chr limit, which is " << limitChr << std::endl;
 					window.end = 0;
 					return false;
 				}
@@ -753,6 +755,7 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 
 	//move window
 	if(!moveWindow(window)){
+		std::cout << "could not move window" << std::endl;
 		return false;
 	}
 
