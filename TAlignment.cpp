@@ -272,9 +272,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					if(bases[d].base == N)
+					if(bases[d].base == N){
 						bases[d].aligned = false;
-					else {
+						bases[d].alignedPos = -1;
+					} else {
 						bases[d].aligned = true;
 						bases[d].alignedPos = p;
 					}

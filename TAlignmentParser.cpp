@@ -498,7 +498,6 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 			std::cout << "chrNumber in moveChr " << chrNumber << std::endl;
 			chrLength = stringToLong(chrIterator->Length);
 			std::cout << "chrLength " << chrLength << std::endl;
-			throw "done!";
 			chrLength = stringToLong(chrIterator->Length);
 		}
 		bamReader.Jump(chrNumber, 0);
@@ -799,7 +798,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 		//check if alignment end is after window start (don't need to check for end again)
 		//if read continues outside of window, this is dealt with by window object
-		if(oldAlignment->position > window.start){
+		if(oldAlignment->position >= window.start){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 		}
 	}

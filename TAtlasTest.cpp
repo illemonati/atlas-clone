@@ -175,11 +175,14 @@ void TAtlasTest_pileup::writeBAM(){
 	bamAlignment.Position = 0;
 
 	//homozygous
-	int i;
+	int counter = 0;
 	for(size_t d=0; d<depths.size(); ++d){
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
-		for(i=0; i<depths[d]; ++i)
+		for(int i=0; i<depths[d]; ++i){
+			bamAlignment.Name = "Alignment_" + toString(counter);
 			bamWriter.SaveAlignment(bamAlignment);
+			++counter;
+		}
 		bamAlignment.Position += readLength;
 	}
 
@@ -191,12 +194,12 @@ void TAtlasTest_pileup::writeBAM(){
 		//first base
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		m = depths[d]/2;
-		for(i=0; i<m; ++i)
+		for(int i=0; i<m; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 
 		//second base
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar((d+1) % 4));
-		for(i=m; i<depths[d]; ++i)
+		for(int i=m; i<depths[d]; ++i)
 			bamWriter.SaveAlignment(bamAlignment);
 
 		bamAlignment.Position += readLength;

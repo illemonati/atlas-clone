@@ -222,8 +222,6 @@ void TWindow::fillSites(){
 			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
 				++p;
 			if(p == (*alignmentIt)->length){
-				std::cout << "alignment address " << *alignmentIt << std::endl;
-//				std::cout << (*(alignmentIt-1))->alignmentName << " " << (*(alignmentIt-1))->position << std::endl;
 				throw "alignment should be assigned to previous window! Name: " + (*alignmentIt)->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString((*alignmentIt)->position);
 			}
 		}
@@ -232,7 +230,7 @@ void TWindow::fillSites(){
 		int internalPos;
 		//p is at first position of read in window
 		for(; p < (*alignmentIt)->length; ++p){
-			if((*alignmentIt)->bases[p].alignedPos && (*alignmentIt)->bases[p].base != N){
+			if((*alignmentIt)->bases[p].aligned && (*alignmentIt)->bases[p].base != N){
 				internalPos = firstPos + (*alignmentIt)->bases[p].alignedPos;
 				//if read extends past window length
 				if(internalPos >= length)
