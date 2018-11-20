@@ -181,6 +181,10 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_PL );
 		else if(*it == "GP")
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_GP );
+		else if(*it == "AB")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AB );
+		else if(*it == "AI")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AI );
 		else throw "No function defined for VCF " + VCFGenotypeFields.type() + " field '" + *it + "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!";
 
 		//add to format string
@@ -259,38 +263,13 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & si
 	vcf << '\n';
 
 	//clean up storage
+	clearAfterCall();
+};
+
+void TCaller::clearAfterCall(){
 	altAlleles.clear();
 	allelesCounted = false;
 };
-
-/*
-void TSite::calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled,  double & quality, double & maxGenotypeProb, int & MLGenotype){
-	//calculate phred-scaled likelihoods and find max
-	maxGenotypeProb = 100000.0;
-	quality = 100000.0;
-	std::vector<int> MLEs;
-	std::vector<int>::iterator it;
-	for(int i=0; i<numGenotypes; ++i){
-		emissionProbabilitiesPhredScaled[i] = makePhredByRef(emissionProbabilities[i]);
-		if(emissionProbabilitiesPhredScaled[i] < maxGenotypeProb){
-			MLGenotype = i;
-			quality = maxGenotypeProb;
-			maxGenotypeProb = emissionProbabilitiesPhredScaled[i];
-			MLEs.clear();
-			MLEs.push_back(i);
-		} else if(emissionProbabilitiesPhredScaled[i] == maxGenotypeProb){
-			MLEs.push_back(i);
-			quality = emissionProbabilitiesPhredScaled[i];
-		} else if(emissionProbabilitiesPhredScaled[i] < quality){
-			quality = emissionProbabilitiesPhredScaled[i];
-		}
-	}
-	//select best allele at random if there are multiple options
-	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
-	quality = quality - maxGenotypeProb;
-}
-*/
-
 
 //-------------------------------------------------------------------------------------------
 // calling
@@ -478,6 +457,14 @@ std::string TCallerAllelePresence::getVCFGenotypeString_AP(TSite & site){
 TCallerDiploid::TCallerDiploid(TRandomGenerator* RandomGenerator):TCaller(RandomGenerator){
 	indexOfMax = -1;
 	indexOfSecond = -1;
+	imbalanceCalculated = false;
+
+	setAcceptableFields(&VCFGenotypeFields, "AB,AI");
+};
+
+void TCallerDiploid::clearAfterCall(){
+	TCaller::clearAfterCall();
+	imbalanceCalculated = false;
 };
 
 void TCallerDiploid::callGenotypeFromMetric(double* metric){
@@ -542,6 +529,64 @@ std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 	return ret;
 };
 
+/*
+void TCallerDiploid::calculateImbalance(){
+	if(!imbalanceCalculated){
+		if(!altAlleles.empty()){
+			countAlleles(site);
+
+			if(altAlleles.size() == 1){
+				AB = alleleCounts[referenceBase] / (alleleCounts[referenceBase] + alleleCounts[altAlleles[0]]);
+				AI = randomGenerator->binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]);
+			} else {
+				//case 1/2 or 0/1 or 0/2?
+
+				if(calledGenotype == "0/0"){
+			}
+
+
+		}
+
+
+	imbalanceCalculated = true;
+	}
+}
+
+std::string TCallerDiploid::getVCFGenotypeString_AB(TSite & site){
+
+
+	if()
+	return toString(alleleCounts[]);
+};
+
+std::string TCallerDiploid::getVCFGenotypeString_AI(TSite & site){
+
+};
+
+//get AD and imbalance string
+std::string AD;
+double AI;
+double AB;
+if(first == referenceBaseAsBase){
+	if(first == second && noAltIfHomoRef)
+		AD = toString(R_AD);
+	else
+		AD = toString(R_AD) + ',' + toString(A2_AD);
+	AB = (double) R_AD / (double) (R_AD + A2_AD);
+	AI = randomGenerator.binomPValue(R_AD, A2_AD);
+} else if(second == referenceBaseAsBase){
+	AD = toString(R_AD) + ',' + toString(A1_AD);
+	AB = (double) R_AD / (double) (R_AD + A1_AD);
+	AI = randomGenerator.binomPValue(R_AD, A1_AD);
+} else {
+	AD = toString(R_AD) + ',' + toString(A1_AD) + ',' + toString(A2_AD);
+	AB = (double) A1_AD / (double) (A1_AD + A2_AD);
+	AI = randomGenerator.binomPValue(A1_AD, A2_AD);
+}
+
+return AD + ':' + toString(AB) + ':' + toString(AI);
+*/
+
 /////////////////////////////////////////////////////////
 // TCallerMLE
 /////////////////////////////////////////////////////////
@@ -549,7 +594,7 @@ TCallerMLE::TCallerMLE(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomG
 	//caller settings
 	callerName = "MLE Caller";
 	filenameExtention = "_MaximumLikelihood.vcf";
-	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,GL,PL");
+	setAcceptableFields(&VCFGenotypeFields, "AD,GQ,GL,PL");
 
 	//set default tags to print
 	printGenotypeFields("GT,DP,AD,GQ,PL");
@@ -581,10 +626,7 @@ std::string TCallerMLE::getVCFGenotypeString_PL(TSite & site){
 		tmp[g] = round(qualMap.errorToPhred(site.emissionProbabilities[g]) - phredMax);
 
 	//get string
-	std::string x = getPerGenotypeMetricString(tmp);
-	std::cout << x << std::endl;
-	return x;
-	//return getPerGenotypeMetricString(tmp);
+	return getPerGenotypeMetricString(tmp);
 };
 
 //------------------------------------------------------
@@ -594,7 +636,7 @@ TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCallerDiploid(Ran
 	//caller settings
 	callerName = "Bayesian Caller";
 	filenameExtention = "_MaximumAPosteriori.vcf";
-	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,GP");
+	setAcceptableFields(&VCFGenotypeFields, "AD,GQ,GP");
 	printGenotypeFields("GT,DP,AD,GQ,GP");
 };
 
@@ -605,6 +647,10 @@ void TCallerBayes::callGenotype(TSite & site){
 
 	//call
 	callGenotypeFromMetric(site.emissionProbabilities);
+};
+
+std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){
+	return toString(qualMap.errorToPhredInt(1.0 - posteriorProb[indexOfMax]));
 };
 
 std::string TCallerBayes::getVCFGenotypeString_GP(TSite & site){

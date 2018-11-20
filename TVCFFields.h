@@ -150,6 +150,8 @@ public:
 		add("GL", "Number=G,Type=Float,Description=\"Normalized genotype likelihoods\"");
 		add("PL", "Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\"");
 		add("GP", "Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\"");
+		add("AB", "Number=1,Type=Float,Description=\"Allelic imbalance\"");
+		add("AI", "Number=1,Type=Float,Description=\"Binomial probability of allelic imbalance if Hz site\"");
 	};
 };
 

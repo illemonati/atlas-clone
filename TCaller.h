@@ -74,12 +74,15 @@ protected:
 	virtual std::string getVCFGenotypeString_AP(TSite & site){ throw "Function std::string getVCFGenotypeString_AP(const TSite & site) not defined for base class TCaller!"; };
 	virtual std::string getVCFGenotypeString_GL(TSite & site){ throw "Function std::string getVCFGenotypeString_GL(const TSite & site) not defined for base class TCaller!"; };
 	virtual std::string getVCFGenotypeString_PL(TSite & site){ throw "Function std::string getVCFGenotypeString_PL(const TSite & site) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_GP(TSite & site){ throw "Function std::string getVCFGenotypeString_PL(const TSite & site) not defined for base class TCaller!"; };
+	virtual std::string getVCFGenotypeString_GP(TSite & site){ throw "Function std::string getVCFGenotypeString_GP(const TSite & site) not defined for base class TCaller!"; };
+	virtual std::string getVCFGenotypeString_AB(TSite & site){ throw "Function std::string getVCFGenotypeString_AB(const TSite & site) not defined for base class TCaller!"; };
+	virtual std::string getVCFGenotypeString_AI(TSite & site){ throw "Function std::string getVCFGenotypeString_AI(const TSite & site) not defined for base class TCaller!"; };
 
 	//write VCF
 	std::string composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site);
 	virtual void writeAlternativeAllelesToVCF();
 	void writeCallToVCF(const std::string & chr, const long pos, TSite & site);
+	virtual void clearAfterCall();
 
 	//call
 	void countAlleles(TSite & site);
@@ -160,8 +163,14 @@ public:
 class TCallerDiploid:public TCaller{
 protected:
 	int indexOfMax, indexOfSecond;
+	double AB, AI;
+	bool imbalanceCalculated;
+
+	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);
 	std::string getPerGenotypeMetricString(double* metric);
+	std::string getVCFGenotypeString_AB(TSite & site){};
+	std::string getVCFGenotypeString_AI(TSite & site){};
 
 public:
 	TCallerDiploid(TRandomGenerator* RandomGenerator);
@@ -189,6 +198,7 @@ private:
 	double posteriorProb[10];
 
 	void callGenotype(TSite & site);
+	std::string getVCFGenotypeString_GQ(TSite & site);
 	std::string getVCFGenotypeString_GP(TSite & site);
 	std::string getVCFGenotypeString_PP(TSite & site);
 
