@@ -70,6 +70,7 @@ protected:
 	virtual std::string getVCFGenotypeString_DP(TSite & site);
 	virtual std::string getVCFGenotypeString_GQ(TSite & site){ throw "Function std::string getVCFGenotypeString_GQ(const TSite & site) not defined for base class TCaller!"; };
 	virtual std::string getVCFGenotypeString_AD(TSite & site);
+	virtual std::string getVCFGenotypeString_AP(TSite & site){ throw "Function std::string getVCFGenotypeString_AP(const TSite & site) not defined for base class TCaller!"; };
 
 	//write VCF
 	std::string composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site);
@@ -147,6 +148,7 @@ private:
 
 	void callGenotype(TSite & site);
 	std::string getVCFGenotypeString_GQ(TSite & site);
+	std::string getVCFGenotypeString_AP(TSite & site);
 
 public:
 	TCallerAllelePresence(TRandomGenerator* RandomGenerator);

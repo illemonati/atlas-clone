@@ -171,9 +171,10 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_DP );
 		else if(*it == "GQ")
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_GQ );
-		else if(*it == "AD"){
+		else if(*it == "AD")
 			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AD );
-		}
+		else if(*it == "AP")
+			VCFGenotypeFunctionsVec.push_back( &TCaller::getVCFGenotypeString_AP );
 		else throw "No function defined for VCF " + VCFGenotypeFields.type() + " field '" + *it + "'! @Programmer: add function to TTCaller::fillGenotypeFieldFunctionPointers()!";
 
 		//add to format string
@@ -429,7 +430,7 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	//caller settings
 	callerName = "Allele Presence Caller";
 	filenameExtention = "_allelePresence.vcf";
-	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ");
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,AP");
 	defaultInfoFields = "DP";
 	defaultGenotypeFields = "GT,DP";
 
@@ -466,6 +467,14 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 
 std::string TCallerAllelePresence::getVCFGenotypeString_GQ(TSite & site){
 	return toString(qualMap.errorToPhredInt(1.0 - highestPostProb));
+};
+
+std::string TCallerAllelePresence::getVCFGenotypeString_AP(TSite & site){
+	std::string ret = toString(qualMap.errorToPhredInt(posteriorProb[0]));
+	ret += ',' + toString(qualMap.errorToPhredInt(posteriorProb[1]));
+	ret += ',' + toString(qualMap.errorToPhredInt(posteriorProb[2]));
+	ret += ',' + toString(qualMap.errorToPhredInt(posteriorProb[3]));
+	return ret;
 };
 
 /////////////////////////////////////////////////////////
