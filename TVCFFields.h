@@ -146,6 +146,7 @@ public:
 		add("DP", "Number=1,Type=Integer,Description=\"Total Depth\">");
 		add("GQ", "Number=1,Type=Integer,Description=\"Genotype quality\"");
 		add("AD", "Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\"");
+		//add("AD", "Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\"");
 	};
 };
 

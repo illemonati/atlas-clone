@@ -144,7 +144,9 @@ private:
 	double posteriorProb[10];
 	double allelePostProb[4];
 	double highestPostProb;
-	virtual void callGenotype(TSite & site);
+
+	void callGenotype(TSite & site);
+	std::string getVCFGenotypeString_GQ(TSite & site);
 
 public:
 	TCallerAllelePresence(TRandomGenerator* RandomGenerator);

@@ -412,7 +412,10 @@ public:
 	};
 
 	inline double errorToPhred(const double & errorRate){
-		return -10.0 * log10(errorRate);
+		if(errorRate < min)
+			return min;
+		else
+			return -10.0 * log10(errorRate);
 	};
 
 	inline int errorToQuality(const double & errorRate){

@@ -367,6 +367,12 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 	//caller settings
 	callerName = "Random Base Caller";
 	filenameExtention = "_randomBase.vcf";
+
+	//set acceptable tags
+	setAcceptableFields(&VCFInfoFields, "DP");
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
+
+	//set default tags to print
 	defaultInfoFields = "DP";
 	defaultGenotypeFields = "GT,DP";
 };
@@ -423,12 +429,13 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	//caller settings
 	callerName = "Allele Presence Caller";
 	filenameExtention = "_allelePresence.vcf";
+	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ");
 	defaultInfoFields = "DP";
 	defaultGenotypeFields = "GT,DP";
 
+
 	//initialize allele counts
 	highestPostProb = 0.0;
-
 };
 
 void TCallerAllelePresence::callGenotype(TSite & site){
@@ -455,6 +462,10 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 		altAlleles.push_back(MAP);
 		calledGenotype = "1";
 	}
+};
+
+std::string TCallerAllelePresence::getVCFGenotypeString_GQ(TSite & site){
+	return toString(qualMap.errorToPhredInt(1.0 - highestPostProb));
 };
 
 /////////////////////////////////////////////////////////
