@@ -324,7 +324,7 @@ std::string TSite::compileADString(const int & genotype, TGenotypeMap & genoMap,
 			AD = toString(R_AD) + ',' + toString(A2_AD);
 		AB = (double) R_AD / (double) (R_AD + A2_AD);
 		AI = randomGenerator.binomPValue(R_AD, A2_AD);
-	} else if(second == referenceBaseAsBase){
+	} else if(second == referenceBaseAsBase || first == second){
 		AD = toString(R_AD) + ',' + toString(A1_AD);
 		AB = (double) R_AD / (double) (R_AD + A1_AD);
 		AI = randomGenerator.binomPValue(R_AD, A1_AD);
