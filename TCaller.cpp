@@ -285,7 +285,6 @@ void TCaller::countAlleles(TSite & site){
 
 void TCaller::callGenotype(TSite & site){
 	calledGenotype = "0/0";
-	std::vector<int> altAlleles;
 };
 
 
@@ -633,7 +632,7 @@ void TCallerBayes::callGenotype(TSite & site){
 	site.calculateP_g(genotypePrior, posteriorProb);
 
 	//call
-	callGenotypeFromMetric(site.emissionProbabilities);
+	callGenotypeFromMetric(posteriorProb);
 };
 
 std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){
