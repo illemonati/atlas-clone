@@ -24,6 +24,8 @@ TWindow::TWindow(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
+	chrName = "";
+	refId = -1;
 };
 
 TWindow::TWindow(long Start, long End){
@@ -41,12 +43,15 @@ void TWindow::initSites(long newLength){
 	if(length > 0){
 		try{
 			_initSites();
+			sitesInitialized = true;
 		} catch(...){
 			throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
 		}
-	} else sites = NULL;
+	} else {
+		sites = NULL;
+		sitesInitialized = false;
+	}
 
-	sitesInitialized = true;
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionsitesDepthAtLeastTwo = -1.0;
@@ -64,7 +69,9 @@ void TWindow::clear(){
 	referenceBaseAdded = false;
 };
 
-void TWindow::move(long Start, long End){
+void TWindow::move(std::string ChrName, int RefId,  long Start, long End){
+	chrName = ChrName;
+	refId = RefId;
 	start = Start;
 	end = End;
 	if(sitesInitialized){
@@ -128,11 +135,11 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 }
 
 
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, const int & refId){
+void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, const int & refID){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
-		reference.GetSequence(refId, start, stop, ref);
+		reference.GetSequence(refID, start, stop, ref);
 		for(int i=0; i<length; ++i){
 	//		if(sites[i].hasData)
 			sites[i].setRefBase(ref[i]);
@@ -210,23 +217,19 @@ void TWindow::estimateBaseFrequencies(){
 
 void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 	for(int i=0; i<length; ++i){
-		//std::cout << start + i << ": ";
-
 		if(sites[i].hasData)
 			recalObject->calcEmissionProbabilities(sites[i]);
-
-		//std::cout << std::endl;
 	}
 };
 
-void TWindow::call(TCaller & caller, TRecalibration & recalObject, const std::string & chr, BamTools::Fasta & reference, const int & refID){
+void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
 	//add reference to sites
-	addReferenceBaseToSites(reference, refID);
+	addReferenceBaseToSites(reference, refId);
 
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData) recalObject.calcEmissionProbabilities(sites[i]);
-		caller.call(chr, start + i + 1, sites[i]);
+		caller.call(chrName, start + i + 1, sites[i]);
 	}
 };
 

@@ -18,6 +18,7 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 
 	//output choices
 	_printSitesWithNoData = false;
+	_printNoAltIfHomoRef = false;
 
 	//vcf file
 	vcfOpen = false;
@@ -25,6 +26,8 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 	//set acceptable tags
 	setAcceptableFields(&VCFInfoFields, "DP");
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
+	_usesPrior = false;
+	priorSet = false;
 
 	//set default tags to print
 	printInfoFields("");
@@ -32,7 +35,6 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 
 	//tmp variables
 	allelesCounted = false;
-	for(int g=0; g<10; ++g) genotypePrior[g] = 1.0 / 10.0; //equal prior for all genotypes by default
 };
 
 TCaller::~TCaller(){
@@ -282,7 +284,7 @@ void TCaller::countAlleles(TSite & site){
 };
 
 void TCaller::callGenotype(TSite & site){
-	calledGenotype = '0/0';
+	calledGenotype = "0/0";
 	std::vector<int> altAlleles;
 };
 
@@ -407,12 +409,15 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	callerName = "Allele Presence Caller";
 	filenameExtention = "_allelePresence.vcf";
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD,GQ,AP");
+	_usesPrior = true;
 
 	//initialize allele counts
 	MAP = -1;
 };
 
 void TCallerAllelePresence::callGenotype(TSite & site){
+	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
+
 	//calculate posterior probabilities
 	site.calculateP_g(genotypePrior, posteriorProb);
 
@@ -430,7 +435,7 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 		calledGenotype = "0";
 
 		//find second most common as alternative allele
-		int second = pickIndexWithSecondHighestMetric(alleleCounts, 4, MAP);
+		int second = pickIndexWithSecondHighestMetric(allelePostProb, 4, MAP);
 		altAlleles.push_back(second);
 	} else {
 		altAlleles.push_back(MAP);
@@ -458,6 +463,7 @@ TCallerDiploid::TCallerDiploid(TRandomGenerator* RandomGenerator):TCaller(Random
 	indexOfMax = -1;
 	indexOfSecond = -1;
 	imbalanceCalculated = false;
+	AI = 0; AB = 0;
 
 	setAcceptableFields(&VCFGenotypeFields, "AB,AI");
 };
@@ -529,8 +535,7 @@ std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 	return ret;
 };
 
-/*
-void TCallerDiploid::calculateImbalance(){
+void TCallerDiploid::calculateImbalance(TSite & site){
 	if(!imbalanceCalculated){
 		if(!altAlleles.empty()){
 			countAlleles(site);
@@ -539,53 +544,32 @@ void TCallerDiploid::calculateImbalance(){
 				AB = alleleCounts[referenceBase] / (alleleCounts[referenceBase] + alleleCounts[altAlleles[0]]);
 				AI = randomGenerator->binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]);
 			} else {
-				//case 1/2 or 0/1 or 0/2?
-
-				if(calledGenotype == "0/0"){
+				if(genoMap.genotypeToBase[indexOfMax][0] != genoMap.genotypeToBase[indexOfMax][1]){ //is het
+					AB = alleleCounts[genoMap.genotypeToBase[indexOfMax][0]] / (alleleCounts[genoMap.genotypeToBase[indexOfMax][0]] + alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]);
+					AI = randomGenerator->binomPValue(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]], alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]);
+				} else { // is homo: use ref vs homo allele
+					AB = alleleCounts[referenceBase] / (alleleCounts[referenceBase] + alleleCounts[genoMap.genotypeToBase[indexOfMax][0]]);
+					AI = randomGenerator->binomPValue(alleleCounts[referenceBase], alleleCounts[genoMap.genotypeToBase[indexOfMax][0]]);
+				}
 			}
-
-
 		}
-
-
-	imbalanceCalculated = true;
+		imbalanceCalculated = true;
 	}
-}
+};
 
 std::string TCallerDiploid::getVCFGenotypeString_AB(TSite & site){
+	if(altAlleles.empty()) return ".";
 
-
-	if()
-	return toString(alleleCounts[]);
+	calculateImbalance(site);
+	return toString(AB);
 };
 
 std::string TCallerDiploid::getVCFGenotypeString_AI(TSite & site){
+	if(altAlleles.empty()) return ".";
 
+	calculateImbalance(site);
+	return toString(AI);
 };
-
-//get AD and imbalance string
-std::string AD;
-double AI;
-double AB;
-if(first == referenceBaseAsBase){
-	if(first == second && noAltIfHomoRef)
-		AD = toString(R_AD);
-	else
-		AD = toString(R_AD) + ',' + toString(A2_AD);
-	AB = (double) R_AD / (double) (R_AD + A2_AD);
-	AI = randomGenerator.binomPValue(R_AD, A2_AD);
-} else if(second == referenceBaseAsBase){
-	AD = toString(R_AD) + ',' + toString(A1_AD);
-	AB = (double) R_AD / (double) (R_AD + A1_AD);
-	AI = randomGenerator.binomPValue(R_AD, A1_AD);
-} else {
-	AD = toString(R_AD) + ',' + toString(A1_AD) + ',' + toString(A2_AD);
-	AB = (double) A1_AD / (double) (A1_AD + A2_AD);
-	AI = randomGenerator.binomPValue(A1_AD, A2_AD);
-}
-
-return AD + ':' + toString(AB) + ':' + toString(AI);
-*/
 
 /////////////////////////////////////////////////////////
 // TCallerMLE
@@ -638,10 +622,13 @@ TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCallerDiploid(Ran
 	filenameExtention = "_MaximumAPosteriori.vcf";
 	setAcceptableFields(&VCFGenotypeFields, "AD,GQ,GP");
 	printGenotypeFields("GT,DP,AD,GQ,GP");
+	_usesPrior = true;
 };
 
 
 void TCallerBayes::callGenotype(TSite & site){
+	if(!priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
+
 	//calculate posterior probabilities
 	site.calculateP_g(genotypePrior, posteriorProb);
 

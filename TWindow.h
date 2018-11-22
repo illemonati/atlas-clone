@@ -23,6 +23,7 @@
 //---------------------------------------------------------------
 //TWindow
 //---------------------------------------------------------------
+//ToDo: make things private
 class TWindow{
 public:
 	long start;
@@ -37,6 +38,8 @@ public:
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
+	std::string chrName;
+	int refId;
 
 	TWindow();
 	TWindow(long Start, long End);
@@ -48,7 +51,7 @@ public:
 		throw "Function 'initSites' not implemented for base class TWindow!";
 	};
 	void clear();
-	void move(long Start, long End);
+	void move(std::string ChrName, int RefId,  long Start, long End);
 	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, const int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
@@ -56,7 +59,7 @@ public:
 	void maskCpG(BamTools::Fasta & reference, int & refId);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
-	void call(TCaller & caller, TRecalibration & recalObject, const std::string & chr, BamTools::Fasta & reference, const int & refID);
+	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printOnlySitesWithData);
 	virtual void calcDepth();

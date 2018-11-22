@@ -108,8 +108,8 @@ public:
 		return numSitesWithData;
 	};
 
-	void writeHeader(std::ofstream & out);
-	void writeSize(std::ofstream & out);
+	void writeHeader(gz::ogzstream & out);
+	void writeSize(gz::ogzstream & out);
 	void fillBaseFreq(double* baseFreq);
 	virtual void fillP_G(double* & P_G, double* & pGenotype);
 	virtual double calcLogLikelihood(double* & pGenotype);

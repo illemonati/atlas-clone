@@ -370,6 +370,9 @@ public:
 			wasNormalized = true;
 		}
 	};
+	void setEqualBaseFreq(){
+		for(int i = 0; i < 4; ++i) freq[i] = 0.25;
+	};
 	void clear(){
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
 		wasNormalized = false;

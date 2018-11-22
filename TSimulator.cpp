@@ -56,7 +56,7 @@ void TSimulator::saveToMap(std::string & name, std::string args, std::map<std::s
 	//save, but check if name already exists!
 	if(map.find(name) != map.end())
 			throw "Duplicated read group name '" + name + "'in file '" + filename + "'!";
-	map.insert(std::pair<std::string,std::string>(name, args));
+	map.emplace(name, args);
 };
 
 void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap){
@@ -99,7 +99,7 @@ void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & p
 	} else {
 		//is a function on the command line
 		logfile->list("Will use '" + s + " for all read groups.");
-		readLengthMap.insert(std::pair<std::string,std::string>("-", s));
+		readLengthMap.emplace("-", s);
 		perReadGroup = false;
 	}
 	logfile->endIndent();
@@ -145,7 +145,7 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 	} else {
 		//is a function on the command line
 		logfile->list("Will use '" + s + "' for all read groups.");
-		qualityDistMap.insert(std::pair<std::string,std::string>("-", s));
+		qualityDistMap.emplace("-", s);
 		perReadGroup = false;
 	}
 	logfile->endIndent();
@@ -369,7 +369,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 		//is a numberon the command line
 		double rate = stringToDouble(s);
 		logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
-		contaminationMap.insert(std::pair<std::string,double>("-", rate));
+		contaminationMap.emplace("-", rate);
 		perReadGroup = false;
 	} else {
 		//is a file
@@ -399,7 +399,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 				if(contaminationMap.find(vec[0]) != contaminationMap.end())
 						throw "Duplicated read group name '" + vec[0] + "'in file '" + s + "'!";
 				double rate = stringToDouble(s);
-				contaminationMap.insert(std::pair<std::string,double>(vec[0], rate));
+				contaminationMap.emplace(vec[0], rate);
 			}
 		}
 		logfile->done();

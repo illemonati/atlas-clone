@@ -7,8 +7,6 @@
 
 #include "TThetaEstimator.h"
 
-
-
 //---------------------------------------------------------------
 //TThetaEstimator_base
 //---------------------------------------------------------------
@@ -82,7 +80,7 @@ void TThetaEstimator_base::fillPGenotype(double* & pGeno, const double & expThet
 
 void TThetaEstimator_base::fillPGenotype(double* & pGeno, const Theta & thisTheta){
 	fillPGenotype(pGeno, thisTheta.expTheta, thisTheta.baseFreq);
-}
+};
 
 void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag){
 	logfile->listFlush("Estimating initial parameters" + tag + " ...");
@@ -443,7 +441,7 @@ void TThetaEstimator::estimateConfidenceInterval(){
 //------------------------------------------------------------
 bool TThetaEstimator::estimateTheta(){
 	if(data->sizeWithData() < minSitesWithData){
-		logfile->write("Can not estimate theta, less than minSitesWithData = " + toString(minSitesWithData) + " sites with data in this region!");
+		logfile->warning("Can not estimate theta, less than minSitesWithData = " + toString(minSitesWithData) + " sites with data in this region!");
 		return false;
 	}
 
@@ -479,19 +477,19 @@ void TThetaEstimator::setBaseFreq(TBaseFrequencies & BaseFreq){
 		theta.baseFreq[i] = BaseFreq[i];
 }
 
-void TThetaEstimator::writeHeader(std::ofstream & out){
+void TThetaEstimator::writeHeader(gz::ogzstream & out){
 	data->writeHeader(out);
 	out << "\tpi(A)\tpi(C)\tpi(G)\tpi(T)\ttheta_MLE\ttheta_C95_l\ttheta_C95_u\tLL";
 }
 
-void TThetaEstimator::writeThetas(std::ofstream & out){
+void TThetaEstimator::writeThetas(gz::ogzstream & out){
 	out << "\t" << theta.theta;
 	out	<< "\t" << theta.theta - theta.thetaConfidence;
 	out	<< "\t" << theta.theta + theta.thetaConfidence;
 	out	<< "\t" << theta.LL;
 	out	<< std::endl;
 }
-void TThetaEstimator::writeResultsToFile(std::ofstream & out){
+void TThetaEstimator::writeResultsToFile(gz::ogzstream & out){
 	//number of sites
 	data->writeSize(out);
 
@@ -501,7 +499,7 @@ void TThetaEstimator::writeResultsToFile(std::ofstream & out){
 	writeThetas(out);
 }
 
-void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
+void TThetaEstimator::calcLikelihoodSurface(gz::ogzstream & out, int & steps){
 	//write header
 	out << "log10(theta)\ttheta\tLL\n";
 
@@ -523,7 +521,7 @@ void TThetaEstimator::calcLikelihoodSurface(std::ofstream & out, int & steps){
 	}
 }
 
-void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out){
+void TThetaEstimator::bootstrapTheta(TRandomGenerator & randomGenerator, gz::ogzstream & out){
 	logfile->listFlush("Bootstrapping sites ...");
 
 	data->bootstrap(randomGenerator);
@@ -765,4 +763,5 @@ void TThetaEstimatorRatio::oneMCMCIteration(TRandomGenerator & randomGenerator){
 	numAcceptedBaseFreq1 += updateBaseFrequencies(data, theta, sdProposalKernelBaseFreq1, randomGenerator);
 	numAcceptedBaseFreq2 += updateBaseFrequencies(data2, theta2, sdProposalKernelBaseFreq2, randomGenerator);
 };
+
 

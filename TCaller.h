@@ -52,7 +52,8 @@ protected:
 
 	//genotype prior
 	bool _usesPrior;
-	double genotypePrior[10]; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	double* genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	bool priorSet;
 
 	//functions regarding VCF file
 	void setAcceptableFields(TVCFFieldVector* fields, std::string tags);
@@ -112,7 +113,7 @@ public:
 
 	//prior
 	bool usesPrior(){ return _usesPrior; };
-	void setPrior(double* GenotypePrior){ for(int g=0; g<10; ++g) genotypePrior[g] = GenotypePrior[g]; };
+	void setPrior(double* GenoPrior){ genotypePrior = GenoPrior; priorSet = true; };
 	void call(const std::string & chr, const long pos, TSite & site);
 };
 
@@ -169,8 +170,9 @@ protected:
 	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);
 	std::string getPerGenotypeMetricString(double* metric);
-	std::string getVCFGenotypeString_AB(TSite & site){};
-	std::string getVCFGenotypeString_AI(TSite & site){};
+	void calculateImbalance(TSite & site);
+	std::string getVCFGenotypeString_AB(TSite & site);
+	std::string getVCFGenotypeString_AI(TSite & site);
 
 public:
 	TCallerDiploid(TRandomGenerator* RandomGenerator);

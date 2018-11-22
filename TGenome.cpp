@@ -285,12 +285,12 @@ void TGenome::moveChromosome(TWindowPair & windowPair){
 		numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 		int nextEnd = predefinedWindows->curWindowEnd();
 		if(nextEnd > chrLength) nextEnd = chrLength + 1;
-		else windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
+		else windowPair.nextPointer->move(chrIterator->Name, chrNumber, predefinedWindows->curWindowStart(), nextEnd);
 	} else {
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
 		if(nextEnd > chrLength) nextEnd = chrLength; //!!! removed +1 because we are zero-based. Chedk if true!
-		windowPair.nextPointer->move(0, nextEnd);
+		windowPair.nextPointer->move(chrIterator->Name, chrNumber, 0, nextEnd);
 	}
 
 	//advance mask
@@ -330,14 +330,14 @@ bool TGenome::iterateWindow(TWindowPair & windowPair){
 		if(predefinedWindows->nextWindow()){
 			int nextEnd = predefinedWindows->curWindowEnd();
 			if(nextEnd > chrLength) nextEnd = chrLength;
-			windowPair.nextPointer->move(predefinedWindows->curWindowStart(), nextEnd);
+			windowPair.nextPointer->move(chrIterator->Name, chrNumber, predefinedWindows->curWindowStart(), nextEnd);
 		} else {
-			windowPair.nextPointer->move(chrLength, chrLength+1);
+			windowPair.nextPointer->move(chrIterator->Name, chrNumber, chrLength, chrLength+1);
 		}
 	} else {
 		long nextEnd = curEnd + windowSize;
 		if(nextEnd > chrLength) nextEnd = chrLength;
-		windowPair.nextPointer->move(curEnd, nextEnd);
+		windowPair.nextPointer->move(chrIterator->Name, chrNumber, curEnd, nextEnd);
 	}
 
 	++windowNumber;
@@ -572,20 +572,6 @@ void TGenome::indexBamFile(std::string & filename){
 //-----------------------------------------------------
 //Functions for theta estimation
 //-----------------------------------------------------
-void TGenome::openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator){
-	std::string filename = outputName + "_theta_estimates.txt";
-	logfile->list("Writing theta estimates to '" + filename + "'");
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
-
-	//write header
-	out << std::setprecision(9) << "Chr\t";
-	out << "start\tend";
-	estimator.writeHeader(out);
-	out << "\n";
-}
-
-
 void TGenome::estimateTheta(TParameters & params){
 	//initialize recalibration
 	initializeRecalibration(params);
@@ -594,7 +580,8 @@ void TGenome::estimateTheta(TParameters & params){
 	TThetaEstimator thetaEstimator(params, logfile);
 
 	//open output
-	std::ofstream out; openThetaOutputFile(out, thetaEstimator);
+	std::string filename = outputName + "_theta_estimates.txt.gz";
+	TThetaOutputFile thetaOut(outputName, &thetaEstimator, logfile);
 
 	//check for which segements theta is to be estimated
 	if(params.parameterExists("thetaGenomeWide") || considerRegions){
@@ -608,10 +595,10 @@ void TGenome::estimateTheta(TParameters & params){
 		int numBootstraps = 0;
 		if(params.parameterExists("bootstraps")){
 			int numBootstraps = params.getParameterInt("bootstraps");
-			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+			estimateThetaGenomeWide(thetaEstimator, thetaOut, onlyBootstrap, numBootstraps);
 			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
 		} else
-			estimateThetaGenomeWide(thetaEstimator, out, onlyBootstrap, numBootstraps);
+			estimateThetaGenomeWide(thetaEstimator, thetaOut, onlyBootstrap, numBootstraps);
 
 		logfile->endIndent();
 		if(params.parameterExists("bootstraps")){
@@ -619,13 +606,13 @@ void TGenome::estimateTheta(TParameters & params){
 			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
 		}
 	} else
-		estimateThetaWindows(thetaEstimator, out);
+		estimateThetaWindows(thetaEstimator, thetaOut);
 
 	//clean up
-	out.close();
+	thetaOut.close();
 }
 
-void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out){
+void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out){
 	//prepare windows
 	TWindowPairDiploid windows;
 
@@ -651,10 +638,8 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 					logfile->done();
 
 					//estimate Theta
-					if(thetaEstimator.estimateTheta()){
-						out << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end;
-						thetaEstimator.writeResultsToFile(out);
-					}
+					if(thetaEstimator.estimateTheta())
+						out.writeWindow(chrIterator->Name, windows.cur->start, windows.cur->end, &thetaEstimator);
 
 					//clear theta estimator
 					thetaEstimator.clear();
@@ -670,7 +655,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstre
 	}
 }
 
-void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps){
+void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool onlyReadData, int numBootstraps){
 	if(considerRegions)
 		logfile->startIndent("Estimating theta at specific sites:");
 
@@ -704,10 +689,9 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofs
 	}
 
 	if(considerRegions)
-		out  << "\t-\t-"; //chromosome, start, end
+		out.writeWindow("regions", "-", "-", &thetaEstimator);
 	else
-		out  << "genome-wide\t-\t-"; //chromosome, start, end
-	thetaEstimator.writeResultsToFile(out);
+		out.writeWindow("genome-wide", "-", "-", &thetaEstimator);
 	if(numBootstraps == 0) thetaEstimator.clear();
 }
 
@@ -720,8 +704,8 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	gettimeofday(&startTime, NULL);
 
 	//open output file
-	std::ofstream bootstrapOut;
-	std::string bootstrapFilename = outputName + "_theta_bootstraps.txt";
+	gz::ogzstream bootstrapOut;
+	std::string bootstrapFilename = outputName + "_theta_bootstraps.txt.gz";
 	logfile->list("Writing theta bootstraps to '" + bootstrapFilename + "'");
 	bootstrapOut.open(bootstrapFilename.c_str());
 	if(!bootstrapOut) throw "Failed to open output file '" + bootstrapFilename + "'!";
@@ -780,8 +764,8 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 				logfile->done();
 
 				//open file
-				std::ofstream out;
-				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt";
+				gz::ogzstream out;
+				filename = outputName + chrIterator->Name + "_" + toString(windows.cur->start) + "_LLsurface.txt.gz";
 				out.open(filename.c_str());
 				if(!out) throw "Failed to open output file '" + outputName + "'!";
 
@@ -887,7 +871,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 	} else if(method == "Bayesian"){
 		caller = new TCallerBayes(randomGenerator);
 	} else if(method == "gVCF"){
-
+		throw "GVCF NOT YET IMPLEMENTED!";
 		caller->printSitesWithNoData();
 	} else throw "Unknown calling method '" + method + "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.";
 
@@ -903,21 +887,40 @@ void TGenome::callGenotypesNew(TParameters & params){
 	caller->reportSettings(logfile);
 
 	//prior setting
-/*
- * Create class TPrior for TCaller? Could make sense!
-	bool estimateThetaPerWindow = false;
-		if(params.parameterExists("theta")){
-			double theta = params.getParameterDouble("theta");
-			logfile->list("Using theta = " + toString(theta));
-			thetaEstimator = new TThetaEstimator(logfile);
-			thetaEstimator->setTheta(theta);
-			return false;
-		} else {
-			//prepare theta estimator
-			thetaEstimator = new TThetaEstimator(params, logfile);
-			return true;
-		}
-*/
+	TGenotypePrior* prior;
+	if(caller->usesPrior()){
+		logfile->startIndent("Initializing genotype prior:");
+		//read prior from parameters
+		std::string priorMethod = params.getParameterStringWithDefault("prior", "theta");
+		if(priorMethod == "unif"){
+			prior = new TGenotypePriorUniform();
+			logfile->list("Will use a uniform prior with equal weights for all genotypes.");
+		} else if(priorMethod == "theta"){
+			if(params.parameterExists("fixedTheta")){
+				double theta = params.getParameterDouble("fixedTheta");
+				logfile->list("Will use a fixed theta = " + toString(theta));
+				bool equalBaseFreq = params.parameterExists("equalBaseFreq");
+				if(equalBaseFreq)
+					logfile->list("Will use equal base frequencies.");
+				else
+					logfile->list("Will estimate base frequencies individually for each window.");
+				prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, logfile);
+			} else {
+				logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
+				std::string thetaOuputName = outputName + "_theta_estimates.txt.gz";
+				if(params.parameterExists("defaultTheta")){
+					double defaultTheta = params.getParameterDouble("defaultTheta");
+					logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
+					prior = new TGenotypePriorTheta(params, thetaOuputName, defaultTheta, logfile);
+				} else
+					prior = new TGenotypePriorTheta(params, thetaOuputName, logfile);
+			}
+		} else throw "Unknown prior type '" + priorMethod + "'!";
+
+		//set prior
+		caller->setPrior(prior->getPointerToPrior());
+		logfile->endIndent();
+	} else prior = new TGenotypePrior();
 
 	//open output file
 	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
@@ -982,11 +985,12 @@ void TGenome::callGenotypesNew(TParameters & params){
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(readData(windows) || caller->printSitesWithNoData()){
-				//call genotypes
-				logfile->listFlush("Calling genotypes ...");
+				//update genotype prior
+				prior->update(windows.cur, logfile);
 
-				//TODO: window should know chromosome name and number
-				windows.cur->call(*caller, *recalObject, chrIterator->Name, reference, chrNumber);
+				//now call
+				logfile->listFlush("Calling genotypes ...");
+				windows.cur->call(*caller, *recalObject, reference);
 				logfile->done();
 			}
 		}
@@ -994,6 +998,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 
 	//clean up
 	delete caller;
+	delete prior;
 }
 
 
@@ -1180,9 +1185,12 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
+	TThetaOutputFile* thetaOut;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
-	std::ofstream outTheta;
-	if(estimateTheta) openThetaOutputFile(outTheta, *thetaEstimator);
+	if(estimateTheta){
+		std::string filename = outputName + "_theta_estimates.txt.gz";
+		thetaOut->open(filename, thetaEstimator, logfile);
+	}
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
@@ -1273,8 +1281,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 							thetaEstimator->estimateTheta();
 
 							//write results to file
-							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
-							thetaEstimator->writeResultsToFile(outTheta);
+							thetaOut->writeWindow(chrIterator->Name, windows.cur->start, windows.cur->end, thetaEstimator);
 
 							//clear theta estimator
 							(*thetaEstimator).clear();
@@ -1303,8 +1310,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//clean up
 	if(estimateTheta){
-		outTheta.close();
 		delete thetaEstimator;
+		delete thetaOut;
 	}
 	if(limitToSitesWithKnownAlleles) delete subset;
 }
@@ -1315,9 +1322,13 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
+	TThetaOutputFile* thetaOut;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
-	std::ofstream outTheta;
-	if(estimateTheta) openThetaOutputFile(outTheta, *thetaEstimator);
+	if(estimateTheta){
+		std::string filename = outputName + "_theta_estimates.txt.gz";
+		thetaOut->open(filename, thetaEstimator, logfile);
+	}
+
 
 	//limit to a set of sites? Print all sites, even those without data?
 	bool limitToSitesWithKnownAlleles = false;
@@ -1414,8 +1425,7 @@ void TGenome::callAllelePresence(TParameters & params){
 							thetaEstimator->estimateTheta();
 
 							//write results to file
-							outTheta << chrIterator->Name << "\t" << windows.cur->start << "\t" << windows.cur->end << "\t";
-							thetaEstimator->writeResultsToFile(outTheta);
+							thetaOut->writeWindow(chrIterator->Name, windows.cur->start, windows.cur->end, thetaEstimator);
 
 							//clear theta estimator
 							(*thetaEstimator).clear();
@@ -1444,7 +1454,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//clean up
 	if(estimateTheta){
-		outTheta.close();
+		delete thetaOut;
 		delete thetaEstimator;
 	}
 	if(limitToSitesWithKnownAlleles) delete subset;
@@ -2269,7 +2279,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			trunc->SequencingTechnology = orig->SequencingTechnology;
 
 			//add to map
-			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
+			singleEndRG.emplace(int(readGroupId), TReadGroupMaxLength(len, truncatedReadGroupId, readGroup));
 		}
 	}
 	logfile->done();
@@ -2506,7 +2516,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		while(file.good() && !file.eof()){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty()) readsToOmit.insert(std::pair<std::string,int>(vec[0], 1));
+			if(!vec.empty()) readsToOmit.emplace(vec[0], 1);
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
@@ -2540,7 +2550,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 					logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size (" + toString(abs(bamAlignment.InsertSize)) + "<" + toString(bamAlignment.AlignedBases.size()) + ")");
 				//	std::cout << "aligned bases: "<< bamAlignment.AlignedBases << std::endl;
 				}
-				readsToOmit.insert(std::pair<std::string,int>(bamAlignment.Name, 1));
+				readsToOmit.emplace(bamAlignment.Name, 1);
 				continue;
 
 			} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || bamAlignment.IsSupplementary() ||(bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){

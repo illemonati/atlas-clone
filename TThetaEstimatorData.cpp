@@ -199,11 +199,11 @@ double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
 	return LL;
 };
 
-void TThetaEstimatorData::writeHeader(std::ofstream & out){
+void TThetaEstimatorData::writeHeader(gz::ogzstream & out){
 	out << "\tdepth\tfracMissing\tfracTwoOrMore";
 };
 
-void TThetaEstimatorData::writeSize(std::ofstream & out){
+void TThetaEstimatorData::writeSize(gz::ogzstream & out){
 	if(isBootstrapped){
 		out << "\tNA\t" << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded << "\tNA";	//estimated params
 			out << "\t" << "NA";
