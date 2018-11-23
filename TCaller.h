@@ -164,7 +164,7 @@ public:
 class TCallerDiploid:public TCaller{
 protected:
 	int indexOfMax, indexOfSecond;
-	double AB, AI;
+	std::string AB, AI;
 	bool imbalanceCalculated;
 
 	void clearAfterCall();

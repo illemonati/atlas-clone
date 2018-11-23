@@ -31,7 +31,7 @@ long TRandomGenerator::get_randomSeedFromCurrentTime(long & addToSeed){
 	//microseconds = microseconds - 38*365*24*3600; //substract 38 years...
 	microseconds = (double) (addToSeed + microseconds);
    return microseconds ;
-}
+};
 
 void TRandomGenerator::init(){
 	factorialTable = NULL;
@@ -41,7 +41,7 @@ void TRandomGenerator::init(){
 	binomPValueTableInitialized = false;
 	binomPValueTable = NULL;
 	binomPValueTableSize = 100;
-}
+};
 
 #define MBIG 1000000000L
 #define MSEED 161803398L
@@ -211,10 +211,11 @@ double TRandomGenerator::_binomPValue(const int & k, const int & l){
 		cumul += exp(binomCoeffLn(n, i) + -0.6931472*n); // -0.6931472 is log(0.5)
 	}
 	return cumul;
-}
+};
 
 double TRandomGenerator::binomPValue(const int k, const int l){
 	int n = l + k;
+
 	if (n < binomPValueTableSize){
 		if(!binomPValueTableInitialized){
 			binomPValueTable = new double*[binomPValueTableSize];
