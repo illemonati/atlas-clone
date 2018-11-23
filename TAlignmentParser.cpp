@@ -481,6 +481,9 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 					logfile->conclude("No windows on chromosome " + chrIterator->Name + ".");
 				++chrIterator;
 				++chrNumber;
+				if(chrIterator == bamHeader.Sequences.End())
+					return;
+
 				predefinedWindows->setChr(chrIterator->Name);
 				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 			}
@@ -796,9 +799,9 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 			break;
 		}
 
-		//check if alignment end is after window start (don't need to check for end again)
+		//check if alignment contains part of the window
 		//if read continues outside of window, this is dealt with by window object
-		if(oldAlignment->position >= window.start){
+		if(oldAlignment->position >= window.start || oldAlignment->lastAlignedPositionWithRespectToRef >= window.start){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 		}
 	}

@@ -158,7 +158,8 @@ public:
 
 	void print(){
 		std::cout << "Bed File '" << filename << "':" << std::endl;
-		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
+		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
+			chrIt->second->print();
 	};
 
 	long size(){
