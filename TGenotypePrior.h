@@ -57,6 +57,10 @@ public:
 		}
 	};
 
+	~TGenotypePriorFixedTheta(){
+		delete thetaEstimator;
+	};
+
 	void update(TWindowDiploid* window, TLog* logfile){
 		logfile->listFlush("Estimating base frequencies for prior ...");
 		window->estimateBaseFrequencies();

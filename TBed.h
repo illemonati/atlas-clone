@@ -31,7 +31,7 @@ public:
 			if((start >= windowIt->first && start < windowIt->second) || (end > windowIt->first && end <= windowIt->second))
 				throw "Error reading bed file: window [" + toString(start) + ", " + toString(end) + ") overlaps window [" + toString(windowIt->first) + ", " + toString(windowIt->second) + ")!";
 		}
-		windows.insert(std::pair<long,long>(start, end));
+		windows.emplace(start, end);
 	};
 
 	void print(){
@@ -98,7 +98,7 @@ private:
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0])));
+						chromosomes.emplace(vec[0], new TBedChromosome(vec[0]));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
