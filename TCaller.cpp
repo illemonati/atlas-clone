@@ -508,23 +508,37 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 
 std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
+	//plot missing value (.) for all metrics involving the reference if the reference is N
 
+	std::string ret;
 	//first for reference base
-	std::string ret = toString(metric[genoMap.genotypeMap[referenceBase][referenceBase]]);
+	if(referenceBase == N)
+		ret = ".";
+	else
+		ret = toString(metric[genoMap.genotypeMap[referenceBase][referenceBase]]);
 
 	//now for alternative alleles
 	if(altAlleles.size() > 0){
-		ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[0]]]);
+		if(referenceBase == N)
+			ret += ",.";
+		else
+			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[0]]]);
 		ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[0]]]);
 
 		if(altAlleles.size() > 1){
-			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[1]]]);
+			if(referenceBase == N)
+				ret += ",.";
+			else
+				ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[1]]]);
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[1]]]);
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[1]][altAlleles[1]]]);
 		}
 
 		if(altAlleles.size() > 2){
-			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[2]]]);
+			if(referenceBase == N)
+				ret += ",.";
+			else
+				ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[2]]]);
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[2]]]);
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[1]][altAlleles[2]]]);
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[2]][altAlleles[2]]]);
