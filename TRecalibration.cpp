@@ -264,10 +264,10 @@ double TRecalibrationEMModel::getErrorRate(TBase & base){
 	eta += betas[base.readGroup][1] * originalErrorRate * originalErrorRate;
 
 	//q[2] is position
-	eta += betas[base.readGroup][2] * (double) base.posInRead;
+	eta += betas[base.readGroup][2] * (double) base.distFrom5Prime;
 
 	//q[3] is square of position
-	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
+	eta += betas[base.readGroup][3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
 
 	//q[4] until q[23] are indicators for the context. Just pick the matching one!
 	eta += betas[base.readGroup][base.context + 4];
@@ -395,10 +395,10 @@ double TRecalibrationEMModelNoContext::getErrorRate(TBase & base){
 	eta += betas[base.readGroup][1] * originalErrorRate * originalErrorRate;
 
 	//q[2] is position
-	eta += betas[base.readGroup][2] * (double) base.posInRead;
+	eta += betas[base.readGroup][2] * (double) base.distFrom5Prime;
 
 	//q[3] is square of position
-	eta += betas[base.readGroup][3] * (double) (base.posInRead * base.posInRead);
+	eta += betas[base.readGroup][3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
 
 	//add intercept
 	eta += betas[base.readGroup][4];
@@ -440,6 +440,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 	int k=0;
 	double eps;
 	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++k){
+//		std::cout << "## base " << (*it)->base << " with pos in read " << (*it)->posInRead << std::endl;
 		readGroup[k] = readGroupMap[(*it)->readGroup];
 		q[k] = new float[4];
 
@@ -447,22 +448,26 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 		// - transformed quality
 		// - square of transformed quality
 
-//		eps = qualiMap.qualityToErrorMap[(*it)->quality];
 		eps = (*it)->errorRate;
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
 		q[k][0] = log(eps / (1.0 - eps));
+//		std::cout << "## q[k][0] " << q[k][0] << std::endl;
 		q[k][1] = q[k][0] * q[k][0];
+//		std::cout << "## q[k][1] " << q[k][1] << std::endl;
 
 		// - position
 		// - square of position
 		q[k][2] = (*it)->posInRead;
+//		std::cout << "## q[k][2] " << q[k][2] << std::endl;
 		q[k][3] = q[k][2] * q[k][2];
+//		std::cout << "## q[k][3] " << q[k][3] << std::endl;
 
 		// - 20 context indicators (either 0.0 or 1.0)
 		//only store which is one!
 		context[k] = (*it)->context;
+//		std::cout << "## context[k] " << (unsigned) context[k] << std::endl;
 
 		//now also store D: D[ref][read]
 		switch((*it)->getBaseAsEnum()){
@@ -493,6 +498,10 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 					D[3][k] = 0.0;
 					break;
 		}
+//		std::cout << "## D[0][k] " << D[0][k] << std::endl;
+//		std::cout << "## D[1][k] " << D[1][k] << std::endl;
+//		std::cout << "## D[2][k] " << D[2][k] << std::endl;
+//		std::cout << "## D[3][k] " << D[3][k] << std::endl;
 	}
 };
 
@@ -1757,7 +1766,7 @@ void TBQSR_cellPositionRev::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualit
 
 float TBQSR_cellPositionRev::getEpsilon(TBase* base, TQualityMap & qualMap){
 	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
-	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
 	return  epsilonAlpha;
 }
 
@@ -1791,8 +1800,8 @@ void TBQSR_cellContext::init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityInd
 
 float TBQSR_cellContext::getEpsilon(TBase* base, TQualityMap & qualMap){
 	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndex(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
-	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->posInRead].curEstimate;
-	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->posInReadRev].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
+	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->distFrom3Prime].curEstimate;
 	return  epsilonAlpha;
 }
 
@@ -2292,14 +2301,14 @@ void TRecalibrationBQSR::addSite(TSite & site, TQualityMap & qualMap){
 		}
 		else if(considerPosition && !positionConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[readGroupMapObject[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase, qualMap);
+				if((*it)->distFrom5Prime >= maxPos) throw "Position of base is > maxPos specified!";
+				BQSR_cells_readGroup_position[readGroupMapObject[(*it)->readGroup]][(*it)->distFrom5Prime].addBase(*it, refBase, qualMap);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position_reverse[readGroupMapObject[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase, qualMap);
+				if((*it)->distFrom3Prime >= maxPos) throw "Position of base is > maxPos specified!";
+				BQSR_cells_readGroup_position_reverse[readGroupMapObject[(*it)->readGroup]][(*it)->distFrom3Prime].addBase(*it, refBase, qualMap);
 			}
 		} else if(considerContext && !contextConverged){
 			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
@@ -2864,8 +2873,8 @@ void TRecalibrationBQSR::reopenEstimation(){
 
 double TRecalibrationBQSR::getErrorRate(TBase & base){
 	double q = BQSR_cells_readGroup_quality[base.readGroup][qualityIndex->getIndex(qualityMap.errorToQuality(base.errorRate))].curEstimate;
-	if(considerPosition) q *= BQSR_cells_readGroup_position[base.readGroup][base.posInRead].curEstimate;
-	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[base.readGroup][base.posInReadRev].curEstimate;
+	if(considerPosition) q *= BQSR_cells_readGroup_position[base.readGroup][base.distFrom5Prime].curEstimate;
+	if(considerPositionReverse) q *= BQSR_cells_readGroup_position_reverse[base.readGroup][base.distFrom3Prime].curEstimate;
 	if(considerContext) q *= BQSR_cells_readGroup_context[base.readGroup][base.context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;

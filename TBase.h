@@ -41,8 +41,9 @@ public:
 	Base base;
 	double errorRate;
 //	int quality;
-	int posInRead; //zero based!
-	int posInReadRev; //zero based!
+	int posInRead;
+	int distFrom5Prime; //zero based!
+	int distFrom3Prime; //zero based!
 	double PMD_CT, PMD_GA;
 	int readGroup;
 	BaseContext context;
@@ -55,7 +56,8 @@ public:
 		errorRate = -1.0;
 //		quality = -1;
 		posInRead = -1;
-		posInReadRev = -1;
+		distFrom5Prime = -1;
+		distFrom3Prime = -1;
 		PMD_CT = -1.0;
 		PMD_GA = -1.0;
 		readGroup = -1;
@@ -64,12 +66,13 @@ public:
 		alignedPos = -1;
 	}
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos){
 		base = Base;
 		errorRate = ErrorRate;
 //		quality = Quality;
 		posInRead = PosInRead;
-		posInReadRev = PosInReadRev;
+		distFrom5Prime = DistFrom5Prime;
+		distFrom3Prime = DistFrom3Prime;
 		PMD_CT = thisPMD_CT;
 		PMD_GA = thisPMD_GA;
 		readGroup = ReadGroup;
