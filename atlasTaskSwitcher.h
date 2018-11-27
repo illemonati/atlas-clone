@@ -46,6 +46,10 @@ public:
 			logfile->startIndent("Diagnosing VCF files (task=VCFDiagnostics):");
 			VcfDiagnostics VcfDiagnoser(parameters, logfile);
 			VcfDiagnoser.assessAllelicImbalance();
+		} else if(task=="VCFToInvariantBed"){
+			logfile->startIndent("Writing sites that are invariant across individuals to bed (task=vcfToInvariantBed):");
+			VcfDiagnostics VcfDiagnoser(parameters, logfile);
+			VcfDiagnoser.vcfToInvariantBed();
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);
