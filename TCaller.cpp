@@ -562,6 +562,26 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 	}
 };
 
+void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
+	//get genotypes
+	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
+	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
+	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
+
+	//find max
+	double max = metric[homRef];
+	if(metric[het] > max) max = metric[het];
+	if(metric[homAlt] > max) max = metric[homAlt];
+
+	//fill vector of all
+	std::vector<std::string> vec;
+	if(metric[homRef] == max) vec.push_back("0/0");
+	if(metric[het] == max) vec.push_back("0/1");
+	if(metric[homAlt] == max) vec.push_back("1/1");
+
+	calledGenotype = vec[randomGenerator->pickOne(vec.size())];
+};
+
 std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 	//plot missing value (.) for all metrics involving the reference if the reference is N
@@ -672,6 +692,10 @@ void TCallerMLE::callGenotype(TSite & site){
 	callGenotypeFromMetric(site.emissionProbabilities);
 };
 
+void TCallerMLE::callGenotypeKnownAlleles(TSite & site){
+	callGenotypeFromMetricKnownAlleles(site.emissionProbabilities);
+};
+
 std::string TCallerMLE::getVCFGenotypeString_GQ(TSite & site){
 	return toString(qualMap.errorToPhredInt(site.emissionProbabilities[indexOfSecond] / site.emissionProbabilities[indexOfMax]));
 };
@@ -718,6 +742,16 @@ void TCallerBayes::callGenotype(TSite & site){
 
 	//call
 	callGenotypeFromMetric(posteriorProb);
+};
+
+void TCallerBayes::callGenotypeKnownAlleles(TSite & site){
+	if(!priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
+
+	//calculate posterior probabilities
+	site.calculateP_g(genotypePrior, posteriorProb);
+
+	//call
+	callGenotypeFromMetricKnownAlleles(posteriorProb);
 };
 
 std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){

@@ -1166,7 +1166,7 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
-	TThetaOutputFile* thetaOut;
+	TThetaOutputFile* thetaOut = NULL;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
 	if(estimateTheta){
 		std::string filename = outputName + "_theta_estimates.txt.gz";
@@ -1303,7 +1303,7 @@ void TGenome::callAllelePresence(TParameters & params){
 
 	//do we estimate theta or is it given?
 	TThetaEstimator* thetaEstimator;
-	TThetaOutputFile* thetaOut;
+	TThetaOutputFile* thetaOut = NULL;
 	bool estimateTheta = initThetaEstimatorForCallers(params, thetaEstimator);
 	if(estimateTheta){
 		std::string filename = outputName + "_theta_estimates.txt.gz";

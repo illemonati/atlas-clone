@@ -242,7 +242,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	int truePos = 0;
 	std::vector<size_t> baseCounts  = {0, 0, 0, 0};
 	int firstBase, secondBase;
-	int depthFirstBase, depthSecondBase;
+	size_t depthFirstBase, depthSecondBase;
 	int b;
 	double error = qualMap.phredIntToError(phredError);
 	double relDiff;

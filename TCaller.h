@@ -173,6 +173,7 @@ protected:
 
 	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);
+	void callGenotypeFromMetricKnownAlleles(double* metric);
 	std::string getPerGenotypeMetricString(double* metric);
 	void calculateImbalance(TSite & site);
 	std::string getVCFGenotypeString_AB(TSite & site);
@@ -188,6 +189,7 @@ public:
 class TCallerMLE:public TCallerDiploid{
 private:
 	void callGenotype(TSite & site);
+	void callGenotypeKnownAlleles(TSite & site);
 	std::string getVCFGenotypeString_GQ(TSite & site);
 	std::string getVCFGenotypeString_GL(TSite & site);
 	std::string getVCFGenotypeString_PL(TSite & site);
@@ -204,6 +206,7 @@ private:
 	double posteriorProb[10];
 
 	void callGenotype(TSite & site);
+	void callGenotypeKnownAlleles(TSite & site);
 	std::string getVCFGenotypeString_GQ(TSite & site);
 	std::string getVCFGenotypeString_GP(TSite & site);
 	std::string getVCFGenotypeString_PP(TSite & site);
