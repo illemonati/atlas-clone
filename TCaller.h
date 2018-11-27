@@ -85,6 +85,7 @@ protected:
 	std::string composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site);
 	virtual void writeAlternativeAllelesToVCF();
 	void writeCallToVCF(const std::string & chr, const long pos, TSite & site);
+	void writeMissingDataToVCF(TSite & site);
 	virtual void clearAfterCall();
 
 	//call
