@@ -229,7 +229,7 @@ std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(TSite
 
 	//loop over res
 	for(; it != vec.end(); ++it)
-		info += ';' + (this->*(*it))(site);
+		info += ':' + (this->*(*it))(site);
 
 	return info;
 };
