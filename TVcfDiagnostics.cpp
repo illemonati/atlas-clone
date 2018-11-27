@@ -69,9 +69,64 @@ int VcfDiagnostics::baseToNumber(char base, std::string & marker){
 	else throw "unknown base " + toString(base) + " at marker " + marker;
 }
 
-//----------------------
-// countstable
-//----------------------
+void VcfDiagnostics::vcfToInvariantBed(){
+	//open vcf file
+	logfile->list("Writing sites that are invariant across individuals to bed:");
+	//enable parsers
+	vcfFile.enablePositionParsing();
+	vcfFile.enableFormatParsing();
+	vcfFile.enableSampleParsing();
+	vcfFile.enableVariantParsing();
+
+	//open output
+	logfile->list("Writing files to '" + outname + ".bed.gz'");
+	gz::ogzstream bedFile((outname + (std::string) ".bed.gz").c_str());
+
+	//parse vcf file
+	std::map<char, int> bases = {{'A', 1}, {'C', 1}, {'G', 1}, {'T', 1}};
+	int counter = 0;
+	int curStartRegion = -1;
+	std::string curChr;
+	bool updateStart = true;
+	while(vcfFile.next()){
+		++counter;
+		if(updateStart){
+			curStartRegion = vcfFile.position();
+			curChr = vcfFile.chr();
+			updateStart = false;
+		}
+		if(bases.find(vcfFile.getRefAllele()) == bases.end()) {//!= 'A' && vcfFile.getRefAllele() != 'C' && vcfFile.getRefAllele() != 'G' && vcfFile.getRefAllele() != 'T'
+			continue; //ignore indels
+		}
+
+		int indCounter = 0;
+		char allele = vcfFile.getFirstAlleleOfSample(0);
+		for(int ind=0; ind<vcfFile.numSamples(); ++ind){
+			++indCounter;
+			if(vcfFile.getFirstAlleleOfSample(ind) != allele || vcfFile.getSecondAlleleOfSample(ind) != allele){
+				//there was a variant site, is previous site invariant? -> write to file
+				if(vcfFile.position() > curStartRegion)
+					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() << std::endl;
+
+				updateStart = true;
+				break;
+			}
+		}
+
+
+//		if(indCounter == vcfFile.numSamples()){
+//			//bed is 0-based
+//			bedFile << vcfFile.chr() << "\t" << vcfFile.position() - 1 << "\t" << vcfFile.position() << std::endl;
+//		}
+
+	}
+
+	//write last region to file
+	if(vcfFile.position() > curStartRegion)
+		bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() << std::endl;
+
+	bedFile.close();
+}
 
 void VcfDiagnostics::vcfToBeagle(){
 	//enable parsers
