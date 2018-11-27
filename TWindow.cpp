@@ -233,6 +233,26 @@ void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fas
 	}
 };
 
+void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset){
+	//check if we need to process this window
+	if(subset.hasPositionsInWindow(start)){
+		//add reference to sites
+		addReferenceBaseToSites(&subset);
+
+		//now only run over sites listed in that window
+		std::map<long,std::pair<char,char> > thesePos = subset.getPositionInWindow(start);
+		for(std::map<long,std::pair<char,char> >::iterator it = thesePos.begin(); it!=thesePos.end(); ++it){
+			int pos = it->first - start;
+			if(sites[pos].hasData){
+				recalObject.calcEmissionProbabilities(sites[pos]);
+
+				//call
+				caller.call(chrName, pos, sites[pos], it->second.first, it->second.second);
+			}
+		}
+	}
+};
+
 void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
 	if(isVCF){
 		if(printAll){

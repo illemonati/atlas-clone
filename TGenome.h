@@ -84,6 +84,7 @@ private:
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 	void initializeRandomGenerator(TParameters & params);
+	TGenotypePrior* initializeGenotypePrior(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
 

@@ -31,7 +31,7 @@ public:
 	~TSiteSubsetWindow(){};
 
 	void addPosition(long pos, char & ref, char & alt){
-		positions.insert(std::pair<long, std::pair<char,char> >(pos, std::pair<char,char>(ref, alt)));
+		positions.emplace(pos, std::pair<char,char>(ref, alt));
 	};
 
 	void print(){
@@ -90,7 +90,7 @@ public:
 		if(windowIt == windows.end()){
 			//insert window
 			int w = (double) pos / (double) windowSize;
-			windows.insert(std::pair<int, TSiteSubsetWindow*>(w, new TSiteSubsetWindow(w*windowSize, (w+1)*windowSize - 1)));
+			windows.emplace(w, new TSiteSubsetWindow(w*windowSize, (w+1)*windowSize - 1));
 			findWindow(pos);
 		}
 	};
@@ -223,7 +223,7 @@ private:
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TSiteSubsetChr*>(vec[0], new TSiteSubsetChr(vec[0], windowSize)));
+						chromosomes.emplace(vec[0], new TSiteSubsetChr(vec[0], windowSize));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
@@ -271,7 +271,7 @@ private:
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TSiteSubsetChr*>(vec[0], new TSiteSubsetChr(vec[0], windowSize, bamHeader)));
+						chromosomes.emplace(vec[0], new TSiteSubsetChr(vec[0], windowSize, bamHeader));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
@@ -311,7 +311,7 @@ private:
 
 public:
 	std::string filename;
-	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & InvariantSites){
+	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
 		invariantSites = InvariantSites;
@@ -319,7 +319,7 @@ public:
 		curChr = "";
 	};
 
-	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & InvariantSites){
+	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
 		invariantSites = InvariantSites;

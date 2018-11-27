@@ -60,6 +60,7 @@ public:
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities(TRecalibration* recalObject);
 	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
+	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset);
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
 	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string & chr, bool printOnlySitesWithData);
 	virtual void calcDepth();

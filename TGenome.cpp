@@ -847,6 +847,40 @@ void TGenome::estimateThetaRatio(TParameters & params){
 //------------------------------------------
 //Callers (NEW)
 //------------------------------------------
+TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
+	TGenotypePrior* prior;
+	logfile->startIndent("Initializing genotype prior:");
+	//read prior from parameters
+	std::string priorMethod = params.getParameterStringWithDefault("prior", "theta");
+	if(priorMethod == "unif"){
+		prior = new TGenotypePriorUniform();
+		logfile->list("Will use a uniform prior with equal weights for all genotypes.");
+	} else if(priorMethod == "theta"){
+		if(params.parameterExists("fixedTheta")){
+			double theta = params.getParameterDouble("fixedTheta");
+			logfile->list("Will use a fixed theta = " + toString(theta));
+			bool equalBaseFreq = params.parameterExists("equalBaseFreq");
+			if(equalBaseFreq)
+				logfile->list("Will use equal base frequencies.");
+			else
+				logfile->list("Will estimate base frequencies individually for each window.");
+			prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, logfile);
+		} else {
+			logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
+			std::string thetaOuputName = outputName + "_theta_estimates.txt.gz";
+			if(params.parameterExists("defaultTheta")){
+				double defaultTheta = params.getParameterDouble("defaultTheta");
+				logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
+				prior = new TGenotypePriorTheta(params, thetaOuputName, defaultTheta, logfile);
+			} else
+				prior = new TGenotypePriorTheta(params, thetaOuputName, logfile);
+		}
+	} else throw "Unknown prior type '" + priorMethod + "'!";
+	logfile->endIndent();
+
+	return prior;
+}
+
 void TGenome::callGenotypesNew(TParameters & params){
 	//make sure FASTA is open
 	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
@@ -889,109 +923,56 @@ void TGenome::callGenotypesNew(TParameters & params){
 	//prior setting
 	TGenotypePrior* prior;
 	if(caller->usesPrior()){
-		logfile->startIndent("Initializing genotype prior:");
-		//read prior from parameters
-		std::string priorMethod = params.getParameterStringWithDefault("prior", "theta");
-		if(priorMethod == "unif"){
-			prior = new TGenotypePriorUniform();
-			logfile->list("Will use a uniform prior with equal weights for all genotypes.");
-		} else if(priorMethod == "theta"){
-			if(params.parameterExists("fixedTheta")){
-				double theta = params.getParameterDouble("fixedTheta");
-				logfile->list("Will use a fixed theta = " + toString(theta));
-				bool equalBaseFreq = params.parameterExists("equalBaseFreq");
-				if(equalBaseFreq)
-					logfile->list("Will use equal base frequencies.");
-				else
-					logfile->list("Will estimate base frequencies individually for each window.");
-				prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, logfile);
-			} else {
-				logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
-				std::string thetaOuputName = outputName + "_theta_estimates.txt.gz";
-				if(params.parameterExists("defaultTheta")){
-					double defaultTheta = params.getParameterDouble("defaultTheta");
-					logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-					prior = new TGenotypePriorTheta(params, thetaOuputName, defaultTheta, logfile);
-				} else
-					prior = new TGenotypePriorTheta(params, thetaOuputName, logfile);
-			}
-		} else throw "Unknown prior type '" + priorMethod + "'!";
-
-		//set prior
+		prior = initializeGenotypePrior(params);
 		caller->setPrior(prior->getPointerToPrior());
-		logfile->endIndent();
 	} else prior = new TGenotypePrior();
 
 	//open output file
 	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
 	caller->openVCF(outputName, sampleName);
-
 	logfile->endIndent();
-
-	//--------------------------
-	// Subset
-	// -> split function (or loop) into with and without subset
-	//--------------------------
-	/*
-	//do we limit to site subset?
-	TSiteSubset* subset = NULL;
-
-	//only call at specific sites?
-	if(params.parameterExists("sites")){
-		bool invariantSites = false;
-
-		if(fastaReference) subset = new TSiteSubset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, invariantSites);
-		else subset = new TSiteSubset(params.getParameterString("sites"), windowSize, logfile, invariantSites);
-		limitToSitesWithKnownAlleles = true;
-
-	//if not, how much information should be printed?
-	} else {
-		if(params.parameterExists("noAltIfHomoRef")){
-			noAltIfHomoRef = true;
-			logfile->list("Will not print alternative alleles when genotype is 0/0");
-		}
-		if(params.parameterExists("gVCF")){
-			gVCF = true;
-			if(!printIfNoData) throw "gVCF format includes calls for all sites. Use parameter \"printAll\".";
-			if(noAltIfHomoRef) throw "gVCF format includes printing alternative alleles even if genotype is 0/0. Remove \"printIfNoData\".";
-			if(!fastaReference) throw "Can not print VCF file without reference!";
-			logfile->list("Will print output in gVCF format");
-		}
-	}
-
-	if(params.parameterExists("beagle")){
-		if(limitToSitesWithKnownAlleles == false) throw "Need sites file specifying major and minor alleles for beagle format!";
-		beagle=true;
-		logfile->list("Will print output in beagle format");
-		printOnlyGL = params.parameterExists("printOnlyGL");
-		if(printOnlyGL) logfile->list("Will print only genotype likelihoods");
-		indName = params.getParameterStringWithDefault("indName", outputName);
-	}
-
-	if(params.parameterExists("vcf")){
-		if(!fastaReference) throw "Can not print VCF file without reference!";
-		writeVCF = true;
-	}
-
-	if((writeVCF + gVCF + beagle) > 1) throw "More than one output format specified!";
-	*/
 
 	//prepare windows
 	//Allow for haploid windows for some callers?
 	TWindowPairDiploid windows;
 
-	//iterate through windows
-	while(iterateChromosome(windows)){
-		while(iterateWindow(windows)){
-			//read data for current window
-			if(readData(windows) || caller->printSitesWithNoData()){
-				//update genotype prior
-				prior->update(windows.cur, logfile);
+	//---------------------------------------------------------------------
+	// Now call, either all sites or limiting to sites with known alleles.
+	//---------------------------------------------------------------------
+	if(params.parameterExists("sites")){
+		//Limit to sites with known alleles
+		logfile->startIndent("Will limit calls to sites with known alleles:");
+		TSiteSubset subset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, false);
+		logfile->endIndent();
 
-				//now call
-				logfile->listFlush("Calling genotypes ...");
-				windows.cur->call(*caller, *recalObject, reference);
-				logfile->done();
+		while(iterateChromosome(windows)){
+			while(iterateWindow(windows)){
+				//read data for current window
+				if(readData(windows) || caller->printSitesWithNoData()){
+					//update genotype prior
+					prior->update(windows.cur, logfile);
+
+					//now call using known alleles
+					logfile->listFlush("Calling genotypes ...");
+					windows.cur->callKnwonAlleles(*caller, *recalObject, reference, subset);
+					logfile->done();
+				}
+			}
+		}
+	} else { //not limiting to sites with known alleles
+		//Use all sites and identify alleles
+		while(iterateChromosome(windows)){
+			while(iterateWindow(windows)){
+				//read data for current window
+				if(readData(windows) || caller->printSitesWithNoData()){
+					//update genotype prior
+					prior->update(windows.cur, logfile);
+
+					//now call
+					logfile->listFlush("Calling genotypes ...");
+					windows.cur->call(*caller, *recalObject, reference);
+					logfile->done();
+				}
 			}
 		}
 	}

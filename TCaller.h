@@ -88,6 +88,7 @@ protected:
 	//call
 	void countAlleles(TSite & site);
 	virtual void callGenotype(TSite & site);
+	virtual void callGenotypeKnownAlleles(TSite & site);
 	template <typename T> int pickIndexWithHighestMetric(T* metric, const int size);
 	template <typename T> int pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex);
 
@@ -115,6 +116,7 @@ public:
 	bool usesPrior(){ return _usesPrior; };
 	void setPrior(double* GenoPrior){ genotypePrior = GenoPrior; priorSet = true; };
 	void call(const std::string & chr, const long pos, TSite & site);
+	void call(const std::string & chr, const long pos, TSite & site, char & first, char & second);
 };
 
 
@@ -124,7 +126,8 @@ public:
 //------------------------------------------------------
 class TCallerRandomBase:public TCaller{
 private:
-	virtual void callGenotype(TSite & site);
+	void callGenotype(TSite & site);
+	void callGenotypeKnownAlleles(TSite & site);
 
 public:
 	TCallerRandomBase(TRandomGenerator* RandomGenerator);
@@ -135,7 +138,8 @@ public:
 //------------------------------------------------------
 class TCallerMajorityBase:public TCaller{
 private:
-	virtual void callGenotype(TSite & site);
+	void callGenotype(TSite & site);
+	void callGenotypeKnownAlleles(TSite & site);
 
 public:
 	TCallerMajorityBase(TRandomGenerator* RandomGenerator);

@@ -245,6 +245,10 @@ void TCaller::writeAlternativeAllelesToVCF(){
 };
 
 void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & site){
+	//apply filter on alternative alleles
+	if(_printNoAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
+		altAlleles.clear();
+
 	//write chr, position and (no) variant ID
 	vcf << chr << '\t' << pos << "\t.\t";
 
@@ -284,9 +288,12 @@ void TCaller::countAlleles(TSite & site){
 };
 
 void TCaller::callGenotype(TSite & site){
-	calledGenotype = "0/0";
+	calledGenotype = "./.";
 };
 
+void TCaller::callGenotypeKnownAlleles(TSite & site){
+	calledGenotype = "./.";
+};
 
 void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	//check if there is data
@@ -295,9 +302,22 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 		referenceBase = genoMap.getBase(site.referenceBase);
 		callGenotype(site);
 
-		//apply filter on alternative alleles
-		if(_printNoAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
-			altAlleles.clear();
+		//check if we write
+		writeCallToVCF(chr, pos, site);
+
+	} else {
+		if(_printSitesWithNoData)
+			vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0"; //TO: check for Bayesian case?
+	}
+};
+
+void TCaller::call(const std::string & chr, const long pos, TSite & site, char & first, char & second){
+	//check if there is data
+	if(site.hasData){
+		//call
+		referenceBase = genoMap.getBase(first);
+		altAlleles.push_back(genoMap.getBase(second));
+		callGenotype(site);
 
 		//check if we write
 		writeCallToVCF(chr, pos, site);
@@ -373,6 +393,19 @@ void TCallerRandomBase::callGenotype(TSite & site){
 	}
 };
 
+void TCallerRandomBase::callGenotypeKnownAlleles(TSite & site){
+	//randomly pick a base among known alleles
+	countAlleles(site);
+	double probRef = (double) alleleCounts[referenceBase] / (double) (alleleCounts[referenceBase] + alleleCounts[altAlleles[0]]);
+
+	//pick among known alleles
+	if(randomGenerator->getRand() < probRef){
+		calledGenotype = "0";
+	} else {
+		calledGenotype = "1";
+	}
+};
+
 /////////////////////////////////////////////////////////
 // TCallerMajorityCall
 /////////////////////////////////////////////////////////
@@ -397,6 +430,24 @@ void TCallerMajorityBase::callGenotype(TSite & site){
 	} else {
 		altAlleles.push_back(majorityIndex);
 		calledGenotype = "1";
+	}
+};
+
+void TCallerMajorityBase::callGenotypeKnownAlleles(TSite & site){
+	//get per allele counts
+	countAlleles(site);
+
+	//now pick major among known alleles
+	if(alleleCounts[referenceBase] > alleleCounts[altAlleles[0]]){
+		calledGenotype = "0";
+	} else if(alleleCounts[referenceBase] < alleleCounts[altAlleles[0]]){
+		calledGenotype = "1";
+	} else {
+		//euqal counts: pick at random
+		if(randomGenerator->getRand() < 0.5)
+			calledGenotype = "0";
+		else
+			calledGenotype = "1";
 	}
 };
 
