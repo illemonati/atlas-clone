@@ -34,7 +34,9 @@ protected:
 
 	//output choices
 	bool _printSitesWithNoData;
-	bool _printNoAltIfHomoRef;
+	bool _printAltIfHomoRef;
+	bool _allowTriallelicSites;
+	std::string missingGenotype;
 
 	//output file
 	std::string filename;
@@ -108,7 +110,8 @@ public:
 
 	//other output options
 	void setPrintSitesWithNoData(bool print){ _printSitesWithNoData = print; };
-	void setNoAltIfHomoRef(bool print){ _printNoAltIfHomoRef = print; };
+	void setPrintAltIfHomoRef(bool print){ _printAltIfHomoRef = print; };
+	void setAllowTriallelic(bool allowTriallelic){ _allowTriallelicSites = allowTriallelic; };
 	bool printSitesWithNoData(){ return _printSitesWithNoData; };
 	void reportSettings(TLog* logfile);
 

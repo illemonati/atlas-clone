@@ -18,7 +18,9 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 
 	//output choices
 	_printSitesWithNoData = false;
-	_printNoAltIfHomoRef = false;
+	_printAltIfHomoRef = true;
+	_allowTriallelicSites = true;
+	missingGenotype = ".";
 
 	//vcf file
 	vcfOpen = false;
@@ -246,7 +248,7 @@ void TCaller::writeAlternativeAllelesToVCF(){
 
 void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & site){
 	//apply filter on alternative alleles
-	if(_printNoAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
+	if(!_printAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
 		altAlleles.clear();
 
 	//write chr, position and (no) variant ID
@@ -298,8 +300,10 @@ void TCaller::callGenotypeKnownAlleles(TSite & site){
 void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	//check if there is data
 	if(site.hasData){
-		//call
+		//set reference base from site
 		referenceBase = genoMap.getBase(site.referenceBase);
+
+		//call
 		callGenotype(site);
 
 		//check if we write
@@ -323,8 +327,9 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site, char &
 		writeCallToVCF(chr, pos, site);
 
 	} else {
-		if(_printSitesWithNoData)
-			vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP:GQ\t./.:0:0"; //TO: check for Bayesian case?
+		if(_printSitesWithNoData){
+			vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0"; //TO: check for Bayesian case?
+		}
 	}
 };
 
@@ -513,6 +518,7 @@ TCallerDiploid::TCallerDiploid(TRandomGenerator* RandomGenerator):TCaller(Random
 	indexOfMax = -1;
 	indexOfSecond = -1;
 	imbalanceCalculated = false;
+	missingGenotype = "./.";
 
 	setAcceptableFields(&VCFGenotypeFields, "AB,AI");
 };
@@ -548,15 +554,38 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
 				calledGenotype = "1/1";
 
-				//find second best allele
-				if(genoMap.genotypeToBase[indexOfSecond][0] != referenceBase && genoMap.genotypeToBase[indexOfSecond][0] != altAlleles[0])
-					altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][0]);
-				if(genoMap.genotypeToBase[indexOfSecond][1] != referenceBase && genoMap.genotypeToBase[indexOfSecond][1] != altAlleles[0])
-					altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][1]);
+				//find second best allele, but give preference to reference in case likelihoods are equal
+				int hetRef = genoMap.getGenotype(referenceBase, genoMap.genotypeToBase[indexOfMax][0]);
+				if(_allowTriallelicSites && metric[hetRef] < metric[indexOfSecond]){
+					//only use second alternative allele in case het genotype with reference is less likely
+					if(genoMap.genotypeToBase[indexOfSecond][0] != referenceBase && genoMap.genotypeToBase[indexOfSecond][0] != altAlleles[0])
+						altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][0]);
+					if(genoMap.genotypeToBase[indexOfSecond][1] != referenceBase && genoMap.genotypeToBase[indexOfSecond][1] != altAlleles[0])
+						altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][1]);
+				}
 			} else {
-				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
-				altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
-				calledGenotype = "1/2";
+				if(_allowTriallelicSites){
+					//allow triallelic sites
+					altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+					altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
+					calledGenotype = "1/2";
+				} else {
+					//decide on which of the two alternative alleles to pick -> check second highest
+					if(genoMap.genotypeToBase[indexOfSecond][0] == referenceBase)
+						altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
+					else if(genoMap.genotypeToBase[indexOfSecond][1] == referenceBase)
+						altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+					else {
+						//if second highest does not contain reference, then pick teh alternative for which the homozygous is higher
+						if(metric[genoMap.getGenotype(genoMap.genotypeToBase[indexOfMax][0], genoMap.genotypeToBase[indexOfMax][0])] > metric[genoMap.getGenotype(genoMap.genotypeToBase[indexOfMax][1], genoMap.genotypeToBase[indexOfMax][1])])
+							altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][0]);
+						else
+							altAlleles.push_back(genoMap.genotypeToBase[indexOfMax][1]);
+					}
+
+					//now call genotype from these alleles
+					callGenotypeFromMetricKnownAlleles(metric);
+				}
 			}
 		}
 	}

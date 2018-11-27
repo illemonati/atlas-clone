@@ -915,7 +915,8 @@ void TGenome::callGenotypesNew(TParameters & params){
 	if(params.parameterExists("genoFields"))
 		caller->printGenotypeFields(params.getParameterString("genoFields"));
 	if(params.parameterExists("printAll")) caller->setPrintSitesWithNoData(true);
-	if(params.parameterExists("noAltIfHomoRef")) caller->setNoAltIfHomoRef(true);
+	if(params.parameterExists("noAltIfHomoRef")) caller->setPrintAltIfHomoRef(false);
+	if(params.parameterExists("noTriallelic")) caller->setAllowTriallelic(false);
 
 	//report output settings
 	caller->reportSettings(logfile);
