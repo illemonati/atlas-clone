@@ -688,7 +688,7 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 		}
 	}
 
-	vcf << varianTQuality << '\t';
+	vcf << varianTQuality;
 
 	//write filter, info and format
 	vcf << "\t.\t.\tGT:GQ:DP:PL";
@@ -733,12 +733,10 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 			else
 				vcf << (data[i][refHomIndex] - minQual) / -10.0 << "," << (data[i][hetIndex] - minQual) / -10.0 << "," << (data[i][altHomIndex] - minQual) / -10.0;
 		} else {
-			vcf << "\t.";
+			vcf << "\t./.:.:.:.";
 		}
 	}
 
 	//end of line
 	vcf << '\n';
-
-
 };
