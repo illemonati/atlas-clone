@@ -690,7 +690,7 @@ bool TAlignmentParser::readAlignment(){
 		//check if insert size is shorter than read length-insertions+deletions=alignedBases + numInsertions, this means we are reading the adaptor sequence
 		//TODO: should add insertions to bamAlignment.AlignedBases.length()
 		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) < (bamAlignment.AlignedBases.length()+bamAlignment.NumInsertions)){
-			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+//			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 		} else {
 			//apply filters: read group in use and basic QC
@@ -1055,4 +1055,56 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	}
 }
 
+void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
+	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
 
+	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
+		//reads overlap -> check if there are bases overlapping same position in ref
+		int fwdP = 0;
+		int revP = 0;
+		for(long i = revAlignment->position; i <= fwdAlignment->lastAlignedPositionWithRespectToRef; ++i){
+			while(fwdAlignment->bases[i].alignedPos < i){
+				++revP;
+			} while(revAlignment->bases[i].alignedPos < i){
+				++revP;
+			}
+
+			if(i == fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->bases[fwdP].alignedPos == revAlignment->bases[revP].alignedPos){
+				//bases overlap same position in ref -> decide which one to keep
+				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
+					//keep base of fwd read
+					fwdAlignment->bases[revP].errorRate = 1;
+					fwdAlignment->bases[revP].base = N;
+					if(adaptQuality){
+						if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
+							//bases agree -> multiply error rates and keep fwd
+							double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
+							revAlignment->bases[fwdP].errorRate = newError;
+						} else {
+							//bases don't agree -> new error = errorFwd * (1 - errorRev)
+							fwdAlignment->bases[fwdP].errorRate = fwdAlignment->bases[fwdP].errorRate * (1 - revAlignment->bases[revP].errorRate);
+						}
+					}
+				} else {
+					//keep base of rev read
+					revAlignment->bases[fwdP].errorRate = 1;
+					revAlignment->bases[fwdP].base = N;
+					if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
+						//bases agree -> multiply error rates and keep rev
+						double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
+						revAlignment->bases[revP].errorRate = newError;
+					} else {
+						//bases don't agree -> choose one to be error
+						//bases don't agree -> new error = errorFwd * (1 - errorRev)
+						revAlignment->bases[revP].errorRate = revAlignment->bases[revP].errorRate * (1 - fwdAlignment->bases[fwdP].errorRate);
+					}
+				}
+			}
+		}
+	}
+
+	if(adaptQuality){
+		recalibrate(*fwdAlignment);
+		recalibrate(*revAlignment);
+	}
+}

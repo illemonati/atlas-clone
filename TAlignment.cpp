@@ -513,6 +513,7 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 	}
 	changed = true;
 }
+
 //--------------------------------------
 //functions to fill other classes
 //--------------------------------------

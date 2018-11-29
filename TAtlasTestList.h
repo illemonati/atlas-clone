@@ -52,7 +52,7 @@ public:
 		testMap.emplace_back("qualityTransformationRecalBinned", &createInstance<TAtlasTest_qualityTransformationRecalBinned>);
 		testMap.emplace_back("PMDEmpiric", &createInstance<TAtlasTest_PMDEmpiric>);
 		testMap.emplace_back("theta", &createInstance<TAtlasTest_theta>);
-
+//		testMap.emplace_back("invariantBed", &createInstance<TAtlasTest_invariantBed>);
 
 
 		//fill map of test suites

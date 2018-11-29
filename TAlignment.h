@@ -28,13 +28,11 @@ class TAlignment{
 private:
 	//details
 	bool empty;
-	std::string readGroup;
 	bool recalibrated;
 
 	//data
 	unsigned int maxSize;
 	int length;
-	int lastAlignedPos;
 
 //	int* alignedPos;
 
@@ -98,6 +96,7 @@ public:
 	int getPosition(){return position;};
 	int getLength(){return length;};
 	std::string name(){return alignmentName;};
+	int32_t getInsertSize(){return bamAlignment.InsertSize;};
 
 	//functions to write / print alignment
 	void setToSingleEnd();
@@ -110,6 +109,7 @@ public:
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 
 	//accessed by TGenome
+	std::string readGroup;
 	int readGroupId;
 	bool isReverseStrand;
 	bool isProperPair;
@@ -119,6 +119,7 @@ public:
 	int32_t position;
 	int32_t lastPositionPlusOne;
 	int32_t lastAlignedPositionWithRespectToRef;
+	int32_t lastAlignedPos;
 	std::string alignmentName;
 
 	//TODO: move these functions to TGenome

@@ -1456,8 +1456,8 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 		//report
 		if(S_left + S_right > 0 || printAll){
-			out << alignmentParser.bamAlignment.Name << "\t";
-			out	<< alignmentParser.bamAlignment.Position << "\t";
+			out << alignment.alignmentName << "\t";
+			out	<< alignment.position << "\t";
 			out	<< S_left << "\t";
 			if(printSequences) out	<< S_string_left << "\t";
 			out	<< middle  << "\t";
@@ -1653,9 +1653,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//check if this RG needs to be parsed
-		std::string tmp;
-		alignmentParser.bamAlignment.GetTag("RG", tmp);
-		readGroupId = alignmentParser.readGroups.find(tmp);
+		readGroupId = alignmentParser.readGroups.find(alignment.readGroup);
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
@@ -1665,7 +1663,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			else if(alignment.getLength() > singleEndRGIT->second.maxLen){
 				if(allowForLarger)
 					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
-				else logfile->warning("Length of read " + alignmentParser.bamAlignment.Name + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+				else logfile->warning("Length of read " + alignment.alignmentName + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
 			}
 		}
 
@@ -1691,6 +1689,9 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 
 void TGenome::mergeReadGroups(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");
 	logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
@@ -1722,10 +1723,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 			}
 		}
 	}
-
-	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
 
 	TReadGroups newReadGroupObject;
 	newReadGroupObject.fill(newHeader);
@@ -1779,7 +1776,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 
 	//other temp variables
 	long counter = 0;
- 	BamTools::BamAlignment bamAlignment;
 
 	//prepare reporting
 	logfile->startIndent("Parsing through BAM file:");
@@ -1790,12 +1786,13 @@ void TGenome::mergeReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//get read group info
-		bamAlignment.GetTag("RG", readGroup);
+		alignment.bamAlignment.GetTag("RG", readGroup);
 		oldId = alignmentParser.readGroups.find(readGroup);
 
 		//save as new RG
-		bamAlignment.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
-		bamWriter.SaveAlignment(bamAlignment);
+		alignment.updateOptionalSamField("RG", newReadGroupObject.getName(readGroupMap[oldId]));
+//		alignment.bamAlignment.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
+		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
 		++counter;
@@ -1811,11 +1808,65 @@ void TGenome::mergeReadGroups(TParameters & params){
 	logfile->removeIndent();
 }
 
-
+//void TGenome::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
+//	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
+//
+//	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
+//		//reads overlap -> check if there are bases overlapping same position in ref
+//		int fwdP = 0;
+//		int revP = 0;
+//		for(long i = revAlignment->position; i <= fwdAlignment->lastAlignedPositionWithRespectToRef; ++i){
+//			while(fwdAlignment->bases[i].alignedPos < i){
+//				++revP;
+//			} while(revAlignment->bases[i].alignedPos < i){
+//				++revP;
+//			}
+//
+//			if(i == fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->bases[fwdP].alignedPos == revAlignment->bases[revP].alignedPos){
+//				//bases overlap same position in ref -> decide which one to keep
+//				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
+//					//keep base of fwd read
+//					fwdAlignment->bases[revP].errorRate = 1;
+//					fwdAlignment->bases[revP].base = N;
+//					if(adaptQuality){
+//						if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
+//							//bases agree -> multiply error rates and keep fwd
+//							double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
+//							revAlignment->bases[fwdP].errorRate = newError;
+//						} else {
+//							//bases don't agree -> new error = errorFwd * (1 - errorRev)
+//							fwdAlignment->bases[fwdP].errorRate = fwdAlignment->bases[fwdP].errorRate * (1 - revAlignment->bases[revP].errorRate);
+//						}
+//					}
+//				} else {
+//					//keep base of rev read
+//					revAlignment->bases[fwdP].errorRate = 1;
+//					revAlignment->bases[fwdP].base = N;
+//					if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
+//						//bases agree -> multiply error rates and keep rev
+//						double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
+//						revAlignment->bases[revP].errorRate = newError;
+//					} else {
+//						//bases don't agree -> choose one to be error
+//						//bases don't agree -> new error = errorFwd * (1 - errorRev)
+//						revAlignment->bases[revP].errorRate = revAlignment->bases[revP].errorRate * (1 - fwdAlignment->bases[fwdP].errorRate);
+//					}
+//				}
+//			}
+//		}
+//	}
+//
+//	if(adaptQuality){
+//		alignmentParser.recalibrate(*fwdAlignment);
+//		alignmentParser.recalibrate(*revAlignment);
+//	}
+//}
 
 void TGenome::mergePairedEndReads(TParameters & params){
-	throw "Needs to be refactored!";
-/*	//TODO: make merge function that accounts for indels!
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_mergedReads.bam";
@@ -1828,17 +1879,17 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	//which read groups are paired-end?
 	std::string pairedRG = params.getParameterStringWithDefault("pairedReadGroups", "all");
-	bool* pairedReadGroups = new bool[alignmentParser.readGroups.numGroups];
+	bool* pairedReadGroups = new bool[alignmentParser.readGroups.size()];
 	bool allReadGroupsPaired;
 	if(pairedRG == "all"){
 		//all are used, initialize to true
-		for(int i=0; i<alignmentParser.readGroups.numGroups; ++i)
+		for(int i=0; i<alignmentParser.readGroups.size(); ++i)
 			pairedReadGroups[i] = true;
 		allReadGroupsPaired = true;
 		logfile->list("Will merge pairs in all read groups");
 	} else {
 		//initialize all to false
-		for(int i=0; i<alignmentParser.readGroups.numGroups; ++i)
+		for(int i=0; i<alignmentParser.readGroups.size(); ++i)
 			pairedReadGroups[i] = false;
 		//change the paired to true
 		std::vector<std::string> vec;
@@ -1876,11 +1927,21 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
 
+	//open file for reads that had a problem
+	std::ofstream ignoredReads;
+	std::string ignoredReadsFile = outputName + "_ignoredReads.txt";
+	logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
+	ignoredReads.open(ignoredReadsFile.c_str());
+	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
+
+
+	//should we adapt quality scores to reflect knowledge gained from overlap?
+	bool adaptQuality = false;
+	if(params.parameterExists("adaptQuality"))
+		adaptQuality = true;
 
 	//other temp variables
 	long counter = 0;
- 	TGenotypeMap genoMap;
- 	TQualityMap qualMap;
 
 	//create storage for reads until their mate was found
 	std::vector< std::pair<TAlignment*, bool> > alignmentStorage;
@@ -1893,157 +1954,128 @@ void TGenome::mergePairedEndReads(TParameters & params){
     gettimeofday(&start, NULL);
 	int curChr = -1;
 
-	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
-
     //now parse through bam file and write alignments
-	while(alignmentParser.readNextAlignment(alignment)){
-		if((readsToOmit.count(alignment.alignmentName) > 0))
+	while (alignmentParser.readNextAlignment(alignment)){
+		std::cout << "##### got new alignment " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
+		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0))
 			continue;
-		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.bamAlignment)]){
+		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 
-			if(!alignment.bamAlignment.IsProperPair() || !alignment.bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || bamAlignment.IsSupplementary() ||(bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
+			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
+				if(alignment.isProperPair){
+					ignoredReads << "read " << alignment.alignmentName << " was filtered out because it was longer than the insert size (" << abs(alignment.bamAlignment.InsertSize) << "<" << alignment.bamAlignment.AlignedBases.size() << "\n";
+//					logfile->warning("read " + alignment.alignmentName + " was filtered out because it was longer than the insert size (" + toString(abs(alignment.bamAlignment.InsertSize)) + "<" + toString(alignment.bamAlignment.AlignedBases.size()) + ")");
+				}
+				readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
 				continue;
 			}
+//			} if(!alignment.isProperPair ||(alignment.isReverseStrand() && alignment.isMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
+//				continue;
+//			}
 
 			else {
 				//if on new chromosome, empty storage
-				if(curChr != alignment.bamAlignment.RefID){
+				if(curChr != alignment.chrNumber){
 					for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
-						bamWriter.SaveAlignment(*(it->first)->bamAlignment);
+						(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+						throw "saving!";
 						delete it->first;
 					}
 					alignmentStorage.clear();
-					curChr = alignment.bamAlignment.RefID;
+					curChr = alignment.chrNumber;
 				}
 				//add alignment to storage
-				if(alignment.bamAlignment.IsProperPair()){
-					if(!alignment.bamAlignment.IsReverseStrand()) {
+				if(alignment.isProperPair){
+					if(!alignment.isReverseStrand) {
 						//mate on forward strand is always first in bam file
-						alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(alignment.bamAlignment), false));
+						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), false));
+						std::cout << "printing storage after adding first:" << std::endl;
+						for(int i=0; i<alignmentStorage.size(); ++i){
+							std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
+						}
 					}
-					else if(alignment.bamAlignment.IsReverseStrand()){
+					else if(alignment.isReverseStrand){
 						//find first mate -> should be in storage
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-							if(it->first->Name == bamAlignment.Name){
+							if(it->first->alignmentName == alignment.alignmentName){
+
 								//check if this read accepts mate
-								if(it->second) throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
-								//merge reads
-								TAlignment* alignmentPointer = it->first;
-								if(alignment.bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
-									//reads do not overlap -> add Ns in between
-									//int numN = bamAlignment.Position - (alignmentPointer->Position + alignmentPointer)->AlignedBases.size() - 1;
-									int numN = abs(alignment.bamAlignment.InsertSize) - bamAlignment.AlignedBases.size() - alignmentPointer->AlignedBases.size();
-									for(int i=0; i<numN; ++i){
-										alignmentPointer->AlignedBases += 'N';
-										alignmentPointer->AlignedQualities += '!';
-									}
-									alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
-									alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
-								} else if(bamAlignment.Position < alignmentPointer->Position) std::cout << "Second mate of read '" << bamAlignment.Name << "' has pos < pos of first mate!";
-								else {
-									//reads do overlap -> merge them
-									std::string alignment;
-									std::string quality;
-									int firstOverlap = bamAlignment.Position - alignmentPointer->Position;
-									int lastOverlapPlusOne = -1;
-									if((alignmentPointer->Position + alignmentPointer->AlignedBases.size()) <= (bamAlignment.Position + bamAlignment.AlignedBases.size())) lastOverlapPlusOne = alignmentPointer->AlignedBases.size();
-									else lastOverlapPlusOne = bamAlignment.AlignedBases.size();
+								if(it->second)
+									throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
 
-									//first copy from first mate
-									alignment = alignmentPointer->AlignedBases.substr(0, firstOverlap);
-									quality = alignmentPointer->AlignedQualities.substr(0, firstOverlap);
-									//decide which alignment has higher quality in overlap
-									for(int i=firstOverlap; i<lastOverlapPlusOne; ++i){
-										//decide which quality is higher
-										if(alignmentPointer->AlignedQualities.at(i) > bamAlignment.AlignedQualities.at(i - firstOverlap)){
-											alignment += alignmentPointer->AlignedBases.at(i);
-											quality += alignmentPointer->AlignedQualities.at(i);
-										} else {
-											alignment += bamAlignment.AlignedBases.at(i - firstOverlap);
-											quality += bamAlignment.AlignedQualities.at(i - firstOverlap);
-										}
-									}
-
-									//add rest from second
-									if(alignmentPointer->Position + alignmentPointer->AlignedBases.size() < bamAlignment.Position + bamAlignment.AlignedBases.size()){
-										alignment += bamAlignment.AlignedBases.substr(lastOverlapPlusOne - firstOverlap);
-										quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
-									}
-
-									if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize)) logfile->warning("merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!");
-
-									//set
-									alignmentPointer->AlignedBases = alignment;
-									alignmentPointer->AlignedQualities = quality;
-								}
-								//update
-
-								alignmentPointer->QueryBases = alignmentPointer->AlignedBases;
-								alignmentPointer->Qualities = alignmentPointer->AlignedQualities;
-								alignmentPointer->Length = alignmentPointer->AlignedBases.size();
-								alignmentPointer->CigarData.clear();
-								alignmentPointer->CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_MATCH_CHAR, alignmentPointer->Length));
-								alignmentPointer->SetIsFirstMate(false);
-								alignmentPointer->SetIsSecondMate(false);
-								alignmentPointer->SetIsPaired(false);
-								alignmentPointer->SetIsProperPair(false);
-								alignmentPointer->SetIsMateReverseStrand(false);
-								alignmentPointer->SetIsReverseStrand(false); //the read that comes first in BAM is always fwd strand
-								alignmentPointer->MateRefID = -1;
-								alignmentPointer->MatePosition = -1;
-								alignmentPointer->InsertSize = 0;
-
+								//merge
+								alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
 								it->second = true;
-//								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){
 
+									//add reverse to storage (have to add after check otherwise it no longer defined)
+									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
+
+									std::cout << "printing storage after adding second (1):" << std::endl;
+									for(int i=0; i<alignmentStorage.size(); ++i){
+										std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
+									}
+
 									//write all that are OK
-									for(; it != alignmentStorage.end(); ++it){
+									for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 										if(it->second){
-											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
-//											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
+											//save the alignment to the bam file
+											(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+											throw "saving other alignment!";
 											delete it->first;
 										} else {
-											//first that can not be written -> erase all previous ones!
 											it = alignmentStorage.erase(alignmentStorage.begin(), it);
 											break;
 										}
 									}
-									if(it == alignmentStorage.end()){
+									if(it == alignmentStorage.end())
 										alignmentStorage.clear();
+								} else {
+									//add reverse to storage
+									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
+									std::cout << "printing storage after adding second (2):" << std::endl;
+									for(int i=0; i<alignmentStorage.size(); ++i){
+										std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
 									}
-								} break;
+								}
+								break;
 							}
 						}
 
-						if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
+						if(!alignmentStorage.empty() && it == alignmentStorage.end())
+							throw "One read of '" + alignment.alignmentName + "' is reverse mate, but forward one has not been read!";
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;
 						}
 						alignmentStorage.clear();
-						throw "One read of '" + bamAlignment.Name + "' is paired, but neither first nor second mate!";
+						std::cout <<"!!!clearing storage!!!" << std::endl;
+						throw "One read of '" + alignment.alignmentName + "' is paired, but neither first nor second mate!";
 					}
 				} else {
 					//read is not paired: add to storage or write
-					if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignment);
-					else alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
+					if(alignmentStorage.empty()){
+						alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+						throw "saving alignment not paired!";
+					} else
+						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 				}
 			}
 		}
 
 		//read is in single-end read group
 		else{
-			bamWriter.SaveAlignment(bamAlignment);
+			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 		}
 
 		//report
 		++counter;
 		reportProgressParsingBamFile(counter, start);
 	}
+
+	ignoredReads.close();
 
 	//close bam writer
 	bamWriter.Close();
@@ -2066,8 +2098,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	//close BAM file
 	reader.Close();
 	logfile->done();
-	*/
-};
+}
+
 
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
@@ -2276,23 +2308,23 @@ void TGenome::diagnoseBamFile(TParameters & params){
     }
 
     //now parse through bam file and sum number of aligned bases
-    //TODO: avoid getting properties from bamAlignment, use alignmentParser
 	while (alignmentParser.readNextAlignment(alignment)){
     	//filters
         if(!alignment.passedFilters) continue;
         if(alignment.isProperPair){
         	if(!alignment.isReverseStrand){
         		++numProperPairs;
-        		sumFragLen += abs(alignmentParser.bamAlignment.InsertSize);
-        		sumSquaredFragLen += (alignmentParser.bamAlignment.InsertSize * alignmentParser.bamAlignment.InsertSize);
+        		int32_t insSize = alignment.getInsertSize();
+        		sumFragLen += abs(insSize);
+        		sumSquaredFragLen += (insSize * insSize);
         	}
         }
 
         RGInd = alignment.readGroupId;
-        totCov += alignmentParser.bamAlignment.AlignedBases.length();
-        cov[RGInd] += alignmentParser.bamAlignment.AlignedBases.length();
+        totCov += alignment.getLength();
+        cov[RGInd] += alignment.getLength();
         ++MQ[RGInd][alignment.mappingQuality];
-        ++RL[RGInd][alignmentParser.bamAlignment.Length];
+        ++RL[RGInd][alignment.getLength()];
 
         //report
         ++counter;

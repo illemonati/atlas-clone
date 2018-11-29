@@ -65,6 +65,8 @@ private:
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
+	BamTools::BamAlignment bamAlignment;
+
 	//quality filter
 	bool applyQualityFilter;
 
@@ -120,7 +122,6 @@ private:
 
 public:
 	//alignment: goal is to make this private!
-	BamTools::BamAlignment bamAlignment;
 	int curReadGroupID;
 	int minQualForPrinting, maxQualForPrinting;
 	int minQual, maxQual;
@@ -198,6 +199,7 @@ public:
 	void initializeRecalibrationForQualityTransformation(TParameters & params);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 
 
 
