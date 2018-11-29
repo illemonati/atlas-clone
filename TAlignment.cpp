@@ -188,8 +188,8 @@ void TAlignment::setDistancesFromEnds(){
 			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
 			int p = length - 1 - softClippedLength[1];
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = p - d; //dist from 5'
-				bases[d].posInReadRev = k + d; //dist from 3'
+				bases[d].distFrom5Prime = p - d; //dist from 5'
+				bases[d].distFrom3Prime = k + d; //dist from 3'
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -199,8 +199,8 @@ void TAlignment::setDistancesFromEnds(){
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			int p = abs(bamAlignment.InsertSize) - 1 + numInsertions - numDeletions;
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d - softClippedLength[0]; //dist from 5'
-				bases[d].posInReadRev = p - d + softClippedLength[0]; //dist from 3'
+				bases[d].distFrom5Prime = d - softClippedLength[0]; //dist from 5'
+				bases[d].distFrom3Prime = p - d + softClippedLength[0]; //dist from 3'
 			}
 		}
 	} else {
@@ -211,17 +211,16 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = p - d - softClippedLength[1]; //dist from 5'
-				bases[d].posInReadRev = d - softClippedLength[0]; //dist from 3'
+				bases[d].distFrom5Prime = p - d - softClippedLength[1]; //dist from 5'
+				bases[d].distFrom3Prime = d - softClippedLength[0]; //dist from 3'
 			}
-
 		} else {
 			//not in pair & forward
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int d=0; d<length; ++d){
-				bases[d].posInRead = d - softClippedLength[0]; //dist from 5'
-				bases[d].posInReadRev = p - d - softClippedLength[1]; //dist from 3'
+				bases[d].distFrom5Prime = d - softClippedLength[0]; //dist from 5'
+				bases[d].distFrom3Prime = p - d - softClippedLength[1]; //dist from 3'
 			}
 		}
 	}
@@ -272,6 +271,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].posInRead = k;
 					if(bases[d].base == N){
 						bases[d].aligned = false;
 						bases[d].alignedPos = -1;
@@ -297,6 +297,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					bases[d].aligned = false;
 					bases[d].alignedPos = -1;
+					bases[d].posInRead = k;
 				}
 				break;
 
@@ -309,6 +310,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].aligned = false;
 					++numInsertions;
 					bases[d].alignedPos = -1;
+					bases[d].posInRead = k;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -329,6 +331,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
 					bases[d].aligned = false;
 					bases[d].alignedPos = p;
+					bases[d].posInRead = k;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -370,8 +373,8 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
 	for(int d=0; d<length; ++d){
-		bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].posInRead);
-		bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].posInReadRev);
+		bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
+		bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
 	}
 };
 
@@ -532,16 +535,16 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
 				read = genoMap.baseToFlippedBase[bases[d].base];
-				pmdTables.addForward(readGroupId, bases[d].posInReadRev, ref, read);
-				pmdTables.addReverse(readGroupId, bases[d].posInRead, ref, read);
+				pmdTables.addForward(readGroupId, bases[d].distFrom3Prime, ref, read);
+				pmdTables.addReverse(readGroupId, bases[d].distFrom5Prime, ref, read);
 			}
 		}
 	} else {
 		for(int d=0; d<length; ++d){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
-				pmdTables.addForward(readGroupId, bases[d].posInRead, ref, bases[d].base);
-				pmdTables.addReverse(readGroupId, bases[d].posInReadRev, ref, bases[d].base);
+				pmdTables.addForward(readGroupId, bases[d].distFrom5Prime, ref, bases[d].base);
+				pmdTables.addReverse(readGroupId, bases[d].distFrom3Prime, ref, bases[d].base);
 			}
 		}
 	}
@@ -905,7 +908,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "dist 3':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << bases[d].posInReadRev;
+		std::cout << bases[d].distFrom3Prime;
 	}
 	std::cout << std::endl;
 
@@ -913,7 +916,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "dist 5':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << bases[d].posInRead;
+		std::cout << bases[d].distFrom5Prime;
 	}
 	std::cout << std::endl;
 }
