@@ -691,7 +691,10 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	vcf << varianTQuality;
 
 	//write filter, info and format
-	vcf << "\t.\t.\tGT:GQ:DP:PL";
+	if(usePhredLikelihoods)
+		vcf << "\t.\t.\tGT:GQ:DP:PL";
+	else
+		vcf << "\t.\t.\tGT:GQ:DP:GL";
 
 	//now write active samples
 	for(int i=0; i<numActiveFiles; ++i){
@@ -709,23 +712,23 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 
 			//write MLE genoytpe
 			int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-			if(mleGeno == 0) vcf << "\t0/0;";
-			else if(mleGeno == 1) vcf << "\t0/1;";
-			else vcf << "\t1/1;";
+			if(mleGeno == 0) vcf << "\t0/0:";
+			else if(mleGeno == 1) vcf << "\t0/1:";
+			else vcf << "\t1/1:";
 
 			//write genotype quality
-			if(mleGenotypes.size() > 1) vcf << "0;";
+			if(mleGenotypes.size() > 1) vcf << "0:";
 			else {
 				//find second highest quality
 				int secondLowestQual = 999;
 				if(data[i][refHomIndex] > minQual) secondLowestQual = data[i][refHomIndex];
 				if(data[i][hetIndex] > minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
 				if(data[i][altHomIndex] == minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
-				vcf << round(secondLowestQual - minQual) << ";";
+				vcf << round(secondLowestQual - minQual) << ":";
 			}
 
 			//write depth
-			vcf << GLFs[i].depth << ';';
+			vcf << GLFs[i].depth << ':';
 
 			//write likelihoods
 			if(usePhredLikelihoods)

@@ -294,10 +294,10 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data.");
 
 	//limit input
-	long maxPos = params.getParameterDoubleWithDefault("maxPos", 0);
-	if(maxPos > 0)
-		logfile->list("Will stop at input position " + toString(maxPos) + ".");
-	if(maxPos < 0)
+	long limitSites = params.getParameterDoubleWithDefault("limitSites", 0);
+	if(limitSites > 0)
+		logfile->list("Will stop at input position " + toString(limitSites) + ".");
+	if(limitSites < 0)
 		throw "maxPos cannot be negative!";
 
 	//filename tag
@@ -338,7 +338,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		}
 
 		//break?
-		if(maxPos > 0 && counter == maxPos)
+		if(limitSites > 0 && counter == limitSites)
 			break;
 	}
 

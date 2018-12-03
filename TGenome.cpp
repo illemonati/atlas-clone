@@ -2560,7 +2560,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 							if(it->first->Name == bamAlignment.Name){
 								//check if this read accepts mate
-								if(it->second) throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
+								if(it->second)
+									throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
 								//merge reads
 								alignmentPointer = it->first;
 								if(bamAlignment.Position > alignmentPointer->Position + alignmentPointer->AlignedBases.size()){
