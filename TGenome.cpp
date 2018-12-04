@@ -581,7 +581,7 @@ void TGenome::estimateTheta(TParameters & params){
 
 	//open output
 	std::string filename = outputName + "_theta_estimates.txt.gz";
-	TThetaOutputFile thetaOut(outputName, &thetaEstimator, logfile);
+	TThetaOutputFile thetaOut(filename, &thetaEstimator, logfile);
 
 	//check for which segements theta is to be estimated
 	if(params.parameterExists("thetaGenomeWide") || considerRegions){

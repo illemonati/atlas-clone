@@ -233,7 +233,7 @@ public:
 
 	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
 		filename = Filename;
-		logfile->listFlush("Will write theta estimates to file '" + filename + "'.");
+		logfile->list("Will write theta estimates to file '" + filename + "'.");
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open file '" + filename + "' for writing!";
 
