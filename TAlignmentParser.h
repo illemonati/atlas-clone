@@ -199,7 +199,7 @@ public:
 	void initializeRecalibrationForQualityTransformation(TParameters & params);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
-	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
+	void mergeAlignedBasesBamReads(TAlignment & fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 
 
 

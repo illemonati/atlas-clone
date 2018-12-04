@@ -84,7 +84,6 @@ using namespace std;
 */
 BamAlignment::BamAlignment(void)
     : Length(0)
-	, NumInsertions(0)
     , RefID(-1)
     , Position(-1)
     , Bin(0)
@@ -101,7 +100,6 @@ BamAlignment::BamAlignment(void)
 BamAlignment::BamAlignment(const BamAlignment& other)
     : Name(other.Name)
     , Length(other.Length)
-	, NumInsertions(other.NumInsertions)
     , QueryBases(other.QueryBases)
     , AlignedBases(other.AlignedBases)
     , Qualities(other.Qualities)
@@ -226,7 +224,6 @@ bool BamAlignment::BuildCharData(void) {
                 case (Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
                 case (Constants::BAM_CIGAR_INS_CHAR)      :
                     k += op.Length;
-                	++NumInsertions;
                     break;
 
                 // for 'D' - write gap character

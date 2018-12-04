@@ -74,6 +74,8 @@ std::string extractPath(std::string & s);
 
 //read
 std::string readAfterLast(std::string & s, char delim);
+std::string readBeforeLast(std::string & s, std::string delim);
+std::string readBeforeLast(std::string & s, char delim);
 
 //manipulate
 void trimString(std::string & s);

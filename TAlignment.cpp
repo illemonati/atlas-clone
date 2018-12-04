@@ -63,7 +63,8 @@ TAlignment::TAlignment(unsigned int MaxSize){
 
 TAlignment::TAlignment(TAlignment & Alignment){
 	//details
-	empty = true;
+	empty = false;
+	bamAlignment = Alignment.bamAlignment;
 	maxSize = Alignment.maxSize;
 	alignmentName = Alignment.alignmentName;
 	length = Alignment.length;
@@ -102,7 +103,6 @@ void TAlignment::clear(){
 	recalibrated = false;
 	changed = false;
 	passedFilters = false;
-//	quality = qualityOriginal;
 }
 
 void TAlignment::initStorage(){
@@ -126,6 +126,7 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
+	std::cout << "freeing storage of alignment " << alignmentName << std::endl;
 	if(storageInitialized){
 		delete[] bases;
 		delete[] qualityOriginal;
@@ -879,6 +880,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 
 void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "NAME:\t" << bamAlignment.Name << std::endl;
+	std::cout << "aligned bases " << bamAlignment.AlignedBases << std::endl;
 	std::cout << "LEN:\t" << length << std::endl;
 
 	//print bases

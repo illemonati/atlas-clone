@@ -14,6 +14,8 @@
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
 #include "TVcfDiagnostics.h"
+#include "TMajorMinor.h"
+
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -50,6 +52,9 @@ public:
 			logfile->startIndent("Writing sites that are invariant across individuals to bed (task=vcfToInvariantBed):");
 			VcfDiagnostics VcfDiagnoser(parameters, logfile);
 			VcfDiagnoser.vcfToInvariantBed();
+		} else if(task == "majorMinor"){
+			TMajorMinor majorMinor(*parameters, logfile);
+			majorMinor.estimateMajorMinor(*parameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

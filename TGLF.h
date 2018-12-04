@@ -14,7 +14,11 @@
 #include <algorithm>
 #include <string.h>
 #include <vector>
-//#include <bitset>
+#include "TParameters.h"
+#include "stringFunctions.h"
+#include "TGenotypeMap.h"
+#include "TRandomGenerator.h"
+
 
 //----------------------------------------------------
 //TGlfHandle
@@ -121,7 +125,7 @@ private:
 	int _lenRead;
 	bool _eof;
 	uint8_t genotypeQualitiesMissingData[10];
-	std::vector<std::string> chromosomesAlreadyParsed;
+	std::vector< std::pair<std::string, long> > chromosomesAlreadyParsed;
 
 	void init();
 	template <typename T>
@@ -163,6 +167,8 @@ public:
 	//get details
 	long chrLength(){ return _chrLength; };
 	bool eof(){ return _eof;};
+	std::string getNameOfParsedChr(int chrNumber);
+	long getLengthOfParsedChr(int chrNumber);
 
 	//open file and parse header
 	void setFilename(std::string Filename);
@@ -179,6 +185,83 @@ public:
 	void printSite();
 	void printToEnd();
 
+};
+
+//----------------------------------------------------
+//TGlfMultiReader
+//----------------------------------------------------
+class TGlfMultiReader{
+private:
+	int numGLFs;
+	std::vector<std::string> GLFNames;
+	TGlfReader* GLFs;
+	bool readersOpened;
+	TGenotypeMap genoMap;
+
+	void _openGLFs(TLog* logfile);
+
+	//active files
+	//Object will loop only over active files
+	int numActiveFiles;
+	bool* GLFIsActive;
+	std::vector<int> activeGLFs;
+	std::vector<TGlfReader*> pointerToActiveGLFs;
+	int _getGLFIndexFromName(const std::string & name);
+	void _setActive(const int index);
+	void _setAllInactive();
+	int _minChrNumberActiveFiles();
+	void _setCurChrName();
+	void _prepareParsing();
+
+	//Moving along active files
+	long _position;
+	int _curChrNumber;
+	long _curChrLength;
+	std::string _curChrName;
+	int _numActiveFilesWithData;
+	uint8_t genotypeQualitiesMissingData[10];
+
+	bool moveToNextChromosome();
+
+public:
+	uint8_t** data;
+	bool* hasData;
+	bool dataInitialized;
+
+	TGlfMultiReader();
+	TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile);
+	TGlfMultiReader(TParameters & params, TLog* logfile);
+	void init();
+
+	~TGlfMultiReader();
+
+	void openGLFs(const std::vector<std::string> & Filenames, TLog* logfile);
+	void openGLFs(TParameters & params, TLog* logfile);
+	void closeGLF();
+
+	//set active / inactive
+	void setActive(const int index);
+	void setActive(const std::string & name);
+	void setActive(const int index1, const int index2);
+	void setActive(const std::string & name1, const std::string & name2);
+	void setActive(std::vector<int> & indexes);
+	void setActive(std::vector<std::string> & names);
+	void setAllActive();
+
+	//access data
+	int numSamples(){ return numGLFs; };
+	int numActiveSamples(){ return numActiveFiles; };
+	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
+	int chrNumber(){return _curChrNumber;};
+	std::string chr(){return _curChrName;};
+	long position(){return _position;};
+
+	//parse
+	bool readNext();
+	void print();
+	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
+	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
+	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 };
 
 #endif /* TGLF_H_ */

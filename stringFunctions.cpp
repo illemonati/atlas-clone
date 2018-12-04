@@ -359,7 +359,29 @@ std::string readAfterLast(std::string & s, char delim){
 	std::string::size_type l=s.rfind(delim);
 	if(l!=std::string::npos) return s.substr(l+1);
 	else return s;
-}
+};
+
+std::string readBeforeLast(std::string & s, std::string delim){
+	std::string ret="";
+	std::string::size_type l=s.rfind(delim);
+	if(l!=std::string::npos){
+		ret=s.substr(0,l);
+	} else {
+		ret=s;
+	}
+	return ret;
+};
+
+std::string readBeforeLast(std::string & s, char delim){
+	std::string ret="";
+	std::string::size_type l=s.rfind(delim);
+	if(l!=std::string::npos){
+		ret=s.substr(0,l);
+	} else {
+		ret=s;
+	}
+	return ret;
+};
 
 //-----------------------------------------------------------------------
 //manipulate

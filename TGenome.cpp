@@ -1956,11 +1956,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
-		std::cout << "##### got new alignment " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
+		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
 		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0))
 			continue;
 		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
-
 			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
 					ignoredReads << "read " << alignment.alignmentName << " was filtered out because it was longer than the insert size (" << abs(alignment.bamAlignment.InsertSize) << "<" << alignment.bamAlignment.AlignedBases.size() << "\n";
@@ -1978,7 +1977,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 				if(curChr != alignment.chrNumber){
 					for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 						(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-						throw "saving!";
 						delete it->first;
 					}
 					alignmentStorage.clear();
@@ -1986,25 +1984,25 @@ void TGenome::mergePairedEndReads(TParameters & params){
 				}
 				//add alignment to storage
 				if(alignment.isProperPair){
+					std::cout << "alignment is proper pair" << std::endl;
+
 					if(!alignment.isReverseStrand) {
 						//mate on forward strand is always first in bam file
 						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), false));
-						std::cout << "printing storage after adding first:" << std::endl;
-						for(int i=0; i<alignmentStorage.size(); ++i){
-							std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
-						}
 					}
 					else if(alignment.isReverseStrand){
 						//find first mate -> should be in storage
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 							if(it->first->alignmentName == alignment.alignmentName){
 
+								std::cout << "found pair!" << std::endl;
+
 								//check if this read accepts mate
 								if(it->second)
 									throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
 
 								//merge
-								alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
+								alignmentParser.mergeAlignedBasesBamReads(*(it->first), &alignment, adaptQuality);
 								it->second = true;
 
 								//write if is first in vector
@@ -2013,17 +2011,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									//add reverse to storage (have to add after check otherwise it no longer defined)
 									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 
-									std::cout << "printing storage after adding second (1):" << std::endl;
-									for(int i=0; i<alignmentStorage.size(); ++i){
-										std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
-									}
-
 									//write all that are OK
 									for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 										if(it->second){
 											//save the alignment to the bam file
 											(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-											throw "saving other alignment!";
 											delete it->first;
 										} else {
 											it = alignmentStorage.erase(alignmentStorage.begin(), it);
@@ -2035,10 +2027,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								} else {
 									//add reverse to storage
 									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
-									std::cout << "printing storage after adding second (2):" << std::endl;
-									for(int i=0; i<alignmentStorage.size(); ++i){
-										std::cout << alignmentStorage[i].first->alignmentName << " " <<alignmentStorage[i].second  << std::endl;
-									}
 								}
 								break;
 							}
@@ -2051,14 +2039,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							delete it->first;
 						}
 						alignmentStorage.clear();
-						std::cout <<"!!!clearing storage!!!" << std::endl;
 						throw "One read of '" + alignment.alignmentName + "' is paired, but neither first nor second mate!";
 					}
 				} else {
 					//read is not paired: add to storage or write
 					if(alignmentStorage.empty()){
 						alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-						throw "saving alignment not paired!";
 					} else
 						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 				}
