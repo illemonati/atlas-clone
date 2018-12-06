@@ -96,11 +96,13 @@ private:
 	BamTools::RefVector references;
 	BamTools::BamWriter bamWriter;
 	TLog* logfile;
+	bool hasLogfile;
 
 	void init(){
 		logfile = NULL;
 		filename = "";
 		isOpen = false;
+		hasLogfile = true;
 	};
 
 public:
@@ -111,12 +113,14 @@ public:
 	TSimulatorBamFile(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
 		init();
 		logfile = Logfile;
+		hasLogfile = true;
 		open(Filename, readGroupNames, chromosomes);
 	};
 	~TSimulatorBamFile(){
 		close();
 	};
 
+	void setLogfile(TLog* Logfile){ logfile = Logfile; hasLogfile = true; };
 	void open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes);
 	bool saveAlignment(const BamTools::BamAlignment & bamAlignment){
 		return bamWriter.SaveAlignment(bamAlignment);
@@ -137,6 +141,54 @@ public:
 
 	void close();
 	TSimulatorBamFile& operator[](int i);
+};
+
+//---------------------------------------------------------
+//TSimulatorAlleleIndex
+//---------------------------------------------------------
+class TSimulatorAlleleIndex{
+private:
+	int nextIndex;
+	Base refBase;
+	Base indexToBase[4];
+
+public:
+	int index[4];
+	bool used[4];
+
+	TSimulatorAlleleIndex(){
+		nextIndex = 0;
+		refBase = N;
+	};
+
+	void clear(const Base & ref){
+		used[0] = false; used[1] = false; used[2] = false; used[3] = false;
+		used[ref] = true;
+		index[ref] = 0;
+		nextIndex = 1;
+		refBase = ref;
+	};
+
+	void add(const Base & base){
+		if(!used[base]){
+			used[base] = true;
+			index[base] = nextIndex;
+			indexToBase[nextIndex] = base;
+			++nextIndex;
+		}
+	};
+
+	std::string getRefAltString(TGenotypeMap & genoMap){
+		std::string ret = genoMap.baseToChar[refBase] + "\t";
+		if(nextIndex == 1) //no alt
+			return ret + '.';
+		else {
+			ret += genoMap.baseToChar[indexToBase[1]];
+			for(int i=2; i<nextIndex; ++i)
+				ret += ',' + genoMap.baseToChar[indexToBase[i]];
+			return ret;
+		}
+	};
 };
 
 //---------------------------------------------------------
@@ -171,7 +223,7 @@ public:
 	Base** getHaplotypesFirstIndividual(){
 		return haplotypes[0];
 	};
-	void writeGenotypes(gz::ogzstream & out, std::string & chrName, TGenotypeMap & genoMap);
+	void writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap);
 	int size(){ return numInd; };
 	Base& operator()(int ind, int hap, long site){
 		return haplotypes[ind][hap][site];
@@ -195,6 +247,7 @@ public:
 	TSimulatorMutationtable();
 	TSimulatorMutationtable(float* baseFreq);
 	TSimulatorMutationtable(float* baseFreq, const double theta);
+	~TSimulatorMutationtable(){ deleteTable(); };
 	void fill(float* baseFreq);
 	void fill(float* baseFreq, double theta);
 	float* operator[](int i){ return mutTable[i]; };
@@ -210,13 +263,14 @@ private:
 	bool filesOpend;
 
 	void openFile(gz::ogzstream & file, const std::string filename);
-	void open(std::string outname);
 	void close();
 
 public:
 	TSimulatorVariantInvariantBedFiles();
 	TSimulatorVariantInvariantBedFiles(std::string outname);
 	~TSimulatorVariantInvariantBedFiles();
+
+	void open(std::string outname);
 
 	void write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome);
 };

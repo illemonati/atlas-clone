@@ -42,7 +42,6 @@ protected:
 
 	//read simulator
 	std::vector<TSimulatorRead*> readSimulators;
-	std::vector<TSimulatorRead*>::iterator readSimsIt;
 	std::vector<std::string> readGroupNames;
 	std::vector<double> simGroupFrequencies;
 	std::vector<double> cumulSimGroupFrequenies;
@@ -69,19 +68,22 @@ protected:
 	void initializeReadGroupFrequencies(TParameters & params);
 
 	//functions to simulate
+	virtual void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){ throw "simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){ throw "simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
-	void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
+	//void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
 
 	//from SFS
-	void fillMutationTable(float** & mutTable);
-	void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, Base* ref);
+	//void fillMutationTable(float** & mutTable);
+	//void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, Base* ref);
 
 public:
 	TSimulator(TLog* Logfile, TParameters & params);
 	virtual ~TSimulator(){
-		for(readSimsIt=readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
-			delete *readSimsIt;
-	}
+		for(TSimulatorRead* readSimIt: readSimulators)
+			delete readSimIt;
+		delete randomGenerator;
+	};
 
 	//functions to set general parameters
 	void setQualityDistribution(double mean, double sd, int maxQual);
@@ -92,14 +94,8 @@ public:
 	void initializeChromosomes(TParameters & params, TLog* logfile);
 	void initializeChromosomes(int numChr, long chrLength, bool haploid);
 	void initializeChromosomes(std::vector<long> & chrLength, std::vector<bool> haploid);
-	void simulatePooledData(int sampleSize, SFS & sfs);
-	void simulateIndividualPair(std::vector<double> & phis);
-	void simulatePopulationFromSFS(double theta, int numIndividuals);
-	void simulatePopulationFromSFS(std::vector<double> & thetas, int numIndividuals);
-	void simulatePopulationFromSFS(std::vector<std::string> & sfsFileNames, bool folded, int numIndividuals);
-	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals);
 
-	virtual void runSimulations(){ throw "runSimulations() not implemented for base class TSimulator!"; };
+	void runSimulations();
 };
 
 //---------------------------------------------------------
@@ -116,7 +112,7 @@ private:
 
 public:
 	TSimulatorOneIndividual(TLog* Logfile, TParameters & params);
-	~TSimulatorOneIndividual(){ thetas.clear(); };
+	~TSimulatorOneIndividual();
 
 	void runSimulations();
 };
@@ -174,16 +170,18 @@ public:
 //---------------------------------------------------------
 class TSimulatorHardyWeinberg:public TSimulator{
 private:
-	int sampleSize;
 	double fracPoly, alpha, beta, F;
+	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
 
+	void fillCumulGenoProb(const double & f);
+	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref);
 	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 
 public:
 	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params);
-	~TSimulatorHardyWeinberg();
+	~TSimulatorHardyWeinberg(){};
 
 	void runSimulations();
 };

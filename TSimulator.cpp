@@ -27,6 +27,7 @@ TSimulator::TSimulator(TLog* Logfile, TParameters & params){
 	refInitialized = false;
 	writeTrueGenotypes = false;
 	writeVariantInvariantBedFiles = false;
+	sampleSize = 0;
 	seqDepth = 0;
 	averageReadLength = 0;
 	maxReadLength = 0;
@@ -34,7 +35,6 @@ TSimulator::TSimulator(TLog* Logfile, TParameters & params){
 };
 
 void TSimulator::initializeCommonSettings(TParameters & params){
-
 	//depth
 	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
 	logfile->list("Will simulate to an average depth of " + toString(depth) + ".");
@@ -521,7 +521,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it, ++rgNumber){
 			logfile->startIndent("Initializing readgroup '" + *it + "':");
 			readSimulators.push_back(new TSimulatorRead(*it, rgNumber, maxPrintQual, randomGenerator));
-			readSimsIt = readSimulators.end() - 1;
+			std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.end() - 1;
 
 			//read length
 			if(readLengthPerReadGroup){
@@ -593,7 +593,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			readGroupNames.push_back(name);
 			logfile->startIndent("Initializing readgroup '" + name + "':");
 			readSimulators.push_back(new TSimulatorRead(name, i+1, maxPrintQual, randomGenerator));
-			readSimsIt = readSimulators.end() - 1;
+			std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.end() - 1;
 			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
@@ -652,10 +652,13 @@ void TSimulator::initializeReadGroupFrequencies(TParameters & params){
 	averageReadLength = 0;
 	maxReadLength = 0;
 	int i=0;
-	for(readSimsIt = readSimulators.begin(); readSimsIt != readSimulators.end(); ++readSimsIt, ++i){
-		averageReadLength += simGroupFrequencies[i] * (*readSimsIt)->meanReadLength();
-		if((*readSimsIt)->maxReadLength() > maxReadLength)
-			maxReadLength = (*readSimsIt)->maxReadLength();
+
+	for(TSimulatorRead* readSimsIt : readSimulators){
+		averageReadLength += readSimsIt->meanReadLength();
+		averageReadLength += simGroupFrequencies[i] * readSimsIt->meanReadLength();
+		if(readSimsIt->maxReadLength() > maxReadLength)
+			maxReadLength = readSimsIt->maxReadLength();
+		i++;
 	}
 }
 
@@ -745,7 +748,7 @@ void TSimulator::setBaseFreq(std::vector<float> & freq){
 }
 
 //--------------------------------------------------------------
-//simulating reads
+//Run simulations
 //--------------------------------------------------------------
 void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
@@ -760,7 +763,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	int r;
 
 	//prepare bam alignment
-	for(readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
+	for(std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
 		(*readSimsIt)->setRefId(thisChr->refID);
 
 	//initialize progress reporting
@@ -792,6 +795,72 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	logfile->overList(progressString + " done!  ");
 	logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
 }
+
+
+
+void TSimulator::runSimulations(){
+	//open bam files
+	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile);
+
+	//prepare haplotypes and
+	TSimulatorHaplotypes haplotypes(sampleSize);
+
+	//open files to store extra info on sites
+	if(writeTrueGenotypes){
+		//open file for true genotypes
+		std::string filename = outname + "_trueGenotypes.txt.gz";
+		haplotypes.openTrueGenotypeVCF(filename);
+	}
+
+	TSimulatorVariantInvariantBedFiles bedFiles;
+	if(writeVariantInvariantBedFiles)
+		bedFiles.open(outname);
+
+	//simulate sequences
+	int refId = 0;
+	for(std::vector<TSimulatorChromosome>::iterator chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
+		logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
+
+		//update reference storage and update haplotype lengths
+		referenceObj.setChr(chrIt->name, chrIt->length);
+		haplotypes.setLength(chrIt->length);
+
+		//simulate genotypes
+		logfile->listFlush("Simulating genotypes ...");
+		if(chrIt->haploid)
+			simulateHaplotypesHaploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
+		else
+			simulateHaplotypesDiploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
+		logfile->done();
+
+		//write true genotypes
+		//TODO: also write variant and invariant sites!
+		if(writeTrueGenotypes){
+			logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeTrueGenotypes(*chrIt, referenceObj.getPointerToRef(), genoMap);
+			logfile->done();
+		}
+
+		//write BED files
+		if(writeVariantInvariantBedFiles)
+			bedFiles.write(haplotypes, *chrIt);
+
+		//now simulate and write reads
+		logfile->startIndent("Simulating reads:");
+		for(int i=0; i<sampleSize; ++i)
+			simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(i), bamFiles[i], " for individual " + toString(i+1));
+		logfile->endIndent();
+
+		//end of chromosome
+		logfile->endIndent();
+	}
+
+	//close stuff
+	bamFiles.close();
+	logfile->endIndent();
+	haplotypes.closeTrueGenotypeVCF();
+	referenceObj.close();
+};
 
 //---------------------------------------------------------
 //TSimulatorOneIndividual
@@ -826,98 +895,36 @@ TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & pa
 	logfile->endIndent();
 };
 
-
-
 TSimulatorOneIndividual::~TSimulatorOneIndividual(){
 	thetas.clear();
 };
 
 void TSimulatorOneIndividual::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	for(int l=0; l<chromosome.length; ++l){
-				haplotypes[0][l] = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-				haplotypes[1][l] = static_cast<Base>(randomGenerator->pickOne(4, mutTable[haplotypes[0][l]]));
+		haplotypes(0,0,l) = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+		haplotypes(0,1,l) = static_cast<Base>(randomGenerator->pickOne(4, mutTable[haplotypes(0,0,l)]));
 
-				//decide on reference sequence
-				if(haplotypes[0][l] == haplotypes[1][l])
-					ref[l] = static_cast<Base> ((haplotypes[0][l] + randomGenerator->pickOne(4, cumulRef)) % 4);
-				else
-					ref[l] = static_cast<Base> (haplotypes[randomGenerator->pickOne(2)][l]);
-			}
+		//decide on reference sequence
+		if(haplotypes(0,0,l) == haplotypes(0,1,l))
+			ref[l] = static_cast<Base> ((haplotypes(0,0,l) + randomGenerator->pickOne(4, cumulRef)) % 4);
+		else
+			ref[l] = static_cast<Base> (haplotypes(0,randomGenerator->pickOne(2),l));
+	}
 };
 
 void TSimulatorOneIndividual::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//fill mutation table
+	mutTable.fill(baseFreq, thetas[chromosome.refID]);
+
+	//now simulate genotypes
 	for(int l=0; l<chromosome.length; ++l){
-		haplotypes[0][l] = static_cast<Base> (randomGenerator->pickOne(4, cumulBaseFreq));
-		haplotypes[1][l] = haplotypes[0][l];
+		haplotypes(0,0,l) = static_cast<Base> (randomGenerator->pickOne(4, cumulBaseFreq));
+		haplotypes(0,1,l) = haplotypes(0,0,l);
 
 		//decide on ref
-		ref[l] = static_cast<Base> ((haplotypes[0][l] + randomGenerator->pickOne(4, cumulRef)) % 4);
+		ref[l] = static_cast<Base> ((haplotypes(0,0,l) + randomGenerator->pickOne(4, cumulRef)) % 4);
 	}
 };
-
-void TSimulatorOneIndividual::runSimulations(){
-
-	//open BAM file
-	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile);
-
-	//prepare haplotypes and
-	TSimulatorHaplotypes haplotypes(sampleSize);
-
-	//open files to store extra info on sites
-	if(writeTrueGenotypes){
-		//open file for true genotypes
-		std::string filename = outname + "_trueGenotypes.txt.gz";
-		haplotypes.openTrueGenotypeVCF(filename);
-	}
-
-	if(writeVariantInvariantBedFiles){
-
-	}
-
-	//simulate sequences
-	int refId = 0;
-	double oldTheta = -1.0;
-	std::vector<double>::iterator thetaIt = thetas.begin();
-	for(std::vector<TSimulatorChromosome>::iterator chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId, ++thetaIt){
-		logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
-
-		//create mutation table
-		mutTable.fill(baseFreq, *thetaIt);
-
-		//update reference storage and update haplotype lengths
-		referenceObj.setChr(chrIt->name, chrIt->length);
-		haplotypes.setLength(chrIt->length);
-
-		//simulate genotypes
-		logfile->listFlush("Simulating genotypes ...");
-		simulateDiploidHaplotypesCurChromosome(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef());
-		logfile->done();
-
-		//write true genotypes and position of variant and invariant sites
-		if(writeTrueGenotypes){
-			logfile->listFlush("Writing true genotypes ...");
-			haplotypes.writeGenotypes(genoFile, chrIt->name, genoMap);
-			writeBEDFiles(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef(), invariantSitesFile, variantSitesFile);
-			writeVCFwithVariantPositions(haplotypes.getHaplotypesFirstIndividual(), referenceObj.getPointerToRef(), chrIt->name, variantVCF);
-			logfile->done();
-		}
-
-		//now simulate and write reads
-		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesFirstIndividual(), bamFiles[0], "");
-
-		//end of chromosome
-		logfile->endIndent();
-	}
-
-	//close stuff
-	bamFiles.close();
-	genoFile.close();
-	invariantSitesFile.close();
-	variantSitesFile.close();
-	referenceObj.close();
-	variantVCF.close();
-};
-
 
 //---------------------------------------------------------
 //TSimulatorPairOfIndividuals
@@ -1012,7 +1019,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 		cumul[index] /= sum;
 
 	//now initialize
-	for(int ca = 1; ca<5; ++ca){
+	for(int ca = 1; ca<4; ++ca){
 		cumulGenoCombinationFreq[ca] = new double[12];
 		numGenotypeCombinations[ca] = 12;
 		genoTrans[ca] = new Base*[12];
@@ -1097,7 +1104,6 @@ void TSimulatorPairOfIndividuals::fillTables(){
 	//cases 6 and 7: aa/bc, ab/cc
 	//-----------------------------------------
 	//build normalized cumulative vector for these cases
-	cumul = new double[24];
 	index = 0;
 	sum = 0.0;
 	for(a=0; a<4; ++a){
@@ -1118,7 +1124,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 		cumul[index] /= sum;
 
 	//now initialize
-	for(int ca = 5; ca<8; ++ca){
+	for(int ca = 6; ca<8; ++ca){
 		cumulGenoCombinationFreq[ca] = new double[24];
 		numGenotypeCombinations[ca] = 24;
 		genoTrans[ca] = new Base*[24];
@@ -1212,6 +1218,7 @@ void TSimulatorPairOfIndividuals::deleteTables(){
 	}
 };
 
+
 void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//first run diploid
 	simulateHaplotypesDiploid(haplotypes, chromosome, ref);
@@ -1250,58 +1257,6 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 			ref[l] = genoTrans[c][g][r];
 		}
 	}
-};
-
-void TSimulatorPairOfIndividuals::runSimulations(){
-	//open BAM files
-	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile);
-
-	//prepare haplotypes and
-	TSimulatorHaplotypes haplotypes(sampleSize);
-
-	//open file for true genotypes
-	gz::ogzstream genoFile;
-	if(writeTrueGenotypes){
-		std::string filename = outname + "_trueGenotypes.txt";
-		genoFile.open(filename.c_str());
-	}
-
-	//simulate sequences
-	int refId = 0;
-	for(std::vector<TSimulatorChromosome>::iterator chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
-		logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
-
-		//update reference storage and update haplotype lengths
-		referenceObj.setChr(chrIt->name, chrIt->length);
-		haplotypes.setLength(chrIt->length);
-
-		//simulate genotypes according to their distributions
-		logfile->listFlush("Simulating genotypes ...");
-		if(chrIt->haploid)
-			simulateHaplotypesHaploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
-		else
-			simulateHaplotypesDiploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
-		logfile->done();
-
-		//writing true genotypes
-		//TODO: also write variant and invariant sites!
-		if(writeTrueGenotypes){
-			logfile->listFlush("Writing true genotypes ...");
-			haplotypes.writeGenotypes(genoFile, chrIt->name, genoMap);
-			logfile->done();
-		}
-
-		//simulating reads
-		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(0), bamFiles[0], " for individual 1");
-		simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(1), bamFiles[1], " for individual 2");
-
-		logfile->endIndent();
-	}
-
-	//close stuff
-	bamFiles.close();
-	genoFile.close();
-	referenceObj.close();
 };
 
 //---------------------------------------------------------
@@ -1489,62 +1444,6 @@ void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes,
 	}
 };
 
-void TSimulatorSFS::runSimulations(){
-	//open bam files
-	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile);
-
-	//prepare haplotypes and
-	TSimulatorHaplotypes haplotypes(sampleSize);
-
-	//open file for true genotypes
-	gz::ogzstream genoFile;
-	if(writeTrueGenotypes){
-		std::string filename = outname + "_trueGenotypes.txt.gz";
-		genoFile.open(filename.c_str());
-	}
-
-	//simulate sequences
-	int refId = 0;
-	for(std::vector<TSimulatorChromosome>::iterator chrIt = chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt, ++refId){
-		logfile->startIndent("Simulating chromosome " + chrIt->name + ":");
-
-		//update reference storage and update haplotype lengths
-		referenceObj.setChr(chrIt->name, chrIt->length);
-		haplotypes.setLength(chrIt->length);
-
-		//simulate genotypes
-		logfile->listFlush("Simulating genotypes ...");
-		if(chrIt->haploid)
-			simulateHaplotypesHaploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
-		else
-			simulateHaplotypesDiploid(haplotypes, *chrIt, referenceObj.getPointerToRef());
-		logfile->done();
-
-		//write true genotypes
-		//TODO: also write variant and invariant sites!
-		if(writeTrueGenotypes){
-			logfile->listFlush("Writing true genotypes ...");
-			haplotypes.writeGenotypes(genoFile, chrIt->name, genoMap);
-			logfile->done();
-		}
-
-		//now simulate and write reads
-		logfile->startIndent("Simulating reads:");
-		for(int i=0; i<sampleSize; ++i)
-			simulateReadsFromHaplotypes(chrIt, haplotypes.getHaplotypesOfIndividual(i), bamFiles[i], " for individual " + toString(i+1));
-		logfile->endIndent();
-
-		//end of chromosome
-		logfile->endIndent();
-	}
-
-	//close stuff
-	bamFiles.close();
-	logfile->endIndent();
-	genoFile.close();
-	referenceObj.close();
-};
-
 //---------------------------------------------------------
 //TSimulatorHardyWeinberg
 //---------------------------------------------------------
@@ -1555,11 +1454,13 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	initializeCommonSettings(params);
 
 	//sample size
-	sampleSize = params.getParameterIntWithDefault("sampleSize", 1);
+	sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
+
+	std::cout << "SAMPLE SIZE = " << sampleSize << std::endl;
 
 	//parameters of beta distribution
 	fracPoly = params.getParameterDoubleWithDefault("fracPoly", 0.1);
-	logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymoprhic.");
+	logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic.");
 	alpha = params.getParameterDoubleWithDefault("alpha", 0.5);
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
 	beta = params.getParameterDoubleWithDefault("beta", 0.5);
@@ -1575,6 +1476,103 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	//done
 	logfile->endIndent();
 };
+
+void TSimulatorHardyWeinberg::fillCumulGenoProb(const double & f){
+	double oneMinus_f = 1.0 - f;
+	cumulGenoProb[0] = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
+	cumulGenoProb[1] = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;
+	cumulGenoProb[2] = 1.0;
+};
+
+
+void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref){
+	Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+	for(int i=0; i<sampleSize; ++i){
+		haplotypes(i,0,locus) = ancestral;
+		haplotypes(i,1,locus) = ancestral;
+	}
+
+	//reference potentially with divergence
+	ref[locus] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
+}
+
+void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//now simulate haplotypes
+	for(int l=0; l<chromosome.length; ++l){
+		//polymoprhic or not?
+		if(randomGenerator->getRand() < fracPoly){
+			//pick alleles
+			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
+
+			//pick allele Frequency
+			double f = randomGenerator->getBetaRandom(alpha, beta);
+
+			//simulate genotypes
+			for(int i=0; i<sampleSize; ++i){
+				if(randomGenerator->getRand() < f){
+					haplotypes(i,0,l) = derived;
+					haplotypes(i,1,l) = derived;
+				} else {
+					haplotypes(i,0,l) = ancestral;
+					haplotypes(i,1,l) = ancestral;
+				}
+			}
+
+			//reference is ancestral or derived with probability f
+			if(randomGenerator->getRand() < f)
+				ref[l] = derived;
+			else
+				ref[l] = ancestral;
+		} else
+			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+	}
+};
+
+void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//now simulate haplotypes
+	for(int l=0; l<chromosome.length; ++l){
+		//polymoprhic or not?
+		if(randomGenerator->getRand() < fracPoly){
+			//pick alleles
+			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
+
+			//pick allele Frequency
+			double f = randomGenerator->getBetaRandom(alpha, beta);
+			fillCumulGenoProb(f);
+
+			//simulate genotypes
+			for(int i=0; i<sampleSize; ++i){
+				int geno = randomGenerator->pickOne(3, cumulGenoProb);
+				if(geno == 0){
+					haplotypes(i,0,l) = ancestral;
+					haplotypes(i,1,l) = ancestral;
+				} else if(geno == 1){
+					if(randomGenerator->getRand() < 0.5){
+						haplotypes(i,0,l) = derived;
+						haplotypes(i,1,l) = ancestral;
+					} else {
+						haplotypes(i,0,l) = ancestral;
+						haplotypes(i,1,l) = derived;
+					}
+				} else {
+					haplotypes(i,0,l) = derived;
+					haplotypes(i,1,l) = derived;
+				}
+			}
+
+			//reference is ancestral or derived with probability f
+			if(randomGenerator->getRand() < f)
+				ref[l] = derived;
+			else
+				ref[l] = ancestral;
+		} else
+			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+	}
+};
+
+
 
 //--------------------------------------------------------------------
 //Functions to simulate pooled data

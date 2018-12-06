@@ -142,7 +142,7 @@ void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerato
 //TSimulatorBamFile
 //---------------------------------------------------
 void TSimulatorBamFile::open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes){
-	logfile->listFlush("Opening BAM file '" + Filename + "' ...");
+	if(hasLogfile) logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if(isOpen)
 		throw "A BAM file is already open for writing!";
@@ -169,7 +169,7 @@ void TSimulatorBamFile::open(std::string Filename, std::vector<std::string> & re
 	if (!bamWriter.Open(filename, header, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 	isOpen = true;
-	logfile->done();
+	if(hasLogfile) logfile->done();
 }
 
 void TSimulatorBamFile::close(){
@@ -184,7 +184,7 @@ void TSimulatorBamFile::close(){
 }
 
 void TSimulatorBamFile::indexBamFile(){
-	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
+	if(hasLogfile) logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
 	BamTools::BamReader reader;
 	if(!reader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
@@ -194,7 +194,7 @@ void TSimulatorBamFile::indexBamFile(){
 
 	//close BAM file
 	reader.Close();
-	logfile->done();
+	if(hasLogfile) logfile->done();
 };
 
 TSimulatorBamFiles::TSimulatorBamFiles(int NumFiles, std::string outname, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
@@ -205,13 +205,16 @@ TSimulatorBamFiles::TSimulatorBamFiles(int NumFiles, std::string outname, std::v
 
 	//open BAM files
 	if(numFiles == 1){
-		files[0].open(outname + ".bam", readGroupNames, chromosomes, logfile);
+		files[0].setLogfile(logfile);
+		files[0].open(outname + ".bam", readGroupNames, chromosomes);
 	} else {
 		logfile->startIndent("Opening " + toString(numFiles) + " BAM files:");
-		for(int i=0; i<numFiles; ++i)
-			files[i].open(outname + "_ind" + toString(i+1) + ".bam", readGroupNames, chromosomes, logfile);
+		for(int i=0; i<numFiles; ++i){
+			files[i].setLogfile(logfile);
+			files[i].open(outname + "_ind" + toString(i+1) + ".bam", readGroupNames, chromosomes);
+		}
+		logfile->endIndent();
 	}
-	logfile->endIndent();
 };
 
 TSimulatorBamFiles::~TSimulatorBamFiles(){
@@ -306,23 +309,47 @@ Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
 };
 
 void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap){
+	//prepare allele storage
+	TSimulatorAlleleIndex index;
+	std::string genoString;
+
 	for(int l=0; l<curLength; ++l){
 		//chromosome name and position
-		trueGenoVCF << chromosome.name << "\t" << l+1;
+		trueGenoVCF << chromosome.name << '\t' << l+1 << '\t';
 
-		//write ref and alt alleles
+		//assemble alleles and genotypes
+		genoString.clear();
+		index.clear(ref[l]);
 
-		NEED TO GET ALT FROM SIMULATOR -> need to store it!
+		//loop over all individuals to figure out which alleles are used
+		for(int ind=0; ind < numInd; ++ind){
+			//homozygous or heterozygous?
+			if(haplotypes[ind][0][l] == haplotypes[ind][1][l]){
+				//make sure allele exists
+				index.add(haplotypes[ind][0][l]);
 
+				//add genotype
+				genoString += '\t' + index.index[haplotypes[ind][0][l]] + '/' + index.index[haplotypes[ind][0][l]];
+			} else {
+				//make sure allele exists
+				index.add(haplotypes[ind][0][l]);
+				index.add(haplotypes[ind][1][l]);
+
+				if(index.index[haplotypes[ind][0][l]] < index.index[haplotypes[ind][1][l]])
+					genoString += '\t' + index.index[haplotypes[ind][0][l]] + '/' + index.index[haplotypes[ind][1][l]];
+				else
+					genoString += '\t' + index.index[haplotypes[ind][1][l]] + '/' + index.index[haplotypes[ind][0][l]];
+			}
+		}
+
+		//write ref allele
+		trueGenoVCF << index.getRefAltString(genoMap);
 
 		//write (no) quality of variant, (no) filter, (no) info and format
 		trueGenoVCF << "\t.\t.\t.\tGT";
 
 		//now write genotypes
-		for(int ind=0; ind < numInd; ++ind){
-			trueGenoVCF << "\t" << genoMap.baseToChar[haplotypes[ind][0][l]] << "/" << genoMap.baseToChar[haplotypes[ind][1][l]];
-		}
-		trueGenoVCF << "\n";
+		trueGenoVCF << '\t' << genoString << '\n';
 	}
 };
 

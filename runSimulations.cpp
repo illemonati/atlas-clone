@@ -9,8 +9,8 @@
 
 void runSimulations(TParameters & params, TLog* logfile){
 	//initialize simulator
-	TSimulator* simulator(logfile, params);
-	std::string method = params.getParameterStringWithDefault("method", "oneInd");
+	TSimulator* simulator;
+	std::string method = params.getParameterStringWithDefault("type", "one");
 	if(method == "one")
 		simulator = new TSimulatorOneIndividual(logfile, params);
 	else if(method == "pair")

@@ -19,7 +19,7 @@
 //TSimulatorRead
 //-------------------------------
 class TSimulatorRead{
-protected:
+private:
 	TRandomGenerator* randomGenerator;
 	int maxPrintPhredInt;
 	std::string _name;
@@ -57,7 +57,6 @@ protected:
 	Base* bases;
 	int* phredIntQualities;
 
-
 	//tmp variables
 	int p;
 	Base previousBase;
@@ -88,7 +87,7 @@ public:
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 	void setContamination(double rate, TSimulatorReference* source);
 
-	std::string name(){ return _name; }
+	std::string name(){ return _name; };
 	double meanReadLength(){
 		if(!readLengthInitialized) throw "Read length distribution not initialized!";
 		return readLengthDist->mean();
