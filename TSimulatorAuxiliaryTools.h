@@ -86,7 +86,6 @@ public:
 	Base* getPointerToRef(){ return ref; };
 };
 
-
 //---------------------------------------------------------
 //TSimulatorBamFile
 //---------------------------------------------------------
@@ -98,15 +97,20 @@ private:
 	BamTools::BamWriter bamWriter;
 	TLog* logfile;
 
-	void init(TLog* Logfile){
-		logfile = Logfile;
+	void init(){
+		logfile = NULL;
 		filename = "";
 		isOpen = false;
 	};
 
 public:
+	TSimulatorBamFile(){
+		init();
+	};
+
 	TSimulatorBamFile(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
-		init(Logfile);
+		init();
+		logfile = Logfile;
 		open(Filename, readGroupNames, chromosomes);
 	};
 	~TSimulatorBamFile(){
@@ -121,6 +125,20 @@ public:
 	void indexBamFile();
 };
 
+class TSimulatorBamFiles{
+private:
+	TLog* logfile;
+	int numFiles;
+	TSimulatorBamFile* files;
+
+public:
+	TSimulatorBamFiles(int NumFiles, std::string outname, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile);
+	~TSimulatorBamFiles();
+
+	void close();
+	TSimulatorBamFile& operator[](int i);
+};
+
 //---------------------------------------------------------
 //TSimulatorHaplotypes
 //---------------------------------------------------------
@@ -130,8 +148,12 @@ private:
 	long curLength;
 	long storageLength;
 	bool initialized;
-	int ind;
 	Base*** haplotypes;
+
+	//write true genotypes to VCF
+	gz::ogzstream trueGenoVCF;
+	bool trueGenoVCFOpend;
+
 
 	void allocateStorage(long length);
 	void freeStorage();
@@ -143,6 +165,8 @@ public:
 	};
 
 	void setLength(long length);
+	void openTrueGenotypeVCF(std::string filename);
+	void closeTrueGenotypeVCF();
 	Base** getHaplotypesOfIndividual(int i);
 	Base** getHaplotypesFirstIndividual(){
 		return haplotypes[0];
@@ -152,12 +176,50 @@ public:
 	Base& operator()(int ind, int hap, long site){
 		return haplotypes[ind][hap][site];
 	};
+	bool isPolymoprhic(long pos);
 };
 
+//---------------------------------------------------------
+//TSimulatorMutationtable
+//---------------------------------------------------------
+class TSimulatorMutationtable{
+private:
+	float** mutTable;
+	bool tableAllocated;
 
+	void allocateTable();
+	void deleteTable();
+	void normalizeAndMakeCumulative();
 
+public:
+	TSimulatorMutationtable();
+	TSimulatorMutationtable(float* baseFreq);
+	TSimulatorMutationtable(float* baseFreq, const double theta);
+	void fill(float* baseFreq);
+	void fill(float* baseFreq, double theta);
+	float* operator[](int i){ return mutTable[i]; };
+};
 
+//---------------------------------------------------------
+//TSimulatorVariantInvariantBedFiles
+//---------------------------------------------------------
+class TSimulatorVariantInvariantBedFiles{
+private:
+	gz::ogzstream variantSitesFile;
+	gz::ogzstream invariantSitesFile;
+	bool filesOpend;
 
+	void openFile(gz::ogzstream & file, const std::string filename);
+	void open(std::string outname);
+	void close();
+
+public:
+	TSimulatorVariantInvariantBedFiles();
+	TSimulatorVariantInvariantBedFiles(std::string outname);
+	~TSimulatorVariantInvariantBedFiles();
+
+	void write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome);
+};
 
 
 #endif /* TSIMULATORAUXILIARYTOOLS_H_ */

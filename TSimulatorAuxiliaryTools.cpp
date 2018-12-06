@@ -197,14 +197,56 @@ void TSimulatorBamFile::indexBamFile(){
 	logfile->done();
 };
 
+TSimulatorBamFiles::TSimulatorBamFiles(int NumFiles, std::string outname, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
+	numFiles = NumFiles;
+	logfile = Logfile;
+	if(numFiles < 1) throw "Can not open less than one BAM file!";
+	files = new TSimulatorBamFile[numFiles];
+
+	//open BAM files
+	if(numFiles == 1){
+		files[0].open(outname + ".bam", readGroupNames, chromosomes, logfile);
+	} else {
+		logfile->startIndent("Opening " + toString(numFiles) + " BAM files:");
+		for(int i=0; i<numFiles; ++i)
+			files[i].open(outname + "_ind" + toString(i+1) + ".bam", readGroupNames, chromosomes, logfile);
+	}
+	logfile->endIndent();
+};
+
+TSimulatorBamFiles::~TSimulatorBamFiles(){
+	delete[] files;
+};
+
+void TSimulatorBamFiles::close(){
+	logfile->startIndent("Indexing BAM files:");
+	for(int i=0; i<numFiles; ++i)
+		files[i].close();
+	logfile->endIndent();
+};
+
+TSimulatorBamFile& TSimulatorBamFiles::operator[](int i){
+	if(i >= numFiles) throw "BAM files " + toString(i) + " does not exist!";
+	return files[i];
+};
+
 //---------------------------------------------------------
 //TSimulatorHaplotypes
 //---------------------------------------------------------
+TSimulatorHaplotypes::TSimulatorHaplotypes(int NumIndividuals){
+	numInd = NumIndividuals;
+	haplotypes = NULL;
+	initialized = false;
+	curLength = 0;
+	storageLength = 0;
+	trueGenoVCFOpend = false;
+};
+
 void TSimulatorHaplotypes::allocateStorage(long length){
 	freeStorage();
 	//allocate storage
 	haplotypes = new Base**[numInd];
-	for(ind=0; ind<numInd; ++ind){
+	for(int ind=0; ind<numInd; ++ind){
 		haplotypes[ind] = new Base*[2];
 		haplotypes[ind][0] = new Base[length];
 		haplotypes[ind][1] = new Base[length];
@@ -215,7 +257,7 @@ void TSimulatorHaplotypes::allocateStorage(long length){
 
 void TSimulatorHaplotypes::freeStorage(){
 	if(initialized){
-		for(ind=0; ind<numInd; ++ind){
+		for(int ind=0; ind<numInd; ++ind){
 			delete[] haplotypes[ind][0];
 			delete[] haplotypes[ind][1];
 			delete[] haplotypes[ind];
@@ -225,20 +267,36 @@ void TSimulatorHaplotypes::freeStorage(){
 	}
 };
 
-TSimulatorHaplotypes::TSimulatorHaplotypes(int NumIndividuals){
-	numInd = NumIndividuals;
-	ind = 0;
-	haplotypes = NULL;
-	initialized = false;
-	curLength = 0;
-	storageLength = 0;
-};
-
 void TSimulatorHaplotypes::setLength(long length){
 	if(length > storageLength){
 		allocateStorage(length);
 	}
 	curLength = length;
+};
+
+void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename){
+	//open file
+	trueGenoVCF.open(filename.c_str());
+	if(!trueGenoVCF)
+		throw "Failed to open VCF file '" + filename + "' for writing!";
+
+	trueGenoVCFOpend = true;
+
+	//write header
+	trueGenoVCF << "##fileformat=VCFv4.2\n";
+	trueGenoVCF << "##source=ATLAS_Simulator\n";
+	trueGenoVCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+	trueGenoVCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	for(int ind=0; ind<numInd; ++ind)
+		trueGenoVCF << "\tInd" << ind + 1;
+	trueGenoVCF << '\n';
+};
+
+void TSimulatorHaplotypes::closeTrueGenotypeVCF(){
+	if(trueGenoVCFOpend){
+		trueGenoVCF.close();
+		trueGenoVCFOpend = false;
+	}
 };
 
 Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
@@ -247,21 +305,173 @@ Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
 	return haplotypes[i];
 };
 
-void TSimulatorHaplotypes::writeGenotypes(gz::ogzstream & out, std::string & chrName, TGenotypeMap & genoMap){
+void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap){
 	for(int l=0; l<curLength; ++l){
-		out << chrName << "\t" << l+1;
-		for(ind=0; ind < numInd; ++ind){
+		//chromosome name and position
+		trueGenoVCF << chromosome.name << "\t" << l+1;
+
+		//write ref and alt alleles
+
+		NEED TO GET ALT FROM SIMULATOR -> need to store it!
 
 
-			//std::cout << ind << " @ " << l << ": " << std::flush;
-			//std::cout << "\t" << toBase[haplotypes[ind][0][l]] << "/" << toBase[haplotypes[ind][1][l]] << std::endl;
+		//write (no) quality of variant, (no) filter, (no) info and format
+		trueGenoVCF << "\t.\t.\t.\tGT";
 
-			out << "\t" << genoMap.baseToChar[haplotypes[ind][0][l]] << "/" << genoMap.baseToChar[haplotypes[ind][1][l]];
+		//now write genotypes
+		for(int ind=0; ind < numInd; ++ind){
+			trueGenoVCF << "\t" << genoMap.baseToChar[haplotypes[ind][0][l]] << "/" << genoMap.baseToChar[haplotypes[ind][1][l]];
 		}
-		out << "\n";
+		trueGenoVCF << "\n";
 	}
 };
 
+bool TSimulatorHaplotypes::isPolymoprhic(long pos){
+	//count how many allele match that of first individual
+	Base testBase = haplotypes[0][0][pos];
+	int counts = 0;
+	for(int ind=0; ind < numInd; ++ind){
+		if(haplotypes[ind][0][pos] == testBase) ++counts;
+		if(haplotypes[ind][1][pos] == testBase) ++counts;
+	}
 
+	if(counts == 2*numInd) return false;
+	else return true;
+};
 
+//---------------------------------------------------------
+//TSimulatorMutationtable
+//---------------------------------------------------------
+TSimulatorMutationtable::TSimulatorMutationtable(){
+	mutTable = NULL;
+	tableAllocated = false;
+};
 
+TSimulatorMutationtable::TSimulatorMutationtable(float* baseFreq){
+	tableAllocated = false;
+	fill(baseFreq);
+};
+
+TSimulatorMutationtable::TSimulatorMutationtable(float* baseFreq, double theta){
+	tableAllocated = false;
+	fill(baseFreq, theta);
+};
+
+void TSimulatorMutationtable::allocateTable(){
+	if(!tableAllocated){
+		mutTable = new float*[4];
+		for(int i=0; i<4; ++i)
+			mutTable[i] = new float[4];
+		tableAllocated = true;
+	}
+};
+
+void TSimulatorMutationtable::deleteTable(){
+	if(tableAllocated){
+		for(int i=0; i<4; ++i)
+			delete[] mutTable[i];
+		delete[] mutTable;
+		tableAllocated = false;
+	}
+};
+
+void TSimulatorMutationtable::normalizeAndMakeCumulative(){
+	//normalize within row
+	for(int i=0; i<4; ++i){
+		double sum = 0.0;
+		for(int j=0; j<4; ++j){
+			sum += mutTable[i][j];
+		}
+		for(int j=0; j<4; ++j){
+			mutTable[i][j] /= sum;
+		}
+
+		//make cumulative
+		mutTable[i][1] += mutTable[i][0];
+		mutTable[i][2] += mutTable[i][1];
+		mutTable[i][3] = 1.0;
+	}
+};
+
+void TSimulatorMutationtable::fill(float* baseFreq){
+	//create storage
+	allocateTable();
+
+	//fill table
+	double sum;
+	for(int i=0; i<4; ++i){
+		for(int j=0; j<4; ++j){
+			mutTable[i][j] = baseFreq[i] * baseFreq[j];
+		}
+		mutTable[i][i] = 0.0;
+	}
+
+	normalizeAndMakeCumulative();
+};
+
+void TSimulatorMutationtable::fill(float* baseFreq, const double theta){
+	//create storage
+	allocateTable();
+
+	//fill table
+	double expMinusTheta = exp(-theta);
+	double sum;
+	for(int i=0; i<4; ++i){
+		for(int j=0; j<4; ++j){
+			mutTable[i][j] = baseFreq[i] * baseFreq[j] * (1.0 - expMinusTheta);
+		}
+		mutTable[i][i] += baseFreq[i] * expMinusTheta;
+	}
+
+	normalizeAndMakeCumulative();
+};
+
+//---------------------------------------------------------
+//TSimulatorVariantInvariantBedFiles
+//---------------------------------------------------------
+TSimulatorVariantInvariantBedFiles::TSimulatorVariantInvariantBedFiles(){
+	filesOpend = false;
+};
+
+TSimulatorVariantInvariantBedFiles::TSimulatorVariantInvariantBedFiles(std::string outname){
+	filesOpend = false;
+	open(outname);
+};
+
+TSimulatorVariantInvariantBedFiles::~TSimulatorVariantInvariantBedFiles(){
+	close();
+};
+
+void TSimulatorVariantInvariantBedFiles::openFile(gz::ogzstream & file, const std::string filename){
+	file.open(filename.c_str());
+	if(!file)
+		throw "Failed to open file '" + filename + "' for writing!";
+}
+
+void TSimulatorVariantInvariantBedFiles::open(std::string outname){
+	//make sure files are closed
+	close();
+
+	//now open files
+	openFile(variantSitesFile, outname + "_variantSites.bed.gz");
+	openFile(invariantSitesFile, outname + "_invariantSites.bed.gz");
+	filesOpend = true;
+};
+
+void TSimulatorVariantInvariantBedFiles::close(){
+	if(filesOpend){
+		variantSitesFile.close();
+		invariantSitesFile.close();
+		filesOpend = false;
+	}
+};
+
+void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome){
+	//0-based
+	for(int l=0; l<chromosome.length; ++l){
+		if(haplotypes.isPolymoprhic(l))
+			variantSitesFile << chromosome.name << "\t" << l << "\t" << l+1 << "\n";
+		else
+			invariantSitesFile << chromosome.name << "\t" << l << "\t" << l+1 << "\n";
+	}
+};

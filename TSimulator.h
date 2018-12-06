@@ -18,51 +18,26 @@
 #include "TSimulatorQualityTransformation.h"
 
 //---------------------------------------------------------
-//TSimulatorGenotypecombination
-//---------------------------------------------------------
-class TSimulatorGenotypeCombination{
-private:
-	double cumulGenoCaseFrequencies[9];
-	int numGenotypeCombinations[9];
-	double** cumulGenoCombinationFreq;
-	Base*** genoTrans;
-	short** orderLookup;
-	bool tablesInitialized;
-
-	void fillTables(std::vector<double> & phis, float* baseFreq);
-	void deleteTables();
-
-public:
-	TSimulatorGenotypeCombination(std::vector<double> & phis, float* baseFreq){
-		tablesInitialized = false;
-		fillTables(phis, baseFreq);
-	};
-	~TSimulatorGenotypeCombination(){
-		deleteTables();
-	}
-
-	void simulateHaplotypes(Base** haplotypesInd0, Base** haplotypesInd1, Base* ref, float referenceDivergence, long length, TRandomGenerator* randomGenerator);
-};
-
-//---------------------------------------------------------
 //TSimulator
 //---------------------------------------------------------
 class TSimulator{
-private:
+protected:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
-	bool bamFileOpen;
+	std::string outname;
 
 	//general simulation parameters
+	int sampleSize;
 	double referenceDivergence;
+	float cumulRef[4];
 	double seqDepth;
 	double averageReadLength;
 	double maxReadLength;
 
 	//chromosomes
 	std::vector<TSimulatorChromosome> chromosomes;
-	std::vector<TSimulatorChromosome>::iterator chrIt;
 	bool writeTrueGenotypes;
+	bool writeVariantInvariantBedFiles;
 	TSimulatorReference referenceObj;
 
 	//read simulator
@@ -74,9 +49,6 @@ private:
 
 	//Quality transformation
 	TGenotypeMap genoMap;
-	double* beta;
-	double* qualTermForTransformation;
-	double* posTermForTransformation;
 
 	//helper tools
 	char toBase[4] = {'A', 'C', 'G', 'T'};
@@ -85,6 +57,7 @@ private:
 	bool refInitialized;
 
 	//function to initialize read groups
+	void initializeCommonSettings(TParameters & params);
 	void saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename);
 	void initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap);
 	void initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
@@ -95,11 +68,7 @@ private:
 	void initializeReadSimulator(TParameters & params);
 	void initializeReadGroupFrequencies(TParameters & params);
 
-	//function sto simulate
-	void fillMutationTable(float** & mutTable, double theta);
-	void simulateDiploidHaplotypesCurChromosome(Base** haplotypes, float** & mutTable, Base* ref);
-	void writeBEDFiles(Base** haplotypes, Base* ref, gz::ogzstream & invariantSitesFile, gz::ogzstream & variantSitesFile);
-	void writeVCFwithVariantPositions(Base** haplotypes, Base* ref, const std::string & chr, gz::ogzstream & vcf);
+	//functions to simulate
 	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
 
@@ -108,11 +77,10 @@ private:
 	void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, Base* ref);
 
 public:
-	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator, TParameters & params);
-	~TSimulator(){
+	TSimulator(TLog* Logfile, TParameters & params);
+	virtual ~TSimulator(){
 		for(readSimsIt=readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
 			delete *readSimsIt;
-
 	}
 
 	//functions to set general parameters
@@ -124,16 +92,101 @@ public:
 	void initializeChromosomes(TParameters & params, TLog* logfile);
 	void initializeChromosomes(int numChr, long chrLength, bool haploid);
 	void initializeChromosomes(std::vector<long> & chrLength, std::vector<bool> haploid);
-	void simulatePooledData(int sampleSize, SFS & sfs, std::string outname);
-	void simulateSingleIndividual(double theta, std::string & outname);
-	void simulateSingleIndividual(std::vector<double> theta, std::string & outname);
-	void simulateIndividualPair(std::vector<double> & phis, std::string & outname);
-	void simulatePopulationFromSFS(double theta, int numIndividuals, std::string & outname);
-	void simulatePopulationFromSFS(std::vector<double> & thetas, int numIndividuals, std::string & outname);
-	void simulatePopulationFromSFS(std::vector<std::string> & sfsFileNames, bool folded, int numIndividuals, std::string & outname);
-	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals, std::string & outname);
+	void simulatePooledData(int sampleSize, SFS & sfs);
+	void simulateIndividualPair(std::vector<double> & phis);
+	void simulatePopulationFromSFS(double theta, int numIndividuals);
+	void simulatePopulationFromSFS(std::vector<double> & thetas, int numIndividuals);
+	void simulatePopulationFromSFS(std::vector<std::string> & sfsFileNames, bool folded, int numIndividuals);
+	void simulatePopulationFromSFS(std::vector<SFS*> sfs, int numIndividuals);
+
+	virtual void runSimulations(){ throw "runSimulations() not implemented for base class TSimulator!"; };
 };
 
+//---------------------------------------------------------
+//TSimulatorOneIndividual
+//---------------------------------------------------------
+class TSimulatorOneIndividual:public TSimulator{
+private:
+	std::vector<double> thetas;
+	TSimulatorMutationtable mutTable;
+
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+
+
+public:
+	TSimulatorOneIndividual(TLog* Logfile, TParameters & params);
+	~TSimulatorOneIndividual(){ thetas.clear(); };
+
+	void runSimulations();
+};
+
+
+//---------------------------------------------------------
+//TSimulatorPairOfIndividuals
+//---------------------------------------------------------
+class TSimulatorPairOfIndividuals:public TSimulator{
+private:
+	std::vector<double> phis;
+	double cumulGenoCaseFrequencies[9];
+	int numGenotypeCombinations[9];
+	double** cumulGenoCombinationFreq;
+	Base*** genoTrans;
+	short** orderLookup;
+	bool tablesInitialized;
+
+	void fillTables();
+	void deleteTables();
+
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+
+public:
+
+	TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params);
+	~TSimulatorPairOfIndividuals(){ deleteTables(); };
+
+	void runSimulations();
+};
+
+//---------------------------------------------------------
+//TSimulatorSFS
+//---------------------------------------------------------
+class TSimulatorSFS:public TSimulator{
+private:
+	std::vector<SFS*> sfs;
+	TSimulatorMutationtable mutTable;
+
+	void initializeSFS(std::vector<double> & thetas);
+	void initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+
+public:
+	TSimulatorSFS(TLog* Logfile, TParameters & params);
+	~TSimulatorSFS();
+
+	void runSimulations();
+};
+
+//---------------------------------------------------------
+//TSimulatorHardyWeinberg
+//---------------------------------------------------------
+class TSimulatorHardyWeinberg:public TSimulator{
+private:
+	int sampleSize;
+	double fracPoly, alpha, beta, F;
+	TSimulatorMutationtable mutTable;
+
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+
+public:
+	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params);
+	~TSimulatorHardyWeinberg();
+
+	void runSimulations();
+};
 
 
 #endif /* TSIMULATOR_H_ */
