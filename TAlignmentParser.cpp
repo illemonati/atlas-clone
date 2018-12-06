@@ -454,8 +454,9 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	//TODO: add check of whether RG is used
 	readGroupId = readGroupTable->find(readGroup);
 
-	//check if read passes basic QC
-	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+	//check if read passes basic QC + added remove second mate
+    passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsSecondMate() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+    //passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
 
 	//check read length
 	if(bamAlignment.AlignedBases.size() > maxSize)
