@@ -806,7 +806,7 @@ void TSimulator::runSimulations(){
 	//open files to store extra info on sites
 	if(writeTrueGenotypes){
 		//open file for true genotypes
-		std::string filename = outname + "_trueGenotypes.txt.gz";
+		std::string filename = outname + "_trueGenotypes.vcf.gz";
 		haplotypes.openTrueGenotypeVCF(filename);
 	}
 
@@ -832,7 +832,6 @@ void TSimulator::runSimulations(){
 		logfile->done();
 
 		//write true genotypes
-		//TODO: also write variant and invariant sites!
 		if(writeTrueGenotypes){
 			logfile->listFlush("Writing true genotypes ...");
 			haplotypes.writeTrueGenotypes(*chrIt, referenceObj.getPointerToRef(), genoMap);
@@ -885,9 +884,6 @@ TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & pa
 	//one theta per chromosome
 	if(thetas.size() != chromosomes.size())
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
-
-	//prepare mutation table
-	mutTable.fill(baseFreq);
 
 	//done
 	logfile->endIndent();
@@ -1461,7 +1457,7 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	alpha = params.getParameterDoubleWithDefault("alpha", 0.5);
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
 	beta = params.getParameterDoubleWithDefault("beta", 0.5);
-	if(beta <= 0.0) throw "Alpha must be > 0!";
+	if(beta <= 0.0) throw "Beta must be > 0!";
 	logfile->list("Polymoprhic sites will have allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
 	F = params.getParameterDoubleWithDefault("F", 0.0);
 	if(F > 0.0) logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
