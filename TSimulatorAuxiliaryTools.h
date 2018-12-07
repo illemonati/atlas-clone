@@ -178,15 +178,14 @@ public:
 		}
 	};
 
-	std::string getRefAltString(TGenotypeMap & genoMap){
-		std::string ret = genoMap.baseToChar[refBase] + "\t";
+	void writeRefAltToVCF(gz::ogzstream & VCF, TGenotypeMap & genoMap){
+		VCF << genoMap.baseToChar[refBase] << '\t';
 		if(nextIndex == 1) //no alt
-			return ret + '.';
+			VCF << ".";
 		else {
-			ret += genoMap.baseToChar[indexToBase[1]];
+			VCF << genoMap.baseToChar[indexToBase[1]];
 			for(int i=2; i<nextIndex; ++i)
-				ret += ',' + genoMap.baseToChar[indexToBase[i]];
-			return ret;
+				VCF << ',' << genoMap.baseToChar[indexToBase[i]];
 		}
 	};
 };
@@ -251,6 +250,7 @@ public:
 	void fill(float* baseFreq);
 	void fill(float* baseFreq, double theta);
 	float* operator[](int i){ return mutTable[i]; };
+	void print();
 };
 
 //---------------------------------------------------------

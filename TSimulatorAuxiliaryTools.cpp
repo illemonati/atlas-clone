@@ -314,8 +314,8 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 	std::string genoString;
 
 	for(int l=0; l<curLength; ++l){
-		//chromosome name and position
-		trueGenoVCF << chromosome.name << '\t' << l+1 << '\t';
+		//chromosome name, position and ID
+		trueGenoVCF << chromosome.name << '\t' << l+1 << "\t.\t";
 
 		//assemble alleles and genotypes
 		genoString.clear();
@@ -329,21 +329,21 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 				index.add(haplotypes[ind][0][l]);
 
 				//add genotype
-				genoString += '\t' + index.index[haplotypes[ind][0][l]] + '/' + index.index[haplotypes[ind][0][l]];
+				genoString += '\t' + toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
 			} else {
 				//make sure allele exists
 				index.add(haplotypes[ind][0][l]);
 				index.add(haplotypes[ind][1][l]);
 
 				if(index.index[haplotypes[ind][0][l]] < index.index[haplotypes[ind][1][l]])
-					genoString += '\t' + index.index[haplotypes[ind][0][l]] + '/' + index.index[haplotypes[ind][1][l]];
+					genoString += '\t' + toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][1][l]]);
 				else
-					genoString += '\t' + index.index[haplotypes[ind][1][l]] + '/' + index.index[haplotypes[ind][0][l]];
+					genoString += '\t' + toString(index.index[haplotypes[ind][1][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
 			}
 		}
 
 		//write ref allele
-		trueGenoVCF << index.getRefAltString(genoMap);
+		index.writeRefAltToVCF(trueGenoVCF, genoMap);
 
 		//write (no) quality of variant, (no) filter, (no) info and format
 		trueGenoVCF << "\t.\t.\t.\tGT";
@@ -442,7 +442,6 @@ void TSimulatorMutationtable::fill(float* baseFreq, const double theta){
 
 	//fill table
 	double expMinusTheta = exp(-theta);
-	double sum;
 	for(int i=0; i<4; ++i){
 		for(int j=0; j<4; ++j){
 			mutTable[i][j] = baseFreq[i] * baseFreq[j] * (1.0 - expMinusTheta);
@@ -451,6 +450,16 @@ void TSimulatorMutationtable::fill(float* baseFreq, const double theta){
 	}
 
 	normalizeAndMakeCumulative();
+};
+
+void TSimulatorMutationtable::print(){
+	for(int i=0; i<4; ++i){
+		std::cout << "Mutation table " << i << ":";
+		for(int j=0; j<4; ++j){
+			std::cout << " " << mutTable[i][j];
+		}
+		std::cout << std::endl;
+	}
 };
 
 //---------------------------------------------------------
@@ -495,10 +504,20 @@ void TSimulatorVariantInvariantBedFiles::close(){
 
 void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome){
 	//0-based
+	int invariantStart = 0;
 	for(int l=0; l<chromosome.length; ++l){
-		if(haplotypes.isPolymoprhic(l))
+		if(haplotypes.isPolymoprhic(l)){
+			//write invariant
+			if(invariantStart < l)
+				invariantSitesFile << chromosome.name << "\t" << invariantStart << "\t" << l << "\n";
+			invariantStart = l+1;
+
+			//write variant
 			variantSitesFile << chromosome.name << "\t" << l << "\t" << l+1 << "\n";
-		else
-			invariantSitesFile << chromosome.name << "\t" << l << "\t" << l+1 << "\n";
+		}
 	}
+
+	//write last invariant interval
+	if(invariantStart < chromosome.length)
+		invariantSitesFile << chromosome.name << "\t" << invariantStart << "\t" << chromosome.length << "\n";
 };

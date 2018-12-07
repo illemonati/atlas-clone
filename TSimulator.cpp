@@ -794,9 +794,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	}
 	logfile->overList(progressString + " done!  ");
 	logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
-}
-
-
+};
 
 void TSimulator::runSimulations(){
 	//open bam files
@@ -900,6 +898,9 @@ TSimulatorOneIndividual::~TSimulatorOneIndividual(){
 };
 
 void TSimulatorOneIndividual::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//fill mutation table
+	mutTable.fill(baseFreq, thetas[chromosome.refID]);
+
 	for(int l=0; l<chromosome.length; ++l){
 		haplotypes(0,0,l) = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
 		haplotypes(0,1,l) = static_cast<Base>(randomGenerator->pickOne(4, mutTable[haplotypes(0,0,l)]));
@@ -1218,7 +1219,6 @@ void TSimulatorPairOfIndividuals::deleteTables(){
 	}
 };
 
-
 void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//first run diploid
 	simulateHaplotypesDiploid(haplotypes, chromosome, ref);
@@ -1333,7 +1333,6 @@ void TSimulatorSFS::initializeSFS(std::vector<double> & thetas){
 	logfile->done();
 	logfile->conclude("True SFS written to '" + outname + "_trueSFS_chr*.txt'.");
 };
-
 
 void TSimulatorSFS::initializeSFS(std::vector<std::string> & sfsFileNames, bool folded){
 	if(sfsFileNames.size() != chromosomes.size())
@@ -1456,8 +1455,6 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	//sample size
 	sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
 
-	std::cout << "SAMPLE SIZE = " << sampleSize << std::endl;
-
 	//parameters of beta distribution
 	fracPoly = params.getParameterDoubleWithDefault("fracPoly", 0.1);
 	logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic.");
@@ -1484,7 +1481,6 @@ void TSimulatorHardyWeinberg::fillCumulGenoProb(const double & f){
 	cumulGenoProb[2] = 1.0;
 };
 
-
 void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref){
 	Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
 	for(int i=0; i<sampleSize; ++i){
@@ -1494,7 +1490,7 @@ void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & h
 
 	//reference potentially with divergence
 	ref[locus] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
-}
+};
 
 void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//now simulate haplotypes
@@ -1571,8 +1567,6 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
 	}
 };
-
-
 
 //--------------------------------------------------------------------
 //Functions to simulate pooled data
