@@ -14,7 +14,7 @@
 #include <fstream>
 #include "TVcfParser.h"
 #include <algorithm>
-#include "commonutilities/TLog.h"
+#include "TLog.h"
 #include "gzstream.h"
 
 typedef void (TVcfParser::*pt2Function)(TVcfLine &);
@@ -26,7 +26,7 @@ public:
 	std::ostream* myOutStream;
 	bool outputStreamOpend;
 	std::string fileFormat;
-	TVcfColumnNumbers cols;
+	//TVcfColumnNumbers cols;
 	TVcfParser parser;
 	unsigned int numCols;
 	long currentLine;
@@ -59,6 +59,7 @@ public:
 
 	//which parsers to use?
 	void enablePositionParsing(){usedParsers.push_back(&TVcfParser::parsePosition);};
+	void enableVariantQualityParsing(){usedParsers.push_back(&TVcfParser::parseQuality);};
 	void enableVariantParsing(){usedParsers.push_back(&TVcfParser::parseVariant);};
 	void enableInfoParsing(){usedParsers.push_back(&TVcfParser::parseInfo);};
 	void enableFormatParsing(){usedParsers.push_back(&TVcfParser::parseFormat);};
@@ -124,6 +125,8 @@ public:
 	//variant info
 	long position();
 	std::string chr();
+	bool variantQualityIsMissing();
+	double variantQuality();
 	int getNumAlleles();
 	char getRefAllele();
 	char getFirstAltAllele();

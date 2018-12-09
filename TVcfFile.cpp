@@ -53,7 +53,6 @@ void TVcfFile_base::setOutStream(std::ostream & os){
 void TVcfFile_base::parseHeaderVCF_4_0(){
 	//read the header of the vcf file and stop after that
 	std::string temp, buf;
-	parser.setColNumbers(&cols);
 	bool headerRowRead=false;
 	while(!myStream->eof() && myStream->peek()=='#'){
 		++currentLine;
@@ -67,7 +66,7 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 				buf=extractBeforeWhiteSpace(temp);
 				trimString(buf);
 				temp.erase(0,1);
-				if(i<cols.FirstInd) cols.set(buf, i);
+				if(i<parser.cols.FirstInd) parser.cols.set(buf, i);
 				else parser.addSample(buf);
 				++i;
 			}
@@ -81,7 +80,7 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 		}
 	}
 	//check cols
-	cols.check();
+	parser.cols.check();
 	if(parser.samples.size()<1) throw "VCF file contains no samples!";
 	currentLine = 0;
 }
@@ -287,6 +286,14 @@ char TVcfFileSingleLine::getFirstAltAllele(){
 }
 char TVcfFileSingleLine::getAllele(int num){
 	return parser.getAllele(tempLine, num);
+}
+
+bool TVcfFileSingleLine::variantQualityIsMissing(){
+	return parser.variantQualityIsMissing(tempLine);
+}
+
+double TVcfFileSingleLine::variantQuality(){
+	return parser.variantQuality(tempLine);
 }
 
 void TVcfFileSingleLine::setSampleMissing(unsigned int sample){

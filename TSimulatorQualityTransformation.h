@@ -11,7 +11,7 @@
 #include "TBase.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
 

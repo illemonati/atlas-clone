@@ -177,6 +177,8 @@ TVcfLine::TVcfLine(){
 	positionParsed=false;  variantParsed=false;  idParsed=false;  filterParsed=false;  qualityParsed=false;  infoParsed=false; formatParsed=false; samplesParsed=false;
 	lineNumber = -1;
 	pos = -1;
+	variantQuality = -1;
+	variantQualityMissing = true;
 }
 
 TVcfLine::TVcfLine(std::string & line, unsigned int & numCols, long & LineNumber){
@@ -238,20 +240,21 @@ void TVcfParser::parsePosition(TVcfLine & line){
 		//if(line.chr<=0) throw "Unknown chromosome '" + line.data[cols->Chr] + "' in VCF file on line " +toString(line.lineNumber) + "!";
 
 		//just use string
-		line.chr=line.data[cols->Chr];
-		line.pos=stringToLong(line.data[cols->Pos]);
-		if(line.pos<=0) throw "Unknown position '" + line.data[cols->Pos] + "' in VCF file on line " +toString(line.lineNumber) + "!";
+		line.chr=line.data[cols.Chr];
+		line.pos=stringToLong(line.data[cols.Pos]);
+		if(line.pos<=0) throw "Unknown position '" + line.data[cols.Pos] + "' in VCF file on line " +toString(line.lineNumber) + "!";
 		line.positionParsed=true;
 	}
-}
+};
 
 void TVcfParser::parseVariant(TVcfLine & line){
 	if(!line.variantParsed){
 //		std::cout << "parsing " << line.data[cols->Pos] << std::endl;
 		//parse reference bases
-		if(line.data[cols->Ref].length() ==1){
-			line.variants.push_back(line.data[cols->Ref].c_str()[0]);
-			if(line.variants[0]!='A' && line.variants[0]!='G' && line.variants[0]!='C' && line.variants[0]!='T' && line.variants[0]!='N') throw "Unknown reference allele '" + line.data[cols->Ref] + "' in VCF file on line " + toString(line.lineNumber) + "!";
+		if(line.data[cols.Ref].length() ==1){
+			line.variants.push_back(line.data[cols.Ref].c_str()[0]);
+			if(line.variants[0]!='A' && line.variants[0]!='G' && line.variants[0]!='C' && line.variants[0]!='T' && line.variants[0]!='N')
+				throw "Unknown reference allele '" + line.data[cols.Ref] + "' in VCF file on line " + toString(line.lineNumber) + "!";
 		}else{
 			line.variants.push_back('D'); // for deletions
 			//throw "Unknown reference allele '" + line.data[cols->Ref] + "' in VCF file on line " +toString(line.lineNumber) + "!";
@@ -260,10 +263,10 @@ void TVcfParser::parseVariant(TVcfLine & line){
 		//alternative bases can be a comma separated list
 		std::string buf;
 		char var;
-		if(line.data[cols->Alt]!="."){ //only if there are alternative bases
-			while(!line.data[cols->Alt].empty()){
-				buf=extractBefore(line.data[cols->Alt], ',');
-				line.data[cols->Alt].erase(0,1);
+		if(line.data[cols.Alt]!="."){ //only if there are alternative bases
+			while(!line.data[cols.Alt].empty()){
+				buf=extractBefore(line.data[cols.Alt], ',');
+				line.data[cols.Alt].erase(0,1);
 				if(buf.length() == 1){
 					var=buf.c_str()[0];
 					if(var!='A' && var!='G' && var!='C' && var!='T') throw "Unknown alternative allele '" + toString(var) + "' in VCF file on line " + toString(line.lineNumber) + "!";
@@ -280,30 +283,26 @@ void TVcfParser::parseVariant(TVcfLine & line){
 		}
 		line.variantParsed=true;
 	}
+};
 
-
-	/*			if(buf=="<NON_REF>"){
-					var='X';
-				} else{
-					if(buf.length() !=1){
-						var='I'; // for insertions
-						//throw "Unknown alternative allele '" + buf + "' in VCF file on line " + toString(line.lineNumber) + "!";
-					}else{
-						var=buf.c_str()[0];
-						if(var!='A' && var!='G' && var!='C' && var!='T') throw "Unknown alternative allele '" + toString(var) + "' in VCF file on line " + toString(line.lineNumber) + "!";
-					}
-				}
-				if(!line.addVariant(var)) throw "Allele '" + toString(var) + "' given multiple times in VCF file on line " + toString(line.lineNumber) + "!";
-			}
+void TVcfParser::parseQuality(TVcfLine & line){
+	if(!line.qualityParsed){
+		if(line.data[cols.Qual] == "."){
+			line.variantQualityMissing = true;
+			line.variantQuality = -1.0;
+		} else {
+			line.variantQualityMissing = false;
+			line.variantQuality = stringToDouble(line.data[cols.Qual]);
 		}
-		line.variantParsed=true;
-	}*/
-}
+		line.qualityParsed = true;
+	}
+};
 
 void TVcfParser::addInfo(std::string & Line){
 	TVcfHeaderLine l(Line);
 	info[l.id]=l;
 }
+
 void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, std::string Desc){
 	//check if id exists
 	std::map<std::string, TVcfHeaderLine>::iterator it=info.find(ID);
@@ -323,7 +322,7 @@ void TVcfParser::addFormat(std::string & Line){
 
 void TVcfParser::addSample(std::string & Name){
 	samples.push_back(Name);
-	maxIndColPlusOne=cols->FirstInd+samples.size();
+	maxIndColPlusOne=cols.FirstInd+samples.size();
 }
 
 void TVcfParser::updateInfo(TVcfLine & line, std::string & Id, std::string & Data){
@@ -532,6 +531,22 @@ char TVcfParser::getAllele(TVcfLine & line, int num){
 	return line.variants[num];
 }
 
+bool TVcfParser::variantQualityIsMissing(TVcfLine & line){
+	if(!line.qualityParsed){
+		throw "Quality has not been parsed!";
+	}
+	return line.variantQualityMissing;
+}
+
+double TVcfParser::variantQuality(TVcfLine & line){
+	if(!line.qualityParsed){
+		throw "Quality has not been parsed!";
+	}
+	if(line.variantQualityMissing){
+		throw "Quality is missing!";
+	}
+	return line.variantQuality;
+}
 //--------------------------------------------------------------------
 
 void TVcfParser::checkSampleNum(TVcfLine & line, unsigned int & sample){
@@ -620,12 +635,12 @@ void TVcfParser::parseFormat(TVcfLine & line){
 	if(!line.formatParsed){
 		std::string buf;
 		int i=0;
-		while(!line.data[cols->Format].empty()){
-			buf=extractBefore(line.data[cols->Format], ':');
+		while(!line.data[cols.Format].empty()){
+			buf=extractBefore(line.data[cols.Format], ':');
 			trimString(buf);
-			line.data[cols->Format].erase(0,1);
+			line.data[cols.Format].erase(0,1);
 
-			line.format.insert(std::pair<std::string, int>(buf, i));
+			line.format.emplace(buf, i);
 			line.formatOrdered.push_back(buf);
 			++i;
 		}
@@ -651,7 +666,7 @@ int TVcfParser::addFormatCol(std::string & tag, TVcfLine & line){
 	if(col<0){
 		//col does not exists -> add!
 		col=line.format.size();
-		line.format.insert(std::pair<std::string, int>(tag, col));
+		line.format.emplace(tag, col);
 		line.formatOrdered.push_back(tag);
 		//add emtpy string to all samples
 		for(lineSampleIt=line.samples.begin(); lineSampleIt!=line.samples.end(); ++lineSampleIt){
@@ -665,10 +680,10 @@ void TVcfParser::parseInfo(TVcfLine & line){
 	if(!line.infoParsed){
 		std::string buf, temp;
 		std::map<std::string, std::vector<std::string> >::iterator it;
-		while(!line.data[cols->Info].empty()){
-			buf=extractBefore(line.data[cols->Info], ';');
+		while(!line.data[cols.Info].empty()){
+			buf=extractBefore(line.data[cols.Info], ';');
 			trimString(buf);
-			line.data[cols->Info].erase(0,1);
+			line.data[cols.Info].erase(0,1);
 
 			temp=extractBefore(buf, '=');
 			buf.erase(0,1);
@@ -693,7 +708,7 @@ void TVcfParser::parseSamples(TVcfLine & line){
 		//do it for all samples
 		int gtCol = getFormatCol(genotypeTag, line);
 		std::string gt;
-		for(int i=cols->FirstInd; i<maxIndColPlusOne; ++i){
+		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
 			line.samples.push_back(TVcfSample());
 			//parse into std::vector (split by ':')
 			while(!line.data[i].empty() > 0){
@@ -752,25 +767,25 @@ void TVcfParser::writeFormatHeader(std::ostream & out){
 void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	//position
 	if(line.positionParsed) out << line.chr << "\t" << line.pos;
-	else out << line.data[cols->Chr] << "\t" << line.data[cols->Pos];
+	else out << line.data[cols.Chr] << "\t" << line.data[cols.Pos];
 
 	//id
-	if(line.idParsed) out << "\tERROR"; // we do not yet parse id
-	else out << "\t" << line.data[cols->Id];
+	if(line.idParsed) out << "\tERROR"; // we do not yet parse ii
+	else out << "\t" << line.data[cols.Id];
 
 	//variant
 	if(line.variantParsed){
 		out << "\t";
 		line.writeVariant(out);
-	} else out << "\t" << line.data[cols->Ref] << "\t" << line.data[cols->Alt];
+	} else out << "\t" << line.data[cols.Ref] << "\t" << line.data[cols.Alt];
 
 	//qual
-	if(line.qualityParsed) out << "\tERROR"; // we do not yet parse id
-	else out << "\t" << line.data[cols->Qual];
+	if(line.qualityParsed) out << "\tERROR"; // we do not yet parse it
+	else out << "\t" << line.data[cols.Qual];
 
 	//filter
-	if(line.filterParsed) out << "\tERROR"; // we do not yet parse id
-	else out << "\t" << line.data[cols->Filter];
+	if(line.filterParsed) out << "\tERROR"; // we do not yet parse it
+	else out << "\t" << line.data[cols.Filter];
 
 	//info
 	if(line.infoParsed){
@@ -788,14 +803,14 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 				}
 			}
 		}
-	} else out << "\t" << line.data[cols->Info];
+	} else out << "\t" << line.data[cols.Info];
 
 	//format
 	if(line.formatParsed){
 		std::vector<std::string>::iterator it=line.formatOrdered.begin();
 		out << "\t" << *it; ++it;
 		for(;it!=line.formatOrdered.end(); ++it) out << ":" << *it;
-	} else out << "\t" << line.data[cols->Format];
+	} else out << "\t" << line.data[cols.Format];
 
 	//samples
 	if(line.samplesParsed){
@@ -803,7 +818,7 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 			it->write(out, line.formatOrdered.size());
 		}
 	} else {
-		for(int i=cols->FirstInd; i<maxIndColPlusOne; ++i){
+		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
 			out << "\t" << line.data[i];
 		}
 	}

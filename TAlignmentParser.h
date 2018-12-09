@@ -13,6 +13,7 @@
 #include "bamtools/api/SamSequenceDictionary.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TReadGroups.h"
 #include "TLog.h"
 #include "TRecalibration.h"

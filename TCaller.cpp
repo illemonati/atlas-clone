@@ -565,7 +565,7 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 					//int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 
 					//only use second alternative allele in case het genotype with reference is less likely
-					if(referenceBase == N || metric[genoMap.getGenotype(referenceBase, genoMap.genotypeToBase[indexOfMax][0])] < metric[indexOfSecond] && metric[genoMap.getGenotype(referenceBase, referenceBase)] < metric[indexOfSecond]){
+					if(referenceBase == N || (metric[genoMap.getGenotype(referenceBase, genoMap.genotypeToBase[indexOfMax][0])] < metric[indexOfSecond] && metric[genoMap.getGenotype(referenceBase, referenceBase)] < metric[indexOfSecond])){
 						if(genoMap.genotypeToBase[indexOfSecond][0] == referenceBase || genoMap.genotypeToBase[indexOfSecond][0] == altAlleles[0])
 							altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][1]);
 						else if(genoMap.genotypeToBase[indexOfSecond][1] == referenceBase || genoMap.genotypeToBase[indexOfSecond][1] == altAlleles[0])

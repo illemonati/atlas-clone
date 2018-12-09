@@ -32,6 +32,8 @@ void TPopulationSamples::init(){
 	_numSamples = 0;
 	numSamplesPerPop = NULL;
 	_hasSamples = false;
+	_VCF_order = NULL;
+	_VCF_order_initialized = false;
 };
 
 void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
@@ -56,7 +58,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 
 		//skip empty lines
 		if(vec.size() > 0){
-			if(lineNum == 1 && vec.size == 2) hasPopColumn = true;
+			if(lineNum == 1 && vec.size() == 2) hasPopColumn = true;
 
 			if(!hasPopColumn && vec.size() != 1)
 				throw "Wrong number of columns in file '" + filename + "' on line " + toString(lineNum) + "! Expected 1, but found " + toString(vec.size()) + ".";
@@ -73,7 +75,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 			}
 
 			//store sample
-			if(samples.find(vec[0]))
+			if(samples.find(vec[0]) != samples.end())
 				throw "Duplicate sample name '" + vec[0] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
 			samples.emplace(vec[0], it->second);
 		}
@@ -82,6 +84,11 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	//close file
 	file.close();
 
+	//fill sample order by population
+	fillSampleOrder();
+};
+
+void TPopulationSamples::fillSampleOrder(){
 	//fill counters
 	_numSamples = samples.size();
 	if(_numSamples > 0){
@@ -125,8 +132,28 @@ std::string TPopulationSamples::getNameFromOrderedIndex(int index){
 	return name;
 };
 
-void TPopulationSamples::fillVCFOrder(int* sampleVcfIndex, std::vector<std::string> & vcfSampleNames){
-	sampleVcfIndex = new int[_numSamples];
+void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames){
+	_numSamples = vcfSampleNames.size();
+	_VCF_order = new int[_numSamples];
+	_VCF_order_initialized = true;
+
+	//set a single populations
+	_numPopulations = 1;
+	populations.emplace("Population", 0);
+
+	//save samples
+	for(std::vector<std::string>::iterator it = vcfSampleNames.begin(); it != vcfSampleNames.end(); ++it){
+		samples.emplace(*it, 0);
+	}
+
+	//fill sample order by population
+	fillSampleOrder();
+};
+
+
+void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames){
+	_VCF_order = new int[_numSamples];
+	_VCF_order_initialized = true;
 	bool sampleUsed[_numSamples];
 	for(int s=0; s<_numSamples; ++s)
 		sampleUsed[s] = false;
@@ -137,7 +164,7 @@ void TPopulationSamples::fillVCFOrder(int* sampleVcfIndex, std::vector<std::stri
 			int orderedIndex = getOrderedSampleIndex(*it);
 			if(sampleUsed[orderedIndex])
 				throw "Duplicate sample name '" + *it + "' in VCf header!";
-			sampleVcfIndex[orderedIndex] = vcfIndex;
+			_VCF_order[orderedIndex] = vcfIndex;
 			sampleUsed[orderedIndex] = true;
 		}
 	}
@@ -149,38 +176,83 @@ void TPopulationSamples::fillVCFOrder(int* sampleVcfIndex, std::vector<std::stri
 	}
 };
 
+
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// TPopulationLikelihoods                                                                     //
+// TPopulationLikelihoodReader                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////
+TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
+	vcfOpen = false;
 
-TPopulationLikelihoods::TPopulationLikelihoods(TParameters & Parameters, TLog* Logfile){
-	logfile = Logfile;
+	//settings
+	limitLines = 0;
+	minDepth = 1;
+	maxMissing = 0;
+	freqFilter = 0.0;
+	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
+	minVariantQuality = 0;
+	estimateGenotypeFrequencies = false,
 
-	vcfRead = false;
-	relevantNumIndivs = 0;
-	numAcceptedLoci = 0;
+	//counters
+	_lineCounter = 0;
+	_notBialleleicCounter = 0;
+	_missingSNPCounter = 0;
+	lowFreqSNPCounter = 0;
+	_lowVariantQualityCounter = 0;
+	_numAcceptedLoci = 0;
 
-	//check if we limit samples
-	TPopulationSamples samples;
-	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameterString("samples"), logfile);
-
-	//read Data
-	readDataFromVCF(TParameters & Parameters, samples);
-
+	//allele frequency
+	_alleleFrequency = 0.0;
+	_MAF = 0.0;
 };
 
-void TPopulationLikelihoods::clean(){
-	for(std::vector<unsigned short * >::iterator it=genotypePhredScores.begin(); it < genotypePhredScores.end(); it++)
-		delete[] *it;
+TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile){
+	initialize(Parameters, Logfile);
 };
 
+TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
+	closeVCF();
+};
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-// Read data from VCF-file                                                                      //
-//////////////////////////////////////////////////////////////////////////////////////////////////
+void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile){
+	//read parsing parameters
+	// do we limit the lines to read?
+	limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
+	if(limitLines > 0)
+		logfile->list("Will limit analysis to the first " + toString(limitLines) + " lines of the VCF file.");
 
-void TPopulationLikelihoods::openVCF(std::string vcfFilename, TVcfFileSingleLine & vcfFile){
+	// do we set a depth filter?
+	minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
+	if(minDepth > 1)
+		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
+
+	// do we set a missingness filter?
+	maxMissing = Parameters.getParameterIntWithDefault("maxMissing", 1.0);
+	if(maxMissing < 0.0 || maxMissing > 1.0)
+		throw "maxMissing must be within (0, 1)!";
+	if(maxMissing > 0)
+		logfile->list("Will remove loci where more than " + toString(maxMissing) + " of samples are missing.");
+
+	// parameters to set a filter on the allele frequency?
+	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
+	if(freqFilter < 0.0 || freqFilter >= 0.5)
+		throw "MAF filter must be within (0.0,0.5)!";
+	if(freqFilter > 0.0){
+		estimateGenotypeFrequencies = true;
+		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
+		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
+	}
+
+	//filter on variant quality?
+	minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
+	if(minVariantQuality < 0) throw "minVariantQuality must be >= 0!";
+	if(minVariantQuality > 0){
+		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
+	}
+};
+
+void TPopulationLikelihoodReader::openVCF(std::string vcfFilename, TLog* logfile){
 	//open input stream
 	bool isZipped = false;
 	if(vcfFilename.find(".gz") == std::string::npos){
@@ -194,117 +266,50 @@ void TPopulationLikelihoods::openVCF(std::string vcfFilename, TVcfFileSingleLine
 
 	//enable parsers
 	vcfFile.enablePositionParsing();
+	vcfFile.enableVariantParsing();
+	vcfFile.enableVariantQualityParsing();
 	vcfFile.enableFormatParsing();
 	vcfFile.enableSampleParsing();
-	vcfFile.enableVariantParsing();
+	vcfOpen = true;
+
+	//reset counters
+	_lineCounter = 0;
+	_notBialleleicCounter = 0;
+	_missingSNPCounter = 0;
+	lowFreqSNPCounter = 0;
+	_lowVariantQualityCounter = 0;
+	_numAcceptedLoci = 0;
 };
 
-void TPopulationLikelihoods::getParametersForReadingVCF(TParameters & Parameters, int & limitLines, int & minDepth, double & maxMissing, double & epsilonF, double & freqFilter, int & progressFrequency){
+void TPopulationLikelihoodReader::closeVCF(){
+	vcfOpen = false;
+};
 
-}
+bool TPopulationLikelihoodReader::readDataFromVCF(unsigned short* curLocus, TPopulationSamples & samples, TLog* logfile){
+	while(vcfFile.next()){ // new line in vcf-file (= new locus)
+		++_lineCounter;
 
-void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples){
-	if(vcfRead)
-		throw "VCF already read!";
+		// limit lines
+		if(limitLines > 0 && _lineCounter > limitLines)
+			return false;
 
-	// open vcf file
-	TVcfFileSingleLine vcfFile;
-	std::string vcfFilename = Parameters.getParameterString("vcf");
-	openVCF(vcfFilename, vcfFile);
-
-	//Match samples
-	int* sampleVcfOrder;
-	if(samples.hasSamples()){
-		samples.fillVCFOrder(sampleVcfOrder, vcfFile.parser.samples);
-		numSamples = samples.numSamples();
-	} else {
-		numSamples = vcfFile.numSamples();
-		sampleVcfOrder = new int[numSamples];
-		for(int s=0; s<numSamples; ++s)
-			sampleVcfOrder[s] = s;
-	}
-
-	//read parsing parameters
-	// do we limit the lines to read?
-	long limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
-	if(limitLines > 0)
-	logfile->list("Will limit analysis to the first " + toString(limitLines) + " lines of the VCF file.");
-
-	// do we set a depth filter?
-	int minDepth = Parameters.getParameterIntWithDefault("minDepth", 0);
-	logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
-
-	// do we set a missingness filter?
-	double maxMissing = Parameters.getParameterIntWithDefault("maxMissing", 1.0);
-	if(maxMissing < 0.0 || maxMissing > 1.0)
-		throw "maxMissing must be within (0, 1)!";
-	logfile->list("Will remove loci where more than " + toString(maxMissing) + " of samples are missing.");
-
-	// parameters to set a filter on the allele frequency?
-	bool doFreqFilter = false;
-	double freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
-	if(freqFilter < 0.0 || freqFilter >= 0.5)
-		throw "MAF filter must be within (0.0,0.5)!";
-	double epsilonF = 0.0;
-	if(freqFilter > 0.0){
-		doFreqFilter = true;
-		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
-		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
-	}
-
-	//filter on variant quality?
-	bool doVariantQualityFilter = false;
-	int minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
-	if(minVariantQuality < 0) throw "minVariantQuality must be >= 0!";
-	if(minVariantQuality > 0){
-		doVariantQualityFilter = true;
-		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
-		vcfFile.enableInfoParsing();
-	}
-
-	// progress frequency
-	int progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
-
-
-	// initialize variables for vcf-file
-	long lineCounter = 0;
-	long validSNPCounter = 0;
-	long numIndividualsWithMissingSNP = 0;
-	long missingSNPCounter = 0;
-	long lowFreqSNPCounter = 0;
-	std::string curChrName = "";
-	struct timeval start;
-    unsigned short* curLocus;
-
-	// initialize variables for EM
-	double* genotypeFrequencies = new double[3];
-	double f = 0;
-
-	// debug
-	// double numberloci = parameters->getParameterInt("L");
-	// Fil.set_size(numIndividualsFromVcf, numberloci);
-
-    //run through VCF file
-    logfile->startIndent("Parsing VCF file:");
-    while(vcfFile.next()){ // new line in vcf-file (= new locus)
-    	numIndividualsWithMissingSNP = 0;
-    	++lineCounter;
 
         //skip sites with != 2 alleles
-        if(vcfFile.getNumAlleles() != 2) continue;
-        ++validSNPCounter;
+        if(vcfFile.getNumAlleles() != 2){
+        	_notBialleleicCounter++;
+        	continue;
+        }
 
         //skip sites with too low variant quality
-        if(vcfFile.parser.
-
-		// update chromosome name
-		if(vcfFile.chr() != curChrName)
-			curChrName = vcfFile.chr();
+        if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
+        	_lowVariantQualityCounter++;
+        	continue;
+        }
 
 		// create an array containing the genotype likelihoods of all considered individuals of current locus
-		curLocus = new unsigned short[numSamples * 3];
-		for(int s = 0; s < numSamples; ++s){
-			int vcfIndex = sampleVcfOrder[s];
+        long numIndividualsWithMissingSNP = 0;
+		for(int s = 0; s < samples.numSamples(); ++s){
+			int vcfIndex = samples.VCF_order(s);
 
 			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
 			if (vcfFile.sampleDepth(vcfIndex) < minDepth){
@@ -315,261 +320,236 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TPopulati
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
-		if ( (double) numIndividualsWithMissingSNP / (double) numSamples > maxMissing){
-			missingSNPCounter += 1;
+		if ( (double) numIndividualsWithMissingSNP / (double) samples.numSamples() > maxMissing){
+			_missingSNPCounter++;
 			continue; // skip rest of loop (don't store)
 		}
 
-		// estimate allele frequency (EM algorithm)
+		//filter in MAF
+		if(freqFilter > 0.0){
+			// estimate allele frequency (EM algorithm)
+			estimateGenotypeFrequenciesNullModel(curLocus, samples.numSamples(), epsilonF);
+			double f = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
+			if(f > 0.5) f = 1.0 - f;
 
-		estimateGenotypeFrequenciesNullModel(genotypeFrequencies, curLocus, epsilonF);
-		f = genotypeFrequencies[0] + 0.5 * genotypeFrequencies[1];
-		if(f > 0.5) f = 1.0 - f;
-
-		// only store SNPs that pass the frequency filter
-		if(f >= freqFilter){
-
-			// store the genotype likelihoods of the current locus
-			genotypePhredScores.push_back(curLocus);
-
-			// add name of locus to loci
-			loci->initializeNames(getChrPosString(curChrName, vcfFile.position()));
-
-			++numAcceptedLoci;
-		}
-		else {
-			lowFreqSNPCounter++;
-		}
-
-		//report progress
-		if(lineCounter % progressFrequency == 0)
-			printProgressFrequencyFiltering(lineCounter, numAcceptedLoci, missingSNPCounter, lowFreqSNPCounter, start);
-
-        // limit lines
-		if(limitLines > 0 && lineCounter > limitLines) break;
-    }
-
-	printProgressFrequencyFiltering(lineCounter, numAcceptedLoci, missingSNPCounter, lowFreqSNPCounter, start);
-	loci->initializeStorage(numAcceptedLoci, numLatFac, numEnvVar);
-	logfile->endIndent();
-	logfile->endIndent();
-
-    // clean up
-	delete[] genotypeFrequencies;
-
-	//set that vcf was read
-	vcfRead = true;
-
-	// std::cout << "Fil:\n"<< Fil << std::endl;
-
-    // for debugging loci:
-
-    // loci.printLoci();
-
-    //for debugging genotype likelihoods:
-	/*
-	std::cout << "Size of genotype likelihoods vector: " << genotypeLikelihoods.size() << std::endl;
-    for (std::vector< float *>::iterator it = genotypeLikelihoods.begin(); it < genotypeLikelihoods.end(); it++){
-    	std::cout << "\nnew Locus " << std::endl;
-    	for (int j = 0; j < relevantNumIndivs * 3; j++){
-    		std::cout << (*it)[j] << "   ";
-    	}
-    }
-    */
-}
-
-std::string TPopulationLikelihoods::getChrPosString(std::string chromosomeName, long snpPosition){
-	return chromosomeName + "/" + toString(snpPosition);
-}
-
-void TPopulationLikelihoods::printProgressFrequencyFiltering(long lines, long & numRetainedLoci, long & numLociMissing, long & lowFreqSNPCounter, struct timeval & start){
-	struct timeval end;
-	gettimeofday(&end, NULL);
-	float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->startIndent("Parsed " + toString(lines) + " lines and retained " + toString(numRetainedLoci) + " loci in " + toString(runtime) + " min");
-	logfile->list(toString(numLociMissing) + " loci were filtered out due to missingness.");
-	logfile->list(toString(lowFreqSNPCounter) + " loci were filtered out due to low allele frequencies.");
-	logfile->endIndent();
-}
-
-void TPopulationLikelihoods::matchIndividualNames(int numIndividualsFromVcf, std::vector<int> & orderOfIndividuals){
-	// save names of individuals
-	std::string sampleName;
-    std::vector<std::string> individualNamesFromVcf;
-    for (int individual = 0; individual < numIndividualsFromVcf; ++individual){
-    	sampleName = vcfFile.sampleName(individual);
-    	orderOfIndividuals.push_back(findPosOfVcfIndivInEnv(sampleName));
-    	individualNamesFromVcf.push_back(sampleName); // contains all individual names of vcf, also those that are ignored during analysis
-	    }
-    // count the number of individuals present in vcf AND env file
-    relevantNumIndivs = numIndividualsFromVcf - std::count(orderOfIndividuals.begin(), orderOfIndividuals.end(), -1);
-    if (relevantNumIndivs < numIndividualsFromEnv){
-    	findExtraIndivInEnvFile(individualNamesFromVcf);
-    }
-
-    logfile->list("A total number of " + toString(relevantNumIndivs) + " individuals will be considered for analysis.");
-    // initialize K
-    numLatFac = parameters->getParameterInt("numLatFac");
-    if (numLatFac > relevantNumIndivs)
-    	throw "Number of latent factors (" + toString(numLatFac) + ") can not exceed number of individuals (" + toString(relevantNumIndivs) + ")!";
-    logfile->list("Will use K = " + toString(numLatFac) + " latent factors for analysis.");
-}
-
-int TPopulationLikelihoods::findPosOfVcfIndivInEnv(std::string individualNameVcf){
-	// find the position of the .vcf-individual in the vector of .env-individual names
-	int position = 0;
-	int numberOfMatches = 0;
-	int matchPos;
-	for (std::vector<std::string>::iterator it = individualNamesFromEnv.begin(); it < individualNamesFromEnv.end(); it++, position++){
-		if (individualNameVcf == *it){
-			matchPos = position;
-			numberOfMatches++;
-		}
-	}
-	if (numberOfMatches == 0){
-		logfile->list("Individual '" + individualNameVcf + "' from vcf-file does not match any individual from env-file - will ignore it.");
-		matchPos = -1;
-	}
-	else if (numberOfMatches >= 2){
-		throw "Individual '" + individualNameVcf + "' from vcf-file occurs " + toString(numberOfMatches) + "x in the env-file! Please change env-file accordingly.";
-	}
-	// std::cout << "matchPos: " << matchPos << std::endl;
-	return matchPos;
-}
-
-void TPopulationLikelihoods::findExtraIndivInEnvFile(std::vector<std::string> & individualNamesFromVcf){
-	// find the position of the .env-individual in the vector of .vcf-individual names
-	for (std::vector<std::string>::iterator nameEnv = individualNamesFromEnv.begin(); nameEnv < individualNamesFromEnv.end(); nameEnv++){
-		int numberOfMatches = 0;
-		for (std::vector<std::string>::iterator nameVcf = individualNamesFromVcf.begin(); nameVcf < individualNamesFromVcf.end(); nameVcf++){
-			if (*nameEnv == *nameVcf){
-				numberOfMatches++;
+			if(f < freqFilter){
+				lowFreqSNPCounter++;
+				continue;
 			}
 		}
-		if (numberOfMatches == 0){
-			throw "Individual '" + *nameEnv + "' from env-file does not match any individual from vcf-file! Please change env-file accordingly.";
-		}
-		else if (numberOfMatches >= 2){
-			throw "Individual '" + *nameEnv + "' from env-file occurs " + toString(numberOfMatches) + "x in the vcf-file! Please change vcf-file accordingly.";
-		}
-	}
-}
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-// Run EM algorithm to filter the loci on their frequency                                       //
-//////////////////////////////////////////////////////////////////////////////////////////////////
+		//SNP is accepted!
+		++_numAcceptedLoci;
+		return true;
+    }
 
-void TPopulationLikelihoods::fillInitialEstimateOfGenotypeFrequencies(double* genoFreq, unsigned short* phredScores){
+	//return false at end of file
+	return false;
+};
+
+void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
+	if(_notBialleleicCounter > 0)
+		logfile->conclude(toString(_notBialleleicCounter) + " loci were not bi-allelic.");
+	if(_missingSNPCounter > 0)
+		logfile->conclude(toString(_missingSNPCounter) + " loci had > " + toString(maxMissing) + " samples with missing data.");
+	if(lowFreqSNPCounter > 0)
+		logfile->conclude(toString(lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
+	if(_lowVariantQualityCounter > 0)
+		logfile->conclude(toString(_lowVariantQualityCounter) + " loci had variant quality < " + toString(minVariantQuality) + ".");
+};
+
+void TPopulationLikelihoodReader::guessGenotypeFrequencies(unsigned short* phredScores, const int & numSamples){
 	//calculate by using MLE genotype for each individual
-	genoFreq[0] = 0.0; genoFreq[1] = 0.0; genoFreq[2] = 0.0;
-	for(int i = 0 ; i < 3 * relevantNumIndivs; i += 3){
+	_genotypeFrequencies[0] = 0.0; _genotypeFrequencies[1] = 0.0; _genotypeFrequencies[2] = 0.0;
+	for(int i = 0 ; i < 3 * numSamples; i += 3){
 		if(phredScores[i + 1] < phredScores[i]){
-			if(phredScores[i + 2] < phredScores[i + 1]) genoFreq[2] += 1.0;
-			else genoFreq[1] += 1.0;
+			if(phredScores[i + 2] < phredScores[i + 1]) _genotypeFrequencies[2] += 1.0;
+			else _genotypeFrequencies[1] += 1.0;
 		} else {
-			if(phredScores[i + 2] < phredScores[i]) genoFreq[2] += 1.0;
-			else genoFreq[0] += 1.0;
+			if(phredScores[i + 2] < phredScores[i]) _genotypeFrequencies[2] += 1.0;
+			else _genotypeFrequencies[0] += 1.0;
 		}
 	}
 
 	double sum = 0.0;
 	for(int g = 0; g < 3; ++g){
-		genoFreq[g] /= (double) relevantNumIndivs;
-		if(genoFreq[g] <= 0.0) genoFreq[g] = 0.01;
-		if(genoFreq[g] >= 1.0) genoFreq[g] = 0.99;
-		sum += genoFreq[g];
+		_genotypeFrequencies[g] /= (double) numSamples;
+		if(_genotypeFrequencies[g] <= 0.0) _genotypeFrequencies[g] = 0.01;
+		if(_genotypeFrequencies[g] >= 1.0) _genotypeFrequencies[g] = 0.99;
+		sum += _genotypeFrequencies[g];
 	}
 	for(int g = 0; g < 3; ++g){
-		genoFreq[g] /= sum;
+		_genotypeFrequencies[g] /= sum;
 	}
 }
 
-void TPopulationLikelihoods::estimateGenotypeFrequenciesNullModel(double* genotypeFrequencies, unsigned short* phredScores, double epsilonF){
+void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(unsigned short* phredScores, const int & numSamples, double epsilonF){
 	//prepare variables
 	double sum;
-	int i, g;
 	double weightsNull[3];
 	double genoFreq_old[3];
 
 	//estimate initial frequencies from MLEs
-	fillInitialEstimateOfGenotypeFrequencies(genotypeFrequencies, phredScores);
+	guessGenotypeFrequencies(phredScores, numSamples);
 
 	//run EM for max 1000 steps
 	for (int s = 0; s < 1000; ++s){
 		//set genofreq and calc P(g|f)
-		for(g = 0; g < 3; ++g){
-			genoFreq_old[g] = genotypeFrequencies[g];
-			genotypeFrequencies[g] = 0.0;
+		for(int g = 0; g < 3; ++g){
+			genoFreq_old[g] = _genotypeFrequencies[g];
+			_genotypeFrequencies[g] = 0.0;
 		}
 
 		//estimate new genotype frequencies
-		for(i = 0; i < 3 * relevantNumIndivs; i += 3){
+		for(int i = 0; i < 3 * numSamples; i += 3){
 			sum = 0.0;
-			for(g = 0; g < 3; ++g){
+			for(int g = 0; g < 3; ++g){
 				weightsNull[g] = phredToGTLMap[phredScores[i + g]] * genoFreq_old[g];
 				sum += weightsNull[g];
 			}
-			genotypeFrequencies[0] += weightsNull[0] / sum;
-			genotypeFrequencies[2] += weightsNull[2] / sum;
+			_genotypeFrequencies[0] += weightsNull[0] / sum;
+			_genotypeFrequencies[2] += weightsNull[2] / sum;
 		}
 
-		genotypeFrequencies[0] /= (double) relevantNumIndivs;
-		genotypeFrequencies[2] /= (double) relevantNumIndivs;
-		genotypeFrequencies[1] = 1.0 - genotypeFrequencies[0] - genotypeFrequencies[2];
+		_genotypeFrequencies[0] /= (double) numSamples;
+		_genotypeFrequencies[2] /= (double) numSamples;
+		_genotypeFrequencies[1] = 1.0 - _genotypeFrequencies[0] - _genotypeFrequencies[2];
 
 		//check if we stop
-		if(fabs(genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF) break;
+		if(fabs(_genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(_genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF) break;
 	}
+
+	//now set allele frequencies
+	_alleleFrequency = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
+	if(_alleleFrequency > 0.5) _MAF = 1.0 - _alleleFrequency;
+	else _MAF = _alleleFrequency;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// TPopulationLikelihoods                                                                     //
+////////////////////////////////////////////////////////////////////////////////////////////////
+TPopulationLikelihoods::TPopulationLikelihoods(){
+	init();
+};
+
+
+TPopulationLikelihoods::TPopulationLikelihoods(TParameters & Parameters, TLog* Logfile){
+	init();
+	readData(Parameters, Logfile);
+};
+
+TPopulationLikelihoods::~TPopulationLikelihoods(){
+	clean();
+};
+
+void TPopulationLikelihoods::init(){
+	vcfRead = false;
+	_numLoci = 0;
+};
+
+void TPopulationLikelihoods::clean(){
+	for(std::vector<unsigned short * >::iterator it=genotypePhredScores.begin(); it < genotypePhredScores.end(); it++)
+		delete[] *it;
+	vcfRead = false;
+};
+
+void TPopulationLikelihoods::readData(TParameters & Parameters, TLog* Logfile){
+	//check if we limit samples
+	if(Parameters.parameterExists("samples"))
+		samples.readSamples(Parameters.getParameterString("samples"), Logfile);
+
+	//read Data
+	readDataFromVCF(Parameters, Logfile);
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+// Read data from VCF-file                                                                      //
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* logfile){
+	if(vcfRead)
+		throw "VCF already read!";
+
+	//create reader
+	TPopulationLikelihoodReader reader(Parameters, logfile);
+	if(saveAlleleFrequencies)
+		reader.doEstimateGenotypeFrequencies();
+
+	// open vcf file
+	std::string vcfFilename = Parameters.getParameterString("vcf");
+	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
+	reader.openVCF(vcfFilename, logfile);
+
+	//Match samples
+	int* sampleVcfOrder;
+	if(samples.hasSamples())
+		samples.fillVCFOrder(reader.getSampleVCFNames());
+	 else
+		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+
+	// initialize variables for vcf-file
+	struct timeval start;
+    unsigned short* curLocus = new unsigned short[samples.numSamples() * 3];
+
+    //run through VCF file
+    logfile->startIndent("Parsing VCF file:");
+    _numLoci = 0;
+    while(reader.readDataFromVCF(curLocus, samples, logfile)){
+		//update chromosome name
+		if(reader.chr() != chromosomes.rbegin()->second)
+			chromosomes.emplace(_numLoci, reader.chr());
+
+		//store SNP
+		genotypePhredScores.emplace_back(curLocus);
+		position.emplace_back(reader.position());
+		if(saveAlleleFrequencies)
+			alleleFrequencies.emplace_back(reader.allelFrequency());
+
+		//update for next
+		curLocus = new unsigned short[samples.numSamples() * 3];
+		++_numLoci;
+
+		//report progress
+		printProgressFrequencyFiltering(reader, start, logfile);
+    }
+
+    //report final status
+	printProgressFrequencyFiltering(reader, start, logfile);
+	reader.concludeFilters(logfile);
+	logfile->endIndent();
+	logfile->endIndent();
+
+	//set that vcf was read
+	vcfRead = true;
+
+	//clean up
+	delete[] curLocus;
 }
 
+void TPopulationLikelihoods::printProgressFrequencyFiltering(TPopulationLikelihoodReader & reader, struct timeval & start, TLog* logfile){
+	struct timeval end;
+	gettimeofday(&end, NULL);
+	float runtime = (end.tv_sec  - start.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(reader.numLociParsed()) + " lines and retained " + toString(_numLoci) + " loci in " + toString(runtime) + " min");
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // get-functions                                                                                //
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 int TPopulationLikelihoods::getNumIndiv(){
-	return relevantNumIndivs;
+	return samples.numSamples();
 }
 
 long TPopulationLikelihoods::getNumLoci(){
-	return numAcceptedLoci;
+	return _numLoci;
 }
 
-int TPopulationLikelihoods::getNumEnvVar(){
-	return numEnvVar;
-}
 
-int TPopulationLikelihoods::getNumLatFac(){
-	return numLatFac;
-}
-
+/*
 TLoci* TPopulationLikelihoods::getLoci(){
 	return loci;
 }
-
-TIndividuals* TPopulationLikelihoods::getIndividuals(){
-	return individuals;
-}
-
-std::vector<std::string> TPopulationLikelihoods::getEnvVarNames(){
-	return envVarNames;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-// run all                                                                                      //
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-void TPopulationLikelihoods::readDataAndInitializeParams(){
-	readDataFromEnv();
-	readDataFromVCF();
-}
-
-// ./ldlg task=analyze vcf=simulations.vcf.gz envFile=simulations.env numLatFac=3 verbose
-// cat simulations_simParameters.txt | head -21
-// ./ldlg task=simulate numIndividuals=5 numLoci=5 numLatComp=3 withoutBX=true withoutUV=true error=0 verbose
-// ./ldlg task=analyze vcf=simulations.vcf.gz envFile=simulations.env numLatFac=3 minMAF=0 verbose | grep y_l: | tr -s ' ' | cut -f2-9999 -d' ' > trueGenotypes.r
-// echo "a<-read.table('trueGenotypes.r', header=FALSE); print(cov(a))" | R --slave
-
+*/
 
 
 

@@ -39,8 +39,8 @@ public:
 		Info=-1;
 		Format=-1;
 	};
-	void set(std::string & tag, int & i){
 
+	void set(std::string & tag, int & i){
 		if(stringContains(tag, "CHROM")) Chr=i;
 		else if(stringContains(tag, "POS")) Pos=i;
 		else if(stringContains(tag, "ID")) Id=i;
@@ -145,6 +145,8 @@ public:
 	bool positionParsed, variantParsed, idParsed, filterParsed, qualityParsed, infoParsed, formatParsed, samplesParsed;
 	long pos;
 	std::string chr;
+	double variantQuality;
+	bool variantQualityMissing;
 
 	std::vector<char> variants; //entry at 0 is reference
 	std::map<std::string, std::vector<std::string> > info;
@@ -167,7 +169,7 @@ public:
 };
 class TVcfParser{
 public:
-	TVcfColumnNumbers* cols;
+	TVcfColumnNumbers cols;
 	std::map<std::string, TVcfHeaderLine> info;
 	std::map<std::string, TVcfHeaderLine> format;
 	std::vector<std::string> samples;
@@ -175,20 +177,24 @@ public:
 	std::vector<TVcfSample>::iterator lineSampleIt;
 	std::string genotypeTag;
 
-	TVcfParser(){genotypeTag="GT";cols=NULL;maxIndColPlusOne=-1;};
+	TVcfParser(){
+		genotypeTag="GT";
+		maxIndColPlusOne=-1;
+	};
 
 	//parsers
 	void parsePosition(TVcfLine & line);
 	void parseVariant(TVcfLine & line);
+	void parseQuality(TVcfLine & line);
 	void parseFormat(TVcfLine & line);
 	void parseInfo(TVcfLine & line);
 	void parseSamples(TVcfLine & line);
+
 	//other functions
 	int getFormatCol(std::string & tag, TVcfLine & line);
 	int getFormatCol(TVcfLine & line, std::string tag){return getFormatCol(tag, line);};
 	bool formatColExists(std::string & tag, TVcfLine & line);
 	int addFormatCol(std::string & tag, TVcfLine & line);
-	void setColNumbers(TVcfColumnNumbers* Cols){cols=Cols;};
 	void addInfo(std::string & Line);
 	void updateInfo(std::string ID, std::string Number, VCF_TYPE Type, std::string Desc);
 	void addFormat(std::string & Line);
@@ -208,6 +214,8 @@ public:
 	char getRefAllele(TVcfLine & line);
 	char getFirstAltAllele(TVcfLine & line);
 	char getAllele(TVcfLine & line, int num);
+	bool variantQualityIsMissing(TVcfLine & line);
+	double variantQuality(TVcfLine & line);
 
 	//modify samples
 	void addInfoToSample(TVcfLine & line, unsigned int & sample, std::string & tag, std::string & Data);

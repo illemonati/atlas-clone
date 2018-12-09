@@ -9,6 +9,7 @@
 #define TCALLER_H_
 
 #include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "gzstream.h"
 #include "TSite.h"

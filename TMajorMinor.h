@@ -11,6 +11,7 @@
 #include <math.h>
 #include "TGLF.h"
 #include "TGenotypeMap.h"
+#include "TQualityMap.h"
 
 //-----------------------------------------------
 //TMajorMinorEstimator
