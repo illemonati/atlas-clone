@@ -74,7 +74,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 			//check if population exists
 			std::map<std::string, int>::iterator it = populations.find(vec[1]);
 			if(it == populations.end()){
-				populations.emplace(vec[2], _numPopulations);
+				populations.emplace(vec[1], _numPopulations);
 				it = populations.find(vec[1]);
 				_numPopulations++;
 			}
@@ -128,15 +128,12 @@ int TPopulationSamples::getOrderedSampleIndex(const std::string & name){
 };
 
 std::string TPopulationSamples::getNameFromOrderedIndex(int index){
-	if(index >= _numSamples)
-		throw "Sample index " + toString(index) + " out of range!";
-
-	std::string name;
 	for(std::map<std::string, int>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
 		if(it->second == index)
-			name = it->first;
+			return it->first;
 	}
-	return name;
+
+	throw "Sample index " + toString(index) + " out of range!";
 };
 
 void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames){
@@ -196,7 +193,7 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
 	//settings
 	limitLines = 0;
 	minDepth = 1;
-	maxMissing = 0;
+	minNumSamplesWithData = 0;
 	freqFilter = 0.0;
 	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
 	minVariantQuality = 0;
@@ -227,15 +224,17 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 
 	// do we set a depth filter?
 	minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
+	if(minDepth < 1)
+		throw "minDepth must be >= 1!";
 	if(minDepth > 1)
 		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
 
 	// do we set a missingness filter?
-	maxMissing = Parameters.getParameterIntWithDefault("maxMissing", 1.0);
-	if(maxMissing < 0.0 || maxMissing > 1.0)
-		throw "maxMissing must be within (0, 1)!";
-	if(maxMissing > 0)
-		logfile->list("Will remove loci where more than " + toString(maxMissing) + " of samples are missing.");
+	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
+	if(minNumSamplesWithData < 1)
+		throw "minNumSamplesWithData must be >= 1!";
+	if(minNumSamplesWithData > 1)
+		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data.");
 
 	// parameters to set a filter on the allele frequency?
 	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
@@ -337,20 +336,19 @@ bool TPopulationLikelihoodReader::readDataFromVCF(unsigned short* curLocus, TPop
 		}
 
 		// create an array containing the genotype likelihoods of all considered individuals of current locus
-        long numIndividualsWithMissingSNP = 0;
+        long numIndividualsWithData = 0;
 		for(int s = 0; s < samples.numSamples(); ++s){
 			int vcfIndex = samples.VCF_order(s);
 
 			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
 			if (vcfFile.sampleDepth(vcfIndex) < minDepth){
 				vcfFile.setSampleMissing(vcfIndex);
-				numIndividualsWithMissingSNP++;
-			}
+			} else numIndividualsWithData++;
 			vcfFile.fillPhredScore(vcfIndex, &curLocus[3 * s]);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
-		if ( (double) numIndividualsWithMissingSNP / (double) samples.numSamples() > maxMissing){
+		if (numIndividualsWithData < minNumSamplesWithData){
 			_missingSNPCounter++;
 			continue; // skip rest of loop (don't store)
 		}
@@ -394,7 +392,7 @@ void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
 	if(_noPLCounter > 0)
 		logfile->conclude(toString(_noPLCounter) + " loci had no PL field.");
 	if(_missingSNPCounter > 0)
-		logfile->conclude(toString(_missingSNPCounter) + " loci had > " + toString(maxMissing) + " samples with missing data.");
+		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
 	if(_lowFreqSNPCounter > 0)
 		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
 };
@@ -617,7 +615,11 @@ void TPopulationLikelihoods::next(){
 };
 
 unsigned short* TPopulationLikelihoods::curData(){
-	return &genotypePhredScores[curLocusIndex][individualStartIndex];
+	return &(genotypePhredScores[curLocusIndex][3*individualStartIndex]);
+};
+
+std::string TPopulationLikelihoods::curSampleName(int index){
+	return samples.getNameFromOrderedIndex(individualStartIndex + index);
 };
 
 int TPopulationLikelihoods::curSampleSize(){
@@ -637,13 +639,17 @@ long TPopulationLikelihoods::curPosition(){
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 void TPopulationLikelihoods::print(){
+	begin();
 
-	for(std::map<int, std::string>::iterator it = chromosomes.begin(); it != chromosomes.end(); ++it){
-		std::cout << "CHR '" << it->second << " starts at " << it->first << std::endl;
+	//write header
+	std::cout << "Chr\tPos";
+	for(int s=0; s<curSampleSize(); ++s){
+		std::cout << "\t" << curSampleName(s);
 	}
+	std::cout << std::endl;
 
-
-	for(begin(); !end(); next()){
+	//print data
+	for(; !end(); next()){
 		//print chromosome and position
 		std::cout << curChr() << "\t" << curPosition();
 

@@ -70,7 +70,7 @@ private:
 	//settings
 	long limitLines;
 	int minDepth;
-	int maxMissing;
+	int minNumSamplesWithData;
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
 	int minVariantQuality;
@@ -171,6 +171,7 @@ public:
     bool end();
     void next();
     unsigned short* curData();
+    std::string curSampleName(int index);
     int curSampleSize();
     std::string curChr();
     long curPosition();
