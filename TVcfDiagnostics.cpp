@@ -86,17 +86,34 @@ void VcfDiagnostics::vcfToInvariantBed(){
 	std::map<char, int> bases = {{'A', 1}, {'C', 1}, {'G', 1}, {'T', 1}};
 	int counter = 0;
 	int curStartRegion = -1;
+	bool previousStartIsVariant = false;
 	std::string curChr;
 	bool updateStart = true;
+	long lastPosition;
 	while(vcfFile.next()){
 		++counter;
 		if(updateStart){
 			curStartRegion = vcfFile.position();
 			curChr = vcfFile.chr();
+			std::cout << "updated start to " << curStartRegion << " on chr " << curChr << std::endl;
 			updateStart = false;
 		}
 		if(bases.find(vcfFile.getRefAllele()) == bases.end()) {//!= 'A' && vcfFile.getRefAllele() != 'C' && vcfFile.getRefAllele() != 'G' && vcfFile.getRefAllele() != 'T'
 			continue; //ignore indels
+		}
+
+		if(curChr != vcfFile.chr()){
+			std::cout << "found that chr changed at line " << counter << std::endl;
+			//is previous site invariant? -> write to file
+			if(!previousStartIsVariant){
+				bedFile << curChr << "\t" << curStartRegion - 1 << "\t" << lastPosition << std::endl;
+				std::cout << "wrote line to file. counter is " << counter << " and coordinates are " << curChr << ":" << curStartRegion << "-" << lastPosition << std::endl;
+			} else {
+				std::cout << "chr changed but not writing because " << vcfFile.position() << " is not larger than " << curStartRegion << std::endl;
+			}
+			//update start directly, don't just set to true
+			curStartRegion = vcfFile.position();
+			curChr = vcfFile.chr();
 		}
 
 		int indCounter = 0;
@@ -104,12 +121,20 @@ void VcfDiagnostics::vcfToInvariantBed(){
 		for(int ind=0; ind<vcfFile.numSamples(); ++ind){
 			++indCounter;
 			if(vcfFile.getFirstAlleleOfSample(ind) != allele || vcfFile.getSecondAlleleOfSample(ind) != allele){
+				std::cout << "found variant site at line " << counter << std::endl;
 				//there was a variant site, is previous site invariant? -> write to file
-				if(vcfFile.position() > curStartRegion)
-					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() << std::endl;
-
+				if(previousStartIsVariant == false && counter != 1){
+					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() - 1 << std::endl;
+					std::cout << "previousStartIsVAriant=" << previousStartIsVariant << " wrote line to file. coordinates were " << curStartRegion - 1 << "-" << vcfFile.position() << std::endl;
+				}
 				updateStart = true;
+				previousStartIsVariant = true;
+				std::cout << "set previousStartIsVariant to true" << std::endl;
 				break;
+			}
+			else {
+				previousStartIsVariant = false;
+				std::cout << "found line to be invariant at counter " << counter << " and at position " << vcfFile.position()<< std::endl;
 			}
 		}
 
@@ -119,12 +144,16 @@ void VcfDiagnostics::vcfToInvariantBed(){
 //			bedFile << vcfFile.chr() << "\t" << vcfFile.position() - 1 << "\t" << vcfFile.position() << std::endl;
 //		}
 
+		//in case of chr change, this is needed to write last region of previous chr
+		lastPosition = vcfFile.position();
+
 	}
 
 	//write last region to file
-	if(vcfFile.position() > curStartRegion)
+	if(!previousStartIsVariant){
 		bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() << std::endl;
-
+		std::cout << "wrote last region to file. curStartRegion " << curStartRegion << std::endl;
+	}
 	bedFile.close();
 }
 
