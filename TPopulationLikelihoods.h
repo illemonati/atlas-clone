@@ -30,6 +30,7 @@ private:
 	int _numPopulations;
 	int _numSamples;
 	int* numSamplesPerPop;
+	int* startIndexPerPop;
 	std::map<std::string, int> populations; // name and pop index
 	std::map<std::string, int> samples; //name and pop index
 	std::map<std::string, int> sampleOrder; //stores order of samples such that samples of the same population are together
@@ -46,11 +47,12 @@ public:
 	bool hasSamples(){ return _hasSamples; };
 	int numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
-	int numSamplesInPop(int pop){ return numSamplesPerPop[pop]; };
+	int numSamplesInPop(int population){ return numSamplesPerPop[population]; };
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
 	bool sampleIsUsed(const std::string & name);
 	int getOrderedSampleIndex(const std::string & name);
+	int startIndex(int population){ return startIndexPerPop[population]; };
 	std::string getNameFromOrderedIndex(int index);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
 	int VCF_order(const int & index){ return _VCF_order[index]; };
@@ -73,13 +75,17 @@ private:
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
 	int minVariantQuality;
 	bool estimateGenotypeFrequencies;
+	long progressFrequency;
 
 	//counters
+	struct timeval startTime;
+	bool vcfParsingStarted;
 	long _lineCounter;
 	long _notBialleleicCounter;
 	long _missingSNPCounter;
-	long lowFreqSNPCounter;
+	long _lowFreqSNPCounter;
 	long _lowVariantQualityCounter;
+	long _noPLCounter;
 	long _numAcceptedLoci;
 
 	//tmp variables used for reading
@@ -87,9 +93,10 @@ private:
 	double _alleleFrequency;
 	double _MAF;
 
+	void resetCounters();
 	void closeVCF();
     void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
-    void printProgressFrequencyFiltering(long lines, long & numRetainedLoci, struct timeval & start, TLog* logfile);
+    void printProgressFrequencyFiltering(TLog* logfile);
 
     // EM algorithm for genotype frequencies
     void guessGenotypeFrequencies(unsigned short* phredScores, const int & numSamples);
@@ -133,15 +140,21 @@ private:
 	long _numLoci;
 	std::map<int, std::string> chromosomes; //first SNP index and name
 	std::vector<long> position;
-    std::vector<unsigned short *> genotypePhredScores;
+    std::vector<unsigned short*> genotypePhredScores;
     std::vector<double> alleleFrequencies;
     bool saveAlleleFrequencies;
+
+    //looping
+    long curLocusIndex;
+    std::map<int, std::string>::iterator curChrIt;
+    std::map<int, std::string>::iterator nextChrIt;
+    int individualStartIndex;
+    int usedSampleSize;
 
     // read data from vcf-file
 	void init();
     void openVCF(std::string, TVcfFileSingleLine & vcfFile, TLog* logfile);
     void readDataFromVCF(TParameters & Parameters, TLog* logfile);
-    void printProgressFrequencyFiltering(TPopulationLikelihoodReader & reader, struct timeval & start, TLog* logfile);
 
 public:
     TPopulationLikelihoods();
@@ -152,9 +165,21 @@ public:
     void doSaveAlleleFrequencies(){ saveAlleleFrequencies = true; };
     void readData(TParameters & Parameters, TLog* Logfile);
 
+    //Looping
+    void begin();
+    void beginOnePop(int population);
+    bool end();
+    void next();
+    unsigned short* curData();
+    int curSampleSize();
+    std::string curChr();
+    long curPosition();
+
     // get main constants (n, L, D, K) and names of environmental variables
-    int getNumIndiv();
+    int getNumIndividuals();
     long getNumLoci();
+    unsigned short* getDataAtLocus(long index);
+    void print();
 };
 
 #endif //LDLG_TDATA_H

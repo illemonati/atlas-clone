@@ -410,9 +410,8 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, unsigned shor
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	if(line.samples[s].missing){
 		phred[0] = 0; phred[1] = 0; phred[2] = 0;
-	}
-	else {
-		int col=getFormatCol(line, "PL");
+	} else {
+		int col = getFormatCol(line, "PL");
 		std::string d = line.samples[s].data[col];
 		std::string phreddie = extractBefore(d, ',');
 		if ( phreddie == "inf" ){
@@ -601,7 +600,8 @@ short TVcfParser::sampleGenotype(TVcfLine & line, const unsigned int & sample){
 }
 
 bool TVcfParser::sampleIsMissing(TVcfLine & line, unsigned int & s){
-	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
+	if(s >= line.samples.size())
+		throw "Sample " + toString(s) + " does not exists!";
 	return line.samples[s].missing;
 }
 
@@ -701,7 +701,6 @@ void TVcfParser::parseInfo(TVcfLine & line){
 
 void TVcfParser::parseSamples(TVcfLine & line){
 	if(!line.samplesParsed){
-
 		parseVariant(line);
 		parseFormat(line);
 

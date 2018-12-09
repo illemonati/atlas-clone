@@ -1276,9 +1276,20 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Log
 		std::vector<std::string> sfsFileNames;
 		params.fillParameterIntoVector("sfs", tmp, ',');
 		repeatIndexes(tmp, sfsFileNames);
+
+		//if a single SFS is given: use it for all chromosomes
+		if(sfsFileNames.size() == 1){
+			for(int i=1; i<chromosomes.size(); ++i)
+				sfsFileNames.emplace_back(sfsFileNames[0]);
+		}
+
+		//check if numbe rof chromosomes given matches number of chromosomes
+		if(sfsFileNames.size() != chromosomes.size())
+			throw "Number of SFS files does not match number of chromosomes!";
+
+		//initialize SFS from files
 		bool folded = params.parameterExists("folded");
-
-
+		initializeSFS(sfsFileNames, folded);
 	} else if(params.parameterExists("theta")){
 		//parse theta from command line
 		std::vector<std::string> tmp;
@@ -1293,7 +1304,6 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Log
 			logfile->list("Will simulate data from chromosome specific SFS with thetas " + concatenateString(thetas, ", "));
 		}
 		initializeSFS(thetas);
-		logfile->endIndent();
 	} else throw "Either argument sfs or theta must be provided to simulate population samples!";
 
 

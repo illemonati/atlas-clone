@@ -14,6 +14,7 @@
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
 #include "TMajorMinor.h"
+#include "TAlleleCountEstimator.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -46,6 +47,9 @@ public:
 		} else if(task == "majorMinor"){
 			TMajorMinor majorMinor(*parameters, logfile);
 			majorMinor.estimateMajorMinor(*parameters);
+		} else if(task == "estimateAlleleCounts"){
+			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
+			alleleCountEst.estimateAlleleCounts(*parameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);
