@@ -116,7 +116,7 @@ double TRandomGenerator::getBiomialRand(double pp, long n){
 	} else {
 		if (n != nold) {
 			en=n;
-			oldg=gammaln(en+1.0);
+			oldg = math::gammaln(en+1.0);
 			nold=n;
 		}
 		if (p != pold) {
@@ -135,8 +135,8 @@ double TRandomGenerator::getBiomialRand(double pp, long n){
 			} while (em < 0.0 || em >= (en+1.0));
 
 			em=floor(em);
-			t=1.2*sq*(1.0+y*y)*exp(oldg-gammaln(em+1.0)
-					-gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
+			t=1.2*sq*(1.0+y*y)*exp(oldg-math::gammaln(em+1.0)
+					-math::gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
 		} while (ran3() > t);
 		bnl=em;
 	}
@@ -175,21 +175,12 @@ double TRandomGenerator::factorialLn(int n){
 			factorialTableLn = new double[TABLESIZE];
 			factorialTableLn[0] = 0.0;
 			for(int i=1; i<TABLESIZE; i++)
-				factorialTableLn[i] = gammaln(i+1);
+				factorialTableLn[i] = math::gammaln(i+1);
 			factorialTableLnInitialized = true;
 		}
 		return factorialTableLn[n];
 	}
-	return gammaln(n+1);
-}
-
-
-double TRandomGenerator::binomCoeffLn(int n, int k){
-	return factorialLn(n) - factorialLn(k) - factorialLn(n-k);
-}
-
-int TRandomGenerator::binomCoeff(int n, int k){
-	return factorial(n) - factorial(k) - factorial(n-k);
+	return math::gammaln(n+1);
 }
 
 double TRandomGenerator::binomDensity(int n, int k, double p){
@@ -344,25 +335,6 @@ double TRandomGenerator::normalComplementaryErrorCheb(double x){
 //--------------------------------------------------------
 //Gamma Distribution
 //--------------------------------------------------------
-/* Log gamma function
-* \log{\Gamma(z)}
-* AS245, 2nd algorithm, http://lib.stat.cmu.edu/apstat/245
-*/
-
-double TRandomGenerator::gammaln(double z){
-	double x = 0;
-	x += 0.1659470187408462e-06 / (z+7);
-	x += 0.9934937113930748e-05 / (z+6);
-	x -= 0.1385710331296526 / (z+5);
-	x += 12.50734324009056 / (z+4);
-	x -= 176.6150291498386 / (z+3);
-	x += 771.3234287757674 / (z+2);
-	x -= 1259.139216722289 / (z+1);
-	x += 676.5203681218835 / z;
-	x += 0.9999999999995183;
-	return log(x) - 5.58106146679532777 - z + (z-0.5) * log(z+6.5);
-}
-
 /*Random deviates from standard gamma distribution with density
          a-1
         x    exp[ -x ]
@@ -466,7 +438,7 @@ double TRandomGenerator::getGammaRand(int ia){
 
 //gamma log density function
 double TRandomGenerator::gammaLogDensityFunction(double x, double alpha, double beta){
-	return alpha * log(beta) - gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
+	return alpha * log(beta) - math::gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
 }
 
 //Functions to calculate cumulative of Gamma
@@ -501,7 +473,7 @@ double TRandomGenerator::_lowerIncompleteGamma(double alpha, double z){
 		sum += (x *= z / (alpha + k));
 		if (x / sum < KF_GAMMA_EPS) break;
 	}
-	return exp(alpha * log(z) - z - gammaln(alpha + 1.0) + log(sum));
+	return exp(alpha * log(z) - z - math::gammaln(alpha + 1.0) + log(sum));
 }
 
 // regularized upper incomplete gamma function, by continued fraction
@@ -522,7 +494,7 @@ double TRandomGenerator::_upperIncompleteGamma(double alpha, double z){
 		f *= d;
 		if (fabs(d - 1.) < KF_GAMMA_EPS) break;
 	}
-	return exp(alpha * log(z) - z - gammaln(alpha) - log(f));
+	return exp(alpha * log(z) - z - math::gammaln(alpha) - log(f));
 }
 
 

@@ -1,11 +1,12 @@
 #ifndef TRandomGenerator_H_
 #define TRandomGenerator_H_
 
-#include <cmath>
-//#include <time.h>
 #include <sys/time.h>
 #include <iostream>
 #include <sstream>
+#include "math_functions.h"
+
+//TODO: move math functions to math_functions.h
 
 class TRandomGenerator{
 private:
@@ -79,8 +80,6 @@ public:
 	double binomPValue(int k, int l);
 
 	//gamma
-	double gammaln(double z);
-
 	double getGammaRand(double a, double b);
 	double getGammaRand(double a);
 	double getGammaRand(int ia);

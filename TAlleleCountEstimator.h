@@ -9,15 +9,17 @@
 #define TALLELECOUNTESTIMATOR_H_
 
 #include "TPopulationLikelihoods.h"
-
+#include "math_functions.h"
 
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
 class TSiteAlleleFrequencyLikelihoods{
 private:
+	TQualityMap phredToGTLMap;
 	int numInd_k;
 	int numAlleleCounts; //from 0 to 2k
+	double* log_choose_2k_j;
 	double* alleleFrequencyLikelihoods_h;
 
 public:
