@@ -256,7 +256,7 @@ void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, 
 
 	//write info
 	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	vcf << "##fileformat=VCFv4.2\n";
+	vcf << "##fileformat=VCFv4.3\n";
 	vcf << "##source=ATLAS_GLF_Caller\n";
 	glfReader.writeVCFHeader(vcf, usePhredLikelihoods);
 };
@@ -283,7 +283,14 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
 		MMEstimator = new TMajorMinorEstimatorMLE(glfReader.numSamples(), randomGenerator, maxF);
 	} else throw "Unknown MajorMinor method '" + method + "'!";
+
+	//output
 	bool usePhredLikelihoods = params.parameterExists("phredLik");
+	if(usePhredLikelihoods)
+		logfile->list("Will write likelihoods as integers in phred format (PL tag in VCF).");
+	else
+		logfile->list("Will write log10(likelihoods) as float (GL tag in VCF).");
+	bool writeAncFasta
 
 	//think about filters
 	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
@@ -327,7 +334,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 				//write to VCF
 				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 			}
-		} //end filter on missngness
+		} //end filter on missingness
 
 		//report progress
 		if(counter % 1000000 == 0){

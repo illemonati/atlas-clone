@@ -168,6 +168,10 @@ public:
 	void writeVariant(std::ostream & out);
 };
 class TVcfParser{
+private:
+	void savePhredScore(std::string & phredString, unsigned short & phred);
+	void saveGLAsPhredScore(std::string & GLString, unsigned short & phred);
+
 public:
 	TVcfColumnNumbers cols;
 	std::map<std::string, TVcfHeaderLine> info;

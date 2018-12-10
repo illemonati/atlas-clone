@@ -419,7 +419,7 @@ void TGlfMultiReader::_openGLFs(TLog* logfile){
 	//open files
 	GLFs = new TGlfReader[numGLFs];
 	readersOpened = true;
-	logfile->startIndent("Opening GLF files:");
+	logfile->startIndent("Opening " + toString(numGLFs) + " GLF files:");
 	int g = 0;
 	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
 		logfile->listFlush("Opening GLF '" + *it + "' ...");

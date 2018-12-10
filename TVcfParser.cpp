@@ -404,7 +404,33 @@ void TVcfParser::fillGenotypeLiklihoods(TVcfLine & line, unsigned int & s, float
 		d.erase(0,1);
 		gtl[2] = dePhred(stringToDouble(extractBefore(d, ',')));
 	}
-}
+};
+
+void TVcfParser::savePhredScore(std::string & phredString, unsigned short & phred){
+	if ( phredString == "inf" )
+			phred = 255;
+	else {
+		int tmp = stringToInt(phredString);
+		if(tmp < 0)
+			throw "Negative value in PL field!";
+		if(tmp > 255)
+			phred = 255;
+		else phred = tmp;
+	}
+};
+
+void TVcfParser::saveGLAsPhredScore(std::string & GLString, unsigned short & phred){
+	//assume GL is log10(likelihood)
+	double tmp = stringToDouble(GLString);
+	if(tmp > 0)
+			throw "Positive value in GL field!";
+
+	//turn log10(lik) into phred(lik)
+	tmp *= -10.0;
+	if(tmp > 255)
+		phred = 255;
+	else phred = round(tmp);
+};
 
 void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, unsigned short* phred){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
@@ -412,44 +438,41 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, unsigned shor
 		phred[0] = 0; phred[1] = 0; phred[2] = 0;
 	} else {
 		int col = getFormatCol(line, "PL");
-		std::string d = line.samples[s].data[col];
-		std::string phreddie = extractBefore(d, ',');
-		if ( phreddie == "inf" ){
-			phred[0] = 256;
-		}
-		else {
-			phred[0] = stringToInt(phreddie);
-			if (phred[0] > 255) {
-				phred[0] = 256;
-			}
-		}
-		d.erase(0,1);
+		if(col < 0){
+			col = getFormatCol(line, "GL");
+			if(col < 0){
+				//neither PL nor GL tag: set missing
+				phred[0] = 0; phred[1] = 0; phred[2] = 0;
+			} else {
+				//GL field exists
+				std::string d = line.samples[s].data[col];
+				std::string phreddie = extractBefore(d, ',');
+				saveGLAsPhredScore(phreddie, phred[0]);
+				d.erase(0,1);
 
-		phreddie = extractBefore(d, ',');
-		if ( phreddie == "inf" ){
-			phred[1] = 256;
-		}
-		else {
-			phred[1] = stringToInt(phreddie);
-		if (phred[1] > 255) {
-			phred[1] = 256;
-			}
-		}
-		d.erase(0,1);
+				phreddie = extractBefore(d, ',');
+				saveGLAsPhredScore(phreddie, phred[1]);
+				d.erase(0,1);
 
-		phreddie = extractBefore(d, ',');
-		if ( phreddie == "inf" ){
-			phred[2] = 256;
-		}
-		else {
-			phred[2] = stringToInt(phreddie);
-			if (phred[2] > 255) {
-				phred[2] = 256;
+				phreddie = extractBefore(d, ',');
+				saveGLAsPhredScore(phreddie, phred[2]);
 			}
+		} else {
+			//PL field exists
+			std::string d = line.samples[s].data[col];
+			std::string phreddie = extractBefore(d, ',');
+			savePhredScore(phreddie, phred[0]);
+			d.erase(0,1);
+
+			phreddie = extractBefore(d, ',');
+			savePhredScore(phreddie, phred[1]);
+			d.erase(0,1);
+
+			phreddie = extractBefore(d, ',');
+			savePhredScore(phreddie, phred[2]);
 		}
 	}
-}
-
+};
 
 std::string TVcfParser::sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample){
 	checkSampleNum(line, sample);

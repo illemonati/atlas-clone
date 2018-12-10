@@ -330,7 +330,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(unsigned short* curLocus, TPop
         }
 
 		//check if PL is given
-		if(!vcfFile.formatColExists("PL")){
+		if(!vcfFile.formatColExists("PL") && !vcfFile.formatColExists("GL")){
 			++_noPLCounter;
 			continue;
 		}
@@ -344,6 +344,8 @@ bool TPopulationLikelihoodReader::readDataFromVCF(unsigned short* curLocus, TPop
 			if (vcfFile.sampleDepth(vcfIndex) < minDepth){
 				vcfFile.setSampleMissing(vcfIndex);
 			} else numIndividualsWithData++;
+
+			//store phred scaled likelihoods
 			vcfFile.fillPhredScore(vcfIndex, &curLocus[3 * s]);
 		}
 
@@ -390,7 +392,7 @@ void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
 	if(_lowVariantQualityCounter > 0)
 		logfile->conclude(toString(_lowVariantQualityCounter) + " loci had variant quality < " + toString(minVariantQuality) + ".");
 	if(_noPLCounter > 0)
-		logfile->conclude(toString(_noPLCounter) + " loci had no PL field.");
+		logfile->conclude(toString(_noPLCounter) + " loci had no PL or GL field.");
 	if(_missingSNPCounter > 0)
 		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
 	if(_lowFreqSNPCounter > 0)

@@ -57,10 +57,6 @@ void TSimulator::initializeCommonSettings(TParameters & params){
 	cumulRef[2] = cumulRef[1] + referenceDivergence / 3.0;
 	cumulRef[3] = 1.0;
 
-	//open FASTA file for reference sequences
-	std::string filename = outname + ".fasta";
-	referenceObj.initialize(filename, logfile);
-
 	//read groups
 	initializeReadSimulator(params);
 
@@ -74,6 +70,10 @@ void TSimulator::initializeCommonSettings(TParameters & params){
 	//output name
 	outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
 	logfile->list("Will write output files with tag '" + outname + "'.");
+
+	//open FASTA file for reference sequences
+	std::string filename = outname + ".fasta";
+	referenceObj.initialize(filename, logfile);
 };
 
 //--------------------------------------------------------------
