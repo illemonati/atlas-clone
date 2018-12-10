@@ -11,6 +11,23 @@
 #include "TPopulationLikelihoods.h"
 
 
+//-------------------------------------------------
+// TSiteAlleleFrequencyLikelihoods
+//-------------------------------------------------
+class TSiteAlleleFrequencyLikelihoods{
+private:
+	int numInd_k;
+	int numAlleleCounts; //from 0 to 2k
+	double* alleleFrequencyLikelihoods_h;
+
+public:
+	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
+	~TSiteAlleleFrequencyLikelihoods();
+};
+
+//-------------------------------------------------
+// TAlleleCountEstimator
+//-------------------------------------------------
 class TAlleleCountEstimator{
 private:
 	TLog* logfile;

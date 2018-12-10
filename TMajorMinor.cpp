@@ -290,7 +290,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will write likelihoods as integers in phred format (PL tag in VCF).");
 	else
 		logfile->list("Will write log10(likelihoods) as float (GL tag in VCF).");
-	bool writeAncFasta
 
 	//think about filters
 	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
