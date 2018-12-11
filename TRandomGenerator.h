@@ -4,7 +4,8 @@
 #include <sys/time.h>
 #include <iostream>
 #include <sstream>
-#include "math_functions.h"
+
+#include "mathFunctions.h"
 
 //TODO: move math functions to math_functions.h
 
@@ -72,10 +73,6 @@ public:
 
 	//binomial
 	double getBiomialRand(double pp, long n);
-	double factorial(int n);
-	double factorialLn(int n);
-	double binomCoeffLn(int n, int k);
-	int binomCoeff(int n, int k);
 	double binomDensity(int n, int k, double p);
 	double binomPValue(int k, int l);
 

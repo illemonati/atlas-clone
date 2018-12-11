@@ -1,16 +1,24 @@
 /*
- * math_functions.h
+ * math_functions.cpp
  *
- *  Created on: Dec 10, 2018
+ *  Created on: Dec 11, 2018
  *      Author: phaentu
  */
 
-#ifndef MATH_FUNCTIONS_H_
-#define MATH_FUNCTIONS_H_
+/*
+ * math_functions.h
+ *
+ *  Created on: Dec 10, 2018
+ *      Author: phaent.hu
+ */
+
+#ifndef MATHFUNCTIONS_H_
+#define MATHFUNCTIONS_H_
 
 #include <math.h>
 
-namespace math{
+#include "mathFunctions.h"
+#include "stringFunctions.h"
 
 //------------------------------------------------
 // Log gamma function
@@ -46,9 +54,7 @@ double factorial(int n){
 
 	//check range
 	if(n < 0 || n > 170){
-		std::ostringstream tos;
-		tos << n;
-		throw "factorial: n = " + tos.str() + " out of range!";
+		throw "factorial: n = " + toString(n) + " out of range!";
 	}
 
 	//return
@@ -57,26 +63,23 @@ double factorial(int n){
 
 double factorialLog(int n){
 	//initialize lookup table
-	static int tableSize = 2000;
-	static double factorialLogTable[tableSize];
+	static double factorialLogTable[2000];
 	static bool needsInitialization = true;
 	if(needsInitialization){
 		factorialLogTable[0] = 0.0;
-		for(int i=1; i<tableSize; i++)
-			factorialLogTable[i] = math::gammaln(i+1);
+		for(int i=1; i<2000; i++)
+			factorialLogTable[i] = gammaln(i+1);
 		needsInitialization = false;
 	}
 
 	//check range
 	if(n < 0){
-		std::ostringstream tos;
-		tos << n;
-		throw "factorial: n = " + tos.str() + "out of range!";
+		throw "factorial: n = " + toString(n) + "out of range!";
 	}
 
 	//return
-	if(n < tableSize) return factorialLogTable[n];
-	return math::gammaln(n + 1.0);
+	if(n < 2000) return factorialLogTable[n];
+	return gammaln(n + 1.0);
 };
 
 //------------------------------------------------
@@ -91,10 +94,7 @@ int choose(const int n, const int k){
 };
 
 
-//------------------------------------------------
-//end of name space
-}
-//------------------------------------------------
+#endif /* MATHFUNCTIONS_H_ */
 
 
-#endif /* MATH_FUNCTIONS_H_ */
+

@@ -36,6 +36,7 @@ public:
 		phredIntToErrorMap = new double[minPhred];
 		qualityToErrorMap = new double[sizeQual];
 
+
 		//initialize quality <= 0
 		for(int i=0; i<33; ++i)
 			qualityToErrorMap[i] = 1.0;

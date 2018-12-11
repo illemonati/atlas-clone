@@ -8,8 +8,8 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
+#include "mathFunctions.h"
 #include "TPopulationLikelihoods.h"
-#include "math_functions.h"
 
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
@@ -20,11 +20,17 @@ private:
 	int numInd_k;
 	int numAlleleCounts; //from 0 to 2k
 	double* log_choose_2k_j;
-	double* alleleFrequencyLikelihoods_h;
+	double* log_alleleFrequencyLikelihoods_h;
+
+	double protectedSumInLog(double a, double b);
+	double protectedSumInLog(double a, double b, double c);
+
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
+
+	void fill(unsigned short* phred);
 };
 
 //-------------------------------------------------

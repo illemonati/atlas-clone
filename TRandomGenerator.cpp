@@ -116,7 +116,7 @@ double TRandomGenerator::getBiomialRand(double pp, long n){
 	} else {
 		if (n != nold) {
 			en=n;
-			oldg = math::gammaln(en+1.0);
+			oldg = gammaln(en+1.0);
 			nold=n;
 		}
 		if (p != pold) {
@@ -135,8 +135,8 @@ double TRandomGenerator::getBiomialRand(double pp, long n){
 			} while (em < 0.0 || em >= (en+1.0));
 
 			em=floor(em);
-			t=1.2*sq*(1.0+y*y)*exp(oldg-math::gammaln(em+1.0)
-					-math::gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
+			t=1.2*sq*(1.0+y*y)*exp(oldg-gammaln(em+1.0)
+					-gammaln(en-em+1.0)+em*plog+(en-em)*pclog);
 		} while (ran3() > t);
 		bnl=em;
 	}
@@ -144,44 +144,6 @@ double TRandomGenerator::getBiomialRand(double pp, long n){
 	return bnl;
 }
 
-double TRandomGenerator::factorial(int n){
-	if(n < 0 || n > 170){
-		std::ostringstream tos;
-		tos << n;
-		throw "TRandomGenerator::factorial: n = " + tos.str() + " out of range!";
-	}
-
-	if(!factorialTableInitialized){
-		factorialTable = new double[171];
-		factorialTable[0] = 1.0;
-		for(int i=1; i<171; i++)
-			factorialTable[i] = factorialTable[i-1]*i;
-		factorialTableInitialized = true;
-	}
-
-	return factorialTable[n];
-}
-
-double TRandomGenerator::factorialLn(int n){
-	static const int TABLESIZE = 2000;
-	if(n < 0){
-		std::ostringstream tos;
-		tos << n;
-		throw "TRandomGenerator::factorial: n = " + tos.str() + "out of range!";
-	}
-
-	if(n < TABLESIZE){
-		if(!factorialTableLnInitialized){
-			factorialTableLn = new double[TABLESIZE];
-			factorialTableLn[0] = 0.0;
-			for(int i=1; i<TABLESIZE; i++)
-				factorialTableLn[i] = math::gammaln(i+1);
-			factorialTableLnInitialized = true;
-		}
-		return factorialTableLn[n];
-	}
-	return math::gammaln(n+1);
-}
 
 double TRandomGenerator::binomDensity(int n, int k, double p){
 	if(p == 0.0){
@@ -192,14 +154,14 @@ double TRandomGenerator::binomDensity(int n, int k, double p){
 		if(k == n) return 1.0;
 		else return 0.0;
 	}
-	return exp(binomCoeffLn(n,k) + k*log(p) + (n-k)*log(1.0-p));
+	return exp(choose(n,k) + k*log(p) + (n-k)*log(1.0-p));
 }
 
 double TRandomGenerator::_binomPValue(const int & k, const int & l){
 	double cumul = 0.0;
 	int n = k + l;
 	for(int i = 0; i <= std::min(k,l); i++){
-		cumul += exp(binomCoeffLn(n, i) + -0.6931472*n); // -0.6931472 is log(0.5)
+		cumul += exp(chooseLog(n, i) + -0.6931472*n); // -0.6931472 is log(0.5)
 	}
 	return cumul;
 };
@@ -438,7 +400,7 @@ double TRandomGenerator::getGammaRand(int ia){
 
 //gamma log density function
 double TRandomGenerator::gammaLogDensityFunction(double x, double alpha, double beta){
-	return alpha * log(beta) - math::gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
+	return alpha * log(beta) - gammaln(alpha) + (alpha-1.0)*log(x) - beta * x;
 }
 
 //Functions to calculate cumulative of Gamma
@@ -473,7 +435,7 @@ double TRandomGenerator::_lowerIncompleteGamma(double alpha, double z){
 		sum += (x *= z / (alpha + k));
 		if (x / sum < KF_GAMMA_EPS) break;
 	}
-	return exp(alpha * log(z) - z - math::gammaln(alpha + 1.0) + log(sum));
+	return exp(alpha * log(z) - z - gammaln(alpha + 1.0) + log(sum));
 }
 
 // regularized upper incomplete gamma function, by continued fraction
@@ -494,7 +456,7 @@ double TRandomGenerator::_upperIncompleteGamma(double alpha, double z){
 		f *= d;
 		if (fabs(d - 1.) < KF_GAMMA_EPS) break;
 	}
-	return exp(alpha * log(z) - z - math::gammaln(alpha) - log(f));
+	return exp(alpha * log(z) - z - gammaln(alpha) - log(f));
 }
 
 
