@@ -39,7 +39,6 @@ double TMajorMinorEstimatorBase::calculateLog10Likelihood(double* genotypeFreque
 	return LL;
 };
 
-
 void TMajorMinorEstimatorBase::fillLikelihoods(uint8_t** phred, Genotype* genotypes){
 	for(int i=0; i<numSamples; ++i){
 		int ind = 3*i;
@@ -111,7 +110,8 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(uint8_t** phred){
 	for(int i=0; i<numSamples; ++i){
 		LL_fixed_phred += phred[i][refHomIndex];
 	}
-	variantQuality = LL_fixed_phred - round(-10.0 * L10L);
+
+	variantQuality = round(LL_fixed_phred + 10.0 * L10L);
 };
 
 //---------------------------------------------------
@@ -207,7 +207,7 @@ double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(uint8_t** phred, con
 	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[alleleicCombination]);
 	estimateGenotypeFrequenciesEM(tmpGenotypeFrequencies[alleleicCombination]);
 	return calculateLog10Likelihood(tmpGenotypeFrequencies[alleleicCombination]);
-}
+};
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	//calculate L10L for each allelic combination
@@ -226,7 +226,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
 
 	genotypeFrequencies = tmpGenotypeFrequencies[allelicCombination];
-}
+};
 
 //---------------------------------------------------
 // TMajorMinor
@@ -331,7 +331,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 			if(MMEstimator->variantQuality >= minVariantQuality){
 
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
+				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 			}
 		} //end filter on missingness
 

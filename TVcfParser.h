@@ -167,10 +167,11 @@ public:
 	bool addVariant(char var);
 	void writeVariant(std::ostream & out);
 };
+
 class TVcfParser{
 private:
-	void savePhredScore(std::string & phredString, unsigned short & phred);
-	void saveGLAsPhredScore(std::string & GLString, unsigned short & phred);
+	void savePhredScore(std::string & phredString, uint8_t & phred);
+	void saveGLAsPhredScore(std::string & GLString, uint8_t & phred);
 
 public:
 	TVcfColumnNumbers cols;
@@ -239,7 +240,7 @@ public:
 	float sampleGenotypeQuality(TVcfLine & line, unsigned int & sample);
 	GTLikelihoods genotypeLiklihoods(TVcfLine & line, unsigned int & sample);
 	void fillGenotypeLiklihoods(TVcfLine & line, unsigned int & s, float* gtl);
-	void fillPhredScore(TVcfLine & line, unsigned int & s, unsigned short* phred);
+	void fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phred);
 	std::string sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample);
 	std::string sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample);
 	int phred(double x);

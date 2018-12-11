@@ -17,6 +17,7 @@ TSiteAlleleFrequencyLikelihoods::TSiteAlleleFrequencyLikelihoods(int numIndividu
 	numInd_k = numIndividuals;
 	numAlleleCounts = 2*numInd_k + 1;
 	log_alleleFrequencyLikelihoods_h = new double[numAlleleCounts];
+	logOf2 = log(2.0);
 
 	//fill inverse of choose
 	log_choose_2k_j = new double[numAlleleCounts];
@@ -29,7 +30,7 @@ TSiteAlleleFrequencyLikelihoods::~TSiteAlleleFrequencyLikelihoods(){
 };
 
 
-double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a,double b){
+double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b){
   //returns log(exp(a)+exp(b)) while protecting for underflow, inspired by ANGSD
   double maxVal;
   if(a>b) maxVal = a;
@@ -48,12 +49,22 @@ double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b, do
   return log(sumVal) + maxVal;
 };
 
-void TSiteAlleleFrequencyLikelihoods::fill(unsigned short* phred){
+void TSiteAlleleFrequencyLikelihoods::normalize(){
+	double max = log_alleleFrequencyLikelihoods_h[0];
+	for(int j=1; j<numAlleleCounts; j++){
+		if(log_alleleFrequencyLikelihoods_h[j] > max)
+			max = log_alleleFrequencyLikelihoods_h[j];
+	}
+	for(int j=0; j<numAlleleCounts; j++)
+		log_alleleFrequencyLikelihoods_h[j] -= max;
+};
+
+void TSiteAlleleFrequencyLikelihoods::fillLog(uint8_t* phred){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//initialize
 	log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[phred[0]];
-	log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[phred[0]];
-	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToLogErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[1] = logOf2 + qualMap.phredIntToLogErrorMap[phred[1]];
+	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToLogErrorMap[phred[2]];
 
 	for(int j=3; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
@@ -61,17 +72,26 @@ void TSiteAlleleFrequencyLikelihoods::fill(unsigned short* phred){
 	//Recursion
 	for(int d=1; d<numInd_k; ++d){
 		int s = 3*d;
-		for(int j=2*(d+1); j>1; j--){
+		int j=2*d;
+
+		//first fill new ones to avoid multiplication with zero (relevant in log)
+		log_alleleFrequencyLikelihoods_h[j+2] = qualMap.phredIntToLogErrorMap[phred[s + 2]] + log_alleleFrequencyLikelihoods_h[j];
+		log_alleleFrequencyLikelihoods_h[j+1] = protectedSumInLog(
+													qualMap.phredIntToLogErrorMap[phred[s + 2]] + log_alleleFrequencyLikelihoods_h[j-1],
+										   logOf2 + qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[j]    );
+
+		//now fill those already used
+		for(; j>1; j--){
 			log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-					qualMap.phredIntToLogErrorMap[phred[s + 2]] + log_alleleFrequencyLikelihoods_h[j-2],
-					qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[j-1],
-					qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[j]    );
+							 qualMap.phredIntToLogErrorMap[phred[s + 2]] + log_alleleFrequencyLikelihoods_h[j-2],
+					logOf2 + qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[j-1],
+							 qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[j]    );
 		}
 
 		//special case for j=1,0
 		log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-					qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[0],
-					qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[1]  );
+					logOf2 + qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[0],
+							 qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[1]  );
 
 		log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[phred[s]] + log_alleleFrequencyLikelihoods_h[0];
 	}
@@ -79,23 +99,33 @@ void TSiteAlleleFrequencyLikelihoods::fill(unsigned short* phred){
 	//Termination
 	for(int j=0; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] -= log_choose_2k_j[j];
+
+	//Normalization
+	normalize();
 };
 
-void TSiteAlleleFrequencyLikelihoods::fillNatural(unsigned short* phred){
+void TSiteAlleleFrequencyLikelihoods::fillNatural(uint8_t* phred){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//initialize
 	log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[phred[0]];
-	log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[phred[0]];
-	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[phred[1]];
+	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToErrorMap[phred[2]];
 
-	/*
 	for(int j=3; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
 
 	//Recursion
 	for(int d=1; d<numInd_k; ++d){
 		int s = 3*d;
-		for(int j=2*(d+1); j>1; j--){
+		int j=2*d;
+
+		//first fill new ones to avoid multiplication with zero (relevant in log)
+		log_alleleFrequencyLikelihoods_h[j+2] = qualMap.phredIntToErrorMap[phred[s + 2]] * log_alleleFrequencyLikelihoods_h[j];
+		log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToErrorMap[phred[s + 2]] * log_alleleFrequencyLikelihoods_h[j-1]
+											  + 2 * qualMap.phredIntToErrorMap[phred[s + 1]] * log_alleleFrequencyLikelihoods_h[j];
+
+		//now fill those already used
+		for(; j>1; j--){
 			log_alleleFrequencyLikelihoods_h[j] = qualMap.phredIntToErrorMap[phred[s + 2]] * log_alleleFrequencyLikelihoods_h[j-2]
 												+ 2 * qualMap.phredIntToErrorMap[phred[s + 1]] * log_alleleFrequencyLikelihoods_h[j-1]
 												+ qualMap.phredIntToErrorMap[phred[s]]     * log_alleleFrequencyLikelihoods_h[j];
@@ -107,19 +137,32 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(unsigned short* phred){
 
 		log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[phred[s]] * log_alleleFrequencyLikelihoods_h[0];
 	}
-*/
+
 	//Termination
-	/*
 	for(int j=0; j<numAlleleCounts; j++)
-		log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]); // - log_choose_2k_j[j];
-		*/
+		log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]) - log_choose_2k_j[j];
+
+	//Normalization
+	normalize();
 };
+
+void TSiteAlleleFrequencyLikelihoods::fill(uint8_t* phred){
+	//smallest likelihood is 10^-25.5 (phred 255).
+	//A double can store up to 10^-308.
+	//Hence we can store up to (10^25.5)^12 without underflow
+	if(numInd_k > 12)
+		fillLog(phred);
+	else
+		fillNatural(phred);
+};
+
 
 void TSiteAlleleFrequencyLikelihoods::print(){
 	for(int j=0; j<numAlleleCounts; j++){
 		std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j];
 	}
 };
+
 
 //-------------------------------------------------
 // TAlleleCountEstimator
@@ -143,23 +186,51 @@ TAlleleCountEstimator::~TAlleleCountEstimator(){
 };
 
 void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
+	//read samples
+	TPopulationSamples samples;
+	if(params.parameterExists("samples"))
+		samples.readSamples(params.getParameterString("samples"), logfile);
 
-	//first do a test: read Pop likelihoods and print them again.
-	TPopulationLikelihoods likelihoods(params, logfile);
-	likelihoods.begin();
+	//open VCF reader
+	std::string vcfFilename = params.getParameterString("vcf");
+	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
+	TPopulationLikelihoodReader reader(params, logfile);
+	reader.openVCF(vcfFilename, logfile);
+	logfile->endIndent();
 
-	TSiteAlleleFrequencyLikelihoods saf(likelihoods.curSampleSize());
+	//Match samples
+	if(samples.hasSamples())
+		samples.fillVCFOrder(reader.getSampleVCFNames());
+	 else
+		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
-	//print data
-	for(; !likelihoods.end(); likelihoods.next()){
+	// initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
+
+	//prepare site allele frequency likelihood calculator
+	TSiteAlleleFrequencyLikelihoods saf(samples.numSamples());
+
+	//run through VCF file
+	logfile->startIndent("Parsing VCF file and estimating allele counts:");
+	while(reader.readDataFromVCF(curLocus, samples, logfile)){
+		//calculate allele frequency likelihoods
+		saf.fill(curLocus);
+
 		//print chromosome and position
-		std::cout << likelihoods.curChr() << "\t" << likelihoods.curPosition();
+		std::cout << reader.chr() << "\t" << reader.position();
 
 		//print data
-		saf.fillNatural(likelihoods.curData());
 		saf.print();
 		std::cout << std::endl;
 	}
 
+	//clean up
+	delete[] curLocus;
 
+
+	//report final status
+	logfile->endIndent();
+	reader.concludeFilters(logfile);
+	logfile->endIndent();
 };

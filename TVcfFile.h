@@ -68,7 +68,7 @@ public:
 	//retrieve info
 	GTLikelihoods genotypeLiklihoods(TVcfLine* line, unsigned int sample);
 	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
-	void fillPhrdScore(TVcfLine* line, unsigned int sample, unsigned short* gtl);
+	void fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl);
 	int sampleNumber(std::string & Name);
 	int numSamples();
 	std::string sampleName(unsigned int num);
@@ -121,7 +121,7 @@ public:
 	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
 	GTLikelihoods genotypeLikelihoods(unsigned int sample);
 	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
-	void fillPhredScore(unsigned int sample, unsigned short* phred);
+	void fillPhredScore(unsigned int sample, uint8_t* phred);
 	//variant info
 	long position();
 	std::string chr();

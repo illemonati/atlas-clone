@@ -122,7 +122,7 @@ void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, 
 	parser.fillGenotypeLiklihoods(*line, sample, gtl);
 }
 
-void TVcfFile_base::fillPhrdScore(TVcfLine* line, unsigned int sample, unsigned short* gtl){
+void TVcfFile_base::fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl){
 	parser.fillPhredScore(*line, sample, gtl);
 }
 
@@ -265,7 +265,7 @@ void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl
 	fillGenotypeLiklihoods(&tempLine, sample, gtl);
 }
 
-void TVcfFileSingleLine::fillPhredScore(unsigned int sample, unsigned short* gtl){
+void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t* gtl){
 	fillPhrdScore(&tempLine, sample, gtl);
 }
 

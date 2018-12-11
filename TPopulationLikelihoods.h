@@ -99,8 +99,8 @@ private:
     void printProgressFrequencyFiltering(TLog* logfile);
 
     // EM algorithm for genotype frequencies
-    void guessGenotypeFrequencies(unsigned short* phredScores, const int & numSamples);
-    void estimateGenotypeFrequenciesNullModel(unsigned short* phredScores, const int & numSamples, double epsilonF);
+    void guessGenotypeFrequencies(uint8_t* phredScores, const int & numSamples);
+    void estimateGenotypeFrequenciesNullModel(uint8_t* phredScores, const int & numSamples, double epsilonF);
 
 public:
 	TPopulationLikelihoodReader();
@@ -111,7 +111,7 @@ public:
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
 
 	void openVCF(std::string, TLog* logfile);
-	bool readDataFromVCF(unsigned short* curLocus, TPopulationSamples & samples, TLog* logfile);
+	bool readDataFromVCF(uint8_t* curLocus, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
@@ -140,7 +140,7 @@ private:
 	long _numLoci;
 	std::map<int, std::string> chromosomes; //first SNP index and name
 	std::vector<long> position;
-    std::vector<unsigned short*> genotypePhredScores;
+    std::vector<uint8_t*> genotypePhredScores;
     std::vector<double> alleleFrequencies;
     bool saveAlleleFrequencies;
 
@@ -175,7 +175,7 @@ public:
     void beginOnePop(int population);
     bool end();
     void next();
-    unsigned short* curData();
+    uint8_t* curData();
     std::string curSampleName(int index);
     int curSampleSize();
     std::string curChr();
@@ -184,7 +184,7 @@ public:
     // get main constants (n, L, D, K) and names of environmental variables
     int getNumIndividuals();
     long getNumLoci();
-    unsigned short* getDataAtLocus(long index);
+    uint8_t* getDataAtLocus(long index);
     void print();
 };
 

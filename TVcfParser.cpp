@@ -406,7 +406,7 @@ void TVcfParser::fillGenotypeLiklihoods(TVcfLine & line, unsigned int & s, float
 	}
 };
 
-void TVcfParser::savePhredScore(std::string & phredString, unsigned short & phred){
+void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
 	if ( phredString == "inf" )
 			phred = 255;
 	else {
@@ -419,7 +419,7 @@ void TVcfParser::savePhredScore(std::string & phredString, unsigned short & phre
 	}
 };
 
-void TVcfParser::saveGLAsPhredScore(std::string & GLString, unsigned short & phred){
+void TVcfParser::saveGLAsPhredScore(std::string & GLString, uint8_t & phred){
 	//assume GL is log10(likelihood)
 	double tmp = stringToDouble(GLString);
 	if(tmp > 0)
@@ -432,7 +432,7 @@ void TVcfParser::saveGLAsPhredScore(std::string & GLString, unsigned short & phr
 	else phred = round(tmp);
 };
 
-void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, unsigned short* phred){
+void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phred){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	if(line.samples[s].missing){
 		phred[0] = 0; phred[1] = 0; phred[2] = 0;

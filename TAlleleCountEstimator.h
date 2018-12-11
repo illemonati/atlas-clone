@@ -18,20 +18,23 @@ class TSiteAlleleFrequencyLikelihoods{
 private:
 	TQualityMap qualMap;
 	int numInd_k;
+	double logOf2;
 	int numAlleleCounts; //from 0 to 2k
 	double* log_choose_2k_j;
 	double* log_alleleFrequencyLikelihoods_h;
 
 	double protectedSumInLog(double a, double b);
 	double protectedSumInLog(double a, double b, double c);
+	void normalize();
 
+	void fillLog(uint8_t* phred);
+	void fillNatural(uint8_t* phred);
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
 
-	void fill(unsigned short* phred);
-	void fillNatural(unsigned short* phred);
+	void fill(uint8_t* phred);
 	void print();
 };
 
