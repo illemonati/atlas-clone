@@ -54,6 +54,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	std::string line;
 	bool hasPopColumn = false;
 	_numPopulations = 0;
+	std::map<std::string, int>::iterator it;
 
 	//now parse and store
 	while(file.good() && !file.eof()){
@@ -63,7 +64,12 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 
 		//skip empty lines
 		if(vec.size() > 0){
-			if(lineNum == 1 && vec.size() == 2) hasPopColumn = true;
+			if(lineNum == 1 && vec.size() == 2)
+				hasPopColumn = true;
+			else {
+				populations.emplace("Population", 0);
+				it = populations.begin();
+			}
 
 			if(!hasPopColumn && vec.size() != 1)
 				throw "Wrong number of columns in file '" + filename + "' on line " + toString(lineNum) + "! Expected 1, but found " + toString(vec.size()) + ".";
@@ -72,11 +78,13 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 				throw "Wrong number of columns in file '" + filename + "' on line " + toString(lineNum) + "! Expected 2, but found " + toString(vec.size()) + ".";
 
 			//check if population exists
-			std::map<std::string, int>::iterator it = populations.find(vec[1]);
-			if(it == populations.end()){
-				populations.emplace(vec[1], _numPopulations);
+			if(hasPopColumn){
 				it = populations.find(vec[1]);
-				_numPopulations++;
+				if(it == populations.end()){
+					populations.emplace(vec[1], _numPopulations);
+					it = populations.find(vec[1]);
+					_numPopulations++;
+				}
 			}
 
 			//store sample

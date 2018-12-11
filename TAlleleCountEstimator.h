@@ -33,8 +33,8 @@ private:
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
-
 	void fill(uint8_t* phred);
+	int getMLAlleleCount(TRandomGenerator & randomGenerator);
 	void print();
 };
 

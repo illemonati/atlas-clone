@@ -47,6 +47,7 @@ public:
 	bool hasSamples(){ return _hasSamples; };
 	int numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
+	std::string getPopulationName(int index){ std::map<std::string, int>::iterator it=populations.begin(); for(int i=1; i<index; ++i) ++it; return it->first; };
 	int numSamplesInPop(int population){ return numSamplesPerPop[population]; };
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
