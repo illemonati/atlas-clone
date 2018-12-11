@@ -7,29 +7,17 @@
 
 #include "TInbreedingEstimator.h"
 
-TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfile){
-	logfile = Logfile;
+//---------------------------
+// alphaOrBeta
+//---------------------------
 
-	//algorithm params
-	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
-	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations");
-
-	pi = Parameters.getParameterDoubleWithDefault("pi", 0.1);
-	logfile->list("Mixture parameter pi set to " + toString(pi));
-
-	//read data
-	likelihoods.doSaveAlleleFrequencies();
-	likelihoods.readData(Parameters, logfile);
-
-	//initialize
-	initParams(randomGenerator);
-	//TODO: get defaultOutName from vcf file in TPopulationLikelihoods
-	std::string defaultOutName = "default";
-	outname = Parameters.getParameterStringWithDefault("outname", defaultOutName);
-
+TAlphaOrBeta::TAlphaOrBeta(std::string VariableName){
+	variableName = VariableName;
+	_alphaOrBeta = -1.0;
+	_logAlphaOrBeta = -1.0;
 }
 
-void TInbreedingEstimator::initializeAlphaBeta(){
+bool TAlphaOrBeta::initialize(std::vector<double> & p, TLog* logfile){
 	// estimate alpha_f and beta_f by method of moments
 	double mean = 0.0;
 	double sumXSquare = 0.0;
@@ -45,67 +33,154 @@ void TInbreedingEstimator::initializeAlphaBeta(){
 
 	//now estimate alpha and beta
 	double tmp = ((mean * (1.0 - mean)) / var ) - 1.0;
-	alpha = mean * tmp;
-	if(alpha < 0.0)
-		alpha = 0.01;
-	logAlpha = log(alpha);
-	beta = (1.0 - mean) * tmp;
-	if(beta < 0.0)
-		beta = 0.01;
-	logBeta= log(beta);
-	logfile->list("Initialized alpha to " + toString(alpha) + " and beta to " + toString(beta));
+	_alphaOrBeta = mean * tmp;
+	if(_alphaOrBeta < 0.0)
+		_alphaOrBeta = 0.01;
+	_logAlphaOrBeta = log(_alphaOrBeta);
+
+	logfile->list("Initialized " + variableName + " to " + toString(_alphaOrBeta));
+	return true;
+}
+
+void TAlphaOrBeta::update(double & newLogValue, double & newNaturalScaleValue){
+	_logAlphaOrBeta = newLogValue;
+	_alphaOrBeta = newNaturalScaleValue;
+}
+
+//void alphaOrBeta::updateWithNaturalScaleValue(double & newValue){
+//	_alphaOrBeta = newValue;
+//	_logAlphaOrBeta = log(newValue);
+//}
+
+double TAlphaOrBeta::getLogValue(){
+	return _logAlphaOrBeta;
+}
+
+double TAlphaOrBeta::getNaturalScaleValue(){
+	return _alphaOrBeta;
+}
+//---------------------------
+// TInbreedingEstimator
+//---------------------------
+
+TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfile){
+	logfile = Logfile;
+
+	//algorithm params
+	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
+	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations");
+
+	pi = Parameters.getParameterDoubleWithDefault("pi", 0.1);
+	logfile->list("Mixture parameter pi set to " + toString(pi));
+
+	widthProposalKernelLogAlphaOrBeta = Parameters.getParameterDoubleWithDefault("widthProposalKernelLogAlphaAndBeta", 0.35);
+	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelLogAlphaOrBeta) + " for updates of log(alpha) and log(beta)");
+
+
+	//read data
+	likelihoods.doSaveAlleleFrequencies();
+	likelihoods.readData(Parameters, logfile);
+	numLoci = likelihoods.getNumLoci();
+
+	//initialize
+	initParams(randomGenerator);
+	//TODO: get defaultOutName from vcf file in TPopulationLikelihoods
+	std::string defaultOutName = "default";
+	outname = Parameters.getParameterStringWithDefault("outname", defaultOutName);
+
 }
 
 void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator){
+	//F
 	double tmp = randomGenerator.getRand();
 	if(tmp <= pi)
 		F = 0;
 	else
 		F = randomGenerator.getRand();
 	F = exp(randomGenerator.getRand(0, 1));
+
+	//p
 	p = likelihoods.donateAlleleFrequencies();  //new double[likelihoods.getNumLoci()];
-	initializeAlphaBeta();
+	if(p.size() != numLoci)
+		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.size());
+
+	//alpha
+	alpha = TAlphaOrBeta("alpha");
+	if(!alpha.initialize(p, logfile))
+		throw "failed to initialize alpha!";
+
+	//beta
+	beta = TAlphaOrBeta("beta");
+	if(!beta.initialize(p, logfile))
+		throw "failed to initialize beta!";
 }
 
 void TInbreedingEstimator::printTrajectory(gz::ogzstream & tracefile){
-	tracefile << F << "\t" << alpha << "\t" << beta << "\n";
+	tracefile << F << "\t" << alpha.getNaturalScaleValue() << "\t" << beta.getNaturalScaleValue() << "\n";
 }
 
 void TInbreedingEstimator::updateF(){
 	std::cout << "updating F" << std::endl;
 }
 
-void TInbreedingEstimator::updateP(long l){
+void TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
+	//propose new p
+	double newP;
+	double sumOverInds = 0.0;
+
+	//calculate hastings ratio
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next()){
+		uint8_t* data = likelihoods.curData();
+		for(int s=0; s<likelihoods.curSampleSize(); ++s){
+			int index = 3*s;
+			//calculate and add ratio for each genotype
+			for(int g=0; g<3; ++g){
+				sumOverInds += log((data[index + g] * PGenoGivenFAndP(g, F, newP)) /  (data[index + g] * PGenoGivenFAndP(g, F, p[l])));
+			}
+		}
+	}
+
+	double h = sumOverInds + (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
+			+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[l]));
+	//accept?
 }
 
-void TInbreedingEstimator::updateAlphaOrBeta(){
-//
-//	// compute sum
-//	double sumF = 0;
-//	for (int l = 0; l < numLoci; l++){
-//		sumF += log(logisticLookup->approxLogistic(loci->mus[l]));
-//	}
-//
-//	// propose new log(alphaF) (uniform proposal kernel)
-//	double newLogAlphaF = loci->logAlphaF + randomGenerator->getRand() * widthProposalKernelLogAlphaF
-//			- widthProposalKernelLogAlphaF / 2.0;
-//	double newAlphaF = exp(newLogAlphaF);
-//
-//	// compute log hastings ratio
-//	double logH = numLoci * (randomGenerator->gammaln(newAlphaF + loci->betaF)
-//			- randomGenerator->gammaln(loci->alphaF + loci->betaF)
-//			+ randomGenerator->gammaln(loci->alphaF)
-//			- randomGenerator->gammaln(newAlphaF))
-//			+ (newAlphaF - loci->alphaF) * sumF;
-//
-//	// accept or reject
-//	if (log(randomGenerator->getRand()) < logH){
-//		loci->setAlphaF(newAlphaF); // set new alphaF and logAlphafF
-//		loci->setLogAlphaF(newLogAlphaF);
-//		return true;
-//	}
-//	else
-//		return false;
+bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther){
+	// compute sum
+	double sumP = 0;
+	for (unsigned int l = 0; l < numLoci; l++){
+		sumP += log(p[l]);
+	}
+
+	// propose new log(value) (uniform proposal kernel)
+	double newLogAlphaOrBeta = alphaOrBetaToUpdate.getLogValue() + randomGenerator.getRand() * widthProposalKernelLogAlphaOrBeta - widthProposalKernelLogAlphaOrBeta / 2.0;
+	double newAlphaOrBeta = exp(newLogAlphaOrBeta);
+
+	// compute log hastings ratio
+	double logH = numLoci * (randomGenerator.gammaln(newAlphaOrBeta + alphaOrBetaOther.getNaturalScaleValue())
+			+ randomGenerator.gammaln(alphaOrBetaToUpdate.getNaturalScaleValue())
+			- randomGenerator.gammaln(alphaOrBetaToUpdate.getNaturalScaleValue() + alphaOrBetaOther.getNaturalScaleValue())
+			- randomGenerator.gammaln(newAlphaOrBeta))
+			+ (newAlphaOrBeta - alphaOrBetaToUpdate.getNaturalScaleValue()) * sumP;
+
+	// accept or reject
+	if (log(randomGenerator.getRand()) < logH){
+		alphaOrBetaToUpdate.update(newLogAlphaOrBeta, newAlphaOrBeta);
+		return true;
+	}
+	else
+		return false;
+}
+
+double TInbreedingEstimator::PGenoGivenFAndP(int & genotype, double & F, double & p){
+	if(genotype == 0)
+		return (1 - F)*p*p + F;
+	else if(genotype == 1)
+		return 2*p*(1 - p)*(1 - F);
+	else if(genotype == 2)
+		return (1 - F)*(1 - p)*(1 - p) + F*(1 - p);
+	else
+		throw "unknown genotype '" + toString(genotype) +"'!";
 }
 
 
@@ -136,9 +211,9 @@ void TInbreedingEstimator::runEstimation(){
 			updateP(l);
 		}
 		//alpha
-		updateAlphaOrBeta();
+		updateAlphaOrBeta(alpha, beta);
 		//beta
-		updateAlphaOrBeta();
+		updateAlphaOrBeta(beta, alpha);
 
 		// print progress
 		int prog = (double) i / (double) numIterations * 100.0;
