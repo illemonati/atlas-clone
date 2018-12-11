@@ -51,35 +51,74 @@ double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b, do
 void TSiteAlleleFrequencyLikelihoods::fill(unsigned short* phred){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//initialize
-	log_alleleFrequencyLikelihoods_h[0] = phred[0];
-	log_alleleFrequencyLikelihoods_h[1] = phred[0];
-	log_alleleFrequencyLikelihoods_h[2] = phred[0];
+	log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToLogErrorMap[phred[0]];
 
 	for(int j=3; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
 
 	//Recursion
-	for(int d=2; d<numInd_k; ++d){
+	for(int d=1; d<numInd_k; ++d){
 		int s = 3*d;
 		for(int j=2*(d+1); j>1; j--){
 			log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-											phred[s + 2] + log_alleleFrequencyLikelihoods_h[j-2],
-										    phred[s + 1] + log_alleleFrequencyLikelihoods_h[j-1],
-											phred[s] + log_alleleFrequencyLikelihoods_h[j] );
+					qualMap.phredIntToLogErrorMap[phred[s + 2]] + log_alleleFrequencyLikelihoods_h[j-2],
+					qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[j-1],
+					qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[j]    );
 		}
 
 		//special case for j=1,0
 		log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-											phred[s + 1] + log_alleleFrequencyLikelihoods_h[0],
-											phred[s] + log_alleleFrequencyLikelihoods_h[1] );
-		log_alleleFrequencyLikelihoods_h[0] = phred[s] + log_alleleFrequencyLikelihoods_h[0];
+					qualMap.phredIntToLogErrorMap[phred[s + 1]] + log_alleleFrequencyLikelihoods_h[0],
+					qualMap.phredIntToLogErrorMap[phred[s]]     + log_alleleFrequencyLikelihoods_h[1]  );
+
+		log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[phred[s]] + log_alleleFrequencyLikelihoods_h[0];
 	}
 
 	//Termination
 	for(int j=0; j<numAlleleCounts; j++)
-		log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]) - log_choose_2k_j[j];
+		log_alleleFrequencyLikelihoods_h[j] -= log_choose_2k_j[j];
+};
 
+void TSiteAlleleFrequencyLikelihoods::fillNatural(unsigned short* phred){
+	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
+	//initialize
+	log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[phred[0]];
+	log_alleleFrequencyLikelihoods_h[2] = qualMap.phredIntToErrorMap[phred[0]];
 
+	/*
+	for(int j=3; j<numAlleleCounts; j++)
+		log_alleleFrequencyLikelihoods_h[j] = 0.0;
+
+	//Recursion
+	for(int d=1; d<numInd_k; ++d){
+		int s = 3*d;
+		for(int j=2*(d+1); j>1; j--){
+			log_alleleFrequencyLikelihoods_h[j] = qualMap.phredIntToErrorMap[phred[s + 2]] * log_alleleFrequencyLikelihoods_h[j-2]
+												+ 2 * qualMap.phredIntToErrorMap[phred[s + 1]] * log_alleleFrequencyLikelihoods_h[j-1]
+												+ qualMap.phredIntToErrorMap[phred[s]]     * log_alleleFrequencyLikelihoods_h[j];
+		}
+
+		//special case for j=1,0
+		log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[phred[s + 1]] * log_alleleFrequencyLikelihoods_h[0]
+											+ qualMap.phredIntToErrorMap[phred[s]]     * log_alleleFrequencyLikelihoods_h[1];
+
+		log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[phred[s]] * log_alleleFrequencyLikelihoods_h[0];
+	}
+*/
+	//Termination
+	/*
+	for(int j=0; j<numAlleleCounts; j++)
+		log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]); // - log_choose_2k_j[j];
+		*/
+};
+
+void TSiteAlleleFrequencyLikelihoods::print(){
+	for(int j=0; j<numAlleleCounts; j++){
+		std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j];
+	}
 };
 
 //-------------------------------------------------
@@ -107,9 +146,20 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 
 	//first do a test: read Pop likelihoods and print them again.
 	TPopulationLikelihoods likelihoods(params, logfile);
+	likelihoods.begin();
 
-	likelihoods.print();
+	TSiteAlleleFrequencyLikelihoods saf(likelihoods.curSampleSize());
 
+	//print data
+	for(; !likelihoods.end(); likelihoods.next()){
+		//print chromosome and position
+		std::cout << likelihoods.curChr() << "\t" << likelihoods.curPosition();
+
+		//print data
+		saf.fillNatural(likelihoods.curData());
+		saf.print();
+		std::cout << std::endl;
+	}
 
 
 };

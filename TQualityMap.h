@@ -25,15 +25,17 @@ public:
 	//quality is phredInt + 33
 	double* phredIntToErrorMap;
 	double* qualityToErrorMap;
+	double* phredIntToLogErrorMap;
 	int* illuminaQualityBins;
 	double min;
 	int minPhred, sizeQual;
 
 	TQualityMap(){
-		//only up to phred = 255, else always return 256
-		minPhred = 256;
+		//only up to phred = 255, else always return 255
+		minPhred = 255;
 		sizeQual = minPhred + 33;
-		phredIntToErrorMap = new double[minPhred];
+		phredIntToErrorMap = new double[minPhred+1];
+		phredIntToLogErrorMap = new double[minPhred+1];
 		qualityToErrorMap = new double[sizeQual];
 
 
@@ -43,8 +45,10 @@ public:
 		phredIntToErrorMap[0] = 1.0;
 
 		//and now others
-		for(int i=0; i<256; ++i){
+		double tmp = - log(10) / 10.0;;
+		for(int i=0; i<(minPhred+1); ++i){
 			phredIntToErrorMap[i] = phredToError(i);
+			phredIntToLogErrorMap[i] = i * tmp;
 			qualityToErrorMap[i+33] = phredIntToErrorMap[i];
 		}
 		min = phredToError(minPhred);

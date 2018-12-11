@@ -16,7 +16,7 @@
 //-------------------------------------------------
 class TSiteAlleleFrequencyLikelihoods{
 private:
-	TQualityMap phredToGTLMap;
+	TQualityMap qualMap;
 	int numInd_k;
 	int numAlleleCounts; //from 0 to 2k
 	double* log_choose_2k_j;
@@ -31,6 +31,8 @@ public:
 	~TSiteAlleleFrequencyLikelihoods();
 
 	void fill(unsigned short* phred);
+	void fillNatural(unsigned short* phred);
+	void print();
 };
 
 //-------------------------------------------------
