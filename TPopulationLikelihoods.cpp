@@ -521,6 +521,12 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
 
+	bool limitSites = false;
+	long siteLimit;
+	if(Parameters.parameterExists("limitSites")){
+		siteLimit = Parameters.getParameterLong("limitSites");
+	}
+
 	//Match samples
 	if(samples.hasSamples())
 		samples.fillVCFOrder(reader.getSampleVCFNames());
@@ -552,6 +558,11 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		//update for next
 		curLocus = new unsigned short[samples.numSamples() * 3];
 		++_numLoci;
+		if(limitSites && _numLoci == siteLimit){
+			logfile->list("reached site limit!");
+			break;
+		}
+
     }
 
     //clean up

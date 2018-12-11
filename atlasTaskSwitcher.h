@@ -15,6 +15,7 @@
 #include "runSimulations.h"
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
+#include "TInbreedingEstimator.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -50,6 +51,9 @@ public:
 		} else if(task == "estimateAlleleCounts"){
 			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
 			alleleCountEst.estimateAlleleCounts(*parameters);
+		} else if(task == "estimateInbreeding"){
+			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
+			inbreedingEstimator.runEstimation();
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

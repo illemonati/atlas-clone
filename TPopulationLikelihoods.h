@@ -163,6 +163,11 @@ public:
 
     void clean();
     void doSaveAlleleFrequencies(){ saveAlleleFrequencies = true; };
+    std::vector<double> donateAlleleFrequencies(){
+    	std::vector<double> alleleFrequenciesCopy = alleleFrequencies;
+    	alleleFrequencies.clear();
+    	return alleleFrequenciesCopy;
+    };
     void readData(TParameters & Parameters, TLog* Logfile);
 
     //Looping
