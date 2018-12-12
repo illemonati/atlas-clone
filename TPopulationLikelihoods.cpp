@@ -41,6 +41,14 @@ void TPopulationSamples::init(){
 	_VCF_order_initialized = false;
 };
 
+std::string TPopulationSamples::getPopulationName(int index){
+	for(std::map<std::string, int>::iterator it = populations.begin(); it != populations.end(); ++it){
+		if(it->second == index)
+			return it->first;
+	}
+	throw "No population with index " + toString(index) + "!";
+};
+
 void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	logfile->startIndent("Reading samples from file '" + filename + "':");
 
@@ -64,11 +72,14 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 
 		//skip empty lines
 		if(vec.size() > 0){
-			if(lineNum == 1 && vec.size() == 2)
-				hasPopColumn = true;
-			else {
-				populations.emplace("Population", 0);
-				it = populations.begin();
+			if(lineNum == 1){
+				if(vec.size() == 2)
+					hasPopColumn = true;
+				else {
+					populations.emplace("Population", 0);
+					it = populations.begin();
+					_numPopulations = 1;
+				}
 			}
 
 			if(!hasPopColumn && vec.size() != 1)
@@ -177,6 +188,7 @@ void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames)
 			int orderedIndex = getOrderedSampleIndex(*it);
 			if(sampleUsed[orderedIndex])
 				throw "Duplicate sample name '" + *it + "' in VCf header!";
+
 			_VCF_order[orderedIndex] = vcfIndex;
 			sampleUsed[orderedIndex] = true;
 		}
@@ -188,9 +200,6 @@ void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames)
 			throw "Sample '" + getNameFromOrderedIndex(s) + "' missing in VCF!";
 	}
 };
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoodReader                                                                //

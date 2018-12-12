@@ -33,7 +33,7 @@ public:
 	TQualityMap(){
 		//only up to phred = 255, else always return 255
 		minPhred = 255;
-		sizeQual = minPhred + 33;
+		sizeQual = minPhred + 34;
 		phredIntToErrorMap = new double[minPhred+1];
 		phredIntToLogErrorMap = new double[minPhred+1];
 		qualityToErrorMap = new double[sizeQual];
@@ -77,6 +77,7 @@ public:
 		delete[] phredIntToErrorMap;
 		delete[] qualityToErrorMap;
 		delete[] illuminaQualityBins;
+		delete[] phredIntToLogErrorMap;
 	};
 
 	double phredIntToError(int phredInt){

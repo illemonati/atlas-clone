@@ -8,8 +8,6 @@
 
 #include "TAlleleCountEstimator.h"
 
-
-
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
@@ -27,8 +25,8 @@ TSiteAlleleFrequencyLikelihoods::TSiteAlleleFrequencyLikelihoods(int numIndividu
 
 TSiteAlleleFrequencyLikelihoods::~TSiteAlleleFrequencyLikelihoods(){
 	delete[] log_alleleFrequencyLikelihoods_h;
+	delete[] log_choose_2k_j;
 };
-
 
 double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b){
   //returns log(exp(a)+exp(b)) while protecting for underflow, inspired by ANGSD
@@ -228,9 +226,10 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
 
 	//prepare site allele frequency likelihood calculators
-	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
-	for(int p=0; p<samples.numPopulations(); p++)
-		saf.emplace_back(samples.numSamplesInPop(p));
+	TSiteAlleleFrequencyLikelihoods** saf = new TSiteAlleleFrequencyLikelihoods*[samples.numPopulations()];
+	for(int p=0; p<samples.numPopulations(); p++){
+		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
+	}
 
 	//open output file
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_");
@@ -255,17 +254,19 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
 			//calculate allele frequency likelihoods
-			saf[p].fill(curLocus);
+			saf[p]->fill(&curLocus[3*samples.startIndex(p)]);
 
 			//and print MLE counts
-			aleleCountFile << "\t" << saf[p].getMLAlleleCount(*randomGenerator);
+			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator);
 		}
 		aleleCountFile << std::endl;
 	}
 
 	//clean up
 	delete[] curLocus;
-
+	for(int p=0; p<samples.numPopulations(); p++)
+		delete saf[p];
+	delete[] saf;
 
 	//report final status
 	logfile->endIndent();
