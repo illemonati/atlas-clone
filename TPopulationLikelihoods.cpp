@@ -201,6 +201,24 @@ void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames)
 	}
 };
 
+int TPopulationSamples::numSamplesMissingInPop(bool* sampleMissing, int population){
+	int numMissing = 0;
+	for(int s=0; s<numSamplesPerPop[population]; ++s){
+		if(sampleMissing[startIndexPerPop[population] + s])
+			numMissing++;
+	}
+	return numMissing;
+};
+
+int TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, int population){
+	int numWithData = 0;
+	for(int s=0; s<numSamplesPerPop[population]; ++s){
+		if(!sampleMissing[startIndexPerPop[population] + s])
+			numWithData++;
+	}
+	return numWithData;
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoodReader                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -313,7 +331,7 @@ void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* curLocus, TPopulationSamples & samples, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -358,12 +376,14 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* curLocus, TPopulation
 			int vcfIndex = samples.VCF_order(s);
 
 			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-			if (vcfFile.sampleDepth(vcfIndex) < minDepth){
+			if (vcfFile.sampleDepth(vcfIndex) < minDepth)
 				vcfFile.setSampleMissing(vcfIndex);
-			} else numIndividualsWithData++;
+			else
+				numIndividualsWithData++;
 
 			//store phred scaled likelihoods
-			vcfFile.fillPhredScore(vcfIndex, &curLocus[3 * s]);
+			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
+			vcfFile.fillPhredScore(vcfIndex, &data[3 * s]);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -375,7 +395,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* curLocus, TPopulation
 		//filter in MAF
 		if(freqFilter > 0.0){
 			// estimate allele frequency (EM algorithm)
-			estimateGenotypeFrequenciesNullModel(curLocus, samples.numSamples(), epsilonF);
+			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
 			double f = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
 			if(f > 0.5) f = 1.0 - f;
 
@@ -548,12 +568,13 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
 	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
+	bool* sampleIsMissing = new bool[samples.numSamples()];
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     _numLoci = 0;
     std::string curChr = "";
-    while(reader.readDataFromVCF(curLocus, samples, logfile)){
+    while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());

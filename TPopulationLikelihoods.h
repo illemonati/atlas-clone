@@ -57,6 +57,9 @@ public:
 	std::string getNameFromOrderedIndex(int index);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
 	int VCF_order(const int & index){ return _VCF_order[index]; };
+	uint8_t* getPointerToDataInPop(uint8_t* data, int population){ return &data[3*startIndexPerPop[population]]; };
+	int numSamplesMissingInPop(bool* sampleMissing, int population);
+	int numSamplesWithDataInPop(bool* sampleMissing, int population);
 };
 
 //-------------------------------------------------
@@ -104,6 +107,8 @@ private:
     void estimateGenotypeFrequenciesNullModel(uint8_t* phredScores, const int & numSamples, double epsilonF);
 
 public:
+    uint8_t* data;
+
 	TPopulationLikelihoodReader();
 	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile);
 	~TPopulationLikelihoodReader();
@@ -112,7 +117,7 @@ public:
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
 
 	void openVCF(std::string, TLog* logfile);
-	bool readDataFromVCF(uint8_t* curLocus, TPopulationSamples & samples, TLog* logfile);
+	bool readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
@@ -122,6 +127,8 @@ public:
 	double* genotypeFrequencies(){ return _genotypeFrequencies; };
 	double allelFrequency(){ return _alleleFrequency; };
 	double MAF(){ return _MAF; };
+	int numSamplesWithData();
+	int numSamplesWithDataInPopulation(int population);
 };
 
 //-------------------------------------------------
