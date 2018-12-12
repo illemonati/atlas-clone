@@ -221,10 +221,6 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	 else
 		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
-	// initialize variables for vcf-file
-	struct timeval start; gettimeofday(&start, NULL);
-	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
-
 	//prepare site allele frequency likelihood calculators
 	TSiteAlleleFrequencyLikelihoods** saf = new TSiteAlleleFrequencyLikelihoods*[samples.numPopulations()];
 	for(int p=0; p<samples.numPopulations(); p++){
@@ -240,16 +236,28 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 		throw "Failed to open file '" + filename + "' for writing!";
 
 	//write header
-	aleleCountFile << "chr\tpos";
+	bool useLocusName = params.parameterExists("useLocusName");
+	char sep = '\t';
+	if(useLocusName){
+		logfile->list("Will print locus names (rather than chromosome and position).");
+		aleleCountFile << "Locus";
+		sep = '_';
+	} else
+		aleleCountFile << "chr\tpos";
 	for(int p=0; p<samples.numPopulations(); p++)
 		aleleCountFile << "\t" << samples.getPopulationName(p);
 	aleleCountFile << "\n";
 
+	// initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
+	bool* sampleIsMissing = new bool[samples.numSamples()];
+
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(curLocus, samples, logfile)){
+	while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
 		//write chromosome and position
-		aleleCountFile << reader.chr() << "\t" << reader.position();
+		aleleCountFile << reader.chr() << sep << reader.position();
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
@@ -257,7 +265,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 			saf[p]->fill(&curLocus[3*samples.startIndex(p)]);
 
 			//and print MLE counts
-			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator);
+			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << samples.numSamplesWithDataInPop(sampleIsMissing, p);
 		}
 		aleleCountFile << std::endl;
 	}
@@ -267,6 +275,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	for(int p=0; p<samples.numPopulations(); p++)
 		delete saf[p];
 	delete[] saf;
+	delete[] sampleIsMissing;
 
 	//report final status
 	logfile->endIndent();
