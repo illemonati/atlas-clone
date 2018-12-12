@@ -564,7 +564,7 @@ TThetaEstimatorRatio::TThetaEstimatorRatio(TParameters & params, TLog* Logfile):
 		if(thinning == 2)
 			logfile->list("Will print every second iterations to the output file (thinning = 2)");
 		else if(thinning == 3)
-			logfile->list("Will print every second iterations to the output file (thinning = 3)");
+			logfile->list("Will print every third iterations to the output file (thinning = 3)");
 		else
 			logfile->list("Will print every " + toString(thinning) + "th iterations to the output file (thinning = " + toString(thinning) + ")");
 	}

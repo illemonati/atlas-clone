@@ -46,6 +46,12 @@ private:
 	int numIterations;
 	double pi;
 	double widthProposalKernelLogAlphaOrBeta;
+	double widthProposalKernelP;
+	int numAcceptedF;
+	int* numAcceptedP;
+	int numAcceptedAlpha;
+	int numAcceptedBeta;
+	int thinning;
 
 	//data
 	TPopulationLikelihoods likelihoods;
@@ -60,14 +66,17 @@ private:
 //	void initializeAlphaBeta();
 	void initParams(TRandomGenerator & randomGenerator);
 	void printTrajectory(gz::ogzstream & tracefile);
-	void updateF();
-	void updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	bool updateF();
+	bool updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double PGenoGivenFAndP(int & genotype, double & F, double & p);
-	void oneMCMCIteration();
+	void oneMCMCIteration(int iterationNum);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
+	~TInbreedingEstimator(){
+		delete numAcceptedP;
+	}
 	void runEstimation();
 };
 

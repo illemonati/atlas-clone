@@ -257,7 +257,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
 	if(freqFilter < 0.0 || freqFilter >= 0.5)
 		throw "MAF filter must be within (0.0,0.5)!";
-	if(freqFilter > 0.0){
+	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 		estimateGenotypeFrequencies = true;
 		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");

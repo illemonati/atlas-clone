@@ -76,6 +76,21 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	widthProposalKernelLogAlphaOrBeta = Parameters.getParameterDoubleWithDefault("widthProposalKernelLogAlphaAndBeta", 0.35);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelLogAlphaOrBeta) + " for updates of log(alpha) and log(beta)");
 
+	widthProposalKernelP = Parameters.getParameterDoubleWithDefault("widthProposalKernelP", 0.05);
+	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelLogAlphaOrBeta) + " for updates of log(alpha) and log(beta)");
+
+
+	thinning = Parameters.getParameterIntWithDefault("thinning", 1);
+	if(thinning < 1 || thinning > numIterations)
+		throw "Thinning must be > 1 and < number iterations!";
+	if(thinning > 1){
+		if(thinning == 2)
+			logfile->list("Will print every second iterations to the output file (thinning = 2)");
+		else if(thinning == 3)
+			logfile->list("Will print every third iterations to the output file (thinning = 3)");
+		else
+			logfile->list("Will print every " + toString(thinning) + "th iterations to the output file (thinning = " + toString(thinning) + ")");
+	}
 
 	//read data
 	likelihoods.doSaveAlleleFrequencies();
@@ -84,25 +99,33 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	//initialize
 	initParams(randomGenerator);
+
+	numAcceptedF = 0;
+	numAcceptedP = new int[numLoci];
+	numAcceptedAlpha = 0;
+	numAcceptedBeta = 0;
+
 	//TODO: get defaultOutName from vcf file in TPopulationLikelihoods
 	std::string defaultOutName = "default";
 	outname = Parameters.getParameterStringWithDefault("outname", defaultOutName);
-
 }
 
 void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator){
 	//F
-	double tmp = randomGenerator.getRand();
-	if(tmp <= pi)
-		F = 0;
-	else
-		F = randomGenerator.getRand();
-	F = exp(randomGenerator.getRand(0, 1));
+	F = 0.0;
+//	double tmp = randomGenerator.getRand();
+//	if(tmp <= pi)
+//		F = 0;
+//	else
+//		F = randomGenerator.getRand();
+//	F = exp(randomGenerator.getRand(0, 1));
+	logfile->list("initialized F to " + toString(F));
 
 	//p
 	p = likelihoods.donateAlleleFrequencies();  //new double[likelihoods.getNumLoci()];
 	if(p.size() != numLoci)
 		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.size());
+	logfile->list("initialized allele frequencies for " + toString(p.size()) + " loci");
 
 	//alpha
 	alpha = TAlphaOrBeta("alpha");
@@ -119,13 +142,21 @@ void TInbreedingEstimator::printTrajectory(gz::ogzstream & tracefile){
 	tracefile << F << "\t" << alpha.getNaturalScaleValue() << "\t" << beta.getNaturalScaleValue() << "\n";
 }
 
-void TInbreedingEstimator::updateF(){
+bool TInbreedingEstimator::updateF(){
 	std::cout << "updating F" << std::endl;
+	return true;
 }
 
-void TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
+bool TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
 	//propose new p
-	double newP;
+	double newP = p[l] + randomGenerator.getRand() * widthProposalKernelP - widthProposalKernelP / 2.0;
+	while(newP > 1 || newP < 0){
+		if(newP < 0)
+			newP = -newP;
+		if(newP > 1)
+			newP = 2 - newP;
+	}
+
 	double sumOverInds = 0.0;
 
 	//calculate hastings ratio
@@ -140,9 +171,15 @@ void TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & 
 		}
 	}
 
-	double h = sumOverInds + (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
+	double logH = sumOverInds + (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
 			+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[l]));
+
 	//accept?
+	if(log(randomGenerator.getRand()) < logH){
+		p[l] = newP;
+		return true;
+	} else
+		return false;
 }
 
 bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther){
@@ -183,18 +220,17 @@ double TInbreedingEstimator::PGenoGivenFAndP(int & genotype, double & F, double 
 		throw "unknown genotype '" + toString(genotype) +"'!";
 }
 
-void TInbreedingEstimator::oneMCMCIteration(){
+void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
-	updateF();
+//	numAcceptedF += updateF();
 	//locus index
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		updateP(l, alpha, beta);
+	for(unsigned long l=0; l<numLoci; ++l){
+		numAcceptedP[iterationNum] += updateP(l, alpha, beta);
 	}
 	//alpha
-	updateAlphaOrBeta(alpha, beta);
+	numAcceptedAlpha += updateAlphaOrBeta(alpha, beta);
 	//beta
-	updateAlphaOrBeta(beta, alpha);
+	numAcceptedBeta += updateAlphaOrBeta(beta, alpha);
 
 }
 
@@ -208,16 +244,32 @@ void TInbreedingEstimator::runEstimation(){
 	if(!out)
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
+	tracefile = outname + "_inbreedingMCMC_pSelectedLoci.txt.gz";
+	logfile->list("Will write MCMC chain for selected loci to file '" + tracefile + "'.");
+	gz::ogzstream outP(tracefile.c_str());
+	if(!outP)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+
+
 	//write header
 	out << "F\talpha\tbeta\n";
 
+	//write initial parameter estimates
+	out << F << "\t" << alpha.getNaturalScaleValue() << "\t" << beta.getNaturalScaleValue() << "\n";
+
 	//run MCMC
 	int oldProg = 0;
-	for(int i=0; i<numIterations; ++i){
-		std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
-		logfile->listFlush(progressString + "(0%)");
+	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
+	logfile->listFlush(progressString + "(0%)");
+	for(int i=1; i<numIterations; ++i){
 
-		oneMCMCIteration();
+		oneMCMCIteration(i);
+
+		//print to file
+		if(i % thinning == 0){
+			out << F << "\t" << alpha.getNaturalScaleValue() << "\t" << beta.getNaturalScaleValue() << "\n";
+			outP << p[10] << "\t" << p[15] << "\n";
+		}
 
 		// print progress
 		int prog = (double) i / (double) numIterations * 100.0;
@@ -226,6 +278,7 @@ void TInbreedingEstimator::runEstimation(){
 			logfile->listOverFlush(progressString + " (" + toString(oldProg) + "%)");
 		}
 	}
+	logfile->overList(progressString + " done!   ");
 
 	//clean up
 	logfile->endIndent();
