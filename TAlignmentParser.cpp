@@ -1109,4 +1109,5 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment & fwdAlignment, TAli
 
 //	fwdAlignment.print(genoMap, qualMap);
 //	revAlignment->print(genoMap, qualMap);
+	std::cout << "in merging function but not doing anything" << std::endl;
 }

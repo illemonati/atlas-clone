@@ -61,7 +61,33 @@ TAlignment::TAlignment(unsigned int MaxSize){
 	initStorage();
 }
 
-TAlignment::TAlignment(TAlignment & Alignment){
+TAlignment::TAlignment(const TAlignment & Alignment){
+	bases = new TBase;
+
+	//other
+	qualityOriginal = new int;
+	*qualityOriginal = *Alignment.qualityOriginal;
+
+	//soft clipped data
+	softClippedLength = new int;
+	*softClippedLength = *Alignment.softClippedLength;
+	softClippedBase = new char*;
+	softClippedQuality = new char*;
+	for(int e=0; e<Alignment.softClippedEntry; ++e){
+		for(int b=0; b<Alignment.softClippedLength[e]; ++b){
+			softClippedBase[e][b] = Alignment.softClippedBase[e][b];
+			softClippedQuality[e][b] = Alignment.softClippedQuality[e][b];
+		}
+	}
+
+	bases = new TBase;
+	*bases = *Alignment.bases;
+//	std::cout << "bases " << bases << std::endl;
+//	for(int i=0; i<length; ++i){
+//		std::cout << bases[i].base << std::flush;
+//	}
+//	std::cout << std::endl;
+
 	//details
 	empty = false;
 	bamAlignment = Alignment.bamAlignment;
@@ -81,18 +107,13 @@ TAlignment::TAlignment(TAlignment & Alignment){
 	passedFilters = Alignment.passedFilters;
 	parsed = Alignment.parsed;
 	changed = Alignment.changed;
-	storageInitialized = Alignment.storageInitialized;
 	recalibrated = Alignment.recalibrated;
 	hasReference = Alignment.hasReference;
 	referenceSequence = Alignment.referenceSequence;
-	qualityOriginal = Alignment.qualityOriginal;
 	numInsertions = Alignment.numInsertions;
 	numDeletions = Alignment.numDeletions;
 	softClippedEntry = Alignment.softClippedEntry;
-	softClippedLength = Alignment.softClippedLength;
-	softClippedBase = Alignment.softClippedBase;
-	softClippedQuality = Alignment.softClippedQuality;
-	bases = Alignment.bases;
+	storageInitialized = Alignment.storageInitialized;
 }
 
 void TAlignment::clear(){
@@ -126,10 +147,20 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
-	std::cout << "freeing storage of alignment " << alignmentName << std::endl;
+	std::cout << "freeing storage of alignment " << alignmentName << " isReversed " << isReverseStrand << std::endl;
 	if(storageInitialized){
+		std::cout << "bases " << bases << std::endl;
+		for(int i=0; i<length; ++i){
+			std::cout << bases[i].base << std::flush;
+		}
+		std::cout << std::endl;
+		std::cout << "storage is initialized!" << std::endl;
+		std::cout << "bases: " << std::flush;
+		std::cout << bases << std::endl;
 		delete[] bases;
+		std::cout << "deleted bases" << std::endl;
 		delete[] qualityOriginal;
+		std::cout << "deleted original quality" << std::endl;
 
 		delete[] softClippedLength;
 		delete[] softClippedBase[0];
@@ -156,6 +187,7 @@ void TAlignment::freeStorage(){
 
 	}
 	storageInitialized = false;
+	std::cout << "done freeing storage!" << std::endl;
 }
 
 void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){

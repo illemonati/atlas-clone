@@ -85,7 +85,7 @@ public:
 
 	TAlignment();
 	TAlignment(unsigned int MaxSize);
-	TAlignment(TAlignment & Alignment);
+	TAlignment(const TAlignment & Alignment);
 
 	~TAlignment(){
 		freeStorage();
