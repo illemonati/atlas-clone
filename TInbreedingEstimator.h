@@ -64,6 +64,7 @@ private:
 	void updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double PGenoGivenFAndP(int & genotype, double & F, double & p);
+	void oneMCMCIteration();
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);

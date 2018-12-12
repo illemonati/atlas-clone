@@ -183,6 +183,20 @@ double TInbreedingEstimator::PGenoGivenFAndP(int & genotype, double & F, double 
 		throw "unknown genotype '" + toString(genotype) +"'!";
 }
 
+void TInbreedingEstimator::oneMCMCIteration(){
+	//update params
+	updateF();
+	//locus index
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+		updateP(l, alpha, beta);
+	}
+	//alpha
+	updateAlphaOrBeta(alpha, beta);
+	//beta
+	updateAlphaOrBeta(beta, alpha);
+
+}
 
 void TInbreedingEstimator::runEstimation(){
 	logfile->startIndent("Running MCMC to estimate inbreeding coefficient F and the allele frequency distribution:");
@@ -203,17 +217,7 @@ void TInbreedingEstimator::runEstimation(){
 		std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
 		logfile->listFlush(progressString + "(0%)");
 
-		//update params
-		updateF();
-		//locus index
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			updateP(l);
-		}
-		//alpha
-		updateAlphaOrBeta(alpha, beta);
-		//beta
-		updateAlphaOrBeta(beta, alpha);
+		oneMCMCIteration();
 
 		// print progress
 		int prog = (double) i / (double) numIterations * 100.0;
