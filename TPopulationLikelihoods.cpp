@@ -393,7 +393,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 		}
 
 		//filter in MAF
-		if(freqFilter > 0.0){
+		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 			// estimate allele frequency (EM algorithm)
 			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
 			double f = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];

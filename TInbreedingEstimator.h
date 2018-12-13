@@ -14,6 +14,28 @@
 #include <limits>
 
 //---------------------------
+// allele frequencies p
+//---------------------------
+class TAlleleFreq{
+private:
+	float* proposalWidths;
+	double* sumIterations;
+	double* sumOfSquaresIterations;
+
+public:
+	long numLoci;
+	std::vector<double> alleleFreq;
+
+	TAlleleFreq();
+	TAlleleFreq(std::vector<double> & P, float initialProposalWidth);
+	double& operator[](int index){
+		//Note: no check on range!
+		return alleleFreq[index];
+	};
+	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
+};
+
+//---------------------------
 // alphaOrBeta
 //---------------------------
 
@@ -23,9 +45,13 @@ private:
 	double _logAlphaOrBeta;
 public:
 	std::string variableName;
-	TAlphaOrBeta(std::string VariableName);
-	bool initialize(std::vector<double> & p, TLog* logfile);
+	double proposalWidth;
+
+	TAlphaOrBeta();
+	TAlphaOrBeta(std::string VariableName, double & ProposalWidth);
 	void update(double & newLogValue, double & newNaturalScaleValue);
+	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
+
 	double getLogValue();
 	double getNaturalScaleValue();
 };
@@ -45,12 +71,13 @@ private:
 	//algorithm params
 	int numIterations;
 	double pi;
-	double widthProposalKernelLogAlphaOrBeta;
 	double widthProposalKernelP;
 	int numAcceptedF;
 	int* numAcceptedP;
 	int numAcceptedAlpha;
 	int numAcceptedBeta;
+	int numBurnins;
+	int burninLength;
 	int thinning;
 
 	//data
@@ -59,21 +86,26 @@ private:
 
 	//params
 	double F;
-	std::vector<double> p;
-	TAlphaOrBeta alpha = TAlphaOrBeta("");
-	TAlphaOrBeta beta = TAlphaOrBeta("");
+	//std::vector<double> p;
+	TAlleleFreq p;
+	TAlphaOrBeta alpha;
+	TAlphaOrBeta beta;
 
 //	void initializeAlphaBeta();
-	void initParams(TRandomGenerator & randomGenerator);
+	void initializeAlphaAndBeta();
+	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
 	void printTrajectory(gz::ogzstream & tracefile);
 	bool updateF();
 	bool updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
-	double PGenoGivenFAndP(int & genotype, double & F, double & p);
+	double probGenoGivenFAndP(int & genotype, double & F, double & p);
 	double logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
 	void writeLikelihoodForDebuggingAlpha(TParameters & params);
 	void oneMCMCIteration(int iterationNum);
+	void printAndResetAcceptanceRates(int numIterations);
+	void adjustProposalWidths();
+	void writeParameterEstimatesOfIteration(gz::ogzstream & out);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
