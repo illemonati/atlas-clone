@@ -171,8 +171,10 @@ bool TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & 
 		}
 	}
 
-	double logH = sumOverInds + (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
-			+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[l]));
+	double logH = (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
+				+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[l]))
+				+ logLikelihoodAllInds(newP, F, alpha, beta)
+				- logLikelihoodAllInds(p[l], F, alpha, beta);
 
 	//accept?
 	if(log(randomGenerator.getRand()) < logH){
@@ -218,6 +220,52 @@ double TInbreedingEstimator::PGenoGivenFAndP(int & genotype, double & F, double 
 		return (1 - F)*(1 - p)*(1 - p) + F*(1 - p);
 	else
 		throw "unknown genotype '" + toString(genotype) +"'!";
+}
+
+double TInbreedingEstimator::logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
+	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
+	double sumOverInds = 0.0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next()){
+		uint8_t* data = likelihoods.curData();
+		for(int s=0; s<likelihoods.curSampleSize(); ++s){
+			int index = 3*s;
+			//calculate and add ratio for each genotype
+			for(int g=0; g<3; ++g){
+				sumOverInds += data[index + g] * PGenoGivenFAndP(g, thisF, thisP);
+			}
+		}
+	}
+	return sumOverInds;
+}
+
+void TInbreedingEstimator::wholeLogLikelihood(){
+
+}
+
+void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params){
+	//open output file
+	std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
+	logfile->list("Will write MCMC chain for selected loci to file '" + tracefile + "'.");
+	gz::ogzstream outP(tracefile.c_str());
+	if(!outP)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+
+	//initialize
+	double thisF = 0.0;
+	double alphaValue = 0.0;
+
+	//calculate ll
+	for(int i=0; i<200; ++i){
+		double newAlphaValue = alphaValue + (double) i*0.01;
+		double newAlphaValueLog = log(newAlphaValue);
+		alpha.update(newAlphaValueLog, newAlphaValue);
+		double logLikelihood = 0.0;
+		for(unsigned long l=0; l<numLoci; ++l){
+			double probPGivenAlphaBeta;
+			logLikelihood = log(probPGivenAlphaBeta) + logLikelihoodAllInds(p[l], thisF, alpha, beta);
+		}
+
+	}
 }
 
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){

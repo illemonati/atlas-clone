@@ -70,6 +70,9 @@ private:
 	bool updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double PGenoGivenFAndP(int & genotype, double & F, double & p);
+	double logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	void wholeLogLikelihood();
+	void writeLikelihoodForDebuggingAlpha(TParameters & params);
 	void oneMCMCIteration(int iterationNum);
 
 public:
