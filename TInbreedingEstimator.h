@@ -101,9 +101,9 @@ private:
 	double probGenoGivenFAndP(int & genotype, double & F, double & p);
 	double logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
-	void writeLikelihoodForDebuggingAlpha(TParameters & params);
 	void oneMCMCIteration(int iterationNum);
-	void printAndResetAcceptanceRates(int numIterations);
+	void printAcceptanceRates(int numIterations);
+	void resetAcceptanceRates();
 	void adjustProposalWidths();
 	void writeParameterEstimatesOfIteration(gz::ogzstream & out);
 
@@ -113,6 +113,8 @@ public:
 		delete numAcceptedP;
 	}
 	void runEstimation();
+	void writeLikelihoodForDebuggingAlpha(TParameters & params);
+
 };
 
 

@@ -54,6 +54,9 @@ public:
 		} else if(task == "estimateInbreeding"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 			inbreedingEstimator.runEstimation();
+		} else if(task == "inbreedingLikelihood"){
+			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
+			inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

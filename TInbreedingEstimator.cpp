@@ -38,8 +38,8 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 			newProposalWidth = 0.1 * proposalWidths[l];
 		else if(proposalWidths[l] / newProposalWidth < 0.1)
 			newProposalWidth = 10 * proposalWidths[l];
-		else
-			proposalWidths[l] = newProposalWidth;
+
+		proposalWidths[l] = newProposalWidth;
 
 		if(proposalWidths[l] <= 0)
 			throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
@@ -112,6 +112,8 @@ void TAlphaOrBeta::update(double & newLogValue, double & newNaturalScaleValue){
 
 void TAlphaOrBeta::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	//adjust proposal for alpha / beta
+	if(numAccepted == 0)
+		throw "numAccepted = 0";
 	double newProposalWidth = proposalWidth;
 	newProposalWidth *= (double) numAccepted / 2.0 / (double) numUpdates * 3.0;
 
@@ -119,8 +121,8 @@ void TAlphaOrBeta::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdate
 		newProposalWidth = 0.1 * proposalWidth;
 	else if(proposalWidth / newProposalWidth < 0.1)
 		newProposalWidth = 10 * proposalWidth;
-	else
-		proposalWidth = newProposalWidth;
+
+	proposalWidth = newProposalWidth;
 
 	if(proposalWidth <= 0)
 		throw "Proposal width for parameter " + variableName + " is not larger than 0!";
@@ -320,13 +322,13 @@ bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate,
 			- randomGenerator.gammaln(newAlphaOrBeta))
 			+ (newAlphaOrBeta - alphaOrBetaToUpdate.getNaturalScaleValue()) * sumP;
 
-	if(alphaOrBetaToUpdate.variableName == "alpha"){
-		std::cout << std::endl;
-		std::cout << "logAlpha " << alphaOrBetaToUpdate.getLogValue() << std::endl;
-		std::cout << "alphaOrBetaToUpdate.proposalWidth " << alphaOrBetaToUpdate.proposalWidth << std::endl;
-		std::cout << "newLogAlpha: " << newLogAlphaOrBeta << std::endl;
-		std::cout << "logH " << logH << std::endl;
-	}
+//	if(alphaOrBetaToUpdate.variableName == "alpha"){
+//		std::cout << std::endl;
+//		std::cout << "logAlpha " << alphaOrBetaToUpdate.getLogValue() << std::endl;
+//		std::cout << "alphaOrBetaToUpdate.proposalWidth " << alphaOrBetaToUpdate.proposalWidth << std::endl;
+//		std::cout << "newLogAlpha: " << newLogAlphaOrBeta << std::endl;
+//		std::cout << "logH " << logH << std::endl;
+//	}
 	// accept or reject
 	if(log(randomGenerator.getRand()) < logH){
 		alphaOrBetaToUpdate.update(newLogAlphaOrBeta, newAlphaOrBeta);
@@ -370,7 +372,7 @@ void TInbreedingEstimator::wholeLogLikelihood(){
 void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params){
 	//open output file
 	std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
-	logfile->list("Will write MCMC chain for selected loci to file '" + tracefile + "'.");
+	logfile->list("Will write likelihood chain for selected loci to file '" + tracefile + "'.");
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
@@ -382,15 +384,19 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params
 	//calculate ll
 	for(int i=0; i<200; ++i){
 		double newAlphaValue = alphaValue + (double) i*0.01;
+		std::cout << "calculating likelihood for alpha=" << newAlphaValue << std::endl;
 		double newAlphaValueLog = log(newAlphaValue);
 		alpha.update(newAlphaValueLog, newAlphaValue);
 		double logLikelihood = 0.0;
 		for(unsigned long l=0; l<numLoci; ++l){
 			double probPGivenAlphaBeta = randomGenerator.getBetaDensity(p[l], alpha.getNaturalScaleValue(), beta.getNaturalScaleValue());
-			logLikelihood = log(probPGivenAlphaBeta) + logLikelihoodAllInds(p[l], thisF, alpha, beta);
-			outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+			logLikelihood += log(probPGivenAlphaBeta) + logLikelihoodAllInds(p[l], thisF, alpha, beta);
 		}
+		outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+		std::cout << logLikelihood << std::endl;
+
 	}
+	logfile->done();
 }
 
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
@@ -406,14 +412,17 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	numAcceptedBeta += updateAlphaOrBeta(beta, alpha);
 }
 
-void TInbreedingEstimator::printAndResetAcceptanceRates(int numIterations){
+void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	logfile->conclude("acceptance rate for F is " + toString((double) numAcceptedF / numIterations));
-	numAcceptedF = 0;
 	logfile->conclude("acceptance rate for alpha is " + toString((double) numAcceptedAlpha / numIterations));
-	numAcceptedAlpha = 0;
 	logfile->conclude("acceptance rate for beta is " + toString((double) numAcceptedBeta / numIterations));
-	numAcceptedBeta = 0;
 	logfile->conclude("acceptance rate for first locus is " + toString((double) numAcceptedP[0] / numIterations));
+}
+
+void TInbreedingEstimator::resetAcceptanceRates(){
+	numAcceptedF = 0;
+	numAcceptedAlpha = 0;
+	numAcceptedBeta = 0;
 	for(unsigned int l=0; l<numLoci; ++l)
 		numAcceptedP[l] = 0;
 }
@@ -421,8 +430,8 @@ void TInbreedingEstimator::printAndResetAcceptanceRates(int numIterations){
 void TInbreedingEstimator::adjustProposalWidths(){
 //	F.adjustProposalWidth(numAcceptedF, numIterations);
 	p.adjustProposalWidthAfterBurnin(numAcceptedP, burninLength);
-	alpha.adjustProposalWidthAfterBurnin(numAcceptedF, burninLength);
-	beta.adjustProposalWidthAfterBurnin(numAcceptedF, burninLength);
+	alpha.adjustProposalWidthAfterBurnin(numAcceptedAlpha, burninLength);
+	beta.adjustProposalWidthAfterBurnin(numAcceptedBeta, burninLength);
 }
 
 void TInbreedingEstimator::writeParameterEstimatesOfIteration(gz::ogzstream & out){
@@ -467,12 +476,14 @@ void TInbreedingEstimator::runEstimation(){
 		logfile->overList("Running a burnin of " + toString(burninLength) + " iterations ... done!  ");
 
 		//print acceptance rates
-		printAndResetAcceptanceRates(burninLength);
+		printAcceptanceRates(burninLength);
 
 		//adjust things after burnin
 		logfile->listFlush("Adjusting proposal widths ...");
 		adjustProposalWidths();
 		logfile->done();
+
+		resetAcceptanceRates();
 	}
 
 	//---------------------------
@@ -507,7 +518,7 @@ void TInbreedingEstimator::runEstimation(){
 		}
 	}
 	logfile->overList(progressString + " done!   ");
-	printAndResetAcceptanceRates(numIterations);
+	printAcceptanceRates(numIterations);
 
 	//clean up
 	logfile->endIndent();
