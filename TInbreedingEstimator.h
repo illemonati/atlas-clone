@@ -10,6 +10,7 @@
 
 #include "TParameters.h"
 #include "TLog.h"
+#include "TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
 
@@ -63,6 +64,7 @@ public:
 class TInbreedingEstimator{
 private:
 	TRandomGenerator randomGenerator;
+	TQualityMap qualMap;
 
 	//log
 	TLog* logfile;
@@ -96,10 +98,10 @@ private:
 	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
 	void printTrajectory(gz::ogzstream & tracefile);
 	bool updateF();
-	bool updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	bool updateP(uint8_t* data, int locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double probGenoGivenFAndP(int & genotype, double & F, double & p);
-	double logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double & thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
 	void printAcceptanceRates(int numIterations);

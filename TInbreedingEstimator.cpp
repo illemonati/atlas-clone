@@ -173,9 +173,8 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	likelihoods.readData(Parameters, logfile);
 	numLoci = likelihoods.getNumLoci();
 
-	//initialize
+	//initialize parameters
 	initParams(randomGenerator, Parameters);
-
 	numAcceptedF = 0;
 	numAcceptedP = new int[numLoci];
 	for(unsigned int l=0; l<numLoci; ++l)
@@ -265,9 +264,9 @@ bool TInbreedingEstimator::updateF(){
 	return true;
 }
 
-bool TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
+bool TInbreedingEstimator::updateP(uint8_t* data, int locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
 	//propose new p
-	double newP = p[l] + randomGenerator.getRand() * widthProposalKernelP - widthProposalKernelP / 2.0;
+	double newP = p[locusNum] + randomGenerator.getRand() * widthProposalKernelP - widthProposalKernelP / 2.0;
 	while(newP > 1 || newP < 0){
 		if(newP < 0)
 			newP = -newP;
@@ -278,25 +277,22 @@ bool TInbreedingEstimator::updateP(long l, TAlphaOrBeta & alpha, TAlphaOrBeta & 
 	double sumOverInds = 0.0;
 
 	//calculate hastings ratio
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next()){
-		uint8_t* data = likelihoods.curData();
 		for(int s=0; s<likelihoods.curSampleSize(); ++s){
 			int index = 3*s;
 			//calculate and add ratio for each genotype
 			for(int g=0; g<3; ++g){
-				sumOverInds += log((data[index + g] * probGenoGivenFAndP(g, F, newP)) /  (data[index + g] * probGenoGivenFAndP(g, F, p[l])));
+				sumOverInds += log((data[index + g] * probGenoGivenFAndP(g, F, newP)) /  (data[index + g] * probGenoGivenFAndP(g, F, p[locusNum])));
 			}
 		}
-	}
 
-	double logH = (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[l]))
-				+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[l]))
-				+ logLikelihoodAllInds(newP, F, alpha, beta)
-				- logLikelihoodAllInds(p[l], F, alpha, beta);
+	double logH = (alpha.getNaturalScaleValue() - 1) * (log(newP) - log(p[locusNum]))
+				+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[locusNum]))
+				+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F, alpha, beta)
+				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F, alpha, beta);
 
 	//accept?
 	if(log(randomGenerator.getRand()) < logH){
-		p[l] = newP;
+		p[locusNum] = newP;
 		return true;
 	} else
 		return false;
@@ -349,19 +345,19 @@ double TInbreedingEstimator::probGenoGivenFAndP(int & genotype, double & F, doub
 		throw "unknown genotype '" + toString(genotype) +"'!";
 }
 
-double TInbreedingEstimator::logLikelihoodAllInds(double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
+double TInbreedingEstimator::logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double & thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta){
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
 	double sumOverInds = 0.0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next()){
-		uint8_t* data = likelihoods.curData();
-		for(int s=0; s<likelihoods.curSampleSize(); ++s){
-			int index = 3*s;
-			//calculate and add ratio for each genotype
-			for(int g=0; g<3; ++g){
-				sumOverInds += data[index + g] * probGenoGivenFAndP(g, thisF, thisP);
-			}
+	for(int s=0; s<curSampleSize; ++s){
+		int index = 3*s;
+		//calculate and add ratio for each genotype
+		double integrationOverGeno = 1.0;
+		for(int g=0; g<3; ++g){
+			integrationOverGeno *= qualMap.phredToError(data[index + g]) * probGenoGivenFAndP(g, thisF, thisP);
 		}
+		sumOverInds += log(integrationOverGeno);
 	}
+
 	return sumOverInds;
 }
 
@@ -371,6 +367,8 @@ void TInbreedingEstimator::wholeLogLikelihood(){
 
 void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params){
 	//open output file
+//	likelihoods.print();
+
 	std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
 	logfile->list("Will write likelihood chain for selected loci to file '" + tracefile + "'.");
 	gz::ogzstream outP(tracefile.c_str());
@@ -388,9 +386,11 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params
 		double newAlphaValueLog = log(newAlphaValue);
 		alpha.update(newAlphaValueLog, newAlphaValue);
 		double logLikelihood = 0.0;
-		for(unsigned long l=0; l<numLoci; ++l){
+		long l = 0;
+		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+			uint8_t* data = likelihoods.curData();
 			double probPGivenAlphaBeta = randomGenerator.getBetaDensity(p[l], alpha.getNaturalScaleValue(), beta.getNaturalScaleValue());
-			logLikelihood += log(probPGivenAlphaBeta) + logLikelihoodAllInds(p[l], thisF, alpha, beta);
+			logLikelihood += log(probPGivenAlphaBeta) + logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], thisF, alpha, beta);
 		}
 		outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
 		std::cout << logLikelihood << std::endl;
@@ -403,8 +403,15 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
 //	numAcceptedF += updateF();
 	//locus index
-	for(unsigned long l=0; l<numLoci; ++l){
-		numAcceptedP[l] += updateP(l, alpha, beta);
+
+//	this loop has to go over likelihoods data structure, and update p has to receive correct data pointer!!
+//	for(unsigned long l=0; l<numLoci; ++l){
+//		numAcceptedP[l] += updateP(l, alpha, beta);
+//	}
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+		uint8_t* data = likelihoods.curData();
+		numAcceptedP[l] += updateP(data, likelihoods.curSampleSize(), l, alpha, beta);
 	}
 	//alpha
 	numAcceptedAlpha += updateAlphaOrBeta(alpha, beta);
