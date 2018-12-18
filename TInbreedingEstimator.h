@@ -22,10 +22,10 @@ private:
 	float* proposalWidths;
 	double* sumIterations;
 	double* sumOfSquaresIterations;
+	std::vector<double> alleleFreq;
 
 public:
 	long numLoci;
-	std::vector<double> alleleFreq;
 
 	TAlleleFreq();
 	TAlleleFreq(std::vector<double> & P, float initialProposalWidth);
@@ -34,6 +34,8 @@ public:
 		return alleleFreq[index];
 	};
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
+	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
+	void update(long & index, double & value);
 };
 
 //---------------------------
@@ -98,9 +100,10 @@ private:
 	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
 	void printTrajectory(gz::ogzstream & tracefile);
 	bool updateF();
-	bool updateP(uint8_t* data, int locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double probGenoGivenFAndP(int & genotype, double & F, double & p);
+	double logProbPGivenAlphaBeta();
 	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double & thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);

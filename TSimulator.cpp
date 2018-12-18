@@ -1473,6 +1473,14 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	if(F > 0.0) logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
 	if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
 
+	//write true allele freq?
+	writeTrueAlleleFreq = false;
+	if(params.parameterExists("writeTrueAlleleFreq")){
+		alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
+		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
+		writeTrueAlleleFreq = true;
+	}
+
 	//fill mutation table
 	mutTable.fill(baseFreq);
 
@@ -1499,6 +1507,14 @@ void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & h
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//open file to write true allele freq
+	gz::ogzstream outFreq;
+	if(writeTrueAlleleFreq){
+		gz::ogzstream outFreq(alleleFreqFile.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+	}
+
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
 		//polymoprhic or not?
@@ -1509,6 +1525,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 
 			//pick allele Frequency
 			double f = randomGenerator->getBetaRandom(alpha, beta);
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
 
 			//simulate genotypes
 			for(int i=0; i<sampleSize; ++i){
@@ -1526,12 +1544,25 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
-		} else
+		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
+		}
 	}
+
+	outFreq.close();
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//open file to write true allele freq
+	std::string alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
+	logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
+	gz::ogzstream outFreq(alleleFreqFile.c_str());
+	if(!outFreq)
+		throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+
+
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
 		//polymoprhic or not?
@@ -1542,6 +1573,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 
 			//pick allele Frequency
 			double f = randomGenerator->getBetaRandom(alpha, beta);
+			outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
+
 			fillCumulGenoProb(f);
 
 			//simulate genotypes
@@ -1569,8 +1602,10 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
-		} else
+		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+			outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
+		}
 	}
 };
 

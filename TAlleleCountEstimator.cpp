@@ -211,7 +211,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	//open VCF reader
 	std::string vcfFilename = params.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReader reader(params, logfile);
+	TPopulationLikelihoodReader reader(params, logfile, false);
 	reader.openVCF(vcfFilename, logfile);
 	logfile->endIndent();
 

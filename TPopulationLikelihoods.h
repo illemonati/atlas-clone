@@ -70,6 +70,8 @@ private:
 	TQualityMap phredToGTLMap;
 	TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
+	std::istream* trueFreq;
+	bool trueFreqFileOpen = false;
 
 	//settings
 	long limitLines;
@@ -79,7 +81,9 @@ private:
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
 	int minVariantQuality;
 	bool estimateGenotypeFrequencies;
+	bool storeTrueAlleleFreq;
 	long progressFrequency;
+	std::string trueAlleleFreqFile;
 
 	//counters
 	struct timeval startTime;
@@ -95,10 +99,12 @@ private:
 	//tmp variables used for reading
 	double _genotypeFrequencies[3];
 	double _alleleFrequency;
+	double _trueAlleleFrequency;
 	double _MAF;
 
 	void resetCounters();
 	void closeVCF();
+	void closeTrueAlleleFreqFile();
     void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
     void printProgressFrequencyFiltering(TLog* logfile);
 
@@ -110,13 +116,15 @@ public:
     uint8_t* data;
 
 	TPopulationLikelihoodReader();
-	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile);
+	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
 	~TPopulationLikelihoodReader();
 
-	void initialize(TParameters & Parameters, TLog* Logfile);
+	void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
+	void doSaveTrueAlleleFrequencies(){ storeTrueAlleleFreq = true; }
 
 	void openVCF(std::string, TLog* logfile);
+	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
 	bool readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
@@ -126,6 +134,7 @@ public:
 	long numLociParsed(){ return _lineCounter; };
 	double* genotypeFrequencies(){ return _genotypeFrequencies; };
 	double allelFrequency(){ return _alleleFrequency; };
+	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return _MAF; };
 	int numSamplesWithData();
 	int numSamplesWithDataInPopulation(int population);
@@ -150,7 +159,9 @@ private:
 	std::vector<long> position;
     std::vector<uint8_t*> genotypePhredScores;
     std::vector<double> alleleFrequencies;
+    std::vector<double> trueAlleleFrequencies;
     bool saveAlleleFrequencies;
+    bool saveTrueAlleleFrequencies;
 
     //looping
     long curLocusIndex;
@@ -171,11 +182,17 @@ public:
 
     void clean();
     void doSaveAlleleFrequencies(){ saveAlleleFrequencies = true; };
+    void doSaveTrueAlleleFrequencies(){ saveTrueAlleleFrequencies = true; };
     std::vector<double> donateAlleleFrequencies(){
     	std::vector<double> alleleFrequenciesCopy = alleleFrequencies;
     	alleleFrequencies.clear();
     	return alleleFrequenciesCopy;
     };
+    std::vector<double> donateTrueAlleleFrequencies(){
+    	std::vector<double> trueAlleleFrequenciesCopy = trueAlleleFrequencies;
+    	trueAlleleFrequencies.clear();
+    	return trueAlleleFrequenciesCopy;
+    }
     void readData(TParameters & Parameters, TLog* Logfile);
 
     //Looping

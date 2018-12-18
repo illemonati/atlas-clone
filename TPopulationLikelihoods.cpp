@@ -224,6 +224,7 @@ int TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, int populat
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
 	vcfOpen = false;
+	trueFreqFileOpen = false;
 
 	//settings
 	limitLines = 0;
@@ -232,25 +233,29 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
 	freqFilter = 0.0;
 	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
 	minVariantQuality = 0;
-	estimateGenotypeFrequencies = false,
+	estimateGenotypeFrequencies = false;
+	storeTrueAlleleFreq = false;
 
 	//counters
 	resetCounters();
 
 	//allele frequency
 	_alleleFrequency = 0.0;
+	_trueAlleleFrequency = -1.0;
 	_MAF = 0.0;
 };
 
-TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile){
-	initialize(Parameters, Logfile);
+TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+	initialize(Parameters, Logfile, saveAlleleFreq);
 };
 
 TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
 	closeVCF();
+	if(trueFreqFileOpen)
+		closeTrueAlleleFreqFile();
 };
 
-void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile){
+void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile, bool saveAlleleFreq){
 	//read parsing parameters
 	// do we limit the lines to read?
 	limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
@@ -275,7 +280,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
 	if(freqFilter < 0.0 || freqFilter >= 0.5)
 		throw "MAF filter must be within (0.0,0.5)!";
-	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
+	if(freqFilter > 0.0 || saveAlleleFreq){
 		estimateGenotypeFrequencies = true;
 		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
@@ -327,6 +332,20 @@ void TPopulationLikelihoodReader::openVCF(std::string vcfFilename, TLog* logfile
 	resetCounters();
 };
 
+void TPopulationLikelihoodReader::openTrueAlleleFrequenciesFile(std::string trueAlleleFreqFileName, bool isZipped){
+	if(isZipped)
+		trueFreq = new gz::igzstream(trueAlleleFreqFileName.c_str());
+	else trueFreq = new std::ifstream(trueAlleleFreqFileName.c_str());
+	if(!(*trueFreq) || trueFreq->fail() || !trueFreq->good())
+		throw "Failed to open file '" + trueAlleleFreqFileName + "'!";
+	trueFreqFileOpen = true;
+}
+
+void TPopulationLikelihoodReader::closeTrueAlleleFreqFile(){
+	delete trueFreq;
+	trueFreqFileOpen = false;
+}
+
 void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
@@ -341,6 +360,21 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 	//read next
 	while(vcfFile.next()){ // new line in vcf-file (= new locus)
 		++_lineCounter;
+
+		if(storeTrueAlleleFreq){
+			std::string temp;
+			getline(*trueFreq, temp);
+			std::vector<std::string> tmp;
+			fillVectorFromString(temp, tmp, "\t");
+			if(tmp.size() != 3)
+				throw "wrong number of columns in true allele frequency file!";
+			std::string chr = tmp[0];
+			int pos = stringToInt(tmp[1]);
+			_trueAlleleFrequency = stringToDouble(tmp[2]);
+			//check if positions match (allele file is 0-based)
+			if(pos != vcfFile.position() - 1)
+				throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
+		}
 
 		//print progress
 		if(_lineCounter % progressFrequency == 0)
@@ -395,6 +429,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 			// estimate allele frequency (EM algorithm)
+//			std::cout << "data[0] " << (unsigned) data[0] << std::endl;
 			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
 			double f = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
 			if(f > 0.5) f = 1.0 - f;
@@ -494,7 +529,14 @@ void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* 
 		_genotypeFrequencies[1] = 1.0 - _genotypeFrequencies[0] - _genotypeFrequencies[2];
 
 		//check if we stop
-		if(fabs(_genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(_genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF) break;
+//		std::cout << "_genotypeFrequencies[0] " << _genotypeFrequencies[0] << std::endl;
+//		std::cout << "genoFreq_old[0] " << genoFreq_old[0] << std::endl;
+//		std::cout << "epsilonF " << epsilonF << std::endl;
+//		std::cout << "_genotypeFrequencies[2] " << _genotypeFrequencies[2] << std::endl;
+//		std::cout << "genoFreq_old[2] " << genoFreq_old[2] << std::endl;
+
+		if(fabs(_genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(_genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF)
+			break;
 	}
 
 	//now set allele frequencies
@@ -524,6 +566,7 @@ void TPopulationLikelihoods::init(){
 	vcfRead = false;
 	_numLoci = 0;
 	saveAlleleFrequencies = false;
+	saveTrueAlleleFrequencies = false;
 };
 
 void TPopulationLikelihoods::clean(){
@@ -549,14 +592,29 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		throw "VCF already read!";
 
 	//create reader
-	TPopulationLikelihoodReader reader(Parameters, logfile);
-	if(saveAlleleFrequencies)
+	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+	if(saveAlleleFrequencies){
 		reader.doEstimateGenotypeFrequencies();
+	}
+	if(saveTrueAlleleFrequencies)
+		reader.doSaveTrueAlleleFrequencies();
 
 	// open vcf file
 	std::string vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
+
+	//open true vcf file
+	if(saveTrueAlleleFrequencies){
+		std::string trueFreqFileName = Parameters.getParameterString("trueAlleleFreq");
+		if(trueFreqFileName.find(".gz") == std::string::npos){
+			logfile->startIndent("Reading true allele frequencies from file '" + trueFreqFileName + "'.");
+			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, false);
+		} else {
+			logfile->startIndent("Reading vcf from gzipped file '" + trueFreqFileName + "'.");
+			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, true);
+		}
+	}
 
 	//Match samples
 	if(samples.hasSamples())
@@ -586,6 +644,8 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		position.emplace_back(reader.position());
 		if(saveAlleleFrequencies)
 			alleleFrequencies.emplace_back(reader.allelFrequency());
+		if(saveTrueAlleleFrequencies)
+			trueAlleleFrequencies.emplace_back(reader.trueAlleleFrequency());
 
 		//update for next
 		curLocus = new uint8_t[samples.numSamples() * 3];
