@@ -1510,7 +1510,7 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 	//open file to write true allele freq
 	gz::ogzstream outFreq;
 	if(writeTrueAlleleFreq){
-		gz::ogzstream outFreq(alleleFreqFile.c_str());
+		outFreq.open(alleleFreqFile.c_str());
 		if(!outFreq)
 			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
 	}
@@ -1556,12 +1556,12 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 
 void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//open file to write true allele freq
-	std::string alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
-	logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
-	gz::ogzstream outFreq(alleleFreqFile.c_str());
-	if(!outFreq)
-		throw "Failed to open file '" + alleleFreqFile + "' for writing!";
-
+	gz::ogzstream outFreq;
+	if(writeTrueAlleleFreq){
+		outFreq.open(alleleFreqFile.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+	}
 
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
@@ -1572,8 +1572,10 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
 
 			//pick allele Frequency
-			double f = randomGenerator->getBetaRandom(alpha, beta);
-			outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
+//			double f = randomGenerator->getBetaRandom(alpha, beta);
+			double f = 0.2;
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
 
 			fillCumulGenoProb(f);
 
@@ -1604,7 +1606,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				ref[l] = ancestral;
 		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
-			outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
 		}
 	}
 };

@@ -608,10 +608,10 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	if(saveTrueAlleleFrequencies){
 		std::string trueFreqFileName = Parameters.getParameterString("trueAlleleFreq");
 		if(trueFreqFileName.find(".gz") == std::string::npos){
-			logfile->startIndent("Reading true allele frequencies from file '" + trueFreqFileName + "'.");
+			logfile->startIndent("Reading true allele frequencies from gzipped file '" + trueFreqFileName + "'.");
 			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, false);
 		} else {
-			logfile->startIndent("Reading vcf from gzipped file '" + trueFreqFileName + "'.");
+			logfile->startIndent("Reading true allele frequencies from file '" + trueFreqFileName + "'.");
 			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, true);
 		}
 	}

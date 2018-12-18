@@ -33,6 +33,7 @@ public:
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
+	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
 	void update(long & index, double & value);
@@ -119,7 +120,8 @@ public:
 	}
 	void runEstimation();
 	void writeLikelihoodForDebuggingAlpha(TParameters & params);
-
+	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
+	void writeLikelihoodForDebuggingF(TParameters & params);
 };
 
 
