@@ -439,7 +439,8 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 
 void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 	std::string parameter = params.getParameterString("glf");
-	if(parameter.find(".txt")){
+	//assume that it is a file if no comma in name
+	if(!parameter.find(",")){
 		logfile->list("Reading glf input names from file '" + parameter + "'");
 		std::ifstream in;
 		in.open(parameter.c_str());

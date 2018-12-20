@@ -1572,10 +1572,12 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
 
 			//pick allele Frequency
-//			double f = randomGenerator->getBetaRandom(alpha, beta);
-			double f = 0.2;
-			if(writeTrueAlleleFreq)
+			double f = randomGenerator->getBetaRandom(alpha, beta);
+//			double f = 0.3;
+			if(writeTrueAlleleFreq && f < 0.5)
 				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
+			else if(writeTrueAlleleFreq && f > 0.5)
+				outFreq << chromosome.name << "\t" << l << "\t" << 1.0 - f << std::endl;
 
 			fillCumulGenoProb(f);
 

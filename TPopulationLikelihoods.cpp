@@ -436,9 +436,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 				continue;
 			}
 
-			if(numIndividualsWithData == 10)
-				std::cout << "true/est\t" << log(_trueAlleleFrequency / _alleleFrequency) << "\t" << _trueAlleleFrequency << "\t" << _alleleFrequency << std::endl;
-
+//			if(numIndividualsWithData == 10)
+//				std::cout << "true/est\t" << log(_trueAlleleFrequency / _alleleFrequency) << "\t" << _trueAlleleFrequency << "\t" << _alleleFrequency << std::endl;
+//
 
 		}
 

@@ -791,6 +791,10 @@ double TRandomGenerator::exponentialCumulativeFunction(const double & x, const d
 	return 1.0 - exp(-lambda * x);
 }
 
+double TRandomGenerator::getExponentialRandomTruncated(const double & lambda, const double & lowerBound, const double & upperBound){
+	//copied from stack overflow
+	return -log(exp(-lambda * lowerBound) - (exp(-lambda * lowerBound) - exp(-lambda * upperBound)) * getRand()) / lambda;
+}
 //--------------------------------------------------------
 //Exponential Distribution
 //--------------------------------------------------------

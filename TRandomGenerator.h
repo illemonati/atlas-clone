@@ -117,6 +117,7 @@ public:
 	//exponential
 	double getExponentialRandom(const double & lambda);
 	double exponentialCumulativeFunction(const double & x, const double & lambda);
+	double getExponentialRandomTruncated(const double & lambda, const double & lowerBound, const double & upperBound);
 
 	//generalized Pareto
 	double getGeneralizedParetoRand(const double & locationMu, const double & scaleSigma, const double & shapeXi);

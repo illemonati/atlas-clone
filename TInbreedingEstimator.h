@@ -53,16 +53,17 @@ private:
 public:
 	long numLoci;
 
+
 	TAlleleFreq();
 	TAlleleFreq(std::vector<double> & P, float initialProposalWidth);
-	double& operator[](int index){
+	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
-	void update(long & index, double & value);
+	void update(long & index, double value);
 	double getPosteriorMean(unsigned long & index);
 	double getPosteriorVariance(unsigned long & index);
 };
@@ -130,9 +131,8 @@ private:
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
-	double probGenoGivenFAndP(int & genotype, double & F, double & p);
 	double logProbPGivenAlphaBeta();
-	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
 	void printAcceptanceRates(int numIterations);
