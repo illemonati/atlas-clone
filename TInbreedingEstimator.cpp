@@ -237,9 +237,6 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
 	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations");
 
-	widthProposalKernelP = Parameters.getParameterDoubleWithDefault("widthProposalKernelP", 0.05);
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of log(alpha) and log(beta)");
-
 	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 1);
 	burninLength = Parameters.getParameterIntWithDefault("burninLength", 1000);
 	logfile->list("Will run " + toString(numBurnins) + " burnin(s) of length " + toString(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC");
@@ -311,7 +308,7 @@ void TInbreedingEstimator::initializeAlphaAndBeta(){
 
 void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParameters & parameters){
 	//F
-	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.01);
+	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.03);
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
 	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("_probMovingToModelNoF", 0.1);
@@ -331,6 +328,9 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 
 	}
+
+	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelP", 0.08);
+	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of log(alpha) and log(beta)");
 
 	//p
 	std::vector<double> tmp2;

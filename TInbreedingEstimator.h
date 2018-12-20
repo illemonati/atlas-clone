@@ -105,7 +105,6 @@ private:
 	//algorithm params
 	int numIterations;
 	double sdF;
-	double widthProposalKernelP;
 	int numAcceptedF;
 	int* numAcceptedP;
 	int numAcceptedAlpha;
