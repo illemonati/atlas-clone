@@ -419,7 +419,7 @@ void TGlfMultiReader::_openGLFs(TLog* logfile){
 	//open files
 	GLFs = new TGlfReader[numGLFs];
 	readersOpened = true;
-	logfile->startIndent("Opening GLF files:");
+	logfile->startIndent("Opening " + toString(numGLFs) + " GLF files:");
 	int g = 0;
 	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
 		logfile->listFlush("Opening GLF '" + *it + "' ...");
@@ -438,7 +438,27 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 };
 
 void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
-	params.fillParameterIntoVector("glf", GLFNames, ',');
+	std::string parameter = params.getParameterString("glf");
+	//assume that it is a file if no comma in name
+	if(!parameter.find(",")){
+		logfile->list("Reading glf input names from file '" + parameter + "'");
+		std::ifstream in;
+		in.open(parameter.c_str());
+		std::vector<std::string> vec;
+
+		//read file
+		while(in.good() && !in.eof()){
+			std::string line;
+			std::getline(in, line);
+			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			//skip empty lines
+			if(vec.size() > 0){
+				GLFNames.push_back(vec[0]);
+			}
+		}
+		in.close();
+	} else
+		params.fillParameterIntoVector("glf", GLFNames, ',');
 	_openGLFs(logfile);
 };
 
