@@ -16,14 +16,16 @@ TInbreedingF::TInbreedingF(){
 	_sdProposal = -1.0;
 	_inModelWithF = false;
 	_lambda = -1.0;
+	_posteriorProbModelWithF = -1;
 }
 
-TInbreedingF::TInbreedingF(double & F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
+TInbreedingF::TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
 	_F = F;
 	_probMovingToModelNoF = ProbMovingToModelNoF;
 	_sdProposal = SdProposal;
 	_inModelWithF = InModelWithF;
 	_lambda = Lambda;
+	_posteriorProbModelWithF = 0;
 }
 
 void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates){
@@ -50,6 +52,7 @@ double TInbreedingF::proposeNew(TRandomGenerator & randomGenerator){
 void TInbreedingF::update(double value, bool inModelWithF){
 	_F = value;
 	_inModelWithF = inModelWithF;
+	_posteriorProbModelWithF += inModelWithF;
 }
 
 double TInbreedingF::logPDFExp(){
@@ -76,6 +79,9 @@ double TInbreedingF::lambda(){
 	return _lambda;
 }
 
+int TInbreedingF::posteriorProbModelWithF(){
+	return _posteriorProbModelWithF;
+}
 
 //---------------------------
 // allele frequencies p
@@ -161,6 +167,14 @@ double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator & randomGenerat
 	return newP;
 }
 
+double TAlleleFreq::getPosteriorMean(unsigned long & index){
+	return sumIterations[index];
+}
+
+double TAlleleFreq::getPosteriorVariance(unsigned long & index){
+	return sumOfSquaresIterations[index] / numLoci - sumIterations[index];
+}
+
 //---------------------------
 // alphaOrBeta
 //---------------------------
@@ -221,9 +235,6 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	//algorithm params
 	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
 	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations");
-
-	Fstdev = Parameters.getParameterDoubleWithDefault("sdF", 0.01);
-	logfile->list("Mixture parameter pi set to " + toString(Fstdev));
 
 	widthProposalKernelP = Parameters.getParameterDoubleWithDefault("widthProposalKernelP", 0.05);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of log(alpha) and log(beta)");
@@ -299,15 +310,26 @@ void TInbreedingEstimator::initializeAlphaAndBeta(){
 
 void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParameters & parameters){
 	//F
-	double initialF = 0.0;
-	F.update(initialF, true);
-//	double tmp = randomGenerator.getRand();
-//	if(tmp <= pi)
-//		F = 0;
-//	else
-//		F = randomGenerator.getRand();
-//	F = exp(randomGenerator.getRand(0, 1));
-	logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.01);
+	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
+
+	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("_probMovingToModelNoF", 0.1);
+	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF));
+
+	double lambda = parameters.getParameterDoubleWithDefault("lambda", 1.0);
+	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambda));
+
+	bool startInModelWithF = parameters.parameterExists("startInModelWithF");
+	if(startInModelWithF){
+		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
+		F.update(randomGenerator.getExponentialRandom(lambda), true);
+		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+	} else {
+		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambda);
+		F.update(randomGenerator.getExponentialRandom(lambda), true);
+		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+
+	}
 
 	//p
 	std::vector<double> tmp2;
@@ -748,16 +770,17 @@ void TInbreedingEstimator::runEstimation(){
 	if(!out)
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
-	tracefile = outname + "_inbreedingMCMC_pSelectedLoci.txt";
-	logfile->list("Will write MCMC chain for selected loci to file '" + tracefile + "'.");
-	std::ofstream outP(tracefile.c_str());
+	tracefile = outname + "_inbreedingMCMC_posteriors.txt.gz";
+	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
+	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
 	std::cout << "first 2 true p: " << p[0] << "," << p[1] << std::endl;
 
-	//write header
-	out << "F\talpha\talphaLog\tbeta\tbetaLog\t\p[0]\tp[1]\n";
+	//write headers
+	out << "F\talpha\talphaLog\tbeta\tbetaLog\tp[0]\tp[1]\n";
+	outP << "param\tmean_posterior\tvar_posterior\n";
 
 	//---------------------------
 	//run Burnin(s)
@@ -809,7 +832,6 @@ void TInbreedingEstimator::runEstimation(){
 		//print to file
 		if(i % thinning == 0){
 			writeParameterEstimatesOfIteration(out);
-			outP << p[0] << "\t" << p[1] << std::endl;;
 		}
 
 		// print progress
@@ -820,9 +842,17 @@ void TInbreedingEstimator::runEstimation(){
 		}
 	}
 	logfile->overList(progressString + " done!   ");
+
+	//results
 	printAcceptanceRates(numIterations);
+	outP << "modelWithF\t" << F.posteriorProbModelWithF() << "\t-\n";
+	for(unsigned long l=0; l<numLoci; ++l){
+		outP << "p[" << l << "]\t" << p.getPosteriorMean(l) << "\t" << p.getPosteriorVariance(l) << "\n";
+	}
+
 
 	//clean up
 	logfile->endIndent();
 	out.close();
+	outP.close();
 }

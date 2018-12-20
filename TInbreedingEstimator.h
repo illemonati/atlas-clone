@@ -23,10 +23,11 @@ private:
 	double _sdProposal;
 	bool _inModelWithF;
 	double _lambda;
+	int _posteriorProbModelWithF;
 
 public:
 	TInbreedingF();
-	TInbreedingF(double & F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
+	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates);
 	double proposeNew(TRandomGenerator & randomGenerator);
 	void update(double value, bool inModelWithF);
@@ -36,8 +37,9 @@ public:
 	double logPDFExp();
 	double PDFExp();
 	double lambda();
-
+	int posteriorProbModelWithF();
 };
+
 //---------------------------
 // allele frequencies p
 //---------------------------
@@ -61,6 +63,8 @@ public:
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
 	void update(long & index, double & value);
+	double getPosteriorMean(unsigned long & index);
+	double getPosteriorVariance(unsigned long & index);
 };
 
 //---------------------------
@@ -99,7 +103,7 @@ private:
 
 	//algorithm params
 	int numIterations;
-	double Fstdev;
+	double sdF;
 	double widthProposalKernelP;
 	int numAcceptedF;
 	int* numAcceptedP;
