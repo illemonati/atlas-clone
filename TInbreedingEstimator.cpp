@@ -272,8 +272,9 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	numAcceptedBeta = 0;
 
 	//TODO: get defaultOutName from vcf file in TPopulationLikelihoods
-	std::string defaultOutName = "default";
-	outname = Parameters.getParameterStringWithDefault("outname", defaultOutName);
+	std::string vcfFileName = likelihoods.getVCFName();
+	vcfFileName = extractBeforeLast(vcfFileName, ".vcf");
+	outname = Parameters.getParameterStringWithDefault("out", vcfFileName);
 }
 
 void TInbreedingEstimator::initializeAlphaAndBeta(){
@@ -794,7 +795,6 @@ void TInbreedingEstimator::runEstimation(){
 	for(unsigned long l=0; l<numLoci; ++l){
 		outP << "p[" << l << "]\t" << p.getPosteriorMean(l) << "\t" << p.getPosteriorVariance(l) << "\n";
 	}
-
 
 	//clean up
 	logfile->endIndent();

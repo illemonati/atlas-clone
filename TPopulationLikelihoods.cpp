@@ -435,11 +435,6 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 				_lowFreqSNPCounter++;
 				continue;
 			}
-
-//			if(numIndividualsWithData == 10)
-//				std::cout << "true/est\t" << log(_trueAlleleFrequency / _alleleFrequency) << "\t" << _trueAlleleFrequency << "\t" << _alleleFrequency << std::endl;
-//
-
 		}
 
 		//SNP is accepted!
@@ -602,7 +597,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		reader.doSaveTrueAlleleFrequencies();
 
 	// open vcf file
-	std::string vcfFilename = Parameters.getParameterString("vcf");
+	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
 

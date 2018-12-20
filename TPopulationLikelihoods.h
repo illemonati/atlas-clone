@@ -148,6 +148,7 @@ private:
 	TQualityMap phredToGTLMap;
 
 	// about vcf-file
+	std::string vcfFilename;
 	bool vcfRead;
 
 	// data on individuals
@@ -194,6 +195,7 @@ public:
     	return trueAlleleFrequenciesCopy;
     }
     void readData(TParameters & Parameters, TLog* Logfile);
+    std::string getVCFName(){ return vcfFilename; };
 
     //Looping
     void begin();
