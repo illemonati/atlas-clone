@@ -429,12 +429,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 			// estimate allele frequency (EM algorithm)
-//			std::cout << "data[0] " << (unsigned) data[0] << std::endl;
 			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
-			double f = _genotypeFrequencies[1] + 0.5 * _genotypeFrequencies[1];
-			if(f > 0.5) f = 1.0 - f;
 
-			if(f < freqFilter){
+			if(_MAF < freqFilter){
 				_lowFreqSNPCounter++;
 				continue;
 			}
