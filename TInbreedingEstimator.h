@@ -13,7 +13,31 @@
 #include "TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
+//---------------------------
+// allele frequencies p
+//---------------------------
+class TInbreedingF{
+private:
+	double _F;
+	float _probMovingToModelNoF;
+	double _sdProposal;
+	bool _inModelWithF;
+	double _lambda;
 
+public:
+	TInbreedingF();
+	TInbreedingF(double & F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
+	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates);
+	double proposeNew(TRandomGenerator & randomGenerator);
+	void update(double value, bool inModelWithF);
+	float probMovingToModelNoF();
+	double F();
+	bool inModelWithF();
+	double logPDFExp();
+	double PDFExp();
+	double lambda();
+
+};
 //---------------------------
 // allele frequencies p
 //---------------------------
@@ -75,7 +99,7 @@ private:
 
 	//algorithm params
 	int numIterations;
-	double pi;
+	double Fstdev;
 	double widthProposalKernelP;
 	int numAcceptedF;
 	int* numAcceptedP;
@@ -90,7 +114,7 @@ private:
 	unsigned long numLoci;
 
 	//params
-	double F;
+	TInbreedingF F;
 	//std::vector<double> p;
 	TAlleleFreq p;
 	TAlphaOrBeta alpha;
@@ -99,19 +123,18 @@ private:
 //	void initializeAlphaBeta();
 	void initializeAlphaAndBeta();
 	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
-	void printTrajectory(gz::ogzstream & tracefile);
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther);
 	double probGenoGivenFAndP(int & genotype, double & F, double & p);
 	double logProbPGivenAlphaBeta();
-	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double & thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double & thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
 	void printAcceptanceRates(int numIterations);
 	void resetAcceptanceRates();
 	void adjustProposalWidths();
-	void writeParameterEstimatesOfIteration(gz::ogzstream & out);
+	void writeParameterEstimatesOfIteration(std::ofstream & out);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);

@@ -431,13 +431,18 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 			// estimate allele frequency (EM algorithm)
 //			std::cout << "data[0] " << (unsigned) data[0] << std::endl;
 			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
-			double f = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
+			double f = _genotypeFrequencies[1] + 0.5 * _genotypeFrequencies[1];
 			if(f > 0.5) f = 1.0 - f;
 
 			if(f < freqFilter){
 				_lowFreqSNPCounter++;
 				continue;
 			}
+
+			if(numIndividualsWithData == 10)
+				std::cout << "true/est\t" << log(_trueAlleleFrequency / _alleleFrequency) << "\t" << _trueAlleleFrequency << "\t" << _alleleFrequency << std::endl;
+
+
 		}
 
 		//SNP is accepted!
@@ -540,7 +545,7 @@ void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* 
 	}
 
 	//now set allele frequencies
-	_alleleFrequency = _genotypeFrequencies[0] + 0.5 * _genotypeFrequencies[1];
+	_alleleFrequency = _genotypeFrequencies[2] + 0.5 * _genotypeFrequencies[1];
 	if(_alleleFrequency > 0.5) _MAF = 1.0 - _alleleFrequency;
 	else _MAF = _alleleFrequency;
 };

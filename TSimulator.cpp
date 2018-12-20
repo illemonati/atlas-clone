@@ -1547,7 +1547,7 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
 			if(writeTrueAlleleFreq)
-				outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
+				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
 		}
 	}
 
@@ -1607,7 +1607,7 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
 			if(writeTrueAlleleFreq)
-				outFreq << chromosome.name << "\t" << l << "\t1" << std::endl;
+				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
 		}
 	}
 };

@@ -438,7 +438,26 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 };
 
 void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
-	params.fillParameterIntoVector("glf", GLFNames, ',');
+	std::string parameter = params.getParameterString("glf");
+	if(parameter.find(".txt")){
+		logfile->list("Reading glf input names from file '" + parameter + "'");
+		std::ifstream in;
+		in.open(parameter.c_str());
+		std::vector<std::string> vec;
+
+		//read file
+		while(in.good() && !in.eof()){
+			std::string line;
+			std::getline(in, line);
+			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			//skip empty lines
+			if(vec.size() > 0){
+				GLFNames.push_back(vec[0]);
+			}
+		}
+		in.close();
+	} else
+		params.fillParameterIntoVector("glf", GLFNames, ',');
 	_openGLFs(logfile);
 };
 
