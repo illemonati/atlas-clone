@@ -29,8 +29,8 @@ TInbreedingF::TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdPr
 }
 
 void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates){
-	if(numAcceptedF == 0)
-		throw "numAccepted = 0";
+//	if(numAcceptedF == 0)
+//		throw "numAccepted = 0";
 	double newProposalWidth = _sdProposal;
 	newProposalWidth *=  (double) numAcceptedF / (double) numUpdates * 3.0;
 
@@ -47,7 +47,23 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdat
 }
 
 double TInbreedingF::proposeNew(TRandomGenerator & randomGenerator){
-	return _F + randomGenerator.getNormalRandom(0, _sdProposal);
+    double newF = _F + randomGenerator.getNormalRandom(0, _sdProposal);
+    while(newF > 1 || newF < 0){
+        //mirror
+        if(newF < 0)
+            newF = -newF;
+        if(newF > 1)
+            newF = 2 - newF;
+    }
+    if(newF < 0)
+    	throw "proposing F smaller than zero!";
+    if(newF > 1)
+    	throw "proposing F larger than one!";
+    return newF;
+
+
+
+//	return _F + randomGenerator.getNormalRandom(0, _sdProposal);
 }
 
 void TInbreedingF::update(double value, bool inModelWithF){
@@ -203,8 +219,8 @@ void TAlphaOrBeta::update(double & newLogValue, double & newNaturalScaleValue){
 
 void TAlphaOrBeta::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	//adjust proposal for alpha / beta
-	if(numAccepted == 0)
-		throw "numAccepted = 0";
+//	if(numAccepted == 0)
+//		throw "numAccepted = 0";
 	double newProposalWidth = proposalWidth;
 	newProposalWidth *= (double) numAccepted / (double) numUpdates * 3.0;
 
@@ -304,7 +320,15 @@ void TInbreedingEstimator::initializeAlphaAndBeta(){
 		betaF = 0.01;
 	double logBeta = log(betaF);
 	beta.update(logBeta, betaF);
-	logfile->list("Initialized alpha to " + toString(alphaF) + " and beta to " + toString(betaF));
+
+
+
+//	double trueVal = 0.5;
+//	double logTrueVal = log(0.5);
+//	alpha.update(logTrueVal, trueVal);
+//	beta.update(logTrueVal, trueVal);
+
+	logfile->list("Initialized alpha to " + toString(alpha.getNaturalScaleValue()) + " and beta to " + toString(beta.getNaturalScaleValue()));
 }
 
 void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParameters & parameters){
@@ -312,7 +336,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.03);
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
-	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("_probMovingToModelNoF", 0.1);
+	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("probMovingToModelNoF", 0.1);
 	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF));
 
 	double lambda = parameters.getParameterDoubleWithDefault("lambda", 1.0);
@@ -322,6 +346,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	if(startInModelWithF){
 		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
 		F.update(randomGenerator.getExponentialRandom(lambda), true);
+		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
 		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambda);
@@ -540,7 +565,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 
 	//make grid
 	int numProbs = 50;
-	float step = 0.5 / (float) numProbs;
+	float step = 1 / (float) numProbs;
 	std::cout << "step size "  << step << std::endl;
 
 	//calculate ll
@@ -661,10 +686,8 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params
 
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
-//	numAcceptedF += updateF();
-	//locus index
 
-	numAcceptedF += updateF();
+//	numAcceptedF += updateF();
 
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
