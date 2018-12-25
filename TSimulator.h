@@ -175,6 +175,7 @@ private:
 	TSimulatorMutationtable mutTable;
 	bool writeTrueAlleleFreq;
 	std::string alleleFreqFile;
+	std::string alleleFreqFileMAF;
 
 	void fillCumulGenoProb(const double & f);
 	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref);

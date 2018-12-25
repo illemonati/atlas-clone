@@ -28,7 +28,7 @@ private:
 public:
 	TInbreedingF();
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
-	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates);
+	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates, TLog* logfile);
 	double proposeNew(TRandomGenerator & randomGenerator);
 	void update(double value, bool inModelWithF);
 	float probMovingToModelNoF();
@@ -60,12 +60,13 @@ public:
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
+	void setSumsToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
 	void update(long & index, double value);
-	double getPosteriorMean(unsigned long & index);
-	double getPosteriorVariance(unsigned long & index);
+	double getPosteriorMean(unsigned long & index, int numUpdates);
+	double getPosteriorVariance(unsigned long & index, int numUpdates);
 };
 
 //---------------------------
@@ -146,6 +147,7 @@ public:
 	}
 	void runEstimation();
 	void writeLikelihoodForDebuggingAlpha(TParameters & params);
+	void writeLikelihoodForDebuggingBeta(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);
 };

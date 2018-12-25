@@ -1477,7 +1477,8 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	writeTrueAlleleFreq = false;
 	if(params.parameterExists("writeTrueAlleleFreq")){
 		alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
-		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
+		alleleFreqFileMAF = outname + "_trueMAF.txt.gz";
+		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "' and the MAF ot file '" + alleleFreqFileMAF + "'");
 		writeTrueAlleleFreq = true;
 	}
 
@@ -1508,11 +1509,15 @@ void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & h
 
 void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//open file to write true allele freq
-	gz::ogzstream outFreq;
+	gz::ogzstream outFreq, outFreqMAF;
 	if(writeTrueAlleleFreq){
 		outFreq.open(alleleFreqFile.c_str());
 		if(!outFreq)
 			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+		outFreqMAF.open(alleleFreqFileMAF.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
+
 	}
 
 	//now simulate haplotypes
@@ -1563,6 +1568,13 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
 	}
 
+	gz::ogzstream outFreqMAF;
+	if(writeTrueAlleleFreq){
+		outFreqMAF.open(alleleFreqFileMAF.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
+	}
+
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
 		//polymoprhic or not?
@@ -1575,11 +1587,11 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			double f = randomGenerator->getBetaRandom(alpha, beta);
 //			double f = 0.3;
 
-//			//if simulations go through major minor, the allele freq will be flipped
-//			if(writeTrueAlleleFreq && f < 0.5)
-//				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
-//			else if(writeTrueAlleleFreq && f > 0.5)
-//				outFreq << chromosome.name << "\t" << l << "\t" << 1.0 - f << std::endl;
+			//if simulations go through major minor, the allele freq will be flipped
+			if(writeTrueAlleleFreq && f < 0.5)
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << f << std::endl;
+			else if(writeTrueAlleleFreq && f > 0.5)
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << 1.0 - f << std::endl;
 
 			if(writeTrueAlleleFreq)
 				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
@@ -1618,6 +1630,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
 		}
 	}
+	outFreq.close();
+	outFreqMAF.close();
 };
 
 //--------------------------------------------------------------------

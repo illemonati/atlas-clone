@@ -57,6 +57,7 @@ public:
 		} else if(task == "inbreedingLikelihood"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 //			inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
+//			inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
 //			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
 			inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
 		} else {
