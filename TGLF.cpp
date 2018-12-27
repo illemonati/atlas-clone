@@ -617,7 +617,7 @@ bool TGlfMultiReader::moveToNextChromosome(){
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->chrNumber() == _curChrNumber){
 			if(_curChrName != it->chr())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': " + _curChrName + " != " + it->chr() + "!";
 			if(_curChrLength != it->chrLength())
 				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
 		}
