@@ -13,6 +13,43 @@
 #include "TGenotypeMap.h"
 #include "TQualityMap.h"
 
+
+//-----------------------------------------------
+//TMajorMinorPolarize
+//-----------------------------------------------
+class TMajorMinorPolarize{
+public:
+	Base ref, alt;
+
+	TMajorMinorPolarize(){
+		ref = N; alt = N;
+	};
+	virtual ~TMajorMinorPolarize(){};
+	virtual void fill(Base & major, Base & minor){
+		ref = major;
+		alt = minor;
+	};
+};
+
+class TMajorMinorPolarizeRandom:public TMajorMinorPolarize{
+private:
+	TRandomGenerator* randomGenerator;
+public:
+	TMajorMinorPolarizeRandom(TRandomGenerator* RandomGenerator):TMajorMinorPolarize(){
+		randomGenerator = RandomGenerator;
+	};
+	~TMajorMinorPolarizeRandom(){};
+	void fill(Base & major, Base & minor){
+		if(randomGenerator->getRand() < 0.5){
+			ref = major;
+			alt = minor;
+		} else {
+			ref = minor;
+			alt = major;
+		}
+	};
+};
+
 //-----------------------------------------------
 //TMajorMinorEstimator
 //-----------------------------------------------

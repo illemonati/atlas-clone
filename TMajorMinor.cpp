@@ -291,6 +291,17 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	else
 		logfile->list("Will write log10(likelihoods) as float (GL tag in VCF).");
 
+	//how do we polarize?
+	TMajorMinorPolarize* polarize;
+	std::string pol = params.getParameterStringWithDefault("polarize", "major");
+	if(pol == "major"){
+		logfile->list("Will polarize alleles with major.");
+		polarize = new TMajorMinorPolarize;
+	} else if(pol == "random"){
+		logfile->list("Will polarize alleles at random.");
+		polarize = new TMajorMinorPolarizeRandom(randomGenerator);
+	} else throw "Unknown polarization '" + pol + "'!";
+
 	//think about filters
 	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
 	if(minSamplesWithData > 0)
@@ -329,9 +340,11 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 			//filter on variant quality
 			if(MMEstimator->variantQuality >= minVariantQuality){
+				//polarize
+				polarize->fill(MMEstimator->major, MMEstimator->minor);
 
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
+				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[polarize->ref][polarize->ref], genoMap.genotypeMap[polarize->ref][polarize->alt], genoMap.genotypeMap[polarize->alt][polarize->alt], randomGenerator, usePhredLikelihoods);
 			}
 		} //end filter on missingness
 

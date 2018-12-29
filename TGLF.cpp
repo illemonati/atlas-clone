@@ -608,8 +608,9 @@ bool TGlfMultiReader::moveToNextChromosome(){
 	//check if we reached end of all files
 	if(allFilesReachedEnd) return false;
 
-	//get name and length from first active file
+	//get name and length from first active file not at end
 	_position = 1;
+
 	_curChrName = pointerToActiveGLFs[0]->getNameOfParsedChr(_curChrNumber);
 	_curChrLength = pointerToActiveGLFs[0]->getLengthOfParsedChr(_curChrNumber);
 
@@ -617,7 +618,7 @@ bool TGlfMultiReader::moveToNextChromosome(){
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->chrNumber() == _curChrNumber){
 			if(_curChrName != it->chr())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': " + _curChrName + " != " + it->chr() + "!";
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChrName + "' != '" + it->chr() + "'!";
 			if(_curChrLength != it->chrLength())
 				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
 		}
