@@ -284,6 +284,8 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 		estimateGenotypeFrequencies = true;
 		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
+	} else {
+		estimateGenotypeFrequencies = false;
 	}
 
 	//filter on variant quality?
@@ -292,6 +294,9 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	if(minVariantQuality > 0){
 		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
 	}
+
+	//set store stuff to off
+	storeTrueAlleleFreq = false;
 
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
@@ -349,6 +354,114 @@ void TPopulationLikelihoodReader::closeTrueAlleleFreqFile(){
 void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
+
+bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName){
+	//set time at beginning
+	if(!vcfParsingStarted){
+		vcfParsingStarted = true;
+		gettimeofday(&startTime, NULL);
+	}
+
+	//open output vcf
+	vcfFile.openOutputStream(outputName, true);
+	vcfFile.writeHeaderVCF_4_0();
+
+	//read next
+	while(vcfFile.next()){ // new line in vcf-file (= new locus)
+		++_lineCounter;
+		std::cout << "_lineCounter " << _lineCounter << std::endl;
+
+		if(storeTrueAlleleFreq){
+			std::string temp;
+			getline(*trueFreq, temp);
+			std::vector<std::string> tmp;
+			fillVectorFromString(temp, tmp, "\t");
+			if(tmp.size() != 3)
+				throw "wrong number of columns in true allele frequency file!";
+			std::string chr = tmp[0];
+			int pos = stringToInt(tmp[1]);
+			_trueAlleleFrequency = stringToDouble(tmp[2]);
+			//check if positions match (allele file is 0-based)
+			if(pos != vcfFile.position() - 1)
+				throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
+		}
+
+		//print progress
+		if(_lineCounter % progressFrequency == 0)
+			printProgressFrequencyFiltering(logfile);
+
+		// limit lines
+		if(limitLines > 0 && _lineCounter > limitLines){
+			logfile->list("Reached limit of " + toString(limitLines) + " lines.");
+			std::cout << "reached line limit" << std::endl;
+			break;
+		}
+
+        //skip sites with != 2 alleles
+        if(vcfFile.getNumAlleles() != 2){
+        	_notBialleleicCounter++;
+        	std::cout << "numAlleles not 2" << std::endl;
+        	continue;
+        }
+
+        //skip sites with too low variant quality
+        if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
+        	_lowVariantQualityCounter++;
+        	std::cout << "qual too low" << std::endl;
+        	continue;
+        }
+
+		//check if PL is given
+		if(!vcfFile.formatColExists("PL") && !vcfFile.formatColExists("GL")){
+			++_noPLCounter;
+        	std::cout << "no PL too low" << std::endl;
+			continue;
+		}
+
+		// create an array containing the genotype likelihoods of all considered individuals of current locus
+        long numIndividualsWithData = 0;
+		for(int s = 0; s < samples.numSamples(); ++s){
+			int vcfIndex = samples.VCF_order(s);
+
+			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
+			if (vcfFile.sampleDepth(vcfIndex) < minDepth)
+				vcfFile.setSampleMissing(vcfIndex);
+			else
+				numIndividualsWithData++;
+
+			//store phred scaled likelihoods
+			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
+			vcfFile.fillPhredScore(vcfIndex, &data[3 * s]);
+		}
+
+		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
+		if (numIndividualsWithData < minNumSamplesWithData){
+			_missingSNPCounter++;
+        	std::cout << "too many inds without data" << std::endl;
+			continue; // skip rest of loop (don't store)
+		}
+
+		//filter in MAF
+		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
+			// estimate allele frequency (EM algorithm)
+			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
+
+			if(_MAF < freqFilter){
+				_lowFreqSNPCounter++;
+	        	std::cout << "MAF too low" << std::endl;
+				continue;
+			}
+		}
+
+		//SNP is accepted!
+		++_numAcceptedLoci;
+		vcfFile.writeLine();
+    }
+
+	//return false at end of file
+	logfile->list("Reached end of VCF file.");
+	return false;
+}
 
 bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile){
 	//set time at beginning
@@ -543,6 +656,60 @@ void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* 
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
+// TVcfFilter                                                                                 //
+////////////////////////////////////////////////////////////////////////////////////////////////
+TVcfFilter::TVcfFilter(TParameters & Parameters, TLog* logfile){
+	vcfRead = false;
+	_numLoci = 0;
+}
+
+void TVcfFilter::filterVCF(TParameters & Parameters, TLog* logfile){
+	if(vcfRead)
+		throw "VCF already read!";
+
+	//create reader
+	bool saveAlleleFrequencies = false;
+	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+
+	// open vcf file
+	vcfFilename = Parameters.getParameterString("vcf");
+	logfile->startIndent("Filtering VCF file '" + vcfFilename + "':");
+	reader.openVCF(vcfFilename, logfile);
+
+	//Match samples
+	if(samples.hasSamples())
+		samples.fillVCFOrder(reader.getSampleVCFNames());
+	 else
+		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+
+
+	// initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
+	bool* sampleIsMissing = new bool[samples.numSamples()];
+
+	//output file name
+	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_filtered.vcf.gz";
+
+    //run through VCF file
+    logfile->startIndent("Parsing VCF file:");
+    _numLoci = 0;
+    reader.filterVCF(curLocus, sampleIsMissing, samples, logfile, outputName);
+
+    //clean up
+	vcfRead = true;
+	delete[] curLocus;
+
+    //report final status
+	logfile->endIndent();
+	reader.concludeFilters(logfile);
+	if(reader.numAcceptedLoci() < 1)
+		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+	logfile->endIndent();
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoods                                                                     //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TPopulationLikelihoods::TPopulationLikelihoods(){
@@ -601,7 +768,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
 
-	//open true vcf file
+	//open true allele freq file
 	if(saveTrueAlleleFrequencies){
 		std::string trueFreqFileName = Parameters.getParameterString("trueAlleleFreq");
 		if(trueFreqFileName.find(".gz") == std::string::npos){
