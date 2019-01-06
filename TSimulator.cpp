@@ -1584,8 +1584,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
 
 			//pick allele Frequency
-			double f = randomGenerator->getBetaRandom(alpha, beta);
-//			double f = 0.3;
+//			double f = randomGenerator->getBetaRandom(alpha, beta);
+			double f = 0.2;
 
 			//if simulations go through major minor, the allele freq will be flipped
 			if(writeTrueAlleleFreq && f < 0.5)
