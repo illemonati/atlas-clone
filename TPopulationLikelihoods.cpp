@@ -369,7 +369,6 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 	//read next
 	while(vcfFile.next()){ // new line in vcf-file (= new locus)
 		++_lineCounter;
-		std::cout << "_lineCounter " << _lineCounter << std::endl;
 
 		if(storeTrueAlleleFreq){
 			std::string temp;
@@ -393,28 +392,24 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 		// limit lines
 		if(limitLines > 0 && _lineCounter > limitLines){
 			logfile->list("Reached limit of " + toString(limitLines) + " lines.");
-			std::cout << "reached line limit" << std::endl;
 			break;
 		}
 
         //skip sites with != 2 alleles
         if(vcfFile.getNumAlleles() != 2){
         	_notBialleleicCounter++;
-        	std::cout << "numAlleles not 2" << std::endl;
         	continue;
         }
 
         //skip sites with too low variant quality
         if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
         	_lowVariantQualityCounter++;
-        	std::cout << "qual too low" << std::endl;
         	continue;
         }
 
 		//check if PL is given
 		if(!vcfFile.formatColExists("PL") && !vcfFile.formatColExists("GL")){
-			++_noPLCounter;
-        	std::cout << "no PL too low" << std::endl;
+			_noPLCounter++;
 			continue;
 		}
 
@@ -437,7 +432,6 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
 		if (numIndividualsWithData < minNumSamplesWithData){
 			_missingSNPCounter++;
-        	std::cout << "too many inds without data" << std::endl;
 			continue; // skip rest of loop (don't store)
 		}
 
@@ -448,7 +442,6 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 
 			if(_MAF < freqFilter){
 				_lowFreqSNPCounter++;
-	        	std::cout << "MAF too low" << std::endl;
 				continue;
 			}
 		}
