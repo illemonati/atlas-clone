@@ -667,32 +667,23 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 
 void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params){
 	//open output file
-	std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
-	logfile->list("Will write likelihoods for grid of alpha to '" + tracefile + "'.");
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
+		std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
+		logfile->list("Will write likelihoods for grid of alpha to '" + tracefile + "'.");
+		gz::ogzstream outP(tracefile.c_str());
+		if(!outP)
+			throw "Failed to open file '" + tracefile + "' for writing!";
 
-	//initialize
-	double alphaValue = 0.0;
-	int numProbs = 100;
-	float step = 2.0 / (float) numProbs;
-	double trueAlpha = 0.5;
-	double trueLogAlpha = log(trueAlpha);
-	beta.update(trueLogAlpha, trueAlpha);
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+		//initialize
+		double alphaValue = 0.0;
+		int numProbs = 100;
+		float step = 2.0 / (float) numProbs;
+		double trueAlpha = 0.5;
+		double trueLogAlpha = log(trueAlpha);
+		beta.update(trueLogAlpha, trueAlpha);
+		std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
 
-	F.update(0.2, true);
+		F.update(0.2, true);
 
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double newAlphaValue = alphaValue + (double) i*step;
-		std::cout << "calculating likelihood for alpha=" << newAlphaValue << std::endl;
-		if(newAlphaValue == 0.0)
-			//a small number
-			newAlphaValue = 0.000000001;
-		double newAlphaValueLog = log(newAlphaValue);
-		alpha.update(newAlphaValueLog, newAlphaValue);
 		double logLikelihood = 0.0;
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
@@ -702,12 +693,25 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params
 				throw "likelihood is larger than 1!";
 		}
 
-		//add P(p|alpha,beta)
-		logLikelihood += logProbPGivenAlphaBeta();
-		std::cout << "logProbPGivenAlphaBeta() " << logProbPGivenAlphaBeta() << std::endl;
-		outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
-	}
-	logfile->done();
+		double logLikelihoodAllInds = logLikelihood;
+
+		//calculate ll
+		for(int i=0; i<numProbs; ++i){
+			double newAlphaValue = alphaValue + (double) i*step;
+			std::cout << "calculating likelihood for alpha=" << newAlphaValue << std::endl;
+			if(newAlphaValue == 0.0)
+				//a small number
+				newAlphaValue = 0.000000001;
+			double newAlphaValueLog = log(newAlphaValue);
+			alpha.update(newAlphaValueLog, newAlphaValue);
+
+
+			//add P(p|alpha,beta)
+			logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
+			outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+		}
+		logfile->done();
+
 }
 
 void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params){
@@ -739,6 +743,9 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params)
 			throw "likelihood is larger than 1!";
 	}
 
+	double logLikelihoodAllInds = logLikelihood;
+
+
 	//add alpha and beta
 	for(int i=0; i<numProbs; ++i){
 		double newBetaValue = betaValue + (double) i*step;
@@ -751,7 +758,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params)
 
 
 		//add P(p|alpha,beta)
-		logLikelihood += logProbPGivenAlphaBeta();
+		logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
 		outP << beta.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
 	}
 	logfile->done();
