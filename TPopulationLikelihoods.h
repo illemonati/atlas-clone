@@ -126,6 +126,7 @@ public:
 
 	void openVCF(std::string, TLog* logfile);
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
+    bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
 	bool readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
@@ -133,12 +134,42 @@ public:
 	std::string chr(){ return vcfFile.chr(); };
 	long position(){ return vcfFile.position(); };
 	long numLociParsed(){ return _lineCounter; };
+	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	double* genotypeFrequencies(){ return _genotypeFrequencies; };
 	double allelFrequency(){ return _alleleFrequency; };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return _MAF; };
 	int numSamplesWithData();
 	int numSamplesWithDataInPopulation(int population);
+};
+
+//------------------------------------------------
+//TVcfFilter
+//------------------------------------------------
+class TVcfFilter{
+private:
+	// about vcf-file
+	std::string vcfFilename;
+	bool vcfRead;
+
+	// data on individuals
+	TPopulationSamples samples;
+
+	//data on loci
+	long _numLoci;
+
+//    //looping
+//    long curLocusIndex;
+//    std::map<int, std::string>::iterator curChrIt;
+//    std::map<int, std::string>::iterator nextChrIt;
+//    int individualStartIndex;
+//    int usedSampleSize;
+
+public:
+	TVcfFilter(TParameters & Parameters, TLog* logfile);
+    void filterVCF(TParameters & Parameters, TLog* logfile);
+
+
 };
 
 //-------------------------------------------------
@@ -174,7 +205,6 @@ private:
 
     // read data from vcf-file
 	void init();
-    void openVCF(std::string, TVcfFileSingleLine & vcfFile, TLog* logfile);
     void readDataFromVCF(TParameters & Parameters, TLog* logfile);
 
 public:

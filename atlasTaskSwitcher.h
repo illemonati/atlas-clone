@@ -48,6 +48,9 @@ public:
 		} else if(task == "majorMinor"){
 			TMajorMinor majorMinor(*parameters, logfile);
 			majorMinor.estimateMajorMinor(*parameters);
+		} else if(task == "filterVCF"){
+			TVcfFilter vcfFilter(*parameters, logfile);
+			vcfFilter.filterVCF(*parameters, logfile);
 		} else if(task == "estimateAlleleCounts"){
 			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
 			alleleCountEst.estimateAlleleCounts(*parameters);
@@ -58,8 +61,8 @@ public:
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 //			inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
 //			inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
-//			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
-			inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
+			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
+//			inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

@@ -802,7 +802,7 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	} else out << "\t" << line.data[cols.Ref] << "\t" << line.data[cols.Alt];
 
 	//qual
-	if(line.qualityParsed) out << "\tERROR"; // we do not yet parse it
+	if(line.qualityParsed) out << "\t" << line.variantQuality;
 	else out << "\t" << line.data[cols.Qual];
 
 	//filter
