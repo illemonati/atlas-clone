@@ -83,7 +83,7 @@ public:
 
 	TAlphaOrBeta();
 	TAlphaOrBeta(std::string VariableName, double & ProposalWidth);
-	void update(double & newLogValue, double & newNaturalScaleValue);
+	void update(const double & newLogValue, const double & newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
 	double getLogValue();
@@ -132,7 +132,7 @@ private:
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
 	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther, double & sumLogsAlleleFreq);
 	double logProbPGivenAlphaBeta();
-	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
+	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
 	void printAcceptanceRates(int numIterations);

@@ -59,10 +59,16 @@ public:
 			inbreedingEstimator.runEstimation();
 		} else if(task == "inbreedingLikelihood"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
-//			inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
-//			inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
-			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
-//			inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
+			if(parameters->parameterExists("llAlpha"))
+				inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
+			if(parameters->parameterExists("llBeta"))
+				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
+			if(parameters->parameterExists("llP"))
+				inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
+			if(parameters->parameterExists("llF"))
+				inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
+			else
+				throw "define parameter for which to calculate likelihood surface!";
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);
