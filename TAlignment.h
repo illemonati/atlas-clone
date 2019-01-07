@@ -88,6 +88,7 @@ public:
 	TAlignment(const TAlignment & Alignment);
 
 	~TAlignment(){
+		std::cout << "calling deconstructor for alignment " << alignmentName << " is reverse " << bamAlignment.IsReverseStrand()<< std::endl;
 		freeStorage();
 	}
 

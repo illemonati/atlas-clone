@@ -62,34 +62,32 @@ TAlignment::TAlignment(unsigned int MaxSize){
 }
 
 TAlignment::TAlignment(const TAlignment & Alignment){
-	bases = new TBase;
-
-	//other
-	qualityOriginal = new int;
-	*qualityOriginal = *Alignment.qualityOriginal;
-
 	//soft clipped data
-	softClippedLength = new int;
-	*softClippedLength = *Alignment.softClippedLength;
-	softClippedBase = new char*;
-	softClippedQuality = new char*;
+	softClippedLength = new int[2];
+	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
+	softClippedBase = new char*[2];
+	softClippedQuality = new char*[2];
 	for(int e=0; e<Alignment.softClippedEntry; ++e){
 		for(int b=0; b<Alignment.softClippedLength[e]; ++b){
+//			std::cout << "Alignment.softClippedBase[e][b] " << std::flush;
+//			std::cout << Alignment.softClippedBase[e][b] << std::endl;
 			softClippedBase[e][b] = Alignment.softClippedBase[e][b];
 			softClippedQuality[e][b] = Alignment.softClippedQuality[e][b];
 		}
 	}
 
-	bases = new TBase;
-	*bases = *Alignment.bases;
+	bases = new TBase[Alignment.maxSize];
+	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
 //	std::cout << "bases " << bases << std::endl;
 //	for(int i=0; i<length; ++i){
 //		std::cout << bases[i].base << std::flush;
 //	}
 //	std::cout << std::endl;
+	qualityOriginal = new int[Alignment.maxSize];
+	std::copy(Alignment.qualityOriginal, Alignment.qualityOriginal + Alignment.maxSize, qualityOriginal);
 
 	//details
-	empty = false;
+	empty = Alignment.empty;
 	bamAlignment = Alignment.bamAlignment;
 	maxSize = Alignment.maxSize;
 	alignmentName = Alignment.alignmentName;
@@ -114,6 +112,8 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	numDeletions = Alignment.numDeletions;
 	softClippedEntry = Alignment.softClippedEntry;
 	storageInitialized = Alignment.storageInitialized;
+	throw "done!";
+
 }
 
 void TAlignment::clear(){
@@ -149,11 +149,11 @@ void TAlignment::initStorage(){
 void TAlignment::freeStorage(){
 	std::cout << "freeing storage of alignment " << alignmentName << " isReversed " << isReverseStrand << std::endl;
 	if(storageInitialized){
-		std::cout << "bases " << bases << std::endl;
-		for(int i=0; i<length; ++i){
-			std::cout << bases[i].base << std::flush;
-		}
-		std::cout << std::endl;
+//		std::cout << "bases " << bases << std::endl;
+//		for(int i=0; i<length; ++i){
+//			std::cout << bases[i].base << std::flush;
+//		}
+//		std::cout << std::endl;
 		std::cout << "storage is initialized!" << std::endl;
 		std::cout << "bases: " << std::flush;
 		std::cout << bases << std::endl;
@@ -894,8 +894,8 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 //		tmpString.clear();
 //		tmpString2.clear();
 		for(int d=0; d<length; ++d){
+			std::cout << bases[d].base << std::endl;
 			tmpString += genoMap.baseToChar[bases[d].base];
-
 			tmpString2 += (char) qualMap.errorToQuality(bases[d].errorRate);
 		}
 		bamAlignment.QueryBases = tmpString;

@@ -1865,6 +1865,9 @@ void TGenome::mergeReadGroups(TParameters & params){
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
+
+	throw "got here 0";
+
 	alignmentParser.setParsingToTrue();
 
 	//open a bam file for writing
@@ -1956,10 +1959,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
+
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
 		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0))
 			continue;
 		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
+
 			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
 					ignoredReads << "read " << alignment.alignmentName << " was filtered out because it was longer than the insert size (" << abs(alignment.bamAlignment.InsertSize) << "<" << alignment.bamAlignment.AlignedBases.size() << "\n";
@@ -1973,15 +1978,21 @@ void TGenome::mergePairedEndReads(TParameters & params){
 //			}
 
 			else {
+				throw "got here";
+
 				//if on new chromosome, empty storage
 				if(curChr != alignment.chrNumber){
-					for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
-						(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-						delete it->first;
+					if(alignmentStorage.size() > 0){
+						std::cout << "clearing storage due to diff chr numner" << std::endl;
+						for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
+							(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+							delete it->first;
+						}
+						alignmentStorage.clear();
 					}
-					alignmentStorage.clear();
 					curChr = alignment.chrNumber;
 				}
+
 				//add alignment to storage
 				if(alignment.isProperPair){
 					std::cout << "alignment is proper pair" << std::endl;
@@ -1990,6 +2001,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						//mate on forward strand is always first in bam file
 						TAlignment* alignmentPointer;
 						alignmentPointer = new TAlignment(alignment);
+						std::cout << "created alignment pointer from fwd read" << std::endl;
 						alignmentStorage.emplace_back(alignmentPointer, false);
 						std::cout << "added fwd read to storage with name " << alignmentPointer->alignmentName << " and address " << alignmentPointer << std::endl;
 //						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), false));
