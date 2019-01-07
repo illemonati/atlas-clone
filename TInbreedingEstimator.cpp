@@ -326,7 +326,7 @@ void TInbreedingEstimator::initializeAlphaAndBeta(){
 	double alphaF;
 	double betaF;
 
-	for(int l = 0; l < numLoci; l++){
+	for(unsigned int l = 0; l < numLoci; l++){
 		mean += p[l];
 		sumXSquare += p[l] * p[l];
 	}

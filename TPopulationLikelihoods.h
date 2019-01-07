@@ -37,7 +37,7 @@ private:
 	int* _VCF_order;
 	bool _VCF_order_initialized;
 
-	void init();
+	void _init();
 	void fillSampleOrder();
 public:
 	TPopulationSamples();
@@ -102,6 +102,7 @@ private:
 	double _trueAlleleFrequency;
 	double _MAF;
 
+	void _init();
 	void resetCounters();
 	void closeVCF();
 	void closeTrueAlleleFreqFile();

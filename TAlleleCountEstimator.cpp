@@ -265,7 +265,9 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 			saf[p]->fill(&curLocus[3*samples.startIndex(p)]);
 
 			//and print MLE counts
-			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << samples.numSamplesWithDataInPop(sampleIsMissing, p);
+			//TODO: find way to estimate counts among samples with data!
+			//aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << 2*samples.numSamplesWithDataInPop(sampleIsMissing, p);
+			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << 2 * samples.numSamplesInPop(p);
 		}
 		aleleCountFile << std::endl;
 	}

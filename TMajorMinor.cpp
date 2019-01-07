@@ -292,7 +292,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will write log10(likelihoods) as float (GL tag in VCF).");
 
 	//think about filters
-	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
+	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 1);
 	if(minSamplesWithData > 0)
 		logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data.");
 	int minVariantQuality = params.getParameterIntWithDefault("minVariantQual", 0);

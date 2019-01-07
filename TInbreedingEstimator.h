@@ -116,7 +116,7 @@ private:
 
 	//data
 	TPopulationLikelihoods likelihoods;
-	unsigned long numLoci;
+	unsigned int numLoci;
 
 	//params
 	TInbreedingF F;

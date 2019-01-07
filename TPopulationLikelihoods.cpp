@@ -15,11 +15,11 @@
 // TPopulationSamples                                                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TPopulationSamples::TPopulationSamples(){
-	init();
+	_init();
 };
 
 TPopulationSamples::TPopulationSamples(std::string filename, TLog* logfile){
-	init();
+	_init();
 	readSamples(filename, logfile);
 };
 
@@ -32,7 +32,7 @@ TPopulationSamples::~TPopulationSamples(){
 		delete[] _VCF_order;
 };
 
-void TPopulationSamples::init(){
+void TPopulationSamples::_init(){
 	_numPopulations = 0;
 	_numSamples = 0;
 	numSamplesPerPop = NULL;
@@ -223,6 +223,22 @@ int TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, int populat
 // TPopulationLikelihoodReader                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
+	_init();
+};
+
+TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+	_init();
+	initialize(Parameters, Logfile, saveAlleleFreq);
+};
+
+TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
+	closeVCF();
+	if(trueFreqFileOpen)
+		closeTrueAlleleFreqFile();
+};
+
+void TPopulationLikelihoodReader::_init(){
+	//set all values to defaults
 	vcfOpen = false;
 	trueFreqFileOpen = false;
 
@@ -243,16 +259,6 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
 	_alleleFrequency = 0.0;
 	_trueAlleleFrequency = -1.0;
 	_MAF = 0.0;
-};
-
-TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
-	initialize(Parameters, Logfile, saveAlleleFreq);
-};
-
-TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
-	closeVCF();
-	if(trueFreqFileOpen)
-		closeTrueAlleleFreqFile();
 };
 
 void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile, bool saveAlleleFreq){
@@ -295,6 +301,9 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
+
+	//additional settings
+	storeTrueAlleleFreq = false;
 };
 
 void TPopulationLikelihoodReader::resetCounters(){
@@ -451,7 +460,7 @@ void TPopulationLikelihoodReader::printProgressFrequencyFiltering(TLog* logfile)
 	struct timeval end;
 	gettimeofday(&end, NULL);
 	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(_lineCounter) + " lines and retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
+	logfile->list("Parsing line " + toString(_lineCounter) + ", retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
 };
 
 void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
