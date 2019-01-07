@@ -496,13 +496,7 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 	}
 }
 
-bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther){
-	// compute sum
-	double sumLogP = 0;
-	for (unsigned int l = 0; l < numLoci; l++){
-		sumLogP += log(p[l]);
-	}
-
+bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther, double & sumLogsAlleleFreq){
 	// propose new log(value) (uniform proposal kernel)
 	double newLogAlphaOrBeta = alphaOrBetaToUpdate.getLogValue() + randomGenerator.getRand() * alphaOrBetaToUpdate.proposalWidth - alphaOrBetaToUpdate.proposalWidth / 2.0;
 	double newAlphaOrBeta = exp(newLogAlphaOrBeta);
@@ -514,7 +508,7 @@ bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate,
 			+ randomGenerator.gammaln(alphaOrBetaToUpdate.getNaturalScaleValue())
 			- randomGenerator.gammaln(alphaOrBetaToUpdate.getNaturalScaleValue() + alphaOrBetaOther.getNaturalScaleValue())
 			- randomGenerator.gammaln(newAlphaOrBeta))
-			+ (newAlphaOrBeta - alphaOrBetaToUpdate.getNaturalScaleValue()) * sumLogP;
+			+ (newAlphaOrBeta - alphaOrBetaToUpdate.getNaturalScaleValue()) * sumLogsAlleleFreq;
 
 	// accept or reject
 	if(log(randomGenerator.getRand()) < logH){
@@ -768,10 +762,18 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 //		}
 	}
 
+	//sum of log(p) for alpha and log(1-p) for beta
+	//compute sum
+	double sumLogP = 0, sumLogOneMinusP = 0;
+	for (unsigned int l = 0; l < numLoci; l++){
+		sumLogP += log(p[l]);
+		sumLogOneMinusP += log(1 - p[l]);
+	}
+
 	//alpha
-	numAcceptedAlpha += updateAlphaOrBeta(alpha, beta);
+	numAcceptedAlpha += updateAlphaOrBeta(alpha, beta, sumLogP);
 	//beta
-	numAcceptedBeta += updateAlphaOrBeta(beta, alpha);
+	numAcceptedBeta += updateAlphaOrBeta(beta, alpha, sumLogOneMinusP);
 }
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
