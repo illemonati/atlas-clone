@@ -472,7 +472,14 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 			int pos = stringToInt(tmp[1]);
 			_trueAlleleFrequency = stringToDouble(tmp[2]);
 			//check if positions match (allele file is 0-based)
-			if(pos != vcfFile.position() - 1)
+			while(pos < vcfFile.position() - 1){
+				getline(*trueFreq, temp);
+				fillVectorFromString(temp, tmp, "\t");
+				if(tmp.size() != 3)
+					throw "wrong number of columns in true allele frequency file!";
+				pos = stringToInt(tmp[1]);
+			}
+			if(pos > vcfFile.position() - 1)
 				throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
 		}
 
