@@ -379,21 +379,6 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 	while(vcfFile.next()){ // new line in vcf-file (= new locus)
 		++_lineCounter;
 
-		if(storeTrueAlleleFreq){
-			std::string temp;
-			getline(*trueFreq, temp);
-			std::vector<std::string> tmp;
-			fillVectorFromString(temp, tmp, "\t");
-			if(tmp.size() != 3)
-				throw "wrong number of columns in true allele frequency file!";
-			std::string chr = tmp[0];
-			int pos = stringToInt(tmp[1]);
-			_trueAlleleFrequency = stringToDouble(tmp[2]);
-			//check if positions match (allele file is 0-based)
-			if(pos != vcfFile.position() - 1)
-				throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
-		}
-
 		//print progress
 		if(_lineCounter % progressFrequency == 0)
 			printProgressFrequencyFiltering(logfile);
