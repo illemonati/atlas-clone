@@ -45,7 +45,6 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdat
 	if(newProposalWidth < 0.00001)
 		newProposalWidth = 0.1;
 
-	logfile->list("adjusting proposal width from " + toString(_sdProposal) + " to " + toString(newProposalWidth));
 	_sdProposal = newProposalWidth;
 
 	if(!(_sdProposal > 0))
@@ -159,11 +158,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 
 		if(newProposalWidth > 1.0)
 			newProposalWidth = 0.1;
-
-		if(l < 5){
-			std::cout << "at locus " << l << " going from proposal width " << proposalWidths[l] << " to " << newProposalWidth << std::endl;
-		}
-
 
 		proposalWidths[l] = newProposalWidth;
 
@@ -348,10 +342,10 @@ void TInbreedingEstimator::initializeAlphaAndBeta(){
 
 
 
-	double trueVal = 0.5;
-	double logTrueVal = log(0.5);
-	alpha.update(logTrueVal, trueVal);
-	beta.update(logTrueVal, trueVal);
+//	double trueVal = 0.5;
+//	double logTrueVal = log(0.5);
+//	alpha.update(logTrueVal, trueVal);
+//	beta.update(logTrueVal, trueVal);
 
 	logfile->list("Initialized alpha to " + toString(alpha.getNaturalScaleValue()) + " and beta to " + toString(beta.getNaturalScaleValue()));
 }
@@ -503,7 +497,6 @@ bool TInbreedingEstimator::updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate,
 	if(newAlphaOrBeta < 0)
 		throw "proposed new log(alpha) that on natural scale is negative!";
 
-	std::cout << alphaOrBetaToUpdate.variableName << " sumLogsAlleleFreq " << sumLogsAlleleFreq << std::endl;
 	// compute log hastings ratio
 	double logH = numLoci * (randomGenerator.gammaln(newAlphaOrBeta + alphaOrBetaOther.getNaturalScaleValue())
 			+ randomGenerator.gammaln(alphaOrBetaToUpdate.getNaturalScaleValue())
@@ -560,9 +553,23 @@ double TInbreedingEstimator::logProbPGivenAlphaBeta(){
 		sumLogOneMinusFreq += log(1.0 - p[l]);
 	}
 
+//	alpha.update(log(0.5), 0.5);
+//	beta.update(log(0.5), 0.5);
+
 	//add beta density
 	posteriorProbability += (alpha.getNaturalScaleValue()-1.0) * sumLogFreq + (beta.getNaturalScaleValue() - 1.0) * sumLogOneMinusFreq;
-	posteriorProbability += numLoci * (randomGenerator.gammaln(alpha.getNaturalScaleValue() + beta.getNaturalScaleValue()) - randomGenerator.gammaln(alpha.getNaturalScaleValue()) - randomGenerator.gammaln(beta.getNaturalScaleValue()));
+	posteriorProbability += (double) numLoci * (randomGenerator.gammaln(alpha.getNaturalScaleValue() + beta.getNaturalScaleValue()) - randomGenerator.gammaln(alpha.getNaturalScaleValue()) - randomGenerator.gammaln(beta.getNaturalScaleValue()));
+
+	std::cout << "posteriorProbability " << posteriorProbability << std::endl;
+
+	double tmp = 0.0;
+	tmp += (alpha.getNaturalScaleValue()-1.0) * sumLogOneMinusFreq + (beta.getNaturalScaleValue() - 1.0) * sumLogFreq;
+	tmp += (double) numLoci * (randomGenerator.gammaln(alpha.getNaturalScaleValue() + beta.getNaturalScaleValue()) - randomGenerator.gammaln(alpha.getNaturalScaleValue()) - randomGenerator.gammaln(beta.getNaturalScaleValue()));
+
+	std::cout << "tmp " << tmp << std::endl;
+
+	std::cout << "for p=0.2: " << (alpha.getNaturalScaleValue()-1.0) * log(0.2) + (beta.getNaturalScaleValue() - 1.0) * log(0.8);
+	std::cout << "for p=0.8: " << (alpha.getNaturalScaleValue()-1.0) * log(0.8) + (beta.getNaturalScaleValue() - 1.0) * log(0.2);
 
 //	if(posteriorProbability > 0)
 //		throw "logProbPGivenAlphaBeta is larger than 1!";
@@ -667,73 +674,19 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 
 void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params){
 	//open output file
-		std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
-		logfile->list("Will write likelihoods for grid of alpha to '" + tracefile + "'.");
-		gz::ogzstream outP(tracefile.c_str());
-		if(!outP)
-			throw "Failed to open file '" + tracefile + "' for writing!";
-
-		//initialize
-		double alphaValue = 0.0;
-		int numProbs = 100;
-		float step = 2.0 / (float) numProbs;
-		double trueAlpha = 0.5;
-		double trueLogAlpha = log(trueAlpha);
-		beta.update(trueLogAlpha, trueAlpha);
-		std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-		F.update(0.2, true);
-
-		double logLikelihood = 0.0;
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			uint8_t* data = likelihoods.curData();
-			logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
-			if(logLikelihood > 0)
-				throw "likelihood is larger than 1!";
-		}
-
-		double logLikelihoodAllInds = logLikelihood;
-
-		//calculate ll
-		for(int i=0; i<numProbs; ++i){
-			double newAlphaValue = alphaValue + (double) i*step;
-			std::cout << "calculating likelihood for alpha=" << newAlphaValue << std::endl;
-			if(newAlphaValue == 0.0)
-				//a small number
-				newAlphaValue = 0.000000001;
-			double newAlphaValueLog = log(newAlphaValue);
-			alpha.update(newAlphaValueLog, newAlphaValue);
-
-
-			//add P(p|alpha,beta)
-			logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
-			outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
-		}
-		logfile->done();
-
-}
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params){
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodBeta.txt.gz";
-	logfile->list("Will write likelihoods for grid of beta to '" + tracefile + "'.");
+	std::string tracefile = outname + "_logLikelihoodAlpha.txt.gz";
+	logfile->list("Will write likelihoods for grid of alpha to '" + tracefile + "'.");
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
 	//initialize
-	double betaValue = 0.0;
 	int numProbs = 100;
 	float step = 2.0 / (float) numProbs;
-	double trueAlpha = 0.5;
-	double trueLogAlpha = log(trueAlpha);
-	alpha.update(trueLogAlpha, trueAlpha);
 	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
 
 	F.update(0.2, true);
 
-	//calculate ll
 	double logLikelihood = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
@@ -745,30 +698,84 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params)
 
 	double logLikelihoodAllInds = logLikelihood;
 
-
-	//add alpha and beta
+	//calculate ll
 	for(int i=0; i<numProbs; ++i){
-		double newBetaValue = betaValue + (double) i*step;
-		std::cout << "calculating likelihood for beta=" << newBetaValue << std::endl;
-		if(newBetaValue == 0.0)
+		double newValue = (double) i*step;
+		std::cout << "calculating likelihood for alpha and beta =" << newValue << std::endl;
+		if(newValue == 0.0)
 			//a small number
-			newBetaValue = 0.000000001;
-		double newBetaValueLog = log(newBetaValue);
-		beta.update(newBetaValueLog, newBetaValue);
+			newValue = 0.000000001;
+		double newValueLog = log(newValue);
+
+		//only when alpha and beta are equal the beta distribution is symetric and the P(p) = P(1-p),
+		// ---->  true MAF should give the same result as the true allele freq
+		alpha.update(newValueLog, newValue);
+		beta.update(newValueLog, newValue);
 
 
 		//add P(p|alpha,beta)
 		logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
-		outP << beta.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+		outP << alpha.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
 	}
 	logfile->done();
+
 }
+
+//void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params){
+//	//open output file
+//	std::string tracefile = outname + "_logLikelihoodBeta.txt.gz";
+//	logfile->list("Will write likelihoods for grid of beta to '" + tracefile + "'.");
+//	gz::ogzstream outP(tracefile.c_str());
+//	if(!outP)
+//		throw "Failed to open file '" + tracefile + "' for writing!";
+//
+//	//initialize
+//	double betaValue = 0.0;
+//	int numProbs = 100;
+//	float step = 2.0 / (float) numProbs;
+//	double trueAlpha = 0.5;
+//	double trueLogAlpha = log(trueAlpha);
+//	alpha.update(trueLogAlpha, trueAlpha);
+//	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+//
+//	F.update(0.2, true);
+//
+//	//calculate ll
+//	double logLikelihood = 0.0;
+//	long l = 0;
+//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		uint8_t* data = likelihoods.curData();
+//		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+//		if(logLikelihood > 0)
+//			throw "likelihood is larger than 1!";
+//	}
+//
+//	double logLikelihoodAllInds = logLikelihood;
+//
+//
+//	//add alpha and beta
+//	for(int i=0; i<numProbs; ++i){
+//		double newBetaValue = betaValue + (double) i*step;
+//		std::cout << "calculating likelihood for beta=" << newBetaValue << std::endl;
+//		if(newBetaValue == 0.0)
+//			//a small number
+//			newBetaValue = 0.000000001;
+//		double newBetaValueLog = log(newBetaValue);
+//		beta.update(newBetaValueLog, newBetaValue);
+//
+//
+//		//add P(p|alpha,beta)
+//		logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
+//		outP << beta.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+//	}
+//	logfile->done();
+//}
 
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
 
 //	numAcceptedF += updateF();
-////
+//
 //	long l = 0;
 //	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 ////		if(l == 3){
@@ -788,7 +795,6 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//alpha
 	numAcceptedAlpha += updateAlphaOrBeta(alpha, beta, sumLogP);
 	//beta
-//	beta.update(alpha.getLogValue(), alpha.getNaturalScaleValue());
 	numAcceptedBeta += updateAlphaOrBeta(beta, alpha, sumLogOneMinusP);
 }
 

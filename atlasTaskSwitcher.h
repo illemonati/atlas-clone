@@ -61,11 +61,11 @@ public:
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 			if(parameters->parameterExists("llAlpha"))
 				inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
-			if(parameters->parameterExists("llBeta"))
-				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
-			if(parameters->parameterExists("llP"))
+//			if(parameters->parameterExists("llBeta"))
+//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
+			else if(parameters->parameterExists("llP"))
 				inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
-			if(parameters->parameterExists("llF"))
+			else if(parameters->parameterExists("llF"))
 				inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
 			else
 				throw "define parameter for which to calculate likelihood surface!";
