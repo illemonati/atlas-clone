@@ -60,7 +60,7 @@ public:
 		} else if(task == "inbreedingLikelihood"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 			if(parameters->parameterExists("llAlpha"))
-				inbreedingEstimator.writeLikelihoodForDebuggingAlpha(*parameters);
+				inbreedingEstimator.writeLikelihoodForDebuggingGamma(*parameters);
 //			if(parameters->parameterExists("llBeta"))
 //				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
 			else if(parameters->parameterExists("llP"))

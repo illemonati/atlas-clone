@@ -73,16 +73,15 @@ public:
 // alphaOrBeta
 //---------------------------
 
-class TAlphaOrBeta{
+class TGamma{
 private:
-	double _alphaOrBeta;
-	double _logAlphaOrBeta;
+	double _gamma;
+	double _logGamma;
 public:
-	std::string variableName;
 	double proposalWidth;
 
-	TAlphaOrBeta();
-	TAlphaOrBeta(std::string VariableName, double & ProposalWidth);
+	TGamma();
+	TGamma(double & ProposalWidth);
 	void update(const double & newLogValue, const double & newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
@@ -108,8 +107,7 @@ private:
 	double sdF;
 	int numAcceptedF;
 	int* numAcceptedP;
-	int numAcceptedAlpha;
-	int numAcceptedBeta;
+	int numAcceptedGamma;
 	int numBurnins;
 	int burninLength;
 	int thinning;
@@ -122,16 +120,15 @@ private:
 	TInbreedingF F;
 	//std::vector<double> p;
 	TAlleleFreq p;
-	TAlphaOrBeta alpha;
-	TAlphaOrBeta beta;
+	TGamma Gamma;
 
 //	void initializeAlphaBeta();
-	void initializeAlphaAndBeta();
+	void initializeGamma();
 	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
 	bool updateF();
-	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TAlphaOrBeta & alpha, TAlphaOrBeta & beta);
-	bool updateAlphaOrBeta(TAlphaOrBeta & alphaOrBetaToUpdate, TAlphaOrBeta & alphaOrBetaOther, double & sumLogsAlleleFreq);
-	double logProbPGivenAlphaBeta();
+	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma);
+	bool updateGamma();
+	double logProbPGivenGamma();
 	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
@@ -146,8 +143,7 @@ public:
 		delete numAcceptedP;
 	}
 	void runEstimation();
-	void writeLikelihoodForDebuggingAlpha(TParameters & params);
-	void writeLikelihoodForDebuggingBeta(TParameters & params);
+	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);
 };
