@@ -365,7 +365,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	if(startInModelWithF){
 		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
 		F.update(randomGenerator.getExponentialRandomTruncated(lambda, 0, 1), true);
-		F.update(0.2, true);
+//		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
 		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambda);
@@ -553,23 +553,9 @@ double TInbreedingEstimator::logProbPGivenAlphaBeta(){
 		sumLogOneMinusFreq += log(1.0 - p[l]);
 	}
 
-//	alpha.update(log(0.5), 0.5);
-//	beta.update(log(0.5), 0.5);
-
 	//add beta density
 	posteriorProbability += (alpha.getNaturalScaleValue()-1.0) * sumLogFreq + (beta.getNaturalScaleValue() - 1.0) * sumLogOneMinusFreq;
 	posteriorProbability += (double) numLoci * (randomGenerator.gammaln(alpha.getNaturalScaleValue() + beta.getNaturalScaleValue()) - randomGenerator.gammaln(alpha.getNaturalScaleValue()) - randomGenerator.gammaln(beta.getNaturalScaleValue()));
-
-	std::cout << "posteriorProbability " << posteriorProbability << std::endl;
-
-	double tmp = 0.0;
-	tmp += (alpha.getNaturalScaleValue()-1.0) * sumLogOneMinusFreq + (beta.getNaturalScaleValue() - 1.0) * sumLogFreq;
-	tmp += (double) numLoci * (randomGenerator.gammaln(alpha.getNaturalScaleValue() + beta.getNaturalScaleValue()) - randomGenerator.gammaln(alpha.getNaturalScaleValue()) - randomGenerator.gammaln(beta.getNaturalScaleValue()));
-
-	std::cout << "tmp " << tmp << std::endl;
-
-	std::cout << "for p=0.2: " << (alpha.getNaturalScaleValue()-1.0) * log(0.2) + (beta.getNaturalScaleValue() - 1.0) * log(0.8);
-	std::cout << "for p=0.8: " << (alpha.getNaturalScaleValue()-1.0) * log(0.8) + (beta.getNaturalScaleValue() - 1.0) * log(0.2);
 
 //	if(posteriorProbability > 0)
 //		throw "logProbPGivenAlphaBeta is larger than 1!";
@@ -774,15 +760,15 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlpha(TParameters & params
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
 
-//	numAcceptedF += updateF();
-//
-//	long l = 0;
-//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-////		if(l == 3){
-//			uint8_t* data = likelihoods.curData();
-//			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), alpha, beta);
-////		}
-//	}
+	numAcceptedF += updateF();
+
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		if(l == 3){
+			uint8_t* data = likelihoods.curData();
+			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), alpha, beta);
+//		}
+	}
 
 	//sum of log(p) for alpha and log(1-p) for beta
 	//compute sum
