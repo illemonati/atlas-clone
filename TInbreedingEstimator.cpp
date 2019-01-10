@@ -336,9 +336,9 @@ void TInbreedingEstimator::initializeGamma(){
 
 
 
-//	double trueVal = 0.5;
-//	double logTrueVal = log(0.5);
-//	alpha.update(logTrueVal, trueVal);
+	double trueVal = 0.2;
+	double logTrueVal = log(0.2);
+	Gamma.update(logTrueVal, trueVal);
 //	beta.update(logTrueVal, trueVal);
 
 	logfile->list("Initialized gamma to " + toString(Gamma.getNaturalScaleValue()));
@@ -465,15 +465,19 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 	//propose new p
 	double newP = p.proposeNew(locusNum, randomGenerator);
 
+//	Gamma.update(log(0.2), 0.2);
+
 	double logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
 				+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F())
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
 
 
-//	double logH = (Gamma.getNaturalScaleValue() - 1) * (log(newP) - log(p[locusNum]))
-//				+ (beta.getNaturalScaleValue() - 1) * (log(1 - newP) - log(1 - p[locusNum]))
+//	double logHold = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) - log(p[locusNum]))
+//				+ (Gamma.getNaturalScaleValue() - 1.0) * (log(1 - newP) - log(1 - p[locusNum]))
 //				+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F())
 //				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
+//
+//	std::cout << "logH " << logH << " logHold " << logHold << std::endl;
 
 	//accept?
 	if(log(randomGenerator.getRand()) < logH){
@@ -582,6 +586,22 @@ double TInbreedingEstimator::logProbPGivenGamma(){
 	posteriorProbability += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
 	posteriorProbability += (double) numLoci * (randomGenerator.gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator.gammaln(Gamma.getNaturalScaleValue()));
 
+//
+//	//new
+//	double newP = 0.0;
+//	gammaMinusOne = Gamma.getNaturalScaleValue() - 1.0;
+//	newP += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
+//	newP += (double) numLoci * (randomGenerator.gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator.gammaln(Gamma.getNaturalScaleValue()));
+//	std::cout << "newP " << newP << std::endl;
+//
+//	//old
+//	double old = 0.0;
+//	old += (Gamma.getNaturalScaleValue()-1.0) * sumLogFreq + (Gamma.getNaturalScaleValue() - 1.0) * sumLogOneMinusFreq;
+//	old += (double) numLoci * (randomGenerator.gammaln(Gamma.getNaturalScaleValue() + Gamma.getNaturalScaleValue()) - randomGenerator.gammaln(Gamma.getNaturalScaleValue()) - randomGenerator.gammaln(Gamma.getNaturalScaleValue()));
+//	std::cout << "old " << old << std::endl;
+
+
+
 //	if(posteriorProbability > 0)
 //		throw "logProbPGivenGamma is larger than 1!";
 	return posteriorProbability;
@@ -596,7 +616,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
 
 	//initialize
-	double trueGamma = 0.5;
+	double trueGamma = 0.2;
 	double trueLogGamma = log(trueGamma);
 	Gamma.update(trueLogGamma, trueGamma);
 
@@ -780,24 +800,16 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 
 	numAcceptedF += updateF();
 
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		if(l == 3){
-			uint8_t* data = likelihoods.curData();
-			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
-//		}
-	}
+//	long l = 0;
+//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+////		if(l == 3){
+//			uint8_t* data = likelihoods.curData();
+//			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
+////		}
+//	}
 
-	//sum of log(p) for alpha and log(1-p) for beta
-	//compute sum
-	double sumLogP = 0, sumLogOneMinusP = 0;
-	for (unsigned int l = 0; l < numLoci; l++){
-		sumLogP += log(p[l]);
-		sumLogOneMinusP += log(1 - p[l]);
-	}
-
-	//Gamma
-	numAcceptedGamma += updateGamma();
+//	//Gamma
+//	numAcceptedGamma += updateGamma();
 }
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
