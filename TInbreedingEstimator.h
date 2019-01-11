@@ -45,17 +45,18 @@ public:
 //---------------------------
 class TAlleleFreq{
 private:
-	float* proposalWidths;
 	double* sumIterations;
 	double* sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
+	double minAlleleFreq;
 
 public:
 	long numLoci;
+	float* proposalWidths;
 
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, float initialProposalWidth);
+	TAlleleFreq(std::vector<double> & P, float initialProposalWidth, int numSamples);
 	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
@@ -120,6 +121,8 @@ private:
 	TInbreedingF F;
 	//std::vector<double> p;
 	TAlleleFreq p;
+	bool trueAlleleFreqProvided;
+	std::vector<double> trueAlleleFreq;
 	TGamma Gamma;
 
 //	void initializeAlphaBeta();
@@ -142,7 +145,7 @@ public:
 	~TInbreedingEstimator(){
 		delete numAcceptedP;
 	}
-	void runEstimation();
+	void runEstimation(TParameters & params);
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);

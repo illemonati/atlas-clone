@@ -110,26 +110,29 @@ TAlleleFreq::TAlleleFreq(){
 	proposalWidths = NULL;
 	sumIterations = NULL;
 	sumOfSquaresIterations = NULL;
+	minAlleleFreq = -1.0;
 }
 
 
-TAlleleFreq::TAlleleFreq(std::vector<double> & P, float initialProposalWidth){
+TAlleleFreq::TAlleleFreq(std::vector<double> & P, float initialProposalWidthFactor, int numSamples){
 	alleleFreq = P;
 	numLoci = alleleFreq.size();
 	proposalWidths = new float[numLoci];
 	sumIterations = new double[numLoci];
 	sumOfSquaresIterations = new double[numLoci];
+	minAlleleFreq = 1.0 / (double) numSamples / 10.0;
 	//init proposal widths and check range of p
 	for(int l=0; l<numLoci; ++l){
-		proposalWidths[l] = initialProposalWidth;
 		sumIterations[l] = 0.0;
 		sumOfSquaresIterations[l] = 0.0;
-		if(alleleFreq[l] == 0)
+		if(alleleFreq[l] < minAlleleFreq)
 			//TODO: is it ok to approximate like this?
 			//small number
-			alleleFreq[l] = 0.000000000001;
-		else if(alleleFreq[l] == 1)
-			alleleFreq[l] = 0.99999999999;
+			alleleFreq[l] = minAlleleFreq;
+		else if(alleleFreq[l] > 1.0 - minAlleleFreq)
+			alleleFreq[l] = 1.0 - minAlleleFreq;
+		proposalWidths[l] = initialProposalWidthFactor * alleleFreq[l];
+
 	}
 }
 
@@ -148,18 +151,31 @@ void TAlleleFreq::setToValue(double fixedValue){
 void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates){
 	//adjust proposal with for p
 	for(long l=0; l<numLoci; ++l){
+		if(numAcceptedP[l] == 0){
+			std::cout << "!!!!!!!!! acceptance rate is zero for locus " << l << std::endl;
+//			double minFreq = 1.0 / (double) numSamples;
+//			alleleFreq[l] = minFreq;
+			proposalWidths[l] *= 0.1;
+			continue;
+		}
+
 		double newProposalWidth = proposalWidths[l];
 		newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates * 3.0;
 
 		if(newProposalWidth / proposalWidths[l] < 0.1)
 			newProposalWidth = 0.1 * proposalWidths[l];
 		else if(proposalWidths[l] / newProposalWidth < 0.1)
-			newProposalWidth = 10 * proposalWidths[l];
+			newProposalWidth = 10.0 * proposalWidths[l];
 
-		if(newProposalWidth > 1.0)
-			newProposalWidth = 0.1;
+		if(newProposalWidth > 0.5)
+			newProposalWidth = 0.5;
+
+		if(l == 0)
+			std::cout << "old proposalWidths[0] " << proposalWidths[l] << " newProposalWidth " << newProposalWidth << std::endl;
+
 
 		proposalWidths[l] = newProposalWidth;
+
 
 		if(proposalWidths[l] <= 0)
 			throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
@@ -171,32 +187,29 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 void TAlleleFreq::update(long & index, double value){
 	if(value < 0)
 		throw "updating allele freq at locus " + toString(index) + " to negative value!";
-	if(value == 0)
+	if(alleleFreq[index] < minAlleleFreq)
 		//TODO: is it ok to approximate like this?
 		//small number
-		value = 0.000000000001;
-	else if(value == 1)
-		value = 0.99999999999;
+		alleleFreq[index] = minAlleleFreq;
+	else if(alleleFreq[index] > 1.0 - minAlleleFreq)
+		alleleFreq[index] = 1.0 - minAlleleFreq;
 	alleleFreq[index] = value;
 	sumIterations[index] += value;
-	sumOfSquaresIterations[index] += value;
+	sumOfSquaresIterations[index] += value*value;
 }
 
 double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator & randomGenerator){
 //	newAlleleFreq[G][l] = fabs(alleleFreq[G][l] + (randomGenerator.getRand()-0.5) * proposalWidthFrequencies[G][l]);
 
-	double newP = fabs(alleleFreq[locusNum] + randomGenerator.getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
+	double newP = alleleFreq[locusNum] + randomGenerator.getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0;
+
 	//is proposed p outside range [0,1]
-	while(newP > 1 || newP < 0){
-		//mirror
-		if(newP < 0){
+	if(newP < minAlleleFreq){
 //			std::cout << "mirroring p at 0: " << newP << " to " << -newP << std::endl;
-			newP = -newP;
-		}
-		if(newP > 1){
+		newP = 2.0*minAlleleFreq - newP;
+	} else if(newP > 1.0 - minAlleleFreq){
 //			std::cout << "mirroring p at 1: " << newP << " to " << 2 - newP << std::endl;
-			newP = 2 - newP;
-		}
+			newP = 2.0 * (1.0 - minAlleleFreq) - newP;
 	}
 	return newP;
 }
@@ -210,7 +223,7 @@ double TAlleleFreq::getPosteriorVariance(unsigned long & index, int numUpdates){
 }
 
 //---------------------------
-// alphaOrBeta
+// gamma
 //---------------------------
 
 TGamma::TGamma(){
@@ -244,7 +257,7 @@ void TGamma::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	else if(proposalWidth / newProposalWidth < 0.1)
 		newProposalWidth = 10 * proposalWidth;
 	if(newProposalWidth > 1.0)
-		newProposalWidth = 0.1;
+		newProposalWidth = 1.0;
 
 	proposalWidth = newProposalWidth;
 
@@ -359,27 +372,29 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	if(startInModelWithF){
 		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
 		F.update(randomGenerator.getExponentialRandomTruncated(lambda, 0, 1), true);
-//		F.update(0.2, true);
+		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
 		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambda);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	}
 
-	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelP", 0.01);
+	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelPFactor", 1);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of log(alpha) and log(beta)");
 
 	//p
 	std::vector<double> tmp2;
 	if(parameters.parameterExists("trueAlleleFreq")){
 		tmp2 = likelihoods.donateTrueAlleleFrequencies();
+		trueAlleleFreq = tmp2;
+		trueAlleleFreqProvided = true;
 		logfile->list("initializing allele frequencies to true values read from trueAlleleFreq file");
-
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
 		logfile->list("initializing allele frequencies to values estimated from sample genotype likelihoods");
+		trueAlleleFreqProvided = false;
 	}
-	p = TAlleleFreq(tmp2, widthProposalKernelP);
+	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals());
 	if(parameters.parameterExists("trueAlleleFreq"))
 			std::cout << "first 5 true p: " << p[0] << "," << p[1] << "," << p[2] << "," << p[3] << "," << p[4] << std::endl;
 
@@ -650,7 +665,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 
 void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & params){
 	//which locus to update
-	long index = 4;
+	long index = 0;
 
 	//open output file
 	std::string tracefile = outname + "_logLikelihoodP[" + toString(index) + "].txt.gz";
@@ -662,11 +677,11 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
 
 	//initialize
-	double trueGamma = 0.5;
+	double trueGamma = 0.2;
 	double trueLogGamma = log(trueGamma);
 	Gamma.update(trueLogGamma, trueGamma);
 
-	F.update(0.3, true);
+	F.update(0.2, true);
 
 
 	//make grid
@@ -800,16 +815,16 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 
 	numAcceptedF += updateF();
 
-//	long l = 0;
-//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-////		if(l == 3){
-//			uint8_t* data = likelihoods.curData();
-//			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
-////		}
-//	}
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		if(l == 3){
+			uint8_t* data = likelihoods.curData();
+			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
+//		}
+	}
 
-//	//Gamma
-//	numAcceptedGamma += updateGamma();
+	//Gamma
+	numAcceptedGamma += updateGamma();
 }
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
@@ -837,11 +852,18 @@ void TInbreedingEstimator::adjustProposalWidths(){
 }
 
 void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out){
-	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
-			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[4] << std::endl;;
+//	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
+//			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
+
+	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue();
+	for(int l=0; l<100; ++l){
+		out << "\t" << p[l];
+	}
+	out << "\n";
+
 }
 
-void TInbreedingEstimator::runEstimation(){
+void TInbreedingEstimator::runEstimation(TParameters & params){
 	logfile->startIndent("Running MCMC to estimate inbreeding coefficient F and the allele frequency distribution:");
 
 	//open MCMC output file
@@ -858,8 +880,13 @@ void TInbreedingEstimator::runEstimation(){
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
 	//write headers
-	out << "F\talpha\talphaLog\tp[0]\tp[1]\tp[2]\tp[3]\tp[4]\n";
-	outP << "param\tmean_posterior\tvar_posterior\n";
+//	out << "F\talpha\talphaLog\tp[0]\tp[1]\tp[2]\tp[3]\tp[117]\n";
+	out << "F\talpha\talphaLog";
+	for(int l=0; l<100; ++l){
+		out << "\tp[" << l << "]";
+	}
+	out << "\n";
+	outP << "param\tmean_posterior\tvar_posterior\tacceptance_rate\tproposalWidth\ttrue_alleleFreq\n";
 
 	//---------------------------
 	//run Burnin(s)
@@ -871,7 +898,7 @@ void TInbreedingEstimator::runEstimation(){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration(i);
-			//writeParameterEstimatesOfIteration(out);
+			writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
@@ -925,13 +952,18 @@ void TInbreedingEstimator::runEstimation(){
 
 	//results
 	printAcceptanceRates(numIterations);
-	outP << "modelWithF\t" << F.posteriorProbModelWithF() << "\t-\n";
+	outP << "modelWithF\t" << F.posteriorProbModelWithF() << "\t-\t-\t-\t-\n";
 	for(unsigned long l=0; l<numLoci; ++l){
-		outP << "p[" << l << "]\t" << p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations) << "\n";
+		outP << "p[" << l << "]\t" << p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedP[l] / (double) numIterations << "\t" << p.proposalWidths[l];
+		if(trueAlleleFreqProvided)
+			outP << "\t" << trueAlleleFreq[l];
+		outP << "\n";
 	}
 
 	//clean up
 	logfile->endIndent();
 	out.close();
 	outP.close();
+
+	writeLikelihoodForDebuggingGamma(params);
 }

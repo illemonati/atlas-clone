@@ -56,10 +56,10 @@ public:
 			alleleCountEst.estimateAlleleCounts(*parameters);
 		} else if(task == "estimateInbreeding"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
-			inbreedingEstimator.runEstimation();
+			inbreedingEstimator.runEstimation(*parameters);
 		} else if(task == "inbreedingLikelihood"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
-			if(parameters->parameterExists("llAlpha"))
+			if(parameters->parameterExists("llGamma"))
 				inbreedingEstimator.writeLikelihoodForDebuggingGamma(*parameters);
 //			if(parameters->parameterExists("llBeta"))
 //				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
