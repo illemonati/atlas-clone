@@ -1571,7 +1571,7 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 	gz::ogzstream outFreqMAF;
 	if(writeTrueAlleleFreq){
 		outFreqMAF.open(alleleFreqFileMAF.c_str());
-		if(!outFreq)
+		if(!outFreqMAF)
 			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
 	}
 
@@ -1626,8 +1626,10 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				ref[l] = ancestral;
 		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
-			if(writeTrueAlleleFreq)
+			if(writeTrueAlleleFreq){
 				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << 0 << std::endl;
+			}
 		}
 	}
 	outFreq.close();

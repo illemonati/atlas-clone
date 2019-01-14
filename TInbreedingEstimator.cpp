@@ -219,7 +219,7 @@ double TAlleleFreq::getPosteriorMean(unsigned long & index, int numUpdates){
 }
 
 double TAlleleFreq::getPosteriorVariance(unsigned long & index, int numUpdates){
-	return sumOfSquaresIterations[index] / (double) numUpdates - getPosteriorMean(index, numUpdates);
+	return sumOfSquaresIterations[index] / (double) numUpdates - getPosteriorMean(index, numUpdates)*getPosteriorMean(index, numUpdates);
 }
 
 //---------------------------
@@ -898,7 +898,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration(i);
-			writeParameterEstimatesOfIteration(out);
+//			writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
