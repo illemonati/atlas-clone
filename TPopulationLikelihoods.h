@@ -151,6 +151,7 @@ private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
+	TLog* logfile;
 
 	// data on individuals
 	TPopulationSamples samples;
@@ -167,9 +168,29 @@ private:
 
 public:
 	TVcfFilter(TParameters & Parameters, TLog* logfile);
-    void filterVCF(TParameters & Parameters, TLog* logfile);
+    void filterVCF(TParameters & Parameters);
 
 
+};
+
+//------------------------------------------------
+//TAlleleFreqEstimator
+//------------------------------------------------
+class TAlleleFreqEstimator{
+	// about vcf-file
+	std::string vcfFilename;
+	bool vcfRead;
+	TLog* logfile;
+
+	// data on individuals
+	TPopulationSamples samples;
+
+	//data on loci
+	long _numLoci;
+
+public:
+	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);
+    void estimateAlleleFreq(TParameters & Parameters);
 };
 
 //-------------------------------------------------

@@ -50,10 +50,13 @@ public:
 			majorMinor.estimateMajorMinor(*parameters);
 		} else if(task == "filterVCF"){
 			TVcfFilter vcfFilter(*parameters, logfile);
-			vcfFilter.filterVCF(*parameters, logfile);
+			vcfFilter.filterVCF(*parameters);
 		} else if(task == "estimateAlleleCounts"){
 			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
 			alleleCountEst.estimateAlleleCounts(*parameters);
+		} else if(task == "estimateAlleleFreq"){
+			TAlleleFreqEstimator alleleFreqEstimator(*parameters, logfile);
+			alleleFreqEstimator.estimateAlleleFreq(*parameters);
 		} else if(task == "estimateInbreeding"){
 			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
 			inbreedingEstimator.runEstimation(*parameters);
