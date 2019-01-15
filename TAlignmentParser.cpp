@@ -56,6 +56,7 @@ TAlignmentParser::TAlignmentParser(){
 	trimReads = false;
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
+	applyFragmentLengthFilter = false;
 
 	//details
 	length = 0;
@@ -168,6 +169,10 @@ void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
 	minQual = MinQual;
 	maxQual = MaxQual;
 };
+
+void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
+	applyFragmentLengthFilter = filterYesNo;
+}
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
 	minQualForPrinting = minQual;
@@ -464,7 +469,7 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
 	Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 	(deletions in aligned bases are represented as dashes) */
-	if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
+	if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 		logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 		passedFilters = false;
 	}

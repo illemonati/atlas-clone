@@ -176,6 +176,16 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		logfile->list("Will keep duplicate reads.");
 	}
 
+	if(params.parameterExists("dontFilterReadsLongerFragment")){
+		bool filter = false;
+		alignmentParser.setApplyFragmentLengthFilter(filter);
+	} else {
+		bool filter = true;
+		alignmentParser.setApplyFragmentLengthFilter(filter);
+
+	}
+
+
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
 	if(params.parameterExists("chr")){
