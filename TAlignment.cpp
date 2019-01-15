@@ -56,9 +56,30 @@ TAlignment::TAlignment(){
 }
 
 TAlignment::TAlignment(unsigned int MaxSize){
+	std::cout << "construction alignment with maxSize" << std::endl;
 	TAlignment();
 	maxSize = MaxSize;
-	initStorage();
+//	initStorage();
+
+
+
+
+	clear();
+	bases = new TBase[maxSize];
+
+	//other
+	qualityOriginal = new int[maxSize];
+
+	//soft clipped data
+	softClippedLength = new int[2];
+	softClippedBase = new char*[2];
+	softClippedQuality = new char*[2];
+	softClippedBase[0] = new char[maxSize];
+	softClippedBase[1] = new char[maxSize];
+	softClippedQuality[0] = new char[maxSize];
+	softClippedQuality[1] = new char[maxSize];
+
+	storageInitialized = true;
 }
 
 TAlignment::TAlignment(const TAlignment & Alignment){
@@ -127,22 +148,24 @@ void TAlignment::clear(){
 }
 
 void TAlignment::initStorage(){
-	clear();
-	bases = new TBase[maxSize];
-
-	//other
-	qualityOriginal = new int[maxSize];
-
-	//soft clipped data
-	softClippedLength = new int[2];
-	softClippedBase = new char*[2];
-	softClippedQuality = new char*[2];
-	softClippedBase[0] = new char[maxSize];
-	softClippedBase[1] = new char[maxSize];
-	softClippedQuality[0] = new char[maxSize];
-	softClippedQuality[1] = new char[maxSize];
-
-	storageInitialized = true;
+	throw "should not be here!";
+	std::cout << "initializing storage for alignment " << alignmentName << " is reverse" << isReverseStrand << std::endl;
+//	clear();
+//	bases = new TBase[maxSize];
+//
+//	//other
+//	qualityOriginal = new int[maxSize];
+//
+//	//soft clipped data
+//	softClippedLength = new int[2];
+//	softClippedBase = new char*[2];
+//	softClippedQuality = new char*[2];
+//	softClippedBase[0] = new char[maxSize];
+//	softClippedBase[1] = new char[maxSize];
+//	softClippedQuality[0] = new char[maxSize];
+//	softClippedQuality[1] = new char[maxSize];
+//
+//	storageInitialized = true;
 
 }
 

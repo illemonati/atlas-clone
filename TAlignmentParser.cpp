@@ -133,8 +133,11 @@ TAlignmentParser::~TAlignmentParser(){
 		delete recalObject;
 	if(pmdObjects)
 		delete[] pmdObjects;
-	if(oldAlignmentInitialized)
+	if(oldAlignmentInitialized){
+		std::cout << "!!!!!!!! about to delete old alignment" << std::endl;
 		delete oldAlignment;
+		std::cout << "!!!!!!deleted old alignment!" << std::endl;
+	}
 }
 
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
