@@ -5,10 +5,10 @@
  *      Author: vivian
  */
 
-#ifndef TVCFTEST_H_
-#define TVCFTEST_H_
+#ifndef TESTS_TVCFTEST_H_
+#define TESTS_TVCFTEST_H_
 
-#include "atlasTaskSwitcher.h"
+#include "../atlasTaskSwitcher.h"
 #include "TAtlasTest.h"
 
 #include <vector>
@@ -31,4 +31,4 @@ public:
 
 };
 
-#endif /* TVCFTEST_H_ */
+#endif /* TESTS_TVCFTEST_H_ */

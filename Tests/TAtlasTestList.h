@@ -11,8 +11,9 @@
 #include "TAtlasTest.h"
 #include "TAtlasTestRecalibration.h"
 #include "TAtlasTestPMD.h"
+#include "../TParameters.h"
 #include "TVcfTest.h"
-#include "TParameters.h"
+#include "TAtlasTestMergePairs.h"
 
 
 //------------------------------------------
@@ -54,7 +55,7 @@ public:
 		testMap.emplace_back("PMDEmpiric", &createInstance<TAtlasTest_PMDEmpiric>);
 		testMap.emplace_back("theta", &createInstance<TAtlasTest_theta>);
 		testMap.emplace_back("invariantBed", &createInstance<TAtlasTest_invariantBed>);
-
+		testMap.emplace_back("mergePairs", &createInstance<TAtlasTest_mergePairs>);
 
 		//fill map of test suites
 		//Note: suites and tests within suites will be initialized in this order!

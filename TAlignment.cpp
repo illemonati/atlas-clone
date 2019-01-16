@@ -8,7 +8,6 @@
 #include "TAlignment.h"
 
 TAlignment::TAlignment(){
-	std::cout << "in simple constructor" << std::endl;
 	//details
 	empty = true;
 	maxSize = 0;
@@ -64,7 +63,6 @@ TAlignment::TAlignment(unsigned int MaxSize){
 }
 
 TAlignment::TAlignment(const TAlignment & Alignment){
-	std::cout << "in copy constructor" << std::endl;
 	TAlignment();
 
 	//details
@@ -95,15 +93,10 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 	initStorage();
 
-	std::cout << "in copy constructor, copying from " << Alignment.alignmentName << " isRev " << Alignment.isReverseStrand << std::endl;
-	//soft clipped data
+	//copy data from arrays
 	softClippedLength = new int[2];
 	softClippedEntry = Alignment.softClippedEntry;
 	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
-//	softClippedBase = new char*[2];
-//	softClippedQuality = new char*[2];
-	std::cout << "there are " << Alignment.softClippedLength[0] << " and " << Alignment.softClippedLength[1] << " softclipped entries" << std::endl;
-
 	std::copy(Alignment.softClippedBase[0], Alignment.softClippedBase[0] + Alignment.softClippedLength[0], softClippedBase[0]);
 	std::copy(Alignment.softClippedBase[1], Alignment.softClippedBase[1] + Alignment.softClippedLength[1], softClippedBase[1]);
 
@@ -122,10 +115,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
 	std::copy(Alignment.qualityOriginal, Alignment.qualityOriginal + Alignment.maxSize, qualityOriginal);
-
-
-
-	std::cout << "done with copy constructor" << std::endl;
 
 	storageInitialized = true;
 
@@ -165,19 +154,8 @@ void TAlignment::initStorage(){
 void TAlignment::freeStorage(){
 	std::cout << "freeing storage of alignment " << std::endl;//<< alignmentName << " isReversed " << isReverseStrand << std::endl;
 	if(storageInitialized){
-//		std::cout << "bases " << bases << std::endl;
-//		for(int i=0; i<length; ++i){
-//			std::cout << bases[i].base << std::flush;
-//		}
-//		std::cout << std::endl;
-		std::cout << "storage is initialized!" << std::endl;
-		std::cout << "bases: " << std::flush;
-		std::cout << bases << std::endl;
 		delete[] bases;
-		std::cout << "deleted bases" << std::endl;
 		delete[] qualityOriginal;
-		std::cout << "deleted original quality" << std::endl;
-
 		delete[] softClippedLength;
 		delete[] softClippedBase[0];
 		delete[] softClippedBase[1];
@@ -203,7 +181,6 @@ void TAlignment::freeStorage(){
 
 	}
 	storageInitialized = false;
-	std::cout << "done freeing storage!" << std::endl;
 }
 
 void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){

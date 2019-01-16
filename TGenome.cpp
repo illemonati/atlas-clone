@@ -1958,9 +1958,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
 
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
-		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0))
+		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0)){
+			//no need to keep mate in list anymore
+			readsToOmit.erase(alignment.alignmentName);
 			continue;
-		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
+		}else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 
 			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
@@ -2047,9 +2049,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								break;
 							}
 						}
-						std::cout << "done with inside if loop!" << std::endl;
-						if(!alignmentStorage.empty() && it == alignmentStorage.end())
-							throw "One read of '" + alignment.alignmentName + "' is reverse mate, but forward one has not been read!";
+						if(!alignmentStorage.empty() && it == alignmentStorage.end()){
+							ignoredReads << "The reverse mate of read pair '" << alignment.alignmentName << "' was read before the forward mate!\n";
+							readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
+							continue;
+						}
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;

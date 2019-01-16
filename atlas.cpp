@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TAtlasTesting.h"
+#include "Tests/TAtlasTesting.h"
 #include "atlasTaskSwitcher.h"
 #include "TVcfDiagnostics.h"
 #include "gitversion.h"
