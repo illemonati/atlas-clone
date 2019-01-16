@@ -1994,7 +1994,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 					if(!alignment.isReverseStrand) {
 						//mate on forward strand is always first in bam file
-						std::cout << "created alignment pointer from fwd read" << std::endl;
+						std::cout << "trying to add alignment pointer from fwd read" << std::endl;
 						alignmentStorage.emplace_back(new TAlignment(alignment), false);
 						std::cout << "added fwd read to storage" << std::endl;
 					}

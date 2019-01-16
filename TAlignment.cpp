@@ -8,6 +8,7 @@
 #include "TAlignment.h"
 
 TAlignment::TAlignment(){
+	std::cout << "in simple constructor" << std::endl;
 	//details
 	empty = true;
 	maxSize = 0;
@@ -56,45 +57,17 @@ TAlignment::TAlignment(){
 }
 
 TAlignment::TAlignment(unsigned int MaxSize){
+	std::cout << "in maxSize cstr" << std::endl;
 	TAlignment();
 	maxSize = MaxSize;
 	initStorage();
 }
 
 TAlignment::TAlignment(const TAlignment & Alignment){
-	std::cout << "in copy constructor, copying from " << Alignment.alignmentName << " isRev " << Alignment.isReverseStrand << std::endl;
-	//soft clipped data
-	softClippedLength = new int[2];
-	softClippedEntry = Alignment.softClippedEntry;
-	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
-	softClippedBase = new char*[2];
-	softClippedQuality = new char*[2];
-	std::cout << "there are " << Alignment.softClippedLength[0] << " and " << Alignment.softClippedLength[1] << " softclipped entries" << std::endl;
-	for(int e=0; e<2; ++e){
-		for(int b=0; b<Alignment.softClippedLength[e]; ++b){
-			std::cout << "Alignment.softClippedBase[e][b] " << std::flush;
-			std::cout << Alignment.softClippedBase[e][b] << std::endl;
-			softClippedBase[e][b] = Alignment.softClippedBase[e][b];
-			softClippedQuality[e][b] = Alignment.softClippedQuality[e][b];
-
-			std::cout << "this.softClippedBase[e][b] " << std::flush;
-			std::cout << Alignment.softClippedBase[e][b] << std::endl;
-		}
-	}
-//	throw "done";
-
-	bases = new TBase[Alignment.maxSize];
-	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
-//	std::cout << "bases " << bases << std::endl;
-//	for(int i=0; i<length; ++i){
-//		std::cout << bases[i].base << std::flush;
-//	}
-//	std::cout << std::endl;
-	qualityOriginal = new int[Alignment.maxSize];
-	std::copy(Alignment.qualityOriginal, Alignment.qualityOriginal + Alignment.maxSize, qualityOriginal);
+	std::cout << "in copy constructor" << std::endl;
+	TAlignment();
 
 	//details
-	empty = Alignment.empty;
 	bamAlignment = Alignment.bamAlignment;
 	maxSize = Alignment.maxSize;
 	alignmentName = Alignment.alignmentName;
@@ -117,10 +90,44 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	referenceSequence = Alignment.referenceSequence;
 	numInsertions = Alignment.numInsertions;
 	numDeletions = Alignment.numDeletions;
-	storageInitialized = Alignment.storageInitialized;
+
+	empty = false;
+
+	initStorage();
+
+	std::cout << "in copy constructor, copying from " << Alignment.alignmentName << " isRev " << Alignment.isReverseStrand << std::endl;
+	//soft clipped data
+	softClippedLength = new int[2];
+	softClippedEntry = Alignment.softClippedEntry;
+	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
+//	softClippedBase = new char*[2];
+//	softClippedQuality = new char*[2];
+	std::cout << "there are " << Alignment.softClippedLength[0] << " and " << Alignment.softClippedLength[1] << " softclipped entries" << std::endl;
+
+	std::copy(Alignment.softClippedBase[0], Alignment.softClippedBase[0] + Alignment.softClippedLength[0], softClippedBase[0]);
+	std::copy(Alignment.softClippedBase[1], Alignment.softClippedBase[1] + Alignment.softClippedLength[1], softClippedBase[1]);
+
+//	for(int e=0; e<2; ++e){
+//		for(int b=0; b<Alignment.softClippedLength[e]; ++b){
+//			std::cout << "Alignment.softClippedBase[e][b] " << std::flush;
+//			std::cout << Alignment.softClippedBase[e][b] << std::endl;
+//			softClippedBase[e][b] = Alignment.softClippedBase[e][b];
+//			softClippedQuality[e][b] = Alignment.softClippedQuality[e][b];
+//
+//			std::cout << "this.softClippedBase[e][b] " << std::flush;
+//			std::cout << Alignment.softClippedBase[e][b] << std::endl;
+//		}
+//	}
+//	throw "done";
+
+	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
+	std::copy(Alignment.qualityOriginal, Alignment.qualityOriginal + Alignment.maxSize, qualityOriginal);
+
+
 
 	std::cout << "done with copy constructor" << std::endl;
-//	throw "done!";
+
+	storageInitialized = true;
 
 }
 
@@ -132,13 +139,14 @@ void TAlignment::clear(){
 	recalibrated = false;
 	changed = false;
 	passedFilters = false;
+
 }
 
 void TAlignment::initStorage(){
 	clear();
-	bases = new TBase[maxSize];
 
-	//other
+	//data
+	bases = new TBase[maxSize];
 	qualityOriginal = new int[maxSize];
 
 	//soft clipped data
