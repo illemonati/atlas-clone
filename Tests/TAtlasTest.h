@@ -8,14 +8,14 @@
 #ifndef TATLASTEST_H_
 #define TATLASTEST_H_
 
-#include "atlasTaskSwitcher.h"
+#include "../atlasTaskSwitcher.h"
 
 #include <vector>
 #include <map>
 
-#include "bamtools/api/BamWriter.h"
-#include "bamtools/api/SamHeader.h"
-#include "bamtools/api/BamAlignment.h"
+#include "../bamtools/api/BamWriter.h"
+#include "../bamtools/api/SamHeader.h"
+#include "../bamtools/api/BamAlignment.h"
 
 //------------------------------------------
 //TAtlasTest

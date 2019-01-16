@@ -1865,9 +1865,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
-
-	throw "got here 0";
-
 	alignmentParser.setParsingToTrue();
 
 	//open a bam file for writing
@@ -1961,9 +1958,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
 
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
-		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0))
+		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0)){
+			//no need to keep mate in list anymore
+			readsToOmit.erase(alignment.alignmentName);
 			continue;
-		else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
+		}else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 
 			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
@@ -1978,8 +1977,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 //			}
 
 			else {
-				throw "got here";
-
 				//if on new chromosome, empty storage
 				if(curChr != alignment.chrNumber){
 					if(alignmentStorage.size() > 0){
@@ -1999,12 +1996,9 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 					if(!alignment.isReverseStrand) {
 						//mate on forward strand is always first in bam file
-						TAlignment* alignmentPointer;
-						alignmentPointer = new TAlignment(alignment);
-						std::cout << "created alignment pointer from fwd read" << std::endl;
-						alignmentStorage.emplace_back(alignmentPointer, false);
-						std::cout << "added fwd read to storage with name " << alignmentPointer->alignmentName << " and address " << alignmentPointer << std::endl;
-//						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), false));
+						std::cout << "trying to add alignment pointer from fwd read" << std::endl;
+						alignmentStorage.emplace_back(new TAlignment(alignment), false);
+						std::cout << "added fwd read to storage" << std::endl;
 					}
 					else if(alignment.isReverseStrand){
 						//find first mate -> should be in storage
@@ -2023,13 +2017,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){
-									std::cout << "first mate was at beginning of storage -> writing!" << std::endl;
+									std::cout << "first mate was at beginning of storage -> going to try writing!" << std::endl;
 									//add reverse to storage (have to add after check otherwise "it" no longer defined)
-									TAlignment* alignmentPointer;
-									alignmentPointer = new TAlignment(alignment);
-									alignmentStorage.emplace_back(alignmentPointer, true);
+									alignmentStorage.emplace_back(new TAlignment(alignment), true);
 //									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
-									std::cout << "added alignment " << alignmentPointer->alignmentName <<  " to storage. isReverse " << alignmentPointer->isReverseStrand << " address " << alignmentPointer <<  std::endl;
+									std::cout << "added rev alignment to storage" <<  std::endl;
 									std::cout << "now starting to check if we can write" << std::endl;
 									//write all that are OK
 									for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
@@ -2057,9 +2049,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								break;
 							}
 						}
-						std::cout << "done with inside if loop!" << std::endl;
-						if(!alignmentStorage.empty() && it == alignmentStorage.end())
-							throw "One read of '" + alignment.alignmentName + "' is reverse mate, but forward one has not been read!";
+						if(!alignmentStorage.empty() && it == alignmentStorage.end()){
+							ignoredReads << "The reverse mate of read pair '" << alignment.alignmentName << "' was read before the forward mate!\n";
+							readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
+							continue;
+						}
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;
