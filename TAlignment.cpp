@@ -62,19 +62,26 @@ TAlignment::TAlignment(unsigned int MaxSize){
 }
 
 TAlignment::TAlignment(const TAlignment & Alignment){
+	std::cout << "in copy constructor, copying from " << Alignment.alignmentName << " isRev " << Alignment.isReverseStrand << std::endl;
 	//soft clipped data
 	softClippedLength = new int[2];
+	softClippedEntry = Alignment.softClippedEntry;
 	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
 	softClippedBase = new char*[2];
 	softClippedQuality = new char*[2];
-	for(int e=0; e<Alignment.softClippedEntry; ++e){
+	std::cout << "there are " << Alignment.softClippedLength[0] << " and " << Alignment.softClippedLength[1] << " softclipped entries" << std::endl;
+	for(int e=0; e<2; ++e){
 		for(int b=0; b<Alignment.softClippedLength[e]; ++b){
-//			std::cout << "Alignment.softClippedBase[e][b] " << std::flush;
-//			std::cout << Alignment.softClippedBase[e][b] << std::endl;
+			std::cout << "Alignment.softClippedBase[e][b] " << std::flush;
+			std::cout << Alignment.softClippedBase[e][b] << std::endl;
 			softClippedBase[e][b] = Alignment.softClippedBase[e][b];
 			softClippedQuality[e][b] = Alignment.softClippedQuality[e][b];
+
+			std::cout << "this.softClippedBase[e][b] " << std::flush;
+			std::cout << Alignment.softClippedBase[e][b] << std::endl;
 		}
 	}
+//	throw "done";
 
 	bases = new TBase[Alignment.maxSize];
 	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
@@ -110,9 +117,10 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	referenceSequence = Alignment.referenceSequence;
 	numInsertions = Alignment.numInsertions;
 	numDeletions = Alignment.numDeletions;
-	softClippedEntry = Alignment.softClippedEntry;
 	storageInitialized = Alignment.storageInitialized;
-	throw "done!";
+
+	std::cout << "done with copy constructor" << std::endl;
+//	throw "done!";
 
 }
 
@@ -147,7 +155,7 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
-	std::cout << "freeing storage of alignment " << alignmentName << " isReversed " << isReverseStrand << std::endl;
+	std::cout << "freeing storage of alignment " << std::endl;//<< alignmentName << " isReversed " << isReverseStrand << std::endl;
 	if(storageInitialized){
 //		std::cout << "bases " << bases << std::endl;
 //		for(int i=0; i<length; ++i){
