@@ -2489,12 +2489,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		allReadGroupsPaired = false;
 	}
 
-	//should we omit some reads that did not pass validateSamFile?
-	bool blacklistGiven = false;
+	//map to store reads that failed filters -> mate cannot be merged
 	std::map <std::string, int> readsToOmit;
 
+	//should we omit some reads that did not pass validateSamFile?
 	if(params.parameterExists("blacklist")){
-		blacklistGiven = true;
 		//open blacklist file
 		std::string blacklist = params.getParameterString("blacklist");
 		logfile->listFlush("Reading reads to be omitted from '" + blacklist + "...");
@@ -2515,8 +2514,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	}
 
 	//open file for reads that had a problem
-	std::ofstream ignoredReads;
-	std::string ignoredReadsFile = outputName + "_ignoredReads.txt";
+	gz::ogzstream ignoredReads;
+	std::string ignoredReadsFile = outputName + "_ignoredReads.txt.gz";
 	logfile->list("Writing filtered out reads to '" + ignoredReadsFile + "'");
 	ignoredReads.open(ignoredReadsFile.c_str());
 	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
@@ -2543,6 +2542,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		if((readsToOmit.count(bamAlignment.Name) > 0)){
 			//no need to keep mate in list anymore
 			readsToOmit.erase(bamAlignment.Name);
+			if(bamAlignment.IsReverseStrand())
+				ignoredReads << "Blacklist: Reverse read of pair with name " << bamAlignment.Name << " because it was in the blacklist\n";
+			else
+				ignoredReads << "Blacklist: Forward read of pair with name " << bamAlignment.Name << " because it was in the blacklist\n";
+
 			continue;
 		}
 		else if(allReadGroupsPaired || pairedReadGroups[readGroups.find(bamAlignment)]){
