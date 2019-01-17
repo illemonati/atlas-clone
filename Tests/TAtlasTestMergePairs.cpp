@@ -9,7 +9,7 @@
 
 
 TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
-	_name = "pmdEmpiricSimulation";
+	_name = "testMerging";
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "TestReadGroup";
@@ -26,13 +26,12 @@ bool TAtlasTest_mergePairs::run(){
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
-	_testParams.addParameter("bam", bamFileName);
+	_testParams.addParameter("bam", filenameTag + ".bam");
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
 	if(!runTGenomeFromInputfile("mergeReads"))
-//		return false;
-		std::cout << "didnt work" << std::endl;
+		return false;
 
 	//3) check if results are OK
 	//--------------------------
@@ -75,23 +74,27 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.InsertSize = 64;
 	bamAlignment.MatePosition = 559;
 	bamAlignment.Bin = 163;
-	bamAlignment.Name = "ST-E00201:183:HFH3GALXX:1:2218:21349:71348_fwd";
-	bamAlignment.QueryBases = "ACAGAGAAAGCAAGGGAATTCCAGAAAAATATCCACTTCTGCTTCACTGACTACACTTAAAGCC";
-	bamAlignment.Qualities = "DAFEGAJGGHDIGHHHJGGGHHHHJGGGGGCGHHHGJGHJGDJGHHGJGJGJFGHGJGGGGHDH";
-	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.Length = 64;
+	bamAlignment.Name = "1st_pair_fwd";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, 50);
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 
 	//2nd mate
+	bamAlignment.AddTag("RG", "Z", readGroupName);
+	bamAlignment.MapQuality = 50;
+	bamAlignment.RefID = 0;
 	bamAlignment.Position = 559;
 	bamAlignment.InsertSize = 64;
 	bamAlignment.MatePosition = 558;
 	bamAlignment.Bin = 83;
-	bamAlignment.Name = "ST-E00201:183:HFH3GALXX:1:2218:21349:71348_rev";
-	bamAlignment.QueryBases = "CAGAGAAAGCAAGGGAATTCCAGAAAAATATCCACTTCTGCTTCACTGACTACACTTAAAGCC";
-	bamAlignment.Qualities = "HJHJHGGJDHGJHHHGGGJHGJHGGGGGGGJHGHHGJHIDHGJGHHIHHHGHGHHGGGDGA@=";
-	bamAlignment.Length = bamAlignment.QueryBases.size();
+	bamAlignment.Length = 63;
+	bamAlignment.Name = "1st_pair_rev";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'B');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, 30);
+	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
@@ -101,10 +104,10 @@ void TAtlasTest_mergePairs::writeBAM(){
 	logfile->done();
 
 	//index BAM file
-	logfile->listFlush("Creating index of BAM file '" + bamFileName + "' ...");
+	logfile->listFlush("Creating index of BAM file '" + filenameTag + ".bam' ...");
 	BamTools::BamReader reader;
-	if(!reader.Open(bamFileName))
-		throw "Failed to open BAM file '" + bamFileName + "' for indexing!";
+	if(!reader.Open(filenameTag + ".bam"))
+		throw "Failed to open BAM file '" + filenameTag + ".bam' for indexing!";
 
 	reader.CreateIndex(BamTools::BamIndex::STANDARD);
 	reader.Close();
@@ -114,22 +117,38 @@ void TAtlasTest_mergePairs::writeBAM(){
 	logfile->endIndent();
 };
 
+bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber){
+	if(bamAlignment.QueryBases.size() != bamAlignment.Qualities.size()){
+		logfile->newLine();
+		logfile->conclude( "Pairnumber " + toString(pairNumber) + ": query bases not same size as qualities!");
+		return false;
+	} if(bamAlignment.Qualities.size() > bamAlignment.InsertSize){
+		logfile->newLine();
+		logfile->conclude( "Pairnumber " + toString(pairNumber) + ": longer than insert size!");
+		return false;
+	}
+
+	return true;
+}
 bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	//BamFile stuff
 	BamTools::BamReader bamReader;
  	BamTools::BamAlignment bamAlignment;
 
 	//open BAM file
-	logfile->list("Reading data from BAM file '" + bamFileName + "'.");
+	logfile->list("Reading data from BAM file '" + bamFileName + ".bam'.");
 	if (!bamReader.Open(bamFileName))
 		throw "Failed to open BAM file '" + bamFileName + "'!";
 	//load index file
 	if(!bamReader.LocateIndex())
-		throw "No index file found for BAM file '" + bamFileName + "'!";
+		throw "No index file found for BAM file '" + filenameTag + ".bam'!";
 
 	//read through BAM
-	while (bamReader.GetNextAlignment(bamAlignment)){
-		std::cout << bamAlignment.QueryBases << std::endl;
-	}
-	return false;
+
+	//1st pair
+	bamReader.GetNextAlignment(bamAlignment);
+	if(!basicChecks(bamAlignment, 1))
+		return false;
+
+	return true;
 }

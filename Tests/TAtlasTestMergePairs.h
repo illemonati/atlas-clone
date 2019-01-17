@@ -22,9 +22,7 @@ private:
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 
-
-
-
+	bool basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber);
 	bool checkMergedBAMFile();
 	void writeBAM();
 
