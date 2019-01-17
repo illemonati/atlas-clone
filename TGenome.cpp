@@ -2510,13 +2510,14 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			if(!vec.empty()) readsToOmit.emplace(vec[0], 1);
 		}
-		logfile->write("done! Read " + toString(lineNum) + " read names");
+		logfile->done();
+		logfile->conclude("Read " + toString(lineNum) + " read names");
 	}
 
 	//open file for reads that had a problem
 	std::ofstream ignoredReads;
 	std::string ignoredReadsFile = outputName + "_ignoredReads.txt";
-	logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
+	logfile->list("Writing filtered out reads to '" + ignoredReadsFile + "'");
 	ignoredReads.open(ignoredReadsFile.c_str());
 	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
 
