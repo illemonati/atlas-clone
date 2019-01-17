@@ -2513,6 +2513,12 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
 
+	//open file for reads that had a problem
+	std::ofstream ignoredReads;
+	std::string ignoredReadsFile = outputName + "_ignoredReads.txt";
+	logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
+	ignoredReads.open(ignoredReadsFile.c_str());
+	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
 
 	//other temp variables
 	long counter = 0;
@@ -2533,19 +2539,28 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
-		if((readsToOmit.count(bamAlignment.Name) > 0))
+		if((readsToOmit.count(bamAlignment.Name) > 0)){
+			//no need to keep mate in list anymore
+			readsToOmit.erase(bamAlignment.Name);
 			continue;
+		}
 		else if(allReadGroupsPaired || pairedReadGroups[readGroups.find(bamAlignment)]){
-
 			if(abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.size()){
 				if(bamAlignment.IsProperPair()){
-					logfile->warning("read " + bamAlignment.Name + " was filtered out because it was longer than the insert size (" + toString(abs(bamAlignment.InsertSize)) + "<" + toString(bamAlignment.AlignedBases.size()) + ")");
-				//	std::cout << "aligned bases: "<< bamAlignment.AlignedBases << std::endl;
+					if(bamAlignment.IsReverseStrand())
+						ignoredReads << "TLENError: Reverse read of pair with name " << bamAlignment.Name << " because it was longer than the insert size (" << abs(bamAlignment.InsertSize) << "<" << bamAlignment.AlignedBases.size() << ")\n";
+					else
+						ignoredReads << "TLENError: Forward read of pair with name " << bamAlignment.Name << " because it was longer than the insert size (" << abs(bamAlignment.InsertSize) << "<" << bamAlignment.AlignedBases.size() << ")\n";
 				}
 				readsToOmit.emplace(bamAlignment.Name, 1);
 				continue;
 
 			} else if(!bamAlignment.IsProperPair() || !bamAlignment.IsPrimaryAlignment()|| bamAlignment.IsDuplicate() || bamAlignment.IsSupplementary() ||(bamAlignment.IsReverseStrand() && bamAlignment.IsMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
+				if(bamAlignment.IsReverseStrand())
+					ignoredReads << "SAMFlagError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
+				else
+					ignoredReads << "SAMFlagError: Forward read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
+				readsToOmit.emplace(bamAlignment.Name, 1);
 				continue;
 			}
 
@@ -2584,7 +2599,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									}
 									alignmentPointer->AlignedBases += bamAlignment.AlignedBases;
 									alignmentPointer->AlignedQualities += bamAlignment.AlignedQualities;
-								} else if(bamAlignment.Position < alignmentPointer->Position) std::cout << "Second mate of read '" << bamAlignment.Name << "' has pos < pos of first mate!";
+								} else if(bamAlignment.Position < alignmentPointer->Position)
+									throw "Second mate of read '" + bamAlignment.Name + "' has pos < pos of first mate!";
 								else {
 									//reads do overlap -> merge them
 									std::string alignment;
@@ -2615,7 +2631,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 										quality += bamAlignment.AlignedQualities.substr(lastOverlapPlusOne - firstOverlap);
 									}
 
-									if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize)) logfile->warning("merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!");
+									if(alignment.length() != abs(bamAlignment.InsertSize) + 1  && alignment.length() != abs(bamAlignment.InsertSize))
+										logfile->warning("merged alignment length of reads " + bamAlignment.Name + " is not equal to original insert size (+1)!");
 
 									//set
 									alignmentPointer->AlignedBases = alignment;
@@ -2639,7 +2656,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								alignmentPointer->InsertSize = 0;
 
 								it->second = true;
-//								if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:1201:7676:94794") std::cout << "aligment " << bamAlignment.Name << "was updated" << std::endl;
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){
@@ -2647,8 +2663,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									//write all that are OK
 									for(; it != alignmentStorage.end(); ++it){
 										if(it->second){
-											bamWriter.SaveAlignment(*(it->first)); //saves the alignment to the bam file
-//											if(bamAlignment.Name == "HWI-ST558:352:C7T9BACXX:1:2101:1301:32927") std::cout << "aligment " << bamAlignment.Name << " was output" << std::endl;
+											bamWriter.SaveAlignment(*(it->first));
 											delete it->first;
 										} else {
 											//first that can not be written -> erase all previous ones!
@@ -2663,7 +2678,9 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							}
 						}
 
-						if(!alignmentStorage.empty() && it == alignmentStorage.end()) throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
+						if(!alignmentStorage.empty() && it == alignmentStorage.end())
+							ignoredReads << "OrderError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because its forward mate has not been read\n";
+//							throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;
@@ -2681,7 +2698,9 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 		//read is in single-end read group
 		else{
-			bamWriter.SaveAlignment(bamAlignment);
+			//add to storage or write
+			if(alignmentStorage.empty()) bamWriter.SaveAlignment(bamAlignment);
+			else alignmentStorage.push_back(std::pair<BamTools::BamAlignment*, bool>(new BamTools::BamAlignment(bamAlignment), true));
 		}
 
 		//report
@@ -2691,6 +2710,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	//close bam writer
 	bamWriter.Close();
+	ignoredReads.close();
 	delete[] pairedReadGroups;
 
 	//report
