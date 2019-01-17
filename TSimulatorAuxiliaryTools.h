@@ -74,12 +74,7 @@ public:
 	};
 
 	void initialize(std::string Filename, TLog* Logfile);
-	void close(){
-		if(chrName != "" && needsWriting)
-			writeRefToFasta();
-		closeFastaFile();
-		freeStorage();
-	};
+	void close();
 
 	void setChr(std::string ChrName, long ChrLength);
 	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);

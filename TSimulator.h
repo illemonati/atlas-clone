@@ -173,6 +173,9 @@ private:
 	double fracPoly, alpha, beta, F;
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
+	bool writeTrueAlleleFreq;
+	std::string alleleFreqFile;
+	std::string alleleFreqFileMAF;
 
 	void fillCumulGenoProb(const double & f);
 	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref);

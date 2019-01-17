@@ -57,10 +57,6 @@ void TSimulator::initializeCommonSettings(TParameters & params){
 	cumulRef[2] = cumulRef[1] + referenceDivergence / 3.0;
 	cumulRef[3] = 1.0;
 
-	//open FASTA file for reference sequences
-	std::string filename = outname + ".fasta";
-	referenceObj.initialize(filename, logfile);
-
 	//read groups
 	initializeReadSimulator(params);
 
@@ -74,6 +70,10 @@ void TSimulator::initializeCommonSettings(TParameters & params){
 	//output name
 	outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
 	logfile->list("Will write output files with tag '" + outname + "'.");
+
+	//open FASTA file for reference sequences
+	std::string filename = outname + ".fasta";
+	referenceObj.initialize(filename, logfile);
 };
 
 //--------------------------------------------------------------
@@ -1276,9 +1276,20 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Log
 		std::vector<std::string> sfsFileNames;
 		params.fillParameterIntoVector("sfs", tmp, ',');
 		repeatIndexes(tmp, sfsFileNames);
+
+		//if a single SFS is given: use it for all chromosomes
+		if(sfsFileNames.size() == 1){
+			for(int i=1; i<chromosomes.size(); ++i)
+				sfsFileNames.emplace_back(sfsFileNames[0]);
+		}
+
+		//check if numbe rof chromosomes given matches number of chromosomes
+		if(sfsFileNames.size() != chromosomes.size())
+			throw "Number of SFS files does not match number of chromosomes!";
+
+		//initialize SFS from files
 		bool folded = params.parameterExists("folded");
-
-
+		initializeSFS(sfsFileNames, folded);
 	} else if(params.parameterExists("theta")){
 		//parse theta from command line
 		std::vector<std::string> tmp;
@@ -1293,7 +1304,6 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Log
 			logfile->list("Will simulate data from chromosome specific SFS with thetas " + concatenateString(thetas, ", "));
 		}
 		initializeSFS(thetas);
-		logfile->endIndent();
 	} else throw "Either argument sfs or theta must be provided to simulate population samples!";
 
 
@@ -1463,6 +1473,15 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	if(F > 0.0) logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
 	if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
 
+	//write true allele freq?
+	writeTrueAlleleFreq = false;
+	if(params.parameterExists("writeTrueAlleleFreq")){
+		alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
+		alleleFreqFileMAF = outname + "_trueMAF.txt.gz";
+		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "' and the MAF ot file '" + alleleFreqFileMAF + "'");
+		writeTrueAlleleFreq = true;
+	}
+
 	//fill mutation table
 	mutTable.fill(baseFreq);
 
@@ -1489,6 +1508,18 @@ void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & h
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//open file to write true allele freq
+	gz::ogzstream outFreq, outFreqMAF;
+	if(writeTrueAlleleFreq){
+		outFreq.open(alleleFreqFile.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+		outFreqMAF.open(alleleFreqFileMAF.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
+
+	}
+
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
 		//polymoprhic or not?
@@ -1499,6 +1530,8 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 
 			//pick allele Frequency
 			double f = randomGenerator->getBetaRandom(alpha, beta);
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
 
 			//simulate genotypes
 			for(int i=0; i<sampleSize; ++i){
@@ -1516,12 +1549,32 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
-		} else
+		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
+		}
 	}
+
+	outFreq.close();
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//open file to write true allele freq
+	gz::ogzstream outFreq;
+	if(writeTrueAlleleFreq){
+		outFreq.open(alleleFreqFile.c_str());
+		if(!outFreq)
+			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
+	}
+
+	gz::ogzstream outFreqMAF;
+	if(writeTrueAlleleFreq){
+		outFreqMAF.open(alleleFreqFileMAF.c_str());
+		if(!outFreqMAF)
+			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
+	}
+
 	//now simulate haplotypes
 	for(int l=0; l<chromosome.length; ++l){
 		//polymoprhic or not?
@@ -1532,6 +1585,18 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 
 			//pick allele Frequency
 			double f = randomGenerator->getBetaRandom(alpha, beta);
+//			double f = 0.2;
+
+			//if simulations go through major minor, the allele freq will be flipped
+			if(writeTrueAlleleFreq && f < 0.5)
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << f << std::endl;
+			else if(writeTrueAlleleFreq && f > 0.5)
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << 1.0 - f << std::endl;
+
+			if(writeTrueAlleleFreq)
+				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
+
+
 			fillCumulGenoProb(f);
 
 			//simulate genotypes
@@ -1559,9 +1624,16 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
-		} else
+		} else {
 			fillhaplotypesMonomoprhic(haplotypes, l, ref);
+			if(writeTrueAlleleFreq){
+				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
+				outFreqMAF << chromosome.name << "\t" << l << "\t" << 0 << std::endl;
+			}
+		}
 	}
+	outFreq.close();
+	outFreqMAF.close();
 };
 
 //--------------------------------------------------------------------

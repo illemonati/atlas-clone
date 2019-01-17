@@ -14,6 +14,8 @@
 #include "TDistanceEstimator.h"
 #include "runSimulations.h"
 #include "TMajorMinor.h"
+#include "TAlleleCountEstimator.h"
+#include "TInbreedingEstimator.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -46,6 +48,30 @@ public:
 		} else if(task == "majorMinor"){
 			TMajorMinor majorMinor(*parameters, logfile);
 			majorMinor.estimateMajorMinor(*parameters);
+		} else if(task == "filterVCF"){
+			TVcfFilter vcfFilter(*parameters, logfile);
+			vcfFilter.filterVCF(*parameters);
+		} else if(task == "estimateAlleleCounts"){
+			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
+			alleleCountEst.estimateAlleleCounts(*parameters);
+		} else if(task == "estimateAlleleFreq"){
+			TAlleleFreqEstimator alleleFreqEstimator(*parameters, logfile);
+			alleleFreqEstimator.estimateAlleleFreq(*parameters);
+		} else if(task == "estimateInbreeding"){
+			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
+			inbreedingEstimator.runEstimation(*parameters);
+		} else if(task == "inbreedingLikelihood"){
+			TInbreedingEstimator inbreedingEstimator(*parameters, logfile);
+			if(parameters->parameterExists("llGamma"))
+				inbreedingEstimator.writeLikelihoodForDebuggingGamma(*parameters);
+//			if(parameters->parameterExists("llBeta"))
+//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(*parameters);
+			else if(parameters->parameterExists("llP"))
+				inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(*parameters);
+			else if(parameters->parameterExists("llF"))
+				inbreedingEstimator.writeLikelihoodForDebuggingF(*parameters);
+			else
+				throw "define parameter for which to calculate likelihood surface!";
 		} else {
 			//now all task that DO require TGenome
 			TGenome genome(logfile, *parameters);

@@ -39,7 +39,6 @@ double TMajorMinorEstimatorBase::calculateLog10Likelihood(double* genotypeFreque
 	return LL;
 };
 
-
 void TMajorMinorEstimatorBase::fillLikelihoods(uint8_t** phred, Genotype* genotypes){
 	for(int i=0; i<numSamples; ++i){
 		int ind = 3*i;
@@ -111,7 +110,8 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(uint8_t** phred){
 	for(int i=0; i<numSamples; ++i){
 		LL_fixed_phred += phred[i][refHomIndex];
 	}
-	variantQuality = LL_fixed_phred - round(-10.0 * L10L);
+
+	variantQuality = round(LL_fixed_phred + 10.0 * L10L);
 };
 
 //---------------------------------------------------
@@ -207,7 +207,7 @@ double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(uint8_t** phred, con
 	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[alleleicCombination]);
 	estimateGenotypeFrequenciesEM(tmpGenotypeFrequencies[alleleicCombination]);
 	return calculateLog10Likelihood(tmpGenotypeFrequencies[alleleicCombination]);
-}
+};
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	//calculate L10L for each allelic combination
@@ -226,7 +226,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
 
 	genotypeFrequencies = tmpGenotypeFrequencies[allelicCombination];
-}
+};
 
 //---------------------------------------------------
 // TMajorMinor
@@ -256,7 +256,7 @@ void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, 
 
 	//write info
 	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	vcf << "##fileformat=VCFv4.2\n";
+	vcf << "##fileformat=VCFv4.3\n";
 	vcf << "##source=ATLAS_GLF_Caller\n";
 	glfReader.writeVCFHeader(vcf, usePhredLikelihoods);
 };
@@ -283,10 +283,27 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
 		MMEstimator = new TMajorMinorEstimatorMLE(glfReader.numSamples(), randomGenerator, maxF);
 	} else throw "Unknown MajorMinor method '" + method + "'!";
+
+	//output
 	bool usePhredLikelihoods = params.parameterExists("phredLik");
+	if(usePhredLikelihoods)
+		logfile->list("Will write likelihoods as integers in phred format (PL tag in VCF).");
+	else
+		logfile->list("Will write log10(likelihoods) as float (GL tag in VCF).");
+
+	//how do we polarize?
+	TMajorMinorPolarize* polarize;
+	std::string pol = params.getParameterStringWithDefault("polarize", "major");
+	if(pol == "major"){
+		logfile->list("Will polarize alleles with major.");
+		polarize = new TMajorMinorPolarize;
+	} else if(pol == "random"){
+		logfile->list("Will polarize alleles at random.");
+		polarize = new TMajorMinorPolarizeRandom(randomGenerator);
+	} else throw "Unknown polarization '" + pol + "'!";
 
 	//think about filters
-	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 0);
+	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 1);
 	if(minSamplesWithData > 0)
 		logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data.");
 	int minVariantQuality = params.getParameterIntWithDefault("minVariantQual", 0);
@@ -323,11 +340,13 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 			//filter on variant quality
 			if(MMEstimator->variantQuality >= minVariantQuality){
+				//polarize
+				polarize->fill(MMEstimator->major, MMEstimator->minor);
 
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
+				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[polarize->ref][polarize->ref], genoMap.genotypeMap[polarize->ref][polarize->alt], genoMap.genotypeMap[polarize->alt][polarize->alt], randomGenerator, usePhredLikelihoods);
 			}
-		} //end filter on missngness
+		} //end filter on missingness
 
 		//report progress
 		if(counter % 1000000 == 0){

@@ -539,7 +539,9 @@ void fillVectorFromStringAnySkipEmpty(std::string s, std::vector<std::string> & 
 			s.erase(0, l+1);
 			l=s.find_first_of(delim);
 		}
-		vec.push_back(s.substr(0,l));
+		tmp=s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty()) vec.push_back(tmp);
 	}
 };
 
@@ -550,6 +552,9 @@ void fillVectorFromStringWhiteSpaceSkipEmpty(const std::string & s, std::vector<
 	fillVectorFromStringAnySkipEmpty(s, vec, " \t\f\v\n\r");
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+//fillVectorFromString
+//--------------------------------------------------------------------------------------------------------------------
 void fillVectorFromString(std::string s, std::vector<std::string> & vec, char delim){
 	vec.clear();
 	if(!s.empty()){
@@ -560,6 +565,45 @@ void fillVectorFromString(std::string s, std::vector<std::string> & vec, char de
 			l=s.find_first_of(delim);
 		}
 		vec.push_back(s.substr(0,l));
+	}
+};
+
+void fillVectorFromString(std::string s, std::vector<int> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		while(l!=std::string::npos){
+			vec.push_back(stringToInt(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		vec.push_back(atoi(s.substr(0,l).c_str()));
+	}
+};
+
+void fillVectorFromString(std::string s, std::vector<long> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		while(l!=std::string::npos){
+			vec.push_back(stringToLong(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		vec.push_back(atol(s.substr(0,l).c_str()));
+	}
+};
+
+void fillVectorFromString(std::string s, std::vector<bool> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		while(l!=std::string::npos){
+			vec.push_back(stringToInt(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		vec.push_back(atoi(s.substr(0,l).c_str()));
 	}
 };
 
@@ -589,6 +633,130 @@ void fillVectorFromString(std::string s, std::vector<double> & vec, char delim){
 	}
 };
 
+//--------------------------------------------------------------------------------------------------------------------
+//fillVectorFromStringSkipEmpty
+//--------------------------------------------------------------------------------------------------------------------
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<std::string> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty()) vec.push_back(tmp);
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty()) vec.push_back(tmp);
+	}
+};
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<int> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty())
+				vec.push_back(stringToInt(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty())
+			vec.push_back(stringToInt(s.substr(0,l)));
+	}
+};
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<long> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty())
+				vec.push_back(stringToLong(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty())
+			vec.push_back(stringToLong(s.substr(0,l)));
+	}
+};
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<bool> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty())
+				vec.push_back(stringToInt(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty())
+			vec.push_back(stringToInt(s.substr(0,l)));
+	}
+};
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<float> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty())
+				vec.push_back(stringToFloat(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty())
+			vec.push_back(stringToFloat(s.substr(0,l)));
+	}
+};
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<double> & vec, char delim){
+	vec.clear();
+	if(!s.empty()){
+		std::string::size_type l=s.find_first_of(delim);
+		std::string tmp;
+		while(l!=std::string::npos){
+			tmp = s.substr(0,l);
+			trimString(tmp);
+			if(!tmp.empty())
+				vec.push_back(stringToDouble(s.substr(0,l)));
+			s.erase(0, l+1);
+			l=s.find_first_of(delim);
+		}
+		tmp = s.substr(0,l);
+		trimString(tmp);
+		if(!tmp.empty())
+			vec.push_back(stringToDouble(s.substr(0,l)));
+	}
+};
+
+//--------------------------------------------------------------------------------------------------------------------
+//fillVectorFromStringAny
+//--------------------------------------------------------------------------------------------------------------------
 void fillVectorFromStringAny(std::string s, std::vector<double> & vec, std::string delim){
 	vec.clear();
 	if(!s.empty()){
@@ -689,19 +857,6 @@ void fillVectorFromStringWhiteSpaceSkipEmptyCheck(const std::string & s, std::ve
 	fillVectorFromStringAnySkipEmptyCheck(s, vec, " \t\f\v\n\r");
 };
 
-void fillVectorFromString(std::string s, std::vector<int> & vec, char delim){
-	vec.clear();
-	if(!s.empty()){
-		std::string::size_type l=s.find_first_of(delim);
-		while(l!=std::string::npos){
-			vec.push_back(stringToInt(s.substr(0,l)));
-			s.erase(0, l+1);
-			l=s.find_first_of(delim);
-		}
-		vec.push_back(atoi(s.substr(0,l).c_str()));
-	}
-};
-
 void fillVectorFromStringAny(std::string s, std::vector<int> & vec, std::string delim){
 	vec.clear();
 	if(!s.empty()){
@@ -772,33 +927,6 @@ void fillVectorFromStringWhiteSpaceSkipEmpty(const std::string & s, std::vector<
 void fillVectorFromStringWhiteSpaceSkipEmptyCheck(const std::string & s, std::vector<int> & vec){
 	fillVectorFromStringAnySkipEmptyCheck(s, vec, " \t\f\v\n\r");
 }
-
-
-void fillVectorFromString(std::string s, std::vector<long> & vec, char delim){
-	vec.clear();
-	if(!s.empty()){
-		std::string::size_type l=s.find_first_of(delim);
-		while(l!=std::string::npos){
-			vec.push_back(stringToLong(s.substr(0,l)));
-			s.erase(0, l+1);
-			l=s.find_first_of(delim);
-		}
-		vec.push_back(atol(s.substr(0,l).c_str()));
-	}
-};
-
-void fillVectorFromString(std::string s, std::vector<bool> & vec, char delim){
-	vec.clear();
-	if(!s.empty()){
-		std::string::size_type l=s.find_first_of(delim);
-		while(l!=std::string::npos){
-			vec.push_back(stringToInt(s.substr(0,l)));
-			s.erase(0, l+1);
-			l=s.find_first_of(delim);
-		}
-		vec.push_back(atoi(s.substr(0,l).c_str()));
-	}
-};
 
 bool fillSequenceFromString(std::string s, std::vector<int> & vec, char delim){
 	vec.clear();

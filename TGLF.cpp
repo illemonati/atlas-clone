@@ -439,7 +439,7 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 
 void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 	std::string parameter = params.getParameterString("glf");
-	//assume that it is a file if no comma in name
+	//assume that GLF file names are given in a file if string does not contain ".gz"
 	if(!stringContains(parameter,".gz")){
 		logfile->list("Reading glf input names from file '" + parameter + "'");
 		std::ifstream in;
@@ -504,9 +504,9 @@ void TGlfMultiReader::_setAllInactive(){
 
 int TGlfMultiReader::_minChrNumberActiveFiles(){
 	int minChr = 9999999;
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
-		if((*it)->chrNumber() < minChr){
-			minChr = (*it)->chrNumber();
+	for(TGlfReader* it : pointerToActiveGLFs){
+		if(it->chrNumber() < minChr){
+			minChr = it->chrNumber();
 		}
 	}
 	return minChr;
@@ -514,9 +514,9 @@ int TGlfMultiReader::_minChrNumberActiveFiles(){
 
 void TGlfMultiReader::_setCurChrName(){
 	//find active file on cur chromosome number and set name
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
-		if((*it)->chrNumber() == _curChrNumber){
-			_curChrName = (*it)->chr();
+	for(TGlfReader* it : pointerToActiveGLFs){
+		if(it->chrNumber() == _curChrNumber){
+			_curChrName = it->chr();
 			break;
 		}
 	}
@@ -524,8 +524,8 @@ void TGlfMultiReader::_setCurChrName(){
 
 void TGlfMultiReader::_prepareParsing(){
 	numActiveFiles = pointerToActiveGLFs.size();
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it)
-		(*it)->rewind();
+	for(TGlfReader* it : pointerToActiveGLFs)
+		it->rewind();
 
 	//start at first chromosome, position 0 (one before first position).
 	_curChrNumber = 0;
@@ -599,27 +599,28 @@ bool TGlfMultiReader::moveToNextChromosome(){
 
 	//advance all active files behind in chromosome number
 	bool allFilesReachedEnd = true;
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
-		while(!(*it)->eof() && (*it)->chrNumber() < _curChrNumber)
-			(*it)->jumpToNextChr();
-		if(!(*it)->eof()) allFilesReachedEnd = false;
+	for(TGlfReader* it : pointerToActiveGLFs){
+		while(!it->eof() && it->chrNumber() < _curChrNumber)
+			it->jumpToNextChr();
+		if(!it->eof()) allFilesReachedEnd = false;
 	}
 
 	//check if we reached end of all files
 	if(allFilesReachedEnd) return false;
 
-	//get name and length from first active file
+	//get name and length from first active file not at end
 	_position = 1;
+
 	_curChrName = pointerToActiveGLFs[0]->getNameOfParsedChr(_curChrNumber);
 	_curChrLength = pointerToActiveGLFs[0]->getLengthOfParsedChr(_curChrNumber);
 
 	//check that all files share the same name and length for this chromosome
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it){
-		if((*it)->chrNumber() == _curChrNumber){
-			if(_curChrName != (*it)->chr())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + (*it)->name() + "'!";
-			if(_curChrLength != (*it)->chrLength())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + (*it)->name() + "'!";
+	for(TGlfReader* it : pointerToActiveGLFs){
+		if(it->chrNumber() == _curChrNumber){
+			if(_curChrName != it->chr())
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChrName + "' != '" + it->chr() + "'!";
+			if(_curChrLength != it->chrLength())
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
 		}
 	}
 
@@ -636,17 +637,18 @@ bool TGlfMultiReader::readNext(){
 	//advance all files behind position
 	_numActiveFilesWithData = 0;
 	int i=0;
-	for(std::vector<TGlfReader*>::iterator it = pointerToActiveGLFs.begin(); it != pointerToActiveGLFs.end(); ++it, ++i){
-		if(!(*it)->eof() && (*it)->chrNumber() == _curChrNumber && (*it)->position < _position)
-			(*it)->readNext();
-		if(!(*it)->eof() && (*it)->chrNumber() == _curChrNumber && (*it)->position == _position){
-			data[i] = (*it)->genotypeQualities;
+	for(TGlfReader* it : pointerToActiveGLFs){
+		if(!it->eof() && it->chrNumber() == _curChrNumber && it->position < _position)
+			it->readNext();
+		if(!it->eof() && it->chrNumber() == _curChrNumber && it->position == _position){
+			data[i] = it->genotypeQualities;
 			hasData[i] = true;
 			++_numActiveFilesWithData;
 		} else {
 			data[i] = genotypeQualitiesMissingData;
 			hasData[i] = false;
 		}
+		i++;
 	}
 
 	//filter sites (i.e., jump to next)

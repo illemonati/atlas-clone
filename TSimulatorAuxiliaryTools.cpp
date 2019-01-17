@@ -44,6 +44,13 @@ void TSimulatorReference::initialize(std::string Filename, TLog* Logfile){
 	openFastaFile();
 };
 
+void TSimulatorReference::close(){
+	if(chrName != "" && needsWriting)
+		writeRefToFasta();
+	closeFastaFile();
+	freeStorage();
+};
+
 void TSimulatorReference::openFastaFile(){
 	//open FASTA file for reference sequences
 	logfile->list("Will write reference sequence to '" + filename + "'.");
@@ -110,7 +117,7 @@ void TSimulatorReference::freeStorage(){
 
 void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 	//write if not yet written
-	if(chrName != "")
+	if(chrName != "" && needsWriting)
 		writeRefToFasta();
 
 	//move to new chr
@@ -286,7 +293,7 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename){
 	trueGenoVCFOpend = true;
 
 	//write header
-	trueGenoVCF << "##fileformat=VCFv4.2\n";
+	trueGenoVCF << "##fileformat=VCFv4.3\n";
 	trueGenoVCF << "##source=ATLAS_Simulator\n";
 	trueGenoVCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	trueGenoVCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
