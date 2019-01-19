@@ -40,10 +40,10 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdat
 		newProposalWidth = 10 * _sdProposal;
 
 	if(newProposalWidth > 1.0)
-		newProposalWidth = 0.1;
+		newProposalWidth = 1.0;
 
-	if(newProposalWidth < 0.00001)
-		newProposalWidth = 0.1;
+	if(newProposalWidth < 0.0000000001)
+		newProposalWidth = 0.0000000001;
 
 	_sdProposal = newProposalWidth;
 
@@ -100,6 +100,10 @@ double TInbreedingF::lambda(){
 
 int TInbreedingF::posteriorProbModelWithF(){
 	return _posteriorProbModelWithF;
+}
+
+double TInbreedingF::proposalWidth(){
+	return _sdProposal;
 }
 
 //---------------------------
@@ -170,10 +174,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 		if(newProposalWidth > 0.5)
 			newProposalWidth = 0.5;
 
-		if(l == 0)
-			std::cout << "old proposalWidths[0] " << proposalWidths[l] << " newProposalWidth " << newProposalWidth << std::endl;
-
-
 		proposalWidths[l] = newProposalWidth;
 
 
@@ -220,6 +220,10 @@ double TAlleleFreq::getPosteriorMean(unsigned long & index, int numUpdates){
 
 double TAlleleFreq::getPosteriorVariance(unsigned long & index, int numUpdates){
 	return sumOfSquaresIterations[index] / (double) numUpdates - getPosteriorMean(index, numUpdates)*getPosteriorMean(index, numUpdates);
+}
+
+double TAlleleFreq::getProposalWidth(const unsigned long & index){
+	return proposalWidths[index];
 }
 
 //---------------------------
@@ -271,6 +275,10 @@ double TGamma::getLogValue(){
 
 double TGamma::getNaturalScaleValue(){
 	return _gamma;
+}
+
+double TGamma::getProposalWidth(){
+	return proposalWidth;
 }
 //---------------------------
 // TInbreedingEstimator
@@ -437,6 +445,7 @@ bool TInbreedingEstimator::updateF(){
 		} else {
 			//propose new F
 			double newF = F.proposeNew(randomGenerator);
+			std::cout << "newF " << newF << std::flush;
 
 			long l = 0;
 			double logH = 0.0;
@@ -446,12 +455,17 @@ bool TInbreedingEstimator::updateF(){
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 			}
 
+			std::cout << " logH " << logH << std::flush;
+
 			//accept?
 			if(log(randomGenerator.getRand()) < logH){
 				F.update(newF, true);
+				std::cout << " accepted" << std::endl;
 				return true;
-			} else
+			} else {
+				std::cout << "not accepted" << std::endl;
 				return false;
+			}
 		}
 	}
 
@@ -846,7 +860,7 @@ void TInbreedingEstimator::resetAcceptanceRates(){
 }
 
 void TInbreedingEstimator::adjustProposalWidths(){
-	F.adjustProposalWidthAfterBurnin(numAcceptedF, burninLength, logfile);
+	F.adjustProposalWidthAfterBurnin(numAcceptedF, F.posteriorProbModelWithF(), logfile);
 	p.adjustProposalWidthAfterBurnin(numAcceptedP, burninLength);
 	Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
 }
@@ -917,6 +931,13 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		adjustProposalWidths();
 		logfile->done();
 
+		//report new proposal widths
+		logfile->conclude("New proposal width for F is " + toString(F.proposalWidth()));
+		for(int l=0; l<5; ++l)
+			logfile->conclude("New proposal width for allele freq at locus one " + toString(p.getProposalWidth(l)));
+		logfile->conclude("New proposal width for Gamma is " + toString(Gamma.getProposalWidth()));
+
+
 		resetAcceptanceRates();
 		p.setSumsToZero();
 	}
@@ -954,7 +975,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	printAcceptanceRates(numIterations);
 	outP << "modelWithF\t" << F.posteriorProbModelWithF() << "\t-\t-\t-\t-\n";
 	for(unsigned long l=0; l<numLoci; ++l){
-		outP << "p[" << l << "]\t" << p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedP[l] / (double) numIterations << "\t" << p.proposalWidths[l];
+		outP << "p[" << l << "]\t" << p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedP[l] / (double) numIterations << "\t" << p.getProposalWidth(l);
 		if(trueAlleleFreqProvided)
 			outP << "\t" << trueAlleleFreq[l];
 		outP << "\n";
@@ -965,5 +986,5 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	out.close();
 	outP.close();
 
-	writeLikelihoodForDebuggingGamma(params);
+//	writeLikelihoodForDebuggingGamma(params);
 }

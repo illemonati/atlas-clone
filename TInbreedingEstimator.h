@@ -38,6 +38,7 @@ public:
 	double PDFExp();
 	double lambda();
 	int posteriorProbModelWithF();
+	double proposalWidth();
 };
 
 //---------------------------
@@ -49,10 +50,10 @@ private:
 	double* sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
 	double minAlleleFreq;
+	float* proposalWidths;
 
 public:
 	long numLoci;
-	float* proposalWidths;
 
 
 	TAlleleFreq();
@@ -68,6 +69,7 @@ public:
 	void update(long & index, double value);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
+	double getProposalWidth(const unsigned long & index);
 };
 
 //---------------------------
@@ -88,6 +90,7 @@ public:
 
 	double getLogValue();
 	double getNaturalScaleValue();
+	double getProposalWidth();
 };
 
 //---------------------------
