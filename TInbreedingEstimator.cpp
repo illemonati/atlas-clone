@@ -380,7 +380,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	if(startInModelWithF){
 		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
 		F.update(randomGenerator.getExponentialRandomTruncated(lambda, 0, 1), true);
-		F.update(0.2, true);
+//		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
 		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambda);
@@ -538,15 +538,6 @@ bool TInbreedingEstimator::updateGamma(){
 		sumLogOneMinusFreq += log(1.0 - p[l]);
 	}
 
-	double tmpH = numLoci * (randomGenerator.gammaln(newGamma + Gamma.getNaturalScaleValue())
-			+ randomGenerator.gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator.gammaln(Gamma.getNaturalScaleValue() + Gamma.getNaturalScaleValue())
-			- randomGenerator.gammaln(newGamma))
-			+ (newGamma - Gamma.getNaturalScaleValue()) * sumLogFreq;
-
-//	std::cout << "tmpH " << tmpH << std::endl;
-
-
 	// compute log hastings ratio
 	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
 	double logH = (double) numLoci *
@@ -557,8 +548,6 @@ bool TInbreedingEstimator::updateGamma(){
 			)
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;
-
-//	std::cout << "logH " << logH << std::endl;
 
 	// accept or reject
 	double tmp = log(randomGenerator.getRand());
@@ -774,56 +763,6 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 
 }
 
-//void TInbreedingEstimator::writeLikelihoodForDebuggingBeta(TParameters & params){
-//	//open output file
-//	std::string tracefile = outname + "_logLikelihoodBeta.txt.gz";
-//	logfile->list("Will write likelihoods for grid of beta to '" + tracefile + "'.");
-//	gz::ogzstream outP(tracefile.c_str());
-//	if(!outP)
-//		throw "Failed to open file '" + tracefile + "' for writing!";
-//
-//	//initialize
-//	double betaValue = 0.0;
-//	int numProbs = 100;
-//	float step = 2.0 / (float) numProbs;
-//	double trueAlpha = 0.5;
-//	double trueLogAlpha = log(trueAlpha);
-//	alpha.update(trueLogAlpha, trueAlpha);
-//	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-//
-//	F.update(0.2, true);
-//
-//	//calculate ll
-//	double logLikelihood = 0.0;
-//	long l = 0;
-//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		uint8_t* data = likelihoods.curData();
-//		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
-//		if(logLikelihood > 0)
-//			throw "likelihood is larger than 1!";
-//	}
-//
-//	double logLikelihoodAllInds = logLikelihood;
-//
-//
-//	//add alpha and beta
-//	for(int i=0; i<numProbs; ++i){
-//		double newBetaValue = betaValue + (double) i*step;
-//		std::cout << "calculating likelihood for beta=" << newBetaValue << std::endl;
-//		if(newBetaValue == 0.0)
-//			//a small number
-//			newBetaValue = 0.000000001;
-//		double newBetaValueLog = log(newBetaValue);
-//		beta.update(newBetaValueLog, newBetaValue);
-//
-//
-//		//add P(p|alpha,beta)
-//		logLikelihood = logLikelihoodAllInds + logProbPGivenAlphaBeta();
-//		outP << beta.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
-//	}
-//	logfile->done();
-//}
-
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
 
@@ -866,9 +805,6 @@ void TInbreedingEstimator::adjustProposalWidths(){
 }
 
 void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out){
-//	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
-//			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
-
 	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue();
 	for(int l=0; l<100; ++l){
 		out << "\t" << p[l];
@@ -901,6 +837,8 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	}
 	out << "\n";
 	outP << "param\tmean_posterior\tvar_posterior\tacceptance_rate\tproposalWidth\ttrue_alleleFreq\n";
+	writeParameterEstimatesOfIteration(out);
+
 
 	//---------------------------
 	//run Burnin(s)
@@ -912,7 +850,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration(i);
-//			writeParameterEstimatesOfIteration(out);
+			writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
