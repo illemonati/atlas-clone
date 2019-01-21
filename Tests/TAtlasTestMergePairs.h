@@ -26,6 +26,8 @@ private:
 	std::vector<std::string> trueQualities;
 
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
+	void setToFwdMate(BamTools::BamAlignment & bamAlignment);
+	void setToRevMate(BamTools::BamAlignment & bamAlignment);
 	bool basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber);
 	bool checkMergedBAMFile();
 	void writeBAM();

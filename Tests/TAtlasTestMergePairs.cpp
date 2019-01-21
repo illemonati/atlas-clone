@@ -62,24 +62,22 @@ void TAtlasTest_mergePairs::writeBAM(){
 		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
 	logfile->done();
 
+	//--------------------------------------------------------
 	//create alignments
+	//--------------------------------------------------------
 
+	//1) basic overlap, rev read is completely set to zero
 	//1st mate
 	logfile->listFlush("Writing reads to BAM ...");
 	BamTools::BamAlignment bamAlignment;
 	setToProperPairEtc(bamAlignment);
-
+	setToFwdMate(bamAlignment);
 	bamAlignment.AddTag("RG", "Z", readGroupName);
-	bamAlignment.SetIsReverseStrand(false);
-	bamAlignment.SetIsMateReverseStrand(true);
-	bamAlignment.SetIsFirstMate(true);
-	bamAlignment.SetIsSecondMate(false);
 	bamAlignment.MapQuality = 50;
 	bamAlignment.RefID = 0;
 	bamAlignment.Position = 558;
 	bamAlignment.InsertSize = 64;
 	bamAlignment.MatePosition = 559;
-	bamAlignment.Bin = 163;
 	bamAlignment.Length = 64;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
@@ -91,18 +89,9 @@ void TAtlasTest_mergePairs::writeBAM(){
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
 
 	//2nd mate
-	setToProperPairEtc(bamAlignment);
-	bamAlignment.AddTag("RG", "Z", readGroupName);
-	bamAlignment.SetIsReverseStrand(true);
-	bamAlignment.SetIsMateReverseStrand(false);
-	bamAlignment.SetIsFirstMate(false);
-	bamAlignment.SetIsSecondMate(true);
-	bamAlignment.MapQuality = 50;
-	bamAlignment.RefID = 0;
+	setToRevMate(bamAlignment);
 	bamAlignment.Position = 559;
-	bamAlignment.InsertSize = 64;
 	bamAlignment.MatePosition = 558;
-	bamAlignment.Bin = 83;
 	bamAlignment.Length = 63;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
@@ -113,6 +102,77 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'N'));
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(1)));
+
+	//--------------------------------------------------------
+
+	//2) No overlap
+	//1st mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 565;
+	bamAlignment.InsertSize = 100;
+	bamAlignment.MatePosition = 625;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+
+	//2nd mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 625;
+	bamAlignment.MatePosition = 565;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
+
+	//--------------------------------------------------------
+
+	//3) Wrong order
+	//1st mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 665;
+	bamAlignment.InsertSize = 100;
+	bamAlignment.MatePosition = 765;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+
+	//2nd mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 765;
+	bamAlignment.MatePosition = 665;
+	bamAlignment.Length = 100;
+	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
+
+	//--------------------------------------------------------
+
 
 	//close BAM file
 	bamWriter.Close();
@@ -142,6 +202,20 @@ void TAtlasTest_mergePairs::setToProperPairEtc(BamTools::BamAlignment & bamAlign
 	bamAlignment.SetIsMateMapped(true);
 }
 
+void TAtlasTest_mergePairs::setToFwdMate(BamTools::BamAlignment & bamAlignment){
+	bamAlignment.SetIsReverseStrand(false);
+	bamAlignment.SetIsMateReverseStrand(true);
+	bamAlignment.SetIsFirstMate(true);
+	bamAlignment.SetIsSecondMate(false);
+}
+
+void TAtlasTest_mergePairs::setToRevMate(BamTools::BamAlignment & bamAlignment){
+	bamAlignment.SetIsReverseStrand(true);
+	bamAlignment.SetIsMateReverseStrand(false);
+	bamAlignment.SetIsFirstMate(false);
+	bamAlignment.SetIsSecondMate(true);
+}
+
 bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber){
 	if(bamAlignment.QueryBases.size() != bamAlignment.Qualities.size()){
 		logfile->newLine();
@@ -161,7 +235,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
  	BamTools::BamAlignment bamAlignment;
 
 	//open BAM file
-	logfile->list("Reading data from BAM file '" + bamFileName + ".bam'.");
+	logfile->list("Reading data from BAM file '" + bamFileName + "'.");
 	if (!bamReader.Open(bamFileName))
 		throw "Failed to open BAM file '" + bamFileName + "'!";
 	//load index file
