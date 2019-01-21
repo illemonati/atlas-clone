@@ -1060,23 +1060,28 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
 		//reads overlap -> check if there are bases overlapping same position in ref
+		//alignedPos is with respect to read
 		int fwdP = 0;
 		int revP = 0;
 		for(long i = revAlignment->position; i <= fwdAlignment->lastAlignedPositionWithRespectToRef; ++i){
+			std::cout << "#### i " << i << std::endl;
 			while(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < i){
 				++fwdP;
+				std::cout << "incremented fwdP to " << fwdP << std::endl;
 			} while(revAlignment->position + revAlignment->bases[revP].alignedPos < i){
 				++revP;
+				std::cout << "incremented revP to " << revP << std::endl;
 			}
-
-			std::cout << "i " << i << " fwdP " << fwdP << " revP " << revP << std::endl;
-			if(i == fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->bases[fwdP].alignedPos == revAlignment->bases[revP].alignedPos){
-				throw "bases overlap";
+			std::cout << "done incrementing" << std::endl;
+			std::cout << "fwdP " << fwdP << " revP " << revP << std::endl;
+			if(i == fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
 				//bases overlap same position in ref -> decide which one to keep
+				std::cout << "bases overlap!" << std::endl;
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
+					std::cout << "error rate of fwd is smaller" << std::endl;
 					//keep base of fwd read
-					fwdAlignment->bases[revP].errorRate = 1;
-					fwdAlignment->bases[revP].base = N;
+					revAlignment->bases[revP].errorRate = 1;
+					revAlignment->bases[revP].base = N;
 					if(adaptQuality){
 						if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
 							//bases agree -> multiply error rates and keep fwd
@@ -1089,8 +1094,8 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 					}
 				} else {
 					//keep base of rev read
-					revAlignment->bases[fwdP].errorRate = 1;
-					revAlignment->bases[fwdP].base = N;
+					fwdAlignment->bases[fwdP].errorRate = 1;
+					fwdAlignment->bases[fwdP].base = N;
 					if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
 						//bases agree -> multiply error rates and keep rev
 						double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;

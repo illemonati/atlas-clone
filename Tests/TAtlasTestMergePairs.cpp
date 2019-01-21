@@ -16,7 +16,6 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
-
 }
 
 
@@ -88,8 +87,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
 
 	//2nd mate
 	setToProperPairEtc(bamAlignment);
@@ -113,9 +112,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'N'));
-	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
-
-
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(1)));
 
 	//close BAM file
 	bamWriter.Close();
