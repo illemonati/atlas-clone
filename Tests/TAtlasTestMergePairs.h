@@ -19,9 +19,12 @@ private:
 	int readLength;
 	int chrLength;
 	int phredError;
-	TGenotypeMap genoMap;
+//	TGenotypeMap genoMap;
 	TQualityMap qualMap;
+	std::vector<std::string> trueQueryBases;
+	std::vector<std::string> trueQualities;
 
+	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
 	bool basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber);
 	bool checkMergedBAMFile();
 	void writeBAM();

@@ -1962,7 +1962,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			//no need to keep mate in list anymore
 			readsToOmit.erase(alignment.alignmentName);
 			continue;
-		}else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
+		} else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 
 			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
@@ -1996,13 +1996,15 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 					if(!alignment.isReverseStrand) {
 						//mate on forward strand is always first in bam file
-						std::cout << "trying to add alignment pointer from fwd read" << std::endl;
+						std::cout << "trying to add alignment pointer from fwd read. alignment name is " << alignment.alignmentName << std::endl;
 						alignmentStorage.emplace_back(new TAlignment(alignment), false);
-						std::cout << "added fwd read to storage" << std::endl;
+						std::cout << "added fwd read to storage with name " << alignmentStorage.begin()->first->alignmentName << std::endl;
 					}
 					else if(alignment.isReverseStrand){
+						std::cout << "found reverse strand read. alignmentStorageSize is " << alignmentStorage.size() << std::endl;
 						//find first mate -> should be in storage
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
+							std::cout << "name in storage is " << it->first->alignmentName << " and reverse read name is " << alignment.alignmentName << std::endl;
 							if(it->first->alignmentName == alignment.alignmentName){
 
 								std::cout << "found pair!" << std::endl;
@@ -2012,8 +2014,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 									throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
 
 								//merge
-								alignmentParser.mergeAlignedBasesBamReads(*(it->first), &alignment, adaptQuality);
+								std::cout << "trying to merge bases of bam reads" << std::endl;
+								alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
 								it->second = true;
+								std::cout << "managed to merge bases of bam reads" << std::endl;
 
 								//write if is first in vector
 								if(it == alignmentStorage.begin()){

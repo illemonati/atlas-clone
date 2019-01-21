@@ -34,8 +34,7 @@ private:
 	unsigned int maxSize;
 	int length;
 
-//	int* alignedPos;
-
+	//booleans
 	bool parsed;
 	bool changed;
 
@@ -88,7 +87,6 @@ public:
 	TAlignment(const TAlignment & Alignment);
 
 	~TAlignment(){
-		std::cout << "calling deconstructor for alignment " << alignmentName << " is reverse " << bamAlignment.IsReverseStrand()<< std::endl;
 		freeStorage();
 	}
 

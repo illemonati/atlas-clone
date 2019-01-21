@@ -16,6 +16,7 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+
 }
 
 
@@ -67,7 +68,13 @@ void TAtlasTest_mergePairs::writeBAM(){
 	//1st mate
 	logfile->listFlush("Writing reads to BAM ...");
 	BamTools::BamAlignment bamAlignment;
+	setToProperPairEtc(bamAlignment);
+
 	bamAlignment.AddTag("RG", "Z", readGroupName);
+	bamAlignment.SetIsReverseStrand(false);
+	bamAlignment.SetIsMateReverseStrand(true);
+	bamAlignment.SetIsFirstMate(true);
+	bamAlignment.SetIsSecondMate(false);
 	bamAlignment.MapQuality = 50;
 	bamAlignment.RefID = 0;
 	bamAlignment.Position = 558;
@@ -75,15 +82,22 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.MatePosition = 559;
 	bamAlignment.Bin = 163;
 	bamAlignment.Length = 64;
-	bamAlignment.Name = "1st_pair_fwd";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, 50);
+	bamAlignment.Name = "1st_pair";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, 'A'));
 
 	//2nd mate
+	setToProperPairEtc(bamAlignment);
 	bamAlignment.AddTag("RG", "Z", readGroupName);
+	bamAlignment.SetIsReverseStrand(true);
+	bamAlignment.SetIsMateReverseStrand(false);
+	bamAlignment.SetIsFirstMate(false);
+	bamAlignment.SetIsSecondMate(true);
 	bamAlignment.MapQuality = 50;
 	bamAlignment.RefID = 0;
 	bamAlignment.Position = 559;
@@ -91,13 +105,17 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.MatePosition = 558;
 	bamAlignment.Bin = 83;
 	bamAlignment.Length = 63;
-	bamAlignment.Name = "1st_pair_rev";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'B');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, 30);
+	bamAlignment.Name = "1st_pair";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'N'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+
+
 
 	//close BAM file
 	bamWriter.Close();
@@ -117,14 +135,24 @@ void TAtlasTest_mergePairs::writeBAM(){
 	logfile->endIndent();
 };
 
+void TAtlasTest_mergePairs::setToProperPairEtc(BamTools::BamAlignment & bamAlignment){
+	bamAlignment.SetIsProperPair(true);
+	bamAlignment.SetIsPaired(true);
+	bamAlignment.SetIsMapped(true);
+	bamAlignment.SetIsPrimaryAlignment(true);
+	bamAlignment.SetIsDuplicate(false);
+	bamAlignment.SetIsFailedQC(false);
+	bamAlignment.SetIsMateMapped(true);
+}
+
 bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber){
 	if(bamAlignment.QueryBases.size() != bamAlignment.Qualities.size()){
 		logfile->newLine();
-		logfile->conclude( "Pairnumber " + toString(pairNumber) + ": query bases not same size as qualities!");
+		logfile->conclude( "Read number " + toString(pairNumber) + ": query bases not same size as qualities!");
 		return false;
 	} if(bamAlignment.Qualities.size() > bamAlignment.InsertSize){
 		logfile->newLine();
-		logfile->conclude( "Pairnumber " + toString(pairNumber) + ": longer than insert size!");
+		logfile->conclude( "Read number " + toString(pairNumber) + ": longer than insert size!");
 		return false;
 	}
 
@@ -146,9 +174,27 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	//read through BAM
 
 	//1st pair
-	bamReader.GetNextAlignment(bamAlignment);
-	if(!basicChecks(bamAlignment, 1))
-		return false;
+	int counter = 0;
+	while(bamReader.GetNextAlignment(bamAlignment)){
+		if(!basicChecks(bamAlignment, counter))
+			return false;
+		if(bamAlignment.QueryBases != trueQueryBases[counter]){
+			logfile->newLine();
+			logfile->conclude("Read number " + toString(counter) + ": query bases not same as true bases!");
+			return false;
+		} if(bamAlignment.Qualities != trueQualities[counter]){
+			logfile->newLine();
+			logfile->conclude("Read number " + toString(counter) + ": qualities not same as true qualities!");
+			return false;
+		}
 
+
+		++counter;
+	}
+	if((unsigned) counter != trueQualities.size()){
+		logfile->newLine();
+		logfile->conclude("Incorrect number of alignments in merged BAM file");
+		return false;
+	}
 	return true;
 }

@@ -64,9 +64,13 @@ TAlignment::TAlignment(unsigned int MaxSize){
 TAlignment::TAlignment(const TAlignment & Alignment){
 	TAlignment();
 
-	//details
-	bamAlignment = Alignment.bamAlignment;
+	//initialize storage
 	maxSize = Alignment.maxSize;
+	initStorage();
+	storageInitialized = true;
+
+	//copy content
+	bamAlignment = Alignment.bamAlignment;
 	alignmentName = Alignment.alignmentName;
 	length = Alignment.length;
 	chrNumber = Alignment.chrNumber;
@@ -90,8 +94,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 	empty = false;
 
-	initStorage();
-
 	//copy data from arrays
 	softClippedLength = new int[2];
 	softClippedEntry = Alignment.softClippedEntry;
@@ -114,9 +116,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 	std::copy(Alignment.bases, Alignment.bases + Alignment.maxSize, bases);
 	std::copy(Alignment.qualityOriginal, Alignment.qualityOriginal + Alignment.maxSize, qualityOriginal);
-
-	storageInitialized = true;
-
 }
 
 void TAlignment::clear(){
@@ -151,7 +150,6 @@ void TAlignment::initStorage(){
 }
 
 void TAlignment::freeStorage(){
-	std::cout << "freeing storage of alignment " << std::endl;//<< alignmentName << " isReversed " << isReverseStrand << std::endl;
 	if(storageInitialized){
 		delete[] bases;
 		delete[] qualityOriginal;
@@ -801,17 +799,11 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 				// invalid CIGAR op-code
 				default:
 					throw (std::string) "CIGAR operation type '" + op.Type + "' not supported!";
-
-
-
 			}
 		}
 
 		bamAlignment.QueryBases = S_string_middle;
 		bamAlignment.Qualities = S_qualities_middle;
-
-		std::cout << bamAlignment.QueryBases << std::endl;
-
 	}
 
 	changed = true;
@@ -886,7 +878,6 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 //		tmpString.clear();
 //		tmpString2.clear();
 		for(int d=0; d<length; ++d){
-			std::cout << bases[d].base << std::endl;
 			tmpString += genoMap.baseToChar[bases[d].base];
 			tmpString2 += (char) qualMap.errorToQuality(bases[d].errorRate);
 		}
