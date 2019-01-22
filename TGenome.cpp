@@ -1928,8 +1928,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	}
 
 	//open file for reads that had a problem
-	std::ofstream ignoredReads;
-	std::string ignoredReadsFile = outputName + "_ignoredReads.txt";
+	gz::ogzstream ignoredReads;
+	std::string ignoredReadsFile = outputName + "_ignoredReads.txt.gz";
 	logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
 	ignoredReads.open(ignoredReadsFile.c_str());
 	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
@@ -1960,19 +1960,30 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
 		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0)){
 			//no need to keep mate in list anymore
+			if(alignment.isReverseStrand)
+				ignoredReads << "Blacklist: Reverse read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
+			else
+				ignoredReads << "Blacklist: Forward read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
 			readsToOmit.erase(alignment.alignmentName);
 			continue;
 		} else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
-
-			if(abs(alignment.bamAlignment.InsertSize) < alignment.lastAlignedPos){
+			int insertSize = abs(alignment.bamAlignment.InsertSize);
+			if(insertSize < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
-					ignoredReads << "read " << alignment.alignmentName << " was filtered out because it was longer than the insert size (" << abs(alignment.bamAlignment.InsertSize) << "<" << alignment.bamAlignment.AlignedBases.size() << "\n";
-//					logfile->warning("read " + alignment.alignmentName + " was filtered out because it was longer than the insert size (" + toString(abs(alignment.bamAlignment.InsertSize)) + "<" + toString(alignment.bamAlignment.AlignedBases.size()) + ")");
+					if(alignment.isReverseStrand)
+						ignoredReads << "TLENError: Reverse read of pair with name " << alignment.alignmentName << " because it was longer than the insert size (" << insertSize << "<" << alignment.bamAlignment.AlignedBases.size() << ")\n";
+					else
+						ignoredReads << "TLENError: Forward read of pair with name " << alignment.alignmentName << " because it was longer than the insert size (" << insertSize << "<" << alignment.bamAlignment.AlignedBases.size() << ")\n";
 				}
-				readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
-				continue;
+			readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
+			continue;
 			}
 //			} if(!alignment.isProperPair ||(alignment.isReverseStrand() && alignment.isMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
+//				if(bamAlignment.IsReverseStrand())
+//					ignoredReads << "SAMFlagError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
+//				else
+//					ignoredReads << "SAMFlagError: Forward read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
+//				readsToOmit.emplace(bamAlignment.Name, 1);
 //				continue;
 //			}
 
@@ -2053,8 +2064,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								break;
 							}
 						}
-						if(!alignmentStorage.empty() && it == alignmentStorage.end()){
-							ignoredReads << "The reverse mate of read pair '" << alignment.alignmentName << "' was read before the forward mate!\n";
+						if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
+							ignoredReads << "OrderError: Reverse read of pair with name " << alignment.alignmentName << " is ignored because its forward mate has not been read\n";
 							readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
 							continue;
 						}

@@ -146,30 +146,26 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.InsertSize = 100;
 	bamAlignment.MatePosition = 765;
 	bamAlignment.Length = 20;
-	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 
 	//2nd mate
 	setToFwdMate(bamAlignment);
 	bamAlignment.Position = 765;
 	bamAlignment.MatePosition = 665;
 	bamAlignment.Length = 100;
-	bamAlignment.Name = "2nd_pair_noOverlap";
+	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
 
 	//--------------------------------------------------------
 
@@ -243,8 +239,6 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		throw "No index file found for BAM file '" + filenameTag + ".bam'!";
 
 	//read through BAM
-
-	//1st pair
 	int counter = 0;
 	while(bamReader.GetNextAlignment(bamAlignment)){
 		if(!basicChecks(bamAlignment, counter))
@@ -267,5 +261,27 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		logfile->conclude("Incorrect number of alignments in merged BAM file");
 		return false;
 	}
+
+	//check ignored reads file
+	std::string ignoredReadsFile = filenameTag + "_ignoredReads.txt.gz";
+	logfile->listFlush("Reading ignored reads from '" + ignoredReadsFile + "...");
+	gz::igzstream file(ignoredReadsFile.c_str());
+	if(!file) throw "Failed to open file '" + ignoredReadsFile + "!";
+
+	int lineNum = 0;
+	std::vector<std::string> vec;
+
+	//fill list of reads to omit
+	while(file.good() && !file.eof()){
+		std::string line;
+		getline(file, line);
+		if(line != "OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read"){
+			logfile->newLine();
+			logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum));
+		}
+		++lineNum;
+	}
+	logfile->write("done! Read " + toString(lineNum) + " read names");
+
 	return true;
 }
