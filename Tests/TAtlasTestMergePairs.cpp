@@ -138,9 +138,25 @@ void TAtlasTest_mergePairs::writeBAM(){
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
 
 	//--------------------------------------------------------
+	//4) Not consecutive
+	//Not consecutive 1st mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 662;
+	bamAlignment.InsertSize = 105;
+	bamAlignment.MatePosition = 767;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "4th_pair_notConsecutive";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'T'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 
 	//3) Wrong order
-	//1st mate
+	//Wrong order 1st mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 665;
 	bamAlignment.InsertSize = 100;
@@ -154,7 +170,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	bamWriter.SaveAlignment(bamAlignment);
 
-	//2nd mate
+
+	//Wrong order 2nd mate
 	setToFwdMate(bamAlignment);
 	bamAlignment.Position = 765;
 	bamAlignment.MatePosition = 665;
@@ -167,8 +184,26 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	bamWriter.SaveAlignment(bamAlignment);
 
+	//Not consecutive 2nd mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 767;
+	bamAlignment.InsertSize = 105;
+	bamAlignment.MatePosition = 662;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "4th_pair_notConsecutive";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+
 	//--------------------------------------------------------
 
+	//longer than insert size
+	//
 
 	//close BAM file
 	bamWriter.Close();

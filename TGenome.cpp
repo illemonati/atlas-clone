@@ -2047,7 +2047,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 											delete it->first;
 										} else {
 											it = alignmentStorage.erase(alignmentStorage.begin(), it);
-											std::cout << "arrived at alignment in storage " << it->first->alignmentName << " that has not yet found mate." << std::endl;
+											std::cout << "arrived at alignment in storage " << it->first->alignmentName << " rev " << it->first->isReverseStrand << " that has not yet found mate." << std::endl;
 											break;
 										}
 									}

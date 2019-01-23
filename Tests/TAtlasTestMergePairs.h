@@ -37,6 +37,8 @@ public:
 	bool run();
 };
 
+class TAtlasTest_mergePairsAdaptQual:public TAtlasTest_mergePairs{
 
+};
 
 #endif /* TATLASTESTMERGEPAIRS_H_ */
