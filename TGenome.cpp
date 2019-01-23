@@ -2463,6 +2463,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	if(hasPMD) logfile->warning("PMD is given but relevant for read merging.");
 
+	int acceptedDistanceBetweenMates = params.getParameterIntWithDefault("acceptedDistance", 2000);
+
 	//which read groups are paired-end?
 	std::string pairedRG = params.getParameterStringWithDefault("pairedReadGroups", "all");
 	bool* pairedReadGroups = new bool[readGroups.numGroups];
@@ -2576,9 +2578,18 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						bamWriter.SaveAlignment(*(it->first));
 						delete it->first;
 					}
+					logfile->list("Moving to chr " + toString(bamAlignment.RefID + 1) + ". Clearing alignment storage!");
 					alignmentStorage.clear();
 					curChr = bamAlignment.RefID;
 				}
+
+				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
+				while(alignmentStorage.size() > 0 && bamAlignment.Position - alignmentStorage.begin()->first->Position > acceptedDistanceBetweenMates){
+					readsToOmit.emplace(alignmentStorage.begin()->first->Name, 1);
+					ignoredReads << "DistanceError: Fwd read with name " << alignmentStorage.begin()->first->Name << " has a mate that is farther away than " << acceptedDistanceBetweenMates << " bp\n";
+					alignmentStorage.erase(alignmentStorage.begin());
+				}
+
 				//add alignment to storage
 				if(bamAlignment.IsProperPair()){
 					if(!bamAlignment.IsReverseStrand()) {
@@ -2589,6 +2600,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						//find first mate -> should be in storage
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 							if(it->first->Name == bamAlignment.Name){
+
 								//check if this read accepts mate
 								if(it->second)
 									throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
@@ -2683,9 +2695,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 							}
 						}
 
-						if(!alignmentStorage.empty() && it == alignmentStorage.end())
-							ignoredReads << "OrderError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because its forward mate has not been read\n";
+						if(it == alignmentStorage.end()){
+							ignoredReads << "OrderError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because its forward mate has not been read" << std::endl;;
+							readsToOmit.emplace(bamAlignment.Name, 1);
 //							throw "One read of '" + bamAlignment.Name + "' is reverse mate, but forward one has not been read!";
+						}
 					} else{
 						for(it=alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
 							delete it->first;
