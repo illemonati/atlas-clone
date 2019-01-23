@@ -65,7 +65,7 @@ private:
 	bool doMasking, considerRegions;
 	bool doCpGMasking;
 	bool applyDepthFilter;
-	size_t minDepth, maxDepth;
+	size_t minDepth, maxDepth, readUpToDepth;
 	int minPhredInt, maxPhredInt;
 	int minOutQual, maxOutQual;
 	long limitWindows;

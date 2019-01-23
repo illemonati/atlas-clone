@@ -83,7 +83,7 @@ void TWindow::move(std::string ChrName, int RefId,  long Start, long End){
 	} else initSites(end - start);
 };
 
-bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
+bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects, const int & readUpToDepth){
 	/* Note:
 	 * Function returns true if read also maps to next window and
 	 * returns false if end of read is within this (or a previous) window
@@ -125,7 +125,9 @@ bool TWindow::addFromRead(TAlignmentParser & alignmentParser, TPMD* pmdObjects){
 			internalPos = firstPos + alignmentParser.alignedPos[p];
 			if(internalPos >= length)
 				return true; //since part of the read maps to next window
-			sites[internalPos].add(alignmentParser.base[p], alignmentParser.quality[p], p, alignmentParser.length-p, pmdObjects[alignmentParser.readGroupId].getProbCT(alignmentParser.distFrom5Prime[p]), pmdObjects[alignmentParser.readGroupId].getProbGA(alignmentParser.distFrom3Prime[p]), alignmentParser.context[p], alignmentParser.readGroupId);
+
+			if(sites[internalPos].depth() < readUpToDepth)
+				sites[internalPos].add(alignmentParser.base[p], alignmentParser.quality[p], p, alignmentParser.length-p, pmdObjects[alignmentParser.readGroupId].getProbCT(alignmentParser.distFrom5Prime[p]), pmdObjects[alignmentParser.readGroupId].getProbGA(alignmentParser.distFrom3Prime[p]), alignmentParser.context[p], alignmentParser.readGroupId);
 
 			//std::cout << alignemntParser.position << "[" << p << "] -> " <<  << std::endl;
 		}
@@ -373,7 +375,7 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
-			if(sites[i].bases.size() < minDepth || sites[i].bases.size() > maxDepth)
+			if(sites[i].depth() < minDepth || sites[i].depth() > maxDepth)
 				sites[i].clear();
 		}
 	}

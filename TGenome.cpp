@@ -119,6 +119,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else considerRegions = false;
 
 	//filters
+	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
 		applyDepthFilter = true;
 		int tmpInt;
@@ -128,12 +129,14 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
 		maxDepth = tmpInt;
+		readUpToDepth = maxDepth + 1;
 		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
 	} else {
 		applyDepthFilter = false;
 		minDepth = 0;
 		maxDepth = 1000000;
 	}
+	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases.");
 
 	//quality filters
 	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
@@ -182,9 +185,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 	} else {
 		bool filter = true;
 		alignmentParser.setApplyFragmentLengthFilter(filter);
-
 	}
-
 
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
@@ -371,9 +372,9 @@ bool TGenome::addAlignementToWindows(TAlignmentParser & alignment, TWindowPair &
 		//check if still within current window and add to window
 		if(alignment.position >= curEnd) return false;
 		else {
-			if(windowPair.addToCur(alignmentParser, pmdObjects)){
+			if(windowPair.addToCur(alignmentParser, pmdObjects, readUpToDepth)){
 				//add also to next window in case reads overhangs current window -> function returns true
-				windowPair.addToNext(alignmentParser, pmdObjects);
+				windowPair.addToNext(alignmentParser, pmdObjects, readUpToDepth);
 			}
 		}
 	}

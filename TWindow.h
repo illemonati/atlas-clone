@@ -52,7 +52,7 @@ public:
 	};
 	void clear();
 	void move(std::string ChrName, int RefId,  long Start, long End);
-	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects);
+	bool addFromRead(TAlignmentParser & alignemntParser, TPMD* pmdObjects, const int & readUpToDepth);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, const int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
@@ -146,11 +146,11 @@ public:
 		curPointer = nextPointer;
 		nextPointer = tmp;
 	};
-	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return curPointer->addFromRead(alignemntParser, pmdObjects);
+	bool addToCur(TAlignmentParser & alignemntParser, TPMD* pmdObjects, const int & readUpToDepth ){
+		return curPointer->addFromRead(alignemntParser, pmdObjects, readUpToDepth);
 	};
-	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects){
-		return nextPointer->addFromRead(alignemntParser, pmdObjects);
+	bool addToNext(TAlignmentParser & alignemntParser, TPMD* pmdObjects, const int & readUpToDepth){
+		return nextPointer->addFromRead(alignemntParser, pmdObjects, readUpToDepth);
 	};
 	void clear(){
 		curPointer->clear();
