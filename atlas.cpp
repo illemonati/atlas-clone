@@ -5,6 +5,7 @@
  *      Author: wegmannd
  */
 
+#include "gperftools/profiler.h"
 #include "TAtlasTesting.h"
 #include "atlasTaskSwitcher.h"
 #include "gitversion.h"
@@ -15,6 +16,9 @@
 int main(int argc, char* argv[]){
 	struct timeval start, end;
     gettimeofday(&start, NULL);
+
+    //std::string profName = "prof.txt";
+    //ProfilerStart(profName.c_str());
 
 	TLog logfile;
 	logfile.newLine();
@@ -84,6 +88,9 @@ int main(int argc, char* argv[]){
 	float runtime=(end.tv_sec  - start.tv_sec)/60.0;
 	logfile.list("Program terminated in ", runtime, " min!");
 	logfile.close();
+
+    //ProfilerFlush();
+    //ProfilerStop();
 
     return 0;
 }
