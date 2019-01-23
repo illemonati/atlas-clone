@@ -893,7 +893,7 @@ TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 
 void TGenome::callGenotypesNew(TParameters & params){
 	//make sure FASTA is open
-	if(!fastaReference) throw "Can not estimate PMD without a provided FASTA reference!";
+	if(!fastaReference) throw "A FASTA reference must be provided to call!";
 
 	//initialize recalibration
 	initializeRecalibration(params);

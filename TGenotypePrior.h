@@ -55,6 +55,7 @@ public:
 			freq.setEqualBaseFreq();
 			thetaEstimator->setBaseFreq(freq);
 		}
+		thetaEstimator->fillPGenotype(genotypePrior);
 	};
 
 	~TGenotypePriorFixedTheta(){
@@ -62,12 +63,13 @@ public:
 	};
 
 	void update(TWindowDiploid* window, TLog* logfile){
-		logfile->listFlush("Estimating base frequencies for prior ...");
-		window->estimateBaseFrequencies();
-		if(!equalBaseFreq)
+		if(!equalBaseFreq){
+			logfile->listFlush("Estimating base frequencies for prior ...");
+			window->estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(window->baseFreq);
-		thetaEstimator->fillPGenotype(genotypePrior);
-		logfile->done();
+			logfile->done();
+			thetaEstimator->fillPGenotype(genotypePrior);
+		}
 	};
 };
 
