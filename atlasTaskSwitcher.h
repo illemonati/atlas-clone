@@ -132,7 +132,7 @@ public:
 				genome.runPMDS(*parameters);
 			} else if(task == "mergeReads"){
 				logfile->startIndent("Merging paired-end reads (task = mergeReads):");
-				genome.mergePairedEndReads(*parameters);
+				genome.mergePairedEndReadsNoOrder(*parameters);
 			} else if(task == "PSMC"){
 				logfile->startIndent("Generating a PSMC Input file probabilistically (task = PSMC):");
 				genome.generatePSMCInput(*parameters);

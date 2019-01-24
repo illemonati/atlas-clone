@@ -104,6 +104,7 @@ public:
 	void runPMDS(TParameters & params);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergePairedEndReads(TParameters & params);
+	void mergePairedEndReadsNoOrder(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
 	void downSampleReads(TParameters & params);

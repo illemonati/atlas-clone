@@ -2007,6 +2007,11 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 				if(alignment.isProperPair){
 					std::cout << "alignment is proper pair" << std::endl;
 
+					if(alignmentStorage.size() == 0){
+						alignmentStorage.emplace_back(new TAlignment(alignment), false);
+						continue;
+					}
+
 					for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 						std::cout << "name in storage is " << it->first->alignmentName << " and reverse read name is " << alignment.alignmentName << std::endl;
 
@@ -2329,14 +2334,11 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						throw "One read of '" + alignment.alignmentName + "' is paired, but neither first nor second mate!";
 					}
 				} else {
-					//read is not a proper pair
-
-					if(alignment.isSingleEnd){
-						should we write?
-					}
-
-					else {
-						//read is paired: add to storage or write
+					//read is not a proper pair but still paired
+					if(alignment.bamAlignment.IsPaired()){
+						continue;
+					} else {
+						//read is not paired: add to storage or write
 						if(alignmentStorage.empty()){
 							alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 						} else
