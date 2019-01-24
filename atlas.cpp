@@ -5,7 +5,6 @@
  *      Author: wegmannd
  */
 
-#include "gperftools/profiler.h"
 #include "TAtlasTesting.h"
 #include "atlasTaskSwitcher.h"
 #include "gitversion.h"
