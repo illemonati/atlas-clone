@@ -24,6 +24,7 @@ private:
 	TQualityMap qualMap;
 	std::vector<std::string> trueQueryBases;
 	std::vector<std::string> trueQualities;
+	std::vector<std::string> trueIgnoredReadMessages;
 
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
 	void setToFwdMate(BamTools::BamAlignment & bamAlignment);

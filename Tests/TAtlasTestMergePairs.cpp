@@ -91,6 +91,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	//2nd mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 559;
+	bamAlignment.InsertSize = -64;
 	bamAlignment.MatePosition = 558;
 	bamAlignment.Length = 63;
 	bamAlignment.Name = "1st_pair";
@@ -125,6 +126,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	//2nd mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 625;
+	bamAlignment.InsertSize = -100;
 	bamAlignment.MatePosition = 565;
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "2nd_pair_noOverlap";
@@ -159,7 +161,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	//Wrong order 1st mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 665;
-	bamAlignment.InsertSize = 100;
+	bamAlignment.InsertSize = -100;
 	bamAlignment.MatePosition = 765;
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "3rd_pair_wrongOrder";
@@ -169,6 +171,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueIgnoredReadMessages.push_back("OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read");
 
 
 	//Wrong order 2nd mate
@@ -183,11 +186,12 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueIgnoredReadMessages.push_back("Blacklist: Forward read of pair with name 3rd_pair_wrongOrder because it was in the blacklist");
 
 	//Not consecutive 2nd mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 767;
-	bamAlignment.InsertSize = 105;
+	bamAlignment.InsertSize = -105;
 	bamAlignment.MatePosition = 662;
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "4th_pair_notConsecutive";
@@ -202,8 +206,45 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	//--------------------------------------------------------
 
-	//longer than insert size
-	//
+	// 4) longer than insert size
+	// first mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 768;
+	bamAlignment.InsertSize = 20;
+	bamAlignment.MatePosition = 770;
+	bamAlignment.Length = 100;
+	bamAlignment.Name = "5th_pair_longerThanInsert";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+	// second mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 770;
+	bamAlignment.InsertSize = 20;
+	bamAlignment.MatePosition = 800;
+	bamAlignment.Length = 10;
+	bamAlignment.Name = "5th_pair_longerThanInsert";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+
+
+
+
+	//--------------------------------------------------------
+
+	//alignment that is too far away
+
+	//alignment that is on other chromosome, with one mate that is on new chr
+
 
 	//close BAM file
 	bamWriter.Close();
@@ -310,13 +351,20 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	while(file.good() && !file.eof()){
 		std::string line;
 		getline(file, line);
-		if(line != "OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read"){
+		if(line != trueIgnoredReadMessages[lineNum]){
 			logfile->newLine();
 			logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum));
+			return false;
 		}
 		++lineNum;
 	}
 	logfile->write("done! Read " + toString(lineNum) + " read names");
+
+	if((unsigned) lineNum != trueIgnoredReadMessages.size()){
+		logfile->newLine();
+		logfile->conclude("Incorrect number of alignments in merged BAM file");
+		return false;
+	}
 
 	return true;
 }

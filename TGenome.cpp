@@ -1922,7 +1922,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		while(file.good() && !file.eof()){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty()) readsToOmit.insert(std::pair<std::string,int>(vec[0], 1));
+			if(!vec.empty())
+				readsToOmit.insert(std::pair<std::string,int>(vec[0], 1));
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
@@ -1958,7 +1959,8 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
 
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
-		if(blacklistGiven && (readsToOmit.count(alignment.alignmentName) > 0)){
+		if(readsToOmit.count(alignment.alignmentName) > 0){
+			std::cout << "found alignment in blacklist" << std::endl;
 			//no need to keep mate in list anymore
 			if(alignment.isReverseStrand)
 				ignoredReads << "Blacklist: Reverse read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
@@ -2066,7 +2068,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						}
 						if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
 							ignoredReads << "OrderError: Reverse read of pair with name " << alignment.alignmentName << " is ignored because its forward mate has not been read\n";
-							readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
+							readsToOmit.emplace(alignment.alignmentName, 1);
 							continue;
 						}
 					} else{
