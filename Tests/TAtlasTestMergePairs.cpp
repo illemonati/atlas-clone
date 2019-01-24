@@ -245,6 +245,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	//alignment that is on other chromosome, with one mate that is on new chr
 
+	//alignment that is not a proper read
+
 
 	//close BAM file
 	bamWriter.Close();
