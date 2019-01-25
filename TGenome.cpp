@@ -612,10 +612,6 @@ void TGenome::estimateTheta(TParameters & params){
 			estimateThetaGenomeWide(thetaEstimator, thetaOut, onlyBootstrap, numBootstraps);
 
 		logfile->endIndent();
-		if(params.parameterExists("bootstraps")){
-			int numBootstraps = params.getParameterInt("bootstraps");
-			bootstrapTetaEstimation(numBootstraps, thetaEstimator);
-		}
 	} else
 		estimateThetaWindows(thetaEstimator, thetaOut);
 
