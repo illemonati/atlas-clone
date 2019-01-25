@@ -58,7 +58,7 @@ private:
 
 	TLog* logfile;
 	bool _keepDuplicates;
-	bool parse;
+	bool _parse;
 	int previousAlignmentPos;
 	int previousAlignmentChr;
 	TAlignment* oldAlignment;
@@ -78,8 +78,6 @@ private:
 	//iterators
  	int chrNumber;
  	long chrLength;
- //	long curStart;
- //	long curEnd;
 
 	//window params
 	int windowSize;
@@ -96,6 +94,10 @@ private:
 	//filters
 	size_t minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
+
+	//blacklist
+	bool _updateBlacklist;
+	std::map <std::string, int> blacklist;
 
 	//limit chr and windows
 	long limitWindows;
@@ -116,6 +118,7 @@ private:
 	void initializeRecalibration(TParameters & params);
 
 	bool readAlignment();
+	bool applyFilters();
 	void fillAlignment(TAlignment & alignment);
 	void readAlignmentsIntoWindow(TWindow & window);
 	void applyFilters(TWindow & window);
@@ -179,12 +182,27 @@ public:
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
 	void keepDuplicates(){_keepDuplicates = true;};
-	void setParsingToTrue(){parse = true;};
+	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);
 	long calcReferenceLength();
 
-	//functions to read and parse
+	//blacklist
+	void setUpdateBlacklistToTrue(){ _updateBlacklist = true; };
+	void addToBlacklist(std::string & alignmentName){
+		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
+		blacklist.emplace(alignmentName, 1);
+	}
+	void removeFromBlacklist(std::string & alignmentName){
+		blacklist.erase(alignmentName);
+	}
+	bool isInBlacklist(std::string & alignmentName){
+		if(blacklist.count(alignmentName) > 0)
+			return true;
+		return false;
+	}
+
+	//functions to read and _parse
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
 	void recalibrate(TAlignment & alignment);
@@ -194,6 +212,7 @@ public:
 
 	//reading data only requires alignments
 	bool readNextAlignment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
+	bool readNextAlignmentWithBlacklist(TAlignment & alignment);
 
 	//qualityTransformation
 	void initializeRecalibrationForQualityTransformation(TParameters & params);

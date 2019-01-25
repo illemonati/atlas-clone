@@ -43,7 +43,7 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
-	parse = false;
+	_parse = false;
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;
 	oldAlignment = NULL;
@@ -87,6 +87,9 @@ TAlignmentParser::TAlignmentParser(){
 	trimReads = false;
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
+
+	//blacklist
+	_updateBlacklist = false;
 
 	//limit chr and windows
 	limitWindows = -1;
@@ -206,7 +209,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		for(int i=0; i<bamHeader.Sequences.Size(); ++i)
 				useChromosome[i] = false;
 
-		//parse chromosome names
+		//_parse chromosome names
 		std::vector<std::string> vec;
 		fillVectorFromString(params.getParameterString("chr"), vec, ',');
 		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
@@ -695,16 +698,26 @@ bool TAlignmentParser::readAlignment(){
 			filtersPassed = false;
 		} else {
 			//apply filters: read group in use and basic QC
-			filtersPassed = readGroups.readGroupInUse(curReadGroupID)
-							&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
-							&& bamAlignment.IsPrimaryAlignment()
-							&& !bamAlignment.IsSupplementary()
-							&& useChromosome[bamAlignment.RefID]
-							&& (_keepDuplicates || !bamAlignment.IsDuplicate());
+			filtersPassed = applyFilters();
+			if(_updateBlacklist && !filtersPassed){
+				blacklist.emplace(bamAlignment.Name, 1);
+				throw "added alignment " + bamAlignment.Name + " to blacklist in parser";
+			}
 		}
 	} while(!filtersPassed);
 
 	return true;
+}
+
+bool TAlignmentParser::applyFilters(){
+	bool filtersPassed = readGroups.readGroupInUse(curReadGroupID)
+					&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
+					&& bamAlignment.IsPrimaryAlignment()
+					&& !bamAlignment.IsSupplementary()
+					&& useChromosome[bamAlignment.RefID]
+					&& (_keepDuplicates || !bamAlignment.IsDuplicate());
+
+	return filtersPassed;
 }
 
 void TAlignmentParser::fillAlignment(TAlignment & alignment){
@@ -718,7 +731,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 	alignment.fill(bamAlignment, readGroupId);
 
-	if(parse){
+	if(_parse){
 		//add all info from bamAlignment to bases
 		alignment.parse(genoMap, qualMap);
 
@@ -745,6 +758,21 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 		alignment.passedFilters = true;
 		fillAlignment(alignment);
 		return true;
+	}
+	return false;
+}
+
+bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
+	//use this in TGenome for functionalities that don't need windows
+	std::cout << "bamAlignment in readNextAlignmentWithBlacklist " << bamAlignment.Name << std::endl;
+	if(readAlignment()){
+		alignment.passedFilters = true;
+		fillAlignment(alignment);
+		return true;
+	} else if(!readAlignment()){
+		blacklist.emplace(bamAlignment.Name, 1);
+		std::cout << "PARSER: placed alignment " << bamAlignment.Name << " in blacklist" << std::endl;
+		throw "blacklisted non passed filter";
 	}
 	return false;
 }

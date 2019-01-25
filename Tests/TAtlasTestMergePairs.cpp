@@ -171,7 +171,9 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read");
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+//	trueIgnoredReadMessages.push_back("OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read");
 
 
 	//Wrong order 2nd mate
@@ -186,7 +188,9 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("Blacklist: Forward read of pair with name 3rd_pair_wrongOrder because it was in the blacklist");
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
+//	trueIgnoredReadMessages.push_back("Blacklist: Forward read of pair with name 3rd_pair_wrongOrder because it was in the blacklist");
 
 	//Not consecutive 2nd mate
 	setToRevMate(bamAlignment);
@@ -206,7 +210,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	//--------------------------------------------------------
 
-	// 4) longer than insert size
+	// 5) longer than insert size
 	// first mate
 	setToFwdMate(bamAlignment);
 	bamAlignment.Position = 768;
@@ -224,8 +228,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 	// second mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 770;
-	bamAlignment.InsertSize = 20;
-	bamAlignment.MatePosition = 800;
+	bamAlignment.InsertSize = -20;
+	bamAlignment.MatePosition = 768;
 	bamAlignment.Length = 10;
 	bamAlignment.Name = "5th_pair_longerThanInsert";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
@@ -235,17 +239,44 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	bamWriter.SaveAlignment(bamAlignment);
 
+	//--------------------------------------------------------
 
+	//6) mate too far away
+	// first mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 771;
+	bamAlignment.InsertSize = 3000;
+	bamAlignment.MatePosition = 3751;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "6th_pair_mateTooFarAway";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
+	bamWriter.SaveAlignment(bamAlignment);
 
+	// first mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 3751;
+	bamAlignment.InsertSize = 3000;
+	bamAlignment.MatePosition = 771;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "6th_pair_mateTooFarAway";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
 
 	//--------------------------------------------------------
 
-	//alignment that is too far away
-
 	//alignment that is on other chromosome, with one mate that is on new chr
 
-	//alignment that is not a proper read
+	//alignment that is not a proper pair
 
 
 	//close BAM file
@@ -321,16 +352,15 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	while(bamReader.GetNextAlignment(bamAlignment)){
 		if(!basicChecks(bamAlignment, counter))
 			return false;
-		if(bamAlignment.QueryBases != trueQueryBases[counter]){
+		if(bamAlignment.QueryBases != trueQueryBases.at(counter)){
 			logfile->newLine();
 			logfile->conclude("Read number " + toString(counter) + ": query bases not same as true bases!");
 			return false;
-		} if(bamAlignment.Qualities != trueQualities[counter]){
+		} if(bamAlignment.Qualities != trueQualities.at(counter)){
 			logfile->newLine();
 			logfile->conclude("Read number " + toString(counter) + ": qualities not same as true qualities!");
 			return false;
 		}
-
 
 		++counter;
 	}
@@ -340,32 +370,34 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		return false;
 	}
 
-	//check ignored reads file
-	std::string ignoredReadsFile = filenameTag + "_ignoredReads.txt.gz";
-	logfile->listFlush("Reading ignored reads from '" + ignoredReadsFile + "...");
-	gz::igzstream file(ignoredReadsFile.c_str());
-	if(!file) throw "Failed to open file '" + ignoredReadsFile + "!";
+	if(trueIgnoredReadMessages.size() > 0){
+		//check ignored reads file
+		std::string ignoredReadsFile = filenameTag + "_ignoredReads.txt.gz";
+		logfile->listFlush("Reading ignored reads from '" + ignoredReadsFile + "...");
+		gz::igzstream file(ignoredReadsFile.c_str());
+		if(!file) throw "Failed to open file '" + ignoredReadsFile + "!";
 
-	int lineNum = 0;
-	std::vector<std::string> vec;
+		int lineNum = 0;
+		std::vector<std::string> vec;
 
-	//fill list of reads to omit
-	while(file.good() && !file.eof()){
-		std::string line;
-		getline(file, line);
-		if(line != trueIgnoredReadMessages[lineNum]){
+		//fill list of reads to omit
+		while(file.good() && !file.eof()){
+			std::string line;
+			getline(file, line);
+			if(line != trueIgnoredReadMessages.at(lineNum)){
+				logfile->newLine();
+				logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum));
+				return false;
+			}
+			++lineNum;
+		}
+		logfile->write("done! Read " + toString(lineNum) + " read names");
+
+		if((unsigned) lineNum != trueIgnoredReadMessages.size()){
 			logfile->newLine();
-			logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum));
+			logfile->conclude("Incorrect number of alignments in merged BAM file");
 			return false;
 		}
-		++lineNum;
-	}
-	logfile->write("done! Read " + toString(lineNum) + " read names");
-
-	if((unsigned) lineNum != trueIgnoredReadMessages.size()){
-		logfile->newLine();
-		logfile->conclude("Incorrect number of alignments in merged BAM file");
-		return false;
 	}
 
 	return true;

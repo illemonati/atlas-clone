@@ -1866,6 +1866,9 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
+	alignmentParser.setUpdateBlacklistToTrue();
+
+	int acceptedDistanceBetweenMates = params.getParameterIntWithDefault("acceptedDistance", 2000);
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1904,11 +1907,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	}
 
 	//should we omit some reads that did not pass validateSamFile?
-	bool blacklistGiven = false;
-	std::map <std::string, int> readsToOmit;
-
 	if(params.parameterExists("blacklist")){
-		blacklistGiven = true;
 		//open blacklist file
 		std::string blacklist = params.getParameterString("blacklist");
 		logfile->listFlush("Reading reads to be omitted from '" + blacklist + "...");
@@ -1923,7 +1922,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			if(!vec.empty())
-				readsToOmit.insert(std::pair<std::string,int>(vec[0], 1));
+				alignmentParser.addToBlacklist(vec[0]);
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
@@ -1959,14 +1958,14 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
 
 		std::cout << "##### got new alignment into pairing function " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
-		if(readsToOmit.count(alignment.alignmentName) > 0){
+		if(alignmentParser.isInBlacklist(alignment.alignmentName)){
 			std::cout << "found alignment in blacklist" << std::endl;
 			//no need to keep mate in list anymore
 			if(alignment.isReverseStrand)
 				ignoredReads << "Blacklist: Reverse read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
 			else
 				ignoredReads << "Blacklist: Forward read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
-			readsToOmit.erase(alignment.alignmentName);
+			alignmentParser.removeFromBlacklist(alignment.alignmentName);
 			continue;
 		} else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 			int insertSize = abs(alignment.bamAlignment.InsertSize);
@@ -1977,7 +1976,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 					else
 						ignoredReads << "TLENError: Forward read of pair with name " << alignment.alignmentName << " because it was longer than the insert size (" << insertSize << "<" << alignment.bamAlignment.AlignedBases.size() << ")\n";
 				}
-			readsToOmit.insert(std::pair<std::string,int>(alignment.alignmentName, 1));
+			alignmentParser.addToBlacklist(alignment.alignmentName);
 			continue;
 			}
 //			} if(!alignment.isProperPair ||(alignment.isReverseStrand() && alignment.isMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
@@ -2001,6 +2000,13 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 						alignmentStorage.clear();
 					}
 					curChr = alignment.chrNumber;
+				}
+
+				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
+				while(alignmentStorage.size() > 0 && alignment.position - alignmentStorage.begin()->first->position > acceptedDistanceBetweenMates){
+					alignmentParser.addToBlacklist(alignmentStorage.begin()->first->alignmentName);
+					ignoredReads << "DistanceError: Read with name " << alignmentStorage.begin()->first->alignmentName << " has a mate that is farther away than " << acceptedDistanceBetweenMates << " bp\n";
+					alignmentStorage.erase(alignmentStorage.begin());
 				}
 
 				//add alignment to storage
@@ -2049,8 +2055,8 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 										std::cout << "saved alignment " << it->first->alignmentName << " is reversed=" << it->first->isReverseStrand  << " address " << it->first <<" . then, deleting it"<< std::endl;
 										delete it->first;
 									} else {
+										//arrived at first read in storage that can't be written -> break writing loop
 										it = alignmentStorage.erase(alignmentStorage.begin(), it);
-										std::cout << "arrived at alignment in storage " << it->first->alignmentName << " rev " << it->first->isReverseStrand << " that has not yet found mate." << std::endl;
 										break;
 									}
 								}
@@ -2059,31 +2065,24 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 									alignmentStorage.clear();
 									std::cout << "finished clearing alignment storage" << std::endl;
 								}
-								break;
 							} else {
 								//add reverse to storage
 								std::cout << "alignment was not the last in storage, pushing it back" << std::endl;
 								alignmentStorage.emplace_back(new TAlignment(alignment), true);
 							}
-
-							throw "got to here";
-							std::cout << "about to break" << std::endl;
+							//break search for pair
 							break;
 						}
 					}
 					if(alignmentStorage.size() == 0)
-						throw "searching for mate even though alignment storage is empty due to clearing!";
-					std::cout << "got here with alignment " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
+						//mate was found and storage was emptied -> it cannot be at end()
+						continue;
 					//mate not read yet, add to storage!
-					if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
+					else if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
 						std::cout << "did not find mate! adding " << alignment.alignmentName << " to storage" << std::endl;
-						alignmentStorage.emplace_back(new TAlignment(alignment), true);
-					} else {
-						std::cout << "did not find mate! but not at end of storage. read name is " << alignment.alignmentName << std::endl;
-						std::cout << "size of storage is " << alignmentStorage.size() << std::endl;
-						std::cout << "it is at read " << it->first->alignmentName  << std::endl;
-					}
-					break;
+						alignmentStorage.emplace_back(new TAlignment(alignment), false);
+						continue;
+					} //else: the mate was found but not all reads in storage could be written
 				} else {
 					//read is not paired: add to storage or write
 					if(alignmentStorage.empty()){
