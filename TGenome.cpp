@@ -2009,11 +2009,14 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 					if(alignmentStorage.size() == 0){
 						alignmentStorage.emplace_back(new TAlignment(alignment), false);
+						std::cout << "added alignment " << alignmentStorage.begin()->first->alignmentName << std::endl;
 						continue;
 					}
 
 					for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-						std::cout << "name in storage is " << it->first->alignmentName << " and reverse read name is " << alignment.alignmentName << std::endl;
+						std::cout << "alignmentStorage size " << alignmentStorage.size() << std::endl;
+						std::cout << "name in storage is " << it->first->alignmentName;
+						std::cout << " and searched read name is " << alignment.alignmentName << std::endl;
 
 						//found its mate!
 						if(it->first->alignmentName == alignment.alignmentName){
@@ -2052,26 +2055,35 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 									}
 								}
 								if(it == alignmentStorage.end()){
-									std::cout << "about to clear alignment storage" << std::endl;
+									std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
 									alignmentStorage.clear();
 									std::cout << "finished clearing alignment storage" << std::endl;
 								}
-
+								break;
 							} else {
 								//add reverse to storage
 								std::cout << "alignment was not the last in storage, pushing it back" << std::endl;
-								alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
+								alignmentStorage.emplace_back(new TAlignment(alignment), true);
 							}
+
+							throw "got to here";
+							std::cout << "about to break" << std::endl;
 							break;
 						}
 					}
-
+					if(alignmentStorage.size() == 0)
+						throw "searching for mate even though alignment storage is empty due to clearing!";
+					std::cout << "got here with alignment " << alignment.alignmentName << " is reverse " << alignment.isReverseStrand << std::endl;
 					//mate not read yet, add to storage!
 					if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
-						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
+						std::cout << "did not find mate! adding " << alignment.alignmentName << " to storage" << std::endl;
+						alignmentStorage.emplace_back(new TAlignment(alignment), true);
+					} else {
+						std::cout << "did not find mate! but not at end of storage. read name is " << alignment.alignmentName << std::endl;
+						std::cout << "size of storage is " << alignmentStorage.size() << std::endl;
+						std::cout << "it is at read " << it->first->alignmentName  << std::endl;
 					}
 					break;
-
 				} else {
 					//read is not paired: add to storage or write
 					if(alignmentStorage.empty()){
@@ -2116,7 +2128,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	reader.Close();
 	logfile->done();
 }
-
+/*
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
@@ -2309,7 +2321,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 										}
 									}
 									if(it == alignmentStorage.end()){
-										std::cout << "about to clear alignment storage" << std::endl;
+										std::cout << "arrived at alignmentStorage end: about to clear alignment storage" << std::endl;
 										alignmentStorage.clear();
 										std::cout << "finished clearing alignment storage" << std::endl;
 									}
@@ -2385,7 +2397,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	reader.Close();
 	logfile->done();
 }
-
+*/
 
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
