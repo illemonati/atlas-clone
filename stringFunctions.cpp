@@ -4,7 +4,6 @@
 //-----------------------------------------------------------------------
 // casting
 //-----------------------------------------------------------------------
-/*
 std::string toString(const int & input){
 	std::ostringstream tos;
 	tos << input;
@@ -16,12 +15,13 @@ std::string toString(const long & input){
 	tos << input;
 	return tos.str();
 };
-
+/*
 std::string toString(const std::vector<int>::size_type & input){
 	std::ostringstream tos;
 	tos << input;
 	return tos.str();
 };
+*/
 
 std::string toString(const unsigned int & input){
 	std::ostringstream tos;
@@ -42,11 +42,11 @@ std::string toString(const float & input){
 	return tos.str();
 };
 
-
 std::string toString(const double & input){
-	return std::to_string(input);
+	std::ostringstream tos;
+	tos << input;
+	return tos.str();
 };
-*/
 
 int stringToInt(const std::string & s){
 	return atoi(s.c_str());
