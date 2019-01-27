@@ -408,3 +408,47 @@ void VcfDiagnostics::filterAllelicImbalance(){
 */
 
 
+void VcfDiagnostics::fixIntAsFloat(){
+	//open vcf file
+	logfile->list("Fixing integers that are printed as floats:");
+
+	//enable parsers
+	vcfFile.enablePositionParsing();
+	vcfFile.enableFormatParsing();
+	vcfFile.enableSampleParsing();
+	vcfFile.enableVariantParsing();
+
+	//open output file
+	std::string filename = outname + (std::string) "_fixed.vcf.gz";
+	gz::ogzstream out(filename.c_str());
+	if(!out) throw "Failed to open outputfile '" + filename + "'!";
+	vcfFile.setOutStream(out);
+
+	vcfFile.writeHeaderVCF_4_0();
+
+	//tmp vars
+	int counter = 0;
+	std::vector<int> vec;
+
+	//parse VCF
+
+	logfile->startIndent("Parsing vcf file:");
+	while(vcfFile.next()){
+		++counter;
+
+		//fix GP field
+		std::string gp = vcfFile.fieldContentAsString("GP", 0);
+		fillVectorFromString(gp, vec, ',');
+		gp = std::to_string(vec[0]) + ',' + std::to_string(vec[1]) + ',' + std::to_string(vec[2]);
+		vcfFile.updateField("GP", gp, 0);
+
+		//write output
+		vcfFile.writeLine();
+
+		//report progress
+		if(verbose && counter % 1000000 == 0)
+			logfile->list("read " + toString(counter) + " lines.");
+	}
+	logfile->endIndent();
+};
+

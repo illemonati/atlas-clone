@@ -80,6 +80,7 @@ public:
 	//modify
 	void setSampleMissing(TVcfLine* line, unsigned int sample);
 	void setSampleHasUndefinedGenotype(TVcfLine* line, unsigned int sample);
+	void updateField(TVcfLine* line, std::string & tag, std::string & Data, unsigned int sample);
 
 	//void addFilter(my_string filter);
 	//void filterSamples();
@@ -115,9 +116,9 @@ public:
 	void updateInfo(std::string Id, std::string Data);
 	void addToInfo(std::string Id, std::string Data);
 	void updatePL(std::string Data, unsigned int sample);
-	virtual std::string fieldContentAsString(std::string tag, unsigned int sample);
-	virtual int fieldContentAsInt(std::string tag, unsigned int sample);
-	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
+	std::string fieldContentAsString(std::string tag, unsigned int sample);
+	int fieldContentAsInt(std::string tag, unsigned int sample);
+	int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
 	GTLikelihoods genotypeLikelihoods(unsigned int sample);
 	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
 	void fillGenotypeLikelihoods(unsigned int sample, double* gtl);
@@ -131,6 +132,7 @@ public:
 	//sampel info
 	void setSampleMissing(unsigned int sample);
 	void setSampleHasUndefinedGenotype(unsigned int sample);
+	void updateField(std::string tag, std::string & Data, unsigned int sample);
 	bool sampleIsMissing(unsigned int sample);
 	bool sampleHasUndefinedGenotype(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);

@@ -167,6 +167,10 @@ void TVcfFile_base::setSampleHasUndefinedGenotype(TVcfLine* line, unsigned int s
 	parser.setSampleHasUndefinedGenotype(*line, sample);
 }
 
+void TVcfFile_base::updateField(TVcfLine* line, std::string & tag, std::string & Data, unsigned int sample){
+	parser.updateField(*line, tag, Data, sample);
+};
+
 void TVcfFile_base::writeHeaderVCF_4_0(){
 	*myOutStream << "##fileformat=" << fileFormat << std::endl;
 	parser.writeFormatHeader(*myOutStream);
@@ -291,6 +295,9 @@ void TVcfFileSingleLine::setSampleMissing(unsigned int sample){
 }
 void TVcfFileSingleLine::setSampleHasUndefinedGenotype(unsigned int sample){
 	TVcfFile_base::setSampleHasUndefinedGenotype(&tempLine, sample);
+}
+void TVcfFileSingleLine::updateField(std::string tag, std::string & Data, unsigned int sample){
+	TVcfFile_base::updateField(&tempLine, tag, Data, sample);
 }
 bool TVcfFileSingleLine::sampleIsMissing(unsigned int sample){
 	return TVcfFile_base::sampleIsMissing(&tempLine, sample);

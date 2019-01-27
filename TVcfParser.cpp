@@ -1,4 +1,4 @@
-/*
+	/*
  * TVcfParser.cpp
  *
  *  Created on: Jun 15, 2011
@@ -527,6 +527,13 @@ void TVcfParser::setSampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s
 	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	line.samples[sample].unknownGenotype=true;
 }
+
+void TVcfParser::updateField(TVcfLine & line, std::string & tag, std::string & Data, unsigned int & sample){
+	checkSampleNum(line, sample);
+	int col = getFormatCol(tag, line);
+	if(col < 0) throw "Column '" + tag + "' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
+	line.samples[sample].data[col] = Data;
+};
 
 bool TVcfParser::sampleIsHomoRef(TVcfLine & line, unsigned int & sample){
 	checkSampleNum(line, sample);

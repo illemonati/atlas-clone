@@ -49,9 +49,13 @@ public:
 			VcfDiagnostics VcfDiagnoser(parameters, logfile);
 			VcfDiagnoser.assessAllelicImbalance();
 		} else if(task=="VCFToInvariantBed"){
-			logfile->startIndent("Writing sites that are invariant across individuals to bed (task=vcfToInvariantBed):");
+			logfile->startIndent("Writing sites that are invariant across individuals to bed (task=VCFToInvariantBed):");
 			VcfDiagnostics VcfDiagnoser(parameters, logfile);
 			VcfDiagnoser.vcfToInvariantBed();
+		} else if(task == "VCFFixInt"){
+			logfile->startIndent("Fixing integers printed as floats in VCF file (task=VCFFixInt):");
+			VcfDiagnostics VcfDiagnoser(parameters, logfile);
+			VcfDiagnoser.fixIntAsFloat();
 		} else if(task == "majorMinor"){
 			TMajorMinor majorMinor(*parameters, logfile);
 			majorMinor.estimateMajorMinor(*parameters);

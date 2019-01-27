@@ -183,6 +183,7 @@ public:
 	void parseFormat(TVcfLine & line);
 	void parseInfo(TVcfLine & line);
 	void parseSamples(TVcfLine & line);
+
 	//other functions
 	int getFormatCol(std::string & tag, TVcfLine & line);
 	int getFormatCol(TVcfLine & line, std::string tag){return getFormatCol(tag, line);};
@@ -213,7 +214,7 @@ public:
 	void addInfoToSample(TVcfLine & line, unsigned int & sample, std::string & tag, std::string & Data);
 	void setSampleMissing(TVcfLine & line, unsigned int & sample);
 	void setSampleHasUndefinedGenotype(TVcfLine & line, unsigned int & sample);
-
+	void updateField(TVcfLine & line, std::string & tag, std::string & Data, unsigned int & sample);
 
 	//retrieve sample info
 	bool sampleIsHomoRef(TVcfLine & line, unsigned int & sample);
@@ -232,6 +233,7 @@ public:
 	std::string sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample);
 	int phred(double x);
 	double dePhred(double x);
+
 	//output
 	void writeColumnDescriptionHeader(std::ostream & out);
 	void writeInfoHeader(std::ostream &  out);

@@ -129,6 +129,8 @@ public:
 	void assessAllelicImbalance();
 	void filterAllelicImbalance();
 	void vcfToInvariantBed();
+
+	void fixIntAsFloat();
 };
 
 
