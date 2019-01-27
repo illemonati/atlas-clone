@@ -135,7 +135,7 @@ public:
 class TVCFInfoFields:public TVCFFieldVector{
 public:
 	TVCFInfoFields():TVCFFieldVector("INFO"){
-		add("DP", "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\"");
+		add("DP", "Number=1,Type=Integer,Description=\"Total Depth\"");
 	};
 };
 
