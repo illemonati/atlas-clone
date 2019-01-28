@@ -26,8 +26,12 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 			if(numq==1 || numq==3) temp=temp+extractBefore(line, '"');
 			line.erase(0,1);
 		}
+
+		//get tag
 		std::string tag=extractBefore(temp, '=');
 		temp.erase(0,1);
+
+		//check tag
 		if(tag=="ID") id=temp;
 		else if(tag=="Number"){
 			numberString=temp;
@@ -41,8 +45,11 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 			if(type==UNKNOWN) "Error when parsing vcf header, unknown 'Type' in line '"+ Line +"'!";
 		}
 		else if(tag=="Description") desc=temp;
+		else if(tag=="##INFO") continue; //HACK to fix an error in a previous version of Atlas.
 		else throw "Error when parsing vcf header, unknown tag '" + tag + "' in line '"+ Line +"'!";
 	}
+
+	//throw error
 	if(type!=FLAG && number<1) "Error when parsing vcf header, unknown 'Number' in line '"+ Line +"'!";
 	if(id.empty() || number==-1 || type==UNKNOWN || desc.empty()){
 		std::string errorMessage="Error when parsing vcf header, missing tag in line '" + Line + "':";

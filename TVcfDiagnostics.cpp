@@ -423,7 +423,6 @@ void VcfDiagnostics::fixIntAsFloat(){
 	gz::ogzstream out(filename.c_str());
 	if(!out) throw "Failed to open outputfile '" + filename + "'!";
 	vcfFile.setOutStream(out);
-
 	vcfFile.writeHeaderVCF_4_0();
 
 	//tmp vars
