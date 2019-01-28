@@ -228,8 +228,9 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	}
 
 	//open output file
-	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_");
-	std::string filename = outname + "alleleCounts.txt.gz";
+	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string outname = params.getParameterStringWithDefault("out", tmp);
+	std::string filename = outname + "_alleleCounts.txt.gz";
 	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
 	gz::ogzstream aleleCountFile(filename.c_str());
 	if(!aleleCountFile)
