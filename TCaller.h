@@ -179,7 +179,7 @@ protected:
 	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);
 	void callGenotypeFromMetricKnownAlleles(double* metric);
-	std::string getPerGenotypeMetricString(double* metric);
+	template <typename T> std::string getPerGenotypeMetricString(T* metric);
 	void calculateImbalance(TSite & site);
 	std::string getVCFGenotypeString_AB(TSite & site);
 	std::string getVCFGenotypeString_AI(TSite & site);

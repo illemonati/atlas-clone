@@ -635,7 +635,7 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
 	calledGenotype = vec[randomGenerator->pickOne(vec.size())];
 };
 
-std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
+template <typename T> std::string TCallerDiploid::getPerGenotypeMetricString(T* metric){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 	//plot missing value (.) for all metrics involving the reference if the reference is N
 
@@ -644,7 +644,7 @@ std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 	if(referenceBase == N)
 		ret = ".";
 	else
-		ret = toString(metric[genoMap.genotypeMap[referenceBase][referenceBase]]);
+		ret = toString((int) metric[genoMap.genotypeMap[referenceBase][referenceBase]]);
 
 	//now for alternative alleles
 	if(altAlleles.size() > 0){
@@ -652,7 +652,7 @@ std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 			ret += ",.";
 		else
 			ret += ',' + toString(metric[genoMap.genotypeMap[referenceBase][altAlleles[0]]]);
-		ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[0]]]);
+		ret += ',' + toString((int) metric[genoMap.genotypeMap[altAlleles[0]][altAlleles[0]]]);
 
 		if(altAlleles.size() > 1){
 			if(referenceBase == N)
@@ -673,7 +673,6 @@ std::string TCallerDiploid::getPerGenotypeMetricString(double* metric){
 			ret += ',' + toString(metric[genoMap.genotypeMap[altAlleles[2]][altAlleles[2]]]);
 		}
 	}
-
 	return ret;
 };
 
@@ -765,10 +764,10 @@ std::string TCallerMLE::getVCFGenotypeString_GL(TSite & site){
 
 std::string TCallerMLE::getVCFGenotypeString_PL(TSite & site){
 	//normalize
-	double tmp[10];
+	int tmp[10];
 	double phredMax = qualMap.errorToPhred(site.emissionProbabilities[indexOfMax]);
 	for(int g=0; g<10; ++g)
-		tmp[g] = round(qualMap.errorToPhred(site.emissionProbabilities[g]) - phredMax);
+		tmp[g] = (int) round(qualMap.errorToPhred(site.emissionProbabilities[g]) - phredMax);
 
 	//get string
 	return getPerGenotypeMetricString(tmp);
@@ -813,9 +812,9 @@ std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){
 
 std::string TCallerBayes::getVCFGenotypeString_GP(TSite & site){
 	//phred
-	double tmp[10];
+	int tmp[10];
 	for(int g=0; g<10; ++g)
-		tmp[g] = qualMap.errorToPhredInt(posteriorProb[g]);
+		tmp[g] = (int) qualMap.errorToPhredInt(posteriorProb[g]);
 
 	//get string
 	return getPerGenotypeMetricString(tmp);
