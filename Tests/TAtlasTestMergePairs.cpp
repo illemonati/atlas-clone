@@ -224,6 +224,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	//TODO: parser should write out message to ignoredReads file stating that read was too long
 
 	// second mate
 	setToRevMate(bamAlignment);
@@ -238,6 +239,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueIgnoredReadMessages.push_back("Blacklist: Reverse read of pair with name 5th_pair_longerThanInsert because it was in the blacklist\n");
 
 	//--------------------------------------------------------
 
@@ -256,10 +258,40 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	bamWriter.SaveAlignment(bamAlignment);
 
+	//7) second too far away
 	// first mate
+	setToFwdMate(bamAlignment);
+	bamAlignment.Position = 772;
+	bamAlignment.InsertSize = 100;
+	bamAlignment.MatePosition = 872;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "7th_pair_secondTooFarAway";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(40));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//second too far away second mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 872;
+	bamAlignment.InsertSize = -100;
+	bamAlignment.MatePosition = 772;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "7th_pair_secondTooFarAway";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(40));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+
+	// Mate too far away second mate
 	setToRevMate(bamAlignment);
 	bamAlignment.Position = 3751;
-	bamAlignment.InsertSize = 3000;
+	bamAlignment.InsertSize = -3000;
 	bamAlignment.MatePosition = 771;
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "6th_pair_mateTooFarAway";
@@ -269,10 +301,42 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-
 	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
 
 	//--------------------------------------------------------
+	//8) mate on different chr
+	// first mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 3751;
+	bamAlignment.InsertSize = -100;
+	bamAlignment.MatePosition = 20;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "8th_pair_mateOnDiffChr";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+
+	//mate on diff chr second mate
+	setToRevMate(bamAlignment);
+	bamAlignment.RefID = 1;
+	bamAlignment.Position = 20;
+	bamAlignment.InsertSize = 100;
+	bamAlignment.MatePosition = 20;
+	bamAlignment.Length = 20;
+	bamAlignment.Name = "8th_pair_mateOnDiffChr";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
+
+	//--------------------------------------------------------
+
 
 	//alignment that is on other chromosome, with one mate that is on new chr
 
@@ -383,13 +447,14 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		//fill list of reads to omit
 		while(file.good() && !file.eof()){
 			std::string line;
-			getline(file, line);
-			if(line != trueIgnoredReadMessages.at(lineNum)){
-				logfile->newLine();
-				logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum));
-				return false;
+			if(getline(file, line)){
+				if(line != trueIgnoredReadMessages.at(lineNum)){
+					logfile->newLine();
+					logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum) + ". Was expecting '" + trueIgnoredReadMessages.at(lineNum) + "'  but read '" + line + "'");
+	//				return false;
+				}
+				++lineNum;
 			}
-			++lineNum;
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 

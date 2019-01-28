@@ -696,12 +696,13 @@ bool TAlignmentParser::readAlignment(){
 		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 //			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
+			if(_updateBlacklist)
+				blacklist.emplace(bamAlignment.Name, 1);
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = applyFilters();
 			if(_updateBlacklist && !filtersPassed){
 				blacklist.emplace(bamAlignment.Name, 1);
-				throw "added alignment " + bamAlignment.Name + " to blacklist in parser";
 			}
 		}
 	} while(!filtersPassed);
