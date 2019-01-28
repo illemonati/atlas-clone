@@ -52,8 +52,8 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdat
 
 }
 
-double TInbreedingF::proposeNew(TRandomGenerator & randomGenerator){
-    double newF = _F + randomGenerator.getNormalRandom(0, _sdProposal);
+double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
+    double newF = _F + randomGenerator->getNormalRandom(0, _sdProposal);
     while(newF > 1 || newF < 0){
         //mirror
         if(newF < 0)
@@ -174,10 +174,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 		if(newProposalWidth > 0.5)
 			newProposalWidth = 0.5;
 
-		if(l == 0)
-			std::cout << "old proposalWidths[0] " << proposalWidths[l] << " newProposalWidth " << newProposalWidth << std::endl;
-
-
 		proposalWidths[l] = newProposalWidth;
 
 
@@ -202,10 +198,10 @@ void TAlleleFreq::update(long & index, double value){
 	sumOfSquaresIterations[index] += value*value;
 }
 
-double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator & randomGenerator){
+double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator* randomGenerator){
 //	newAlleleFreq[G][l] = fabs(alleleFreq[G][l] + (randomGenerator.getRand()-0.5) * proposalWidthFrequencies[G][l]);
 
-	double newP = alleleFreq[locusNum] + randomGenerator.getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0;
+	double newP = alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0;
 
 	//is proposed p outside range [0,1]
 	if(newP < minAlleleFreq){
@@ -320,6 +316,16 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	likelihoods.readData(Parameters, logfile);
 	numLoci = likelihoods.getNumLoci();
 
+	//initialize random generator
+	//TODO: do the random generator initialization in the task switcher?
+	logfile->listFlush("Initializing random generator ...");
+	if(Parameters.parameterExists("fixedSeed")){
+		randomGenerator = new TRandomGenerator(Parameters.getParameterLong("fixedSeed"), true);
+	} else if(Parameters.parameterExists("addToSeed")){
+		randomGenerator = new TRandomGenerator(Parameters.getParameterLong("addToSeed"), false);
+	} else randomGenerator = new TRandomGenerator();
+	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
+
 	//initialize parameters
 	initParams(randomGenerator, Parameters);
 	numAcceptedP = new int[numLoci];
@@ -369,7 +375,7 @@ void TInbreedingEstimator::initializeGamma(){
 	logfile->list("Initialized gamma to " + toString(Gamma.getNaturalScaleValue()));
 }
 
-void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParameters & parameters){
+void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParameters & parameters){
 	//F
 	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.2);
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
@@ -380,10 +386,12 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 	double lambda = parameters.getParameterDoubleWithDefault("lambda", 1.0);
 	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambda));
 
-	bool startInModelWithF = parameters.parameterExists("startInModelWithF");
+	bool startInModelWithF = true;
+	if(parameters.parameterExists("startInZeroModel"))
+		startInModelWithF = false;
 	if(startInModelWithF){
-		F = TInbreedingF(randomGenerator.getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
-		F.update(randomGenerator.getExponentialRandomTruncated(lambda, 0, 1), true);
+		F = TInbreedingF(randomGenerator->getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
+		F.update(randomGenerator->getExponentialRandomTruncated(lambda, 0, 1), true);
 //		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
@@ -429,7 +437,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator & randomGenerator, TParam
 bool TInbreedingEstimator::updateF(){
 	if(F.inModelWithF()){
 		//try move to model without F
-		if(randomGenerator.getRand() < F.probMovingToModelNoF()){
+		if(randomGenerator->getRand() < F.probMovingToModelNoF()){
 			double logH = F.logPDFExp() - log(F.probMovingToModelNoF());
 
 			long l = 0;
@@ -440,7 +448,7 @@ bool TInbreedingEstimator::updateF(){
 			}
 
 			//accept?
-			if(log(randomGenerator.getRand()) < logH){
+			if(log(randomGenerator->getRand()) < logH){
 				F.update(0, false);
 				return true;
 			} else
@@ -459,7 +467,7 @@ bool TInbreedingEstimator::updateF(){
 			}
 
 			//accept?
-			if(log(randomGenerator.getRand()) < logH){
+			if(log(randomGenerator->getRand()) < logH){
 				F.update(newF, true);
 				return true;
 			} else
@@ -470,7 +478,7 @@ bool TInbreedingEstimator::updateF(){
 	//moving to model with F
 	else {
 		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp();
-		double newF = randomGenerator.getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
+		double newF = randomGenerator->getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
 
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
@@ -480,7 +488,7 @@ bool TInbreedingEstimator::updateF(){
 		}
 
 		//accept?
-		if(log(randomGenerator.getRand()) < logH){
+		if(log(randomGenerator->getRand()) < logH){
 			F.update(newF, true);
 			return true;
 		} else
@@ -507,7 +515,7 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 //	std::cout << "logH " << logH << " logHold " << logHold << std::endl;
 
 	//accept?
-	if(log(randomGenerator.getRand()) < logH){
+	if(log(randomGenerator->getRand()) < logH){
 		p.update(locusNum, newP);
 		return true;
 	} else {
@@ -518,7 +526,7 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 
 bool TInbreedingEstimator::updateGamma(){
 	// propose new log(value) (uniform proposal kernel)
-	double newLogGamma = Gamma.getLogValue() + randomGenerator.getRand() * Gamma.proposalWidth - Gamma.proposalWidth / 2.0;
+	double newLogGamma = Gamma.getLogValue() + randomGenerator->getRand() * Gamma.proposalWidth - Gamma.proposalWidth / 2.0;
 
 //	Gamma.update(log(0.5),0.5);
 //	double newLogGamma = 0.5;
@@ -536,10 +544,10 @@ bool TInbreedingEstimator::updateGamma(){
 		sumLogOneMinusFreq += log(1.0 - p[l]);
 	}
 
-	double tmpH = numLoci * (randomGenerator.gammaln(newGamma + Gamma.getNaturalScaleValue())
-			+ randomGenerator.gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator.gammaln(Gamma.getNaturalScaleValue() + Gamma.getNaturalScaleValue())
-			- randomGenerator.gammaln(newGamma))
+	double tmpH = numLoci * (randomGenerator->gammaln(newGamma + Gamma.getNaturalScaleValue())
+			+ randomGenerator->gammaln(Gamma.getNaturalScaleValue())
+			- randomGenerator->gammaln(Gamma.getNaturalScaleValue() + Gamma.getNaturalScaleValue())
+			- randomGenerator->gammaln(newGamma))
 			+ (newGamma - Gamma.getNaturalScaleValue()) * sumLogFreq;
 
 //	std::cout << "tmpH " << tmpH << std::endl;
@@ -548,10 +556,10 @@ bool TInbreedingEstimator::updateGamma(){
 	// compute log hastings ratio
 	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
 	double logH = (double) numLoci *
-			(randomGenerator.gammaln(2.0*newGamma)
-			+ 2.0*randomGenerator.gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator.gammaln(2.0*Gamma.getNaturalScaleValue())
-			- 2.0*randomGenerator.gammaln(newGamma)
+			(randomGenerator->gammaln(2.0*newGamma)
+			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
+			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
+			- 2.0*randomGenerator->gammaln(newGamma)
 			)
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;
@@ -559,7 +567,7 @@ bool TInbreedingEstimator::updateGamma(){
 //	std::cout << "logH " << logH << std::endl;
 
 	// accept or reject
-	double tmp = log(randomGenerator.getRand());
+	double tmp = log(randomGenerator->getRand());
 	if(tmp < logH){
 		Gamma.update(newLogGamma, newGamma);
 		return true;
@@ -611,7 +619,7 @@ double TInbreedingEstimator::logProbPGivenGamma(){
 	//add beta density
 	double gammaMinusOne = Gamma.getNaturalScaleValue() - 1.0;
 	posteriorProbability += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
-	posteriorProbability += (double) numLoci * (randomGenerator.gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator.gammaln(Gamma.getNaturalScaleValue()));
+	posteriorProbability += (double) numLoci * (randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue()));
 
 //
 //	//new
@@ -912,7 +920,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration(i);
-			writeParameterEstimatesOfIteration(out);
+//			writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);

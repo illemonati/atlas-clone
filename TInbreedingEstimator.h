@@ -29,7 +29,7 @@ public:
 	TInbreedingF();
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates, TLog* logfile);
-	double proposeNew(TRandomGenerator & randomGenerator);
+	double proposeNew(TRandomGenerator* randomGenerator);
 	void update(double value, bool inModelWithF);
 	float probMovingToModelNoF();
 	double F();
@@ -65,7 +65,7 @@ public:
 	void setSumsToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
-	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
+	double proposeNew(long & locusNum, TRandomGenerator* randomGenerator);
 	void update(long & index, double value);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
@@ -99,7 +99,7 @@ public:
 
 class TInbreedingEstimator{
 private:
-	TRandomGenerator randomGenerator;
+	TRandomGenerator* randomGenerator;
 	TQualityMap qualMap;
 
 	//log
@@ -130,7 +130,7 @@ private:
 
 //	void initializeAlphaBeta();
 	void initializeGamma();
-	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
+	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma);
 	bool updateGamma();
@@ -147,6 +147,7 @@ public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
 	~TInbreedingEstimator(){
 		delete numAcceptedP;
+		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
