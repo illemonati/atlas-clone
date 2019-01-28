@@ -16,12 +16,13 @@
 #include <sstream>
 #include <stdio.h>
 
-inline std::string toString(const int & input){ return std::to_string(input); };
-inline std::string toString(const long & input){ return std::to_string(input); };
-inline std::string toString(const unsigned int & input){ return std::to_string(input); };
-inline std::string toString(const unsigned long & input){ return std::to_string(input); };
-inline std::string toString(const float & input){ return std::to_string(input); };
-inline std::string toString(const double & input){ return std::to_string(input); };
+std::string toString(const int & input);
+std::string toString(const long & input);
+//std::string toString(const std::vector<int>::size_type & input);
+std::string toString(const unsigned int & input);
+std::string toString(const unsigned long & input);
+std::string toString(const float & input);
+std::string toString(const double & input);
 
 int stringToInt(const std::string & s);
 long stringToLong(const std::string & s);
