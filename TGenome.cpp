@@ -2890,6 +2890,11 @@ void TGenome::downSampleReads(TParameters & params){
 }
 
 void TGenome::diagnoseBamFile(TParameters & params){
+	//get max params
+	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
+	int maxRL = params.getParameterIntWithDefault("maxReadLength", 1000);
+
+
     //open output files
     std::ofstream outputDepth;
     std::string outputFileNameCov = outputName + "_approximateDepth.txt";
@@ -2938,8 +2943,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     long** RL = new long*[readGroups.numGroups];
     for(int i = 0; i < readGroups.numGroups; ++i){
     	cov.push_back(0);
-    	MQ[i] = new long[100];
-    	RL[i] = new long[500];
+    	MQ[i] = new long[maxMQ + 1]; //+1 for zero bin
+    	RL[i] = new long[maxRL + 1];
     	for(int j=0; j<100; ++j) MQ[i][j]=0;
     	for(int j=0; j<500; ++j) RL[i][j]=0;
     }
@@ -2962,7 +2967,12 @@ void TGenome::diagnoseBamFile(TParameters & params){
         RGInd = alignmentParser.readGroupId;
         totCov += alignmentParser.bamAlignment.AlignedBases.length();
         cov[RGInd] += alignmentParser.bamAlignment.AlignedBases.length();
+        if(alignmentParser.bamAlignment.MapQuality > maxMQ){
+        	throw "Mapping quality of alignment " + alignmentParser.bamAlignment.Name + " is larger than maxMQ (" + toString(alignmentParser.bamAlignment.MapQuality) + ">" + toString(maxMQ) +")";
+        }
         ++MQ[RGInd][alignmentParser.bamAlignment.MapQuality];
+        if(alignmentParser.bamAlignment.Length > maxRL)
+        	throw "Read length of alignment " + alignmentParser.bamAlignment.Name + " is larger than maxReadLength (" + toString(alignmentParser.bamAlignment.Length) + ">" + toString(maxRL) +")";
         ++RL[RGInd][alignmentParser.bamAlignment.Length];
 
         //report
@@ -3031,8 +3041,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     fragmentStats.close();
 
     for(int i = 0; i < readGroups.numGroups; ++i){
-    	delete MQ[i];
-    	delete RL[i];
+    	delete[] MQ[i];
+    	delete[] RL[i];
     }
     delete [] MQ;
     delete [] RL;
