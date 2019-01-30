@@ -101,18 +101,23 @@ public:
 				genome.callGenotypesNew(*parameters);
 			} else if(task == "callMLE"){
 				logfile->startIndent("Calling MLE Genotypes (task = callMLE):");
+				logfile->warning("This caller is deprecated. Use callNEW instead");
 				genome.callMLEGenotypes(*parameters);
 			} else if(task == "callBayes"){
 				logfile->startIndent("Calling Bayesian Genotypes (task = callBayes):");
+				logfile->warning("This caller is deprecated. Use callNEW instead");
 				genome.callBayesianGenotypes(*parameters);
 			} else if(task == "allelePresence"){
 				logfile->startIndent("Calling Allele Presence (task = allelePresence):");
+				logfile->warning("This caller is deprecated. Use callNEW instead");
 				genome.callAllelePresence(*parameters);
 			} else if(task == "randomBaseCaller"){
 				logfile->startIndent("Calling random bases (task = randomBaseCaller");
+				logfile->warning("This caller is deprecated. Use callNEW instead");
 				genome.randomBaseCaller(*parameters);
 			} else if(task == "majorityBaseCaller"){
 				logfile->startIndent("Calling random bases (task = majorityBaseCaller");
+				logfile->warning("This caller is deprecated. Use callNEW instead");
 				genome.majorityBaseCaller(*parameters);
 			} else if(task == "glf"){
 				logfile->startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
