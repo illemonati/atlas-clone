@@ -426,7 +426,7 @@ void TSite::callMLEGenotypeVCF(TGenotypeMap & genoMap, TRandomGenerator & random
 					}
 				}
 				else {
-					altAlleles = geno[0] << ',' << geno[1];
+					altAlleles = geno[0] + ',' + geno[1];
 					genoVCF = "1/2";
 
 					if(referenceBase != 'N'){
