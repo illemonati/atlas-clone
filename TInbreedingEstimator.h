@@ -30,7 +30,9 @@ public:
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates, TLog* logfile);
 	double proposeNew(TRandomGenerator* randomGenerator);
-	void update(double value, bool inModelWithF);
+	void updateAndAccept(double value, bool inModelWithF);
+	void updateAndReject(bool inModelWithF);
+	void resetPosterior();
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
@@ -70,6 +72,7 @@ public:
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
+	void resetPosterior(const unsigned long & index);
 };
 
 //---------------------------

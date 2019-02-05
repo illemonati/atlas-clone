@@ -68,10 +68,18 @@ double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     return newF;
 }
 
-void TInbreedingF::update(double value, bool inModelWithF){
+void TInbreedingF::updateAndAccept(double value, bool inModelWithF){
 	_F = value;
 	_inModelWithF = inModelWithF;
 	_posteriorProbModelWithF += inModelWithF;
+}
+
+void TInbreedingF::updateAndReject(bool inModelWithF){
+	_posteriorProbModelWithF += inModelWithF;
+}
+
+void TInbreedingF::resetPosterior(){
+	_posteriorProbModelWithF = 0;
 }
 
 double TInbreedingF::logPDFExp(){
@@ -150,6 +158,11 @@ void TAlleleFreq::setToValue(double fixedValue){
 	for(int l=0; l<numLoci; ++l){
 		alleleFreq[l] = fixedValue;
 	}
+}
+
+void TAlleleFreq::resetPosterior(const unsigned long & index){
+	sumIterations[index] = 0.0;
+	sumOfSquaresIterations[index] = 0.0;
 }
 
 void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates){
@@ -391,7 +404,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 		startInModelWithF = false;
 	if(startInModelWithF){
 		F = TInbreedingF(randomGenerator->getExponentialRandom(lambda), probMovingToModelNoF, sdF, startInModelWithF, lambda);
-		F.update(randomGenerator->getExponentialRandomTruncated(lambda, 0, 1), true);
+		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambda, 0, 1), true);
 //		F.update(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
@@ -449,10 +462,14 @@ bool TInbreedingEstimator::updateF(){
 
 			//accept?
 			if(log(randomGenerator->getRand()) < logH){
-				F.update(0, false);
+				//move to model0
+				F.updateAndAccept(0, false);
 				return true;
-			} else
+			} else {
+				//stay in modelF
+				F.updateAndReject(true);
 				return false;
+			}
 
 		} else {
 			//propose new F
@@ -468,14 +485,17 @@ bool TInbreedingEstimator::updateF(){
 
 			//accept?
 			if(log(randomGenerator->getRand()) < logH){
-				F.update(newF, true);
+				F.updateAndAccept(newF, true);
 				return true;
-			} else
+			} else {
+				//reject new value but still stay in modelF
+				F.updateAndReject(true);
 				return false;
+			}
 		}
 	}
 
-	//moving to model with F
+	//try to moe to model with F
 	else {
 		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp();
 		double newF = randomGenerator->getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
@@ -489,10 +509,14 @@ bool TInbreedingEstimator::updateF(){
 
 		//accept?
 		if(log(randomGenerator->getRand()) < logH){
-			F.update(newF, true);
+			//move to modelF
+			F.updateAndAccept(newF, true);
 			return true;
-		} else
+		} else {
+			//stay in model0
+			F.updateAndReject(false);
 			return false;
+		}
 	}
 }
 
@@ -701,7 +725,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	double trueLogGamma = log(trueGamma);
 	Gamma.update(trueLogGamma, trueGamma);
 
-	F.update(0.2, true);
+	F.updateAndAccept(0.2, true);
 
 
 	//make grid
@@ -746,7 +770,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 	float step = 2.0 / (float) numProbs;
 	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
 
-	F.update(0.2, true);
+	F.updateAndAccept(0.2, true);
 
 	double logLikelihood = 0.0;
 	long l = 0;
@@ -860,12 +884,16 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 
 void TInbreedingEstimator::resetAcceptanceRates(){
 	numAcceptedF = 0;
+	F.resetPosterior();
 	numAcceptedGamma = 0;
-	for(unsigned int l=0; l<numLoci; ++l)
+	for(unsigned int l=0; l<numLoci; ++l){
 		numAcceptedP[l] = 0;
+		p.resetPosterior(l);
+	}
 }
 
 void TInbreedingEstimator::adjustProposalWidths(){
+	std::cout << "F.posteriorProbModelWithF() " << F.posteriorProbModelWithF() << std::endl;
 	F.adjustProposalWidthAfterBurnin(numAcceptedF, F.posteriorProbModelWithF(), logfile);
 	p.adjustProposalWidthAfterBurnin(numAcceptedP, burninLength);
 	Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
@@ -920,7 +948,8 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration(i);
-//			writeParameterEstimatesOfIteration(out);
+			if(params.parameterExists("writeBurninToFile"))
+				writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
