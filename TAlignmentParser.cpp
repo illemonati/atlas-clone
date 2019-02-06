@@ -455,7 +455,11 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 	readGroupId = readGroupTable->find(readGroup);
 
 	//check if read passes basic QC + added remove second mate
-    passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsSecondMate() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+	//added remove second mate
+		//passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsSecondMate() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+	//replaced with first mate
+	    passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFirstMate() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+    //old not changed version
     //passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
 
 	//check read length
