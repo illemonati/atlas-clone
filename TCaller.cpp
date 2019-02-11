@@ -321,10 +321,15 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 void TCaller::call(const std::string & chr, const long pos, TSite & site, char & first, char & second){
 	//check if there is data
 	if(site.hasData){
+		//set reference base from site
+		referenceBase = genoMap.getBase(site.referenceBase);
+
 		//call
-		referenceBase = genoMap.getBase(first);
-		altAlleles.push_back(genoMap.getBase(second));
-		callGenotype(site);
+		if(referenceBase == genoMap.getBase(first))
+			altAlleles.push_back(genoMap.getBase(second));
+		else
+			altAlleles.push_back(genoMap.getBase(first));
+		callGenotypeKnownAlleles(site);
 
 		//check if we write
 		writeCallToVCF(chr, pos, site);

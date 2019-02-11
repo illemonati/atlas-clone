@@ -954,6 +954,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 		logfile->endIndent();
 
 		while(iterateChromosome(windows)){
+			subset.setChr(chrIterator->Name);
 			while(iterateWindow(windows)){
 				//read data for current window
 				if(readData(windows) || caller->printSitesWithNoData()){
