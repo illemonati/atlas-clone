@@ -265,7 +265,7 @@ private:
 			fillVectorFromLineWhiteSpaceSkipEmpty(sitesFile, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() != 4) throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "!";
+				if(vec.size() != 4) throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "! (" + toString(vec.size()) + "  instead of 4)";
 
 				//get chromosome
 				if(vec[0] != curChr){
@@ -345,6 +345,8 @@ public:
 	};
 
 	bool hasPositionsInWindow(const long & windowStart){
+		if(curChr == "")
+			throw "chromosome name is empty!";
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()){
 			return false;
