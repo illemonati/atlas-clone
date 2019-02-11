@@ -231,7 +231,7 @@ void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fas
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData) recalObject.calcEmissionProbabilities(sites[i]);
-		caller.call(chrName, start + i + 1, sites[i]);
+		caller.call(chrName, start + i + 1, sites[i]); //i + 1 to make vcf 1-based!
 	}
 };
 
@@ -249,7 +249,7 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, B
 				recalObject.calcEmissionProbabilities(sites[pos]);
 
 				//call
-				caller.call(chrName, pos, sites[pos], it->second.first, it->second.second);
+				caller.call(chrName, pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
 			}
 		}
 	}
