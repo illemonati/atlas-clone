@@ -82,7 +82,7 @@ void TInbreedingF::resetPosterior(){
 	_posteriorProbModelWithF = 0;
 }
 
-double TInbreedingF::logPDFExp(double & thisF){
+double TInbreedingF::logPDFExp(const double & thisF){
 	return log(_lambda) - _lambda * thisF;
 }
 
@@ -90,7 +90,7 @@ double TInbreedingF::logPDFExp(){
 	return logPDFExp(_F);
 }
 
-double TInbreedingF::PDFExp(double & thisF){
+double TInbreedingF::PDFExp(const double & thisF){
 	return _lambda * exp(-_lambda* thisF);
 }
 
@@ -465,7 +465,7 @@ bool TInbreedingEstimator::updateF(){
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 				uint8_t* data = likelihoods.curData();
 				logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0)
-				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.PDFExp());
+				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 			}
 
 			//accept?
@@ -877,6 +877,7 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 
 	//Gamma
 	numAcceptedGamma += updateGamma();
+
 }
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
@@ -901,7 +902,6 @@ void TInbreedingEstimator::resetAcceptanceRates(){
 }
 
 void TInbreedingEstimator::adjustProposalWidths(){
-	std::cout << "F.posteriorProbModelWithF() " << F.posteriorProbModelWithF() << std::endl;
 	F.adjustProposalWidthAfterBurnin(numAcceptedF, F.posteriorProbModelWithF(), logfile);
 	p.adjustProposalWidthAfterBurnin(numAcceptedP, burninLength);
 	Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
@@ -912,11 +912,51 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 //			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
 
 	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue();
-	for(int l=0; l<100; ++l){
+	for(int l=0; l<6; ++l){
 		out << "\t" << p[l];
 	}
 	out << "\n";
 
+/*
+	//-------------------------------------
+	// DEBUG
+	//-------------------------------------
+
+
+
+	//M_F -> M_0
+	double logH = F.logPDFExp(0.05) - log(F.probMovingToModelNoF());
+
+	out << "\t" << logH;
+
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+		uint8_t* data = likelihoods.curData();
+		logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0)
+		- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0.05);
+	}
+
+	out << "\t" << logH;
+
+
+	//M_0 -> M_F
+	double newF = 0.05;
+	logH = log(F.probMovingToModelNoF()) - F.logPDFExp(newF);
+
+	out << "\t" << logH;
+
+	l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+		uint8_t* data = likelihoods.curData();
+		logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
+		- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0);
+	}
+
+	out << "\t" << logH;
+
+
+	out << "\n";
+*/
 }
 
 void TInbreedingEstimator::runEstimation(TParameters & params){
@@ -938,9 +978,14 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	//write headers
 //	out << "F\talpha\talphaLog\tp[0]\tp[1]\tp[2]\tp[3]\tp[117]\n";
 	out << "F\talpha\talphaLog";
-	for(int l=0; l<100; ++l){
+	for(int l=0; l<6; ++l){
 		out << "\tp[" << l << "]";
 	}
+
+//	//DEBUG
+//	out << "\tq(FtoZero)/P(F')\tH_M0_to_MF\tq(P(F)/q(FtoZero)\tH_MF_to_M0";
+
+
 	out << "\n";
 	outP << "param\tmean_posterior\tvar_posterior\tacceptance_rate\tproposalWidth\ttrue_alleleFreq\n";
 	writeParameterEstimatesOfIteration(out);

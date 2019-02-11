@@ -36,9 +36,9 @@ public:
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
-	double logPDFExp(double & thisF);
+	double logPDFExp(const double & thisF);
 	double logPDFExp();
-	double PDFExp(double & thisF);
+	double PDFExp(const double & thisF);
 	double PDFExp();
 	double lambda();
 	int posteriorProbModelWithF();
