@@ -42,13 +42,13 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdat
 	if(newProposalWidth > 1.0)
 		newProposalWidth = 1.0;
 
-	if(newProposalWidth < 0.0000000001)
-		newProposalWidth = 0.0000000001;
+	if(newProposalWidth < 0.0000001 || numAcceptedF == 0)
+		newProposalWidth = 0.0000001;
 
 	_sdProposal = newProposalWidth;
 
-	if(!(_sdProposal > 0))
-		throw "standard deviation of F proposal kernel is not larger than 0!";
+//	if(!(_sdProposal > 0))
+//		throw "standard deviation of F proposal kernel is not larger than 0! It is " + toString(_sdProposal);
 
 }
 
