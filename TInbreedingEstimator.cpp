@@ -82,12 +82,20 @@ void TInbreedingF::resetPosterior(){
 	_posteriorProbModelWithF = 0;
 }
 
+double TInbreedingF::logPDFExp(double & thisF){
+	return log(_lambda) - _lambda * thisF;
+}
+
 double TInbreedingF::logPDFExp(){
-	return log(_lambda) - _lambda * _F;
+	return logPDFExp(_F);
+}
+
+double TInbreedingF::PDFExp(double & thisF){
+	return _lambda * exp(-_lambda* thisF);
 }
 
 double TInbreedingF::PDFExp(){
-	return _lambda * exp(-_lambda* _F);
+	return PDFExp(_F);
 }
 
 float TInbreedingF::probMovingToModelNoF(){
@@ -495,10 +503,10 @@ bool TInbreedingEstimator::updateF(){
 		}
 	}
 
-	//try to moe to model with F
+	//try to move to model with F
 	else {
-		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp();
 		double newF = randomGenerator->getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
+		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp(newF);
 
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
