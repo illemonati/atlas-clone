@@ -610,9 +610,15 @@ bool TGlfMultiReader::moveToNextChromosome(){
 
 	//get name and length from first active file not at end
 	_position = 1;
-
-	_curChrName = pointerToActiveGLFs[0]->getNameOfParsedChr(_curChrNumber);
-	_curChrLength = pointerToActiveGLFs[0]->getLengthOfParsedChr(_curChrNumber);
+	_curChrLength = -1;
+	for(TGlfReader* it : pointerToActiveGLFs){
+		if(!it->eof() && it->chrNumber() == _curChrNumber){
+			_curChrName = it->getNameOfParsedChr(_curChrNumber);
+			_curChrLength = it->getLengthOfParsedChr(_curChrNumber);
+			break;
+		}
+	}
+	if(_curChrLength < 0) moveToNextChromosome();
 
 	//check that all files share the same name and length for this chromosome
 	for(TGlfReader* it : pointerToActiveGLFs){

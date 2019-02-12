@@ -406,17 +406,19 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 	readGroup = new uint8_t[numReads];
 	P_g_given_d_oldBeta = new float[4];
 	initialized = true;
-	int k=0;
+	int k = -1;
 	double eps;
-	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it, ++k){
-		readGroup[k] = readGroupMap[(*it)->readGroup];
+	for(TBase* it : site.bases){
+		++k;
+
+		readGroup[k] = readGroupMap[it->readGroup];
 		q[k] = new float[4];
 
 		//we will work with the following q_ikl:
 		// - transformed quality
 		// - square of transformed quality
 
-		eps = qualiMap.qualityToErrorMap[(*it)->quality];
+		eps = qualiMap.qualityToErrorMap[it->quality];
 		if(eps < 0.0000000001) eps = 0.0000000001;
 		else if(eps > 0.9999999999) eps = 0.9999999999;
 
@@ -425,32 +427,32 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, int* readGroupMap, TQua
 
 		// - position
 		// - square of position
-		q[k][2] = (*it)->posInRead;
+		q[k][2] = it->posInRead;
 		q[k][3] = q[k][2] * q[k][2];
 
 		// - 20 context indicators (either 0.0 or 1.0)
 		//only store which is one!
-		context[k] = (*it)->context;
+		context[k] = it->context;
 
 		//now also store D: D[ref][read]
-		switch((*it)->getBaseAsEnum()){
+		switch(it->getBaseAsEnum()){
 			case A: D[0][k] = 0.0; //geno = AA
 					D[1][k] = 1.0; //geno = CC
-					D[2][k] = 1.0 - (*it)->PMD_GA; //geno = GG
+					D[2][k] = 1.0 - it->PMD_GA; //geno = GG
 					D[3][k] = 1.0; //geno = TT
 					break;
 			case C: D[0][k] = 1.0; //geno = AA
-					D[1][k] = (*it)->PMD_CT; //geno = CC
+					D[1][k] = it->PMD_CT; //geno = CC
 					D[2][k] = 1.0; //geno = GG
 					D[3][k] = 1.0; //geno = TT
 					break;
 			case G: D[0][k] = 1.0; //geno = AA
 					D[1][k] = 1.0; //geno = CC
-					D[2][k] = (*it)->PMD_GA; //geno = GG
+					D[2][k] = it->PMD_GA; //geno = GG
 					D[3][k] = 1.0; //geno = TT
 					break;
 			case T: D[0][k] = 1.0; //geno = AA
-					D[1][k] = 1.0 - (*it)->PMD_CT; //geno = CC
+					D[1][k] = 1.0 - it->PMD_CT; //geno = CC
 					D[2][k] = 1.0; //geno = GG
 					D[3][k] = 0.0; //geno = TT
 					break;
@@ -634,9 +636,9 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, int*
 
 int TRecalibrationEMWindow::getMaxDepth(){
 	int maxDepth = 0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		if(maxDepth < (*site)->numReads)
-			maxDepth = (*site)->numReads;
+	for(TRecalibrationEMSite* site : sites){
+		if(maxDepth < site->numReads)
+			maxDepth = site->numReads;
 	}
 	return maxDepth;
 };
@@ -661,40 +663,37 @@ long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
 
 long TRecalibrationEMWindow::cumulativeDepth(){
 	long cumulDepth = 0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		cumulDepth += (*site)->numReads;
+	for(TRecalibrationEMSite* site : sites){
+		cumulDepth += site->numReads;
 	}
 	return cumulDepth;
 }
 
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double LL = 0.0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->fill_P_g_given_d_beta_AND_calcLL(model, freqs, tmpEpsilon);
+	for(TRecalibrationEMSite* site : sites){
+		LL += site->fill_P_g_given_d_beta_AND_calcLL(model, freqs, tmpEpsilon);
 	}
 	return LL;
 }
 
 double TRecalibrationEMWindow::calcLL(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double LL = 0.0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		LL += (*site)->calcLL(model, freqs, tmpEpsilon);
-	}
+	for(TRecalibrationEMSite* site : sites)
+		LL += site->calcLL(model, freqs, tmpEpsilon);
 	return LL;
 }
 
 double TRecalibrationEMWindow::calcQ(TRecalibrationEMModel* & model, float* & tmpEpsilon){
 	double Q = 0.0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		Q += (*site)->calcQ(model, tmpEpsilon);
-	}
+	for(TRecalibrationEMSite* site : sites)
+		Q += site->calcQ(model, tmpEpsilon);
 	return Q;
 }
 
 void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel* & model, float* & tmpEpsilon){
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		(*site)->addToJacobianAndF(model, tmpEpsilon);
-	}
+	for(TRecalibrationEMSite* site : sites)
+		site->addToJacobianAndF(model, tmpEpsilon);
 }
 
 void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
@@ -851,25 +850,22 @@ void TRecalibrationEM::addSite(TSite & site){
 
 long TRecalibrationEM::numSites(){
 	long _numSites = 0;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		_numSites += (*curWindow)->numSites();
-	}
+	for(TRecalibrationEMWindow* curWindow : windows)
+		_numSites += curWindow->numSites();
 	return _numSites;
 }
 
 long TRecalibrationEM::numSitesDepthTwoOrMore(){
 	long _numSites = 0;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		_numSites += (*curWindow)->numSitesDepthTwoOrMore();
-	}
+	for(TRecalibrationEMWindow* curWindow : windows)
+		_numSites += curWindow->numSitesDepthTwoOrMore();
 	return _numSites;
 }
 
 long TRecalibrationEM::cumulativeDepth(){
 	long cumulDepth = 0;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		cumulDepth += (*curWindow)->cumulativeDepth();
-	}
+	for(TRecalibrationEMWindow* curWindow : windows)
+		cumulDepth += curWindow->cumulativeDepth();
 	return cumulDepth;
 }
 
@@ -878,9 +874,8 @@ void TRecalibrationEM::prepareWindowsforEM(){
 	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
 
 	int maxDepth = 0;
-	int tmp;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		tmp = (*curWindow)->getMaxDepth();
+	for(TRecalibrationEMWindow* curWindow : windows){
+		int tmp = curWindow->getMaxDepth();
 		if(tmp > maxDepth)
 			maxDepth = tmp;
 	}
@@ -900,9 +895,8 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 	//calculate Q at current location
 	double Q;
 	double curQ = 0.0;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		curQ += (*curWindow)->calcQ(model, tmpEpsilon);
-	}
+	for(TRecalibrationEMWindow* curWindow : windows)
+		curQ += curWindow->calcQ(model, tmpEpsilon);
 
 	std::ofstream* myStream = NULL;
 
@@ -952,9 +946,8 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 
 				//calculate Q at new location
 				Q = 0.0;
-				for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-					Q += (*curWindow)->calcQ(model, tmpEpsilon);
-				}
+				for(TRecalibrationEMWindow* curWindow : windows)
+					Q += curWindow->calcQ(model, tmpEpsilon);
 
 				//check if we accept or backtrack
 				if(Q > curQ){
@@ -1013,9 +1006,8 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		//calculate P(g|d, oldbeta) for all sites and calculate LL
 		LL = 0.0;
 		logfile->listFlush("Calculating P(g|d, beta') ...");
-		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			LL += (*curWindow)->fill_P_g_given_d_beta_AND_calcLL(model, tmpEpsilon);
-		}
+		for(TRecalibrationEMWindow* curWindow : windows)
+			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(model, tmpEpsilon);
 		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
@@ -1091,9 +1083,8 @@ void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 
 double TRecalibrationEM::calcLL(){
 	double LL = 0.0;
-	for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-		LL += (*curWindow)->calcLL(model, tmpEpsilon);
-	}
+	for(TRecalibrationEMWindow* curWindow : windows)
+		LL += curWindow->calcLL(model, tmpEpsilon);
 	return LL;
 }
 
@@ -2255,25 +2246,23 @@ void TRecalibrationBQSR::addSite(TSite & site){
 	if(site.referenceBase != 'N'){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!qualityConverged){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-					BQSR_cells_readGroup_quality[readGroupMapObject[(*it)->readGroup]][qualityIndex->getIndex((*it)->quality)].addBase(*it, refBase);
-			}
+			for(TBase* it : site.bases)
+				BQSR_cells_readGroup_quality[readGroupMapObject[it->readGroup]][qualityIndex->getIndex(it->quality)].addBase(it, refBase);
 		}
 		else if(considerPosition && !positionConverged){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position[readGroupMapObject[(*it)->readGroup]][(*it)->posInRead].addBase(*it, refBase);
+			for(TBase* it : site.bases){
+				if(it->posInRead >= maxPos) throw "Position of base is > maxPos specified!";
+				BQSR_cells_readGroup_position[readGroupMapObject[it->readGroup]][it->posInRead].addBase(it, refBase);
 			}
 		}
 		else if(considerPositionReverse && !positionReverseConverged){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				if((*it)->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
-				BQSR_cells_readGroup_position_reverse[readGroupMapObject[(*it)->readGroup]][(*it)->posInReadRev].addBase(*it, refBase);
+			for(TBase* it : site.bases){
+				if(it->posInReadRev >= maxPos) throw "Position of base is > maxPos specified!";
+				BQSR_cells_readGroup_position_reverse[readGroupMapObject[it->readGroup]][it->posInReadRev].addBase(it, refBase);
 			}
 		} else if(considerContext && !contextConverged){
-			for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-				BQSR_cells_readGroup_context[readGroupMapObject[(*it)->readGroup]][(*it)->context].addBase(*it, refBase);
-			}
+			for(TBase* it : site.bases)
+				BQSR_cells_readGroup_context[readGroupMapObject[it->readGroup]][it->context].addBase(it, refBase);
 		}
 	}
 }
