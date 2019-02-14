@@ -185,6 +185,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("BQSRTransformation", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
+//	_testParams.addParameter("writeVariantBED", "");
 
 
 	if(!runTGenomeFromInputfile("simulate"))
@@ -199,6 +200,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("storeInMemory", "");
 	_testParams.addParameter("estimateBQSRPosition", "");
 	_testParams.addParameter("maxPos", "110");
+//	_testParams.addParameter("mask", filenameTag + "_invariantSites.bed.gz");
 
 	if(!runTGenomeFromInputfile("BQSR"))
 		return false;
@@ -252,7 +254,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
-		QualityScoreAsPhredInt = stringToInt(line[1]) - 33;
+		QualityScoreAsPhredInt = stringToInt(line[1]);
 		EmpiricalQuality = stringToDouble(line[3]);
 		Log10Observations = stringToDouble(line[4]);
 		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
