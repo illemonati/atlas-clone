@@ -98,6 +98,7 @@ private:
 	//blacklist
 	bool _updateBlacklist;
 	std::map <std::string, int> blacklist;
+	gz::ogzstream ignoredReads;
 
 	//limit chr and windows
 	long limitWindows;
@@ -188,13 +189,31 @@ public:
 	long calcReferenceLength();
 
 	//blacklist
-	void setUpdateBlacklistToTrue(){ _updateBlacklist = true; };
-	void addToBlacklist(std::string & alignmentName){
+	void setUpdateBlacklistToTrue(){
+		_updateBlacklist = true;
+		std::string ignoredReadsFile = extractBeforeLast(filename, ".bam") + "_ignoredReads.txt.gz";
+		logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
+		ignoredReads.open(ignoredReadsFile.c_str());
+		if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
+	};
+	void addToBlacklist(TAlignment & alignment, const std::string & errorMessage){
+		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
+		blacklist.emplace(alignment.alignmentName, 1);
+		ignoredReads << "Rea	d " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
+	}
+	void addToBlacklist(BamTools::BamAlignment & alignment, const std::string & errorMessage){
+		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
+		blacklist.emplace(alignment.Name, 1);
+		ignoredReads << "Read " << alignment.Name << " isReverse=" << alignment.IsReverseStrand() << " : " << errorMessage << "\n";
+	}
+	void addToBlacklist(std::string & alignmentName, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignmentName, 1);
+		ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
 	}
-	void removeFromBlacklist(std::string & alignmentName){
-		blacklist.erase(alignmentName);
+	void removeFromBlacklist(TAlignment & alignment, const std::string & errorMessage){
+		blacklist.erase(alignment.alignmentName);
+		ignoredReads << "Read " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
 	}
 	bool isInBlacklist(std::string & alignmentName){
 		if(blacklist.count(alignmentName) > 0)
