@@ -281,7 +281,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	if(GQFilter < 0)
 		throw "GQFilter must be >= 0!";
 	if(GQFilter > 0)
-		logfile->list("Will filter samples to a maximal genotype quality of " + toString(GQFilter) + ".");
+		logfile->list("Will filter samples to a minimal genotype quality of " + toString(GQFilter) + ".");
 
 	// do we set a missingness filter?
 	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
