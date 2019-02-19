@@ -16,13 +16,12 @@
 #include <sstream>
 #include <stdio.h>
 
-std::string toString(const int & input);
-std::string toString(const long & input);
-//std::string toString(const std::vector<int>::size_type & input);
-std::string toString(const unsigned int & input);
-std::string toString(const unsigned long & input);
-std::string toString(const float & input);
-std::string toString(const double & input);
+inline std::string toString(const int & input){ return std::to_string(input); };
+inline std::string toString(const long & input){ return std::to_string(input); };
+inline std::string toString(const unsigned int & input){ return std::to_string(input); };
+inline std::string toString(const unsigned long & input){ return std::to_string(input); };
+inline std::string toString(const float & input){ return std::to_string(input); };
+inline std::string toString(const double & input){ return std::to_string(input); };
 
 int stringToInt(const std::string & s);
 long stringToLong(const std::string & s);
@@ -90,9 +89,6 @@ std::string concatenateString(std::vector<int> & vec, std::string delim);
 std::string concatenateString(std::vector<double> & vec, std::string delim);
 std::string concatenateString(double* array, int length, std::string delim);
 
-//read
-std::string readAfterLast(std::string & s, char delim);
-
 //split into vector
 void fillVectorFromString(std::string s, std::vector<std::string> & vec, std::string delim);
 void fillVectorFromStringAny(std::string s, std::vector<std::string> & vec, std::string delim);
@@ -101,10 +97,21 @@ bool fillVectorFromStringAnySkipEmptyArray(std::string s, double* array, int & s
 void fillVectorFromStringWhiteSpace(const std::string & s, std::vector<std::string> & vec);
 void fillVectorFromStringWhiteSpaceSkipEmpty(const std::string & s, std::vector<std::string> & vec);
 bool fillVectorFromStringWhiteSpaceSkipEmptyArray(const std::string & s, double* array, int & size);
-void fillVectorFromString(std::string s, std::vector<std::string> & vec, char delim);
 
+void fillVectorFromString(std::string s, std::vector<std::string> & vec, char delim);
+void fillVectorFromString(std::string s, std::vector<int> & vec, char delim);
+void fillVectorFromString(std::string s, std::vector<long> & vec, char delim);
+void fillVectorFromString(std::string s, std::vector<bool> & vec, char delim);
 void fillVectorFromString(std::string s, std::vector<float> & vec, char delim);
 void fillVectorFromString(std::string s, std::vector<double> & vec, char delim);
+
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<std::string> & vec, char delim);
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<int> & vec, char delim);
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<long> & vec, char delim);
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<bool> & vec, char delim);
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<float> & vec, char delim);
+void fillVectorFromStringSkipEmpty(std::string s, std::vector<double> & vec, char delim);
+
 void fillVectorFromStringAny(std::string s, std::vector<double> & vec, std::string delim);
 void fillVectorFromStringAnyCheck(std::string s, std::vector<double> & vec, std::string delim);
 void fillVectorFromStringAnySkipEmpty(std::string s, std::vector<double> & vec, std::string delim);
@@ -114,7 +121,7 @@ void fillVectorFromStringWhiteSpaceCheck(const std::string & s, std::vector<doub
 void fillVectorFromStringWhiteSpaceSkipEmpty(const std::string & s, std::vector<double> & vec);
 void fillVectorFromStringWhiteSpaceSkipEmptyCheck(const std::string & s, std::vector<double> & vec);
 
-void fillVectorFromString(std::string s, std::vector<int> & vec, char delim);
+
 void fillVectorFromStringAny(std::string s, std::vector<int> & vec, std::string delim);
 void fillVectorFromStringAnyCheck(std::string s, std::vector<int> & vec, std::string delim);
 void fillVectorFromStringAnySkipEmpty(std::string s, std::vector<int> & vec, std::string delim);
@@ -124,8 +131,7 @@ void fillVectorFromStringWhiteSpaceCheck(const std::string & s, std::vector<int>
 void fillVectorFromStringWhiteSpaceSkipEmpty(const std::string & s, std::vector<int> & vec);
 void fillVectorFromStringWhiteSpaceSkipEmptyCheck(const std::string & s, std::vector<int> & vec);
 
-void fillVectorFromString(std::string s, std::vector<long> & vec, char delim);
-void fillVectorFromString(std::string s, std::vector<bool> & vec, char delim);
+
 bool fillSequenceFromString(std::string s, std::vector<int> & vec, char delim);
 
 //read from file

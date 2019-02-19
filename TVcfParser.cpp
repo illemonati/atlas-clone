@@ -637,7 +637,7 @@ int TVcfParser::addFormatCol(std::string & tag, TVcfLine & line){
 		line.formatOrdered.push_back(tag);
 		//add emtpy string to all samples
 		for(lineSampleIt=line.samples.begin(); lineSampleIt!=line.samples.end(); ++lineSampleIt){
-			if(!(*lineSampleIt).missing) (*lineSampleIt).addData("");
+			if(!lineSampleIt->missing) (*lineSampleIt).addData("");
 		}
 	}
 	return col;

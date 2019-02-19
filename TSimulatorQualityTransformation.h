@@ -14,6 +14,7 @@
 #include "TGenotypeMap.h"
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
+#include "TQualityMap.h"
 
 //-------------------------------
 //TSimulatorQualityDist

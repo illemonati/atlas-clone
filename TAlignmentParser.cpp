@@ -1066,8 +1066,10 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
-		QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
+		if(alignment.bases[i].base != N){
+			QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
+			QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
+		}
 	}
 }
 

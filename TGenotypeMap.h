@@ -385,6 +385,7 @@ public:
 	};
 };
 
+/*
 //---------------------------------------------------------------
 //TQualityMap
 //---------------------------------------------------------------
@@ -404,8 +405,8 @@ public:
 	double maxError;
 
 	TQualityMap(){
-		//only up to phred = 255, else always return 256
-		maxPhred = 256;
+		//only up to phred = 255, else always return 255
+		maxPhred = 255;
 		maxError = 0.9999999999;
 		sizeQual = maxPhred + 33;
 		phredIntToErrorMap = new double[maxPhred + 1];
@@ -501,6 +502,6 @@ public:
 };
 
 
-
+*/
 
 #endif /* TGENOTYPEMAP_H_ */

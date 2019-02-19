@@ -13,7 +13,7 @@
 #include "TPostMortemDamage.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
-
+#include "TQualityMap.h"
 
 //-------------------------------
 //TSimulatorRead

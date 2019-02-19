@@ -14,6 +14,7 @@
 #include "TReadGroups.h"
 #include "bamtools/api/SamHeader.h"
 #include "QualityTables.h"
+#include "TQualityMap.h"
 
 //---------------------------------------------------------------
 //TQualityIndex

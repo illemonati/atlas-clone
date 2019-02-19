@@ -18,7 +18,7 @@
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
 #include "TAlignment.h"
-
+#include "TQualityMap.h"
 
 //---------------------------------------------------------------
 //TWindow

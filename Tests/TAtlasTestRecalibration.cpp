@@ -17,7 +17,7 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLo
 	bamFileName = filenameTag + ".bam";
 	meanQual = params.getParameterIntWithDefault("recal_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("recal_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 0);
+	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 1);
 	maxPhredInt = params.getParameterIntWithDefault("recal_maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
@@ -154,7 +154,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterIntWithDefault("BQSR_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("BQSR_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("BQSR_minQual", 0);
+	minPhredInt = params.getParameterIntWithDefault("BQSR_minQual", 1);
 	maxPhredInt = params.getParameterIntWithDefault("BQSR_maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("BQSR_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);

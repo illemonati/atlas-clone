@@ -15,6 +15,7 @@
 #include "TLog.h"
 #include "TBed.h"
 #include "TAlignmentParser.h"
+#include "TQualityMap.h"
 #include <typeinfo>
 #include <map>
 #include <algorithm>
