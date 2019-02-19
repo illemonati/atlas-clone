@@ -19,7 +19,7 @@ void TVcfConverter::convertVcf(TParameters & parameters){
 
 	std::string convertTo = parameters.getParameterString("convertTo");
 	if (convertTo == "lfmm"){
-		logfile->startIndent("Start converting VCF file to lfmm-format.");
+		logfile->startIndent("Converting VCF file to lfmm-format...");
 		convertToLfmm(parameters, samples, reader);
 	} else throw "Unknown file format '" + convertTo + "'!";
 }
@@ -31,7 +31,6 @@ void TVcfConverter::prepareReadingVcf(TParameters & parameters, TPopulationSampl
 
 	//open VCF reader
 	std::string vcfFilename = parameters.getParameterString("vcf");
-	logfile->startIndent("Reading genotypes from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
 	logfile->endIndent();
 
@@ -62,28 +61,35 @@ void TVcfConverter::convertToLfmm(TParameters & parameters, TPopulationSamples &
 	// open output file
 	std::ofstream lfmmFile = openOutputFile(parameters, "lfmm");
 
-	// write header
-	char sep = '\t';
-	lfmmFile << "chr\tpos";
-	for(int s=0; s<samples.numSamples(); s++)
-		lfmmFile << "\t" << samples.getNameFromOrderedIndex(s);
-	lfmmFile << "\n";
-
 	// initialize variables for vcf-file
 	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
 	bool* sampleIsMissing = new bool[samples.numSamples()];
+	std::vector<short*> genotypes;
 
 	// run through VCF file
 	logfile->startIndent("Parsing VCF file and reading genotypes:");
 	while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
-		// write chromosome and position
-		lfmmFile << reader.chr() << sep << reader.position();
+		// write header (chromosome and position) to output file
+		lfmmFile << "\t" << reader.chr() << "/" << reader.position();
 
-		// print genotype for every sample
+		// store genotype for every sample
+		short* indivGenotypes = new short[samples.numSamples()];
 		for(int s=0; s<samples.numSamples(); s++){
 			short geno = reader.genotype(s);
-			if(geno == 3) lfmmFile << "\t" << 9;
-			else lfmmFile << "\t" << geno;
+			if(geno == 3) // replace missing genotype by 9 (lfmm format)
+				indivGenotypes[s] = 9;
+			else
+				indivGenotypes[s] = geno;
+		}
+		genotypes.push_back(indivGenotypes);
+	}
+	lfmmFile << std::endl;
+
+	// write to output file (lfmm: rows are individuals, columns are loci)
+	for(int s=0; s<samples.numSamples(); s++){
+		lfmmFile << samples.getNameFromOrderedIndex(s) << "\t";
+		for (std::vector<short*>::iterator it = genotypes.begin(); it < genotypes.end(); it++){
+			lfmmFile << (*it)[s] << "\t";
 		}
 		lfmmFile << std::endl;
 	}
@@ -91,6 +97,9 @@ void TVcfConverter::convertToLfmm(TParameters & parameters, TPopulationSamples &
 	// clean up
 	delete[] curLocus;
 	delete[] sampleIsMissing;
+	for (std::vector<short*>::iterator it = genotypes.begin(); it < genotypes.end(); it++){
+		delete[] *it;
+	}
 
 	// report final status
 	logfile->endIndent();
