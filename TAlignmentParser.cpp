@@ -139,6 +139,9 @@ TAlignmentParser::~TAlignmentParser(){
 	if(oldAlignmentInitialized){
 		delete oldAlignment;
 	}
+
+	if(_updateBlacklist)
+		ignoredReads.close();
 }
 
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
@@ -458,7 +461,6 @@ void TAlignmentParser::jumpToEnd(){
 }
 
 void TAlignmentParser::restartChromosomes(TWindow & window){
-	std::cout << "!!!!!!!!! restarting chromosomes" << std::endl;
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
 
@@ -466,7 +468,6 @@ void TAlignmentParser::restartChromosomes(TWindow & window){
 }
 
 void TAlignmentParser::moveChromosome(TWindow & window){
-	std::cout << "!!!!! moving chromosome. chrNumber is now: " << chrNumber << std::endl;
 	//jump reader
 	oldAlignmentMustBeConsidered = false;
 	chrLength = stringToLong(chrIterator->Length);
@@ -498,7 +499,6 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		bamReader.Jump(chrNumber, window.start);
 
 	} else {
-		std::cout << "chrNumber " << chrNumber << "in use: " << useChromosome[chrNumber]<< std::endl;
 		while(!useChromosome[chrNumber]){
 			++chrIterator;
 			++chrNumber;
@@ -613,7 +613,6 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 				//there is no window left on chr
 				++chrIterator;
 				++chrNumber;
-				std::cout << "could not move to next window on chr. incremented chrNumber to " << chrNumber << std::endl;
 
 				//do we use this chromosome? if not, move on!
 				while(chrIterator != bamHeader.Sequences.End() && !useChromosome[chrNumber]){
@@ -623,7 +622,6 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 
 				//did we reach end?
 				if(chrIterator == bamHeader.Sequences.End() || (limitChr != -1 && chrNumber >= limitChr)){
-					std::cout << "reached end or chr limit, which is " << limitChr << std::endl;
 					window.end = 0;
 					return false;
 				}
@@ -696,12 +694,12 @@ bool TAlignmentParser::readAlignment(){
 //			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 			if(_updateBlacklist)
-				blacklist.emplace(bamAlignment.Name, 1);
+				addToBlacklist(bamAlignment.Name, "longer than insert size (TLEN)");
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = applyFilters();
 			if(_updateBlacklist && !filtersPassed){
-				blacklist.emplace(bamAlignment.Name, 1);
+				addToBlacklist(bamAlignment.Name, "did not pass parser filters");
 			}
 		}
 	} while(!filtersPassed);
@@ -781,12 +779,10 @@ bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 //read data in windows
 //---------------------
 bool TAlignmentParser::readDataInNextWindow(TWindow & window){
-	std::cout << "readDataInNextWindow" << std::endl;
 	setParsingToTrue();
 
 	//move window
 	if(!moveWindow(window)){
-		std::cout << "could not move window" << std::endl;
 		return false;
 	}
 
@@ -824,7 +820,6 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		//check if alignment starts after current window end -> break
 		if(oldAlignment->position >= window.end || oldAlignment->chrNumber != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
-			std::cout << "breaking after " << counter << " reads!!!!" << std::endl;
 			break;
 		}
 
@@ -855,7 +850,6 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 void TAlignmentParser::applyFilters(TWindow & window){
 	window.passedFilters = false;
-	std::cout << "window.numReadsInWindow " << window.numReadsInWindow << std::endl;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){
@@ -1085,6 +1079,8 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 }
 
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
+	std::cout << "will merge up until pos " << fwdAlignment->lastAlignedPositionWithRespectToRef << std::endl;
+
 	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
 		//reads overlap -> check if there are bases overlapping same position in ref
@@ -1092,19 +1088,19 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		int fwdP = 0;
 		int revP = 0;
 		for(long i = revAlignment->position; i <= fwdAlignment->lastAlignedPositionWithRespectToRef; ++i){
-//			std::cout << "#### i " << i << std::endl;
+			std::cout << "#### i " << i << std::endl;
 			while(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < i){
 				++fwdP;
-//				std::cout << "incremented fwdP to " << fwdP << std::endl;
+				std::cout << "incremented fwdP to " << fwdP << std::endl;
 			} while(revAlignment->position + revAlignment->bases[revP].alignedPos < i){
 				++revP;
-//				std::cout << "incremented revP to " << revP << std::endl;
+				std::cout << "incremented revP to " << revP << std::endl;
 			}
-//			std::cout << "done incrementing" << std::endl;
-//			std::cout << "fwdP " << fwdP << " revP " << revP << std::endl;
+			std::cout << "done incrementing" << std::endl;
+			std::cout << "fwdP " << fwdP << " revP " << revP << std::endl;
 			if(i == fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
 				//bases overlap same position in ref -> decide which one to keep
-//				std::cout << "bases overlap!" << std::endl;
+				std::cout << "bases overlap!" << std::endl;
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
 //					std::cout << "error rate of fwd is smaller" << std::endl;
 					//keep base of fwd read

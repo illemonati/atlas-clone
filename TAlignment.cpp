@@ -375,7 +375,6 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	lastAlignedPositionWithRespectToRef = position + p - 1;
 	lastPositionPlusOne = position + length;
 	lastAlignedPos = p - 1; //why -1??
-	//std::cout << alignmentName << " lastAlignedPos " << lastAlignedPos << " lastAlignedPositionWithRespectToRef " << lastAlignedPositionWithRespectToRef << " lastPositionPlusOne " << lastPositionPlusOne << std::endl;
 	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
