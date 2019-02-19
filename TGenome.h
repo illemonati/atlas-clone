@@ -47,7 +47,6 @@ private:
 
 	void jumpToEnd();
 
-	void openThetaOutputFile(std::ofstream & out, TThetaEstimator & estimator);
 	void initializeRandomGenerator(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
@@ -64,8 +63,8 @@ public:
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
-	void estimateThetaWindows(TThetaEstimator & thetaEstimator, std::ofstream & out);
-	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, std::ofstream & out, bool onlyReadData, int numBootstraps);
+	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out);
+	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool onlyReadData, int numBootstraps);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcThetaLikelihoodSurfaces(TParameters & params);
 	void estimateThetaRatio(TParameters & params);

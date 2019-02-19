@@ -216,7 +216,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		std::vector<std::string> vec;
 		fillVectorFromString(params.getParameterString("chr"), vec, ',');
 		for(std::vector<std::string>::iterator it=vec.begin(); it!=vec.end(); ++it){
-			std::cout << "chr to limit to name: " << *it << std::endl;
 			//find chromosome
 			int num = 0;
 			BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin();
@@ -652,9 +651,9 @@ bool TAlignmentParser::readAlignment(){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
 //			chrNumber = previousAlignmentChr;
-//			chrChanged = true;
+			chrChanged = true;
 		} //else
-//			chrChanged = false;
+			chrChanged = false;
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position!";
 		previousAlignmentPos = bamAlignment.Position;

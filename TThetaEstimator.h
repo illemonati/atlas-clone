@@ -36,18 +36,21 @@ struct Theta{
 		theta = val;
 		expTheta = exp(-theta);
 		logTheta = log(theta);
+		LL = -9e100;
 	};
 
 	void setExpTheta(double val){
 		expTheta = val;
 		theta = -log(val);
 		logTheta = log(theta);
+		LL = -9e100;
 	};
 
 	void setLogTheta(double val){
 		logTheta = val;
 		theta = exp(val);
 		expTheta = exp(-theta);
+		LL = -9e100;
 	};
 
 	void setLogTheta(double & val, double & newLL){
@@ -63,7 +66,7 @@ struct Theta{
 };
 
 //---------------------------------------------------------------
-//TThetaEstimator_base
+//TThetaEstimator
 //---------------------------------------------------------------
 class TThetaEstimator_base{
 protected:
@@ -107,7 +110,7 @@ public:
 
 	TThetaEstimatorData* pointerToDataContainer(){ return data; };
 
-	void fillPGenotype(double* & pGeno){ fillPGenotype(pGeno, theta); };
+	void fillPGenotype(double* pGeno){ fillPGenotype(pGeno, theta); };
 
 };
 
@@ -148,11 +151,11 @@ public:
 	bool estimateTheta();
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
-	void writeHeader(std::ofstream & out);
-	void writeThetas(std::ofstream & out);
-	void writeResultsToFile(std::ofstream & out);
-	void calcLikelihoodSurface(std::ofstream & out, int & steps);
-	void bootstrapTheta(TRandomGenerator & randomGenerator, std::ofstream & out);
+	void writeHeader(gz::ogzstream & out);
+	void writeThetas(gz::ogzstream & out);
+	void writeResultsToFile(gz::ogzstream & out);
+	void calcLikelihoodSurface(gz::ogzstream & out, int & steps);
+	void bootstrapTheta(TRandomGenerator & randomGenerator, gz::ogzstream & out);
 };
 
 
@@ -204,8 +207,57 @@ public:
 	TThetaEstimatorData* pointerToDataContainer2(){ return data2; };
 
 	void estimateRatio(TRandomGenerator & randomGenerator, std::string ouputName);
+};
 
+//---------------------------------------------------------------
+//TThetaOutputFile
+//---------------------------------------------------------------
+class TThetaOutputFile{
+private:
+	std::string filename;
+	gz::ogzstream out;
+	bool fileOpen;
 
+public:
+	TThetaOutputFile(){
+		fileOpen = false;
+	};
+
+	TThetaOutputFile(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
+		open(Filename, estimator, logfile);
+	};
+
+	~TThetaOutputFile(){
+		close();
+	};
+
+	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
+		filename = Filename;
+		logfile->list("Will write theta estimates to file '" + filename + "'.");
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open file '" + filename + "' for writing!";
+
+		//write header
+		out << "Chr\t";
+		out << "start\tend";
+		estimator->writeHeader(out);
+		out << "\n";
+	};
+
+	void close(){
+		if(fileOpen)
+			out.close();
+	};
+
+	void writeWindow(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
+		out << chr << '\t' << start << '\t' << end;
+		estimator->writeResultsToFile(out);
+	};
+
+	void writeWindow(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
+		out << chr << '\t' << start << '\t' << end;
+		estimator->writeResultsToFile(out);
+	};
 };
 
 #endif /* TTHETAESTIMATOR_H_ */

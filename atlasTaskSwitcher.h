@@ -65,6 +65,9 @@ public:
 			if(task == "estimateTheta"){
 				logfile->startIndent("Running an EM algorithm to estimate heterozygosity (task = estimateTheta):");
 				genome.estimateTheta(*parameters);
+			} else if(task == "estimateThetaRatio"){
+				logfile->startIndent("Running an MCMC algorithm to estimate the ratio in heterozygosity (task = estimateThetaRatio):");
+				genome.estimateThetaRatio(*parameters);
 			} else if(task == "LLsurface"){
 				logfile->startIndent("Calculating the LL surface for each window (task = LLSurface):");
 				genome.calcThetaLikelihoodSurfaces(*parameters);
@@ -80,7 +83,7 @@ public:
 			} else if(task == "BQSR"){
 				logfile->startIndent("Estimating recalibration parameters (task = BQSR):");
 				genome.BQSR(*parameters);
-			} else if(task == "callMLE"){
+/*			} else if(task == "callMLE"){
 				logfile->startIndent("Calling MLE Genotypes (task = callMLE):");
 				genome.callMLEGenotypes(*parameters);
 			} else if(task == "callBayes"){
@@ -94,7 +97,7 @@ public:
 				genome.randomBaseCaller(*parameters);
 			} else if(task == "majorityBaseCaller"){
 				logfile->startIndent("Calling random bases (task = majorityBaseCaller");
-				genome.majorityBaseCaller(*parameters);
+				genome.majorityBaseCaller(*parameters); */
 			} else if(task == "glf"){
 				logfile->startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
 				genome.writeGLF(*parameters);

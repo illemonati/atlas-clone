@@ -128,6 +128,7 @@ void TWindow::review(){
 void TWindow::cleanUpUsedAlignments(){
 //	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
+	std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin();
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber)){
 //			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
@@ -149,8 +150,8 @@ void TWindow::cleanUpUsedAlignments(){
 
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
-		std::cout << " " << *alignmentIt << ":" << (*alignmentIt)->alignmentName << " pos " << (*alignmentIt)->position;
+	for(TAlignment* alignmentIt : usedAlignments)
+		std::cout << " " << alignmentIt << ":" << alignmentIt->alignmentName << " pos " << alignmentIt->position;
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
@@ -162,24 +163,24 @@ void TWindow::printStacks(){
 
 void TWindow::fillSitesSubset(TSiteSubset* subset){
 	//add reads in usedAlignments to sites in window
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
+	for(TAlignment* alignmentIt : usedAlignments){
 		//check if alignment start is inside window
-		if((*alignmentIt)->position >= end)
+		if(alignmentIt->position >= end)
 			throw "alignment should be assigned to next window!";
 
 		//genomic position of alignment as seen from window perspective
-		int firstPos = (*alignmentIt)->position - start;
+		int firstPos = alignmentIt->position - start;
 
 		//set position in read
 		int p = 0;
 
 		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
+			while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
 				++p;
-			if(p == (*alignmentIt)->length){
+			if(p == alignmentIt->length){
 //				std::cout << (*(alignmentIt-1))->alignmentName << " " << (*(alignmentIt-1))->position << std::endl;
-				throw "alignment should be assigned to previous window! Name: " + (*alignmentIt)->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString((*alignmentIt)->position);
+				throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 			}
 		}
 
@@ -189,14 +190,14 @@ void TWindow::fillSitesSubset(TSiteSubset* subset){
 		//position in window where first one = 0
 		int internalPos;
 		//p is at first position of read in window
-		for(; p < (*alignmentIt)->length; ++p){
-			if((*alignmentIt)->bases[p].alignedPos && (*alignmentIt)->bases[p].base != N){
-				internalPos = firstPos + (*alignmentIt)->bases[p].alignedPos;
+		for(; p < alignmentIt->length; ++p){
+			if(alignmentIt->bases[p].alignedPos && alignmentIt->bases[p].base != N){
+				internalPos = firstPos + alignmentIt->bases[p].alignedPos;
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
 				if(thesePos.find(internalPos) != thesePos.end())
-					sites[internalPos].add(&(*alignmentIt)->bases[p]);
+					sites[internalPos].add(&alignmentIt->bases[p]);
 			}
 		}
 		++numReadsInWindow;
@@ -205,37 +206,37 @@ void TWindow::fillSitesSubset(TSiteSubset* subset){
 
 void TWindow::fillSites(){
 	//add reads in usedAlignments to sites in window
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt){
+	for(TAlignment* alignmentIt : usedAlignments){
 		//check if alignment start is inside window
-		if((*alignmentIt)->position >= end){
+		if(alignmentIt->position >= end){
 			throw "alignment should be assigned to next window!";
 		}
 
 		//genomic position of alignment as seen from window perspective
-		int firstPos = (*alignmentIt)->position - start;
+		int firstPos = alignmentIt->position - start;
 
 		//set position in read
 		int p = 0;
 
 		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			while(p < (*alignmentIt)->length && (firstPos + (*alignmentIt)->bases[p].alignedPos) < 0)
+			while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
 				++p;
-			if(p == (*alignmentIt)->length){
-				throw "alignment should be assigned to previous window! Name: " + (*alignmentIt)->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString((*alignmentIt)->position);
+			if(p == alignmentIt->length){
+				throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 			}
 		}
 
 		//position in window where first one = 0
 		int internalPos;
 		//p is at first position of read in window
-		for(; p < (*alignmentIt)->length; ++p){
-			if((*alignmentIt)->bases[p].aligned && (*alignmentIt)->bases[p].base != N){
-				internalPos = firstPos + (*alignmentIt)->bases[p].alignedPos;
+		for(; p < alignmentIt->length; ++p){
+			if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
+				internalPos = firstPos + alignmentIt->bases[p].alignedPos;
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
-				sites[internalPos].add(&(*alignmentIt)->bases[p]);
+				sites[internalPos].add(&alignmentIt->bases[p]);
 			}
 		}
 		++numReadsInWindow;
@@ -546,12 +547,10 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->done();
 }
 
-//-------------------------------------------------------
-//TwindowDiploid
-//-------------------------------------------------------
 void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){
+		sites[i].calcEmissionProbabilities();
 		thetaDataContainer->add(sites[i]);
 	}
 }
@@ -563,12 +562,15 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, 
 		std::vector<long> thesePos = region.getPositionInWindow(start);
 		for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 			int pos = *it - start;
-			if(pos < length)
+			if(pos < length){
+				sites[pos].calcEmissionProbabilities();
 				thetaDataContainer->add(sites[pos]);
+			}
 		}
 	}
 }
 
+/*
 void TWindow::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
 	//check if we need to process this window
 	if(subset->hasPositionsInWindow(start)){
@@ -777,7 +779,7 @@ void TWindow::callAllelePresenceKnownAlleles(TSiteSubset* subset, TThetaEstimato
 		delete[] pGenotype;
 	}
 }
-
+*/
 void TWindow::addToGLF(TGlfWriter & writer, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	uint8_t* gl = new uint8_t[10];
