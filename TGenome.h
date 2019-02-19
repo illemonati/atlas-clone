@@ -104,6 +104,8 @@ public:
 	void runPMDS(TParameters & params);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergePairedEndReads(TParameters & params);
+	bool ignoreReadAfterRemovingDistantReads(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates);
+	bool ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, BamTools::BamWriter & bamWriter);
 	void mergePairedEndReadsNoOrder(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);

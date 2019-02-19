@@ -1862,6 +1862,42 @@ void TGenome::mergeReadGroups(TParameters & params){
 //	}
 //}
 
+bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, BamTools::BamWriter & bamWriter){
+	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
+
+	//add reads in storage to blacklist
+	if(alignmentStorage.size() > 0){
+		for(; it!=alignmentStorage.end(); ++it){
+			alignmentParser.addToBlacklist(alignment, "on different chr than its mate");
+			//clear
+			delete it->first;
+		}
+		alignmentStorage.clear();
+	}
+
+	//check if current alignment is in blacklist now
+	if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+		std::cout << "found alignment in blacklist" << std::endl;
+		//no need to keep mate in list anymore
+		alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
+		return true;
+	} else
+		return false;
+}
+
+bool TGenome::ignoreReadAfterRemovingDistantReads(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates){
+	bool ignore = false;
+	while(alignmentStorage.size() > 0 && alignment.position - alignmentStorage.begin()->first->position > acceptedDistanceBetweenMates){
+		std::cout << "erasing " << alignmentStorage.begin()->first->alignmentName << std::endl;
+		if(alignmentStorage.begin()->first->alignmentName == alignment.alignmentName)
+			ignore = true;
+		else
+			alignmentParser.addToBlacklist(*alignmentStorage.begin()->first, "mate that is farther away than " + toString(acceptedDistanceBetweenMates) + " bp");
+		alignmentStorage.erase(alignmentStorage.begin());
+	}
+	return ignore;
+}
+
 void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
@@ -1922,18 +1958,10 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			++lineNum;
 			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 			if(!vec.empty())
-				alignmentParser.addToBlacklist(vec[0]);
+				alignmentParser.addToBlacklist(vec[0], "user-defined blacklist");
 		}
 		logfile->write("done! Read " + toString(lineNum) + " read names");
 	}
-
-	//open file for reads that had a problem
-	gz::ogzstream ignoredReads;
-	std::string ignoredReadsFile = outputName + "_ignoredReads.txt.gz";
-	logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
-	ignoredReads.open(ignoredReadsFile.c_str());
-	if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
-
 
 	//should we adapt quality scores to reflect knowledge gained from overlap?
 	bool adaptQuality = false;
@@ -1961,23 +1989,15 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		if(alignmentParser.isInBlacklist(alignment.alignmentName)){
 			std::cout << "found alignment in blacklist" << std::endl;
 			//no need to keep mate in list anymore
-			if(alignment.isReverseStrand)
-				ignoredReads << "Blacklist: Reverse read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
-			else
-				ignoredReads << "Blacklist: Forward read of pair with name " << alignment.alignmentName << " because it was in the blacklist\n";
-			alignmentParser.removeFromBlacklist(alignment.alignmentName);
+			alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
 			continue;
 		} else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
 			int insertSize = abs(alignment.bamAlignment.InsertSize);
 			if(insertSize < alignment.lastAlignedPos){
 				if(alignment.isProperPair){
-					if(alignment.isReverseStrand)
-						ignoredReads << "TLENError: Reverse read of pair with name " << alignment.alignmentName << " because it was longer than the insert size (" << insertSize << "<" << alignment.bamAlignment.AlignedBases.size() << ")\n";
-					else
-						ignoredReads << "TLENError: Forward read of pair with name " << alignment.alignmentName << " because it was longer than the insert size (" << insertSize << "<" << alignment.bamAlignment.AlignedBases.size() << ")\n";
+					alignmentParser.addToBlacklist(alignment, "longer than the insert size");
 				}
-			alignmentParser.addToBlacklist(alignment.alignmentName);
-			continue;
+				continue;
 			}
 //			} if(!alignment.isProperPair ||(alignment.isReverseStrand() && alignment.isMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
 //				if(bamAlignment.IsReverseStrand())
@@ -1991,23 +2011,15 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			else {
 				//if on new chromosome, empty storage
 				if(curChr != alignment.chrNumber){
-					if(alignmentStorage.size() > 0){
-						std::cout << "clearing storage due to diff chr numner" << std::endl;
-						for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
-							(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-							delete it->first;
-						}
-						alignmentStorage.clear();
-					}
+					std::cout << "!!!!!!!! found new chr" << std::endl;
 					curChr = alignment.chrNumber;
+					if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, bamWriter))
+						continue;
 				}
 
 				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
-				while(alignmentStorage.size() > 0 && alignment.position - alignmentStorage.begin()->first->position > acceptedDistanceBetweenMates){
-					alignmentParser.addToBlacklist(alignmentStorage.begin()->first->alignmentName);
-					ignoredReads << "DistanceError: Read with name " << alignmentStorage.begin()->first->alignmentName << " has a mate that is farther away than " << acceptedDistanceBetweenMates << " bp\n";
-					alignmentStorage.erase(alignmentStorage.begin());
-				}
+				if(ignoreReadAfterRemovingDistantReads(alignmentStorage, alignment, acceptedDistanceBetweenMates))
+					continue;
 
 				//add alignment to storage
 				if(alignment.isProperPair){
@@ -2102,8 +2114,6 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		++counter;
 		reportProgressParsingBamFile(counter, start);
 	}
-
-	ignoredReads.close();
 
 	//close bam writer
 	bamWriter.Close();
