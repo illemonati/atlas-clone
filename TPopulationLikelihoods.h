@@ -134,6 +134,7 @@ public:
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
 	std::string chr(){ return vcfFile.chr(); };
 	long position(){ return vcfFile.position(); };
+	short genotype(int sample){ return vcfFile.sampleGenotype(sample); };
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	double* genotypeFrequencies(){ return _genotypeFrequencies; };
