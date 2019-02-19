@@ -13,7 +13,6 @@
 class TVcfConverter {
 private:
 	TLog* logfile;
-	int findMaxGenotype(uint8_t* phred);
     void convertToLfmm(TParameters & parameters);
 
 public:
