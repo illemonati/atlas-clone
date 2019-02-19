@@ -12,24 +12,26 @@ TVcfConverter::TVcfConverter(TParameters & Parameters, TLog* Logfile){
 
 
 void TVcfConverter::convertVcf(TParameters & parameters){
+	// open readers
+	TPopulationSamples samples;
+	TPopulationLikelihoodReader reader(parameters, logfile, false);
+	prepareReadingVcf(parameters, samples, reader);
+
 	std::string convertTo = parameters.getParameterString("convertTo");
 	if (convertTo == "lfmm"){
 		logfile->startIndent("Start converting VCF file to lfmm-format.");
-		convertToLfmm(parameters);
+		convertToLfmm(parameters, samples, reader);
 	} else throw "Unknown file format '" + convertTo + "'!";
 }
 
-
-void TVcfConverter::convertToLfmm(TParameters & parameters){
+void TVcfConverter::prepareReadingVcf(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader){
 	//read samples
-	TPopulationSamples samples;
 	if(parameters.parameterExists("samples"))
 		samples.readSamples(parameters.getParameterString("samples"), logfile);
 
 	//open VCF reader
 	std::string vcfFilename = parameters.getParameterString("vcf");
 	logfile->startIndent("Reading genotypes from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReader reader(parameters, logfile, false);
 	reader.openVCF(vcfFilename, logfile);
 	logfile->endIndent();
 
@@ -38,7 +40,9 @@ void TVcfConverter::convertToLfmm(TParameters & parameters){
 		samples.fillVCFOrder(reader.getSampleVCFNames());
 	 else
 		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+}
 
+std::ofstream TVcfConverter::openOutputFile(TParameters & parameters, std::string fileExtension){
 	//open output file
 	std::string outname = parameters.getParameterStringWithDefault("out", "");
 	if(outname == ""){
@@ -46,13 +50,19 @@ void TVcfConverter::convertToLfmm(TParameters & parameters){
 		outname = parameters.getParameterString("vcf");
 		outname = extractBefore(outname, ".");
 	}
-	std::string filename = outname + ".lfmm";
-	logfile->list("Will write the lfmm genotype matrix to file '" + outname + "'.");
-	std::ofstream lfmmFile(filename.c_str());
-	if(!lfmmFile)
+	std::string filename = outname + "." + fileExtension;
+	logfile->list("Will write the output to file '" + outname + "'.");
+	std::ofstream file(filename.c_str());
+	if(!file)
 		throw "Failed to open file '" + filename + "' for writing!";
+	return file;
+}
 
-	//write header // TODO: not sure whether lfmm format accepts a header, check!
+void TVcfConverter::convertToLfmm(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader){
+	// open output file
+	std::ofstream lfmmFile = openOutputFile(parameters, "lfmm");
+
+	// write header
 	char sep = '\t';
 	lfmmFile << "chr\tpos";
 	for(int s=0; s<samples.numSamples(); s++)
@@ -60,17 +70,16 @@ void TVcfConverter::convertToLfmm(TParameters & parameters){
 	lfmmFile << "\n";
 
 	// initialize variables for vcf-file
-	struct timeval start; gettimeofday(&start, NULL);
 	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
 	bool* sampleIsMissing = new bool[samples.numSamples()];
 
-	//run through VCF file
+	// run through VCF file
 	logfile->startIndent("Parsing VCF file and reading genotypes:");
 	while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
-		//write chromosome and position
+		// write chromosome and position
 		lfmmFile << reader.chr() << sep << reader.position();
 
-		//print genotype for every sample
+		// print genotype for every sample
 		for(int s=0; s<samples.numSamples(); s++){
 			short geno = reader.genotype(s);
 			if(geno == 3) lfmmFile << "\t" << 9;
@@ -79,11 +88,11 @@ void TVcfConverter::convertToLfmm(TParameters & parameters){
 		lfmmFile << std::endl;
 	}
 
-	//clean up
+	// clean up
 	delete[] curLocus;
 	delete[] sampleIsMissing;
 
-	//report final status
+	// report final status
 	logfile->endIndent();
 	reader.concludeFilters(logfile);
 	logfile->endIndent();

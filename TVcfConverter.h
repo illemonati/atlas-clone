@@ -13,7 +13,11 @@
 class TVcfConverter {
 private:
 	TLog* logfile;
-    void convertToLfmm(TParameters & parameters);
+
+    void convertToLfmm(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader);
+    void prepareReadingVcf(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader);
+    std::ofstream openOutputFile(TParameters & parameters, std::string fileExtension);
+
 
 public:
 	TVcfConverter(TParameters & Parameters, TLog* Logfile);
