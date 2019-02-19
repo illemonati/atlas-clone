@@ -245,6 +245,7 @@ void TPopulationLikelihoodReader::_init(){
 	//settings
 	limitLines = 0;
 	minDepth = 1;
+	GQFilter = 0;
 	minNumSamplesWithData = 0;
 	freqFilter = 0.0;
 	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
@@ -274,6 +275,13 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 		throw "minDepth must be >= 1!";
 	if(minDepth > 1)
 		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
+
+	// do we set a genotype quality filter?
+	GQFilter = Parameters.getParameterDoubleWithDefault("GQFilter", 0);
+	if(GQFilter < 0)
+		throw "GQFilter must be >= 0!";
+	if(GQFilter > 0)
+		logfile->list("Will filter samples to a maximal genotype quality of " + toString(GQFilter) + ".");
 
 	// do we set a missingness filter?
 	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
@@ -418,6 +426,14 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 			else
 				numIndividualsWithData++;
 
+			//filter in genotype quality
+			if(GQFilter > 0.0){
+				if(vcfFile.sampleGenotypeQuality(vcfIndex) > GQFilter)
+					vcfFile.setSampleMissing(vcfIndex);
+				else
+					numIndividualsWithData++;
+			}
+
 			//store phred scaled likelihoods
 			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
 			vcfFile.fillPhredScore(vcfIndex, &data[3 * s]);
@@ -521,6 +537,14 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 				vcfFile.setSampleMissing(vcfIndex);
 			else
 				numIndividualsWithData++;
+
+			//filter in genotype quality
+			if(GQFilter > 0.0){
+				if(vcfFile.sampleGenotypeQuality(vcfIndex) > GQFilter)
+					vcfFile.setSampleMissing(vcfIndex);
+				else
+					numIndividualsWithData++;
+			}
 
 			//store phred scaled likelihoods
 			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);

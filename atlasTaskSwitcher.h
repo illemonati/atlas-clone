@@ -16,6 +16,7 @@
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
 #include "TInbreedingEstimator.h"
+#include "TVcfConverter.h"
 
 //---------------------------------------------------------------------------
 //Switch task
@@ -51,6 +52,9 @@ public:
 		} else if(task == "filterVCF"){
 			TVcfFilter vcfFilter(*parameters, logfile);
 			vcfFilter.filterVCF(*parameters);
+		} else if(task == "convert"){
+			TVcfConverter vcfConverter(*parameters, logfile);
+			vcfConverter.convertVcf(*parameters);
 		} else if(task == "estimateAlleleCounts"){
 			TAlleleCountEstimator alleleCountEst(*parameters, logfile);
 			alleleCountEst.estimateAlleleCounts(*parameters);

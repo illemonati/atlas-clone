@@ -76,6 +76,7 @@ private:
 	//settings
 	long limitLines;
 	int minDepth;
+	double GQFilter;
 	int minNumSamplesWithData;
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
