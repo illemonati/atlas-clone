@@ -72,7 +72,10 @@ void TVcfConverter::convertToLfmm(TParameters & parameters){
 
 		//print genotype for every sample
 		for(int s=0; s<samples.numSamples(); s++){
-			lfmmFile << "\t" << findMaxGenotype(&curLocus[3*s]);
+			if (sampleIsMissing[s])
+				lfmmFile << "\t" << 9; // missing genotypes are encoded by 9 in lfmm
+			else
+				lfmmFile << "\t" << findMaxGenotype(&curLocus[3*s]);
 		}
 		lfmmFile << std::endl;
 	}
