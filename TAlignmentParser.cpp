@@ -1066,15 +1066,15 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
-		QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
+		QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
 	}
 }
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
-		QTtables.at(QTtables.size() - 1)->add(qualMap.errorToQuality(recalObject->getErrorRate(alignment.bases[i])), qualMap.errorToQuality(otherRecalObject->getErrorRate(alignment.bases[i])));
+		QTtables.at(alignment.readGroupId)->add(recalObject->getQuality(alignment.bases[i]), otherRecalObject->getQuality(alignment.bases[i]));
+		QTtables.at(QTtables.size() - 1)->add(recalObject->getQuality(alignment.bases[i]), otherRecalObject->getQuality(alignment.bases[i]));
 	}
 }
 

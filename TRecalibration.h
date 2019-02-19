@@ -21,21 +21,22 @@
 class TQualityIndex{
 	//Note: quality as stored in bases ranges from 33 to max!
 public:
-	int minQ, maxQ, numQ, last, first;
+	int minPhredInt, maxPhredInt, numQ, last, first;
 	int* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
-		minQ = MinQ;
-		maxQ = MaxQ;
-		numQ = maxQ - minQ + 1;
+		//here minQ and maxQ are not in ascii. by default minQ = 0 and maxQ = 100
+		minPhredInt = MinQ;
+		maxPhredInt = MaxQ;
+		numQ = maxPhredInt - minPhredInt + 1;
 		last = numQ - 1;
 		first = 0;
 
 		//fill index
 		index = new int[numQ + 33];
-		for(int i=0; i < maxQ + 1; ++i){
-			if(i < minQ) index[i] = 0;
-			else index[i] = i - minQ;
+		for(int i=0; i < maxPhredInt + 1; ++i){
+			if(i < minPhredInt) index[i] = 0;
+			else index[i] = i - minPhredInt;
 		}
 	};
 
@@ -45,14 +46,14 @@ public:
 
 	int& getIndex(const int & quality){
 		if(quality < 33) throw "Quality is negative!";
-		if(quality > maxQ) return last;
-		return index[quality];
+		if(quality > maxPhredInt + 33) return last;
+		return index[quality - 33];
 	};
 
-	int getQuality(const int & index){
+	int getPhredIntFromIndex(const int & index){
 		if(index < 0) throw "Quality index is negative!";
-		if(index > numQ) return maxQ;
-		return minQ + index;
+		if(index > numQ) return maxPhredInt;
+		return minPhredInt + index;
 	};
 };
 
@@ -493,7 +494,7 @@ public:
 	void reopenEstimation();
 //	double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	double getErrorRate(TBase & base);
-	int getQuality(TBase & base);
+//	int getQuality(TBase & base);
 };
 
 

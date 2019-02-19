@@ -1245,8 +1245,10 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//add alignments to tables
 	logfile->listFlush("Adding sites to quality transformation tables ...");
 	while(alignmentParser.readNextAlignment(alignment)){
-		if(alignmentParser.recalObjectInitialized2) alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, alignmentParser.recalObject2, QTtables, logfile);
-		else alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, QTtables, logfile);
+		if(alignmentParser.recalObjectInitialized2)
+			alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, alignmentParser.recalObject2, QTtables, logfile);
+		else
+			alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, QTtables, logfile);
 	}
 	logfile->done();
 
