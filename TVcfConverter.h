@@ -16,7 +16,7 @@ private:
 
     void convertToLfmm(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader);
     void prepareReadingVcf(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader);
-    std::ofstream openOutputFile(TParameters & parameters, std::string fileExtension);
+    void openOutputFile(TParameters & parameters, std::string fileExtension, std::ofstream & file);
 
 
 public:

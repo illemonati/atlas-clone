@@ -41,7 +41,7 @@ void TVcfConverter::prepareReadingVcf(TParameters & parameters, TPopulationSampl
 		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 }
 
-std::ofstream TVcfConverter::openOutputFile(TParameters & parameters, std::string fileExtension){
+void TVcfConverter::openOutputFile(TParameters & parameters, std::string fileExtension, std::ofstream & file){
 	//open output file
 	std::string outname = parameters.getParameterStringWithDefault("out", "");
 	if(outname == ""){
@@ -51,15 +51,15 @@ std::ofstream TVcfConverter::openOutputFile(TParameters & parameters, std::strin
 	}
 	std::string filename = outname + "." + fileExtension;
 	logfile->list("Will write the output to file '" + outname + "'.");
-	std::ofstream file(filename.c_str());
+	file.open(filename.c_str());
 	if(!file)
 		throw "Failed to open file '" + filename + "' for writing!";
-	return file;
 }
 
 void TVcfConverter::convertToLfmm(TParameters & parameters, TPopulationSamples & samples, TPopulationLikelihoodReader & reader){
 	// open output file
-	std::ofstream lfmmFile = openOutputFile(parameters, "lfmm");
+	std::ofstream lfmmFile;
+	openOutputFile(parameters, "lfmm", lfmmFile);
 
 	// initialize variables for vcf-file
 	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
