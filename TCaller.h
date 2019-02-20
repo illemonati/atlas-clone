@@ -178,7 +178,8 @@ protected:
 
 	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);
-	void callGenotypeFromMetricKnownAlleles(double* metric);
+	std::vector<int>  callGenotypeFromMetricKnownAlleles(double* metric);
+	void callGenotypeFromMetricKnownAllelesUpdateIndex(double* metric);
 	template <typename T> std::string getPerGenotypeMetricString(T* metric);
 	void calculateImbalance(TSite & site);
 	std::string getVCFGenotypeString_AB(TSite & site);

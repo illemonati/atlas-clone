@@ -71,18 +71,18 @@ void TSite::calcEmissionProbabilities(double* vec){
 		for(int i=0; i<numGenotypes; ++i){
 			vec[i] = 1.0;
 		}
-		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+		for(TBase* baseIterator : bases){
 			for(int i=0; i<numGenotypes; ++i){
-				vec[i] *= (*baseIterator)->getEmissionProbability(i);
+				vec[i] *= baseIterator->getEmissionProbability(i);
 			}
 		}
 	} else {
 		for(int i=0; i<numGenotypes; ++i){
 			vec[i] = 0.0;
 		}
-		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
+		for(TBase* baseIterator : bases){
 			for(int i=0; i<numGenotypes; ++i){
-				vec[i] += log((*baseIterator)->getEmissionProbability(i));
+				vec[i] += log(baseIterator->getEmissionProbability(i));
 			}
 		}
 		//now standardize before delog
@@ -103,8 +103,8 @@ void TSite::calcEmissionProbabilities(){
 std::string TSite::getBases(){
 	if(!hasData) return "-";
 	std::string b = "";
-	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator){
-		b += (*baseIterator)->getBase();
+	for(TBase* baseIterator : bases){
+		b += baseIterator->getBase();
 	}
 	return b;
 }
@@ -175,15 +175,15 @@ void TSite::countAlleles(int* alleleCounts){
 	alleleCounts[2] = 0;
 	alleleCounts[3] = 0;
 
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it)
-		++alleleCounts[(*it)->getBaseAsEnum()];
+	for(TBase* it : bases)
+		++alleleCounts[it->getBaseAsEnum()];
 };
 
 void TSite::countAllelesForImbalance(long**** siteImbalance){
 	//calculate and return imbalance
 	int b[4] = {0};
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		++b[(*it)->getBaseAsEnum()];
+	for(TBase* it : bases){
+		++b[it->getBaseAsEnum()];
 	}
 	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
 }

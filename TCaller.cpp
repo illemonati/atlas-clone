@@ -620,11 +620,17 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 	}
 };
 
-void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
+std::vector<int> TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
 	//get genotypes
 	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
 	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
+
+	//fill vector with indeces
+	std::vector<int> indeces; //first three are indeces of 3 possible genotypes, fourth is index of max
+	indeces.push_back(homRef);
+	indeces.push_back(het);
+	indeces.push_back(homAlt);
 
 	//find max
 	double max = metric[homRef];
@@ -633,12 +639,44 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
 
 	//fill vector of all
 	std::vector<std::string> vec;
-	if(metric[homRef] == max) vec.push_back("0/0");
-	if(metric[het] == max) vec.push_back("0/1");
-	if(metric[homAlt] == max) vec.push_back("1/1");
+	if(metric[homRef] == max){
+		vec.push_back("0/0");
+		indeces.push_back(homRef);
+	}
+	if(metric[het] == max){
+		vec.push_back("0/1");
+		indeces.push_back(het);
+	}
+	if(metric[homAlt] == max){
+		vec.push_back("1/1");
+		indeces.push_back(homAlt);
+	}
 
 	calledGenotype = vec[randomGenerator->pickOne(vec.size())];
+
+	return indeces;
 };
+
+void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(double* metric){
+	std::vector<int> indeces = callGenotypeFromMetricKnownAlleles(metric); 	//first index=best genotype, second and third are candidates for second
+	indexOfMax = indeces[3];
+
+	//find candidates for second-best genotype
+	std::vector<int> candidatesSecondBest;
+	for(int i=0; i<3; ++i){
+		if(indeces[i] != indexOfMax)
+			candidatesSecondBest.push_back(indeces[i]);
+	}
+
+	if(metric[candidatesSecondBest[0]] == metric[candidatesSecondBest[1]])
+		indexOfSecond = metric[1 + randomGenerator->pickOne(2)];
+	else if(metric[candidatesSecondBest[0]] > metric[candidatesSecondBest[1]])
+		indexOfSecond = candidatesSecondBest[0];
+	else
+		indexOfSecond = candidatesSecondBest[1];
+}
+
+
 
 template <typename T> std::string TCallerDiploid::getPerGenotypeMetricString(T* metric){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
@@ -750,7 +788,7 @@ void TCallerMLE::callGenotype(TSite & site){
 };
 
 void TCallerMLE::callGenotypeKnownAlleles(TSite & site){
-	callGenotypeFromMetricKnownAlleles(site.emissionProbabilities);
+	callGenotypeFromMetricKnownAllelesUpdateIndex(site.emissionProbabilities);
 };
 
 std::string TCallerMLE::getVCFGenotypeString_GQ(TSite & site){
@@ -808,7 +846,7 @@ void TCallerBayes::callGenotypeKnownAlleles(TSite & site){
 	site.calculateP_g(genotypePrior, posteriorProb);
 
 	//call
-	callGenotypeFromMetricKnownAlleles(posteriorProb);
+	callGenotypeFromMetricKnownAllelesUpdateIndex(posteriorProb);
 };
 
 std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){

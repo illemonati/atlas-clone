@@ -17,7 +17,6 @@
 #include <typeinfo>
 #include <map>
 #include <algorithm>
-#include "TCaller.h"
 #include "TGenotypePrior.h"
 
 //---------------------------------------------------------------
