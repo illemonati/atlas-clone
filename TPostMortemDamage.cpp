@@ -583,7 +583,6 @@ void TPMD::initialize(TPMD & other){
 		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
 		other.myFunctions[i]->getCopy(myFunctions[i]);
 		functionsInitialized[i] = true;
-		throw "initializing in wrong place";
 	}
 }
 

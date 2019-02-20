@@ -501,9 +501,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		while(!useChromosome[chrNumber]){
 			++chrIterator;
 			++chrNumber;
-			std::cout << "chrNumber in moveChr " << chrNumber << std::endl;
 			chrLength = stringToLong(chrIterator->Length);
-			std::cout << "chrLength " << chrLength << std::endl;
 			chrLength = stringToLong(chrIterator->Length);
 		}
 		bamReader.Jump(chrNumber, 0);
@@ -761,15 +759,12 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 
 bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
-	std::cout << "bamAlignment in readNextAlignmentWithBlacklist " << bamAlignment.Name << std::endl;
 	if(readAlignment()){
 		alignment.passedFilters = true;
 		fillAlignment(alignment);
 		return true;
 	} else if(!readAlignment()){
 		blacklist.emplace(bamAlignment.Name, 1);
-		std::cout << "PARSER: placed alignment " << bamAlignment.Name << " in blacklist" << std::endl;
-		throw "blacklisted non passed filter";
 	}
 	return false;
 }

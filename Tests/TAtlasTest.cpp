@@ -624,7 +624,7 @@ bool TAtlasTest_theta::run(){
 
 	//only simulate BAM if it does not already exist
 	std::string filenameBAM = filenameTag + ".bam";
-	logfile->listFlush("Opening file '" + filenameBAM + "' for reading ...");
+	logfile->list("Writing simulated reads to '" + filenameBAM + "'.");
 	std::ifstream bam(filenameBAM.c_str());
 	if(!bam){
 		if(!runTGenomeFromInputfile("simulate"))
@@ -638,14 +638,13 @@ bool TAtlasTest_theta::run(){
 	//-----------------------------
 	//only simulate BAM if it does not already exist
 	std::string filenameTheta = filenameTag + "_theta_estimates.txt";
-	logfile->listFlush("Opening file '" + filenameTheta + "' for reading ...");
 	std::ifstream in(filenameTheta.c_str());
 	if(!in){
 		_testParams.addParameter("bam", bamFileName);
 		if(!runTGenomeFromInputfile("estimateTheta"))
 			return false;
 	} else
-		logfile->flush("file already exists");
+		logfile->conclude("theta estimates already exists");
 	logfile->newLine();
 
 	//3) check if results are OK
@@ -656,7 +655,7 @@ bool TAtlasTest_theta::run(){
 bool TAtlasTest_theta::checkThetaFile(){
 	//open theta file
 	std::string filename = filenameTag + "_theta_estimates.txt";
-	logfile->listFlush("Opening file '" + filename + "' for reading ...");
+	logfile->list("Checking theta file '" + filename + "'.");
 	std::ifstream in(filename.c_str());
 	if(!in)
 		throw "Failed to open file '" + filename + "'!";
