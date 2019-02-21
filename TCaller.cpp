@@ -620,17 +620,12 @@ void TCallerDiploid::callGenotypeFromMetric(double* metric){
 	}
 };
 
-std::vector<int> TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
+
+void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric){
 	//get genotypes
 	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
 	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
-
-	//fill vector with indeces
-	std::vector<int> indeces; //first three are indeces of 3 possible genotypes, fourth is index of max
-	indeces.push_back(homRef);
-	indeces.push_back(het);
-	indeces.push_back(homAlt);
 
 	//find max
 	double max = metric[homRef];
@@ -641,39 +636,45 @@ std::vector<int> TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metr
 	std::vector<std::string> vec;
 	if(metric[homRef] == max){
 		vec.push_back("0/0");
-		indeces.push_back(homRef);
 	}
 	if(metric[het] == max){
 		vec.push_back("0/1");
-		indeces.push_back(het);
 	}
 	if(metric[homAlt] == max){
 		vec.push_back("1/1");
-		indeces.push_back(homAlt);
 	}
 
 	calledGenotype = vec[randomGenerator->pickOne(vec.size())];
-
-	return indeces;
-};
+}
 
 void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(double* metric){
-	std::vector<int> indeces = callGenotypeFromMetricKnownAlleles(metric); 	//first index=best genotype, second and third are candidates for second
-	indexOfMax = indeces[3];
+	//initialize
+	std::vector<std::string> gt;
+	gt.push_back("0/0");
+	gt.push_back("0/1");
+	gt.push_back("1/1");
 
-	//find candidates for second-best genotype
-	std::vector<int> candidatesSecondBest;
-	for(int i=0; i<3; ++i){
-		if(indeces[i] != indexOfMax)
-			candidatesSecondBest.push_back(indeces[i]);
-	}
+	//get genotypes
+	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
+	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
+	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
 
-	if(metric[candidatesSecondBest[0]] == metric[candidatesSecondBest[1]])
-		indexOfSecond = metric[1 + randomGenerator->pickOne(2)];
-	else if(metric[candidatesSecondBest[0]] > metric[candidatesSecondBest[1]])
-		indexOfSecond = candidatesSecondBest[0];
-	else
-		indexOfSecond = candidatesSecondBest[1];
+	int indecesKnownAlleleGenotypes[3];
+	indecesKnownAlleleGenotypes[0] = homRef;
+	indecesKnownAlleleGenotypes[1] = het;
+	indecesKnownAlleleGenotypes[2] = homAlt;
+
+	double metricKnownAlleles[3];
+	metricKnownAlleles[0] = metric[homRef];
+	metricKnownAlleles[1] = metric[het];
+	metricKnownAlleles[2] = metric[homAlt];
+
+	int best = pickIndexWithHighestMetric(metricKnownAlleles, 3);
+	int secondBest = pickIndexWithSecondHighestMetric(metricKnownAlleles, 3, indexOfMax);
+
+	indexOfMax = indecesKnownAlleleGenotypes[best];
+	calledGenotype = gt[best];
+	indexOfSecond = indecesKnownAlleleGenotypes[secondBest];
 }
 
 
