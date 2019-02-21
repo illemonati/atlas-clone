@@ -421,18 +421,11 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 			int vcfIndex = samples.VCF_order(s);
 
 			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-			if (vcfFile.sampleDepth(vcfIndex) < minDepth)
+			// filter on genotype quality
+			if (vcfFile.sampleDepth(vcfIndex) < minDepth || vcfFile.sampleGenotypeQuality(vcfIndex) < GQFilter )
 				vcfFile.setSampleMissing(vcfIndex);
 			else
 				numIndividualsWithData++;
-
-			//filter in genotype quality
-			if(GQFilter > 0.0){
-				if(vcfFile.sampleGenotypeQuality(vcfIndex) > GQFilter)
-					vcfFile.setSampleMissing(vcfIndex);
-				else
-					numIndividualsWithData++;
-			}
 
 			//store phred scaled likelihoods
 			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
@@ -533,8 +526,8 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 			int vcfIndex = samples.VCF_order(s);
 
 			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-			//filter on genotype quality
-			if (vcfFile.sampleDepth(vcfIndex) < minDepth ||vcfFile.sampleGenotypeQuality(vcfIndex) > GQFilter )
+			// filter on genotype quality
+			if (vcfFile.sampleDepth(vcfIndex) < minDepth || vcfFile.sampleGenotypeQuality(vcfIndex) < GQFilter )
 				vcfFile.setSampleMissing(vcfIndex);
 			else
 				numIndividualsWithData++;
