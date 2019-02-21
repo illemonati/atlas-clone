@@ -331,6 +331,42 @@ void TWindow::calculateEmissionProbabilities(){
 	}
 }
 
+void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
+	//add reference to sites
+	addReferenceBaseToSites(reference, chrNumber);
+
+	//loop over sites and call
+	for(int i=0; i<length; ++i){
+		if(sites[i].hasData)
+			sites[i].calcEmissionProbabilities();
+		caller.call(chrName, start + i + 1, sites[i]); //i + 1 to make vcf 1-based!
+	}
+};
+
+void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset){
+	//check if we need to process this window
+	if(subset.hasPositionsInWindow(start)){
+		//add reference to sites
+		addReferenceBaseToSites(&subset);
+
+		//now only run over sites listed in that window
+		std::map<long,std::pair<char,char> > thesePos = subset.getPositionInWindow(start);
+		for(std::map<long,std::pair<char,char> >::iterator it = thesePos.begin(); it!=thesePos.end(); ++it){
+			int pos = it->first - start;
+			if(sites[pos].hasData){
+				sites[pos].calcEmissionProbabilities();
+
+				//call
+				caller.call(chrName, pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
+			}
+		}
+	}
+};
+
+
+
+/*
+
 void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
 	if(isVCF){
 		if(printAll){
@@ -375,7 +411,8 @@ void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & ra
 	}
 }
 
-void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std::string chrName, bool printOnlySitesWithData){
+*/
+void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
@@ -387,7 +424,7 @@ void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, std:
 	}
 }
 
-void TWindow::printPileupToScreen(TRecalibration* recalObject, std::string & chrName){
+void TWindow::printPileupToScreen(TRecalibration* recalObject){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		sites[i].calcEmissionProbabilities();
@@ -454,13 +491,14 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	//calculate and return imbalance
 	for(int i=0; i<length; ++i){
 		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
-			sites[i].countAlleles(siteImbalance);
+			sites[i].countAllelesForImbalance(siteImbalance);
 		else if(sites[i].depth()  == 0){
 			++siteImbalance[0][0][0][0];
 		}
 
 	}
 }
+
 
 void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 	for(int i=0; i<length; ++i){

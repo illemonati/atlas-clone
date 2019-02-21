@@ -330,7 +330,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	//clean up
 }
 
-/*
+
 //------------------------------------------
 //Callers (NEW)
 //------------------------------------------
@@ -370,10 +370,7 @@ TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 
 void TGenome::callGenotypesNew(TParameters & params){
 	//make sure FASTA is open
-	if(!fastaReference) throw "A FASTA reference must be provided to call!";
-
-	//initialize recalibration
-	initializeRecalibration(params);
+	if(!alignmentParser.fastaReference) throw "A FASTA reference must be provided to call!";
 
 	//--------------------------
 	//initialize caller
@@ -422,7 +419,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 
 	//prepare windows
 	//Allow for haploid windows for some callers?
-	TWindowPairDiploid windows;
+	TWindow window;
 
 	//---------------------------------------------------------------------
 	// Now call, either all sites or limiting to sites with known alleles.
@@ -430,38 +427,37 @@ void TGenome::callGenotypesNew(TParameters & params){
 	if(params.parameterExists("sites")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
-		TSiteSubset subset(params.getParameterString("sites"), reference, bamHeader, windowSize, logfile, false);
+		int windowSize = alignmentParser.getWindowSize();
+		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
 		logfile->endIndent();
 
-		while(iterateChromosome(windows)){
-			subset.setChr(chrIterator->Name);
-			while(iterateWindow(windows)){
+		while(alignmentParser.readDataInNextWindow(window)){
+			subset.setChr(alignmentParser.chrIterator->Name);
+			if(window.passedFilters){
 				//read data for current window
-				if(readData(windows) || caller->printSitesWithNoData()){
+				if(window.passedFilters || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(windows.cur, logfile);
+					prior->update(&window, logfile);
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
-					windows.cur->callKnwonAlleles(*caller, *recalObject, reference, subset);
+					window.callKnwonAlleles(*caller, *alignmentParser.recalObject, reference, subset);
 					logfile->done();
 				}
 			}
 		}
 	} else { //not limiting to sites with known alleles
 		//Use all sites and identify alleles
-		while(iterateChromosome(windows)){
-			while(iterateWindow(windows)){
-				//read data for current window
-				if(readData(windows) || caller->printSitesWithNoData()){
-					//update genotype prior
-					prior->update(windows.cur, logfile);
+		while(alignmentParser.readDataInNextWindow(window)){
+			//read data for current window
+			if(window.passedFilters || caller->printSitesWithNoData()){
+				//update genotype prior
+				prior->update(&window, logfile);
 
-					//now call
-					logfile->listFlush("Calling genotypes ...");
-					windows.cur->call(*caller, *recalObject, reference);
-					logfile->done();
-				}
+				//now call
+				logfile->listFlush("Calling genotypes ...");
+				window.call(*caller, *alignmentParser.recalObject, reference);
+				logfile->done();
 			}
 		}
 	}
@@ -1044,7 +1040,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		window.printPileup(alignmentParser.recalObject, out, alignmentParser.chrNumberToName(window.chrNumber), printOnlySitesWithData);
+		window.printPileup(alignmentParser.recalObject, out, printOnlySitesWithData);
 	}
 
 	//clean up

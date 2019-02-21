@@ -127,7 +127,7 @@ std::string TSite::getEmissionProbs(){
 	return b;
 }
 
-void TSite::calculateP_g(double* & genotypeProbabilities, double* & P_g){
+void TSite::calculateP_g(double* genotypeProbabilities, double* P_g){
 	//calculate normalized genotype probabilities according to Bayes rule
 	double sum = 0.0;
 	for(int i=0; i<numGenotypes; ++i){
@@ -158,11 +158,21 @@ double TSite::calculateLogLikelihood(double* genotypeProbabilities){
 }
 
 
-void TSite::countAlleles(long**** siteImbalance){
+void TSite::countAlleles(int* alleleCounts){
+	alleleCounts[0] = 0;
+	alleleCounts[1] = 0;
+	alleleCounts[2] = 0;
+	alleleCounts[3] = 0;
+
+	for(TBase* it : bases)
+		++alleleCounts[it->getBaseAsEnum()];
+};
+
+void TSite::countAllelesForImbalance(long**** siteImbalance){
 	//calculate and return imbalance
 	int b[4] = {0};
-	for(std::vector<TBase*>::iterator it = bases.begin(); it!=bases.end(); ++it){
-		++b[(*it)->getBaseAsEnum()];
+	for(TBase* it : bases){
+		++b[it->getBaseAsEnum()];
 	}
 	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
 }
@@ -178,7 +188,6 @@ void TSite::printPileupToScreen(){
 	std::cout << "\t" << depth() << "\t" << refDepth();
 	std::cout << "\t" << getBases() << "\t" << getEmissionProbs();
 }
-
 
 
 //-----------------------------------------------------------------------

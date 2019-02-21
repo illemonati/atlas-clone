@@ -16,6 +16,7 @@
 #include "TBed.h"
 #include "TAlignmentParser.h"
 #include "TQualityMap.h"
+#include "TGenotypePrior.h"
 #include <typeinfo>
 #include <map>
 #include <algorithm>
@@ -48,6 +49,7 @@ private:
 	void jumpToEnd();
 
 	void initializeRandomGenerator(TParameters & params);
+	TGenotypePrior* initializeGenotypePrior(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
 
@@ -70,13 +72,15 @@ public:
 	void estimateThetaRatio(TParameters & params);
 
 	//callers
-	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
-	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP);
-	void callMLEGenotypes(TParameters & params);
-	void callBayesianGenotypes(TParameters & params);
-	void callAllelePresence(TParameters & params);
-	void randomBaseCaller(TParameters & params);
-	void majorityBaseCaller(TParameters & params);
+	void callGenotypesNew(TParameters & params);
+
+//	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
+//	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP);
+//	void callMLEGenotypes(TParameters & params);
+//	void callBayesianGenotypes(TParameters & params);
+//	void callAllelePresence(TParameters & params);
+//	void randomBaseCaller(TParameters & params);
+//	void majorityBaseCaller(TParameters & params);
 
 	//other
 	void writeGLF(TParameters & params);

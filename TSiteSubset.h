@@ -31,7 +31,7 @@ public:
 	~TSiteSubsetWindow(){};
 
 	void addPosition(long pos, char & ref, char & alt){
-		positions.insert(std::pair<long, std::pair<char,char> >(pos, std::pair<char,char>(ref, alt)));
+		positions.emplace(pos, std::pair<char,char>(ref, alt));
 	};
 
 	void print(){
@@ -90,12 +90,12 @@ public:
 		if(windowIt == windows.end()){
 			//insert window
 			int w = (double) pos / (double) windowSize;
-			windows.insert(std::pair<int, TSiteSubsetWindow*>(w, new TSiteSubsetWindow(w*windowSize, (w+1)*windowSize - 1)));
+			windows.emplace(w, new TSiteSubsetWindow(w*windowSize, (w+1)*windowSize - 1));
 			findWindow(pos);
 		}
 	};
 
-	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool variantSites){
+	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -113,15 +113,15 @@ public:
 			error += "' on chr " + chr;
 			throw error + " at " + toString(pos) + "!";
 		}
-		if(variantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
-		if(!variantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(!invariantSites && ref == alt) throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
+		if(invariantSites && ref != alt) throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
 
 		//identify window
 		findOrCreateWindow(pos);
 		windowIt->second->addPosition(pos, ref, alt);
 	};
 
-	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool variantSites){
+	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool invariantSites){
 		long pos = stringToLong(tmp[1]) - 1; //make 0-based
 		char ref = tmp[2][0];
 		char alt = tmp[3][0];
@@ -151,11 +151,11 @@ public:
 			error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			return false;
 		}
-		if(ref == alt && variantSites){
+		if(ref == alt && !invariantSites){
 			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			//return false;
 			throw "Reference allele = alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
-		}if(ref != alt && !variantSites){
+		}if(ref != alt && invariantSites){
 			//error = chr + "\t" + tmp[1] + "\t" + inRef + "\t" + ref + "\t" + alt;
 			//return false;
 			throw "Reference allele != alternative allele on chr " + chr + " at " + toString(pos+1) + "!";
@@ -198,7 +198,7 @@ private:
 	std::map<std::string, TSiteSubsetChr*>::iterator chrIt;
 	int windowSize;
 	std::string curChr;
-	bool variantSites;
+	bool invariantSites;
 
 	void readFile(TLog* logfile){
 		logfile->listFlush("Reading sites to be used from '" + filename + "' ...");
@@ -223,14 +223,14 @@ private:
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TSiteSubsetChr*>(vec[0], new TSiteSubsetChr(vec[0], windowSize)));
+						chromosomes.emplace(vec[0], new TSiteSubsetChr(vec[0], windowSize));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
 				}
 
 				//add positions
-				chrIt->second->addPosition(vec, chrIt->first, variantSites);
+				chrIt->second->addPosition(vec, chrIt->first, invariantSites);
 			}
 		}
 
@@ -265,20 +265,20 @@ private:
 			fillVectorFromLineWhiteSpaceSkipEmpty(sitesFile, vec);
 			//skip empty lines
 			if(vec.size() > 0){
-				if(vec.size() != 4) throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "!";
+				if(vec.size() != 4) throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "! (" + toString(vec.size()) + "  instead of 4)";
 
 				//get chromosome
 				if(vec[0] != curChr){
 					chrIt = chromosomes.find(vec[0]);
 					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TSiteSubsetChr*>(vec[0], new TSiteSubsetChr(vec[0], windowSize, bamHeader)));
+						chromosomes.emplace(vec[0], new TSiteSubsetChr(vec[0], windowSize, bamHeader));
 						chrIt = chromosomes.find(vec[0]);
 					}
 					curChr = vec[0];
 				}
 
 				//add positions
-				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error, variantSites)){
+				if(!chrIt->second->addPosition(vec, chrIt->first, reference, error, invariantSites)){
 					//conflict with fasta -> add to vector
 					conflictsWithReference.push_back(error);
 				}
@@ -311,19 +311,19 @@ private:
 
 public:
 	std::string filename;
-	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool & VariantSites){
+	TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, bool InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
-		variantSites = VariantSites;
+		invariantSites = InvariantSites;
 		readFile(logfile);
 		curChr = "";
 	};
 
-	TSiteSubset(std::string Filename, BamTools::Fasta* reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool & VariantSites){
+	TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool InvariantSites){
 		filename = Filename;
 		windowSize = WindowSize;
-		variantSites = VariantSites;
-		readFile(*reference, bamHeader, logfile);
+		invariantSites = InvariantSites;
+		readFile(reference, bamHeader, logfile);
 		curChr = "";
 	};
 
@@ -345,8 +345,8 @@ public:
 	};
 
 	bool hasPositionsInWindow(const long & windowStart){
-		std::cout << "chromosome length: " <<std::flush;
-		std::cout << chromosomes.size() << std::endl;
+		if(curChr == "")
+			throw "chromosome name is empty!";
 		chrIt = chromosomes.find(curChr);
 		if(chrIt == chromosomes.end()){
 			return false;

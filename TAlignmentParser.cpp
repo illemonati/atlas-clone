@@ -316,12 +316,14 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		throw "Can only use variant OR invariant sites!";
 	if(params.parameterExists("invariantSites")){
 		bool variantSites = false;
-		if(hasReference) subset = new TSiteSubset(params.getParameterString("invariantSites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+		if(hasReference)
+			subset = new TSiteSubset(params.getParameterString("invariantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
 		else subset = new TSiteSubset(params.getParameterString("invariantSites"), windowSize, logfile, variantSites);
 		sitesProvided = true;
 	} else if(params.parameterExists("variantSites")){
 		bool variantSites = true;
-		if(hasReference) subset = new TSiteSubset(params.getParameterString("variantSites"), fastaReference, bamHeader, windowSize, logfile, variantSites);
+		if(hasReference)
+			subset = new TSiteSubset(params.getParameterString("variantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
 		else subset = new TSiteSubset(params.getParameterString("variantSites"), windowSize, logfile, variantSites);
 		sitesProvided = true;
 	}
@@ -504,6 +506,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 			chrLength = stringToLong(chrIterator->Length);
 			chrLength = stringToLong(chrIterator->Length);
 		}
+		window.chrName = chrIterator->Name;
 		bamReader.Jump(chrNumber, 0);
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
 		int nextEnd = windowSize;
