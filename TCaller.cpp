@@ -800,8 +800,7 @@ std::string TCallerMLE::getVCFGenotypeString_GL(TSite & site){
 	//normalize
 	double tmp[10];
 	for(int g=0; g<10; ++g)
-		tmp[g] = site.emissionProbabilities[genoMap.genotypeMap[referenceBase][referenceBase]] / site.emissionProbabilities[indexOfMax];
-
+		tmp[g] = site.emissionProbabilities[g] / site.emissionProbabilities[indexOfMax];
 	//get string
 	return getPerGenotypeMetricString(tmp);
 };

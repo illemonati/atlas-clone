@@ -249,7 +249,7 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, B
 				recalObject.calcEmissionProbabilities(sites[pos]);
 
 				//call
-				caller.call(chrName, pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
+				caller.call(chrName, start + pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
 			}
 		}
 	}
