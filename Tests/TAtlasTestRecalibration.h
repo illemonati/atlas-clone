@@ -9,7 +9,7 @@
 #define TATLASTESTRECALIBRATION_H_
 
 #include "TAtlasTest.h"
-#include "../TSimulatorQualityTransformation.h"
+#include "../Simulations/TSimulatorQualityTransformation.h"
 
 //------------------------------------------
 //TAtlasTest_recalSimulation

@@ -12,7 +12,7 @@
 #include "TParameters.h"
 #include "TGenome.h"
 #include "TDistanceEstimator.h"
-#include "runSimulations.h"
+#include "Simulations/runSimulations.h"
 #include "TVcfDiagnostics.h"
 #include "TMajorMinor.h"
 

@@ -379,7 +379,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			relDiff = (stringToDouble(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){
 				logfile->newLine();
-				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + "!");
+				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ", which corresponds to pos " + line[1] + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+4] + " (column " + toString(b+6) + ")!");
 				return false;
 			}
 		}
