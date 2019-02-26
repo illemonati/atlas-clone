@@ -26,7 +26,7 @@ public:
 	std::ostream* myOutStream;
 	bool outputStreamOpend;
 	std::string fileFormat;
-	TVcfColumnNumbers cols;
+	//TVcfColumnNumbers cols;
 	TVcfParser parser;
 	unsigned int numCols;
 	long currentLine;
@@ -59,6 +59,7 @@ public:
 
 	//which parsers to use?
 	void enablePositionParsing(){usedParsers.push_back(&TVcfParser::parsePosition);};
+	void enableVariantQualityParsing(){usedParsers.push_back(&TVcfParser::parseQuality);};
 	void enableVariantParsing(){usedParsers.push_back(&TVcfParser::parseVariant);};
 	void enableInfoParsing(){usedParsers.push_back(&TVcfParser::parseInfo);};
 	void enableFormatParsing(){usedParsers.push_back(&TVcfParser::parseFormat);};
@@ -67,7 +68,8 @@ public:
 	//retrieve info
 	GTLikelihoods _genotypeLikelihoods(TVcfLine* line, unsigned int sample);
 	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
-	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, double* gtl);
+	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
+	void fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl);
 	int sampleNumber(std::string & Name);
 	int numSamples();
 	std::string sampleName(unsigned int num);
@@ -116,15 +118,18 @@ public:
 	void updateInfo(std::string Id, std::string Data);
 	void addToInfo(std::string Id, std::string Data);
 	void updatePL(std::string Data, unsigned int sample);
-	std::string fieldContentAsString(std::string tag, unsigned int sample);
-	int fieldContentAsInt(std::string tag, unsigned int sample);
-	int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
+	virtual std::string fieldContentAsString(std::string tag, unsigned int sample);
+	virtual int fieldContentAsInt(std::string tag, unsigned int sample);
+	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
 	GTLikelihoods genotypeLikelihoods(unsigned int sample);
 	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
-	void fillGenotypeLikelihoods(unsigned int sample, double* gtl);
+	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
+	void fillPhredScore(unsigned int sample, uint8_t* gtl);
 	//variant info
 	long position();
 	std::string chr();
+	bool variantQualityIsMissing();
+	double variantQuality();
 	int getNumAlleles();
 	char getRefAllele();
 	char getFirstAltAllele();
@@ -141,7 +146,8 @@ public:
 	char getSecondAlleleOfSample(unsigned int num);
 	short sampleGenotype(const unsigned int & num);
 	float sampleGenotypeQuality(unsigned int sample);
-	int sampleDepth(unsigned int sample);
+	double sampleDepth(unsigned int sample);
+	// int sampleDepth(unsigned int sample);
 	bool formatColExists(std::string tag){ return parser.formatColExists(tag, tempLine); };
 	std::string getSampleContentAt(std::string tag, unsigned int sample){
 		return parser.sampleContentAt(tempLine, tag, sample);

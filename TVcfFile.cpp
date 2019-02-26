@@ -53,7 +53,6 @@ void TVcfFile_base::setOutStream(std::ostream & os){
 void TVcfFile_base::parseHeaderVCF_4_0(){
 	//read the header of the vcf file and stop after that
 	std::string temp, buf;
-	parser.setColNumbers(&cols);
 	bool headerRowRead=false;
 	while(!myStream->eof() && myStream->peek()=='#'){
 		++currentLine;
@@ -67,8 +66,7 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 				buf=extractBeforeWhiteSpace(temp);
 				trimString(buf);
 				temp.erase(0,1);
-				if(i<cols.FirstInd) cols.set(buf, i);
-				else parser.addSample(buf);
+				if(i<parser.cols.FirstInd) parser.cols.set(buf, i);				else parser.addSample(buf);
 				++i;
 			}
 			numCols=i;
@@ -81,7 +79,7 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 		}
 	}
 	//check cols
-	cols.check();
+	parser.cols.check();
 	if(parser.samples.size()<1) throw "VCF file contains no samples!";
 	currentLine = 0;
 }
@@ -123,8 +121,12 @@ GTLikelihoods TVcfFile_base::_genotypeLikelihoodsPhred(TVcfLine* line, unsigned 
 	return parser.genotypeLikelihoodsPhred(*line, s);
 }
 
-void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, double* gtl){
+void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl){
 	parser.fillGenotypeLikelihoods(*line, sample, gtl);
+}
+
+void TVcfFile_base::fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl){
+	parser.fillPhredScore(*line, sample, gtl);
 }
 
 int TVcfFile_base::sampleNumber(std::string & Name){
@@ -268,9 +270,14 @@ GTLikelihoods TVcfFileSingleLine::genotypeLikelihoods(unsigned int sample){
 GTLikelihoods TVcfFileSingleLine::genotypeLikelihoodsPhred(unsigned int sample){
 	return _genotypeLikelihoodsPhred(&tempLine ,sample);
 }
-void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, double* gtl){
+void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl){
 	fillGenotypeLiklihoods(&tempLine, sample, gtl);
 }
+
+void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t* gtl){
+	fillPhrdScore(&tempLine, sample, gtl);
+}
+
 long TVcfFileSingleLine::position(){
 	return parser.getPos(tempLine);
 }
@@ -288,6 +295,14 @@ char TVcfFileSingleLine::getFirstAltAllele(){
 }
 char TVcfFileSingleLine::getAllele(int num){
 	return parser.getAllele(tempLine, num);
+}
+
+bool TVcfFileSingleLine::variantQualityIsMissing(){
+	return parser.variantQualityIsMissing(tempLine);
+}
+
+double TVcfFileSingleLine::variantQuality(){
+	return parser.variantQuality(tempLine);
 }
 
 void TVcfFileSingleLine::setSampleMissing(unsigned int sample){
@@ -325,14 +340,16 @@ short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 	return parser.sampleGenotype(tempLine, num);
 }
 
-int TVcfFileSingleLine::sampleDepth(unsigned int sample){
+// int TVcfFileSingleLine::sampleDepth(unsigned int sample){
+double TVcfFileSingleLine::sampleDepth(unsigned int sample){
 	//return 0 if sample is missing
 	if(parser.sampleIsMissing(tempLine, sample))
 		return 0;
-	//chek if depth is given
+	//check if depth is given
 	std::string DP = "DP";
 	if(parser.formatColExists(DP, tempLine))
-		return stringToInt(parser.sampleContentAt(tempLine, DP, sample));
+		return stringToDouble(parser.sampleContentAt(tempLine, DP, sample));
+		// return stringToInt(parser.sampleContentAt(tempLine, DP, sample));
 	else return -1;
 }
 
