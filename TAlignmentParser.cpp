@@ -78,6 +78,7 @@ TAlignmentParser::TAlignmentParser(){
 	minQual = 0;
 	maxQual = 93;
 	applyDepthFilter = false;
+	readUpToDepth = 10000;
 	minDepth = 0;
 	maxDepth = 10000;
 	minPhredInt = 0;
@@ -87,6 +88,7 @@ TAlignmentParser::TAlignmentParser(){
 	trimReads = false;
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
+	applyFragmentLengthFilter = false;
 
 	//blacklist
 	_updateBlacklist = false;
@@ -332,6 +334,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//filters
 	//------------
 	//depth filter
+	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
 		applyDepthFilter = true;
 		unsigned int tmpInt;
@@ -341,12 +344,14 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
 		maxDepth = tmpInt;
+		readUpToDepth = maxDepth + 1;
 		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
 	} else {
 		applyDepthFilter = false;
 		minDepth = 0;
 		maxDepth = 1000000;
 	}
+	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases.");
 
 	//quality filters
 	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
@@ -401,6 +406,14 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		keepDuplicates();
 		logfile->list("Will keep duplicate reads.");
 	}
+
+	if(params.parameterExists("dontFilterReadsLongerFragment")){
+		bool filter = false;
+		setApplyFragmentLengthFilter(filter);
+	} else {
+		bool filter = true;
+		setApplyFragmentLengthFilter(filter);
+	}
 };
 
 void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
@@ -419,6 +432,10 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 	trimmingLength5Prime = trim5Prime;
 	trimReads = true;
 };
+
+void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
+	applyFragmentLengthFilter = filterYesNo;
+}
 
 void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
@@ -677,6 +694,9 @@ bool TAlignmentParser::readAlignment(){
 //		}
 
 		//check read length
+		/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
+		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
+		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.AlignedBases.size() > maxReadLength)
 			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
 
@@ -690,8 +710,8 @@ bool TAlignmentParser::readAlignment(){
 		filtersPassed = true;
 		//check if insert size is shorter than read length-insertions+deletions=alignedBases + numInsertions, this means we are reading the adaptor sequence
 		//TODO: should add insertions to bamAlignment.AlignedBases.length()
-		if(bamAlignment.IsPaired() && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
-//			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
+			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 			if(_updateBlacklist)
 				addToBlacklist(bamAlignment.Name, "longer than insert size (TLEN)");
@@ -829,10 +849,10 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 	//fill sites
 	if(sitesProvided){
-		window.fillSitesSubset(subset);
+		window.fillSitesSubset(subset, readUpToDepth);
 		window.addReferenceBaseToSites(subset);
 	} else {
-		window.fillSites();
+		window.fillSites(readUpToDepth);
 		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
 	}
 

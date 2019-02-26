@@ -128,7 +128,6 @@ void TWindow::review(){
 void TWindow::cleanUpUsedAlignments(){
 //	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
-	std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin();
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber)){
 //			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
@@ -161,7 +160,7 @@ void TWindow::printStacks(){
 
 }
 
-void TWindow::fillSitesSubset(TSiteSubset* subset){
+void TWindow::fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth){
 	//add reads in usedAlignments to sites in window
 	for(TAlignment* alignmentIt : usedAlignments){
 		//check if alignment start is inside window
@@ -196,7 +195,7 @@ void TWindow::fillSitesSubset(TSiteSubset* subset){
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
-				if(thesePos.find(internalPos) != thesePos.end())
+				if(thesePos.find(internalPos) != thesePos.end() && sites[internalPos].depth() < readUpToDepth)
 					sites[internalPos].add(&alignmentIt->bases[p]);
 			}
 		}
@@ -204,7 +203,7 @@ void TWindow::fillSitesSubset(TSiteSubset* subset){
 	}
 }
 
-void TWindow::fillSites(){
+void TWindow::fillSites(const int & readUpToDepth){
 	//add reads in usedAlignments to sites in window
 	for(TAlignment* alignmentIt : usedAlignments){
 		//check if alignment start is inside window
@@ -236,7 +235,8 @@ void TWindow::fillSites(){
 				//if read extends past window length
 				if(internalPos >= length)
 					break; //since part of the read maps to next window
-				sites[internalPos].add(&alignmentIt->bases[p]);
+				if(sites[internalPos].depth() < readUpToDepth)
+					sites[internalPos].add(&alignmentIt->bases[p]);
 			}
 		}
 		++numReadsInWindow;

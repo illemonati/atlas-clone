@@ -2682,6 +2682,10 @@ void TGenome::diagnoseBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 
+	//get max params
+	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
+	int maxRL = params.getParameterIntWithDefault("maxReadLength", 1000);
+
     //open output files
     std::ofstream outputDepth;
     std::string outputFileNameCov = outputName + "_approximateDepth.txt";
@@ -2729,8 +2733,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     long** RL = new long*[numReadGroups];
     for(int i = 0; i < numReadGroups; ++i){
     	cov.push_back(0);
-    	MQ[i] = new long[100];
-    	RL[i] = new long[500];
+    	MQ[i] = new long[maxMQ + 1]; //+1 for zero bin
+    	RL[i] = new long[maxRL + 1];
     	for(int j=0; j<100; ++j) MQ[i][j]=0;
     	for(int j=0; j<500; ++j) RL[i][j]=0;
     }
@@ -2751,7 +2755,13 @@ void TGenome::diagnoseBamFile(TParameters & params){
         RGInd = alignment.readGroupId;
         totCov += alignment.getLength();
         cov[RGInd] += alignment.getLength();
+        if(alignment.mappingQuality > maxMQ)
+        	throw "Mapping quality of alignment " + alignment.alignmentName + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
+
         ++MQ[RGInd][alignment.mappingQuality];
+       if(alignment.getLength() > maxRL)
+    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getLength()) + ">" + toString(maxRL) +")";
+
         ++RL[RGInd][alignment.getLength()];
 
         //report
@@ -2820,8 +2830,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
     fragmentStats.close();
 
     for(int i = 0; i < numReadGroups; ++i){
-    	delete MQ[i];
-    	delete RL[i];
+    	delete[] MQ[i];
+    	delete[] RL[i];
     }
     delete [] MQ;
     delete [] RL;

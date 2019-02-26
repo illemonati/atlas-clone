@@ -17,7 +17,7 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLo
 	bamFileName = filenameTag + ".bam";
 	meanQual = params.getParameterIntWithDefault("recal_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("recal_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 1);
+	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 0);
 	maxPhredInt = params.getParameterIntWithDefault("recal_maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
@@ -154,7 +154,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterIntWithDefault("BQSR_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("BQSR_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("BQSR_minQual", 1);
+	minPhredInt = params.getParameterIntWithDefault("BQSR_minQual", 0);
 	maxPhredInt = params.getParameterIntWithDefault("BQSR_maxQual", 42);
 	qualityDist = params.getParameterStringWithDefault("BQSR_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
@@ -252,7 +252,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
-		QualityScoreAsPhredInt = stringToInt(line[1]) - 33;
+		QualityScoreAsPhredInt = stringToInt(line[1]);
 		EmpiricalQuality = stringToDouble(line[3]);
 		Log10Observations = stringToDouble(line[4]);
 		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
@@ -375,7 +375,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "4");
 	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
+	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
 	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "fixed(" + qualDistString + ")");
 
@@ -471,20 +471,18 @@ TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRec
 bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
-	if(!_testParams.parameterExists("noSimulation")){
-		_testParams.addParameter("out", filenameTag);
-		_testParams.addParameter("chrLength", "2000000");
-		_testParams.addParameter("depth", "2");
-		_testParams.addParameter("ploidy", "2");
-		_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
-		_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
-		_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
+	_testParams.addParameter("out", filenameTag);
+	_testParams.addParameter("chrLength", "2000000");
+	_testParams.addParameter("depth", "2");
+	_testParams.addParameter("ploidy", "2");
+	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
+	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
+	_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
 
-		if(!runTGenomeFromInputfile("simulate"))
-			return false;
+	if(!runTGenomeFromInputfile("simulate"))
+		return false;
 
-		logfile->newLine();
-	}
+	logfile->newLine();
 
 	//1) Run qualityTransformation
 	//-----------------------------

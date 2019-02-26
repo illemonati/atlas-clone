@@ -68,8 +68,8 @@ public:
 	void review();
 	void cleanUpUsedAlignments();
 	void printStacks();
-	void fillSitesSubset(TSiteSubset* subset);
-	void fillSites();
+	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
+	void fillSites(const int & readUpToDepth);
 	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);

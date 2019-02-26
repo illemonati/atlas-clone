@@ -67,9 +67,6 @@ private:
 
 	BamTools::BamAlignment bamAlignment;
 
-	//quality filter
-	bool applyQualityFilter;
-
 	//read trimming
 	bool trimReads;
 	int trimmingLength3Prime;
@@ -92,8 +89,10 @@ private:
 	TBedReader* mask;
 
 	//filters
-	size_t minDepth, maxDepth;
+	bool applyQualityFilter;
+	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
+	bool applyFragmentLengthFilter;
 
 	//blacklist
 	bool _updateBlacklist;
@@ -181,6 +180,7 @@ public:
 	void setQualityFilters(int minQual, int maxQual);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
+	void setApplyFragmentLengthFilter(bool filterYesNo);
 
 	void keepDuplicates(){_keepDuplicates = true;};
 	void setParsingToTrue(){_parse = true;};
