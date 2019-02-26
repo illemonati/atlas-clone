@@ -118,7 +118,8 @@ protected:
 	double tmp;
 	int tmpIndex;
 
-	void initialize(int NumReadGroups);
+	void _initialize(int NumReadGroups);
+	double _calcEpsilon(double & eta);
 
 public:
 	int numParams;
@@ -159,6 +160,18 @@ public:
 	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
 	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
 };
+
+
+class TRecalibrationEMModelPositionSpecific:public TRecalibrationEMModel{
+public:
+	TRecalibrationEMModelPositionSpecific(int NumReadGroups, int maxPos);
+
+	double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
+	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
+	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
+};
+
 
 class TRecalibrationEMSite{
 public:

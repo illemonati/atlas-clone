@@ -76,10 +76,10 @@ TRecalibrationEMModel::TRecalibrationEMModel(int NumReadGroups){
 	// -> in total, 24 variables to estimate
 	numParams = 24;
 	initialized = false;
-	initialize(NumReadGroups);
+	_initialize(NumReadGroups);
 }
 
-void TRecalibrationEMModel::initialize(int NumReadGroups){
+void TRecalibrationEMModel::_initialize(int NumReadGroups){
 	EMParamsInitialized = false;
 	numSitesAdded = 0;
 
@@ -137,18 +137,22 @@ void TRecalibrationEMModel::setEMParamsToZero(){
 
 double TRecalibrationEMModel::calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context){
 	//eta = params[readGroup[k]][0];
-	tmp = 0.0;
+	double eta = 0.0;
 	for(int p=0; p<4; ++p){ //loop over all parameters except context
-		tmp += betas[readGroup][p] * q[p];
+		eta += betas[readGroup][p] * q[p];
 	}
 	//add context
-	tmp += betas[readGroup][context + 4];
+	eta += betas[readGroup][context + 4];
 
-	if(tmp > 16.11) return 0.9999999;
-	if(tmp < -16.11) return 0.0000001;
+	return _calcEpsilon(eta);
+};
 
-	tmp = exp(tmp);
-	return tmp / (1.0 + tmp);
+double TRecalibrationEMModel::_calcEpsilon(double & eta){
+	if(eta > 16.11) return 0.9999999;
+	if(eta < -16.11) return 0.0000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
 };
 
 void TRecalibrationEMModel::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context){
@@ -288,24 +292,20 @@ TRecalibrationEMModelNoContext::TRecalibrationEMModelNoContext(int NumReadGroups
 	// - 1 intercept for all contexts
 	// -> in total, 5 variables to estimate
 	numParams = 5;
-	initialize(NumReadGroups);
+	_initialize(NumReadGroups);
 }
 
  double TRecalibrationEMModelNoContext::calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context){
 	//eta = params[readGroup[k]][0];
-	tmp = 0.0;
+	double eta = 0.0;
 	for(int p=0; p<4; ++p){ //loop over all parameters except context
-		tmp += betas[readGroup][p] * q[p];
+		eta += betas[readGroup][p] * q[p];
 	}
 	//add intercept
-	tmp += betas[readGroup][4];
+	eta += betas[readGroup][4];
 
-	if(tmp > 16.11) return 0.9999999;
-	if(tmp < -16.11) return 0.0000001;
-
-	tmp = exp(tmp);
-	return tmp / (1.0 + tmp);
-};
+	return _calcEpsilon(eta);
+ };
 
 void TRecalibrationEMModelNoContext::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context){
 	//add to F
@@ -349,12 +349,120 @@ void TRecalibrationEMModelNoContext::writeParametersToFile(std::ofstream & out, 
 	//write q, q2, p and p2
 	for(int i=0; i<4; ++i)
 		out << "\t" << betas[readGroup][i];
-	//write the same intercept for all contcext
+	//write the same intercept for all context
 	for(int i=0; i<20; ++i)
 		out << "\t" << betas[readGroup][4];
 }
 
 double TRecalibrationEMModelNoContext::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
+	double eta = betas[rg][0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += betas[rg][1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += betas[rg][2] * (double) posInRead;
+
+	//q[3] is square of position
+	eta += betas[rg][3] * (double) (posInRead * posInRead);
+
+	//add intercept
+	eta += betas[rg][4];
+
+	//now calculate epsilon from eta
+	if(eta > 22.2) return 0.9999999999;
+	if(eta < -23.02685) return 0.0000000001;
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+}
+
+
+//---------------------------------------------------------------
+//TRecalibrationEMModelPositionSpecific
+//---------------------------------------------------------------
+TRecalibrationEMModelPositionSpecific::TRecalibrationEMModelPositionSpecific(int NumReadGroups, int maxPos){
+	// - transformed quality
+	// - square of transformed quality
+	// - one parameter per position
+	// - 20 context indicators (either 0.0 or 1.0)
+	// -> in total, 22 + maxPos variables to estimate
+	numParams = 22 + maxPos;
+	_initialize(NumReadGroups);
+}
+
+ double TRecalibrationEMModelPositionSpecific::calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context){
+	//eta = params[readGroup[k]][0];
+	tmp = 0.0;
+
+	//quality and quality squared
+	tmp += betas[readGroup][0] * q[0];
+	tmp += betas[readGroup][1] * q[1];
+
+	//add context
+	tmp += betas[readGroup][context + 4];
+
+	//add position
+	tmp += betas[readGroup][q[2] + 22]; //Position starts at 0
+
+	if(tmp > 16.11) return 0.9999999;
+	if(tmp < -16.11) return 0.0000001;
+
+	tmp = exp(tmp);
+	return tmp / (1.0 + tmp);
+};
+
+void TRecalibrationEMModelPositionSpecific::addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context){
+	//add to F
+	//--------
+	int m;
+	for(int k=0; k<numReads; ++k){
+		tmp = P_g_given_d_oldBeta * weights[k];
+		//all 4 covariates except context. Derivatives are given by the q's
+		for(m=0; m<4; ++m){ //loop over all parameters except context
+			F(readGroupShifts[readGroup[k]] + m) += tmp * q[k][m];
+		}
+		//now intercept at position 4 in F!
+		F(readGroupShifts[readGroup[k]] + 4) += tmp;
+	}
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	for(int k=0; k<numReads; ++k){
+		tmp = weightsJacobian[k];
+
+		//all rows except context
+		for(int row=0; row<4; ++row){
+			for(int col=row; col<4; ++col){
+				Jacobian(readGroupShifts[readGroup[k]] + row, readGroupShifts[readGroup[k]] + col) +=  tmp * q[k][row] * q[k][col];
+			}
+		}
+
+		//intercept column
+		tmpIndex = readGroupShifts[readGroup[k]] + 4;
+		for(int p=0; p<4; ++p){
+			Jacobian(readGroupShifts[readGroup[k]] + p, tmpIndex) += tmp * q[k][p];
+		}
+		//intercept x intercept
+		Jacobian(tmpIndex, tmpIndex) += tmp;
+	}
+
+	++numSitesAdded;
+}
+
+void TRecalibrationEMModelPositionSpecific::writeParametersToFile(std::ofstream & out, const uint8_t & readGroup){
+	//write q, q2, p and p2
+	for(int i=0; i<4; ++i)
+		out << "\t" << betas[readGroup][i];
+	//write the same intercept for all context
+	for(int i=0; i<20; ++i)
+		out << "\t" << betas[readGroup][4];
+}
+
+double TRecalibrationEMModelPositionSpecific::getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context){
 	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
 	// q[0] is transformed quality
 	originalErrorRate = log(originalErrorRate / (1.0 - originalErrorRate));
