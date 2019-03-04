@@ -109,7 +109,7 @@ std::string TSite::getBases(){
 	return b;
 }
 
-int TSite::depth(){
+unsigned int TSite::depth(){
 	if(!hasData) return 0;
 	return bases.size();
 };
@@ -683,7 +683,7 @@ void TSiteDiploid::callMLEGenotypeVCFKnownAlleles(TGenotypeMap & genoMap, TRando
 	if(hasData){
 		//calc normalized likelihoods
 		double quality, maxGenotypeProb;
-		int MLGenotype, R_AD=0, A_AD=0;
+		int MLGenotype;
 		double phredEmissionProb[3];
 		calculatePhredScaledGenotypeLikelihoodsKnownAlleles(genoMap, alt, randomGenerator, phredEmissionProb, quality, maxGenotypeProb, MLGenotype);
 
