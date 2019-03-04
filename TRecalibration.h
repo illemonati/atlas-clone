@@ -101,11 +101,112 @@ public:
 //---------------------------------------------------------------
 //RecalibrationEM
 //---------------------------------------------------------------
+class TRecalibrationEMQualityPositionMap{
+public:
+	int maxQual;
+	int maxPos;
+	double* eta;
+	double* etaSquared;
+	double* position;
+	double* positionSquared;
+	bool initialized;
+
+	TRecalibrationEMQualityPositionMap(){
+		initialized = false;
+		initialize(500, 255); //TODO: think about default!
+	};
+
+	~TRecalibrationEMQualityPositionMap(){
+		clear();
+	};
+
+	void clear(){
+		if(initialized){
+			delete[] eta;
+			delete[] etaSquared;
+			delete[] position;
+			delete[] positionSquared;
+			initialized = false;
+		}
+	};
+
+	void initialize(int MaxQual, int MaxPos){
+		clear();
+		maxQual = MaxQual;
+		maxPos = MaxPos;
+		eta = new double[maxQual+1];
+		etaSquared = new double[maxQual+1];
+		position = new double[maxPos+1];
+		positionSquared = new double[maxPos+1];
+		initialized = true;
+
+		//fill qualities. Use TQualityMap for conversion
+		TQualityMap qualiMap;
+		for(int q=0; q<=maxQual; q++){
+			double eps = qualiMap.qualityToError(q);
+			if(eps < 0.0000000001) eps = 0.0000000001;
+			else if(eps > 0.9999999999) eps = 0.9999999999;
+
+			eta[q] = log(eps / (1.0 - eps));
+			etaSquared[q] = eta[q] * eta[q];
+		}
+
+		//fill positions
+		for(int p = 0; p<=maxPos; p++){
+			position[p] = p;
+			positionSquared[p] = p * p;
+		}
+	};
+};
+
+struct TRecalibrationEMReadData{
+	uint8_t quality;
+	uint8_t position;
+	float D[4];
+	uint8_t context;
+	uint8_t readGroup;
+
+	void setD(Base base, double PMD_CT, double PMD_GA){
+		switch(base){
+			case A: D[0] = 0.0; //geno = AA
+					D[1] = 1.0; //geno = CC
+					D[2] = 1.0 - PMD_GA; //geno = GG
+					D[3] = 1.0; //geno = TT
+					break;
+			case C: D[0] = 1.0; //geno = AA
+					D[1] = PMD_CT; //geno = CC
+					D[2] = 1.0; //geno = GG
+					D[3] = 1.0; //geno = TT
+					break;
+			case G: D[0] = 1.0; //geno = AA
+					D[1] = 1.0; //geno = CC
+					D[2] = PMD_GA; //geno = GG
+					D[3] = 1.0; //geno = TT
+					break;
+			case T: D[0] = 1.0; //geno = AA
+					D[1] = 1.0 - PMD_CT; //geno = CC
+					D[2] = 1.0; //geno = GG
+					D[3] = 0.0; //geno = TT
+					break;
+			case N:
+					D[0] = 0.0;
+					D[1] = 0.0;
+					D[2] = 0.0;
+					D[3] = 0.0;
+					break;
+		}
+	};
+};
+
+//--------------------------------------------------------------------
+// TRecalibrationEMModel
+//--------------------------------------------------------------------
 class TRecalibrationEMModel{
 protected:
 	int numReadGroups;
 	int totNumParams;
 	int* readGroupShifts;
+	TRecalibrationEMQualityPositionMap qualPosMap;
 
 	double** betas; //betas of the model
 	double** oldBetas; //use during estimation
@@ -114,9 +215,6 @@ protected:
 	arma::mat JxF;
 	bool initialized;
 	bool EMParamsInitialized;
-
-	double tmp;
-	int tmpIndex;
 
 	void _initialize(int NumReadGroups);
 	double _calcEpsilon(double & eta);
@@ -140,14 +238,17 @@ public:
 	bool setParams(std::vector<std::string> & vec, int & rg);
 	void initializeEMParams();
 	void setEMParamsToZero();
-	virtual double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
-	virtual void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
+	virtual double calcEpsilon(TRecalibrationEMReadData & data);
+	virtual void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, TRecalibrationEMReadData* & data);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	void rejectProposedParameters();
 	double getSteepestGradient();
-	virtual void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
+	virtual void writeHeader(std::ofstream & out);
+	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
 	void printJacobianToStdOut();
+	void printFToStdOut();
+	void printJxFToStdOut();
 	virtual double getErrorRate(int rg, double originalErrorRate, const uint8_t & posInRead, const uint8_t & context);
 };
 
@@ -155,35 +256,35 @@ class TRecalibrationEMModelNoContext:public TRecalibrationEMModel{
 public:
 	TRecalibrationEMModelNoContext(int NumReadGroups);
 
-	double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
-	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
-	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
+	double calcEpsilon(TRecalibrationEMReadData & data);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, TRecalibrationEMReadData* & data);
+	void writeHeader(std::ofstream & out);
 	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
 };
 
-
 class TRecalibrationEMModelPositionSpecific:public TRecalibrationEMModel{
+private:
+	int maxPos;
 public:
 	TRecalibrationEMModelPositionSpecific(int NumReadGroups, int maxPos);
 
-	double calcEpsilon(const uint8_t & readGroup, float* & q, const uint8_t & context);
-	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, float** & q, uint8_t* & readGroup, uint8_t* & context);
-	void writeParametersToFile(std::ofstream & out, const uint8_t & readGroup);
+	double calcEpsilon(TRecalibrationEMReadData & data);
+	void addToFandJacobian(const int & numReads, double* & weights, double* & weightsJacobian, const float & P_g_given_d_oldBeta, TRecalibrationEMReadData* & data);
+	void writeHeader(std::ofstream & out);
 	double getErrorRate(int rg, double originalErrorRate, const int & posInRead, const uint8_t & context);
 };
 
-
+//--------------------------------------------------------------------
+// TRecalibrationEM
+//--------------------------------------------------------------------
 class TRecalibrationEMSite{
 public:
-	float** q; //covariates such as quality, position etc.
-	float** D; //D for the emission probabilities: depends on genotype and base!
-	uint8_t* context;
-	uint8_t* readGroup;
-	float* P_g_given_d_oldBeta;
-	int numReads;
-	bool initialized;
+	TRecalibrationEMReadData* data;
+	float P_g_given_d_oldBeta[4];
+	unsigned int numReads;
 
 	TRecalibrationEMSite();
+	~TRecalibrationEMSite();
 	TRecalibrationEMSite(TSite & site, int* readGroupMap, TQualityMap & qualiMap);
 	double dePhred(double quality){
 		double tmp = pow(10.0, quality / -10.0);
@@ -191,12 +292,11 @@ public:
 		if(tmp > 0.9999999999) return 0.9999999999;
 		return tmp;
 	};
-	virtual ~TRecalibrationEMSite();
-	virtual void calcEpsilon(TRecalibrationEMModel* & model, float* & epsilon);
+	void calcEpsilon(TRecalibrationEMModel* & model, float* & epsilon);
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon);
 	double calcLL(TRecalibrationEMModel* & model, float* & freqs, float* & epsilon);
 	double calcQ(TRecalibrationEMModel* & model, float* & epsilon);
-	virtual void addToJacobianAndF(TRecalibrationEMModel* & model, float* & epsilon);
+	void addToJacobianAndF(TRecalibrationEMModel* & model, float* & epsilon);
 };
 
 class TRecalibrationEMWindow{
