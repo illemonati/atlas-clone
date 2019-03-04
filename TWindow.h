@@ -12,6 +12,7 @@
 #include "TParameters.h"
 #include "TReadGroups.h"
 #include "TRecalibration.h"
+#include "TRecalibrationBQSR.h"
 #include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"

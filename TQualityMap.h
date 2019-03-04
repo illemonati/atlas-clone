@@ -91,6 +91,8 @@ public:
 	};
 
 	double qualityToError(int qual){
+		if(qual < 33)
+			return 1.0;
 		return phredIntToError(qual - 33);
 	};
 
