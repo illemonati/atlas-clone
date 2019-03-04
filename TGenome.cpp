@@ -1774,7 +1774,8 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//check if this RG needs to be parsed
-		readGroupId = alignmentParser.readGroups.find(alignment.readGroup);
+		readGroupId = alignment.readGroupId;
+
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
@@ -2112,7 +2113,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			//no need to keep mate in list anymore
 			alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
 			continue;
-		} else if(allReadGroupsPaired || pairedReadGroups[alignmentParser.readGroups.find(alignment.readGroup)]){
+		} else if(allReadGroupsPaired || pairedReadGroups[alignment.readGroupId]){
 			int insertSize = abs(alignment.bamAlignment.InsertSize);
 			if(insertSize < alignment.lastAlignedPos){
 				if(alignment.isProperPair){

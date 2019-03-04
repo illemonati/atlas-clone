@@ -108,7 +108,6 @@ public:
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 
 	//accessed by TGenome
-	std::string readGroup;
 	int readGroupId;
 	bool isReverseStrand;
 	bool isProperPair;

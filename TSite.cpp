@@ -67,7 +67,7 @@ void TSite::calcEmissionProbabilities(double* vec){
 			vec[i] = 1.0;
 		//multiply over emission probabilities of bases
 		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
-			(*baseIterator)->addToEmissionProbProduct(vec);
+			(*baseIterator)->addToEmissionProb(vec);
 
 	} else {
 		//initialize
@@ -75,7 +75,7 @@ void TSite::calcEmissionProbabilities(double* vec){
 			vec[i] = 0.0;
 		//sum over log(emission probability) of bases
 		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
-			(*baseIterator)->addToEmissionProbSum(vec);
+			(*baseIterator)->addToEmissionProbLog(vec);
 		//now standardize before delog
 		double max = vec[0];
 		for(int i=1; i<numGenotypes; ++i)

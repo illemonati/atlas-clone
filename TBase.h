@@ -45,11 +45,11 @@ public:
 	int distFrom5Prime; //zero based!
 	int distFrom3Prime; //zero based!
 	double PMD_CT, PMD_GA;
-	int readGroup;
+	uint16_t readGroup;
 	BaseContext context;
 	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int alignedPos;
-//	TEmissionProbabilities emissionProbabilities;
+	bool isFirst; //true for single-end data as well as the first read of paired-end data (the second mate will have false).
 
 	TBase(){
 		base = N;
@@ -82,8 +82,8 @@ public:
 	};
 
 	~TBase(){};
-	void addToEmissionProbProduct(double genotypeLikelihoods[10]);
-	void addToEmissionProbSum(double genotypeLikelihoods[10]);
+	void addToEmissionProb(double genotypeLikelihoods[10]);
+	void addToEmissionProbLog(double genotypeLikelihoods[10]);
 
 /*
 	void fillEmissionProbabilitiesCore(double thisErrorRate);

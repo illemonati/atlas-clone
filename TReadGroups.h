@@ -22,7 +22,7 @@
 struct TReadGroupMaxLength{
 public:
 	int maxLen;
-	int truncatedReadGroupID;
+	uint16_t truncatedReadGroupID;
 	std::string truncatedReadGroup;
 
 	TReadGroupMaxLength(int MaxLen, int TruncatedReadGroupID, std::string & TruncatedReadGroup){
@@ -38,7 +38,7 @@ public:
 struct readGroup{
 public:
 	std::string name;
-	int id;
+	uint16_t id;
 	BamTools::SamReadGroup* object;
 };
 
@@ -115,9 +115,9 @@ public:
 		return inUse[find(alignment)];
 	};
 
-	std::string getName(int num){
-		if(num < 0 || num >= numGroups) throw "No read group with number " + toString(num) + "!";
-		return groups[num].name;
+	std::string getName(int readGroupId){
+		if(readGroupId < 0 || readGroupId >= numGroups) throw "No read group with number " + toString(readGroupId) + "!";
+		return groups[readGroupId].name;
 	};
 
 	int size(){

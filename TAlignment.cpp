@@ -75,7 +75,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	length = Alignment.length;
 	chrNumber = Alignment.chrNumber;
 	readGroupId = Alignment.readGroupId;
-	readGroup = Alignment.readGroup;
 	position = Alignment.position;
 	lastAlignedPos = Alignment.lastAlignedPos;
 	lastPositionPlusOne = Alignment.lastPositionPlusOne;

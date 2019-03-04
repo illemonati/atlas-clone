@@ -12,7 +12,7 @@
 //TBase
 //-------------------------------------------------------
 
-void TBase::addToEmissionProbProduct(double* vec){
+void TBase::addToEmissionProb(double* vec){
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
 
@@ -67,7 +67,7 @@ void TBase::addToEmissionProbProduct(double* vec){
 	}
 }
 
-void TBase::addToEmissionProbSum(double vec[10]){
+void TBase::addToEmissionProbLog(double vec[10]){
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
 
