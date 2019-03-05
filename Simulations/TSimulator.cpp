@@ -1279,7 +1279,7 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Log
 
 		//if a single SFS is given: use it for all chromosomes
 		if(sfsFileNames.size() == 1){
-			for(int i=1; i<chromosomes.size(); ++i)
+			for(size_t i=1; i<chromosomes.size(); ++i)
 				sfsFileNames.emplace_back(sfsFileNames[0]);
 		}
 

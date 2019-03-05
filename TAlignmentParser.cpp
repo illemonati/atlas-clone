@@ -1013,7 +1013,9 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
 		if(params.parameterExists("recal")){
 			std::string filename = params.getParameterString("recal");
-			recalObject = new TRecalibrationEM(&bamHeader, filename, params, logfile, readGroupMap);
+			TRecalibrationEM* recalObjectEM = new TRecalibrationEM(&bamHeader, logfile, readGroupMap);
+			recalObjectEM->initialize(filename);
+			recalObject = recalObjectEM;
 			doRecalibration = true;
 		} else if(params.parameterExists("BQSRQuality")){
 			recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
@@ -1037,10 +1039,14 @@ void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParamete
 	if(params.parameterExists("recal")){
 		std::string nameRecal = params.getParameterString("recal");
 		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		recalObject = new TRecalibrationEM(&bamHeader, nameRecal, params, logfile, readGroupMap);
+		TRecalibrationEM* recalObjectEM = new TRecalibrationEM(&bamHeader, logfile, readGroupMap);
+		recalObjectEM->initialize(nameRecal);
+		recalObject = recalObjectEM;
 		if(params.parameterExists("recal2")){
 			std::string nameRecal2 = params.getParameterString("recal2");
-			recalObject2 = new TRecalibrationEM(&bamHeader, nameRecal2, params, logfile, readGroupMap);
+			recalObjectEM = new TRecalibrationEM(&bamHeader, logfile, readGroupMap);
+			recalObjectEM->initialize(nameRecal2);
+			recalObject2 = recalObjectEM;
 			doRecalibration2 = true;
 			recalObjectInitialized2 = true;
 		} else if(params.parameterExists("BQSRQuality")){

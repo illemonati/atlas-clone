@@ -131,7 +131,6 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	for(int i=0; i < _min; ++i)	gammaDensity[i] = 0;
 
 	//then calculate densities for all bins <_max
-	double gammaDensity_i;
 	for(int i=_min; i<(_max-1); ++i){
 		gammaDensity[i] = exp(randomGenerator->gammaLogDensityFunction(i, alpha, beta));
 		totalArea += gammaDensity[i];

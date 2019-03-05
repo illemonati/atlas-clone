@@ -22,6 +22,7 @@ TAlignment::TAlignment(){
 	isProperPair = false;
 	mappingQuality = 0;
 	passedFilters = false;
+	isSecondMate = false;
 	parsed = false;
 	changed = false;
 	storageInitialized = false;
@@ -159,22 +160,6 @@ void TAlignment::freeStorage(){
 		delete[] softClippedQuality[0];
 		delete[] softClippedQuality[1];
 		delete[] softClippedQuality;
-
-/*
-		delete[] base;
-		delete[] baseAsChar;
-		delete[] context;
-		delete[] qualityOriginal;
-		delete[] qualityRecalibrated;
-		delete[] errorRates;
-		delete[] aligned;
-		delete[] alignedPos;
-		delete[] distFrom3Prime;
-		delete[] distFrom5Prime;
-
-
-*/
-
 	}
 	storageInitialized = false;
 }
@@ -192,6 +177,7 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	isProperPair = bamAlignment.IsProperPair();
 	mappingQuality = bamAlignment.MapQuality;
 	readGroupId = ReadGroupId;
+	isSecondMate = bamAlignment.IsSecondMate();
 
 	empty = false;
 }
@@ -260,6 +246,10 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 		//fill context for each base
 		fillContext(genoMap);
+
+		//set whether read is first or second
+		for(int d=0; d<length; ++d)
+			bases[d].isSecondMate = isSecondMate;
 
 		parsed = true;
 	}

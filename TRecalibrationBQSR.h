@@ -1,5 +1,48 @@
 #include "TRecalibration.h"
 
+
+//---------------------------------------------------------------
+//TQualityIndex
+//---------------------------------------------------------------
+class TQualityIndex{
+	//Note: quality as stored in bases ranges from 33 to max!
+public:
+	int minPhredInt, maxPhredInt, numQ, last, first;
+	int* index;
+
+	TQualityIndex(int MinQ, int MaxQ){
+		//here minQ and maxQ are not in ascii. by default minQ = 0 and maxQ = 100
+		minPhredInt = MinQ;
+		maxPhredInt = MaxQ;
+		numQ = maxPhredInt - minPhredInt + 1;
+		last = numQ - 1;
+		first = 0;
+
+		//fill index
+		index = new int[numQ + 33];
+		for(int i=0; i < maxPhredInt + 1; ++i){
+			if(i < minPhredInt) index[i] = 0;
+			else index[i] = i - minPhredInt;
+		}
+	};
+
+	~TQualityIndex(){
+		delete[] index;
+	};
+
+	int& getIndex(const int & quality){
+		if(quality < 33) throw "Quality is negative!";
+		if(quality > maxPhredInt + 33) return last;
+		return index[quality - 33];
+	};
+
+	int getPhredIntFromIndex(const int & index){
+		if(index < 0) throw "Quality index is negative!";
+		if(index > numQ) return maxPhredInt;
+		return minPhredInt + index;
+	};
+};
+
 //---------------------------------------------------------------
 //RecalibrationBQSR
 //---------------------------------------------------------------

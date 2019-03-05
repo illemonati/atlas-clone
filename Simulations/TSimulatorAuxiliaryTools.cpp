@@ -432,7 +432,6 @@ void TSimulatorMutationtable::fill(float* baseFreq){
 	allocateTable();
 
 	//fill table
-	double sum;
 	for(int i=0; i<4; ++i){
 		for(int j=0; j<4; ++j){
 			mutTable[i][j] = baseFreq[i] * baseFreq[j];

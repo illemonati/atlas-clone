@@ -113,6 +113,7 @@ public:
 	bool isProperPair;
 	int mappingQuality;
 	bool passedFilters;
+	bool isSecondMate;
 	int chrNumber;
 	int32_t position;
 	int32_t lastPositionPlusOne;

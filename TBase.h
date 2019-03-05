@@ -40,7 +40,6 @@ class TBase{
 public:
 	Base base;
 	double errorRate;
-//	int quality;
 	int posInRead;
 	int distFrom5Prime; //zero based!
 	int distFrom3Prime; //zero based!
@@ -49,12 +48,11 @@ public:
 	BaseContext context;
 	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int alignedPos;
-	bool isFirst; //true for single-end data as well as the first read of paired-end data (the second mate will have false).
+	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
 
 	TBase(){
 		base = N;
 		errorRate = -1.0;
-//		quality = -1;
 		posInRead = -1;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
@@ -64,12 +62,12 @@ public:
 		context = cNN;
 		aligned = false;
 		alignedPos = -1;
+		isSecondMate = false;;
 	}
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond){
 		base = Base;
 		errorRate = ErrorRate;
-//		quality = Quality;
 		posInRead = PosInRead;
 		distFrom5Prime = DistFrom5Prime;
 		distFrom3Prime = DistFrom3Prime;
@@ -79,6 +77,7 @@ public:
 		context = Context;
 		aligned = Aligned;
 		alignedPos = AlignedPos;
+		isSecondMate = IsSecond;
 	};
 
 	~TBase(){};

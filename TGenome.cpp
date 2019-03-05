@@ -1130,10 +1130,6 @@ void TGenome::createDepthMask(TParameters & params){
 //---------------------------------------------------
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	std::string filename;
-	if(params.parameterExists("recal")) filename = params.getParameterString("recal");
-	else filename = "empty";
-
 	bool writeTmpTables = false;
 	if(params.parameterExists("writeTmpTables")){
 		writeTmpTables = true;
@@ -1142,11 +1138,8 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
 	TQualityMap qualityMap;
 
-	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, filename, params, logfile, readGroupMap);
-	if(!recalObjectEM.estimatetionRequired){
-		logfile->list("No need to estimate anything. Aborting Program.");
-		return;
-	}
+	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, logfile, readGroupMap);
+	recalObjectEM.initializeForParameterEstimation(params);
 
 	//prepare windows
 	TWindow window;
@@ -1189,9 +1182,9 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	std::string filename = params.getParameterString("recal");
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
-	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, filename, params, logfile, readGroupMap);
+	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, logfile, readGroupMap);
+	recalObjectEM.initialize(params.getParameterString("recal"));
 
 	//prepare windows
 	TWindow window;
@@ -1244,7 +1237,6 @@ void TGenome::BQSR(TParameters & params){
 
 	//do we consider only specific sites?
 	bool invariantSites = false;
-	TSiteSubset* subset = NULL;
 
 	//loop over bam until BQSR converges
 	while(!hasConverged){
