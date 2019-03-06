@@ -58,14 +58,18 @@ private:
 
 public:
 	long numLoci;
-
+	long numLociModelP;
+	bool* modelP;
+	float probMovingToModel0;
+	double lambda;
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, float initialProposalWidth, int numSamples);
+	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, float & ProbMovingToModel0, double & Lambda);
 	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
+	void initializeModels(const double & cutoff);
 	void setSumsToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
@@ -74,11 +78,13 @@ public:
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
+	long getNumLociInModelP();
+	long getNumLociInModel0();
 	void resetPosterior(const unsigned long & index);
 };
 
 //---------------------------
-// alphaOrBeta
+// gamma
 //---------------------------
 
 class TGamma{
@@ -99,6 +105,26 @@ public:
 };
 
 //---------------------------
+// alphaOrBeta
+//---------------------------
+
+class TPi{
+private:
+	double _pi;
+	double _logPi;
+public:
+	double proposalWidth;
+
+	TPi();
+	TPi(double & ProposalWidth);
+	void update(const double & newLogValue, const double & newNaturalScaleValue);
+	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
+
+	double getLogValue();
+	double getNaturalScaleValue();
+	double getProposalWidth();
+};
+//---------------------------
 // TInbreedingEstimator
 //---------------------------
 
@@ -117,6 +143,7 @@ private:
 	int numAcceptedF;
 	int* numAcceptedP;
 	int numAcceptedGamma;
+	int numAcceptedPi;
 	int numBurnins;
 	int burninLength;
 	int thinning;
@@ -132,6 +159,7 @@ private:
 	bool trueAlleleFreqProvided;
 	std::vector<double> trueAlleleFreq;
 	TGamma Gamma;
+	TPi pi;
 
 //	void initializeAlphaBeta();
 	void initializeGamma();
@@ -139,6 +167,7 @@ private:
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma);
 	bool updateGamma();
+	bool updatePi();
 	double logProbPGivenGamma();
 	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF);
 	void wholeLogLikelihood();
