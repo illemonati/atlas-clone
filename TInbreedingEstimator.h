@@ -69,7 +69,7 @@ public:
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
-	void initializeModels(const double & cutoff);
+	void initializeModels();
 	void setSumsToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
@@ -81,6 +81,8 @@ public:
 	long getNumLociInModelP();
 	long getNumLociInModel0();
 	void resetPosterior(const unsigned long & index);
+	double logPDFExp(const double & thisP);
+	double logPDFExp(const long & thisLocus);
 };
 
 //---------------------------
