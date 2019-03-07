@@ -141,7 +141,7 @@ TAlleleFreq::TAlleleFreq(){
 TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, float & ProbMovingToModel0, double & Lambda){
 	alleleFreq = P;
 	numLoci = alleleFreq.size();
-	numLociModelP = numLoci;
+	numLociModelP = 0;
 	lambda = Lambda;
 	proposalWidths = new float[numLoci];
 	sumIterations = new double[numLoci];
@@ -163,11 +163,16 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 }
 
 void TAlleleFreq::initializeModels(const double & cutoff){
+	double thisCutoff = cutoff;
+	if(cutoff == 0.0)
+		thisCutoff = minAlleleFreq;
 	for(int l=0; l<numLoci; ++l){
-		if(alleleFreq[l] <= cutoff)
+		if(alleleFreq[l] <= thisCutoff){
 			modelP[l] = false;
-		else
+		} else {
 			modelP[l] = true;
+		}
+		numLociModelP = numLociModelP + modelP[l];
 	}
 }
 
@@ -191,31 +196,32 @@ void TAlleleFreq::resetPosterior(const unsigned long & index){
 void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates){
 	//adjust proposal with for p
 	for(long l=0; l<numLoci; ++l){
-		if(numAcceptedP[l] == 0){
-			std::cout << "!!!!!!!!! acceptance rate is zero for locus " << l << std::endl;
-//			double minFreq = 1.0 / (double) numSamples;
-//			alleleFreq[l] = minFreq;
-			proposalWidths[l] *= 0.1;
-			continue;
+		if(modelP[l]){
+			if(numAcceptedP[l] == 0 && modelP[l]){
+				std::cout << "!!!!!!!!! acceptance rate is zero for locus " << l << std::endl;
+	//			double minFreq = 1.0 / (double) numSamples;
+	//			alleleFreq[l] = minFreq;
+				proposalWidths[l] *= 0.1;
+				continue;
+			}
+
+			double newProposalWidth = proposalWidths[l];
+			newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates * 3.0;
+
+			if(newProposalWidth / proposalWidths[l] < 0.1)
+				newProposalWidth = 0.1 * proposalWidths[l];
+			else if(proposalWidths[l] / newProposalWidth < 0.1)
+				newProposalWidth = 10.0 * proposalWidths[l];
+
+			if(newProposalWidth > 0.5)
+				newProposalWidth = 0.5;
+
+			proposalWidths[l] = newProposalWidth;
+
+
+			if(proposalWidths[l] <= 0)
+				throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
 		}
-
-		double newProposalWidth = proposalWidths[l];
-		newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates * 3.0;
-
-		if(newProposalWidth / proposalWidths[l] < 0.1)
-			newProposalWidth = 0.1 * proposalWidths[l];
-		else if(proposalWidths[l] / newProposalWidth < 0.1)
-			newProposalWidth = 10.0 * proposalWidths[l];
-
-		if(newProposalWidth > 0.5)
-			newProposalWidth = 0.5;
-
-		proposalWidths[l] = newProposalWidth;
-
-
-		if(proposalWidths[l] <= 0)
-			throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
-
 	}
 //	numUpdates = 0;
 }
@@ -335,10 +341,10 @@ TPi::TPi(){
 	_logPi = -1.0;
 }
 
-TPi::TPi(double & ProposalWidth){
+TPi::TPi(double & ProposalWidth, double & initialValue){
 	proposalWidth = ProposalWidth;
-	_logPi = -1.0;
-	_pi = -1.0;
+	_logPi = log(initialValue);
+	_pi = initialValue;
 }
 
 void TPi::update(const double & newLogValue, const double & newNaturalScaleValue){
@@ -522,10 +528,11 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, lambdaP);
 
 	if(parameters.parameterExists("trueAlleleFreq")){
+		p.initializeModels(0.0);
+	} else {
 		double cutoff = 1.0 / (2.0 * likelihoods.getNumIndividuals());
 		p.initializeModels(cutoff);
-	} else
-		p.initializeModels(0.0);
+	}
 
 //	p.setToValue(0.2);
 
@@ -541,6 +548,12 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(alpha)");
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(beta)");
+
+	//pi
+	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 0.35);
+	double initialValue = (double) p.numLociModelP / (double) p.numLoci;
+	pi = TPi(widthProposalKernelPi, initialValue);
+	logfile->list("initialized pi to " + toString(pi.getNaturalScaleValue()));
 }
 
 bool TInbreedingEstimator::updateF(){
@@ -1073,7 +1086,7 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 //	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
 //			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
 
-	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue();
+	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getNaturalScaleValue() << "\t" << pi.getLogValue();
 	for(int l=0; l<6; ++l){
 		out << "\t" << p[l];
 	}
@@ -1139,7 +1152,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 	//write headers
 //	out << "F\talpha\talphaLog\tp[0]\tp[1]\tp[2]\tp[3]\tp[117]\n";
-	out << "F\talpha\talphaLog";
+	out << "F\tgamma\tgammaLog\tpi\tpiLog";
 	for(int l=0; l<6; ++l){
 		out << "\tp[" << l << "]";
 	}

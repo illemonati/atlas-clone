@@ -105,7 +105,7 @@ public:
 };
 
 //---------------------------
-// alphaOrBeta
+// Pi
 //---------------------------
 
 class TPi{
@@ -116,7 +116,7 @@ public:
 	double proposalWidth;
 
 	TPi();
-	TPi(double & ProposalWidth);
+	TPi(double & ProposalWidth, double & initialValue);
 	void update(const double & newLogValue, const double & newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
