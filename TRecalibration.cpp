@@ -448,13 +448,12 @@ TRecalibrationEMModelPositionSpecific::TRecalibrationEMModelPositionSpecific(){
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 22 + maxPos variables to estimate
 	maxPos = NULL;
-	numParamsPerReadGroup = 22;
 };
 
 void TRecalibrationEMModelPositionSpecific::_initializeFromVectorSize(std::vector<std::string> & vec, int NumReadGroups){
 	//must be at least 23 parameters (1 position)
 	if(vec.size() < 23)
-		throw "Wrong number of recal parameters: expected at least " + toString(numParamsPerReadGroup) + " but found " + toString(vec.size()) + "!";
+		throw "Wrong number of recal parameters: expected at least 23 but found " + toString(vec.size()) + "!";
 
 	//figure out many positions are considered and initialize
 	int numPos = vec.size() - 22;
@@ -1056,7 +1055,7 @@ void TRecalibrationEM::prepareWindowsforEM(){
 	tmpEpsilonInitialized = true;
 }
 
-void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename){
+void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile, std::string debugFilename){
 	//variables
 	double maxF;
 	double lambda; //used in backtracking
@@ -1069,26 +1068,11 @@ void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double 
 	for(TRecalibrationEMWindow* curWindow : windows)
 		curQ += curWindow->calcQ(model, tmpEpsilon);
 
-	std::ofstream* myStream = NULL;
-
-	//open debug file
-	if(writeTmpTables){
-		myStream = new std::ofstream(debugFilename.c_str());
-		if(!myStream) throw "Failed to open output file '" + debugFilename + "'!";
-		//add header
-		*myStream << "iteration";
-		for(unsigned int i=0; i<model->numParamsPerReadGroup; ++i) *myStream << "\tbeta'" << i;
-		for(unsigned int i=0; i<model->numParamsPerReadGroup; ++i) *myStream << "\tF" << i;
-		for(unsigned int i=0; i<model->numParamsPerReadGroup; ++i) *myStream << "\tbeta" << i;
-		*myStream << std::endl;
-	}
-
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
 		logfile->startIndent("Running iteration " + toString(i+1) + ":");
 		logfile->listFlush("Calculating Jacobian and gradient ...");
-		if(writeTmpTables) *myStream << i;
 
 		//set to zero
 		model->setEMParamsToZero();

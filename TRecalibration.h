@@ -419,7 +419,7 @@ public:
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
 	void prepareWindowsforEM();
-	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, bool & writeTmpTables, std::string debugFilename);
+	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile, std::string debugFilename);
 	void runEM(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename, double & LL);
 	void writeHeader(std::ofstream & out);
