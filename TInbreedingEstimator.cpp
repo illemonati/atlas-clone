@@ -133,8 +133,10 @@ TAlleleFreq::TAlleleFreq(){
 	sumIterations = NULL;
 	sumOfSquaresIterations = NULL;
 	modelP = NULL;
+	numIterInModelP = NULL;
 	minAlleleFreq = -1.0;
 	probMovingToModel0 = -1.0;
+	arraysInitialized = false;
 }
 
 
@@ -146,6 +148,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	proposalWidths = new float[numLoci];
 	sumIterations = new double[numLoci];
 	modelP = new bool[numLoci];
+	numIterInModelP = new int[numLoci];
 	sumOfSquaresIterations = new double[numLoci];
 	minAlleleFreq = 1.0 / (double) numSamples / 10.0;
 	probMovingToModel0 = ProbMovingToModel0;
@@ -161,34 +164,35 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 
 	}
 	initializeModels();
+	arraysInitialized = true;
 }
 
 void TAlleleFreq::initializeModels(){
 	for(int l=0; l<numLoci; ++l){
-		if(alleleFreq[l] <= 0.0){
+		if(alleleFreq[l] == 0.0){
 			modelP[l] = false;
 		} else {
 			modelP[l] = true;
 		}
 		numLociModelP = numLociModelP + modelP[l];
 	}
+	for(int l=0; l<6; ++l){
+		std::cout << "locus " << l << ": allele freq=" << alleleFreq[l] << " modelP " << modelP[l] << std::endl;
+	}
 }
 
-void TAlleleFreq::setSumsToZero(){
+void TAlleleFreq::setSumsForPosteriorToZero(){
 	for(int l=0; l<numLoci; ++l){
 		sumIterations[l] = 0.0;
 		sumOfSquaresIterations[l] = 0.0;
+		numIterInModelP[l] = 0;
 	}
 }
+
 void TAlleleFreq::setToValue(double fixedValue){
 	for(int l=0; l<numLoci; ++l){
 		alleleFreq[l] = fixedValue;
 	}
-}
-
-void TAlleleFreq::resetPosterior(const unsigned long & index){
-	sumIterations[index] = 0.0;
-	sumOfSquaresIterations[index] = 0.0;
 }
 
 void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates){
@@ -204,7 +208,7 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 			}
 
 			double newProposalWidth = proposalWidths[l];
-			newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates * 3.0;
+			newProposalWidth *=  (double) numAcceptedP[l] / (double) numIterInModelP[l] * 3.0;
 
 			if(newProposalWidth / proposalWidths[l] < 0.1)
 				newProposalWidth = 0.1 * proposalWidths[l];
@@ -216,7 +220,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 
 			proposalWidths[l] = newProposalWidth;
 
-
 			if(proposalWidths[l] <= 0)
 				throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
 		}
@@ -224,17 +227,19 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdat
 //	numUpdates = 0;
 }
 
-void TAlleleFreq::update(long & index, double value){
-	if(value < 0)
-		throw "updating allele freq at locus " + toString(index) + " to negative value!";
-	if(value < 0)
-		//if in modelP,
-		value = -value;
-	else if(value > 1.0 - minAlleleFreq)
-		value = 1.0; // - minAlleleFreq;
+void TAlleleFreq::update(long & index, const double & value, const bool ModelP){
+	modelP[index] = ModelP;
+	if(value < 0 || value > 1)
+		throw "updating allele freq at locus " + toString(index) + " to value out of range!";
+//	if(value < 0)
+//		//if in modelP,
+//		value = -value;
+//	else if(value > 1.0 - minAlleleFreq)
+//		value = 1.0; // - minAlleleFreq;
 	alleleFreq[index] = value;
 	sumIterations[index] += value;
 	sumOfSquaresIterations[index] += value*value;
+	numIterInModelP[index] += modelP[index];
 }
 
 double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator* randomGenerator){
@@ -440,8 +445,9 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 
 	//initialize parameters
-	initParams(randomGenerator, Parameters);
 	numAcceptedP = new int[numLoci];
+	numAcceptedPModelP = new int[numLoci];
+	initParams(randomGenerator, Parameters);
 	resetAcceptanceRates();
 
 	//output name
@@ -455,7 +461,8 @@ void TInbreedingEstimator::initializeGamma(){
 	double mean = 0.0;
 	double sumXSquare = 0.0;
 	double alphaF;
-//	double betaF;
+
+	std::cout << "p.numLoci "<< p.numLoci << std::endl;
 
 	for(unsigned int l = 0; l < numLoci; l++){
 		if(p.modelP[l]){
@@ -655,12 +662,12 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			//accept?
 			if(log(randomGenerator->getRand()) < logH){
 				//move to model0
-				p.update(locusNum, 0.0);
+				p.update(locusNum, 0.0, false);
 				--p.numLociModelP;
 				return true;
 			} else {
 				//stay in modelP
-				p.update(locusNum, p[locusNum]);
+				p.update(locusNum, p[locusNum], true);
 				return false;
 			}
 		} else {
@@ -676,11 +683,11 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			//accept?
 			if(log(randomGenerator->getRand()) < logH){
 				//update p
-				p.update(locusNum, newP);
+				p.update(locusNum, newP, true);
 				return true;
 			} else {
 				//don't update p
-				p.update(locusNum, p[locusNum]);
+				p.update(locusNum, p[locusNum], true);
 				return false;
 			}
 		}
@@ -704,11 +711,11 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 
 		//accept?
 		if(log(randomGenerator->getRand()) < logH){
-			p.update(locusNum, newP);
+			p.update(locusNum, newP, true);
 			++p.numLociModelP;
 			return true;
 		} else {
-			p.update(locusNum, p[locusNum]);
+			p.update(locusNum, p[locusNum], false);
 			return false;
 		}
 	}
@@ -731,14 +738,14 @@ bool TInbreedingEstimator::updateGamma(){
 	double sumLogOneMinusFreq = 0.0;
 
 	for(unsigned long l=0; l<numLoci; ++l){
-		if(p.modelP){
+		if(p.modelP[l]){
 			sumLogFreq += log(p[l]);
 			sumLogOneMinusFreq += log(1.0 - p[l]);
 			if(p[l] == 0.0)
-				throw "allele freq at locus " + toString(l) +  " is zero: " + toString(p[l]);
+				logfile->warning("allele freq at locus " + toString(l) +  " is zero but in modelP=" + toString(p.modelP[l]));
 		} else{
 			if(p[l] != 0.0)
-				throw "allele freq is not zero!";
+				logfile->warning("allele freq at locus " + toString(l) +  " is not zero but in modelP=" + toString(p.modelP[l]));
 		}
 	}
 
@@ -927,7 +934,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	for(int i=0; i<numProbs; ++i){
 		double newPValue = pValue + (double) i*step;
 		std::cout << "calculating likelihood for p[0]=" << newPValue << std::endl;
-		p.update(index, newPValue);
+		p.update(index, newPValue, true);
 		double logLikelihood = 0.0;
 		long l = 0;
 		std::cout << "passed params, p[l] "<< p[l] << "newPVlue " << newPValue << " F=" << F.F() << " gamma " << Gamma.getNaturalScaleValue() << std::endl;
@@ -1017,11 +1024,11 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	logfile->conclude("acceptance rate for F is " + toString((double) numAcceptedF / numIterations));
 	logfile->conclude("acceptance rate for gamma is " + toString((double) numAcceptedGamma / numIterations));
 	logfile->conclude("acceptance rate for pi is " + toString((double) numAcceptedPi / numIterations));
-	logfile->conclude("acceptance rate for first locus is " + toString((double) numAcceptedP[0] / numIterations));
-	logfile->conclude("acceptance rate for second locus is " + toString((double) numAcceptedP[1] / numIterations));
-	logfile->conclude("acceptance rate for third locus is " + toString((double) numAcceptedP[2] / numIterations));
-	logfile->conclude("acceptance rate for fourth locus is " + toString((double) numAcceptedP[3] / numIterations));
-	logfile->conclude("acceptance rate for fifth locus is " + toString((double) numAcceptedP[4] / numIterations));
+	logfile->conclude("acceptance rate for first locus is " + toString((double) numAcceptedP[0] / numIterations) + " and in modelP " + toString((double) numAcceptedPModelP[0] / p.numIterInModelP[0]));
+	logfile->conclude("acceptance rate for second locus is " + toString((double) numAcceptedP[1] / numIterations) + " and in modelP " + toString((double) numAcceptedPModelP[1] / p.numIterInModelP[1]));
+	logfile->conclude("acceptance rate for third locus is " + toString((double) numAcceptedP[2] / numIterations) + " and in modelP " + toString((double) numAcceptedPModelP[2] / p.numIterInModelP[1]));
+	logfile->conclude("acceptance rate for fourth locus is " + toString((double) numAcceptedP[3] / numIterations) + " and in modelP " + toString((double) numAcceptedPModelP[3] / p.numIterInModelP[3]));
+	logfile->conclude("acceptance rate for fifth locus is " + toString((double) numAcceptedP[4] / numIterations) + " and in modelP " + toString((double) numAcceptedPModelP[4] / p.numIterInModelP[4]));
 }
 
 
@@ -1031,8 +1038,8 @@ void TInbreedingEstimator::resetAcceptanceRates(){
 	numAcceptedGamma = 0;
 	for(unsigned int l=0; l<numLoci; ++l){
 		numAcceptedP[l] = 0;
-		p.resetPosterior(l);
 	}
+	p.setSumsForPosteriorToZero();
 	numAcceptedPi = 0;
 }
 
@@ -1122,7 +1129,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 
 	out << "\n";
-	outP << "param\tmean_posterior\tvar_posterior\tacceptance_rate\tproposalWidth\ttrue_alleleFreq\n";
+	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate\tproposalWidth\ttrue_alleleFreq\n";
 	writeParameterEstimatesOfIteration(out);
 
 
@@ -1164,7 +1171,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 
 		resetAcceptanceRates();
-		p.setSumsToZero();
+		p.setSumsForPosteriorToZero();
 	}
 
 	//---------------------------

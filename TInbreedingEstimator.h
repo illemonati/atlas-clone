@@ -55,32 +55,46 @@ private:
 	std::vector<double> alleleFreq;
 	double minAlleleFreq;
 	float* proposalWidths;
+	bool arraysInitialized;
 
 public:
 	long numLoci;
 	long numLociModelP;
 	bool* modelP;
+	int* numIterInModelP;
 	float probMovingToModel0;
 	double lambda;
 
 	TAlleleFreq();
 	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, float & ProbMovingToModel0, double & Lambda);
+
+	~TAlleleFreq(){
+		if(arraysInitialized){
+			std::cout << "calling deconstructor!!!!!!!!!!!!!" << std::endl;
+			delete[] modelP;
+			delete[] numIterInModelP;
+			delete[] sumIterations;
+			delete[] sumOfSquaresIterations;
+			delete[] proposalWidths;
+		}
+
+	}
+
 	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
 	void initializeModels();
-	void setSumsToZero();
+	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator* randomGenerator);
-	void update(long & index, double value);
+	void update(long & index, const double & value, const bool modelP);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
 	long getNumLociInModelP();
 	long getNumLociInModel0();
-	void resetPosterior(const unsigned long & index);
 	double logPDFExp(const double & thisP);
 	double logPDFExp(const long & thisLocus);
 };
@@ -143,6 +157,7 @@ private:
 	double sdF;
 	int numAcceptedF;
 	int* numAcceptedP;
+	int* numAcceptedPModelP;
 	int numAcceptedGamma;
 	int numAcceptedPi;
 	int numBurnins;
