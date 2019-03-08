@@ -346,19 +346,16 @@ double TGamma::getProposalWidth(){
 TPi::TPi(){
 	proposalWidth = -1.0;
 	_pi = -1.0;
-	_logPi = -1.0;
 }
 
 TPi::TPi(double & ProposalWidth, double & initialValue){
 	proposalWidth = ProposalWidth;
-	_logPi = log(initialValue);
 	_pi = initialValue;
 }
 
-void TPi::update(const double & newLogValue, const double & newNaturalScaleValue){
+void TPi::update(const double & newNaturalScaleValue){
 	if(newNaturalScaleValue < 0)
 		throw "updating pi to negative value!";
-	_logPi = newLogValue;
 	_pi = newNaturalScaleValue;
 }
 
@@ -370,25 +367,31 @@ void TPi::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 		newProposalWidth = 0.1 * proposalWidth;
 	else if(proposalWidth / newProposalWidth < 0.1)
 		newProposalWidth = 10 * proposalWidth;
-	if(newProposalWidth > 1.0)
-		newProposalWidth = 1.0;
+	if(newProposalWidth > 0.5)
+		newProposalWidth = 0.5;
 
 	proposalWidth = newProposalWidth;
 
 	if(proposalWidth <= 0)
-		throw "Proposal width for gamma is not larger than 0!";
+		throw "Proposal width for pi is not larger than 0!";
 }
 
-double TPi::getLogValue(){
-	return _logPi;
-}
-
-double TPi::getNaturalScaleValue(){
+double TPi::getPi(){
 	return _pi;
 }
 
 double TPi::getProposalWidth(){
 	return proposalWidth;
+}
+
+double TPi::proposeNew(TRandomGenerator* randomGenerator){
+	double newPi = _pi + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
+	if(newPi < 0.0){
+		newPi = -newPi;
+	} else if(newPi > 1.0){
+		newPi = 2 - newPi;
+	}
+	return newPi;
 }
 //---------------------------
 // TInbreedingEstimator
@@ -455,11 +458,13 @@ void TInbreedingEstimator::initializeGamma(){
 //	double betaF;
 
 	for(unsigned int l = 0; l < numLoci; l++){
-		mean += p[l];
-		sumXSquare += p[l] * p[l];
+		if(p.modelP[l]){
+			mean += p[l];
+			sumXSquare += p[l] * p[l];
+		}
 	}
-	mean /= (double) numLoci;
-	sumXSquare /= (double) numLoci;
+	mean /= (double) p.numLociModelP;
+	sumXSquare /= (double) p.numLociModelP;
 	double var = sumXSquare - mean  * mean;
 
 	//now estimate gamma -> just assume it's same as alpha
@@ -554,7 +559,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 0.35);
 	double initialValue = (double) p.numLociModelP / (double) p.numLoci;
 	pi = TPi(widthProposalKernelPi, initialValue);
-	logfile->list("initialized pi to " + toString(pi.getNaturalScaleValue()));
+	logfile->list("initialized pi to " + toString(pi.getPi()));
 }
 
 bool TInbreedingEstimator::updateF(){
@@ -636,13 +641,13 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			//propose model0
 			double gammaNat = Gamma.getNaturalScaleValue();
 			double logH = 2.0 * randomGenerator->gammaln(gammaNat)
-					+ log(1.0 - pi.getNaturalScaleValue())
+					+ log(1.0 - pi.getPi())
 					+ p.logPDFExp(locusNum)
 					- (gammaNat-1.0) * log(p[locusNum])
 					- (gammaNat-1.0)
 					- log(1.0-p[locusNum])
 					- randomGenerator->gammaln(2.0*gammaNat)
-					- pi.getLogValue()
+					- log(pi.getPi())
 					- log(p.probMovingToModel0)
 					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
 					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
@@ -687,12 +692,12 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			throw "proposed negative newP in move from model0 to modelP: " + toString(newP);
 		double gammaNat = Gamma.getNaturalScaleValue();
 		double logH = - 2.0 * randomGenerator->gammaln(gammaNat)
-				- log(1.0 - pi.getNaturalScaleValue())
+				- log(1.0 - pi.getPi())
 				- p.logPDFExp(newP)
 				+ (gammaNat-1.0) * log(newP)
 				+ (gammaNat-1.0) * log(1.0-newP)
 				+ randomGenerator->gammaln(2.0*gammaNat)
-				+ pi.getLogValue()
+				+ log(pi.getPi())
 				+ log(p.probMovingToModel0)
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
 				+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F());
@@ -729,6 +734,11 @@ bool TInbreedingEstimator::updateGamma(){
 		if(p.modelP){
 			sumLogFreq += log(p[l]);
 			sumLogOneMinusFreq += log(1.0 - p[l]);
+			if(p[l] == 0.0)
+				throw "allele freq at locus " + toString(l) +  " is zero: " + toString(p[l]);
+		} else{
+			if(p[l] != 0.0)
+				throw "allele freq is not zero!";
 		}
 	}
 
@@ -752,8 +762,6 @@ bool TInbreedingEstimator::updateGamma(){
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;
 
-//	std::cout << "logH " << logH << std::endl;
-
 	// accept or reject
 	double tmp = log(randomGenerator->getRand());
 	if(tmp < logH){
@@ -766,22 +774,17 @@ bool TInbreedingEstimator::updateGamma(){
 
 bool TInbreedingEstimator::updatePi(){
 	// propose new log(value) (uniform proposal kernel)
-	double newLogPi = pi.getLogValue() + randomGenerator->getRand() * pi.proposalWidth - pi.proposalWidth / 2.0;
-
-	double newPi = exp(newLogPi);
-	if(newPi < 0)
-		throw "proposed new log(pi) that on natural scale is negative!";
-
+	double newPi = pi.proposeNew(randomGenerator);
 	double numLociInModelP = (double) p.getNumLociInModelP();
 	double numLociInModel0 = (double) p.getNumLociInModel0();
 
-	double logH = numLociInModelP * newLogPi + numLociInModel0 * log(1.0-newLogPi)
-			 - numLociInModelP * pi.getLogValue() + numLociInModel0 * log(1.0-pi.getNaturalScaleValue());
+	double logH = numLociInModelP * log(newPi) + numLociInModel0 * log(1.0-newPi)
+			 - numLociInModelP * log(pi.getPi()) + numLociInModel0 * log(1.0-pi.getPi());
 
 	// accept or reject
 	double tmp = log(randomGenerator->getRand());
 	if(tmp < logH){
-		pi.update(newLogPi, newPi);
+		pi.update(newPi);
 		return true;
 	}
 	else
@@ -1043,7 +1046,7 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 //	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
 //			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
 
-	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getNaturalScaleValue() << "\t" << pi.getLogValue();
+	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getPi();
 	for(int l=0; l<6; ++l){
 		out << "\t" << p[l];
 	}
@@ -1109,7 +1112,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 	//write headers
 //	out << "F\talpha\talphaLog\tp[0]\tp[1]\tp[2]\tp[3]\tp[117]\n";
-	out << "F\tgamma\tgammaLog\tpi\tpiLog";
+	out << "F\tgamma\tgammaLog\tpi";
 	for(int l=0; l<6; ++l){
 		out << "\tp[" << l << "]";
 	}

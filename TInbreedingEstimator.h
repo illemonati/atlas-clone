@@ -113,18 +113,17 @@ public:
 class TPi{
 private:
 	double _pi;
-	double _logPi;
 public:
 	double proposalWidth;
 
 	TPi();
 	TPi(double & ProposalWidth, double & initialValue);
-	void update(const double & newLogValue, const double & newNaturalScaleValue);
+	void update(const double & newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
-	double getLogValue();
-	double getNaturalScaleValue();
+	double getPi();
 	double getProposalWidth();
+	double proposeNew(TRandomGenerator* randomGenerator);
 };
 //---------------------------
 // TInbreedingEstimator
