@@ -15,8 +15,8 @@
 #include "bamtools/api/BamAlignment.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "bamtools/api/BamWriter.h"
-
-
+#include "TQualityMap.h"
+#include "QualityTables.h"
 
 class TAlignmentParser;
 

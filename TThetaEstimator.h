@@ -11,6 +11,8 @@
 #include "TThetaEstimatorData.h"
 #include "TRandomGenerator.h"
 #include <stdio.h>
+#define ARMA_DONT_PRINT_ERRORS
+#include <armadillo>
 
 //---------------------------------------------------------------
 //Theta

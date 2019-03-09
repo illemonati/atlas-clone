@@ -1004,6 +1004,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 }
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
+	//TODO: this is an ugly hack! find a better solution that does not require TAlignmentParser to know task names
 	std::string task = params.getParameterString("task");
 	if(task == "qualityTransformation" || task == "recalBAM"){
 		//don't change base error rates in fillAlignment!

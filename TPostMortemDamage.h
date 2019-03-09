@@ -13,6 +13,9 @@
 #include "TGenotypeMap.h"
 #include "TSite.h"
 #include <algorithm>
+#define ARMA_DONT_PRINT_ERRORS
+#include <armadillo>
+
 
 enum PMDType {pmdCT=0, pmdGA, pmdGT, pmdCA};
 

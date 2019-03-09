@@ -175,7 +175,7 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile):TThetaEsti
 	readParametersRegardingInitialSearch(params);
 }
 
-TThetaEstimator::TThetaEstimator(TLog* Logfile):TThetaEstimator_base(logfile){
+TThetaEstimator::TThetaEstimator(TLog* Logfile):TThetaEstimator_base(Logfile){
 	initAdditionalTmpStorage();
 
 	//set EM parameters to default

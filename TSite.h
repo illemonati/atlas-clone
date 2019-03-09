@@ -10,8 +10,6 @@
 
 #include <math.h>
 #include <vector>
-#define ARMA_DONT_PRINT_ERRORS
-#include <armadillo>
 #include "TParameters.h"
 #include "TGenotypeMap.h"
 #include "TBase.h"

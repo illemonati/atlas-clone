@@ -21,6 +21,7 @@
 #include "TWindow.h"
 #include "TBed.h"
 #include "TBedReader.h"
+#include <vector>
 
 //-----------------------------------------------------
 //TFastaBuffer
