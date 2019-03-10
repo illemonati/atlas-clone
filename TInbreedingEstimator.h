@@ -28,7 +28,7 @@ private:
 public:
 	TInbreedingF();
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
-	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates, TLog* logfile);
+	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
 	void updateAndAccept(double value, bool inModelWithF);
 	void updateAndReject(bool inModelWithF);
@@ -50,44 +50,32 @@ public:
 //---------------------------
 class TAlleleFreq{
 private:
-	double* sumIterations;
-	double* sumOfSquaresIterations;
+	std::vector<int> posteriorProbModelP;
+	std::vector<double> sumIterations;
+	std::vector<double> sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
-	double minAlleleFreq;
-	float* proposalWidths;
-	bool arraysInitialized;
+	std::vector<float> proposalWidths;
 
 public:
+	std::vector<bool> modelP;
+
 	long numLoci;
 	long numLociModelP;
-	bool* modelP;
-	int* numIterInModelP;
 	float probMovingToModel0;
 	double lambda;
+	double minAlleleFreq;
 
 	TAlleleFreq();
 	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, float & ProbMovingToModel0, double & Lambda);
-
-	~TAlleleFreq(){
-		if(arraysInitialized){
-			std::cout << "calling deconstructor!!!!!!!!!!!!!" << std::endl;
-			delete[] modelP;
-			delete[] numIterInModelP;
-			delete[] sumIterations;
-			delete[] sumOfSquaresIterations;
-			delete[] proposalWidths;
-		}
-
-	}
 
 	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
-	void initializeModels();
+//	void initializeModels();
 	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
-	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
+	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
 	double proposeNew(long & locusNum, TRandomGenerator* randomGenerator);
 	void update(long & index, const double & value, const bool modelP);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
@@ -156,8 +144,11 @@ private:
 	int numIterations;
 	double sdF;
 	int numAcceptedF;
-	int* numAcceptedP;
-	int* numAcceptedPModelP;
+	int numAcceptedFModelF;
+	int numIterInModelF;
+	std::vector<int> numAcceptedP;
+	std::vector<int> numAcceptedPModelP;
+	std::vector<int> numIterInModelP;
 	int numAcceptedGamma;
 	int numAcceptedPi;
 	int numBurnins;
@@ -196,7 +187,6 @@ private:
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
 	~TInbreedingEstimator(){
-		delete numAcceptedP;
 		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
