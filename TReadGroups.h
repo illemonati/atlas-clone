@@ -234,7 +234,7 @@ public:
 
 			if(printed) logfile->endIndent();
 			else logfile->list("All existing read groups will be merged into a new read group.");
-		}else{
+		} else {
 			numReadGroups = origNumReadGroups;
 			for(int i = 0; i < numReadGroups; ++i){
 				readGroupMap[i] = i;
@@ -251,7 +251,7 @@ public:
 
 	int operator[](int rg){
 		return readGroupMap[rg];
-	}
+	};
 };
 
 #endif /* TREADGROUPS_H_ */

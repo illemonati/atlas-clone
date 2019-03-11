@@ -9,9 +9,10 @@
 #define TRECALIBRATIONEMMODEL_H_
 
 #include "TRecalibrationEMAuxiliaryTools.h"
+#include "TFile.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
-#include "TFile.h"
+
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
