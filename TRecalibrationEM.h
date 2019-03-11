@@ -11,65 +11,6 @@
 #include "TRecalibration.h"
 #include "TRecalibrationEMModel.h"
 
-//--------------------------------------------------------------------
-// TRecalibrationEMDataTable
-// Object to store for which qualities and positions data is available.
-//--------------------------------------------------------------------
-class TRecalibrationEMDataTable{
-public:
-	int numReadGroups;
-	int maxQual;
-	bool*** qualities; //qualities[readGroup][first/second][quality]
-	unsigned int** maxPos; //maxPos[readGroup][first/second]
-	unsigned int** countsPerReadGroup;
-	unsigned int totalCounts;
-
-	TRecalibrationEMDataTable(int NumReadGroups, int MaxQual);
-	~TRecalibrationEMDataTable();
-
-	void clear();
-	void add(TRecalibrationEMReadData & data);
-	void assembleCountsPerReadGroup();
-};
-
-//--------------------------------------------------------------------
-// TRecalibrationEMReadGroupIndex
-// Object to map read group ID and mate to an internal index used to store recal parameters
-//--------------------------------------------------------------------
-class TRecalibrationEMReadGroupIndex{
-private:
-	bool initialized;
-	int** readGroupIndex;
-	bool** readGroupInUse;
-
-	void _init(int NumReadGroups);
-	void _free();
-
-
-public:
-	int numReadGroups;
-	int numIndexes;
-
-	TRecalibrationEMReadGroupIndex();
-	~TRecalibrationEMReadGroupIndex();
-
-	void initialize(int NumReadGroups);
-	void initialize(TRecalibrationEMDataTable & dataTable);
-
-	void setAllAsUsed();
-	void setAllToSingleIndex();
-	int setAsUsed(int readGroup, bool isSecondMate);
-
-	bool inUse(const int & readGroup, const bool & isSecondMate){
-		return readGroupInUse[readGroup][isSecondMate];
-	};
-
-	int index(const int & readGroup, const bool & isSecondMate){
-		return readGroupIndex[readGroup][isSecondMate];
-	};
-
-	bool nextNotInUse(std::pair<int, bool> & pair);
-};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimationParameters
@@ -82,14 +23,14 @@ public:
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
-	unsigned int minRequiredObservationsPerReadGroup;
+	unsigned int minRequiredObservations;
 
 	TRecalibrationEMEstimationParameters(TParameters & args, TLog* logfile);
 };
 
-
 //--------------------------------------------------------------------
 // TRecalibrationEMSite
+// Object to store all data at one site
 //--------------------------------------------------------------------
 class TRecalibrationEMSite{
 public:
@@ -102,11 +43,14 @@ public:
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
 
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
-	void calcEpsilon(TRecalibrationEMModel_Base* & model, float* & epsilon);
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel_Base* & model, float* & freqs, float* & epsilon);
-	double calcLL(TRecalibrationEMModel_Base* & model, float* & freqs, float* & epsilon);
-	double calcQ(TRecalibrationEMModel_Base* & model, float* & epsilon);
-	void addToJacobianAndF(arma::vec & F, arma::mat & Jacobian, TRecalibrationEMModel_Base* & model, float* & epsilon);
+	inline void calcEpsilon(TRecalibrationEMModels & models, float* & epsilon){
+		for(unsigned int k=0; k<numReads; ++k)
+			epsilon[k] = models.calcEpsilon(data[k]);
+	};
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
+	double calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
+	double calcQ(TRecalibrationEMModels & models, float* & epsilon);
+	void addToJacobianAndF(TRecalibrationEMModels & models, float* & epsilon);
 };
 
 //--------------------------------------------------------------------
@@ -132,10 +76,10 @@ public:
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModel_Base* & model, float* & tmpEpsilon);
-	double calcLL(TRecalibrationEMModel_Base* & model, float* & tmpEpsilon);
-	double calcQ(TRecalibrationEMModel_Base* & model, float* & tmpEpsilon);
-	void addToJacobianAndF(arma::vec & F, arma::mat & Jacobian, TRecalibrationEMModel_Base* & model, float* & tmpEpsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	double calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	double calcQ(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	void addToJacobianAndF(TRecalibrationEMModels & models, float* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };
 
@@ -147,11 +91,9 @@ private:
 	TLog* logfile;
 	BamTools::SamHeader* bamHeader;
 	std::string* readGroupNames;
-	std::vector<TRecalibrationEMModel_Base*> models;
-	bool modelsInitialized;
+	TRecalibrationEMModels* models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
-	TRecalibrationEMReadGroupIndex readGroupIndex;
 
 	//variables for estimation
 	bool estimationParametersInitialized;
@@ -161,51 +103,56 @@ private:
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
 
-	void _addModel(std::string modelTag, std::vector<std::string> & values, bool verbose);
-	void _addModelForEstimation(std::string modelTag, int maxPos);
-	void _printReadGroupNameToLogfile(std::pair<int, bool> & missingReadGroupInfo);
+	void runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables);
+	void runNewtonRaphson(int numSitesWithData);
+	void prepareWindowsforEM();
+
 
 public:
 	TRecalibrationEM(BamTools::SamHeader* BamHeader, TLog* Logfile, TReadGroupMap& ReadGroupMap);
 	~TRecalibrationEM(){
-		if(modelsInitialized){
-			for(int i=0; i<readGroupIndex.numIndexes; ++i)
-				delete models[i];
-			delete[] models;
-		}
+		delete models;
 		delete[] readGroupNames;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;
 		}
 		windows.clear();
-		delete models;
 		if(tmpEpsilonInitialized)
 			delete[] tmpEpsilon;
+
+		if(estimationParametersInitialized)
+			delete EMParameters;
 	};
+
+	bool recalibrationChangesQualities(){ return true; };
 
 	void initialize(std::string string);
 	void initializeRecalibrationParametersFromString(std::string & string);
 	void initializeRecalibrationParametersFromFile(std::string filename);
-	void performEstimation(std::string outputName, bool & writeTmpTables);
-	void runEM(std::string outputName, bool & writeTmpTables);
 	void initializeForParameterEstimation(TParameters & args);
-	bool recalibrationChangesQualities(){ return true; };
+
+	void performEstimation(std::string outputName, bool & writeTmpTables);
+
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site, TQualityMap & qualiMap);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
-	void prepareWindowsforEM();
-	void runNewtonRaphson(int & maxNewtonraphsonIteratios, double & maxFThreshold, TLog* logfile);
-	void writeCurrentEstimates(std::string filename, double & LL);
-	void writeHeader(std::ofstream & out);
-	void writeParams(std::ofstream & out, double & LL);
+
+	void writeCurrentEstimates(std::string filename);
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
-	double getErrorRate(TBase & base);
-	int getQuality(TBase & base);
+
+	inline double getErrorRate(TBase & base){
+		return models->getErrorRate(base);
+	};
+	inline int getQuality(TBase & base){
+		double q = models->getErrorRate(base);
+		return qualityMap.errorToQuality(q);
+	};
+
 };
 
 
