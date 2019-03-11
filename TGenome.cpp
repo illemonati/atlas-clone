@@ -966,6 +966,7 @@ void TGenome::writeGLF(TParameters & params){
 	writer.close();
 }
 
+//TODO: remove?
 void TGenome::combineBeagleFiles(TParameters & params){
 	std::string list = params.getParameterString("beagleList");
 	std::string sites = params.getParameterString("sites");
@@ -1126,7 +1127,7 @@ void TGenome::createDepthMask(TParameters & params){
 }
 
 //---------------------------------------------------
-//recalibration
+// Recalibration
 //---------------------------------------------------
 void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//create recalibration object
@@ -1157,7 +1158,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	logfile->endIndent();
 
 	//run EM iterations
-	recalObjectEM.runEM(outputName, writeTmpTables);
+	recalObjectEM.performEstimation(outputName, writeTmpTables);
 }
 /*
 void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
@@ -1180,6 +1181,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 }
 */
 
+//TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);

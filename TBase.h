@@ -62,7 +62,7 @@ public:
 		context = cNN;
 		aligned = false;
 		alignedPos = -1;
-		isSecondMate = false;;
+		isSecondMate = false;
 	}
 
 	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond){

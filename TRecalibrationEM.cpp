@@ -7,6 +7,208 @@
 
 #include "TRecalibrationEM.h"
 
+//--------------------------------------------------------------------
+// TRecalibrationEMDataTable
+//--------------------------------------------------------------------
+TRecalibrationEMDataTable::TRecalibrationEMDataTable(int NumReadGroups, int MaxQual){
+	numReadGroups = NumReadGroups;
+	maxQual = MaxQual;
+
+	qualities = new bool**[numReadGroups];
+	maxPos = new unsigned int*[numReadGroups];
+	countsPerReadGroup = new unsigned int*[numReadGroups];
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		qualities[rg] = new bool*[2];
+		qualities[rg][0] = new bool[maxQual];
+		qualities[rg][1] = new bool[maxQual];
+
+		countsPerReadGroup[rg] = new unsigned int[2];
+		maxPos[rg] = new unsigned int[2];
+	}
+
+	clear();
+};
+
+TRecalibrationEMDataTable::~TRecalibrationEMDataTable(){
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		delete[] qualities[rg][0];
+		delete[] qualities[rg][1];
+		delete[] qualities[rg];
+
+		delete[] countsPerReadGroup[rg];
+		delete[] maxPos[rg];
+	}
+
+	delete[] qualities;
+	delete[] maxPos;
+	delete[] countsPerReadGroup;
+};
+
+void TRecalibrationEMDataTable::clear(){
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		for(int i=0; i<maxQual; ++i){
+			qualities[rg][0][i] = 0;
+			qualities[rg][1][i] = 0;
+		}
+		maxPos[rg][0] = 0;
+		maxPos[rg][1] = 0;
+		countsPerReadGroup[rg][0] = 0;
+		countsPerReadGroup[rg][1] = 0;
+	}
+	totalCounts = 0;
+};
+
+void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
+	++qualities[data.readGroup][(int) data.isSecond][data.quality];
+	if(maxPos[data.readGroup][data.isSecond] < data.position)
+		maxPos[data.readGroup][data.isSecond] = data.position;
+};
+
+void TRecalibrationEMDataTable::assembleCountsPerReadGroup(){
+	totalCounts = 0;
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		countsPerReadGroup[rg][0] = 0;
+		countsPerReadGroup[rg][1] = 0;
+		for(int i=0; i<maxQual; ++i){
+			countsPerReadGroup[rg][0] += qualities[rg][0][i];
+			countsPerReadGroup[rg][1] += qualities[rg][1][i];
+		}
+		totalCounts += countsPerReadGroup[rg][0] + countsPerReadGroup[rg][1];
+	}
+};
+
+//--------------------------------------------------------------------
+// TRecalibrationEMReadGroupIndex
+//--------------------------------------------------------------------
+TRecalibrationEMReadGroupIndex::TRecalibrationEMReadGroupIndex(){
+	numIndexes = 0;
+	numReadGroups = 0;
+	initialized = false;
+	readGroupInUse = NULL;
+	readGroupIndex = NULL;
+};
+
+TRecalibrationEMReadGroupIndex::~TRecalibrationEMReadGroupIndex(){
+	_free();
+}
+
+void TRecalibrationEMReadGroupIndex::_init(int NumReadGroups){
+	numReadGroups = NumReadGroups;
+	numIndexes = 0;
+	readGroupInUse = new bool*[numReadGroups];
+	readGroupIndex = new int[numReadGroups];
+
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		readGroupInUse[rg] = new bool[2];
+		readGroupInUse[rg][0] = false;
+		readGroupInUse[rg][1] = false;
+
+		readGroupIndex[rg] = new int[2];
+		readGroupIndex[rg][0] = -1;
+		readGroupIndex[rg][1] = -1;
+	}
+};
+
+void TRecalibrationEMReadGroupIndex::initialize(int NumReadGroups){
+	_init(NumReadGroups);
+};
+
+void TRecalibrationEMReadGroupIndex::initialize(TRecalibrationEMDataTable & dataTable){
+	_init(dataTable.numReadGroups);
+
+	//no go through all counts to see if enough data is available.
+	dataTable.assembleCountsPerReadGroup();
+
+	for(int mate=0; mate<2; ++mate){
+		for(int rg = 0; rg<numReadGroups; ++rg){
+			if(dataTable.countsPerReadGroup[rg][mate] > 0){
+				readGroupInUse[rg][mate] = true;
+				readGroupIndex[rg][mate] = numIndexes;
+				++numIndexes;
+			} else {
+				readGroupInUse[rg][mate] = false;
+				readGroupIndex[rg][mate] = -1;
+			}
+		}
+	}
+};
+
+void TRecalibrationEMReadGroupIndex::_free(){
+	if(initialized){
+		for(int rg = 0; rg<numReadGroups; ++rg){
+			delete[] readGroupInUse[rg];
+			delete[] readGroupIndex[rg];
+		}
+
+		delete[] readGroupInUse;
+		delete[] readGroupIndex;
+	}
+	initialized = false;
+};
+
+void TRecalibrationEMReadGroupIndex::setAllAsUsed(){
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		readGroupInUse[rg][0] = true;
+		readGroupInUse[rg][1] = true;
+		readGroupIndex[rg][0] = 2*rg;
+		readGroupIndex[rg][1] = 2*rg + 1;
+	}
+	numIndexes = 2*numReadGroups;
+};
+
+void TRecalibrationEMReadGroupIndex::setAllToSingleIndex(){
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		readGroupInUse[rg][0] = true;
+		readGroupInUse[rg][1] = true;
+		readGroupIndex[rg][0] = 0;
+		readGroupIndex[rg][1] = 0;
+	}
+	numIndexes = 1;
+};
+
+int TRecalibrationEMReadGroupIndex::setAsUsed(int readGroup, bool isSecondMate){
+	readGroupInUse[readGroup][isSecondMate] = true;
+	readGroupIndex[readGroup][isSecondMate] = numIndexes;
+	++numIndexes;
+	return readGroupIndex[readGroup][isSecondMate];
+};
+
+bool TRecalibrationEMReadGroupIndex::nextNotInUse(std::pair<int, bool> & pair){
+	//check if there are read groups not in use. If so, return true and fill pair. Otherwise, return false
+	for(int rg = 0; rg<numReadGroups; ++rg){
+		for(int j=0; j<2; ++j){
+			if(!readGroupInUse[rg][j]){
+				pair.first = rg;
+				pair.second = j;
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+//---------------------------------------------------------------
+//TRecalibrationEMEstimationParameters
+//---------------------------------------------------------------
+
+TRecalibrationEMEstimationParameters::TRecalibrationEMEstimationParameters(TParameters & args, TLog* logfile){
+	logfile->startIndent("Settings regarding the EM algorithm:");
+	minRequiredObservationsPerReadGroup = args.getParameterIntWithDefault("minOberservations", 100);
+	logfile->list("Will only consider read groups with at least " + toString(minRequiredObservationsPerReadGroup) + " observations.");
+	numEMIterations = args.getParameterIntWithDefault("iterations", 100);
+	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
+	maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
+	logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
+	NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
+	logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
+	NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
+	logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
+	equalBaseFrequencies = args.parameterExists("equalBaseFreq");
+	if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
+	logfile->endIndent();
+};
+
+
 //---------------------------------------------------------------
 //RecalibrationEMSite
 //---------------------------------------------------------------
@@ -155,7 +357,7 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModel_Base* & model, float* &
 	return Q;
 }
 
-void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel_Base* & model, float* & epsilon){
+void TRecalibrationEMSite::addToJacobianAndF(arma::vec & F, arma::mat & Jacobian, TRecalibrationEMModel_Base* & model, float* & epsilon){
 	//calculate tmpEpsilon with current parameters
 	calcEpsilon(model, epsilon);
 
@@ -169,20 +371,17 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModel_Base* & model
 		oneMinus2Eps[k] = 1.0 - 2.0 * epsilon[k];
 	}
 
-	float B;
-
 	//fill F and Jacobian
 	for(int g=0; g<4; ++g){
 		//calc weights
 		//------------
 		for(unsigned int k=0; k<numReads; ++k){
-			B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 			weights[k] = B / (1.0 - data[k].D[g] + B * epsilon[k]) * eps1MinusEps[k];
-//			weights[k] = B[g][k] / (1.0 - D[g][k] + B[g][k] * epsilon[k]) * eps1MinusEps[k];
 			weightJacobian[k] = P_g_given_d_oldBeta[g] * weights[k] * (oneMinus2Eps[k] - weights[k]);
 		}
 
-		model->addToFandJacobian(numReads, weights, weightJacobian, P_g_given_d_oldBeta[g], data);
+		model->addToFandJacobian(F, Jacobian, data, numReads, weights, weightJacobian, P_g_given_d_oldBeta[g]);
 	}
 
 	//delete tmp variables
@@ -263,9 +462,9 @@ double TRecalibrationEMWindow::calcQ(TRecalibrationEMModel_Base* & model, float*
 	return Q;
 }
 
-void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModel_Base* & model, float* & tmpEpsilon){
+void TRecalibrationEMWindow::addToJacobianAndF(arma::vec & F, arma::mat & Jacobian, TRecalibrationEMModel_Base* & model, float* & tmpEpsilon){
 	for(TRecalibrationEMSite* site : sites)
-		site->addToJacobianAndF(model, tmpEpsilon);
+		site->addToJacobianAndF(F, Jacobian, model, tmpEpsilon);
 }
 
 void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
@@ -279,7 +478,6 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TLog* Logfile
 	logfile = Logfile;
 	tmpEpsilon = NULL;
 	tmpEpsilonInitialized = false;
-	equalBaseFrequencies = false;
 
 	//read groups
 	bamHeader = BamHeader;
@@ -289,29 +487,56 @@ TRecalibrationEM::TRecalibrationEM(BamTools::SamHeader* BamHeader, TLog* Logfile
 		readGroupNames[r] = it->ID;
 	}
 
-	numEMIterations = -1;
-	maxEpsilon = 0.0;
-	NewtonRaphsonNumIterations = -1;
-	NewtonRaphsonMaxF = 0.0;
 	maxDepth = -1;
-	model = NULL;
-	modelInitialized = false;
+	models = NULL;
+	modelsInitialized = false;
+
+	estimationParametersInitialized = false;
+	EMParameters = NULL;
 };
 
-void TRecalibrationEM::_initializeModel(std::string modelTag){
+void TRecalibrationEM::_addModel(std::string modelTag, std::vector<std::string> & values, bool verbose){
 	trimString(modelTag);
-	if(modelTag == "full"){
-		logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		model = new TRecalibrationEMModel_Base();
-	} else if(modelTag == "noContext"){
-		logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
-		model = new TRecalibrationEMModelNoContext();
-	} else if(modelTag == "positionSpecific"){
-		logfile->list("Will use a model with quality, quality squared, 20 context and each position.");
-		model = new TRecalibrationEMModelPositionSpecific();
-	} else throw "Unknown recalibration model '" + modelTag + "'!";
 
-	modelInitialized = true;
+	//get shift of next model
+	int shift = 0;
+	if(models.size() > 0)
+		shift = (*models.rbegin())->getNextShift();
+
+	//add model according to tag
+	if(modelTag == "full"){
+		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
+		models.push_back(new TRecalibrationEMModel_qualFuncPosFunc(shift, values));
+	} else if(modelTag == "noContext"){
+		if(verbose) logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
+		models.push_back(new TRecalibrationEMModel_qualFuncPosFuncNoContext(shift, values));
+	} else if(modelTag == "positionSpecific"){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, 20 context and each position.");
+		models.push_back(new TRecalibrationEMModel_qualFuncPosSpecific(shift, values));
+	} else if(modelTag == "noRecal"){
+		if(verbose) logfile->list("Will use a model that does not recalibrate.");
+		models.push_back(new TRecalibrationEMModel_noRecal(shift));
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
+};
+
+void TRecalibrationEM::_addModelForEstimation(std::string modelTag, int maxPos){
+	trimString(modelTag);
+
+	//get shift of next model
+	int shift = 0;
+	if(models.size() > 0)
+		shift = (*models.rbegin())->getNextShift();
+
+	//add model according to tag
+	if(modelTag == "full"){
+		models.push_back(new TRecalibrationEMModel_qualFuncPosFunc(shift));
+	} else if(modelTag == "noContext"){
+		models.push_back(new TRecalibrationEMModel_qualFuncPosFuncNoContext(shift));
+	} else if(modelTag == "positionSpecific"){
+		models.push_back(new TRecalibrationEMModel_qualFuncPosSpecific(shift, maxPos));
+	} else if(modelTag == "noRecal"){
+		models.push_back(new TRecalibrationEMModel_noRecal(shift));
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
 void TRecalibrationEM::initialize(std::string string){
@@ -325,28 +550,32 @@ void TRecalibrationEM::initialize(std::string string){
 
 void TRecalibrationEM::initializeRecalibrationParametersFromString(std::string & string){
 	//string has format model[param1, param2, param3, ...]
-	logfile->listFlush("Initializing recal with string '" + string + "' for all read groups ...");
+	logfile->startIndent("Initializing recal with string '" + string + "' for all read groups:");
 
-	//initialize model
+	//fill internal read group index
+	readGroupIndex.initialize(readGroupMapObject.getNumReadGroups());
+	readGroupIndex.setAllToSingleIndex();
+
+	//read model tag
 	size_t pos = string.find_first_of('[');
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
 	std::string modelTag = string.substr(0,pos);
-	_initializeModel(modelTag);
 	string.erase(0, pos+1);
 
 	//read parameters
 	pos = string.find_first_of(']');
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
-
-	//initialize all read groups to recal parameters given in name
 	std::vector<std::string> tmpVec, vec;
 	fillVectorFromString(string.substr(0, pos), tmpVec, ",");
 	repeatIndexes(tmpVec, vec);
 
-	model->initializeWithValues(vec, readGroupMapObject.getNumReadGroups());
-	logfile->done();
+	//initialize model
+	_addModel(modelTag, vec, true);
+	modelsInitialized = true;
+
+	logfile->endIndent();
 };
 
 void TRecalibrationEM::initializeRecalibrationParametersFromFile(std::string filename){
@@ -361,229 +590,149 @@ void TRecalibrationEM::initializeRecalibrationParametersFromFile(std::string fil
 	size_t pos = tmp.find_first_of('=');
 	if(pos == std::string::npos)
 		throw "Unable to read recal file: model not provided on first line!";
-
 	std::string modelTag = tmp.substr(pos);
-	_initializeModel(modelTag);
 
-	//initialize model from header
-	std::vector<std::string> vec;
-	fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-	model->initializeWithHeader(vec, readGroupMapObject.getNumReadGroups());
+	//fill internal read group index and create mode array
+	readGroupIndex.initialize(readGroupMapObject.getNumReadGroups());
 
 	//tmp variables for reading
 	int lineNum = 0;
-	std::vector<std::string>::iterator it;
-	int rg;
-	bool* rgFound = new bool[readGroupMapObject.getNumReadGroups()];
-	for(int r=0; r<readGroupMapObject.getNumReadGroups(); ++r) rgFound[r] = false;
+	std::vector<std::string> vec;
 
 	//parse file to read details for each read group
 	while(file.good() && !file.eof()){
 		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
 
 		//skip empty lines
 		if(vec.size() > 0){
-			//find read group
-			it = vec.begin();
-			if(bamHeader->ReadGroups.Contains(*it)) {
-				rg = readGroupMapObject[findReadGroupIndex(*it, bamHeader->ReadGroups)];
-				rgFound[rg] = true;
+			//check if read group exists
+			if(bamHeader->ReadGroups.Contains(vec[0])) {
+				//read read group, mate and model
+				int rg = readGroupMapObject[findReadGroupIndex(vec[0], bamHeader->ReadGroups)];
+				bool isSecondMate = vec[1];
+				std::string modelTag = vec[2];
 
-				//remove read group name from vector
-				vec.erase(vec.begin());
-				vec.erase(vec.end() - 1);
+				//clean up vec to only contain parameters (remove read group, mate, model and LL)
+				vec.erase(vec.begin(), vec.begin() + 3);
 
-				//add to model
-				if(!model->setParams(vec, rg))
-					throw "Wrong number of parameters readGroup '" + *it + "' on line " + toString(lineNum) + "! Are you using the right model? Is your recal file corrupted?";
+				//create model
+				readGroupIndex.setAsUsed(rg, isSecondMate);
+				_addModel(vec[2], vec, false);
 			} else {
-				logfile->warning("Read group '" + *it + "' does not exist in the BAM header! Are you using the correct recal file?");
+				logfile->warning("Read group '" + vec[0] + "' does not exist in the BAM header! Are you using the correct recal file?");
 			}
 		}
 	}
 
-	//check if we miss some read groups
-	for(int r=0; r<readGroupMapObject.getNumReadGroups(); ++r){
-		if(!rgFound[r]) throw "Read group '" + readGroupNames[r] + "' is missing in recal file '" + filename + "'!";
+	//report read groups for which no recal model was given and initialize them as "no_recal" model
+	std::pair<int, bool> missingReadGroupInfo;
+	vec.clear();
+	bool foundOne;
+	while(readGroupIndex.nextNotInUse(missingReadGroupInfo)){
+		if(!foundOne){
+			logfile->warning("Missing read groups in file '" + filename + "'!");
+			logfile->startIndent("Will assume no recalibration for the following read groups:");
+			foundOne = true;
+		}
+
+		_printReadGroupNameToLogfile(missingReadGroupInfo);
+
+		//create a model without recalibration
+		readGroupIndex.setAsUsed(missingReadGroupInfo.first, missingReadGroupInfo.second);
+		_addModel("noRecal", vec, false);
 	}
-	delete[] rgFound;
+	if(foundOne)
+		logfile->endIndent();
+
 	logfile->done();
 };
 
+void TRecalibrationEM::_printReadGroupNameToLogfile(std::pair<int, bool> & missingReadGroupInfo){
+	if(missingReadGroupInfo.second)
+		logfile->list(readGroupNames[missingReadGroupInfo.first] + "(second mate)");
+	else
+		logfile->list(readGroupNames[missingReadGroupInfo.first] + "(first mate)");
+};
+
 void TRecalibrationEM::initializeForParameterEstimation(TParameters & args){
-	logfile->startIndent("Will run EM to estimate recalibration parameters:");
-
-	//model
-	_initializeModel(args.getParameterString("model"));
-
-	//EM parameters
-	numEMIterations = args.getParameterIntWithDefault("iterations", 100);
-	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
-	maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
-	logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
-	NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
-	logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
-	NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
-	logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
-	equalBaseFrequencies = args.parameterExists("equalBaseFreq");
-	if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
-	logfile->endIndent();
+	EMParameters = new TRecalibrationEMEstimationParameters(args);
+	modelTagForEstimation = args.getParameterStringWithDefault("model", "full");
+	estimationParametersInitialized = true;
 };
 
-void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
-	windows.push_back(new TRecalibrationEMWindow(freqs, &readGroupMapObject));
-	//set iterator
-	curWindow = windows.end(); --curWindow;
-	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
-}
+void TRecalibrationEM::performEstimation(std::string outputName, bool & writeTmpTables){
+	if(!estimationParametersInitialized)
+		throw "Can not run estimation: EM parameters were not initialized!";
 
-void TRecalibrationEM::addSite(TSite & site, TQualityMap & qualiMap){
-	(*curWindow)->addSite(site, qualityMap);
-}
-
-long TRecalibrationEM::numSites(){
-	long _numSites = 0;
-	for(TRecalibrationEMWindow* curWindow : windows)
-		_numSites += curWindow->numSites();
-	return _numSites;
-}
-
-long TRecalibrationEM::numSitesDepthTwoOrMore(){
-	long _numSites = 0;
-	for(TRecalibrationEMWindow* curWindow : windows)
-		_numSites += curWindow->numSitesDepthTwoOrMore();
-	return _numSites;
-}
-
-void TRecalibrationEM::addToDataTable(TRecalibrationEMDataTable & dataTable){
-	for(TRecalibrationEMWindow* curWindow : windows)
-		curWindow->addToDataTable(dataTable);
-};
-
-long TRecalibrationEM::cumulativeDepth(){
-	long cumulDepth = 0;
-	for(TRecalibrationEMWindow* curWindow : windows)
-		cumulDepth += curWindow->cumulativeDepth();
-	return cumulDepth;
-}
-
-void TRecalibrationEM::prepareWindowsforEM(){
-	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
-
-	int maxDepth = 0;
-	for(TRecalibrationEMWindow* curWindow : windows){
-		int tmp = curWindow->getMaxDepth();
-		if(tmp > maxDepth)
-			maxDepth = tmp;
-	}
-
-	//now crate array
-	tmpEpsilon = new float[maxDepth];
-	tmpEpsilonInitialized = true;
-}
-
-void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile){
-	//variables
-	double maxF;
-	double lambda; //used in backtracking
-	bool acceptMove;
-	bool NRconverged = false;
-
-	//calculate Q at current location
-	double Q;
-	double curQ = 0.0;
-	for(TRecalibrationEMWindow* curWindow : windows)
-		curQ += curWindow->calcQ(model, tmpEpsilon);
-
-	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
-	logfile->startIndent("Running Newton-Raphson optimization:");
-	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
-		logfile->startIndent("Running iteration " + toString(i+1) + ":");
-		logfile->listFlush("Calculating Jacobian and gradient ...");
-
-		//set to zero
-		model->setEMParamsToZero();
-
-		//fill Jacobin and F: loop over all sites
-		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-			(*curWindow)->addToJacobianAndF(model, tmpEpsilon);
-		}
-
-		//now solve J^-1 x F
-		if(model->solveJxF()){
-			logfile->done();
-/*
-			std::cout << "----------------------------------------------" << std::endl;
-			std::cout << "JxF " << JxF << std::endl;
-			std::cout << "----------------------------------------------" << std::endl;
-*/
-
-			//update params for each read group using backtracking
-			lambda = 1.0;
-			acceptMove = false;
-			while(!acceptMove){
-				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
-				model->proposeNewParameters(lambda);
-
-				//calculate Q at new location
-				Q = 0.0;
-				for(TRecalibrationEMWindow* curWindow : windows)
-					Q += curWindow->calcQ(model, tmpEpsilon);
-
-				//check if we accept or backtrack
-				if(Q > curQ){
-					acceptMove = true; //accept
-					logfile->write(" accepting move!");
-					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
-					curQ = Q;
-				} else {
-					lambda = lambda / 2.0; //backtrack;
-					logfile->write(" rejecting move!");
-					model->rejectProposedParameters();
-					if(lambda < 0.000000001){
-						acceptMove = true; //accept
-						NRconverged = true;
-						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
-					}
-				}
-			}
-		} else {
-			model->printJacobianToStdOut();
-			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
-		}
-
-		//get largest gradient (F) to check if we break
-		maxF = model->getSteepestGradient();
-		logfile->conclude("max(F) = " + toString(maxF));
-		logfile->endIndent();
-		if(maxF < maxFThreshold || NRconverged) break;
-	}
-	logfile->endIndent();
-}
-
-void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
-	//print available data
-	logfile->startIndent("Available data for recal:");
-	long _numSites = numSites();
-	logfile->list("Number of sites with data: " + toString(_numSites));
-	logfile->list("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
-	if(_numSites < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
-	logfile->endIndent();
-
-	//initialize model
-	if(!modelInitialized)
-		throw "Can not estimate recal parameters: model not initialized!";
-
+	//count data available for recal
+	logfile->listFlush("Counting data available for recal ...");
 	TRecalibrationEMDataTable dataTable(readGroupMapObject.numReadGroups, 500);
 	addToDataTable(dataTable);
-	model->initializeWithDataTable(dataTable);
+	long _numSites = numSites();
+	logfile->done();
 
+	logfile->conclude("Number of sites with data: " + toString(_numSites));
+	logfile->conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
+	logfile->conclude("Number of observations: " + toString(dataTable.totalCounts));
+	if(_numSites < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+
+
+	//initialize models based on data tables?
+	/*
+	THINK: about how to initialize models:
+	- currently: a single tag used for all
+	- but maybe we should use a file with per read group tags (how to deal with merged read groups?)
+	- or choose automatically based on available data?
+	*/
+
+	//initialize models
+	readGroupIndex.initialize(readGroupMapObject.getNumReadGroups());
+	for(int rg = 0; rg < readGroupMapObject.getNumReadGroups(); ++rg){
+		for(int mate = 0; mate < 2; ++mate){
+			if(dataTable.countsPerReadGroup[rg][0] > 0){
+				readGroupIndex.setAsUsed(rg, mate);
+				_addModelForEstimation(modelTagForEstimation, dataTable.maxPos[rg][mate]);
+			}
+		}
+	}
+
+	CHECK: report read groups with limited data as warning
+	Also report read group swithout data, but not as warning.
+	EMParameters->minRequiredObservationsPerReadGroup
+
+	//report models not initialized
+	std::pair<int, bool> missingReadGroupInfo;
+	bool foundOne;
+	while(readGroupIndex.nextNotInUse(missingReadGroupInfo)){
+		if(!foundOne){
+			logfile->warning("Lack of data for some read groups!");
+			logfile->startIndent("The following read groups will have less than " + toString() + " observations and are ignored:");
+			foundOne = true;
+		}
+
+		_printReadGroupNameToLogfile(missingReadGroupInfo);
+	}
+	if(foundOne)
+		logfile->endIndent();
+
+	//run EM
+	runEM();
+
+	//writing final estimates
+	filename = outputName + "_recalibrationEM.txt";
+	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
+	writeCurrentEstimates(filename, LL);
+	logfile->done();
+};
+
+void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 	//run EM
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 
 	//initialize tmp variables in windows and model
 	prepareWindowsforEM();
-	model->initializeEMParams();
+	models->initializeEMParams();
 
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
@@ -597,7 +746,7 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 		LL = 0.0;
 		logfile->listFlush("Calculating P(g|d, beta') ...");
 		for(TRecalibrationEMWindow* curWindow : windows)
-			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(model, tmpEpsilon);
+			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(models, tmpEpsilon);
 		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
@@ -635,16 +784,142 @@ void TRecalibrationEM::runEM(std::string outputName, bool & writeTmpTables){
 
 	//finalize
 	logfile->endNumbering();
+};
 
-	//writing final estimates
-	filename = outputName + "_recalibrationEM.txt";
-	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
-	writeCurrentEstimates(filename, LL);
-	logfile->done();
-
-	//calc LL surface
-	//calcLikelihoodSurface(outputName + "_LLsurface.txt", 21);
+void TRecalibrationEM::addNewWindow(TBaseFrequencies* freqs){
+	windows.push_back(new TRecalibrationEMWindow(freqs, &readGroupMapObject));
+	//set iterator
+	curWindow = windows.end(); --curWindow;
+	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
 }
+
+void TRecalibrationEM::addSite(TSite & site, TQualityMap & qualiMap){
+	(*curWindow)->addSite(site, qualityMap);
+}
+
+long TRecalibrationEM::numSites(){
+	long _numSites = 0;
+	for(TRecalibrationEMWindow* curWindow : windows)
+		_numSites += curWindow->numSites();
+	return _numSites;
+}
+
+long TRecalibrationEM::numSitesDepthTwoOrMore(){
+	long _numSites = 0;
+	for(TRecalibrationEMWindow* curWindow : windows)
+		_numSites += curWindow->numSitesDepthTwoOrMore();
+	return _numSites;
+}
+
+void TRecalibrationEM::addToDataTable(TRecalibrationEMDataTable & dataTable){
+	for(TRecalibrationEMWindow* curWindow : windows)
+		curWindow->addToDataTable(dataTable);
+	dataTable.assembleCountsPerReadGroup();
+};
+
+long TRecalibrationEM::cumulativeDepth(){
+	long cumulDepth = 0;
+	for(TRecalibrationEMWindow* curWindow : windows)
+		cumulDepth += curWindow->cumulativeDepth();
+	return cumulDepth;
+}
+
+void TRecalibrationEM::prepareWindowsforEM(){
+	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
+
+	int maxDepth = 0;
+	for(TRecalibrationEMWindow* curWindow : windows){
+		int tmp = curWindow->getMaxDepth();
+		if(tmp > maxDepth)
+			maxDepth = tmp;
+	}
+
+	//now crate array
+	tmpEpsilon = new float[maxDepth];
+	tmpEpsilonInitialized = true;
+}
+
+void TRecalibrationEM::runNewtonRaphson(int & maxNewtonRaphsonIteratios, double & maxFThreshold, TLog* logfile){
+	//variables
+	double maxF;
+	double lambda; //used in backtracking
+	bool acceptMove;
+	bool NRconverged = false;
+
+	//calculate Q at current location
+	double Q;
+	double curQ = 0.0;
+	for(TRecalibrationEMWindow* curWindow : windows)
+		curQ += curWindow->calcQ(models, tmpEpsilon);
+
+	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
+	logfile->startIndent("Running Newton-Raphson optimization:");
+	for(int i=0; i<maxNewtonRaphsonIteratios; ++i){
+		logfile->startIndent("Running iteration " + toString(i+1) + ":");
+		logfile->listFlush("Calculating Jacobian and gradient ...");
+
+		//set to zero
+		models->setEMParamsToZero();
+
+		//fill Jacobin and F: loop over all sites
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+			(*curWindow)->addToJacobianAndF(models, tmpEpsilon);
+		}
+
+		//now solve J^-1 x F
+		if(models->solveJxF()){
+			logfile->done();
+/*
+			std::cout << "----------------------------------------------" << std::endl;
+			std::cout << "JxF " << JxF << std::endl;
+			std::cout << "----------------------------------------------" << std::endl;
+*/
+
+			//update params for each read group using backtracking
+			lambda = 1.0;
+			acceptMove = false;
+			while(!acceptMove){
+				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
+				models->proposeNewParameters(lambda);
+
+				//calculate Q at new location
+				Q = 0.0;
+				for(TRecalibrationEMWindow* curWindow : windows)
+					Q += curWindow->calcQ(models, tmpEpsilon);
+
+				//check if we accept or backtrack
+				if(Q > curQ){
+					acceptMove = true; //accept
+					logfile->write(" accepting move!");
+					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
+					curQ = Q;
+				} else {
+					lambda = lambda / 2.0; //backtrack;
+					logfile->write(" rejecting move!");
+					models->rejectProposedParameters();
+					if(lambda < 0.000000001){
+						acceptMove = true; //accept
+						NRconverged = true;
+						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
+					}
+				}
+			}
+		} else {
+			models->printJacobianToStdOut();
+			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
+		}
+
+		//get largest gradient (F) to check if we break
+		maxF = models->getSteepestGradient();
+		logfile->conclude("max(F) = " + toString(maxF));
+		logfile->endIndent();
+		if(maxF < maxFThreshold || NRconverged) break;
+	}
+	logfile->endIndent();
+}
+
+
+
 
 void TRecalibrationEM::writeCurrentEstimates(std::string filename, double & LL){
 	std::ofstream out(filename.c_str());
@@ -656,14 +931,14 @@ void TRecalibrationEM::writeCurrentEstimates(std::string filename, double & LL){
 
 void TRecalibrationEM::writeHeader(std::ofstream & out){
 	out << "readGroup\t";
-	model->writeHeader(out);
+	models->writeHeader(out);
 	out << "\tLL" << std::endl;
 }
 
 void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 	for(int r=0; r<readGroupMapObject.getOrigNumReadGroups(); ++r){
 		out << readGroupNames[r];
-		model->writeParametersToFile(out, readGroupMapObject[r]);
+		models->writeParametersToFile(out, readGroupMapObject[r]);
 		out << "\t" << LL;
 		out << std::endl;
 	}
@@ -672,7 +947,7 @@ void TRecalibrationEM::writeParams(std::ofstream & out, double & LL){
 double TRecalibrationEM::calcLL(){
 	double LL = 0.0;
 	for(TRecalibrationEMWindow* curWindow : windows)
-		LL += curWindow->calcLL(model, tmpEpsilon);
+		LL += curWindow->calcLL(models, tmpEpsilon);
 	return LL;
 }
 
@@ -811,11 +1086,11 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 
 double TRecalibrationEM::getErrorRate(TBase & base){
-	return model->getErrorRate(base);
+	return models->getErrorRate(base);
 }
 
 int TRecalibrationEM::getQuality(TBase & base){
-	double q = model->getErrorRate(base);
+	double q = models->getErrorRate(base);
 	//transform to quality
 	return qualityMap.errorToQuality(q);
 }
