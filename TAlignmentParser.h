@@ -174,6 +174,7 @@ public:
 	void init(int MaxReadLength, TParameters & params, TLog* Logfile);
 
 	//getters
+	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
 	int getWindowSize(){return windowSize;}
 	int getMaxPhredInt(){return maxPhredInt;}
 

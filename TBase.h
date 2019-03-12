@@ -83,63 +83,9 @@ public:
 	~TBase(){};
 	void addToEmissionProb(double genotypeLikelihoods[10]);
 	void addToEmissionProbLog(double genotypeLikelihoods[10]);
-
-/*
-	void fillEmissionProbabilitiesCore(double thisErrorRate);
-
-	double getEmissionProbability(Genotype genotype){
-		return emissionProbabilities.get(genotype);
-	};
-	double getEmissionProbability(int genotype){
-		return emissionProbabilities.get(genotype);
-	};
-	void printEmissionProbs(){
-		emissionProbabilities.print();
-	}
-//	virtual char getBaseAsChar(){ return '?'; };
-
- */
 	Base getBaseAsEnum(){ return base;};
 	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(base, weight); };
 
 };
-/*
-//---------------------------------------------------------------
-class TBaseDiploidA:public TBase{
-public:
-	TBaseDiploidA(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
-	char getBase(){ return 'A'; };
-	Base getBaseAsEnum(){ return A;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(A, weight); };
-	void fillEmissionProbabilitiesCore(double thisErrorRate);
-};
-//---------------------------------------------------------------
-class TBaseDiploidC:public TBase{
-public:
-	TBaseDiploidC(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
-	char getBase(){ return 'C'; };
-	Base getBaseAsEnum(){ return C;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(C, weight); };
-	void fillEmissionProbabilitiesCore(double thisErrorRate);
-};
-//---------------------------------------------------------------
-class TBaseDiploidG:public TBase{
-public:
-	TBaseDiploidG(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA, BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
-	char getBase(){ return 'G'; };
-	Base getBaseAsEnum(){ return G;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(G, weight); };
-	void fillEmissionProbabilitiesCore(double thisErrorRate);
-};
-//---------------------------------------------------------------
-class TBaseDiploidT:public TBase{
-public:
-	TBaseDiploidT(int & Quality, int & PosInRead, int & PosInReadRev, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup):TBase(Quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup){};
-	char getBase(){ return 'T'; };
-	Base getBaseAsEnum(){ return T;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(T, weight); };
-	void fillEmissionProbabilitiesCore(double thisErrorRate);
-};
 
-*/
 #endif /* TBASE_H_ */

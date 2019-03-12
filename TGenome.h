@@ -84,7 +84,6 @@ public:
 
 	//other
 	void writeGLF(TParameters & params);
-	void combineBeagleFiles(TParameters & params);
 	void printPileup(TParameters & params);
 
 	//recalibration
