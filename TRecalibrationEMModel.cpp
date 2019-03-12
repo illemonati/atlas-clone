@@ -349,10 +349,10 @@ double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
 	eta += _betas[1] * originalErrorRate * originalErrorRate;
 
 	//q[2] is position
-	eta += _betas[2] * (double) base.posInRead;
+	eta += _betas[2] * (double) base.distFrom5Prime;
 
 	//q[3] is square of position
-	eta += _betas[3] * (double) (base.posInRead * base.posInRead);
+	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
 
 	//add intercept
 	eta += _betas[4];
@@ -501,11 +501,11 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	eta += _betas[base.context + 2];
 
 	//As of q[22]: position specific effect
-	if(base.posInRead > maxPos)
+	if(base.distFrom5Prime > maxPos)
 		//TODO: give better error. But need read group info for that!
-		throw "Position " + toString(base.posInRead + 1) + " beyond largest position for which recal parameters are available (" + toString(maxPos + 1) + ")!";
+		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(maxPos + 1) + ")!";
 	else
-		eta += _betas[numParamsWithoutPositions + base.posInRead];
+		eta += _betas[numParamsWithoutPositions + base.distFrom5Prime];
 
 	//now calculate epsilon from eta
 	return _calcEpsilon(eta);

@@ -122,17 +122,18 @@ public:
 	int maxQ;
 	int maxQPlusOne;
 	double** table; //old qual / new qual
+	bool initialized;
 
 	TQualityTransformTable(int MaxQ){
-		maxQ = MaxQ + 33;
-		maxQPlusOne = maxQ + 1;
-		table = new double*[maxQPlusOne];
-		for(int i=0; i<maxQPlusOne; ++i){
-			table[i] = new double[maxQPlusOne];
-			for(int j=0; j<maxQPlusOne; ++j){
-				table[i][j] = 0;
-			}
-		}
+		initialized = false;
+		initialize(MaxQ);
+	};
+
+	TQualityTransformTable(){
+		initialized = false;
+		maxQ = 0;
+		maxQPlusOne = 0;
+		table = NULL;
 	};
 
 	~TQualityTransformTable(){
@@ -142,7 +143,23 @@ public:
 		delete[] table;
 	};
 
-	void add(int oldQuality, int newQuality){
+	void initialize(int MaxQ){
+		if(initialized == false)
+			throw "Quality table already initialized!";
+
+		maxQ = MaxQ + 33;
+		maxQPlusOne = maxQ + 1;
+		table = new double*[maxQPlusOne];
+		for(int i=0; i<maxQPlusOne; ++i){
+			table[i] = new double[maxQPlusOne];
+			for(int j=0; j<maxQPlusOne; ++j){
+				table[i][j] = 0;
+			}
+		}
+		initialized = true;
+	};
+
+	void add(const int oldQuality, const int newQuality){
 		if(oldQuality < maxQ && newQuality < maxQ){
 			table[oldQuality][newQuality] += 1.0;
 		}
@@ -179,6 +196,52 @@ public:
 	};
 };
 
+//---------------------------------------------------------------
+//TQualityTransformTables
+//---------------------------------------------------------------
+class TQualityTransformTables{
+	TReadGroups* readGroups;
+	TQualityTransformTable* perReadGroupTables;
+	TQualityTransformTable combinedTable;
 
+	TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ){
+		readGroups = &ReadGroups;
+
+		combinedTable.initialize(MaxQ);
+		perReadGroupTables = new TQualityTransformTable[readGroups->size()];
+		for(int i=0; i<readGroups->size(); i++)
+			perReadGroupTables[i].initialize(MaxQ);
+	};
+
+	~TQualityTransformTables(){
+		delete[] perReadGroupTables;
+	};
+
+	void add(const int readGroup, const int oldQuality, const int newQuality){
+		perReadGroupTables[readGroup].add(oldQuality, newQuality);
+		combinedTable.add(oldQuality, newQuality);
+	};
+
+	void writeTables(std::string outputName, TReadGroups readGroups){
+		//print tables for read groups
+		for(int i=0; i<readGroups->size(); ++i){
+			filename = outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt";
+			out.open(filename.c_str());
+			if(!out) throw "Failed to open output file '" + filename + "'!";
+			QTtables[i]->printTable(out);
+			out.close();
+
+			//clean up vector
+			delete QTtables.at(i);
+		}
+		//print table for total data
+		filename = outputName + "_total_qualityTransformation.txt";
+		out.open(filename.c_str());
+		if(!out) throw "Failed to open output file '" + filename + "'!";
+		QTtables.at(QTtables.size()-1)->printTable(out);
+		out.close();
+		delete QTtables.at(QTtables.size()-1);
+	};
+};
 
 #endif /* QUALITYTABLES_H_ */

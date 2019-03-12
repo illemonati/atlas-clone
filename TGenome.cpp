@@ -498,7 +498,7 @@ void TGenome::writeGLF(TParameters & params){
 	}
 	//clean up
 	writer.close();
-}
+};
 
 void TGenome::printPileup(TParameters & params){
 	//initialize recalibration
@@ -533,7 +533,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//clean up
 	out.close();
-}
+};
 
 void TGenome::generatePSMCInput(TParameters & params){
 	//read in parameters required
@@ -821,7 +821,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	outFileName = outputName + "_total_qualityDistribution.txt";
 	logfile->listFlush("Writing total distribution to '" + outFileName + " ...");
 	TQualityTable allQualDist(maxQinPrintQualityDistribution);
-	for(int i=0; i<alignmentParser.readGroups.size(); ++i)
+	for(int i=0; i<alignmentParser.numReadGroups(); ++i)
 		allQualDist.add(qualDist[i]);
 	allQualDist.write(outFileName);
 	logfile->done();
@@ -835,15 +835,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 
 	//create table to store counts
-	std::vector<TQualityTransformTable*> QTtables;
-	for(int i=0; i<alignmentParser.readGroups.size() + 1; ++i){
-		TQualityTransformTable* QT = new TQualityTransformTable(maxQ);
-		QTtables.push_back(QT);
-	}
-
-	//prepare output
-	std::ofstream out;
-	std::string filename;
+	TQualityTransformTables QTtables(alignmentParser.numReadGroups(), maxQ);
 
 	//add alignments to tables
 	logfile->listFlush("Adding sites to quality transformation tables ...");
@@ -855,7 +847,12 @@ void TGenome::printQualityTransformation(TParameters & params){
 	}
 	logfile->done();
 
-	//print final tables for read groups
+
+	//prepare output
+	std::ofstream out;
+	std::string filename;
+
+	//print tables for read groups
 	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
 		filename = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityTransformation.txt";
 		out.open(filename.c_str());

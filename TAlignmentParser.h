@@ -157,11 +157,8 @@ public:
 
  	//recalibration
 	TRecalibration* recalObject;
-	TRecalibration* recalObject2;
 	bool doRecalibration;
-	bool doRecalibration2;
 	bool recalObjectInitialized;
-	bool recalObjectInitialized2;
 
 	//PMD
 	bool hasPMD;
@@ -175,6 +172,7 @@ public:
 
 	//getters
 	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
+	int numReadGroups(){ return readGroups.size(); };
 	int getWindowSize(){return windowSize;}
 	int getMaxPhredInt(){return maxPhredInt;}
 
@@ -236,11 +234,10 @@ public:
 	bool readNextAlignmentWithBlacklist(TAlignment & alignment);
 
 	//qualityTransformation
-	void initializeRecalibrationForQualityTransformation(TParameters & params);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile);
+	//void initializeRecalibrationForQualityTransformation(TParameters & params);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables, TLog* logfile);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables, TLog* logfile);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
-
 
 
 //	bool addReadToWindow(TAlignmentParser & alignemntParser, TPMD* pmdObjects);

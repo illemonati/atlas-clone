@@ -1006,33 +1006,28 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 void TAlignmentParser::initializeRecalibration(TParameters & params){
 	//TODO: this is an ugly hack! find a better solution that does not require TAlignmentParser to know task names
 	std::string task = params.getParameterString("task");
-	if(task == "qualityTransformation" || task == "recalBAM"){
-		//don't change base error rates in fillAlignment!
-		doRecalibration = false;
-		initializeRecalibrationForQualityTransformation(params);
+	TReadGroupMap readGroupMap(&bamHeader, params, logfile);
+	if(params.parameterExists("recal")){
+		std::string filename = params.getParameterString("recal");
+		TRecalibrationEM* recalObjectEM = new TRecalibrationEM(&bamHeader, logfile, readGroupMap);
+		recalObjectEM->initialize(filename);
+		recalObject = recalObjectEM;
+		doRecalibration = true;
+	} else if(params.parameterExists("BQSRQuality")){
+		recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
+		doRecalibration = true;
 	} else {
-		TReadGroupMap readGroupMap(&bamHeader, params, logfile);
-		if(params.parameterExists("recal")){
-			std::string filename = params.getParameterString("recal");
-			TRecalibrationEM* recalObjectEM = new TRecalibrationEM(&bamHeader, logfile, readGroupMap);
-			recalObjectEM->initialize(filename);
-			recalObject = recalObjectEM;
-			doRecalibration = true;
-		} else if(params.parameterExists("BQSRQuality")){
-			recalObject = new TRecalibrationBQSR(&bamHeader, params, logfile, readGroupMap);
-			doRecalibration = true;
-		} else {
-			logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-			doRecalibration = false;
-			recalObject = new TRecalibration(readGroupMap);
-		}
-		recalObjectInitialized = true;
-
-		//check if estimation is required, in which case throw an error!
-		if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+		doRecalibration = false;
+		recalObject = new TRecalibration(readGroupMap);
 	}
-}
+	recalObjectInitialized = true;
 
+	//check if estimation is required, in which case throw an error!
+	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
+};
+
+/*
 void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParameters & params){
 	//are we comparing to original quality or to another recalibration?
 	if(params.parameterExists("recal2") && !params.parameterExists("recal")) throw "use recal instead of recal2 for comparison of recalibrated qualities to original qualities!";
@@ -1070,6 +1065,7 @@ void TAlignmentParser::initializeRecalibrationForQualityTransformation(TParamete
 	//check if estimation is required, in which case throw an error!
 	if(recalObject->requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 }
+*/
 
 void TAlignmentParser::recalibrate(TAlignment & alignment){
 	//make sure read is parsed and has reference
@@ -1088,21 +1084,27 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 	alignment.recalibrated = true;
 };
 
-void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables, TLog* logfile){
 	for(int i=0; i<alignment.length; ++i){
 		if(alignment.bases[i].base != N){
-			QTtables.at(alignment.readGroupId)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
-			QTtables.at(QTtables.size() - 1)->add(alignment.qualityOriginal[i], recalObject->getQuality(alignment.bases[i]));
+			int newQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
+			QTtables.add(alignment.readGroupId, alignment.qualityOriginal[i], newQual);
 		}
 	}
-}
+};
 
-void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile){
+void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables, TLog* logfile){
 	for(int i=0; i<alignment.length; ++i){
-		QTtables.at(alignment.readGroupId)->add(recalObject->getQuality(alignment.bases[i]), otherRecalObject->getQuality(alignment.bases[i]));
-		QTtables.at(QTtables.size() - 1)->add(recalObject->getQuality(alignment.bases[i]), otherRecalObject->getQuality(alignment.bases[i]));
+		if(alignment.bases[i].base != N){
+			int firstQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
+			double tmp = alignment.bases[i].errorRate;
+			alignment.bases[i].errorRate = qualMap.qualityToError(alignment.qualityOriginal[i]);
+			int secondQual = otherRecalObject->getQuality(alignment.bases[i]);
+			alignment.bases[i].errorRate = tmp;
+			QTtables.add(alignment.readGroupId, firstQual, secondQual);
+		}
 	}
-}
+};
 
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	std::cout << "will merge up until pos " << fwdAlignment->lastAlignedPositionWithRespectToRef << std::endl;

@@ -187,12 +187,13 @@ void TAlignment::setReferenceAdded(){
 }
 
 void TAlignment::setDistancesFromEnds(){
+	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
-			//hence distance from 5' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			//and distance from 3' is given as f(end of fragment) = f(len - pos - 1)
+			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
+			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
 			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
 			int p = length - 1 - softClippedLength[1];
 			for(int d=0; d<length; ++d){
@@ -383,9 +384,16 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 };
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
-	for(int d=0; d<length; ++d){
-		bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
-		bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
+	if(isReverseStrand){
+		for(int d=0; d<length; ++d){
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
+		}
+	} else {
+		for(int d=0; d<length; ++d){
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
+		}
 	}
 };
 

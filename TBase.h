@@ -40,7 +40,7 @@ class TBase{
 public:
 	Base base;
 	double errorRate;
-	int posInRead;
+	//int posInRead;
 	int distFrom5Prime; //zero based!
 	int distFrom3Prime; //zero based!
 	double PMD_CT, PMD_GA;
@@ -53,7 +53,7 @@ public:
 	TBase(){
 		base = N;
 		errorRate = -1.0;
-		posInRead = -1;
+		//posInRead = -1;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
 		PMD_CT = -1.0;
@@ -68,7 +68,7 @@ public:
 	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond){
 		base = Base;
 		errorRate = ErrorRate;
-		posInRead = PosInRead;
+		//posInRead = PosInRead;
 		distFrom5Prime = DistFrom5Prime;
 		distFrom3Prime = DistFrom3Prime;
 		PMD_CT = thisPMD_CT;

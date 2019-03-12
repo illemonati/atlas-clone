@@ -53,7 +53,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGro
 		data[k].quality = qualiMap.errorToQuality(it->errorRate);
 
 		//position
-		data[k].position = it->posInRead;
+		data[k].position = it->distFrom5Prime;
 
 		//context
 		data[k].context = it->context;
