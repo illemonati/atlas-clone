@@ -208,7 +208,7 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::writeParametersToFile(TOutput
 	out << toString(_betas[0]) + "," + toString(_betas[1]);
 
 	//position
-	out << toString(_betas[3]) + "," + toString(_betas[3]);
+	out << toString(_betas[2]) + "," + toString(_betas[3]);
 
 	//context
 	out << concatenateString(&_betas[4], 20, ",");
@@ -595,7 +595,7 @@ void TRecalibrationEMModels::addNoRecalModelIfMissing(){
 	std::pair<int, bool> missingReadGroupInfo;
 	bool foundOne;
 	while(readGroupIndex.nextNotInUse(missingReadGroupInfo))
-		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, "noRecal", 0);
+		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal_name, 0);
 };
 
 void TRecalibrationEMModels::reportReadGroupsNotUsed(std::string* readGroupNames){

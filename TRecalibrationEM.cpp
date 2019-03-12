@@ -341,13 +341,9 @@ void TRecalibrationEM::initializeRecalibrationParametersFromFile(std::string fil
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "' for reading!";
 
-	//read model on first line
-	std::string tmp;
-	std::getline(file, tmp);
-	size_t pos = tmp.find_first_of('=');
-	if(pos == std::string::npos)
-		throw "Unable to read recal file: model not provided on first line!";
-	std::string modelTag = tmp.substr(pos);
+	//skip header
+	std::string line;
+	std::getline(file, line);
 
 	//tmp variables for reading
 	int lineNum = 0;
@@ -394,7 +390,7 @@ void TRecalibrationEM::initializeRecalibrationParametersFromFile(std::string fil
 
 void TRecalibrationEM::initializeForParameterEstimation(TParameters & args){
 	EMParameters = new TRecalibrationEMEstimationParameters(args, logfile);
-	modelTagForEstimation = args.getParameterStringWithDefault("model", "full");
+	modelTagForEstimation = args.getParameterStringWithDefault("model", "qualFuncPosFuncContext");
 	estimationParametersInitialized = true;
 };
 
