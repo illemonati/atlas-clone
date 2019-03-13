@@ -66,7 +66,6 @@ private:
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
-	BamTools::BamAlignment bamAlignment;
 
 	//read trimming
 	bool trimReads;
@@ -94,6 +93,7 @@ private:
 	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
 	bool applyFragmentLengthFilter;
+	bool keepOnlyFwd, keepOnlyRev;
 
 	//blacklist
 	bool _updateBlacklist;
@@ -137,6 +137,9 @@ public:
 	bool sitesProvided;
 	TSiteSubset* subset = NULL;
  	TReadGroups readGroups;
+
+	BamTools::BamAlignment bamAlignment;
+
 
 	//maps
 	TGenotypeMap genoMap;

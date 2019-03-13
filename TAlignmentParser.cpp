@@ -89,6 +89,8 @@ TAlignmentParser::TAlignmentParser(){
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
 	applyFragmentLengthFilter = false;
+	keepOnlyFwd = false;
+	keepOnlyRev = false;
 
 	//blacklist
 	_updateBlacklist = false;
@@ -411,6 +413,11 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		bool filter = true;
 		setApplyFragmentLengthFilter(filter);
 	}
+
+	if(params.parameterExists("keepOnlyFwd")){
+		keepOnlyFwd = true;
+	} else if(params.parameterExists("keepOnlyRev"))
+		keepOnlyRev = true;
 };
 
 void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
@@ -731,6 +738,9 @@ bool TAlignmentParser::applyFilters(){
 					&& !bamAlignment.IsSupplementary()
 					&& useChromosome[bamAlignment.RefID]
 					&& (_keepDuplicates || !bamAlignment.IsDuplicate());
+
+	if((keepOnlyFwd && bamAlignment.IsReverseStrand()) || (keepOnlyRev && !bamAlignment.IsReverseStrand()))
+		filtersPassed = false;
 
 	return filtersPassed;
 }
