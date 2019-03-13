@@ -49,6 +49,9 @@ public:
 //covariates to take into account:
 // - read base (A, G, C, T)
 // -
+
+//TODO: make class TBQSR_table!
+
 class TBQSR_cell_base{
 public:
 	float curEstimate;
@@ -68,7 +71,7 @@ public:
 	TBQSR_cell_base();
 	virtual ~TBQSR_cell_base(){};
 	virtual void empty();
-	virtual void init(bool Store, int ReadGroup);
+	virtual void init(int ReadGroup);
 	void reopenEstimation();
 	void set(float error){curEstimate = error;};
 	void set(float error, std::string & NumObservations);
@@ -85,12 +88,14 @@ public:
 
 
 class TBQSR_cell:public TBQSR_cell_base{
-public:
-	uint64_t numMatches;
+private:
 	//for storage
 	std::vector<float*> D_storage;
 	std::vector<float*>::reverse_iterator batchIt;
 	float* pointerToBatch;
+
+public:
+	uint64_t numMatches;
 
 	TBQSR_cell();
 	virtual ~TBQSR_cell(){
@@ -98,7 +103,8 @@ public:
 	};
 	void empty();
 	void clearStorage();
-	void init(float initialError, bool Store, int ReadGroup);
+	void init(int ReadGroup, float initialError);
+	virtual void doStoreData();
 	void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap);
 	void addToDerivatives(float & D);
 	void addToLL(float & D);
@@ -120,20 +126,22 @@ struct BQSRFactorStorage{
 };
 
 class TBQSR_cellPosition:public TBQSR_cell_base{
-public:
-	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
-	TQualityIndex* qualityIndex;
-	//for storage
+protected:
 	std::vector<BQSRFactorStorage*> D_storage;
 	std::vector<BQSRFactorStorage*>::reverse_iterator batchIt;
 	BQSRFactorStorage* pointerToBatch;
+
+public:
+	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
+	TQualityIndex* qualityIndex;
 
 	TBQSR_cellPosition();
 	~TBQSR_cellPosition(){
 		clearStorage();
 	};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup);
+	virtual void doStoreData();
 	void clearStorage();
 	virtual float getEpsilon(TBase* base, TQualityMap & qualiMap);
 	void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap);
@@ -154,8 +162,9 @@ public:
 	TBQSR_cellPositionRev();
 	~TBQSR_cellPositionRev(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup);
+
 	float getEpsilon(TBase* base, TQualityMap & qualiMap);
 };
 
@@ -167,94 +176,157 @@ public:
 	TBQSR_cellContext();
 	~TBQSR_cellContext(){};
 
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TBQSR_cellPositionRev** gotBQSR_cells_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_quality_position, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	void init(TBQSR_cell** gotBQSR_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_quality_position_rev, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
-	void init(TBQSR_cell** gotBQSR_cells_quality_readGroup, TQualityIndex* QualityIndex, bool Store, int ReadGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup, TBQSR_cellPositionRev** gotBQSR_cells_positionRev_readGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPosition** gotBQSR_cells_position_readGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup, TBQSR_cellPositionRev** gotBQSR_cells_positionRev_readGroup);
+	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cell** gotBQSR_cells_quality_readGroup);
 	float getEpsilon(TBase* base, TQualityMap & qualiMap);
 };
 
-//TODO: make class TBQSR_table!
 
+//-----------------------------------------------------------------
+
+//-----------------------------------------------------------------
 class TRecalibrationBQSR:public TRecalibration{
 private:
 	TQualityIndex* qualityIndex;
-	BamTools::SamHeader* bamHeader;
-	BamTools::SamHeader* newHeader;
+	TReadGroups* _readGroups;
 
-	TLog* logfile;
-	TGenotypeMap genoMap;
-	bool estimatetionRequired;
-	float convergenceThreshold_F;
-	float minEpsilonQuality, minEpsilonFactors;
-	int numLoopIncreaseFAllowed;
-	int curNewtonRaphsonLoop;
-	bool estimationConverged;
-	int maxPos;
-	int numContexts;
-	long minObservations;
-	bool storeDataInMemory;
-	bool dataStored;
-	bool printLLSurface;
-	bool LLSurfacePrinted;
-	int numPosLLsurface;
+	TLog* _logfile;
+	TGenotypeMap _genoMap;
+
+	int _maxPos;
+	int _numContexts;
 
 	//recal tables
-	bool qualityConverged, estimateQuality;
-	TBQSR_cell** BQSR_cells_readGroup_quality; //read group x quality
-	bool considerPosition, positionConverged, estimatePosition;
+	TBQSR_cell** _BQSR_cells_readGroup_quality; //read group x quality
+	bool _considerPosition;
 	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
-	bool considerPositionReverse, positionReverseConverged, estimatePositionReverse;
-	TBQSR_cellPositionRev** BQSR_cells_readGroup_position_reverse; //read group x position
-	bool considerContext, contextConverged, estimateContext;
-	TBQSR_cellContext** BQSR_cells_readGroup_context; //quality x context
+	bool _considerPositionReverse;
+	TBQSR_cellPositionRev** _BQSR_cells_readGroup_position_reverse; //read group x position
+	bool _considerContext;
+	TBQSR_cellContext** _BQSR_cells_readGroup_context; //quality x context
 
-	void initializeBQSRReadGroupQualityTable(TParameters & params);
-	void initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
-	void initializeBQSRReadGroupPositionTable(TParameters & params);
-	void initializeBQSRReadGroupPositionTableFromFile(TParameters & params);
-
-	void initializeBQSRReadGroupPositionReverseTable(TParameters & params);
-	void initializeBQSRReadGroupPositionReverseTableFromFile(TParameters & params);
-
-	void initializeBQSRReadGroupContextTable(TParameters & params);
-	void initializeBQSRReadGroupContextTableFromFile(TParameters & params);
-
-	bool requiresEstimation(){ return estimatetionRequired;};
+	void _initializeBQSRReadGroupQualityTableFromFile(std::string filename);
+	void _initializeBQSRReadGroupPositionTableFromFile(std::string filename);
+	void _initializeBQSRReadGroupPositionReverseTableFromFile(std::string filename);
+	void _initializeBQSRReadGroupContextTableFromFile(std::string filename);
 
 public:
-	TRecalibrationBQSR(BamTools::SamHeader* BamHeader, TParameters & params, TLog* Logfile, TReadGroupMap& ReadGroupMap);
+	TRecalibrationBQSR(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups);
 	~TRecalibrationBQSR(){
-		for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
-			delete[] BQSR_cells_readGroup_quality[i];
+		for(int i=0; i<_readGroups->size(); ++i){
+			delete[] _BQSR_cells_readGroup_quality[i];
 		}
-		delete[] BQSR_cells_readGroup_quality;
+		delete[] _BQSR_cells_readGroup_quality;
 		delete qualityIndex;
 
-		if(considerPosition){
-			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
+		if(_considerPosition){
+			for(int i=0; i<_readGroups->size(); ++i){
 				delete[] BQSR_cells_readGroup_position[i];
 			}
 			delete[] BQSR_cells_readGroup_position;
 		}
 
-		if(considerPositionReverse){
-			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
-				delete[] BQSR_cells_readGroup_position_reverse[i];
+		if(_considerPositionReverse){
+			for(int i=0; i<_readGroups->size(); ++i){
+				delete[] _BQSR_cells_readGroup_position_reverse[i];
 			}
-			delete[] BQSR_cells_readGroup_position_reverse;
+			delete[] _BQSR_cells_readGroup_position_reverse;
 		}
 
-		if(considerContext){
-			for(int i=0; i<readGroupMapObject.numReadGroups; ++i){
-				delete[] BQSR_cells_readGroup_context[i];
+		if(_considerContext){
+			for(int i=0; i<_readGroups->size(); ++i){
+				delete[] _BQSR_cells_readGroup_context[i];
 			}
-			delete[] BQSR_cells_readGroup_context;
+			delete[] _BQSR_cells_readGroup_context;
 		}
 	};
 
 	bool recalibrationChangesQualities(){ return true; };
-	bool dataHasBeenStored(){ return dataStored; };
+	double getErrorRate(TBase & base);
+};
+
+/*
+class TRecalibrationBQSREstimator:public TRecalibration{
+private:
+	TQualityIndex* qualityIndex;
+	TReadGroups* _readGroups;
+	TReadGroupMap* _readGroupMap;
+
+	TLog* _logfile;
+	TGenotypeMap _genoMap;
+	bool _estimatetionRequired;
+	float _convergenceThreshold_F;
+	float _minEpsilonQuality, _minEpsilonFactors;
+	int _numLoopIncreaseFAllowed;
+	int _curNewtonRaphsonLoop;
+	bool _estimationConverged;
+	int _maxPos;
+	int _numContexts;
+	long _minObservations;
+	bool _storeDataInMemory;
+	bool _dataStored;
+	bool _printLLSurface;
+	bool _LLSurfacePrinted;
+	int _numPosLLsurface;
+
+	//recal tables
+	bool _qualityConverged, _estimateQuality;
+	TBQSR_cell** _BQSR_cells_readGroup_quality; //read group x quality
+	bool _considerPosition, _positionConverged, _estimatePosition;
+	TBQSR_cellPosition** BQSR_cells_readGroup_position; //read group x position
+	bool _considerPositionReverse, _positionReverseConverged, _estimatePositionReverse;
+	TBQSR_cellPositionRev** _BQSR_cells_readGroup_position_reverse; //read group x position
+	bool _considerContext, _contextConverged, _estimateContext;
+	TBQSR_cellContext** _BQSR_cells_readGroup_context; //quality x context
+
+	void _initializeBQSRReadGroupQualityTable(TParameters & params);
+	void _initializeBQSRReadGroupQualityTableFromFile(TParameters & params);
+	void _initializeBQSRReadGroupPositionTable(TParameters & params);
+	void _initializeBQSRReadGroupPositionTableFromFile(TParameters & params);
+
+	void _initializeBQSRReadGroupPositionReverseTable(TParameters & params);
+	void _initializeBQSRReadGroupPositionReverseTableFromFile(TParameters & params);
+
+	void _initializeBQSRReadGroupContextTable(TParameters & params);
+	void _initializeBQSRReadGroupContextTableFromFile(TParameters & params);
+
+	bool _requiresEstimation(){ return _estimatetionRequired; };
+
+public:
+	TRecalibrationBQSR(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
+	~TRecalibrationBQSR(){
+		for(int i=0; i<_readGroupMap->numReadGroups; ++i){
+			delete[] _BQSR_cells_readGroup_quality[i];
+		}
+		delete[] _BQSR_cells_readGroup_quality;
+		delete qualityIndex;
+
+		if(_considerPosition){
+			for(int i=0; i<_readGroupMap->numReadGroups; ++i){
+				delete[] BQSR_cells_readGroup_position[i];
+			}
+			delete[] BQSR_cells_readGroup_position;
+		}
+
+		if(_considerPositionReverse){
+			for(int i=0; i<_readGroupMap->numReadGroups; ++i){
+				delete[] _BQSR_cells_readGroup_position_reverse[i];
+			}
+			delete[] _BQSR_cells_readGroup_position_reverse;
+		}
+
+		if(_considerContext){
+			for(int i=0; i<_readGroupMap->numReadGroups; ++i){
+				delete[] _BQSR_cells_readGroup_context[i];
+			}
+			delete[] _BQSR_cells_readGroup_context;
+		}
+	};
+
+	bool recalibrationChangesQualities(){ return true; };
+	bool dataHasBeenStored(){ return _dataStored; };
 	void addSite(TSite & site, TQualityMap & qualiMap);
 	void recalculateDerivativesFromDataInMemory();
 	bool estimateEpsilon(std::string filenameTag);
@@ -274,4 +346,6 @@ public:
 	double getErrorRate(TBase & base);
 //	int getQuality(TBase & base);
 };
+
+*/
 

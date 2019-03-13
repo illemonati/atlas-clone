@@ -175,7 +175,11 @@ public:
 		return size;
 	};
 
-	void printTable(std::ofstream & out){
+	void printTable(const std::string filename){
+		//open file
+		std::ofstream out(filename.c_str());
+		if(!out) throw "Failed to open output file '" + filename + "'!";
+
 		//print header
 		out << "oldQ/newQ";
 		for(int i=33; i<maxQPlusOne; ++i)
@@ -193,6 +197,9 @@ public:
 			}
 			out << "\n";
 		}
+
+		//close file
+		out.close();
 	};
 };
 
@@ -200,10 +207,12 @@ public:
 //TQualityTransformTables
 //---------------------------------------------------------------
 class TQualityTransformTables{
+private:
 	TReadGroups* readGroups;
 	TQualityTransformTable* perReadGroupTables;
 	TQualityTransformTable combinedTable;
 
+public:
 	TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ){
 		readGroups = &ReadGroups;
 
@@ -222,25 +231,12 @@ class TQualityTransformTables{
 		combinedTable.add(oldQuality, newQuality);
 	};
 
-	void writeTables(std::string outputName, TReadGroups readGroups){
+	void writeTables(std::string outputName){
 		//print tables for read groups
-		for(int i=0; i<readGroups->size(); ++i){
-			filename = outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt";
-			out.open(filename.c_str());
-			if(!out) throw "Failed to open output file '" + filename + "'!";
-			QTtables[i]->printTable(out);
-			out.close();
+		for(int i=0; i<readGroups->size(); ++i)
+			perReadGroupTables[i].printTable(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
 
-			//clean up vector
-			delete QTtables.at(i);
-		}
-		//print table for total data
-		filename = outputName + "_total_qualityTransformation.txt";
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
-		QTtables.at(QTtables.size()-1)->printTable(out);
-		out.close();
-		delete QTtables.at(QTtables.size()-1);
+		combinedTable.printTable(outputName + "_total_qualityTransformation.txt");
 	};
 };
 

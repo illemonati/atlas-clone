@@ -136,7 +136,7 @@ public:
 
 	bool hasReadGroupsWithoutModel();
 	void addNoRecalModelIfMissing();
-	void reportReadGroupsNotUsed(std::string* readGroupNames);
+	void reportReadGroupsNotUsed(TReadGroups & readGroups);
 	void setEMParamsToZero();
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
 	bool solveJxF(const int numSites);
@@ -147,12 +147,11 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 	void writeHeader(TOutputFilePlain & out);
-	void writeParameters(TOutputFilePlain & out, std::string* readGroupNames);
+	void writeParameters(TOutputFilePlain & out, TReadGroups & readGroups);
 	inline double getErrorRate(TBase & base){
 		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate) ]->getErrorRate(base);
 	};
 };
-
 
 
 #endif /* TRECALIBRATIONEMMODEL_H_ */

@@ -518,7 +518,7 @@ void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, st
 		}
 	}
 }
-
+/*
 void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
@@ -527,7 +527,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityM
 		}
 	}
 	logfile->done();
-}
+};
 
 void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
@@ -543,38 +543,9 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 	}
 	logfile->done();
 
-}
-/*
-void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
-	logfile->listFlush("Adding sites to quality transformation tables ...");
-	std::vector<TBase*>::iterator it;
-
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-				QTtables.at((*it)->readGroup)->add((*it)->quality, recalObject->getQualityFromBase(**it));
-				QTtables.at(QTtables.size() - 1)->add((*it)->quality, recalObject->getQualityFromBase(**it));
-			}
-		}
-	}
-
-	logfile->done();
-}
-
-void TWindow::addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap){
-	logfile->listFlush("Adding sites to quality transformation tables ...");
-	std::vector<TBase*>::iterator it;
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			for(it = sites[i].bases.begin(); it != sites[i].bases.end(); ++it){
-				QTtables.at((*it)->readGroup)->add(recalObject->getQualityFromBase(**it, qualMap), otherRecalObject->getQualityFromBase(**it, qualMap));
-				QTtables.at(QTtables.size() - 1)->add(recalObject->getQualityFromBase(**it, qualMap), otherRecalObject->getQualityFromBase(**it, qualMap));
-			}
-		}
-	}
-	logfile->done();
-}
+};
 */
+
 void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(int i=0; i<length; ++i){
@@ -583,7 +554,7 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 		}
 	}
 	logfile->done();
-}
+};
 
 void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	//assumes that emission probabilities were calculated
@@ -591,7 +562,7 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 		sites[i].calcEmissionProbabilities();
 		thetaDataContainer->add(sites[i]);
 	}
-}
+};
 
 void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
 	//assumes that emission probabilities were calculated
@@ -606,218 +577,8 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, 
 			}
 		}
 	}
-}
+};
 
-/*
-void TWindow::callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL){
-	//check if we need to process this window
-	if(subset->hasPositionsInWindow(start)){
-		//now only run over sites listed in that window
-		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-		int pos;
-		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start;
-			if(beagle) {
-				if(sites[pos].hasData)
-					sites[pos].calcEmissionProbabilities();
-				sites[pos].callMLEGenotypeKnownAllelesBeagle(genoMap, randomGenerator, out, it->second.second, chr, pos, start, printOnlyGL);
-			} else {
-				out << chr << "\t" << it->first + 1;
-				if(sites[pos].hasData)
-					sites[pos].calcEmissionProbabilities();
-				if(isVCF){
-					std::string basesString = sites[pos].getBases();
-					sites[pos].callMLEGenotypeVCFKnownAlleles(genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
-				} else sites[pos].callMLEGenotypeKnownAlleles(genoMap, randomGenerator, out, it->second.second);
-				out << "\n";
-			}
-		}
-	}
-}
-
-void TWindow::callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef, bool printPP, bool onlyPhredGP){
-	//calc prior probabilities on Genotypes
-	double* pGenotype = new double[10];
-	estimator.fillPGenotype(pGenotype);
-
-	//now call genotypes. Note: emission probabilities have already been calculated when estimating theta!
-	if(isVCF){
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				std::string basesString = sites[i].getBases();
-				sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					std::string basesString = sites[i].getBases();
-					sites[i].callBayesianGenotypeVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, printPP, onlyPhredGP, basesString);
-					out << "\n";
-				}
-			}
-		}
-	} else {
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				sites[i].callBayesianGenotype(pGenotype, genoMap, randomGenerator, out);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].callBayesianGenotype(pGenotype, genoMap, randomGenerator, out);
-					out << "\n";
-				}
-			}
-		}
-	}
-
-	//clean up
-	delete[] pGenotype;
-}
-
-void TWindow::callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF){
-	//check if we need to process this window
-	if(subset->hasPositionsInWindow(start)){
-		//calc prior probabilities on Genotypes
-		double* pGenotype = new double[10];
-		estimator.fillPGenotype(pGenotype);
-
-		//now only run over sites listed in that window
-		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-		int pos;
-		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start;
-			out << chr << "\t" << it->first + 1;
-			if(isVCF)
-				sites[pos].callBayesianGenotypeVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
-			else
-				sites[pos].callBayesianGenotypeKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
-			out << "\n";
-		}
-
-		//clean up
-		delete[] pGenotype;
-	}
-}
-
-void TWindow::callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef){
-	//calc prior probabilities on Genotypes
-	double* pGenotype = new double[10];
-	estimator.fillPGenotype(pGenotype);
-
-	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
-	if(isVCF){
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				std::string baseString = sites[i].getBases();
-				sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					std::string baseString = sites[i].getBases();
-					sites[i].callAllelePresenceVCF(pGenotype, genoMap, randomGenerator, out, noAltIfHomoRef, baseString);
-					out << "\n";
-				}
-			}
-		}
-	} else {
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				sites[i].callAllelePresence(pGenotype, genoMap, randomGenerator, out);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].callAllelePresence(pGenotype, genoMap, randomGenerator, out);
-					out << "\n";
-				}
-			}
-		}
-	}
-
-	//clean up
-	delete[] pGenotype;
-}
-
-void TWindow::callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
-	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i + 1;
-			sites[i].callRandomBase(randomGenerator, out);
-			out << "\n";
-		}
-	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
-				out << chr << "\t" << start + i + 1;
-				sites[i].callRandomBase(randomGenerator, out);
-				out << "\n";
-			}
-		}
-	}
-}
-
-void TWindow::majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll){
-	//now call allele presence. Note: emission probabilities have already been calculated when estimating theta!
-	if(printAll){
-		for(int i=0; i<length; ++i){
-			out << chr << "\t" << start + i + 1;
-			sites[i].majorityCall(randomGenerator, out);
-			out << "\n";
-		}
-	} else {
-		for(int i=0; i<length; ++i){
-			if(sites[i].hasData){
-				out << chr << "\t" << start + i + 1;
-				sites[i].majorityCall(randomGenerator, out);
-				out << "\n";
-			}
-		}
-	}
-}
-
-void TWindow::callAllelePresenceKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef){
-	//check if we need to process this window
-	if(subset->hasPositionsInWindow(start)){
-		//calc prior probabilities on Genotypes
-		double* pGenotype = new double[10];
-		estimator.fillPGenotype(pGenotype);
-
-		//now only run over sites listed in that window
-		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-		int pos;
-		for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-			pos = it->first - start;
-			out << chr << "\t" << it->first + 1;
-			if(isVCF){
-				std::string basesString = sites[pos].getBases();
-				sites[pos].callAllelePresenceVCFKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second, noAltIfHomoRef, basesString);
-			} else {
-				sites[pos].callAllelePresenceKnownAlleles(pGenotype, genoMap, randomGenerator, out, it->second.second);
-			}
-			out << "\n";
-
-		}
-
-		//clean up
-		delete[] pGenotype;
-	}
-}
-*/
 void TWindow::addToGLF(TGlfWriter & writer, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	uint8_t* gl = new uint8_t[10];
@@ -901,7 +662,7 @@ double TWindow::calcLogLikelihood(){
 	return LL;
 }
 
-void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap){
+void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	for(int i=0; i<length; ++i){
@@ -911,7 +672,7 @@ void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap &
 	}
 }
 
-void TWindow::addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
+void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	//now only run over sites listed in that window

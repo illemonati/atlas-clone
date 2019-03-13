@@ -259,8 +259,7 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	// iterate over CigarOps
-	int d = 0; //index regarding data structures
-	int k = 0; //index inside read
+	int d = 0; //index regarding data structures and inside read
 	int p = 0; //index regarding reference position (!= k for indels)
 	softClippedEntry = 0; //softclipped bases to be added
 	softClippedLength[0] = 0; softClippedLength[1] = 0;
@@ -280,11 +279,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			case (BamTools::Constants::BAM_CIGAR_MISMATCH_CHAR) :
 
 				//soft-clipped bases on 5' are before bamAlignment.Position
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
-					bases[d].posInRead = k;
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					qualityOriginal[d] = (int) bamAlignment.Qualities[d];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[d]];
 					if(bases[d].base == N){
 						bases[d].aligned = false;
 						bases[d].alignedPos = -1;
@@ -299,31 +297,29 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			//for 'S' - soft clip: ignore bases, but increase k
 			case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 				//add bases to softclipped entries
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
+				for(unsigned int i=0; i<op.Length; ++i, ++d){
 					//soft-clipped bases on 5' are before bamAlignment.Position
-					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[k];
-					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[k];
+					softClippedBase[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.QueryBases[d];
+					softClippedQuality[softClippedEntry][softClippedLength[softClippedEntry]] = bamAlignment.Qualities[d];
 					++softClippedLength[softClippedEntry];
 					//need to initialize quality for quality filter and bases for context
-					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[d]);
 					qualityOriginal[d] = -1;
-					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[d]];
 					bases[d].aligned = false;
 					bases[d].alignedPos = -1;
-					bases[d].posInRead = k;
 				}
 				break;
 
 			//for 'I' - insertion: copy bases, but put aligned pos to -1
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k){
-					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[k];
-					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+				for(unsigned int i=0; i<op.Length; ++i, ++d){
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					qualityOriginal[d] = (int) (char) bamAlignment.Qualities[d];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[d]];
 					bases[d].aligned = false;
 					++numInsertions;
 					bases[d].alignedPos = -1;
-					bases[d].posInRead = k;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -338,13 +334,12 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
-				for(unsigned int i=0; i<op.Length; ++i, ++d, ++k, ++p){
-					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[k]);
-					qualityOriginal[d] = (int) bamAlignment.Qualities[k];
-					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[k]];
+				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
+					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					qualityOriginal[d] = (int) bamAlignment.Qualities[d];
+					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[d]];
 					bases[d].aligned = false;
 					bases[d].alignedPos = p;
-					bases[d].posInRead = k;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -360,7 +355,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	}
 
 	//update length and last aligned position
-	length = k;
+	length = d;
 	//TODO: check if we need lastPositionPlusOne and lastAlignedPos
 	lastAlignedPositionWithRespectToRef = position + p - 1;
 	lastPositionPlusOne = position + length;

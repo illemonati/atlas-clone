@@ -210,12 +210,12 @@ bool TRecalibrationEMReadGroupIndex::nextNotInUse(std::pair<int, bool> & pair){
 	return false;
 };
 
-void TRecalibrationEMReadGroupIndex::reportReadGroupsNotUsed(TLog* logfile, std::string* readGroupNames){
+void TRecalibrationEMReadGroupIndex::reportReadGroupsNotUsed(TLog* logfile, TReadGroups & readGroups){
 	for(int rg = 0; rg<_numReadGroups; ++rg){
 		if(!readGroupInUse[rg][0])
-			logfile->list(readGroupNames[rg] + " (first mate)");
+			logfile->list(readGroups.getName(rg) + " (first mate)");
 		if(!readGroupInUse[rg][1])
-			logfile->list(readGroupNames[rg] + " (second mate)");
+			logfile->list(readGroups.getName(rg) + " (second mate)");
 	}
 };
 

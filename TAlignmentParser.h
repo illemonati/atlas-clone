@@ -173,6 +173,7 @@ public:
 	//getters
 	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
 	int numReadGroups(){ return readGroups.size(); };
+	std::string recalibrationType(){ return recalObject->type(); };
 	int getWindowSize(){return windowSize;}
 	int getMaxPhredInt(){return maxPhredInt;}
 
@@ -235,8 +236,8 @@ public:
 
 	//qualityTransformation
 	//void initializeRecalibrationForQualityTransformation(TParameters & params);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables, TLog* logfile);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables, TLog* logfile);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables);
+	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 
 

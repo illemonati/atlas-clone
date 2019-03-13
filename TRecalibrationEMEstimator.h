@@ -5,28 +5,12 @@
  *      Author: phaentu
  */
 
-#ifndef TRECALIBRATIONEM_H_
-#define TRECALIBRATIONEM_H_
+#ifndef TRECALIBRATIONEMESTIMATOR_H_
+#define TRECALIBRATIONEMESTIMATOR_H_
 
-#include "TRecalibration.h"
 #include "TRecalibrationEMModel.h"
+#include "TSite.h"
 
-
-//--------------------------------------------------------------------
-// TRecalibrationEMEstimationParameters
-// Object to store all parameters related to the EM algorithm
-//--------------------------------------------------------------------
-class TRecalibrationEMEstimationParameters{
-public:
-	bool equalBaseFrequencies;
-	int numEMIterations;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	unsigned int minRequiredObservations;
-
-	TRecalibrationEMEstimationParameters(TParameters & args, TLog* logfile);
-};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMSite
@@ -84,55 +68,47 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEM
+// TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TRecalibrationEM:public TRecalibration{
+class TRecalibrationEMEstimator{
 private:
 	TLog* logfile;
-	BamTools::SamHeader* bamHeader;
-	std::string* readGroupNames;
+	TReadGroups* _readGroups;
+	TReadGroupMap* _readGroupMap;
 	TRecalibrationEMModels* models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
 
 	//variables for estimation
-	bool estimationParametersInitialized;
-	TRecalibrationEMEstimationParameters* EMParameters;
+	bool equalBaseFrequencies;
+	int numEMIterations;
+	double maxEpsilon;
+	int NewtonRaphsonNumIterations;
+	double NewtonRaphsonMaxF;
+	unsigned int minRequiredObservations;
 	std::string modelTagForEstimation;
 	float* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
 
-	void runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables);
-	void runNewtonRaphson(int numSitesWithData);
-	void prepareWindowsforEM();
+	void _runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables);
+	void _runNewtonRaphson(int numSitesWithData);
+	void _prepareWindowsforEM();
 
 
 public:
-	TRecalibrationEM(BamTools::SamHeader* BamHeader, TLog* Logfile, TReadGroupMap& ReadGroupMap);
-	~TRecalibrationEM(){
+	TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap);
+	~TRecalibrationEMEstimator(){
 		delete models;
-		delete[] readGroupNames;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;
 		}
 		windows.clear();
 		if(tmpEpsilonInitialized)
 			delete[] tmpEpsilon;
-
-		if(estimationParametersInitialized)
-			delete EMParameters;
 	};
 
-	bool recalibrationChangesQualities(){ return true; };
-
-	void initialize(std::string string);
-	void initializeRecalibrationParametersFromString(std::string & string);
-	void initializeRecalibrationParametersFromFile(std::string filename);
-	void initializeForParameterEstimation(TParameters & args);
-
-	void performEstimation(std::string outputName, bool & writeTmpTables);
-
+	//functions to add data
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site, TQualityMap & qualiMap);
 	long numSites();
@@ -140,22 +116,15 @@ public:
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
 
+	//function to estimate
+	void performEstimation(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
-
-	inline double getErrorRate(TBase & base){
-		return models->getErrorRate(base);
-	};
-	inline int getQuality(TBase & base){
-		double q = models->getErrorRate(base);
-		return qualityMap.errorToQuality(q);
-	};
-
 };
 
 
 
 
-#endif /* TRECALIBRATIONEM_H_ */
+#endif /* TRECALIBRATIONEMESTIMATOR_H_ */

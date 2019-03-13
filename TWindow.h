@@ -13,7 +13,6 @@
 #include "TReadGroups.h"
 #include "TRecalibration.h"
 #include "TRecalibrationBQSR.h"
-#include "TRecalibrationEM.h"
 #include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
@@ -22,6 +21,7 @@
 #include "TAlignment.h"
 #include "TQualityMap.h"
 #include "TCaller.h"
+#include "TRecalibrationEMEstimator.h"
 
 
 
@@ -45,7 +45,6 @@ public:
 	long start;
 	long end; //end NOT included in window!
 	long length;
-//	BamTools::SamSequenceIterator chrIterator;
 	int chrNumber;
 	std::string chrName;
 	TSite* sites;
@@ -98,21 +97,12 @@ public:
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, bool printAll);
-	void addToRecalibrationEM(TRecalibrationEM & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(TRecalibrationEM & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
-
+	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
+	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 	//callers
 	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
 	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset);
-
-//	void callMLEGenotypeKnownAlleles(TRecalibration* recalObject, TSiteSubset* subset, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool & isVCF, bool & noAltIfHomoRef, bool & beagle, bool & printOnlyGL);
-//	void callBayesianGenotype(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef, bool printPP, bool onlyPhredGP);
-//	void callBayesianGenotypeKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr ,bool isVCF);
-//	void callAllelePresence(TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool noAltIfHomoRef);
-//	void callAllelePresenceKnownAlleles(TSiteSubset* subset, TThetaEstimator & estimator, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool isVCF, bool noAltIfHomoRef);
-//	void callRandomBase(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
-//	void majorityCall(TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll);
 
 	//other
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);

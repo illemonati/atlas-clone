@@ -130,9 +130,6 @@ public:
 			} else if(task == "glf"){
 				logfile->startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
 				genome.writeGLF(*parameters);
-			} else if(task == "combineBeagleFiles"){
-				logfile->startIndent("combining beagle files (task = combineBeagleFiles):");
-				genome.combineBeagleFiles(*parameters);
 			} else if(task == "qualityDist"){
 				logfile->startIndent("Printing Quality Distribution (task = qualityDist):");
 				genome.printQualityDistribution(*parameters);

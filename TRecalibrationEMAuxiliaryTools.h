@@ -13,6 +13,7 @@
 #include "stringFunctions.h"
 #include "TBase.h"
 #include "TLog.h"
+#include "TReadGroups.h"
 
 //--------------------------------------------------------------------
 // TRecalibrationEMQualityPositionMap
@@ -163,7 +164,7 @@ public:
 		return false;
 	};
 
-	void reportReadGroupsNotUsed(TLog* logfile, std::string* readGroupNames);
+	void reportReadGroupsNotUsed(TLog* logfile, TReadGroups & readGroups);
 };
 
 

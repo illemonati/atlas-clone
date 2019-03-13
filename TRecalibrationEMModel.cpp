@@ -598,8 +598,8 @@ void TRecalibrationEMModels::addNoRecalModelIfMissing(){
 		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal_name, 0);
 };
 
-void TRecalibrationEMModels::reportReadGroupsNotUsed(std::string* readGroupNames){
-	readGroupIndex.reportReadGroupsNotUsed(logfile, readGroupNames);
+void TRecalibrationEMModels::reportReadGroupsNotUsed(TReadGroups & readGroups){
+	readGroupIndex.reportReadGroupsNotUsed(logfile, readGroups);
 };
 
 void TRecalibrationEMModels::setEMParamsToZero(){
@@ -666,10 +666,10 @@ void TRecalibrationEMModels::writeHeader(TOutputFilePlain & out){
 	out.writeHeader({"readGroup", "mate", "model", "quality", "position", "context"});
 };
 
-void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, std::string* readGroupNames){
+void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups & readGroups){
 	for(int r=0; r<readGroupIndex.numReadGroups(); ++r){
-		_writeParameters(out, readGroupNames[r], r, false);
-		_writeParameters(out, readGroupNames[r], r, true);
+		_writeParameters(out, readGroups.getName(r), r, false);
+		_writeParameters(out, readGroups.getName(r), r, true);
 	}
 };
 

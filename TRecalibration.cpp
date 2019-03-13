@@ -11,47 +11,118 @@
 //TRecalibration
 //---------------------------------------------------------------
 
-TRecalibration::TRecalibration(TReadGroupMap& ReadGroupMap):readGroupMapObject(ReadGroupMap){
-	readGroupMapObject = ReadGroupMap;
-}
-
-int TRecalibration::findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups){
-	int i = 0;
-	for(std::vector<BamTools::SamReadGroup>::iterator it = readGroups.Begin(); it !=  readGroups.End(); ++it, ++i){
-		if(name == it->ID) return i;
-	}
-	return -1;
-}
-
-/*
-void TRecalibration::calcEmissionProbabilities(TSite & site){
-	//first calculate for each base
-	for(std::vector<TBase*>::iterator it = site.bases.begin(); it != site.bases.end(); ++it){
-		(*it)->fillEmissionProbabilitiesCore((**it).errorRate);
-	}
-
-	//then for the site
-	site.calcEmissionProbabilities();
+TRecalibration::TRecalibration(){
+	_type = "none";
 };
-*/
 
 double TRecalibration::getErrorRate(TBase & base){
 	return base.errorRate;
-}
-
-/*
-double TRecalibration::getErrorRateFromBase(const TBase & base){
-	return base.errorRate;
-//	return getErrorRate(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
-}
-*/
+};
 
 int TRecalibration::getQuality(TBase & base){
-	return qualityMap.errorToQuality(base.errorRate);
-}
+	return _qualityMap.errorToQuality(base.errorRate);
+};
 
-//int TRecalibration::getQualityFromBase(const TBase & base, TQualityMap & qualMap){
-//	std::cout << "in base classe's getQualityFromBase" << std::endl;
-//	return qualMap.errorToQuality(base.errorRate);
-////	return getQuality(base.readGroup, base.quality, base.posInRead, base.posInReadRev, base.context);
-//}
+//---------------------------------------------------------------
+//TRecalibrationEM
+//---------------------------------------------------------------
+TRecalibrationEM::TRecalibrationEM(std::string string, TReadGroups* ReadGroups, TLog* Logfile):TRecalibration(){
+	logfile = Logfile;
+	_type = "recal";
+
+	//read groups
+	readGroups = ReadGroups;
+
+	//models
+	models = new TRecalibrationEMModels(readGroups->size(), logfile);
+
+	initializeRecalibrationParameters(string);
+};
+
+void TRecalibrationEM::initializeRecalibrationParameters(std::string string){
+	//initialize from string or file
+	int pos = string.find_first_of('[');
+	if(pos == std::string::npos)
+		_initializeRecalibrationParametersFromFile(string);
+	else
+		_initializeRecalibrationParametersFromString(string);
+};
+
+void TRecalibrationEM::_initializeRecalibrationParametersFromString(std::string & string){
+	//string has format model[param1, param2, param3, ...]
+	logfile->startIndent("Initializing recal with string '" + string + "' for all read groups:");
+
+	//read model tag
+	size_t pos = string.find_first_of('[');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
+	std::string modelTag = string.substr(0,pos);
+	string.erase(0, pos+1);
+
+	//read parameters
+	pos = string.find_first_of(']');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
+	std::vector<std::string> tmpVec, vec;
+	fillVectorFromString(string.substr(0, pos), tmpVec, ",");
+	repeatIndexes(tmpVec, vec);
+
+	//initialize model
+	models->addSingleModelForAllReadGroups(modelTag, vec, true);
+
+	logfile->endIndent();
+};
+
+void TRecalibrationEM::_initializeRecalibrationParametersFromFile(std::string filename){
+	//read parameters from file
+	logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open file '" + filename + "' for reading!";
+
+	//skip header
+	std::string line;
+	std::getline(file, line);
+
+	//tmp variables for reading
+	int lineNum = 0;
+	std::vector<std::string> vec;
+
+	//parse file to read details for each read group
+	while(file.good() && !file.eof()){
+		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() != 6)
+				throw "Wrong number of entries in file '" + filename + "' on line " + toString(lineNum) + ": expected 6 but found " + toString(vec.size()) + "!";
+
+			//check if read group exists
+			if(readGroups->readGroupExists(vec[0])){
+				//read read group, mate and model
+				int rg = readGroups->find(vec[0]);
+				bool isSecondMate = stringToInt(vec[1]);
+				std::string modelTag = vec[2];
+
+				//clean up vec to only contain parameters (remove read group, mate, model and LL)
+				vec.erase(vec.begin(), vec.begin() + 3);
+
+				//create model
+				models->addModel(rg, isSecondMate, modelTag, vec, false);
+			} else {
+				logfile->warning("Read group '" + vec[0] + "' does not exist in the BAM header! Are you using the correct recal file?");
+			}
+		}
+	}
+	logfile->done();
+
+	//report read groups for which no recal model was given and initialize them as "no_recal" model
+	if(models->hasReadGroupsWithoutModel()){
+		logfile->warning("Missing read groups in file '" + filename + "'!");
+		logfile->startIndent("Will assume no recalibration for the following read groups:");
+		models->reportReadGroupsNotUsed(*readGroups);
+		models->addNoRecalModelIfMissing();
+		logfile->endIndent();
+	}
+};
+

@@ -11,21 +11,20 @@
 #include "bamtools/api/BamReader.h"
 #include "TSite.h"
 #include <omp.h>
-#include "TReadGroups.h"
 #include "bamtools/api/SamHeader.h"
 #include "TQualityMap.h"
-
+#include "TRecalibrationEMModel.h"
 
 //---------------------------------------------------------------
 //TRecalibration: default = no recalibration
 //---------------------------------------------------------------
 class TRecalibration{
 protected:
-	TReadGroupMap& readGroupMapObject;
-	TQualityMap qualityMap;
+	TQualityMap _qualityMap;
+	std::string _type;
 
 public:
-	TRecalibration(TReadGroupMap& ReadGroupMap);
+	TRecalibration();
 
 	virtual ~TRecalibration(){};
 
@@ -33,28 +32,44 @@ public:
 		return false;
 	};
 
-/*	char getQualityAsChar(const TBase & base, int & minOutQuality, int & maxOutQuality){
-		int qual = getphredInt(base) + 33;
-		if(qual > maxOutQuality) qual = maxOutQuality;
-		if(qual < minOutQuality) qual = minOutQuality;
-		return qual;
-	};*/
+	std::string type(){ return _type; };
 
 	void calcEmissionProbabilities(TSite & site);
-//	virtual double getErrorRate(const int & readGroupId, const int & quality, const int & pos, const int & posRev, const BaseContext & context);
 	virtual double getErrorRate(TBase & base);
-//	double getErrorRateFromBase(const TBase & base);
 	virtual int getQuality(TBase & base);
-//	virtual int getQualityFromBase(const TBase & base, TQualityMap & qualMap);
-//	virtual int getphredInt(const TBase & base){
-//		return base.phredInt;
-//	};
-//	virtual int getQuality(const TBase & base){
-//		return base.quality;
-//	};
 
-	virtual bool requiresEstimation(){ return false;};
-	int findReadGroupIndex(std::string & name, BamTools::SamReadGroupDictionary & readGroups);
+	virtual bool _requiresEstimation(){ return false;};
+};
+
+
+//--------------------------------------------------------------------
+// TRecalibrationEM
+//--------------------------------------------------------------------
+class TRecalibrationEM:public TRecalibration{
+private:
+	TLog* logfile;
+	TReadGroups* readGroups;
+	TRecalibrationEMModels* models;
+
+	void _initializeRecalibrationParametersFromString(std::string & string);
+	void _initializeRecalibrationParametersFromFile(std::string filename);
+
+public:
+	TRecalibrationEM(std::string string, TReadGroups* ReadGroups, TLog* Logfile);
+	~TRecalibrationEM(){
+		delete models;
+	};
+
+	bool recalibrationChangesQualities(){ return true; };
+	void initializeRecalibrationParameters(std::string string);
+
+	inline double getErrorRate(TBase & base){
+		return models->getErrorRate(base);
+	};
+	inline int getQuality(TBase & base){
+		double q = models->getErrorRate(base);
+		return _qualityMap.errorToQuality(q);
+	};
 };
 
 #endif /* TRecalIBRATION_H_ */

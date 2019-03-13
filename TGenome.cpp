@@ -629,8 +629,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
 	TQualityMap qualityMap;
 
-	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, logfile, readGroupMap);
-	recalObjectEM.initializeForParameterEstimation(params);
+	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 
 	//prepare windows
 	TWindow window;
@@ -675,8 +674,7 @@ void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
-	TRecalibrationEM recalObjectEM(&alignmentParser.bamHeader, logfile, readGroupMap);
-	recalObjectEM.initialize(params.getParameterString("recal"));
+	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 
 	//prepare windows
 	TWindow window;
@@ -702,6 +700,11 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 }
 
 void TGenome::BQSR(TParameters & params){
+
+	/*
+	if(alignmentParser.qualitiesScoresAreRecalibrated())
+		throw "Can not estimate recalibration: quality scores are already recalibrated while reading!";
+
 	//make sure FASTA is open
 	if(!alignmentParser.hasReference) throw "Can not run BQSR recalibration without a provided FASTA reference!";
 
@@ -764,6 +767,8 @@ void TGenome::BQSR(TParameters & params){
 			break;
 		}
 	}
+
+	*/
 };
 
 void TGenome::printQualityDistribution(TParameters & params){
@@ -835,42 +840,39 @@ void TGenome::printQualityTransformation(TParameters & params){
 	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
 
 	//create table to store counts
-	TQualityTransformTables QTtables(alignmentParser.numReadGroups(), maxQ);
+	TQualityTransformTables QTtables(alignmentParser.readGroups, maxQ);
+
+	//check what we compare
+	bool compareToOtherRecalibration = false;
+	TRecalibration* otherRecalObject;
+	if(alignmentParser.recalibrationType() == "BQSR"){
+		//do we compare to recal or to raw quality scores?
+		if(params.parameterExists("recal")){
+			otherRecalObject = new TRecalibrationEM(params.getParameterString("recal"), &alignmentParser.readGroups, logfile);
+			compareToOtherRecalibration = true;
+		}
+	} else if(alignmentParser.recalibrationType() == "recal"){
+		if(params.parameterExists("recal2")){
+			otherRecalObject = new TRecalibrationEM(params.getParameterString("recal2"), &alignmentParser.readGroups, logfile);
+			compareToOtherRecalibration = true;
+		}
+	}
 
 	//add alignments to tables
 	logfile->listFlush("Adding sites to quality transformation tables ...");
-	while(alignmentParser.readNextAlignment(alignment)){
-		if(alignmentParser.recalObjectInitialized2)
-			alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, alignmentParser.recalObject2, QTtables, logfile);
-		else
-			alignmentParser.addSitesToQualityTransformTable(alignment, alignmentParser.recalObject, QTtables, logfile);
+	if(compareToOtherRecalibration){
+		while(alignmentParser.readNextAlignment(alignment))
+			alignmentParser.addSitesToQualityTransformTable(alignment, otherRecalObject, QTtables);
+	} else {
+		while(alignmentParser.readNextAlignment(alignment))
+			alignmentParser.addSitesToQualityTransformTable(alignment, QTtables);
 	}
+
 	logfile->done();
 
-
-	//prepare output
-	std::ofstream out;
-	std::string filename;
-
-	//print tables for read groups
-	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
-		filename = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityTransformation.txt";
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
-		QTtables[i]->printTable(out);
-		out.close();
-
-		//clean up vector
-		delete QTtables.at(i);
-	}
-	//print table for total data
-	filename = outputName + "_total_qualityTransformation.txt";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
-	QTtables.at(QTtables.size()-1)->printTable(out);
-	out.close();
-	delete QTtables.at(QTtables.size()-1);
-}
+	//print tables
+	QTtables.writeTables(outputName);
+};
 
 void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
 	if(counter % 1000000 == 0){
