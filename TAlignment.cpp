@@ -190,15 +190,16 @@ void TAlignment::setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
+		int fragmentLen = abs(bamAlignment.InsertSize) + numInsertions - numDeletions;
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			int k = abs(bamAlignment.InsertSize) - (length - softClippedLength[1]) + numInsertions - numDeletions;
-			int p = length - 1 - softClippedLength[1];
-			for(int d=0; d<length; ++d){
-				bases[d].distFrom5Prime = p - d; //dist from 5'
-				bases[d].distFrom3Prime = k + d; //dist from 3'
+			int k = fragmentLen - (length - softClippedLength[1]);
+			int l = length - 1 - softClippedLength[1];
+			for(int pos=0; pos<length; ++pos){
+				bases[pos].distFrom5Prime = l - pos; //dist from 5'
+				bases[pos].distFrom3Prime = k + pos; //dist from 3'
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -206,30 +207,29 @@ void TAlignment::setDistancesFromEnds(){
 			//And distance from 3' is given by (length of fragment) - pos -1
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
-			int p = abs(bamAlignment.InsertSize) - 1 + numInsertions - numDeletions;
-			for(int d=0; d<length; ++d){
-				bases[d].distFrom5Prime = d - softClippedLength[0]; //dist from 5'
-				bases[d].distFrom3Prime = p - d + softClippedLength[0]; //dist from 3'
+			for(int pos=0; pos<length; ++pos){
+				bases[pos].distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
+				bases[pos].distFrom3Prime = fragmentLen - 1 - pos + softClippedLength[0]; //dist from 3'
 			}
 		}
 	} else {
 		//treat as single end
-		int p = length - 1;
+		int l = length - 1;
 		if(isReverseStrand){
 			//not in pair & reverse
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
-			for(int d=0; d<length; ++d){
-				bases[d].distFrom5Prime = p - d - softClippedLength[1]; //dist from 5'
-				bases[d].distFrom3Prime = d - softClippedLength[0]; //dist from 3'
+			for(int pos=0; pos<length; ++pos){
+				bases[pos].distFrom5Prime = l - pos - softClippedLength[1]; //dist from 5'
+				bases[pos].distFrom3Prime = pos - softClippedLength[0]; //dist from 3'
 			}
 		} else {
 			//not in pair & forward
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
-			for(int d=0; d<length; ++d){
-				bases[d].distFrom5Prime = d - softClippedLength[0]; //dist from 5'
-				bases[d].distFrom3Prime = p - d - softClippedLength[1]; //dist from 3'
+			for(int pos=0; pos<length; ++pos){
+				bases[pos].distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
+				bases[pos].distFrom3Prime = l - pos - softClippedLength[1]; //dist from 3'
 			}
 		}
 	}
