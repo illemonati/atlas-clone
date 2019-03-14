@@ -50,7 +50,6 @@ public:
 //---------------------------
 class TAlleleFreq{
 private:
-	std::vector<int> posteriorProbModelP;
 	std::vector<double> sumIterations;
 	std::vector<double> sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
@@ -58,6 +57,7 @@ private:
 
 public:
 	std::vector<bool> modelP;
+	std::vector<int> posteriorProbModelP;
 
 	long numLoci;
 	long numLociModelP;
@@ -115,6 +115,7 @@ public:
 class TPi{
 private:
 	double _pi;
+	double _minPi;
 public:
 	double proposalWidth;
 
