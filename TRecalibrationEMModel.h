@@ -13,6 +13,11 @@
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
+#define qualfuncPosFuncContext_name "qualFuncPosFuncContext"
+#define qualfuncPosFunc_name "qualFuncPosFunc"
+#define qualfuncPosSpecificContext_name "qualFuncPosSpecificContext"
+#define noRecal_name "none"
+
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel

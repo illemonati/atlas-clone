@@ -7,11 +7,6 @@
 
 #include "TRecalibrationEMModel.h"
 
-#define qualfuncPosFuncContext_name "qualFuncPosFuncContext"
-#define qualfuncPosFunc_name "qualFuncPosFunc"
-#define qualfuncPosSpecificContext_name "qualFuncPosSpecificContext"
-#define noRecal_name "none"
-
 //---------------------------------------------------------------
 //TRecalibrationEMModel_Base
 //---------------------------------------------------------------
