@@ -202,20 +202,20 @@ class TRecalibrationBQSRStorage{
 public:
 	int numReadGroups;
 	int numQuality;
-	int _maxPos, _maxPosReverse;
-	int _numContexts;
+	int maxPos, maxPosReverse;
+	int numContexts;
 
 	TGenotypeMap _genoMap;
 
 	//recal tables
-	bool _considerQuality;
-	TBQSR_cellQuality** _BQSR_cells_readGroup_quality; //read group x quality
-	bool _considerPosition;
-	TBQSR_cellPosition** _BQSR_cells_readGroup_position; //read group x position
-	bool _considerPositionReverse;
-	TBQSR_cellPositionRev** _BQSR_cells_readGroup_position_reverse; //read group x position
-	bool _considerContext;
-	TBQSR_cellContext** _BQSR_cells_readGroup_context; //read group x context
+	bool considerQuality;
+	TBQSR_cellQuality** qualityCells; //read group x quality
+	bool considerPosition;
+	TBQSR_cellPosition** positionCells; //read group x position
+	bool considerPositionReverse;
+	TBQSR_cellPositionRev** positionReverseCells; //read group x position
+	bool considerContext;
+	TBQSR_cellContext** contextCells; //read group x context
 
 	TRecalibrationBQSRStorage();
 	~TRecalibrationBQSRStorage();
@@ -225,13 +225,13 @@ public:
 	void initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex);
 	void initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex);
 
-	int numQualityCells(){ if(_considerQuality){ return numReadGroups * numQuality; } else { return 0; } };
-	int numPositionCells(){ if(_considerPosition){ return numReadGroups * _maxPos; } else { return 0; } };
-	int numPositionReverseCells(){ if(_considerPositionReverse){ return numReadGroups * _maxPosReverse; } else { return 0; } };
-	int numContextCells(){ if(_considerContext){ return numReadGroups * _numContexts; } else { return 0; } };
+	int numQualityCells(){ if(considerQuality){ return numReadGroups * numQuality; } else { return 0; } };
+	int numPositionCells(){ if(considerPosition){ return numReadGroups * maxPos; } else { return 0; } };
+	int numPositionReverseCells(){ if(considerPositionReverse){ return numReadGroups * maxPosReverse; } else { return 0; } };
+	int numContextCells(){ if(considerContext){ return numReadGroups * numContexts; } else { return 0; } };
 
 	//HACK! Just need this function in multiple places...
-	double getMaxValuefromFile(std::string filename, int col, int numCol);
+	double getMaxValueFromFile(std::string filename, int col, int numCol);
 };
 
 //-----------------------------------------------------------------
@@ -255,7 +255,7 @@ public:
 	TRecalibrationBQSR(TLog* Logfile, TReadGroups* ReadGroups);
 	TRecalibrationBQSR(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups);
 	~TRecalibrationBQSR(){
-		if(storage._considerQuality)
+		if(storage.considerQuality)
 			delete qualityIndex;
 	};
 
@@ -315,7 +315,7 @@ private:
 public:
 	TRecalibrationBQSREstimator(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
 	~TRecalibrationBQSREstimator(){
-		if(storage._considerQuality)
+		if(storage.considerQuality)
 			delete qualityIndex;
 	};
 
