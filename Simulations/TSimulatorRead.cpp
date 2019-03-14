@@ -8,9 +8,11 @@
 #include "TSimulatorRead.h"
 
 //----------------------------------
-//TSimulatorRead
+//TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorRead::TSimulatorRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator){
+	type = "single-end";
+
 	//set variables
 	randomGenerator = RandomGenerator;
 	maxPrintPhredInt = MaxPrintPhredInt;
@@ -34,29 +36,38 @@ TSimulatorRead::TSimulatorRead(std::string readGroupName, int readGroupNumber, i
 
 	//initialize bamAlignment
 	_name = readGroupName;
-	bamAlignment.AddTag("RG", "Z", _name);
-	bamAlignment.MapQuality = 50;
-	bamAlignment.Name = "*";
+	initializeAlignment(bamAlignment);
 	readNamePrefix = "ATL:0:A:1:" + toString(readGroupNumber) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	readXPos = 1;
 	readYPos = 1;
 
 	bases = NULL;
 	phredIntQualities = NULL;
-	fragmentLength = 0;
-
-	//tmp variables
-	p = 0;
-	previousBase = N;
-	tmp_qual = 0;
 };
 
-bool TSimulatorRead::checkInitialization(){
+TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
+	if(readLengthInitialized){
+		delete readLengthDist;
+		delete[] bases;
+		delete[] phredIntQualities;
+	}
+	if(qualityDistInitialized)
+		delete qualityDist;
+	if(qualityTransformInitialized)
+		delete qualityTransform;
+};
+
+void TSimulatorSingleEndRead::initializeAlignment(BamTools::BamAlignment & alignment){
+	alignment.AddTag("RG", "Z", _name);
+	alignment.MapQuality = 50;
+};
+
+bool TSimulatorSingleEndRead::checkInitialization(){
 	isInitialized = readLengthInitialized && qualityDistInitialized && qualityTransformInitialized;
 	return isInitialized;
 }
 
-void TSimulatorRead::setReadLengthDistribution(std::string s, TLog* logfile){
+void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog* logfile){
 	size_t pos = s.find("(");
 	std::string tmp;
 
@@ -86,7 +97,7 @@ void TSimulatorRead::setReadLengthDistribution(std::string s, TLog* logfile){
 	checkInitialization();
 };
 
-void TSimulatorRead::setQualityDistribution(std::string s){
+void TSimulatorSingleEndRead::setQualityDistribution(std::string s){
 	size_t pos = s.find("(");
 	std::string tmp;
 
@@ -110,7 +121,7 @@ void TSimulatorRead::setQualityDistribution(std::string s){
 	checkInitialization();
 };
 
-void TSimulatorRead::setQualityTransformation(const std::string & type, const std::string & args, TLog* logfile){
+void TSimulatorSingleEndRead::setQualityTransformation(const std::string & type, const std::string & args, TLog* logfile){
 	if(!qualityDistInitialized)
 		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
 
@@ -128,7 +139,7 @@ void TSimulatorRead::setQualityTransformation(const std::string & type, const st
 	checkInitialization();
 };
 
-void TSimulatorRead::setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA){
+void TSimulatorSingleEndRead::setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA){
 	pmdObject.initializeFunction(pmdStringCT, pmdCT);
 	pmdObject.initializeFunction(pmdStringGA, pmdGA);
 
@@ -136,23 +147,33 @@ void TSimulatorRead::setPMD(const std::string & pmdStringCT, const std::string &
 	checkInitialization();
 };
 
-void TSimulatorRead::applyPMD(Base* _bases, int & len, int & fragmentLength){
+void TSimulatorSingleEndRead::applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength){
 	if(hasPMD){
-		for(p=0; p<len; ++p){
-			if(_bases[p] == C ){
-				if(randomGenerator->getRand() < pmdObject.getProbCT(p)){
-					_bases[p] = T;
+		if(alignment.IsReverseStrand()){
+			for(int p=0; p<alignment.Length; ++p){
+				if(_bases[p] == C ){
+					if(randomGenerator->getRand() < pmdObject.getProbGA(fragmentLength - alignment.Length + p))
+						_bases[p] = T;
+				} else if(_bases[p] == G){
+					if(randomGenerator->getRand() < pmdObject.getProbGA(alignment.Length - p))
+						_bases[p] = A;
 				}
-			} else if(_bases[p] == G){
-				if(randomGenerator->getRand() < pmdObject.getProbGA(fragmentLength - p - 1)){
-					_bases[p] = A;
+			}
+		} else {
+			for(int p=0; p<alignment.Length; ++p){
+				if(_bases[p] == C ){
+					if(randomGenerator->getRand() < pmdObject.getProbCT(p))
+						_bases[p] = T;
+				} else if(_bases[p] == G){
+					if(randomGenerator->getRand() < pmdObject.getProbGA(fragmentLength - p - 1))
+						_bases[p] = A;
 				}
 			}
 		}
 	}
 };
 
-void TSimulatorRead::setContamination(double rate, TSimulatorReference* source){
+void TSimulatorSingleEndRead::setContamination(double rate, TSimulatorReference* source){
 	isContaminated = true;
 	contaminationRate = rate;
 	contaminationSource = source;
@@ -166,14 +187,9 @@ void TSimulatorRead::setContamination(double rate, TSimulatorReference* source){
 		isContaminated = false;
 };
 
-void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
-	//pick a fragment and read length
-	readLengthDist->sample(bamAlignment.Length, fragmentLength);
-
-	//fill bam alignment
+void TSimulatorSingleEndRead::fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities){
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-	bamAlignment.Position = pos;
 	bamAlignment.QueryBases = "";
 	bamAlignment.Qualities = "";
 
@@ -185,6 +201,22 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 	}
 	bamAlignment.Name = readNamePrefix + toString(readXPos) + ":" + toString(readYPos);
 
+	//copy bases and qualities
+	for(int p=0; p<bamAlignment.Length; ++p){
+		bamAlignment.QueryBases += genoMap.baseToChar[theBases[p]];
+		bamAlignment.Qualities += (char) (std::min(thePhredIntQualities[p], maxPrintPhredInt) + 33);
+	}
+};
+
+void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
+	//pick a fragment and read length
+	int fragmentLength;
+	readLengthDist->sample(bamAlignment.Length, fragmentLength);
+
+	//fill bam alignment
+	bamAlignment.Position = pos;
+	bamAlignment.SetIsReverseStrand( randomGenerator->getRand() < 0.5);
+
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
 		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
@@ -192,24 +224,20 @@ void TSimulatorRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFi
 		memcpy(bases, haplotype + pos, bamAlignment.Length);
 
 	//apply PMD
-	applyPMD(bases, bamAlignment.Length, fragmentLength);
+	applyPMD(bases, bamAlignment, fragmentLength);
 
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
 
 	//add to alignment
-	bamAlignment.QueryBases = "";
-	bamAlignment.Qualities = "";
-	for(p=0; p<bamAlignment.Length; ++p){
-		bamAlignment.QueryBases += genoMap.baseToChar[bases[p]];
-		bamAlignment.Qualities += (char) (std::min(phredIntQualities[p], maxPrintPhredInt) + 33);
-	}
+	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
 
 	//save
 	bamFile.saveAlignment(bamAlignment);
 };
 
-void TSimulatorRead::printDetails(TLog* logfile){
+void TSimulatorSingleEndRead::printDetails(TLog* logfile){
+	logfile->list(type + ".");
 	if(readLengthInitialized)
 		readLengthDist->printDetails(logfile);
 	else throw "Read length distribution not initialized!";
@@ -235,6 +263,61 @@ void TSimulatorRead::printDetails(TLog* logfile){
 		logfile->list("Read group is not contaminated.");
 };
 
+//----------------------------------
+// TSimulatorPairedEndReads
+//----------------------------------
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator)
+:TSimulatorSingleEndRead(readGroupName, readGroupNumber, MaxPrintQual, RandomGenerator){
+	type = "paired-end";
+};
 
+TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){};
+
+
+void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
+	//pick a fragment and read length
+	int readLength; int fragmentLength;
+	readLengthDist->sample(readLength, fragmentLength);
+
+	//fill first mate
+	bamAlignment.Position = pos;
+	bamAlignment.SetIsReverseStrand(false);
+
+	//fill second mate: reuse from idle pile, or create anew
+	BamTools::BamAlignment* secondMate;
+	if(bamAlignmentsSecondMate_idle.size() > 0){
+
+	} else { //create one anew
+
+	}
+
+
+
+
+	//copy bases for both mates
+	if(isContaminated && randomGenerator->getRand() < contaminationRate)
+		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
+	else
+		memcpy(bases, haplotype + pos, bamAlignment.Length);
+
+	//apply PMD
+	applyPMD(bases, bamAlignment, fragmentLength);
+
+	//simulate qualities and errors
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
+
+	//add to alignment
+	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
+
+	//save
+	bamFile.saveAlignment(bamAlignment);
+
+
+
+};
+
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos){
+
+}
 
 

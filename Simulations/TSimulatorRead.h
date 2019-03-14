@@ -17,15 +17,17 @@
 
 
 //-------------------------------
-//TSimulatorRead
+//TSimulatorSingleEndRead
 //-------------------------------
-class TSimulatorRead{
-private:
+class TSimulatorSingleEndRead{
+protected:
 	TRandomGenerator* randomGenerator;
 	int maxPrintPhredInt;
 	std::string _name;
 	std::string readNamePrefix;
 	int readXPos, readYPos;
+	bool isInitialized;
+	std::string type;
 
 	//read length
 	TSimulatorReadLength* readLengthDist;
@@ -47,39 +49,23 @@ private:
 	double contaminationRate;
 	TSimulatorReference* contaminationSource;
 
-	bool isInitialized;
-
 	TGenotypeMap genoMap;
 	TQualityMap qualityMap;
 
 	//alignment
 	BamTools::BamAlignment bamAlignment;
-	int fragmentLength;
 	Base* bases;
 	int* phredIntQualities;
 
-	//tmp variables
-	int p;
-	Base previousBase;
-	int tmp_qual;
-
 	//general functions
+	void initializeAlignment(BamTools::BamAlignment & alignment);
 	void simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
-	void applyPMD(Base* _bases, int & len, int & fragmentLength);
+	void applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength);
+	void fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities);
 
 public:
-	TSimulatorRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
-	~TSimulatorRead(){
-		if(readLengthInitialized){
-			delete readLengthDist;
-			delete[] bases;
-			delete[] phredIntQualities;
-		}
-		if(qualityDistInitialized)
-			delete qualityDist;
-		if(qualityTransformInitialized)
-			delete qualityTransform;
-	};
+	TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
+	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s, TLog* logfile);
@@ -99,11 +85,27 @@ public:
 	};
 
 	void setRefId(int refId){bamAlignment.RefID = refId; };
-	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
+	virtual void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
 
 	void printDetails(TLog* logfile);
+	virtual void writeUnwrittenAlignments(const long & pos){};
 };
 
+//-------------------------------
+//TSimulatorSingleEndRead
+//-------------------------------
+class TSimulatorPairedEndReads:public TSimulatorSingleEndRead{
+private:
+	std::vector<BamTools::BamAlignment*> bamAlignmentsSecondMate;
+	std::vector<BamTools::BamAlignment*> bamAlignmentsSecondMate_idle;
+
+public:
+	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
+	~TSimulatorPairedEndReads();
+
+	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
+	virtual void writeUnwrittenAlignments(const long & pos);
+};
 
 
 #endif /* TSIMULATORREAD_H_ */

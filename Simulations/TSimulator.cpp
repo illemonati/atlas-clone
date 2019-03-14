@@ -520,8 +520,8 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		int rgNumber = 1;
 		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it, ++rgNumber){
 			logfile->startIndent("Initializing readgroup '" + *it + "':");
-			readSimulators.push_back(new TSimulatorRead(*it, rgNumber, maxPrintQual, randomGenerator));
-			std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.end() - 1;
+			readSimulators.push_back(new TSimulatorSingleEndRead(*it, rgNumber, maxPrintQual, randomGenerator));
+			std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.end() - 1;
 
 			//read length
 			if(readLengthPerReadGroup){
@@ -592,8 +592,8 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			name = "SimReadGroup" + toString(i+1);
 			readGroupNames.push_back(name);
 			logfile->startIndent("Initializing readgroup '" + name + "':");
-			readSimulators.push_back(new TSimulatorRead(name, i+1, maxPrintQual, randomGenerator));
-			std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.end() - 1;
+			readSimulators.push_back(new TSimulatorSingleEndRead(name, i+1, maxPrintQual, randomGenerator));
+			std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.end() - 1;
 			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
 			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
@@ -653,7 +653,7 @@ void TSimulator::initializeReadGroupFrequencies(TParameters & params){
 	maxReadLength = 0;
 	int i=0;
 
-	for(TSimulatorRead* readSimsIt : readSimulators){
+	for(TSimulatorSingleEndRead* readSimsIt : readSimulators){
 		averageReadLength += readSimsIt->meanReadLength();
 		averageReadLength += simGroupFrequencies[i] * readSimsIt->meanReadLength();
 		if(readSimsIt->maxReadLength() > maxReadLength)
@@ -763,7 +763,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	int r;
 
 	//prepare bam alignment
-	for(std::vector<TSimulatorRead*>::iterator readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
+	for(std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
 		(*readSimsIt)->setRefId(thisChr->refID);
 
 	//initialize progress reporting

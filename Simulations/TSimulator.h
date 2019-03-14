@@ -13,9 +13,9 @@
 #include <math.h>
 #include <numeric>
 #include <algorithm>
-#include "TSimulatorRead.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
+#include "TSimulatorRead.h"
 
 //---------------------------------------------------------
 //TSimulator
@@ -41,7 +41,7 @@ protected:
 	TSimulatorReference referenceObj;
 
 	//read simulator
-	std::vector<TSimulatorRead*> readSimulators;
+	std::vector<TSimulatorSingleEndRead*> readSimulators;
 	std::vector<std::string> readGroupNames;
 	std::vector<double> simGroupFrequencies;
 	std::vector<double> cumulSimGroupFrequenies;
@@ -80,7 +80,7 @@ protected:
 public:
 	TSimulator(TLog* Logfile, TParameters & params);
 	virtual ~TSimulator(){
-		for(TSimulatorRead* readSimIt: readSimulators)
+		for(TSimulatorSingleEndRead* readSimIt: readSimulators)
 			delete readSimIt;
 		delete randomGenerator;
 	};
