@@ -518,8 +518,8 @@ void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, st
 		}
 	}
 }
-/*
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityMap & qualMap){
+
+void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
@@ -529,7 +529,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TLog* logfile, TQualityM
 	logfile->done();
 };
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
+void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	//now only run over sites listed in that window
 	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -544,7 +544,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSR & bqsr, TSiteSubset* subset, TLo
 	logfile->done();
 
 };
-*/
+
 
 void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
@@ -597,7 +597,7 @@ void TWindow::addToGLF(TGlfWriter & writer, bool printAll){
 		}
 	}
 	delete[] gl;
-}
+};
 
 void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes

@@ -249,9 +249,8 @@ public:
 	int getOrigNumReadGroups(){ return origNumReadGroups; }
 	int getNumReadGroups(){ return numReadGroups; }
 
-	int operator[](int rg){
-		return readGroupMap[rg];
-	};
+	int operator[](int rg){ return readGroupMap[rg]; };
+	int getIndex(int rg){ return readGroupMap[rg]; };
 };
 
 #endif /* TREADGROUPS_H_ */

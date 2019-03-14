@@ -26,7 +26,7 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGro
 	int k = 0;
 	for(TBase* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
-		data[k].readGroup = ReadGroupMap[it->readGroup]; // + ReadGroupMap.numReadGroups * it->isSecondMate;
+		data[k].readGroup = ReadGroupMap[it->readGroup];
 
 		//quality
 		data[k].quality = qualiMap.errorToQuality(it->errorRate);

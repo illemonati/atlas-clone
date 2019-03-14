@@ -700,8 +700,6 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 }
 
 void TGenome::BQSR(TParameters & params){
-
-	/*
 	if(alignmentParser.qualitiesScoresAreRecalibrated())
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading!";
 
@@ -713,7 +711,8 @@ void TGenome::BQSR(TParameters & params){
 
 	//create BQSR object
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
-	TRecalibrationBQSR bqsr(&alignmentParser.bamHeader, params, logfile, readGroupMap);
+	TRecalibrationBQSREstimator bqsr(params, logfile, &alignmentParser.readGroups, &readGroupMap);
+
 	if(bqsr.allConverged()){
 		logfile->list("No need to estimate any BQSR cells. Aborting Program.");
 		return;
@@ -767,8 +766,6 @@ void TGenome::BQSR(TParameters & params){
 			break;
 		}
 	}
-
-	*/
 };
 
 void TGenome::printQualityDistribution(TParameters & params){
