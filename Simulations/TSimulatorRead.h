@@ -58,9 +58,9 @@ protected:
 	int* phredIntQualities;
 
 	//general functions
-	void initializeAlignment(BamTools::BamAlignment & alignment);
 	void simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
 	void applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength);
+	std::string getNextReadName();
 	void fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities);
 
 public:
@@ -92,12 +92,14 @@ public:
 };
 
 //-------------------------------
-//TSimulatorSingleEndRead
+//TSimulatorPairedEndReads
 //-------------------------------
 class TSimulatorPairedEndReads:public TSimulatorSingleEndRead{
 private:
-	std::vector<BamTools::BamAlignment*> bamAlignmentsSecondMate;
-	std::vector<BamTools::BamAlignment*> bamAlignmentsSecondMate_idle;
+	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates;
+	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates_idle;
+
+	void initializeSecondMateAlignment(BamTools::BamAlignment & alignment);
 
 public:
 	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);

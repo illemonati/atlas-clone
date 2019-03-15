@@ -36,7 +36,10 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int 
 
 	//initialize bamAlignment
 	_name = readGroupName;
-	initializeAlignment(bamAlignment);
+	bamAlignment.AddTag("RG", "Z", _name);
+	bamAlignment.MapQuality = 50;
+	bamAlignment.SetIsPrimaryAlignment(true);
+	bamAlignment.SetIsReverseStrand(false);
 	readNamePrefix = "ATL:0:A:1:" + toString(readGroupNumber) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	readXPos = 1;
 	readYPos = 1;
@@ -55,11 +58,6 @@ TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
 		delete qualityDist;
 	if(qualityTransformInitialized)
 		delete qualityTransform;
-};
-
-void TSimulatorSingleEndRead::initializeAlignment(BamTools::BamAlignment & alignment){
-	alignment.AddTag("RG", "Z", _name);
-	alignment.MapQuality = 50;
 };
 
 bool TSimulatorSingleEndRead::checkInitialization(){
@@ -187,24 +185,25 @@ void TSimulatorSingleEndRead::setContamination(double rate, TSimulatorReference*
 		isContaminated = false;
 };
 
-void TSimulatorSingleEndRead::fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities){
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-	bamAlignment.QueryBases = "";
-	bamAlignment.Qualities = "";
-
-	//set read name
+std::string TSimulatorSingleEndRead::getNextReadName(){
 	++readXPos;
 	if(readXPos == 65536){
 		++readYPos;
 		readXPos = 1;
 	}
-	bamAlignment.Name = readNamePrefix + toString(readXPos) + ":" + toString(readYPos);
+	return readNamePrefix + toString(readXPos) + ":" + toString(readYPos);
+};
+
+void TSimulatorSingleEndRead::fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities){
+	alignment.CigarData.clear();
+	alignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	alignment.QueryBases = "";
+	alignment.Qualities = "";
 
 	//copy bases and qualities
 	for(int p=0; p<bamAlignment.Length; ++p){
-		bamAlignment.QueryBases += genoMap.baseToChar[theBases[p]];
-		bamAlignment.Qualities += (char) (std::min(thePhredIntQualities[p], maxPrintPhredInt) + 33);
+		alignment.QueryBases += genoMap.baseToChar[theBases[p]];
+		alignment.Qualities += (char) (std::min(thePhredIntQualities[p], maxPrintPhredInt) + 33);
 	}
 };
 
@@ -229,10 +228,8 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimul
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
 
-	//add to alignment
+	//add to alignment and save
 	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
-
-	//save
 	bamFile.saveAlignment(bamAlignment);
 };
 
@@ -269,33 +266,43 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator)
 :TSimulatorSingleEndRead(readGroupName, readGroupNumber, MaxPrintQual, RandomGenerator){
 	type = "paired-end";
+
+	//add details to alignment
+	bamAlignment.SetIsPaired(true);
+	bamAlignment.SetIsProperPair(true);
+	bamAlignment.SetIsFirstMate(true);
+	bamAlignment.SetIsMateMapped(true);
+	bamAlignment.SetIsReverseStrand(false);
+	bamAlignment.SetIsMateReverseStrand(true);
 };
 
 TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){};
 
+void TSimulatorPairedEndReads::initializeSecondMateAlignment(BamTools::BamAlignment & alignment){
+	alignment.AddTag("RG", "Z", _name);
+	alignment.MapQuality = 50;
+
+	alignment.SetIsPrimaryAlignment(true);
+	alignment.SetIsPaired(true);
+	alignment.SetIsProperPair(true);
+	alignment.SetIsFirstMate(false);
+	alignment.SetIsSecondMate(true);
+	alignment.SetIsMateMapped(true);
+	alignment.SetIsReverseStrand(true);
+	alignment.SetIsMateReverseStrand(false);
+};
 
 void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length
 	int readLength; int fragmentLength;
 	readLengthDist->sample(readLength, fragmentLength);
+	bool isContaminated = isContaminated && randomGenerator->getRand() < contaminationRate;
 
-	//fill first mate
+	//fill FIRST mate
+	//------------------
 	bamAlignment.Position = pos;
-	bamAlignment.SetIsReverseStrand(false);
 
-	//fill second mate: reuse from idle pile, or create anew
-	BamTools::BamAlignment* secondMate;
-	if(bamAlignmentsSecondMate_idle.size() > 0){
-
-	} else { //create one anew
-
-	}
-
-
-
-
-	//copy bases for both mates
-	if(isContaminated && randomGenerator->getRand() < contaminationRate)
+	if(isContaminated)
 		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
 	else
 		memcpy(bases, haplotype + pos, bamAlignment.Length);
@@ -306,18 +313,51 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
 
-	//add to alignment
+	//add to alignment and save
 	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
-
-	//save
 	bamFile.saveAlignment(bamAlignment);
 
+	//fill SECOND mate
+	//------------------
+	//create alignment
+	BamTools::BamAlignment* secondMate;
+	if(bamAlignmentSecondMates_idle.size()  > 0){
+		//reuse
+		std::vector::reverse_iterator it = bamAlignmentSecondMates_idle.rbegin();
+		secondMate = *it;
+		bamAlignmentSecondMates.push_back(*it);
+		bamAlignmentSecondMates_idle.erase(it);
+	} else {
+		//create new
+		bamAlignmentSecondMates.push_back(new BamTools::BamAlignment);
+		initializeSecondMateAlignment(*bamAlignmentSecondMates.back());
+		secondMate = bamAlignmentSecondMates.back();
+	}
 
+	//fill
+	secondMate->Position = pos + fragmentLength - readLength;
 
+	if(isContaminated)
+		memcpy(bases, contaminationSource->getPointerToRef() + secondMate->Position, bamAlignment.Length);
+	else
+		memcpy(bases, haplotype + secondMate->Position, bamAlignment.Length);
+
+	//apply PMD
+	applyPMD(bases, bamAlignment, fragmentLength);
+
+	//simulate qualities and errors
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length);
+
+	//add to alignment BUT: do not save! Only save later
+	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
 };
 
 void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos){
-
+	for(std::vector<BamTools::BamAlignment*>::iterator it = bamAlignmentSecondMates.begin(); it != bamAlignmentSecondMates.end(); ++it){
+		if((*it)->Position <= pos){
+			//bamFile.saveAlignment();
+		}
+	}
 }
 
 
