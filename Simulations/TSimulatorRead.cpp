@@ -323,7 +323,7 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 	BamTools::BamAlignment* secondMate;
 	if(bamAlignmentSecondMates_idle.size()  > 0){
 		//reuse
-		std::vector::reverse_iterator it = bamAlignmentSecondMates_idle.rbegin();
+		std::vector<BamTools::BamAlignment*>::iterator it = bamAlignmentSecondMates_idle.begin();
 		secondMate = *it;
 		bamAlignmentSecondMates.push_back(*it);
 		bamAlignmentSecondMates_idle.erase(it);
@@ -352,12 +352,16 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
 };
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos){
-	for(std::vector<BamTools::BamAlignment*>::iterator it = bamAlignmentSecondMates.begin(); it != bamAlignmentSecondMates.end(); ++it){
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){
+	std::vector<BamTools::BamAlignment*>::iterator it = bamAlignmentSecondMates.begin();
+	while(it != bamAlignmentSecondMates.end()){
 		if((*it)->Position <= pos){
-			//bamFile.saveAlignment();
-		}
+			bamFile.saveAlignment(*(*it));
+			bamAlignmentSecondMates_idle.push_back(*it);
+			it = bamAlignmentSecondMates.erase(it);
+		} else
+			++it;
 	}
-}
+};
 
 

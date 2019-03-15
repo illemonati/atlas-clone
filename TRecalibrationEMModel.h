@@ -34,6 +34,7 @@ protected:
 	double* _oldBetas; //use during estimation
 	bool _initialized;
 
+	void _parseParameterString(std::vector<std::string> & vec, std::vector<double>* values);
 	void _allocateBetaMemory();
 	void _freeBetaMemory();
 	double _calcEpsilon(double & eta);

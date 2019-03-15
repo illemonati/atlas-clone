@@ -219,7 +219,7 @@ void TSimulatorQualityTransformation::printDetails(TLog* logfile){
 TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const std::string & s, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
 	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 
-	//string of betas, comma seperated and potentially with repeated indexes
+	//string of betas, comma separated and potentially with repeated indexes
 	std::vector<std::string> vec;
 	fillVectorFromStringAnySkipEmpty(s, vec, ",");
 	repeatIndexes(vec, betas);

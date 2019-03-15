@@ -181,9 +181,9 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 void TSimulator::initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & qualTransformMap){
 	//initialize quality transformation
 	//Currently we allow for five options:
-	//  0) no quality transformation
-	//  1) recal transformation initialized from the command line (one for all read groups)//
-	//  2) read-group specific recal transformation provided via a recal file	//
+	//  1) no quality transformation
+	//  2) recal transformation initialized from the command line (one for all read groups)//
+	//  3) read-group specific recal transformation provided via a recal file	//
 	//  4) read-group specific BQSR transformation from a file
 	//  5) BQSR transformation initialized from the command line (one for all read groups)
 
@@ -209,12 +209,9 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 		//Option 1: recal from numbers: a single one valid for all read groups.
 		//---------------------------------------------------------------------
 		if(pos != std::string::npos){
-			recalString.erase(0, pos+1);
 			pos = recalString.find_first_of(']');
 			if(pos == std::string::npos)
 				throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or the betas as '[beta_q,beta_q2,beta_p,beta_p2,...(beta for all 20 context)...]";
-
-			recalString.erase(pos, 1);
 
 			//save to map
 			logfile->list("Will use '" + recalString + "' for all read groups.");
@@ -775,6 +772,10 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 
 	//now simulate
 	for(long l=0; l<chrLengthForStart; ++l){
+		//write unwritten alignments
+		for(TSimulatorSingleEndRead* rs : readSimulators)
+			rs->writeUnwrittenAlignments(l, bamFile);
+
 		//draw random number to get number of reads starting at this position
 		numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
 		//now simulate
@@ -792,6 +793,10 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 			}
 		}
 	}
+	//write unwritten alignments
+	for(TSimulatorSingleEndRead* rs : readSimulators)
+		rs->writeUnwrittenAlignments(thisChr->length, bamFile);
+
 	logfile->overList(progressString + " done!  ");
 	logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
 };

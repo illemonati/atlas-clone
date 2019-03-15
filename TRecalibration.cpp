@@ -55,17 +55,18 @@ void TRecalibrationEM::_initializeRecalibrationParametersFromString(std::string 
 	//read model tag
 	size_t pos = string.find_first_of('[');
 	if(pos == std::string::npos)
-		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
+		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::string modelTag = string.substr(0,pos);
 	string.erase(0, pos+1);
 
-	//read parameters
+	//read parameters: quality, position and context separted by semicolon (;)
 	pos = string.find_first_of(']');
 	if(pos == std::string::npos)
-		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[Parameter1, Parameter2, ...]'.";
+		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::vector<std::string> tmpVec, vec;
-	fillVectorFromString(string.substr(0, pos), tmpVec, ",");
-	repeatIndexes(tmpVec, vec);
+	fillVectorFromString(string.substr(0, pos), tmpVec, ";");
+	if(tmpVec.size() != 3)
+		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 
 	//initialize model
 	models->addSingleModelForAllReadGroups(modelTag, vec, true);

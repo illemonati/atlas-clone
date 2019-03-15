@@ -27,7 +27,6 @@ TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(){
 	_name = "base";
 };
 
-
 TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(int Shift){
 	_initialized = false;
 	_numSitesAdded = 0;
@@ -36,6 +35,22 @@ TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(int Shift){
 	_oldBetas = NULL;
 	_numParameters = 0;
 	_name = "base";
+};
+
+void TRecalibrationEMModel_Base::_parseParameterString(std::vector<std::string> & vec, std::vector<double>* values){
+	std::vector<std::string> tmpVec;
+
+	//quality
+	fillVectorFromString(vec[0], tmpVec, ',');
+	repeatIndexes(tmpVec, values[0]);
+
+	//position
+	fillVectorFromString(vec[1], tmpVec, ',');
+	repeatIndexes(tmpVec, values[1]);
+
+	//context
+	fillVectorFromString(vec[2], tmpVec, ',');
+	repeatIndexes(tmpVec, values[2]);
 };
 
 void TRecalibrationEMModel_Base::_allocateBetaMemory(){
@@ -115,30 +130,29 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 };
 
 TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFuncContext(Shift){
+	std::vector<double> values[3];
+	_parseParameterString(vec, values);
+
 	//quality: should be two numbers
-	std::vector<double> values;
-	fillVectorFromString(vec[0], values, ',');
-	if(values.size() != 2)
+	if(values[0].size() != 2)
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[0] = values[0];
-	_betas[1] = values[1];
+	_betas[0] = values[0][0];
+	_betas[1] = values[0][1];
 
 	//position
-	fillVectorFromString(vec[1], values, ',');
-	if(values.size() != 2)
+	if(values[1].size() != 2)
 		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[2] = values[0];
-	_betas[3] = values[1];
+	_betas[2] = values[1][0];
+	_betas[3] = values[1][1];
 
 	//context
-	fillVectorFromString(vec[2], values, ',');
-	if(values.size() != 20)
+	if(values[3].size() != 20)
 		throw "Wrong number of context parameters for model " + _name + ": expected 20 but found " + toString(vec.size()) + "!";
 
 	for(int i=0; i<20; i++)
-		_betas[4+i] = values[i];
+		_betas[4+i] = values[2][i];
 };
 
 double TRecalibrationEMModel_qualFuncPosFuncContext::calcEpsilon(const TRecalibrationEMReadData & data){
@@ -246,26 +260,26 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int
 };
 
 TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFunc(Shift){
+	std::vector<double> values[3];
+	_parseParameterString(vec, values);
+
 	//quality: should be two numbers
-	std::vector<double> values;
-	fillVectorFromString(vec[0], values, ',');
-	if(values.size() != 2)
+	if(values[0].size() != 2)
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[0] = values[0];
-	_betas[1] = values[1];
+	_betas[0] = values[0][0];
+	_betas[1] = values[0][1];
 
 	//position
-	fillVectorFromString(vec[1], values, ',');
-	if(values.size() != 2)
+	if(values[1].size() != 2)
 		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[2] = values[0];
-	_betas[3] = values[1];
+	_betas[2] = values[1][0];
+	_betas[3] = values[1][1];
 
 	//context: should be a dash
 	if(vec[2] != "-")
-		throw "Wrong number of context parameters for model " + _name + ": expected zero but found " + toString(vec.size()) + "!";
+		throw "Do not expect context parameters for model " + _name + "!";
 };
 
 double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEMReadData & data){
@@ -373,11 +387,11 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	numParamsWithoutPositions = 22;
+	std::vector<double> values[3];
+	_parseParameterString(vec, values);
 
 	//first position so that the memory can be allocated
-	std::vector<double> values;
-	fillVectorFromString(vec[1], values, ',');
-	if(values.size() < 1)
+	if(values[1].size() < 1)
 		throw "Missing position values for model " + _name + "!";
 
 	//allocate memory
@@ -387,23 +401,21 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 
 	//copy position (starts at 22!)
 	for(int i=0; i<maxPos; i++)
-		_betas[22 + i] = values[i];
+		_betas[22 + i] = values[1][i];
 
 	//quality: should be two numbers
-	fillVectorFromString(vec[0], values, ',');
-	if(values.size() != 2)
+	if(values[0].size() != 2)
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[0] = values[0];
-	_betas[1] = values[1];
+	_betas[0] = values[0][0];
+	_betas[1] = values[0][1];
 
 	//context (starts at 2!)
-	fillVectorFromString(vec[2], values, ',');
-	if(values.size() != 20)
+	if(values[2].size() != 20)
 		throw "Wrong number of context parameters for model " + _name + ": expected 20 but found " + toString(vec.size()) + "!";
 
 	for(int i=0; i<20; i++)
-		_betas[2+i] = values[i];
+		_betas[2+i] = values[2][i];
 };
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TRecalibrationEMReadData & data){

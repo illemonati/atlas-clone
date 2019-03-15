@@ -88,7 +88,7 @@ public:
 	virtual void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
 
 	void printDetails(TLog* logfile);
-	virtual void writeUnwrittenAlignments(const long & pos){};
+	virtual void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){};
 };
 
 //-------------------------------
@@ -106,7 +106,7 @@ public:
 	~TSimulatorPairedEndReads();
 
 	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
-	virtual void writeUnwrittenAlignments(const long & pos);
+	void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile);
 };
 
 
