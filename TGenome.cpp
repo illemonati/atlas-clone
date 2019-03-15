@@ -407,9 +407,6 @@ bool TGenome::readData(TWindowPair & windowPair){
 			//now parse alignment
 			alignmentParser.parse();
 
-			if(!alignmentParser.isReverseStrand)
-				continue;
-
 			//and add to windows
 			if(!addAlignementToWindows(alignmentParser, windowPair)){
 				//read is beyond window and should be reconsidered
