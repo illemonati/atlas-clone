@@ -112,15 +112,12 @@ void TRecalibrationEMModel_noRecal::writeParametersToFile(TOutputFilePlain & out
 	out << _name << "\t-\t-\t-";
 };
 
-void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQuality, int maxPos, int maxQual){
-	int maxPosPlusOne = maxPos + 1;
-	int maxQualPlusOne = maxQual + 1;
-
+void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
 	//now fill table
-	transformedQuality = new int**[maxQualPlusOne];
-	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxPosPlusOne];
-		for(int p=0; p<maxPosPlusOne; ++p){
+	transformedQuality = new int**[MaxQualPlusOne];
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		transformedQuality[q] = new int*[MaxPosPlusOne];
+		for(int p=0; p<MaxPosPlusOne; ++p){
 			transformedQuality[q][p] = new int[20];
 			for(int c=0; c<20; ++c){
 				//no recal!
@@ -260,33 +257,27 @@ double TRecalibrationEMModel_qualFuncPosFuncContext::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
-	int maxPosPlusOne = MaxPos + 1;
-	int maxQualPlusOne = MaxQual + 1;
-
+void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
 	//quality term
-	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double* qualTermForTransformation = new double[MaxQualPlusOne];
 	double tmp;
 	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
 	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
 
-	for(int i=1; i<maxQualPlusOne; ++i){
+	for(int i=1; i<MaxQualPlusOne; ++i){
 		tmp = pow(10.0, -(double) i / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 
 	//position term
-	double* posTermForTransformation = new double[maxPosPlusOne];
-	for(int i=0; i<maxPosPlusOne; ++i){
+	double* posTermForTransformation = new double[MaxPosPlusOne];
+	for(int i=0; i<MaxPosPlusOne; ++i){
 		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
 	}
 
 	//now fill table
-	transformedQuality = new int**[maxQualPlusOne];
-	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxPosPlusOne];
-		for(int p=0; p<maxPosPlusOne; ++p){
-			transformedQuality[q][p] = new int[20];
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		for(int p=0; p<MaxPosPlusOne; ++p){
 			for(int c=0; c<20; ++c){
 				//quality scores
 				//now calc transformed quality
@@ -443,33 +434,27 @@ double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
-	int maxPosPlusOne = MaxPos + 1;
-	int maxQualPlusOne = MaxQual + 1;
-
+void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
 	//quality term
-	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double* qualTermForTransformation = new double[MaxQualPlusOne];
 	double tmp;
 	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
 	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
 
-	for(int i=1; i<maxQualPlusOne; ++i){
+	for(int i=1; i<MaxQualPlusOne; ++i){
 		tmp = pow(10.0, -(double) i / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 
 	//position term
-	double* posTermForTransformation = new double[maxPosPlusOne];
-	for(int i=0; i<maxPosPlusOne; ++i){
+	double* posTermForTransformation = new double[MaxPosPlusOne];
+	for(int i=0; i<MaxPosPlusOne; ++i){
 		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
 	}
 
 	//now fill table
-	transformedQuality = new int**[maxQualPlusOne];
-	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxPosPlusOne];
-		for(int p=0; p<maxPosPlusOne; ++p){
-			transformedQuality[q][p] = new int[20];
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		for(int p=0; p<MaxPosPlusOne; ++p){
 			//error is independent of context!
 			double constant = posTermForTransformation[p] + _betas[4] - qualTermForTransformation[q];
 			double transQual;
@@ -647,29 +632,24 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
-	if(MaxPos > maxPos)
-		throw "Can not fill transformation table for simulations up to position " + toString(MaxPos) + ": position specific effects only available up to position " + toString(maxPos) + "!";
-	int maxPosPlusOne = MaxPos + 1;
-	int maxQualPlusOne = MaxQual + 1;
+void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+	if(MaxPosPlusOne >= maxPos)
+		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne - 1) + ": position specific effects only available up to position " + toString(maxPos) + "!";
 
 	//quality term
-	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double* qualTermForTransformation = new double[MaxQualPlusOne];
 	double tmp;
 	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
 	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
 
-	for(int i=1; i<maxQualPlusOne; ++i){
+	for(int i=1; i<MaxQualPlusOne; ++i){
 		tmp = pow(10.0, -(double) i / 10.0);
 		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
 	}
 
 	//now fill table
-	transformedQuality = new int**[maxQualPlusOne];
-	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxPosPlusOne];
-		for(int p=0; p<maxPosPlusOne; ++p){
-			transformedQuality[q][p] = new int[20];
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		for(int p=0; p<MaxPosPlusOne; ++p){
 			for(int c=0; c<20; ++c){
 				//quality scores
 				//now calc transformed quality
@@ -698,6 +678,41 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 };
 
 //--------------------------------------------------------------------
+// Global functions to create models
+//--------------------------------------------------------------------
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile){
+	trimString(modelTag);
+
+	if(modelTag == qualfuncPosFuncContext_name){
+		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(values, shift);
+	} else if(modelTag == qualfuncPosFunc_name){
+		if(verbose) logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
+		return new TRecalibrationEMModel_qualFuncPosFunc(values, shift);
+	} else if(modelTag == qualfuncPosSpecificContext_name){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, 20 context and each position.");
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, shift);
+	} else if(modelTag == noRecal_name){
+		if(verbose) logfile->list("Will use a model that does not recalibrate.");
+		return new TRecalibrationEMModel_noRecal(shift);
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
+};
+
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, int maxPos, int shift, bool verbose, TLog* logfile){
+	trimString(modelTag);
+
+	if(modelTag == qualfuncPosFuncContext_name){
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(shift);
+	} else if(modelTag == qualfuncPosFunc_name){
+		return new TRecalibrationEMModel_qualFuncPosFunc(shift);
+	} else if(modelTag == qualfuncPosSpecificContext_name){
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(shift, maxPos);
+	} else if(modelTag == noRecal_name){
+		return new TRecalibrationEMModel_noRecal(shift);
+	} else throw "Unknown recalibration model '" + modelTag + "'!";
+};
+
+//--------------------------------------------------------------------
 // TRecalibrationEMModels
 //--------------------------------------------------------------------
 TRecalibrationEMModels::TRecalibrationEMModels(int numReadGroups, TLog* Logfile){
@@ -714,19 +729,7 @@ TRecalibrationEMModels::~TRecalibrationEMModels(){
 void TRecalibrationEMModels::_addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose){
 	trimString(modelTag);
 
-	if(modelTag == qualfuncPosFuncContext_name){
-		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		models.push_back(new TRecalibrationEMModel_qualFuncPosFuncContext(values, totNumParameters));
-	} else if(modelTag == qualfuncPosFunc_name){
-		if(verbose) logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
-		models.push_back(new TRecalibrationEMModel_qualFuncPosFunc(values, totNumParameters));
-	} else if(modelTag == qualfuncPosSpecificContext_name){
-		if(verbose) logfile->list("Will use a model with quality, quality squared, 20 context and each position.");
-		models.push_back(new TRecalibrationEMModel_qualFuncPosSpecificContext(values, totNumParameters));
-	} else if(modelTag == noRecal_name){
-		if(verbose) logfile->list("Will use a model that does not recalibrate.");
-		models.push_back(new TRecalibrationEMModel_noRecal(totNumParameters));
-	} else throw "Unknown recalibration model '" + modelTag + "'!";
+	models.push_back(createTRecalibrationEMModel(modelTag, values, totNumParameters, verbose, logfile));
 
 	totNumParameters += models.back()->numParameters();
 };

@@ -216,82 +216,56 @@ void TSimulatorQualityTransformation::printDetails(TLog* logfile){
 //-------------------------------------
 //TSimulatorQualityTransformationRecal
 //-------------------------------------
-TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const std::string & s, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
+TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::string & string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
 	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 
-	//string of betas, comma separated and potentially with repeated indexes
-	std::vector<std::string> vec;
-	fillVectorFromStringAnySkipEmpty(s, vec, ",");
-	repeatIndexes(vec, betas);
+	//code copied from TRecalbrationEM
+	//read model tag
+	size_t pos = string.find_first_of('[');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
+	std::string modelTag = string.substr(0,pos);
+	string.erase(0, pos+1);
 
-	//check if 24 betas were provided
-	if(betas.size() != 24)
-		throw "Wrong number of beta values for recal quality transformation (" + toString(betas.size()) + " instead of 24)! Require one for quality, quality^2, position, position^2 and one each for all 20 contexts.";
+	//read parameters: quality, position and context separted by semicolon (;)
+	pos = string.find_first_of(']');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
+	std::vector<std::string> tmpVec, vec;
+	fillVectorFromString(string.substr(0, pos), tmpVec, ";");
+	if(tmpVec.size() != 3)
+		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 
-	//precalculate stuff
-	fillTransformationTable(maxReadLength);
+	//precalculate transformation table
+	fillTransformationTable(modelTag, tmpVec, maxReadLength);
 };
 
-void TSimulatorQualityTransformationRecal::fillTransformationTable(int maxReadLength){
+TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
+	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
+
+	//precalculate transformation table
+	fillTransformationTable(modelTag, values, maxReadLength);
+};
+
+
+void TSimulatorQualityTransformationRecal::fillTransformationTable(std::string & modelTag, std::vector<std::string> & values, int maxReadLength){
 	//set size
 	maxReadLengthPlusOne = maxReadLength + 1;
 	maxQualPlusOne = qualityDist->max() + 1;
 	numContext = genoMap.numContextsNotN;
 
-	//quality term
-	double* qualTermForTransformation = new double[maxQualPlusOne];
-	double tmp;
-	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
-	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
-
-	for(int i=1; i<maxQualPlusOne; ++i){
-		tmp = pow(10.0, -(double) i / 10.0);
-		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
-	}
-
-	//position term
-	double* posTermForTransformation = new double[maxReadLengthPlusOne];
-	for(int i=0; i<maxReadLengthPlusOne; ++i){
-		posTermForTransformation[i] = betas[2] * i + betas[3] * i*i;
-	}
-
-	//tmp variables
-	int q, p, c;
-	double constant;
-	double transQual;
-
-	//now fill table
+	//allocate table
 	transformedQuality = new int**[maxQualPlusOne];
-	for(q=0; q<maxQualPlusOne; ++q){
+	for(int q=0; q<maxQualPlusOne; ++q){
 		transformedQuality[q] = new int*[maxReadLengthPlusOne];
-		for(p=0; p<maxReadLengthPlusOne; ++p){
+		for(int p=0; p<maxReadLengthPlusOne; ++p)
 			transformedQuality[q][p] = new int[numContext];
-			for(c=0; c<numContext; ++c){
-				//quality scores
-				//now calc transformed quality
-				constant = posTermForTransformation[p] + betas[c+4] - qualTermForTransformation[q];
-
-				if(4.0 * betas[1] * constant > betas[0] * betas[0]){
-					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
-				}
-				if(betas[1] == 0.0){
-					transQual = -constant / betas[0];
-				} else {
-					tmp = sqrt(betas[0] * betas[0] - 4.0 * betas[1] * constant);
-					transQual = (tmp - betas[0]) / 2.0 / betas[1];
-					//if(q < 0) q = (-tmp - beta[0]) / 2.0 / beta[1];
-				}
-
-				transQual = exp(transQual);
-				if(transQual == 0) throw "choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
-			}
-		}
 	}
 
-	//clean up
-	delete[] qualTermForTransformation;
-	delete[] posTermForTransformation;
+	//fill table using a recal model
+	model = createTRecalibrationEMModel(modelTag, values, 0, false, NULL);
+	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne);
+
 };
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){
@@ -301,11 +275,15 @@ void TSimulatorQualityTransformationRecal::clearTransformationTable(){
 		delete[] transformedQuality[q];
 	}
 	delete[] transformedQuality;
+	delete model;
 };
 
 void TSimulatorQualityTransformationRecal::printDetails(TLog* logfile){
-	std::string s = concatenateString(betas, ",");
-	logfile->list("Will transform qualities using the recal model with beta = [" + s + "]");
+	//logfile->list("Will transform qualities using the recal model with beta = [" + s + "]");
+	model->name();
+
+	//TODO: get model to write parameters so that they can be printed here!
+
 };
 
 void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len){

@@ -14,6 +14,7 @@
 #include "../TQualityMap.h"
 #include "../TParameters.h"
 #include "TSimulatorReadLength.h"
+#include "../TRecalibrationEMModel.h"
 
 //-------------------------------
 //TSimulatorQualityDist
@@ -110,7 +111,7 @@ public:
 //-------------------------------------
 class TSimulatorQualityTransformationRecal:public TSimulatorQualityTransformation{
 private:
-	std::vector<double> betas;
+	TRecalibrationEMModel_Base* model;
 	int maxReadLengthPlusOne;
 	int maxQualPlusOne;
 	int numContext;
@@ -119,12 +120,13 @@ private:
 	TGenotypeMap genoMap;
 
 	//private functions
-	void fillTransformationTable(int maxReadLength);
+	void fillTransformationTable(std::string & modelTag, std::vector<std::string> & values, int maxReadLength);
 	void clearTransformationTable();
 	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
 
 public:
-	TSimulatorQualityTransformationRecal(const std::string & s, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityTransformationRecal(std::string & string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityTransformationRecal(std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	~TSimulatorQualityTransformationRecal(){
 		clearTransformationTable();
 	};

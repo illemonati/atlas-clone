@@ -402,7 +402,6 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 			} else oldLL = LL;
 		} else oldLL = LL;
 
-
 		//run NewtonRaphson until convergence
 		_runNewtonRaphson(numSitesWithData);
 

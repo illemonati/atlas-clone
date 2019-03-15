@@ -65,11 +65,11 @@ public:
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
-class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
+class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFuncContext(int Shift);
-	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, int Shift);
-	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
+	TRecalibrationEMModel_qualFuncPosFunc(int Shift);
+	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift);
+	~TRecalibrationEMModel_qualFuncPosFunc(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
@@ -78,11 +78,11 @@ public:
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
-class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
+class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFunc(int Shift);
-	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift);
-	~TRecalibrationEMModel_qualFuncPosFunc(){};
+	TRecalibrationEMModel_qualFuncPosFuncContext(int Shift);
+	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, int Shift);
+	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
@@ -110,13 +110,19 @@ public:
 
 
 //--------------------------------------------------------------------
+// Global function to create models
+//--------------------------------------------------------------------
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, int maxPos, int shift, bool verbose, TLog* logfile);
+
+//--------------------------------------------------------------------
 // TRecalibrationEMModels
 // Object containing a vector of recal models
 //--------------------------------------------------------------------
 class TRecalibrationEMModels{
 private:
 	std::vector<TRecalibrationEMModel_Base*> models;
-	int totNumParameters;
+	unsigned int totNumParameters;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	TLog* logfile;
 
@@ -124,6 +130,7 @@ private:
 	arma::mat Jacobian;
 	arma::vec F;
 	arma::mat JxF;
+
 
 	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
 	void _writeParameters(TOutputFilePlain & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
