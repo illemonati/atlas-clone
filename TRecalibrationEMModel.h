@@ -53,6 +53,7 @@ public:
 	virtual void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
 	virtual void writeParametersToFile(TOutputFilePlain & out){ throw "void writeParametersToFile(TOutputFilePlain) not defined for TRecalibrationEMModel_Base!"; };
 	virtual double getErrorRate(TBase & base){ throw "double getErrorRate(TBase & base) not defined for TRecalibrationEMModel_Base!"; };
+	virtual void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){ throw "void fillTransformationTableForSimulation(...) not defined for TRecalibrationEMModel_Base!"; };
 };
 
 class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
@@ -61,24 +62,23 @@ public:
 	~TRecalibrationEMModel_noRecal(){};
 	virtual double getErrorRate(TBase & base);
 	void writeParametersToFile(TOutputFilePlain & out);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
-protected:
-	void _initialize(int NumReadGroups);
-
 public:
 	TRecalibrationEMModel_qualFuncPosFuncContext(int Shift);
 	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, int Shift);
-	virtual ~TRecalibrationEMModel_qualFuncPosFuncContext(){};
+	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
 
-	virtual double calcEpsilon(const TRecalibrationEMReadData & data);
+	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	virtual void writeParametersToFile(TOutputFilePlain & out);
-	virtual double getErrorRate(TBase & base);
+	void writeParametersToFile(TOutputFilePlain & out);
+	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
-class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_qualFuncPosFuncContext{
+class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
 public:
 	TRecalibrationEMModel_qualFuncPosFunc(int Shift);
 	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift);
@@ -88,6 +88,7 @@ public:
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	void writeParametersToFile(TOutputFilePlain & out);
 	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosSpecificContext:public TRecalibrationEMModel_Base{
@@ -104,6 +105,7 @@ public:
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	void writeParametersToFile(TOutputFilePlain & out);
 	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
 

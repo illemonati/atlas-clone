@@ -112,6 +112,23 @@ void TRecalibrationEMModel_noRecal::writeParametersToFile(TOutputFilePlain & out
 	out << _name << "\t-\t-\t-";
 };
 
+void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQuality, int maxPos, int maxQual){
+	int maxPosPlusOne = maxPos + 1;
+	int maxQualPlusOne = maxQual + 1;
+
+	//now fill table
+	transformedQuality = new int**[maxQualPlusOne];
+	for(int q=0; q<maxQualPlusOne; ++q){
+		transformedQuality[q] = new int*[maxPosPlusOne];
+		for(int p=0; p<maxPosPlusOne; ++p){
+			transformedQuality[q][p] = new int[20];
+			for(int c=0; c<20; ++c){
+				//no recal!
+				transformedQuality[q][p][c] = q;
+			}
+		}
+	}
+};
 
 //---------------------------------------------------------------
 //TRecalibrationEMModel
@@ -243,10 +260,66 @@ double TRecalibrationEMModel_qualFuncPosFuncContext::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
+void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
+	int maxPosPlusOne = MaxPos + 1;
+	int maxQualPlusOne = MaxQual + 1;
+
+	//quality term
+	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double tmp;
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<maxQualPlusOne; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
+	}
+
+	//position term
+	double* posTermForTransformation = new double[maxPosPlusOne];
+	for(int i=0; i<maxPosPlusOne; ++i){
+		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
+	}
+
+	//now fill table
+	transformedQuality = new int**[maxQualPlusOne];
+	for(int q=0; q<maxQualPlusOne; ++q){
+		transformedQuality[q] = new int*[maxPosPlusOne];
+		for(int p=0; p<maxPosPlusOne; ++p){
+			transformedQuality[q][p] = new int[20];
+			for(int c=0; c<20; ++c){
+				//quality scores
+				//now calc transformed quality
+				double constant = posTermForTransformation[p] + _betas[c+4] - qualTermForTransformation[q];
+				double transQual;
+
+				if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+				}
+				if(_betas[1] == 0.0){
+					transQual = -constant / _betas[0];
+				} else {
+					tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
+					transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
+				}
+
+				transQual = exp(transQual);
+				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
+				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+			}
+		}
+	}
+
+	//clean up
+	delete[] qualTermForTransformation;
+	delete[] posTermForTransformation;
+};
+
+
 //---------------------------------------------------------------
-//TRecalibrationEMModelNoContext
+// TRecalibrationEMModel_qualFuncPosFunc
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int Shift):TRecalibrationEMModel_qualFuncPosFuncContext(Shift){
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int Shift):TRecalibrationEMModel_Base(Shift){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -370,8 +443,64 @@ double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
+void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
+	int maxPosPlusOne = MaxPos + 1;
+	int maxQualPlusOne = MaxQual + 1;
+
+	//quality term
+	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double tmp;
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<maxQualPlusOne; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
+	}
+
+	//position term
+	double* posTermForTransformation = new double[maxPosPlusOne];
+	for(int i=0; i<maxPosPlusOne; ++i){
+		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
+	}
+
+	//now fill table
+	transformedQuality = new int**[maxQualPlusOne];
+	for(int q=0; q<maxQualPlusOne; ++q){
+		transformedQuality[q] = new int*[maxPosPlusOne];
+		for(int p=0; p<maxPosPlusOne; ++p){
+			transformedQuality[q][p] = new int[20];
+			//error is independent of context!
+			double constant = posTermForTransformation[p] + _betas[4] - qualTermForTransformation[q];
+			double transQual;
+			if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+				throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+			}
+			if(_betas[1] == 0.0){
+				transQual = -constant / _betas[0];
+			} else {
+				tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
+				transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
+			}
+
+			transQual = exp(transQual);
+			if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
+
+			int newQual = round(-10.0 * log10(transQual / (1.0 + transQual)));
+
+			//now store for each context
+			for(int c=0; c<20; ++c)
+				transformedQuality[q][p][c] = newQual;
+		}
+	}
+
+	//clean up
+	delete[] qualTermForTransformation;
+	delete[] posTermForTransformation;
+};
+
 //---------------------------------------------------------------
-//TRecalibrationEMModelPositionSpecific
+// TRecalibrationEMModel_qualFuncPosSpecificContext
 //---------------------------------------------------------------
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
 	// - transformed quality
@@ -518,6 +647,55 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	return _calcEpsilon(eta);
 };
 
+void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){
+	if(MaxPos > maxPos)
+		throw "Can not fill transformation table for simulations up to position " + toString(MaxPos) + ": position specific effects only available up to position " + toString(maxPos) + "!";
+	int maxPosPlusOne = MaxPos + 1;
+	int maxQualPlusOne = MaxQual + 1;
+
+	//quality term
+	double* qualTermForTransformation = new double[maxQualPlusOne];
+	double tmp;
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<maxQualPlusOne; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
+	}
+
+	//now fill table
+	transformedQuality = new int**[maxQualPlusOne];
+	for(int q=0; q<maxQualPlusOne; ++q){
+		transformedQuality[q] = new int*[maxPosPlusOne];
+		for(int p=0; p<maxPosPlusOne; ++p){
+			transformedQuality[q][p] = new int[20];
+			for(int c=0; c<20; ++c){
+				//quality scores
+				//now calc transformed quality
+				double constant = _betas[22 + p] + _betas[c+4] - qualTermForTransformation[q];
+				double transQual;
+
+				if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+				}
+				if(_betas[1] == 0.0){
+					transQual = -constant / _betas[0];
+				} else {
+					tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
+					transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
+				}
+
+				transQual = exp(transQual);
+				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
+				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+			}
+		}
+	}
+
+	//clean up
+	delete[] qualTermForTransformation;
+};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModels
