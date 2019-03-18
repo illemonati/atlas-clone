@@ -2179,7 +2179,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //other temp variables
     long counter = 0;
-    int RGInd = -1;
     std::vector<double> cov;
     double totCov = 0.0;
     int numProperPairs = 0;
@@ -2201,6 +2200,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
     	//filters
         if(!alignment.passedFilters) continue;
+
+        //fragment length
         if(alignment.isProperPair){
         	if(!alignment.isReverseStrand){
         		++numProperPairs;
@@ -2210,17 +2211,16 @@ void TGenome::diagnoseBamFile(TParameters & params){
         	}
         }
 
-        RGInd = alignment.readGroupId;
         totCov += alignment.getLength();
-        cov[RGInd] += alignment.getLength();
+        cov[alignment.readGroupId] += alignment.getLength();
         if(alignment.mappingQuality > maxMQ)
         	throw "Mapping quality of alignment " + alignment.alignmentName + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
 
-        ++MQ[RGInd][alignment.mappingQuality];
+        ++MQ[alignment.readGroupId][alignment.mappingQuality];
        if(alignment.getLength() > maxRL)
     	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getLength()) + ">" + toString(maxRL) +")";
 
-        ++RL[RGInd][alignment.getLength()];
+        ++RL[alignment.readGroupId][alignment.getLength()];
 
         //report
         ++counter;
@@ -2352,7 +2352,7 @@ void TGenome::allelicDepth(TParameters & params){
 	if(nCharOnLine > 0) output << '\n';
 	output.close();
 	delete[] siteCounts;
-}
+};
 
 void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	//open output file
@@ -2384,54 +2384,40 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	//clean up
 	if(nCharOnLine > 0) output << '\n';
 	output.close();
-}
+};
+
+/*
+
+void TGenome::estimateDuplicationCounts(TParameters & params){
+	//assembles distribution of how often a read is duplicated
+	//now: just ho wmany reads start at the same positions
+
+	//create storage
+	int maxCounts = params.getParameterIntWithDefault("maxCount", 100);
+	int* sameStart = new int[maxCounts + 2]; //also for = maxcount and combined bin for all above
+
+		//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//write chromosome to file
+		if(window.passedFilters){
+			//write to file
+			logfile->listFlush("Writing sequencing depth estimates to file ...");
+			if(window.depth == -1.0) output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
+			else output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
+			logfile->done();
+		}
+	}
+
+	//clean up
+	if(nCharOnLine > 0) output << '\n';
+	output.close();
+};
+*/
 
 void TGenome::estimateDepthPerSite(TParameters & params){
-	std::ofstream output;
-	std::ofstream outputNormalized;
-	std::ofstream outputQuantiles;
-
-	std::string outputFileName = outputName + "_depthPerSite.txt";
-	std::string outputFileNameNormalized = outputName + "_normalizedCumulativeDepthPerSite.txt";
-	std::string outputFileNameQuantiles = outputName + "_quantilesDepthPerSite.txt";
-
-
-	logfile->list("Writing cumulative depth distribution to '" + outputFileName + "'");
-	logfile->list("Writing normalized cumulative depth distribution to '" + outputFileNameNormalized + "'");
-	logfile->list("Writing quantiles of cumulative depth distribution to '" + outputFileNameQuantiles + "'");
-
-
-	output.open(outputFileName.c_str());
-	outputNormalized.open(outputFileNameNormalized.c_str());
-	outputQuantiles.open(outputFileNameQuantiles.c_str());
-
-
-	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	if(!outputNormalized) throw "Failed to open output file '" + outputFileNameNormalized + "'!";
-	if(!outputQuantiles) throw "Failed to open output file '" + outputFileNameQuantiles + "'!";
-
-
-	int maxCov = params.getParameterIntWithDefault("maxDepth", 20);
-	if(!maxCov) throw "No maximum depth specified!";
-	int size = maxCov + 2; // need 0 bin and >maxCov bin
-	int nCharOnLine = 0;
-	double totalSites = 0.0;
-
-	//prepare arrays
-	long * siteDepth = new long[size];
-	for(int i=0; i<size; ++i){
-		siteDepth[i] = 0;
-	}
-
-	long * siteDepthNormalized = new long[size];
-	for(int i=0; i<size; ++i){
-		siteDepthNormalized[i] = 0;
-	}
-
-	//write headers
-	output << "depth\tcounts" << std::endl;
-	outputNormalized << "depth\tcounts" << std::endl;
-	outputQuantiles << "percent\tquantile" << std::endl;
+	//initialize count object
+	int maxDepth = params.getParameterIntWithDefault("maxDepth", 20);
+	TDepthCounts counts(maxDepth);
 
 	//prepare windows
 	TWindow window;
@@ -2441,71 +2427,27 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 		//write chromosome to file
 		if(window.passedFilters){
 			logfile->listFlush("Adding depth to table ...");
-			window.calcDepthPerSite(siteDepth, maxCov);
+			window.countDepthPerSite(counts);
 			logfile->done();
 		}
 	}
 
-	//write to files
-	//read counts
-	for(int i=0; i<(size-1); ++i){
-		output << i << "\t" << siteDepth[i] << "\n";
-		totalSites += (double) siteDepth[i];
-	}
-	totalSites += siteDepth[size - 1];
-	output << ">" << maxCov << "\t" << siteDepth[size - 1] << std::endl;
+	//write
+	std::string filename = outputName + "_depthPerSite.txt";
+	logfile->listFlush("Writing depth distribution to '" + filename + "' ...");
+	counts.writeCounts(filename);
+	logfile->done();
 
-	//normalized cumulative distribution and quantiles
-	double cumul = 0.0;
-	double norm = 0.0;
-	float percentages[14] = {0.001, 0.005, 0.01, 0.025, 0.05, 0.2, 0.5, 0.8, 0.9, 0.95, 0.975, 0.99, 0.995, 0.999};
-	int numberOfPercentages = 14;
-	int quantiles[numberOfPercentages];
-	std::fill_n(quantiles, numberOfPercentages, -1);
-	for(int i=0; i<(size-1); ++i){
-		cumul += (double) (siteDepth[i]);
-		if(i > 0 && norm == 1.0) outputNormalized << i << "\t" << 0 << "\n";
-		else {
-			norm = cumul / totalSites;
-			outputNormalized << i << "\t" << norm << "\n";
-		}
-		for(int p=0; p<numberOfPercentages; ++p){
-			//if smallest quantiles = 0
-			if(i == 0 && norm > percentages[p]) quantiles[p] = i;
-			else if(quantiles[p] == -1 && norm >= percentages[p]){
-				quantiles[p] = i;
-			}
-		}
-		if(quantiles[numberOfPercentages] == -1 && i >= percentages[numberOfPercentages]) quantiles[numberOfPercentages] = i;
-	}
-	if(norm == 1.0) outputNormalized << ">" << maxCov << "\t" << 0 << "\n";
-	else {
-		cumul += (double) siteDepth[size - 1];
-		norm = cumul / totalSites;
-		outputNormalized << ">" << maxCov << "\t" << norm << std::endl;
-	}
+	filename = outputName + "_cumulativeDepthPerSite.txt";
+	logfile->listFlush("Writing normalized cumulative depth distribution to '" + filename + "' ...");
+	counts.writeNormalizedCumulativeCounts(filename);
+	logfile->done();
 
-	for(int p=0; p<numberOfPercentages; ++p){
-		if(quantiles[p] == -1) quantiles[p] = maxCov;
-	}
-
-	for(int i=0; i < numberOfPercentages; ++i){
-		outputQuantiles << percentages[i] << "\t" << quantiles[i] << std::endl;
-	}
-
-	//clean up
-	if(nCharOnLine > 0){
-		output << '\n';
-		outputNormalized << '\n';
-	}
-	output.close();
-	outputNormalized.close();
-	outputQuantiles.close();
-
-	delete[] siteDepth;
-	delete[] siteDepthNormalized;
-
-}
+	filename = outputName + "_quantilesDepthPerSite.txt";
+	logfile->listFlush("Writing quantiles of depth distribution '" + filename + "' ...");
+	counts.writeQuantiles(filename);
+	logfile->done();
+};
 
 void TGenome::writeDepthPerSite(TParameters & params){
 	gz::ogzstream out;

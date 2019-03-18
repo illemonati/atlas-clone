@@ -457,7 +457,7 @@ void TWindow::calcFracN(){
 	double numN = 0.0;
 	for(int i=0; i<length; ++i)	if(sites[i].referenceBase == 'N') ++numN;
 	fractionRefIsN = numN / (double) length;
-}
+};
 
 void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 	//calculate and return coverage
@@ -478,7 +478,12 @@ void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 	depth = depth / (double) length;
 	fractionSitesNoData = (double) noData / (double) length;
 	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
-}
+};
+
+void TWindow::countDepthPerSite(TDepthCounts & counts){
+	for(int i=0; i<length; ++i)
+		counts.add(sites[i].depth());
+};
 
 void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
 	//print depth for each site to file

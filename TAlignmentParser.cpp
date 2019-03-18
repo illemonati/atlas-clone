@@ -747,7 +747,7 @@ bool TAlignmentParser::applyFilters(){
 
 void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//make sure container is empty
-	alignment.clear(); //necessary? Not do it in TWindow?
+	alignment.clear();
 
 	//fill alignment
 	std::string readGroup;

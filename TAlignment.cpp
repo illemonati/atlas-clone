@@ -31,7 +31,6 @@ TAlignment::TAlignment(){
 	hasReference = false;
 
 	bases = NULL;
-//	quality = NULL;
 	qualityOriginal = NULL;
 	numInsertions = -1;
 	numDeletions = -1;
@@ -39,28 +38,13 @@ TAlignment::TAlignment(){
 	softClippedLength = NULL;
 	softClippedBase = NULL;
 	softClippedQuality = NULL;
-
-	//per base data
-/*
-	base = NULL;
-	context = NULL;
-	errorRates = NULL;
-
-	distFrom3Prime = NULL;
-	distFrom5Prime = NULL;
-	pmdCT = NULL;
-	pmdGA = NULL;
-
-	//soft clipped data
-
-*/
-}
+};
 
 TAlignment::TAlignment(unsigned int MaxSize){
 	TAlignment();
 	maxSize = MaxSize;
 	initStorage();
-}
+};
 
 TAlignment::TAlignment(const TAlignment & Alignment){
 	TAlignment();
@@ -416,7 +400,7 @@ void TAlignment::filterForPrintingBaseQuality(std::string & qual, int & minQualF
 };
 
 void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime){
-	//TODO: check if these distances correspond to those calculated in setDistances function
+	//TODO: should we treat paired-end data differently, i.e. should be consider the 3' end of the fragment?
 	//set base to N at ends of read
 	if(isReverseStrand){
 		//distance from 3' is just pos
@@ -435,7 +419,6 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 	}
 	changed = true;
 };
-
 
 /*
 void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){

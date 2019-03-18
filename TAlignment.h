@@ -40,18 +40,13 @@ private:
 
 	//per base data
 	TBase* bases;
-//	bool* aligned; //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
 	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
 	int numInsertions;
 	int numDeletions;
-//	int* qualityRecalibrated;
-//	int* quality; //pointer to qualities to be used
-//	char* baseAsChar; //TODO: to be removed, if possible
 	uint8_t softClippedEntry; //0 means start, 1 means end of read
-
 
 	//reference
 	bool hasReference;
@@ -72,15 +67,9 @@ private:
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
-	//functions that access data
-
-
-
 public:
-
 	bool storageInitialized;
 	BamTools::BamAlignment bamAlignment;
-
 
 	TAlignment();
 	TAlignment(unsigned int MaxSize);
@@ -88,7 +77,7 @@ public:
 
 	~TAlignment(){
 		freeStorage();
-	}
+	};
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
 	void setReferenceAdded();
