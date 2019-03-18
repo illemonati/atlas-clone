@@ -51,7 +51,11 @@ public:
 	void rejectProposedParameters();
 	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
 	virtual void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
-	virtual void writeParametersToFile(TOutputFilePlain & out){ throw "void writeParametersToFile(TOutputFilePlain) not defined for TRecalibrationEMModel_Base!"; };
+	void writeParametersToFile(TOutputFilePlain & out);
+	std::string getModelString();
+	virtual std::string getQualityString(){ return "-"; };
+	virtual std::string getPositionString(){ return "-"; };
+	virtual std::string getContextString(){ return "-"; };
 	virtual double getErrorRate(TBase & base){ throw "double getErrorRate(TBase & base) not defined for TRecalibrationEMModel_Base!"; };
 	virtual void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){ throw "void fillTransformationTableForSimulation(...) not defined for TRecalibrationEMModel_Base!"; };
 };
@@ -60,8 +64,7 @@ class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
 public:
 	TRecalibrationEMModel_noRecal(int Shift);
 	~TRecalibrationEMModel_noRecal(){};
-	virtual double getErrorRate(TBase & base);
-	void writeParametersToFile(TOutputFilePlain & out);
+	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
@@ -73,7 +76,9 @@ public:
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	void writeParametersToFile(TOutputFilePlain & out);
+	std::string getQualityString();
+	std::string getPositionString();
+	std::string getContextString();
 	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
@@ -86,7 +91,9 @@ public:
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	void writeParametersToFile(TOutputFilePlain & out);
+	std::string getQualityString();
+	std::string getPositionString();
+	std::string getContextString();
 	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
@@ -103,11 +110,12 @@ public:
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	void writeParametersToFile(TOutputFilePlain & out);
+	std::string getQualityString();
+	std::string getPositionString();
+	std::string getContextString();
 	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
-
 
 //--------------------------------------------------------------------
 // Global function to create models

@@ -27,7 +27,7 @@ protected:
 	std::string readNamePrefix;
 	int readXPos, readYPos;
 	bool isInitialized;
-	std::string type;
+
 
 	//read length
 	TSimulatorReadLength* readLengthDist;
@@ -64,13 +64,16 @@ protected:
 	void fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities);
 
 public:
+
+	std::string type;
+
 	TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s, TLog* logfile);
 	void setQualityDistribution(std::string s);
-	void setQualityTransformation(const std::string & type, const std::string & arg, TLog* logfile);
+	virtual void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 	void setContamination(double rate, TSimulatorReference* source);
 
@@ -99,12 +102,15 @@ private:
 	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates;
 	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates_idle;
 
+	TSimulatorQualityTransformation* qualityTransform_secondMate;
+
 	void initializeSecondMateAlignment(BamTools::BamAlignment & alignment);
 
 public:
 	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator);
 	~TSimulatorPairedEndReads();
 
+	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
 	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
 	void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile);
 };

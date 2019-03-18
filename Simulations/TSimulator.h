@@ -60,10 +60,11 @@ protected:
 	void saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename);
 	void initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap);
 	void initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
-	void initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & qualTransformMap);
+	void initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap);
 	void initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
 	void initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
 	void addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
+	void initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual);
 	void initializeReadSimulator(TParameters & params);
 	void initializeReadGroupFrequencies(TParameters & params);
 

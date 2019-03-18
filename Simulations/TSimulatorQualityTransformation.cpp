@@ -197,7 +197,7 @@ TSimulatorQualityTransformation::TSimulatorQualityTransformation(TSimulatorQuali
 };
 
 
-void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len){
+void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand){
 	//simulate qualities
 	qualityDist->sample(qualities, len);
 
@@ -279,30 +279,27 @@ void TSimulatorQualityTransformationRecal::clearTransformationTable(){
 };
 
 void TSimulatorQualityTransformationRecal::printDetails(TLog* logfile){
-	//logfile->list("Will transform qualities using the recal model with beta = [" + s + "]");
-	model->name();
-
-	//TODO: get model to write parameters so that they can be printed here!
-
+	logfile->list("Will transform qualities using the recal model " + model->getModelString());
 };
 
-void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len){
-	//simulate qualities
-	qualityDist->sample(qualities, len);
+void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand){
+	//call base function to simulate
+	TSimulatorQualityTransformation::simulateQualitiesAndErrors(bases, qualities, len, isReverseStrand);
 
-	//add errors and transform qualities
-	previousBase = N;
-	for(p=0; p<len; ++p){
-		if(randomGenerator->getRand() < qualityMap.phredIntToErrorMap[qualities[p]])
-			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-
-		//transform qualities
-		qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
-		previousBase = bases[p];
+	//transform quality
+	Base previousBase = N;
+	if(isReverseStrand){
+		for(p=len - 1; p>=0; ++p){
+			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
+			previousBase = bases[p];
+		}
+	} else {
+		for(p=0; p<len; ++p){
+			qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
+			previousBase = bases[p];
+		}
 	}
 };
-
-
 
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
@@ -506,24 +503,28 @@ void TSimulatorQualityTransformationBQSR::setFakePhredDistribution(TLog* logfile
 
 double TSimulatorQualityTransformationBQSR::returnTrueError(const int & fakePhredInt){
 	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakePhredInt) + qualityMap.phredIntToErrorMap[phi1]);
-}
+};
 
 double TSimulatorQualityTransformationBQSR::returnBetaPp(const int & pos){
 	return(m * (double) (pos+1) + intercept);
-}
+};
 
-void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* phredIntQualities, const int & len){
+void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* phredIntQualities, const int & len, const bool isReverseStrand){
 	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
 	fakePhredDist->sample(phredIntQualities,len);
 
-	for(p=0; p<len; ++p){
-		if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
-			bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+	if(isReverseStrand){
+		for(p=0; p<len; ++p){
+			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][len - p - 1]){
+				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+			}
+		}
+	} else {
+		for(p=0; p<len; ++p){
+			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
+				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+			}
 		}
 	}
-}
-
-
-
-
+};
 

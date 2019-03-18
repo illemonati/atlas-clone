@@ -96,6 +96,17 @@ void TRecalibrationEMModel_Base::rejectProposedParameters(){
 		_betas[i] = _oldBetas[i];
 };
 
+void TRecalibrationEMModel_Base::writeParametersToFile(TOutputFilePlain & out){
+	out << _name;
+	out << getQualityString();
+	out << getPositionString();
+	out << getContextString();
+};
+
+std::string TRecalibrationEMModel_Base::getModelString(){
+	return _name + "[" + getQualityString() + ";" + getPositionString() + ";" + getContextString() + "]";
+};
+
 //---------------------------------------------------------------
 //TRecalibrationEMModel_noRecal
 //---------------------------------------------------------------
@@ -106,10 +117,6 @@ TRecalibrationEMModel_noRecal::TRecalibrationEMModel_noRecal(int Shift):TRecalib
 
 double TRecalibrationEMModel_noRecal::getErrorRate(TBase & base){
 	return base.errorRate;
-};
-
-void TRecalibrationEMModel_noRecal::writeParametersToFile(TOutputFilePlain & out){
-	out << _name << "\t-\t-\t-";
 };
 
 void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
@@ -125,6 +132,182 @@ void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** 
 			}
 		}
 	}
+};
+
+//---------------------------------------------------------------
+// TRecalibrationEMModel_qualFuncPosFunc
+//---------------------------------------------------------------
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int Shift):TRecalibrationEMModel_Base(Shift){
+	//we will work with the following q_ikl (per read group):
+	// - transformed quality
+	// - square of transformed quality
+	// - position
+	// - square of position
+	// - 1 intercept for all contexts
+	// -> in total, 5 variables to estimate
+	_numParameters = 5;
+	_name = qualfuncPosFunc_name;
+	_allocateBetaMemory();
+};
+
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFunc(Shift){
+	std::vector<double> values[3];
+	_parseParameterString(vec, values);
+
+	//quality: should be two numbers
+	if(values[0].size() != 2)
+		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+
+	_betas[0] = values[0][0];
+	_betas[1] = values[0][1];
+
+	//position
+	if(values[1].size() != 2)
+		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+
+	_betas[2] = values[1][0];
+	_betas[3] = values[1][1];
+
+	//context: should be a dash
+	if(vec[2].size() != 1)
+		throw "Wrong number of position parameters for model " + _name + ": expected 1 but found " + toString(vec.size()) + "!";
+	_betas[4] = values[2][0];
+};
+
+double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEMReadData & data){
+	//quality, quality squared, position and position squared
+	double eta = _qualPosMap.eta[data.quality] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	eta += _qualPosMap.position[data.position] * _betas[2];
+	eta += _qualPosMap.positionSquared[data.position] * _betas[3];
+
+	//add intercept
+	eta += _betas[4];
+
+	return _calcEpsilon(eta);
+};
+
+void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+	//fill q
+	double q[4];
+	q[0] = _qualPosMap.eta[data.quality];
+	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[2] = _qualPosMap.position[data.position];
+	q[3] = _qualPosMap.positionSquared[data.position];
+
+	//add to F
+	//-------------------------------------
+	//quality, quality squared, position, position squared: Derivatives are given by the q's
+	F(_myShift    ) += weightF * q[0];
+	F(_myShift + 1) += weightF * q[1];
+	F(_myShift + 2) += weightF * q[2];
+	F(_myShift + 3) += weightF * q[3];
+
+	//now context: start at position 4 in F!
+	F(data.context + 4 + _myShift) += weightF;
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	//all rows except context
+	for(int row=0; row<4; ++row){
+		for(int col=row; col<4; ++col){
+			Jacobian(_myShift + row, _myShift + col) +=  weightJacobian * q[row] * q[col];
+		}
+	}
+
+	//intercept column
+	int tmpIndex = _myShift + 4;
+	for(int p=0; p<4; ++p){
+		Jacobian(_myShift + p, tmpIndex) += weightJacobian * q[p];
+	}
+	//intercept x intercept
+	Jacobian(tmpIndex, tmpIndex) += weightJacobian;
+
+	++_numSitesAdded;
+};
+
+std::string TRecalibrationEMModel_qualFuncPosFunc::getQualityString(){
+	return toString(_betas[0]) + "," + toString(_betas[1]);
+};
+
+std::string TRecalibrationEMModel_qualFuncPosFunc::getPositionString(){
+	return toString(_betas[2]) + "," + toString(_betas[3]);
+};
+
+std::string TRecalibrationEMModel_qualFuncPosFunc::getContextString(){
+	return toString(_betas[4]);
+};
+
+double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+	double eta = _betas[0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += _betas[1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += _betas[2] * (double) base.distFrom5Prime;
+
+	//q[3] is square of position
+	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
+
+	//add intercept
+	eta += _betas[4];
+
+	//now calculate epsilon from eta
+	return _calcEpsilon(eta);
+};
+
+void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+	//quality term
+	double* qualTermForTransformation = new double[MaxQualPlusOne];
+	double tmp;
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<MaxQualPlusOne; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
+	}
+
+	//position term
+	double* posTermForTransformation = new double[MaxPosPlusOne];
+	for(int i=0; i<MaxPosPlusOne; ++i){
+		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
+	}
+
+	//now fill table
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		for(int p=0; p<MaxPosPlusOne; ++p){
+			//error is independent of context!
+			double constant = posTermForTransformation[p] + _betas[4] - qualTermForTransformation[q];
+			double transQual;
+			if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+				throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+			}
+			if(_betas[1] == 0.0){
+				transQual = -constant / _betas[0];
+			} else {
+				tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
+				transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
+			}
+
+			transQual = exp(transQual);
+			if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
+
+			int newQual = round(-10.0 * log10(transQual / (1.0 + transQual)));
+
+			//now store for each context
+			for(int c=0; c<20; ++c)
+				transformedQuality[q][p][c] = newQual;
+		}
+	}
+
+	//clean up
+	delete[] qualTermForTransformation;
+	delete[] posTermForTransformation;
 };
 
 //---------------------------------------------------------------
@@ -223,18 +406,16 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(arma::vec &
 	++_numSitesAdded;
 };
 
-void TRecalibrationEMModel_qualFuncPosFuncContext::writeParametersToFile(TOutputFilePlain & out){
-	//name
-	out << _name;
+std::string TRecalibrationEMModel_qualFuncPosFuncContext::getQualityString(){
+	return toString(_betas[0]) + "," + toString(_betas[1]);
+};
 
-	//quality
-	out << toString(_betas[0]) + "," + toString(_betas[1]);
+std::string TRecalibrationEMModel_qualFuncPosFuncContext::getPositionString(){
+	return toString(_betas[2]) + "," + toString(_betas[3]);
+};
 
-	//position
-	out << toString(_betas[2]) + "," + toString(_betas[3]);
-
-	//context
-	out << concatenateString(&_betas[4], 20, ",");
+std::string TRecalibrationEMModel_qualFuncPosFuncContext::getContextString(){
+	return concatenateString(&_betas[4], 20, ",");
 };
 
 double TRecalibrationEMModel_qualFuncPosFuncContext::getErrorRate(TBase & base){
@@ -298,184 +479,6 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
 				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
-		}
-	}
-
-	//clean up
-	delete[] qualTermForTransformation;
-	delete[] posTermForTransformation;
-};
-
-
-//---------------------------------------------------------------
-// TRecalibrationEMModel_qualFuncPosFunc
-//---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int Shift):TRecalibrationEMModel_Base(Shift){
-	//we will work with the following q_ikl (per read group):
-	// - transformed quality
-	// - square of transformed quality
-	// - position
-	// - square of position
-	// - 1 intercept for all contexts
-	// -> in total, 5 variables to estimate
-	_numParameters = 5;
-	_name = qualfuncPosFunc_name;
-	_allocateBetaMemory();
-};
-
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFunc(Shift){
-	std::vector<double> values[3];
-	_parseParameterString(vec, values);
-
-	//quality: should be two numbers
-	if(values[0].size() != 2)
-		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
-
-	_betas[0] = values[0][0];
-	_betas[1] = values[0][1];
-
-	//position
-	if(values[1].size() != 2)
-		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
-
-	_betas[2] = values[1][0];
-	_betas[3] = values[1][1];
-
-	//context: should be a dash
-	if(vec[2] != "-")
-		throw "Do not expect context parameters for model " + _name + "!";
-};
-
-double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEMReadData & data){
-	//quality, quality squared, position and position squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
-	eta += _qualPosMap.position[data.position] * _betas[2];
-	eta += _qualPosMap.positionSquared[data.position] * _betas[3];
-
-	//add intercept
-	eta += _betas[4];
-
-	return _calcEpsilon(eta);
-};
-
-void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
-	//fill q
-	double q[4];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
-	q[2] = _qualPosMap.position[data.position];
-	q[3] = _qualPosMap.positionSquared[data.position];
-
-	//add to F
-	//-------------------------------------
-	//quality, quality squared, position, position squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
-	F(_myShift + 2) += weightF * q[2];
-	F(_myShift + 3) += weightF * q[3];
-
-	//now context: start at position 4 in F!
-	F(data.context + 4 + _myShift) += weightF;
-
-	//add to Jacobian (only upper triangle)
-	//-------------------------------------
-	//all rows except context
-	for(int row=0; row<4; ++row){
-		for(int col=row; col<4; ++col){
-			Jacobian(_myShift + row, _myShift + col) +=  weightJacobian * q[row] * q[col];
-		}
-	}
-
-	//intercept column
-	int tmpIndex = _myShift + 4;
-	for(int p=0; p<4; ++p){
-		Jacobian(_myShift + p, tmpIndex) += weightJacobian * q[p];
-	}
-	//intercept x intercept
-	Jacobian(tmpIndex, tmpIndex) += weightJacobian;
-
-	++_numSitesAdded;
-};
-
-void TRecalibrationEMModel_qualFuncPosFunc::writeParametersToFile(TOutputFilePlain & out){
-	//name
-	out << _name << "\t";
-
-	//quality
-	out << toString(_betas[0]) + "," + toString(_betas[1]);
-
-	//position
-	out << toString(_betas[2]) + "," + toString(_betas[3]);
-
-	//context
-	out << "-";
-};
-
-double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
-	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
-	// q[0] is transformed quality
-	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
-	double eta = _betas[0] * originalErrorRate;
-
-	//q[1] is square of transformed quality
-	eta += _betas[1] * originalErrorRate * originalErrorRate;
-
-	//q[2] is position
-	eta += _betas[2] * (double) base.distFrom5Prime;
-
-	//q[3] is square of position
-	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
-
-	//add intercept
-	eta += _betas[4];
-
-	//now calculate epsilon from eta
-	return _calcEpsilon(eta);
-};
-
-void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
-	//quality term
-	double* qualTermForTransformation = new double[MaxQualPlusOne];
-	double tmp;
-	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
-	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
-
-	for(int i=1; i<MaxQualPlusOne; ++i){
-		tmp = pow(10.0, -(double) i / 10.0);
-		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
-	}
-
-	//position term
-	double* posTermForTransformation = new double[MaxPosPlusOne];
-	for(int i=0; i<MaxPosPlusOne; ++i){
-		posTermForTransformation[i] = _betas[2] * i + _betas[3] * i*i;
-	}
-
-	//now fill table
-	for(int q=0; q<MaxQualPlusOne; ++q){
-		for(int p=0; p<MaxPosPlusOne; ++p){
-			//error is independent of context!
-			double constant = posTermForTransformation[p] + _betas[4] - qualTermForTransformation[q];
-			double transQual;
-			if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
-				throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
-			}
-			if(_betas[1] == 0.0){
-				transQual = -constant / _betas[0];
-			} else {
-				tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
-				transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
-			}
-
-			transQual = exp(transQual);
-			if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
-
-			int newQual = round(-10.0 * log10(transQual / (1.0 + transQual)));
-
-			//now store for each context
-			for(int c=0; c<20; ++c)
-				transformedQuality[q][p][c] = newQual;
 		}
 	}
 
@@ -595,18 +598,16 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(arma::v
 	++_numSitesAdded;
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContext::writeParametersToFile(TOutputFilePlain & out){
-	//name
-	out << _name;
+std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getQualityString(){
+	return toString(_betas[0]) + "," + toString(_betas[1]);
+};
 
-	//quality
-	out << toString(_betas[0]) + "," + toString(_betas[1]);
+std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getPositionString(){
+	return concatenateString(&_betas[22], maxPos, ",");
+};
 
-	//position
-	out << concatenateString(&_betas[22], maxPos, ",");
-
-	//context
-	out << concatenateString(&_betas[4], 20, ",");
+std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getContextString(){
+	return concatenateString(&_betas[4], 20, ",");
 };
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & base){

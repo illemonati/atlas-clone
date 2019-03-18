@@ -497,8 +497,7 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 		}
 
 	}
-}
-
+};
 
 void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 	for(int i=0; i<length; ++i){
@@ -507,7 +506,7 @@ void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
 				sites[i].clear();
 		}
 	}
-}
+};
 
 void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, std::ofstream & outputMaskFile, std::string & chr){
 	for(int i=0; i<length; ++i){
@@ -517,7 +516,7 @@ void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, st
 			}
 		}
 	}
-}
+};
 
 void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");

@@ -7,7 +7,6 @@
 
 #include "TSimulator.h"
 
-
 //---------------------------------------------------
 //TSimulator
 //---------------------------------------------------
@@ -88,9 +87,9 @@ void TSimulator::saveToMap(std::string & name, std::string args, std::map<std::s
 
 void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap){
 	logfile->startIndent("Reading read length distribution:");
-	std::string s = params.getParameterStringWithDefault("readLength", "fixed(100)");
+	std::string s = params.getParameterStringWithDefault("readLength", "single:fixed(100)");
 
-	//check if it is a specific function
+	//check if it is a file
 	size_t pos = s.find("(");
 	if(pos == std::string::npos){
 		//is a file
@@ -116,6 +115,10 @@ void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & p
 				if(vec.size() != 2)
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
 
+				//check format
+				if(vec[1].find("single:") == std::string::npos && vec[1].find("paired:") == std::string::npos)
+					throw "Failed to understand read length distribution '" + vec[1] + "': keyword single or paired missing!";
+
 				//save to map
 				saveToMap(vec[0], vec[1], readLengthMap, s);
 			}
@@ -130,7 +133,7 @@ void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & p
 		perReadGroup = false;
 	}
 	logfile->endIndent();
-}
+};
 
 void TSimulator::initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap){
 	logfile->startIndent("Reading quality distribution:");
@@ -178,21 +181,19 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 	logfile->endIndent();
 }
 
-void TSimulator::initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & qualTransformMap){
+void TSimulator::initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap){
 	//initialize quality transformation
 	//Currently we allow for five options:
-	//  1) no quality transformation
-	//  2) recal transformation initialized from the command line (one for all read groups)//
-	//  3) read-group specific recal transformation provided via a recal file	//
-	//  4) read-group specific BQSR transformation from a file
-	//  5) BQSR transformation initialized from the command line (one for all read groups)
-
+	//  1) recal transformation initialized from the command line (one for all read groups)//
+	//  2) read-group specific recal transformation provided via a recal file	//
+	//  3) BQSR transformation initialized from the command line (one for all read groups)
+	//  4) read-group specific BQSR transformation from a file (NOT IMPLEMENTED!)
+	//  5) no quality transformation
 
 	//map has format: < readGroup, < type, args > >
 
 	logfile->startIndent("Reading quality transformation:");
 	std::vector<std::string> string_vec;
-	std::string example = "Provide either a file name for a recal file, recal[beta_q, beta_q2, beta_p, beta_p2, ... (beta for all 20 context) ...], or BQSR[a,b,c].";
 
 	//tmp vars
 	std::string::size_type pos;
@@ -206,16 +207,13 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 		std::string recalString = params.getParameterString("recal");
 		pos = recalString.find_first_of('[');
 
-		//Option 1: recal from numbers: a single one valid for all read groups.
+		//Option 1: recal from numbers: a single string valid for all read groups.
 		//---------------------------------------------------------------------
 		if(pos != std::string::npos){
-			pos = recalString.find_first_of(']');
-			if(pos == std::string::npos)
-				throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or the betas as '[beta_q,beta_q2,beta_p,beta_p2,...(beta for all 20 context)...]";
 
 			//save to map
 			logfile->list("Will use '" + recalString + "' for all read groups.");
-			qualTransformMap["-"] = std::pair<std::string, std::string>("recal", recalString);
+			qualTransformMap["-"] = TSimulatorQualityTransformParameters("recal", recalString, recalString);
 			perReadGroup = false;
 		}
 
@@ -226,7 +224,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 			logfile->listFlush("Reading transformation(s) from file '" + recalString + "' ...");
 			std::ifstream recalFile(recalString.c_str());
 			if(!recalFile)
-				throw "Failed to open recal file '" + recalString + "!\nEither provide a valid file name or the betas as '[beta_q,beta_q2,beta_p,beta_p2,...(beta for all 20 context)...]";
+				throw "Failed to open recal file '" + recalString + "!\nEither provide a valid file name or a string of the format model[quality parameters;position parameters; context parameters].";
 
 			//now parse file
 			int lineNum = 0;
@@ -243,31 +241,44 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 					//remove header
 					if(vec[0] == "readGroup") continue;
 
-					//check if there are repeated sim group names
-					if(qualTransformMap.find(vec[0]) != qualTransformMap.end())
-						throw "Duplicated read group name '" + vec[0] + "'in file '" + recalString + "'!";
+					//make sure all columns are given
+					if(vec.size() != 6)
+						throw "Found " + toString(vec.size()) + " instead of 6 columns in '" + recalString + "' on line " + toString(lineNum) + "!\n expect read group name, mate, model, quality parameters, position parameters and context parameters!";
 
-					//"none" indicates no transformation
-					if(vec.size() == 2){
-						if(vec[1] == "none")
-							qualTransformMap[vec[0]] = std::pair<std::string,std::string>("none", "");
+					//create model string: model[qual;pos;context]
+					std::string modelString = vec[2] + "[" + vec[3] + ";" + vec[4] + ";" + vec[5] + "]";
+
+					//check if one mates were already added for this read group
+					std::map<std::string, TSimulatorQualityTransformParameters >::iterator mapIt = qualTransformMap.find(vec[0]);
+					if(mapIt == qualTransformMap.end()){
+						//add new read group
+						if(vec[1] == "first")
+							qualTransformMap[vec[0]] = TSimulatorQualityTransformParameters("recal", modelString, "-");
+						else if(vec[1] == "second")
+							qualTransformMap[vec[0]] = TSimulatorQualityTransformParameters("recal", "-", modelString);
+						else if(vec[1] == "both")
+							qualTransformMap[vec[0]] = TSimulatorQualityTransformParameters("recal", modelString, modelString);
 						else
-							throw "Unable to understand quality transformation in '" + recalString + "' on line " + toString(lineNum) + "!";
-					} else {
-						if(vec.size() != 25 && vec.size() != 26)
-							throw "Found " + toString(vec.size()) + " instead of 25 or 26 columns in '" + recalString + "' on line " + toString(lineNum) + "!\n expect read group name, 20 betas, and the optional column LL.";
-
-						//remove LL, if present
-						if(vec.size() == 26)
-							vec.pop_back();
-
-						//remove RG name
-						rgName = vec[0];
-						vec.erase(vec.begin());
-
-						//save to map
-						concatenateString(vec, tmpString, ",");
-						qualTransformMap[rgName] = std::pair<std::string,std::string>("recal", tmpString);
+							throw "Unknown mate '" + vec[1] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
+					} else{
+						//add to existing read group
+						if(vec[1] == "first"){
+							if(mapIt->second.parameters_firstMate != "-")
+								throw "Duplicate entry for first mate of read group '" + vec[0] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
+							mapIt->second.parameters_firstMate = modelString;
+						} else if(vec[1] == "second"){
+							if(mapIt->second.parameters_secondMate != "-")
+								throw "Duplicate entry for second mate of read group '" + vec[0] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
+							mapIt->second.parameters_secondMate = modelString;
+						} else if(vec[1] == "both"){
+							if(mapIt->second.parameters_firstMate != "-")
+								throw "Duplicate entry for first mate of read group '" + vec[0] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
+							else if(mapIt->second.parameters_secondMate != "-")
+								throw "Duplicate entry for second mate of read group '" + vec[0] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
+							mapIt->second.parameters_firstMate = modelString;
+							mapIt->second.parameters_secondMate = modelString;
+						} else
+							throw "Unknown mate '" + vec[1] + "' in '" + recalString + "' on line " + toString(lineNum) + "!";
 					}
 				}
 			}
@@ -283,7 +294,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 		std::string BQSRString = params.getParameterString("BQSRTransformation");
 		pos = BQSRString.find_first_of('[');
 
-		//Option 1: BQSR from numbers: a single one valid for all read groups.
+		//Option 3: BQSR from numbers: a single one valid for all read groups.
 		//---------------------------------------------------------------------
 		if(pos != std::string::npos){
 			BQSRString.erase(0, pos+1);
@@ -295,7 +306,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 
 			//save to map
 			logfile->list("Will use '" + BQSRString + "' for all read groups.");
-			qualTransformMap["-"] = std::pair<std::string, std::string>("BQSR", BQSRString);
+			qualTransformMap["-"] = TSimulatorQualityTransformParameters("BQSR", BQSRString, BQSRString);
 			perReadGroup = false;
 		} else throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
 	}
@@ -303,9 +314,10 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 	//No transformation
 	//*****************
 	else {
-		//no transformation
+		//Option 5: no transformation
+		//---------------------------------------------------------------------
 		logfile->list("Will print original quality scores for all read groups.");
-		qualTransformMap["-"] = std::pair<std::string,std::string>("none", "");
+		qualTransformMap["-"] = TSimulatorQualityTransformParameters("none", "-", "-");
 		perReadGroup = false;
 	}
 	logfile->endIndent();
@@ -437,7 +449,21 @@ void TSimulator::addToReadGroupVector(std::vector<std::string> & vec, const std:
 	//add read group if it does not exist yet
 	if(std::find(vec.begin(), vec.end(), rg) == vec.end())
 		vec.push_back(rg);
-}
+};
+
+void TSimulator::initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual){
+	//single or paired end? Is indicated at beginning of readLengthString!
+	if(readLengthString.find("single:") == 0){
+		readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, randomGenerator));
+	} else if(readLengthString.find("paired:") == 0){
+		readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, randomGenerator));
+	} else
+		throw "Unable to understand read length string '" + readLengthString + "'!";
+
+	//add read Length distribution
+	std::string readLengthDist = readAfterLast(readLengthString,':');
+	readSimulators.back()->setReadLengthDistribution(readLengthDist, logfile);
+};
 
 void TSimulator::initializeReadSimulator(TParameters & params){
 	// A) read length
@@ -466,13 +492,13 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 
 	// C) initialize quality transformation
 	//-------------------------------------
-	std::map<std::string, std::pair<std::string, std::string> > qualTransformMap;
+	std::map<std::string, TSimulatorQualityTransformParameters > qualTransformMap;
 	bool qualTransformPerReadGroup = false;
 	initializeQualityTransformations(params, qualTransformPerReadGroup, qualTransformMap);
 
 	//add read group names to list
 	if(qualTransformPerReadGroup){
-		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=qualTransformMap.begin(); it!=qualTransformMap.end(); ++it)
+		for(std::map<std::string, TSimulatorQualityTransformParameters >::iterator it=qualTransformMap.begin(); it!=qualTransformMap.end(); ++it)
 			addToReadGroupVector(readGroupNames, it->first);
 	}
 
@@ -517,61 +543,60 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		int rgNumber = 1;
 		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it, ++rgNumber){
 			logfile->startIndent("Initializing readgroup '" + *it + "':");
-			readSimulators.push_back(new TSimulatorSingleEndRead(*it, rgNumber, maxPrintQual, randomGenerator));
-			std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.end() - 1;
 
-			//read length
+			// A) read length
 			if(readLengthPerReadGroup){
 				std::map<std::string, std::string>::iterator rlIt = readLengthMap.find(*it);
 				if(rlIt == readLengthMap.end())
 					throw "Read length distribution not specified for read group '" + *it + "'!";
-				(*readSimsIt)->setReadLengthDistribution(rlIt->second, logfile);
-			} else
-				(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
 
-			//quality dist
+				initializeReadGroup(rlIt->second, *it, rgNumber, maxPrintQual);
+			} else
+				initializeReadGroup(readLengthMap.begin()->second, *it, rgNumber, maxPrintQual);
+
+			// B) quality dist
 			if(qualityPerReadGroup){
 				std::map<std::string, std::string>::iterator qIt = qualityMap.find(*it);
 				if(qIt == qualityMap.end())
 					throw "Read quality distribution not specified for read group '" + *it + "'!";
-				(*readSimsIt)->setReadLengthDistribution(qIt->second, logfile);
+				readSimulators.back()->setReadLengthDistribution(qIt->second, logfile);
 			} else
-				(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
+				readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
 
-			//quality transformation
+			// C) quality transformation
 			if(qualTransformPerReadGroup){
-				std::map<std::string, std::pair<std::string, std::string> >::iterator qtIt = qualTransformMap.find(*it);
+				std::map<std::string, TSimulatorQualityTransformParameters >::iterator qtIt = qualTransformMap.find(*it);
 				if(qtIt == qualTransformMap.end()){
 					//initialize without transformation
-					std::string type="none"; std::string args="";
-					(*readSimsIt)->setQualityTransformation(type, args, logfile);
+					TSimulatorQualityTransformParameters tp("none", "-", "-");
+					readSimulators.back()->setQualityTransformation(tp, logfile);
 				} else
-					(*readSimsIt)->setQualityTransformation(qtIt->second.first, qtIt->second.second, logfile);
+					readSimulators.back()->setQualityTransformation(qtIt->second, logfile);
 			} else
-				(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
+				readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
 
-			//PMD
+			// D) PMD
 			if(pmdPerReadGroup){
 				std::map<std::string, std::pair<std::string, std::string> >::iterator pmdIt = pmdMap.find(*it);
-				if(pmdIt == qualTransformMap.end()){
+				if(pmdIt == pmdMap.end()){
 					//initialize without transformation
 					std::string type="none";
-					(*readSimsIt)->setPMD(type, type);
+					readSimulators.back()->setPMD(type, type);
 				} else
-					(*readSimsIt)->setPMD(pmdIt->second.first, pmdIt->second.second);
+					readSimulators.back()->setPMD(pmdIt->second.first, pmdIt->second.second);
 			} else
-				(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
+				readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
 
-			//contamination
+			// E) contamination
 			if(contaminationPerReadGroup){
 				std::map<std::string, double>::iterator contaminationIt = contaminationMap.find(*it);
 				if(contaminationIt != contaminationMap.end())
-					(*readSimsIt)->setContamination(contaminationIt->second, &referenceObj);
+					readSimulators.back()->setContamination(contaminationIt->second, &referenceObj);
 			} else
-				(*readSimsIt)->setContamination(contaminationMap.begin()->second, &referenceObj);
+				readSimulators.back()->setContamination(contaminationMap.begin()->second, &referenceObj);
 
 			//check and print
-			(*readSimsIt)->printDetails(logfile);
+			readSimulators.back()->printDetails(logfile);
 			logfile->endIndent();
 		}
 		logfile->endIndent();
@@ -589,16 +614,14 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 			name = "SimReadGroup" + toString(i+1);
 			readGroupNames.push_back(name);
 			logfile->startIndent("Initializing readgroup '" + name + "':");
-			readSimulators.push_back(new TSimulatorSingleEndRead(name, i+1, maxPrintQual, randomGenerator));
-			std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.end() - 1;
-			(*readSimsIt)->setReadLengthDistribution(readLengthMap.begin()->second, logfile);
-			(*readSimsIt)->setQualityDistribution(qualityMap.begin()->second);
-			(*readSimsIt)->setQualityTransformation(qualTransformMap.begin()->second.first, qualTransformMap.begin()->second.second, logfile);
-			(*readSimsIt)->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
-			(*readSimsIt)->setContamination(contaminationMap.begin()->second, &referenceObj);
+			initializeReadGroup(readLengthMap.begin()->second, name, i+1, maxPrintQual);
+			readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
+			readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
+			readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
+			readSimulators.back()->setContamination(contaminationMap.begin()->second, &referenceObj);
 
 			//check and print
-			(*readSimsIt)->printDetails(logfile);
+			readSimulators.back()->printDetails(logfile);
 			logfile->endIndent();
 		}
 	}

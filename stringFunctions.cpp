@@ -354,13 +354,13 @@ std::string extractPath(std::string & s){
 //-----------------------------------------------------------------------
 //read
 //-----------------------------------------------------------------------
-std::string readAfterLast(std::string & s, char delim){
+std::string readAfterLast(const std::string & s, char delim){
 	std::string::size_type l=s.rfind(delim);
 	if(l!=std::string::npos) return s.substr(l+1);
 	else return s;
 };
 
-std::string readBeforeLast(std::string & s, std::string delim){
+std::string readBeforeLast(const std::string & s, std::string delim){
 	std::string ret="";
 	std::string::size_type l=s.rfind(delim);
 	if(l!=std::string::npos){
@@ -371,7 +371,7 @@ std::string readBeforeLast(std::string & s, std::string delim){
 	return ret;
 };
 
-std::string readBeforeLast(std::string & s, char delim){
+std::string readBeforeLast(const std::string & s, char delim){
 	std::string ret="";
 	std::string::size_type l=s.rfind(delim);
 	if(l!=std::string::npos){

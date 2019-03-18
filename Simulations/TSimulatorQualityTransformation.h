@@ -101,7 +101,7 @@ protected:
 public:
 	TSimulatorQualityTransformation(TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformation(){};
-	virtual void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
+	virtual void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);
 	virtual void printDetails(TLog* logfile);
 };
 
@@ -116,13 +116,12 @@ private:
 	int maxQualPlusOne;
 	int numContext;
 	int*** transformedQuality; //index are [qual][pos][context]
-	Base previousBase;
 	TGenotypeMap genoMap;
 
 	//private functions
 	void fillTransformationTable(std::string & modelTag, std::vector<std::string> & values, int maxReadLength);
 	void clearTransformationTable();
-	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
+	void transformQualities(Base* bases, int* qualities, const int & len, bool & isReverseStrand);
 
 public:
 	TSimulatorQualityTransformationRecal(std::string & string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
@@ -130,9 +129,12 @@ public:
 	~TSimulatorQualityTransformationRecal(){
 		clearTransformationTable();
 	};
+
 	int getTransformedQuality(int qual, int pos, int context){
 		return(transformedQuality[qual][pos][context]);
-	}
+	};
+
+	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);
 	void printDetails(TLog* logfile);
 };
 
@@ -180,8 +182,6 @@ private:
 	double returnCurMean();
 	double returnCurSD(double & kappa);
 	double returnDelta(double & curMean, double & curSD);
-	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len);
-
 
 public:
 	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
@@ -190,8 +190,26 @@ public:
 		if(weightsInitialized)
 			delete[] w;
 	};
+	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);
 };
 
+
+//---------------------------------------------------------
+//TSimulatorQualityTransformParameters
+//---------------------------------------------------------
+struct TSimulatorQualityTransformParameters{
+	std::string type; //either none, recal or BQSR
+	std::string parameters_firstMate;
+	std::string parameters_secondMate;
+
+	TSimulatorQualityTransformParameters(){};
+	TSimulatorQualityTransformParameters(std::string Type, std::string Parameters_firstMate, std::string Parameters_secondMate){
+		type = Type;
+		parameters_firstMate = Parameters_firstMate;
+		parameters_secondMate = Parameters_secondMate;
+	};
+
+};
 
 
 #endif /* TSIMULATORQUALITYTRANSFORMATION_H_ */
