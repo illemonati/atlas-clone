@@ -100,8 +100,8 @@ public:
 
 class TRecalibrationEMModel_qualFuncPosSpecificContext:public TRecalibrationEMModel_Base{
 private:
-	int maxPos;
-	int numParamsWithoutPositions;
+	int _maxPosPlusOne;
+	int _numParamsWithoutPositions;
 
 public:
 	TRecalibrationEMModel_qualFuncPosSpecificContext(int Shift, int MaxPos);

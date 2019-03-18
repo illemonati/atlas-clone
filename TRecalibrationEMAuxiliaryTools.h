@@ -101,7 +101,7 @@ class TRecalibrationEMDataTable{
 public:
 	int numReadGroups;
 	int maxQual;
-	bool*** qualities; //qualities[readGroup][first/second][quality]
+	int	*** qualities; //qualities[readGroup][first/second][quality]
 	unsigned int** maxPos; //maxPos[readGroup][first/second]
 	unsigned int** countsPerReadGroup;
 	unsigned int totalCounts;

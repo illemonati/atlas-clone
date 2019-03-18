@@ -111,22 +111,7 @@ public:
 				genome.BQSR(*parameters);
 			} else if(task == "callNEW"){
 				logfile->startIndent("Calling with NEW genotype caller (task = callNEW):");
-				genome.callGenotypesNew(*parameters);
-/*			} else if(task == "callMLE"){
-				logfile->startIndent("Calling MLE Genotypes (task = callMLE):");
-				genome.callMLEGenotypes(*parameters);
-			} else if(task == "callBayes"){
-				logfile->startIndent("Calling Bayesian Genotypes (task = callBayes):");
-				genome.callBayesianGenotypes(*parameters);
-			} else if(task == "allelePresence"){
-				logfile->startIndent("Calling Allele Presence (task = allelePresence):");
-				genome.callAllelePresence(*parameters);
-			} else if(task == "randomBaseCaller"){
-				logfile->startIndent("Calling random bases (task = randomBaseCaller");
-				genome.randomBaseCaller(*parameters);
-			} else if(task == "majorityBaseCaller"){
-				logfile->startIndent("Calling random bases (task = majorityBaseCaller");
-				genome.majorityBaseCaller(*parameters); */
+				genome.callGenotypes(*parameters);
 			} else if(task == "glf"){
 				logfile->startIndent("Writing genotype likelihoods to a GLF file (task = glf):");
 				genome.writeGLF(*parameters);

@@ -72,7 +72,7 @@ public:
 	void estimateThetaRatio(TParameters & params);
 
 	//callers
-	void callGenotypesNew(TParameters & params);
+	void callGenotypes(TParameters & params);
 
 //	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
 //	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP);

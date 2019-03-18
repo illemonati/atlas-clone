@@ -48,13 +48,13 @@ TRecalibrationEMDataTable::TRecalibrationEMDataTable(int NumReadGroups, int MaxQ
 	numReadGroups = NumReadGroups;
 	maxQual = MaxQual;
 
-	qualities = new bool**[numReadGroups];
+	qualities = new int**[numReadGroups];
 	maxPos = new unsigned int*[numReadGroups];
 	countsPerReadGroup = new unsigned int*[numReadGroups];
 	for(int rg = 0; rg<numReadGroups; ++rg){
-		qualities[rg] = new bool*[2];
-		qualities[rg][0] = new bool[maxQual];
-		qualities[rg][1] = new bool[maxQual];
+		qualities[rg] = new int*[2];
+		qualities[rg][0] = new int[maxQual];
+		qualities[rg][1] = new int[maxQual];
 
 		countsPerReadGroup[rg] = new unsigned int[2];
 		maxPos[rg] = new unsigned int[2];

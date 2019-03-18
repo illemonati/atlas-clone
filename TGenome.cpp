@@ -277,7 +277,7 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 
 		}
 	}
-}
+};
 
 void TGenome::estimateThetaRatio(TParameters & params){
 	//Theta estimator
@@ -326,13 +326,10 @@ void TGenome::estimateThetaRatio(TParameters & params){
 
 	//estimate Theta ratio
 	thetaEstimatorRatio.estimateRatio(*randomGenerator, outputName);
-
-	//clean up
-}
-
+};
 
 //------------------------------------------
-//Callers (NEW)
+//Callers
 //------------------------------------------
 TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 	TGenotypePrior* prior;
@@ -368,7 +365,7 @@ TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 	return prior;
 }
 
-void TGenome::callGenotypesNew(TParameters & params){
+void TGenome::callGenotypes(TParameters & params){
 	//make sure FASTA is open
 	if(!alignmentParser.fastaReference) throw "A FASTA reference must be provided to call!";
 
@@ -649,26 +646,6 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//run EM iterations
 	recalObjectEM.performEstimation(outputName, writeTmpTables);
 }
-/*
-void TGenome::fillSequence(std::vector<double> & vec, std::string & str){
-	//it is either a number, or a sequence min-max:num steps
-	std::string::size_type posDash = str.find_first_of('-', 1);
-	if(posDash != std::string::npos){
-		std::string::size_type posColon = str.find_first_of(':');
-		if(posColon != std::string::npos){
-			//fill sequence
-			double min = stringToDoubleCheck(str.substr(0, posDash));
-			double max = stringToDoubleCheck(str.substr(posDash+1, posColon-posDash-1));
-			int numSteps = stringToIntCheck(str.substr(posColon+1));
-			double step = (max - min) / (double) (numSteps - 1.0);
-			for(int i=0; i<numSteps; ++i) vec.push_back(min + (double) i * step);
-		} else throw "Unable to understand sequence '" + str + "'!";
-	} else {
-		//should be a number
-		vec.push_back(stringToDoubleCheck(str));
-	}
-}
-*/
 
 //TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){

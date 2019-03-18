@@ -144,7 +144,7 @@ public:
 	};
 
 	void initialize(int MaxQ){
-		if(initialized == false)
+		if(initialized == true)
 			throw "Quality table already initialized!";
 
 		maxQ = MaxQ + 33;

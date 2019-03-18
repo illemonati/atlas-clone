@@ -58,7 +58,7 @@ void TRecalibrationEMModel_Base::_allocateBetaMemory(){
 	_betas = new double[_numParameters];
 	_oldBetas = new double[_numParameters];
 	_betas[0] = 1.0;
-	for(int i=1; i<_numParameters; ++i)
+	for(unsigned int i=1; i<_numParameters; ++i)
 		_betas[i] = 0.0;
 
 	_initialized = true;
@@ -159,14 +159,14 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
 	_betas[0] = values[0][0];
-	_betas[1] = values[0][1];
+	_betas[1] = values[0][1] / 100.0;  //scale!
 
 	//position
 	if(values[1].size() != 2)
 		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[2] = values[1][0];
-	_betas[3] = values[1][1];
+	_betas[2] = values[1][0] / 100.0; //scale!
+	_betas[3] = values[1][1] / 100.0; //scale!
 
 	//context: should be a dash
 	if(vec[2].size() != 1)
@@ -203,8 +203,8 @@ void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(arma::vec & F, arm
 	F(_myShift + 2) += weightF * q[2];
 	F(_myShift + 3) += weightF * q[3];
 
-	//now context: start at position 4 in F!
-	F(data.context + 4 + _myShift) += weightF;
+	//now intercept: is at position 4 in F!
+	F(_myShift + 4) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
@@ -227,11 +227,11 @@ void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(arma::vec & F, arm
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFunc::getQualityString(){
-	return toString(_betas[0]) + "," + toString(_betas[1]);
+	return toString(_betas[0]) + "," + toString(_betas[1] * 100.0);
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFunc::getPositionString(){
-	return toString(_betas[2]) + "," + toString(_betas[3]);
+	return toString(_betas[2] * 100.0) + "," + toString(_betas[3] * 100.0);
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFunc::getContextString(){
@@ -335,14 +335,14 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
 	_betas[0] = values[0][0];
-	_betas[1] = values[0][1];
+	_betas[1] = values[0][1] / 100.0;  //scale!
 
 	//position
 	if(values[1].size() != 2)
 		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
-	_betas[2] = values[1][0];
-	_betas[3] = values[1][1];
+	_betas[2] = values[1][0] / 100.0;  //scale!
+	_betas[3] = values[1][1] / 100.0;  //scale!
 
 	//context
 	if(values[3].size() != 20)
@@ -407,11 +407,11 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(arma::vec &
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFuncContext::getQualityString(){
-	return toString(_betas[0]) + "," + toString(_betas[1]);
+	return toString(_betas[0]) + "," + toString(_betas[1] * 100.0); //scale quadratic effect!
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFuncContext::getPositionString(){
-	return toString(_betas[2]) + "," + toString(_betas[3]);
+	return toString(_betas[2] * 100.0) + "," + toString(_betas[3] * 100.0); //scale!
 };
 
 std::string TRecalibrationEMModel_qualFuncPosFuncContext::getContextString(){
@@ -493,17 +493,19 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
 	// - transformed quality
 	// - square of transformed quality
-	// - one parameter per position
+	// - one parameter per position from 0 to maxPos
 	// - 20 context indicators (either 0.0 or 1.0)
-	// -> in total, 22 + maxPos variables to estimate
-	numParamsWithoutPositions = 22;
-	maxPos = MaxPos;
-	_numParameters = numParamsWithoutPositions + maxPos;
+	// -> in total, 22 + maxPos + 1 variables to estimate
+	_numParamsWithoutPositions = 22;
+	_maxPosPlusOne = MaxPos + 1;
+	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
 	_name = qualfuncPosSpecificContext_name;
+
+	_allocateBetaMemory();
 };
 
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
-	numParamsWithoutPositions = 22;
+	_numParamsWithoutPositions = 22;
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -512,12 +514,13 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 		throw "Missing position values for model " + _name + "!";
 
 	//allocate memory
-	maxPos = vec.size();
-	_numParameters = numParamsWithoutPositions + maxPos;
+	_maxPosPlusOne = values[1].size(); //starts at zero!
+	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
+
 	_allocateBetaMemory();
 
 	//copy position (starts at 22!)
-	for(int i=0; i<maxPos; i++)
+	for(int i=0; i<_maxPosPlusOne; i++)
 		_betas[22 + i] = values[1][i];
 
 	//quality: should be two numbers
@@ -525,7 +528,7 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
 
 	_betas[0] = values[0][0];
-	_betas[1] = values[0][1];
+	_betas[1] = values[0][1] / 100.0; //scale!
 
 	//context (starts at 2!)
 	if(values[2].size() != 20)
@@ -545,7 +548,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TReca
 
 	//add position
 	//Note: no check on maxPos! Assuming it was properly initialized for estimation
-	eta += _betas[numParamsWithoutPositions + data.position]; //Position starts at 0
+	eta += _betas[_numParamsWithoutPositions + data.position]; //Position starts at 0
 
 	return _calcEpsilon(eta);
 };
@@ -599,11 +602,11 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(arma::v
 };
 
 std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getQualityString(){
-	return toString(_betas[0]) + "," + toString(_betas[1]);
+	return toString(_betas[0]) + "," + toString(_betas[1] * 100.0); //scale quadratic effect
 };
 
 std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getPositionString(){
-	return concatenateString(&_betas[22], maxPos, ",");
+	return concatenateString(&_betas[22], _maxPosPlusOne, ",");
 };
 
 std::string TRecalibrationEMModel_qualFuncPosSpecificContext::getContextString(){
@@ -623,19 +626,19 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	eta += _betas[base.context + 2];
 
 	//As of q[22]: position specific effect
-	if(base.distFrom5Prime > maxPos)
+	if(base.distFrom5Prime >= _maxPosPlusOne)
 		//TODO: give better error. But need read group info for that!
-		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(maxPos + 1) + ")!";
+		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")!";
 	else
-		eta += _betas[numParamsWithoutPositions + base.distFrom5Prime];
+		eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
 
 	//now calculate epsilon from eta
 	return _calcEpsilon(eta);
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
-	if(MaxPosPlusOne >= maxPos)
-		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne - 1) + ": position specific effects only available up to position " + toString(maxPos) + "!";
+	if(MaxPosPlusOne > _maxPosPlusOne)
+		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
 	//quality term
 	double* qualTermForTransformation = new double[MaxQualPlusOne];
@@ -782,7 +785,6 @@ bool TRecalibrationEMModels::hasReadGroupsWithoutModel(){
 void TRecalibrationEMModels::addNoRecalModelIfMissing(){
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	std::pair<int, bool> missingReadGroupInfo;
-	bool foundOne;
 	while(readGroupIndex.nextNotInUse(missingReadGroupInfo))
 		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal_name, 0);
 };

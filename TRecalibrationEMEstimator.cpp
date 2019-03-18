@@ -338,9 +338,9 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 		logfile->startIndent("Consider merging these read groups:");
 		for(int rg = 0; rg < _readGroups->size(); ++rg){
 			if(dataTable.countsPerReadGroup[rg][0] > 0 && dataTable.countsPerReadGroup[rg][0] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg)  + " (first mate)");
+				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(dataTable.countsPerReadGroup[rg][0]) + " observations.");
 			if(dataTable.countsPerReadGroup[rg][1] > 0 && dataTable.countsPerReadGroup[rg][1] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg) + " (second mate)");
+				logfile->list(_readGroups->getName(rg) + " (second mate): only " + toString(dataTable.countsPerReadGroup[rg][0]) + " observations.");
 		}
 		logfile->endIndent();
 	}
@@ -438,16 +438,15 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<NewtonRaphsonNumIterations; ++i){
-		logfile->startIndent("Running iteration " + toString(i+1) + ":");
+		logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
 		logfile->listFlush("Calculating Jacobian and gradient ...");
 
 		//set to zero
 		models->setEMParamsToZero();
 
 		//fill Jacobin and F: loop over all sites
-		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
 			(*curWindow)->addToJacobianAndF(*models, tmpEpsilon);
-		}
 
 		//now solve J^-1 x F
 		if(models->solveJxF(numSitesWithData)){
