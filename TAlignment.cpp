@@ -379,7 +379,7 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 };
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
-	if(isReverseStrand){
+	if(!isReverseStrand){
 		for(int d=0; d<length; ++d){
 			bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
 			bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
