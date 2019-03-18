@@ -332,21 +332,21 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 
 	//quality: should be two numbers
 	if(values[0].size() != 2)
-		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec[0].size()) + "!";
 
 	_betas[0] = values[0][0];
 	_betas[1] = values[0][1] / 100.0;  //scale!
 
 	//position
 	if(values[1].size() != 2)
-		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec[1].size()) + "!";
 
 	_betas[2] = values[1][0] / 100.0;  //scale!
 	_betas[3] = values[1][1] / 100.0;  //scale!
 
 	//context
-	if(values[3].size() != 20)
-		throw "Wrong number of context parameters for model " + _name + ": expected 20 but found " + toString(vec.size()) + "!";
+	if(values[2].size() != 20)
+		throw "Wrong number of context parameters for model " + _name + ": expected 20 but found " + toString(vec[2].size()) + "!";
 
 	for(int i=0; i<20; i++)
 		_betas[4+i] = values[2][i];
