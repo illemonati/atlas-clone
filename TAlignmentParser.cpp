@@ -588,6 +588,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chrNumber);
 		//should we jump or are we already close enough to next window
 		if(abs(window.start - previousAlignmentPos) > maxReadLength){
+			previousAlignmentPos = -1;
 			if(window.start - maxReadLength < 0)
 				bamReader.Jump(chrNumber, 0);
 			else
