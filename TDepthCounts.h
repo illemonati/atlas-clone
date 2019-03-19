@@ -39,6 +39,13 @@ public:
 			++counts[depth];
 	};
 
+	void add(int depth, int number){
+		if(depth > maxDepth)
+			counts[lastBin] += number;
+		else
+			counts[depth] += number;
+	};
+
 	unsigned int totNumSites(){
 		unsigned int sum = 0;
 		for(int i=0; i<numBins; ++i)

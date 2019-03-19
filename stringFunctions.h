@@ -24,6 +24,7 @@ inline std::string toString(const float & input){ return std::to_string(input); 
 inline std::string toString(const double & input){ return std::to_string(input); };
 
 int stringToInt(const std::string & s);
+unsigned int stringToUnsignedInt(const std::string & s);
 long stringToLong(const std::string & s);
 double stringToDouble(const std::string & s);
 float stringToFloat(const std::string & s);

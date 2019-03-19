@@ -244,9 +244,6 @@ bool TAtlasTest_pileup::checkPileupFile(){
 	std::string chr = "Chr1";
 	int truePos = 0;
 	std::vector<size_t> baseCounts  = {0, 0, 0, 0};
-	int firstBase, secondBase;
-	int depthFirstBase, depthSecondBase;
-	int b;
 	double error = qualMap.phredIntToError(phredError);
 	double relDiff;
 
@@ -300,17 +297,17 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//check depth
 		unsigned int trueDepth = depths[(truePos-1) / readLength];
-		if(stringToInt(line[3]) != trueDepth){
+		if(stringToUnsignedInt(line[3]) != trueDepth){
 			logfile->newLine();
 			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[3] + " instead of " + toString(trueDepth));
 			return false;
 		}
 
 		//check bases and emission probabilities
-		for(b=0; b<4; ++b)
+		for(int b=0; b<4; ++b)
 			baseCounts[b] = std::count(line[5].begin(), line[5].end(), genoMap.getBaseAsChar(b));
 
-		firstBase = (int) ((truePos-1) / readLength) % 4;
+		int firstBase = (int) ((truePos-1) / readLength) % 4;
 
 		if(chr == "Chr1"){
 			//homozgous case
@@ -323,21 +320,21 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 			//calc emission probs
 			//set all to full error
-			for(b=0; b<genoMap.numGenotypes; ++b)
+			for(int b=0; b<genoMap.numGenotypes; ++b)
 				emissionProbs[b] = pow(error/3.0, trueDepth);
 
 			//correct homozygous genotype
 			emissionProbs[genoMap.getGenotype(firstBase,firstBase)] = pow(1.0-error, trueDepth);
 
 			//all heterozygous that contain the correct base
-			for(b=1; b<4; ++b)
+			for(int b=1; b<4; ++b)
 				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 - error/3.0, trueDepth);
 		} else {
 			//heterozygous case
 			//bases
-			depthFirstBase = trueDepth / 2;
-			depthSecondBase = trueDepth - depthFirstBase;
-			secondBase = (firstBase + 1) % 4;
+			size_t depthFirstBase = trueDepth / 2;
+			size_t depthSecondBase = trueDepth - depthFirstBase;
+			int secondBase = (firstBase + 1) % 4;
 			if(baseCounts[firstBase] != depthFirstBase || baseCounts[secondBase] != depthSecondBase){
 				logfile->newLine();
 				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
@@ -346,11 +343,11 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 			//calc emission probs
 			//set all to full error
-			for(b=0; b<genoMap.numGenotypes; ++b)
+			for(int b=0; b<genoMap.numGenotypes; ++b)
 				emissionProbs[b] = pow(error/3.0, trueDepth);
 
 			//all heterozygous with one correct base
-			for(b=1; b<4; ++b){
+			for(int b=1; b<4; ++b){
 				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 * (1.0 - error), depthFirstBase);
 				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] *= pow(error / 3.0, depthSecondBase);
 
@@ -368,14 +365,14 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//check refDepth
 		//reference is always C
-		if(stringToInt(line[4]) != baseCounts[1]){
+		if(stringToUnsignedInt(line[4]) != baseCounts[1]){
 			logfile->newLine();
 			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "! Estimated at " + line[4] + " instead of " + toString(baseCounts[1]));
 		}
 
 
 		//now check emission probabilities
-		for(b=0; b<genoMap.numGenotypes; ++b){
+		for(int b=0; b<genoMap.numGenotypes; ++b){
 			relDiff = (stringToDouble(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){
 				logfile->newLine();

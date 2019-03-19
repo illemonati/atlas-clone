@@ -172,6 +172,9 @@ public:
 			} else if(task == "writeDepthPerSite"){
 				logfile->startIndent("Writing depth per site (task = writeDepthPerSite):");
 				genome.writeDepthPerSite(*parameters);
+			} else if(task == "assessDuplication"){
+				logfile->startIndent("Quantifying read duplication (task = assessDuplication):");
+				genome.estimateDuplicationCounts(*parameters);
 			} else if(task=="createDepthMask"){
 				logfile->startIndent("Creating depth mask BED file (task=createDepthMask:");
 				genome.createDepthMask(*parameters);

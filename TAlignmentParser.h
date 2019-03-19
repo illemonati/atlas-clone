@@ -188,6 +188,7 @@ public:
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);
+	int chrNumberToLength(int chrNumber);
 	long calcReferenceLength();
 
 	//blacklist

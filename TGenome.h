@@ -27,22 +27,11 @@
 class TGenome{
 private:
  	TAlignmentParser alignmentParser;
-/*
-	TPMD* pmdObjects;
-	bool hasPMD;
-	TRecalibration* recalObject;
-	TRecalibration* recalObject2;
-	bool doRecalibration;
-	bool doRecalibration2;
-	bool recalObjectInitialized;
-	bool recalObjectInitialized2;
-*/
 	BamTools::Fasta reference;
  	TRandomGenerator* randomGenerator;
  	bool randomGeneratorInitialized;
 
 	TLog* logfile;
-//	long oldPos;
 	std::string outputName;
 	int maxReadLength;
 
@@ -56,9 +45,6 @@ private:
 public:
 	TGenome(TLog* Logfile, TParameters & params);
 	~TGenome(){
-//		if(alignmentParser.fastaReference) reference.Close();
-//		if(recalObjectInitialized) delete recalObject;
-//		if(pmdObjects) delete[] pmdObjects;
 		if(randomGeneratorInitialized) delete randomGenerator;
 	};
 
@@ -118,6 +104,7 @@ public:
 	void estimateApproximateDepthPerWindow(TParameters & params);
 	void estimateDepthPerSite(TParameters & params);
 	void writeDepthPerSite(TParameters & params);
+	void estimateDuplicationCounts(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
 };

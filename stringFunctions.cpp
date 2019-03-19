@@ -52,6 +52,10 @@ int stringToInt(const std::string & s){
 	return atoi(s.c_str());
 };
 
+unsigned int stringToUnsignedInt(const std::string & s){
+	return atoi(s.c_str());
+};
+
 long stringToLong(const std::string & s){
 	return atol(s.c_str());
 };
