@@ -120,8 +120,8 @@ TRecalibrationEMReadGroupIndex::TRecalibrationEMReadGroupIndex(){
 	_numCases = 0;
 	_numCasesWithIndex = 0;
 	initialized = false;
-	readGroupInUse = NULL;
-	readGroupIndex = NULL;
+	readGroupInUse = nullptr;
+	readGroupIndex = nullptr;
 };
 
 TRecalibrationEMReadGroupIndex::~TRecalibrationEMReadGroupIndex(){

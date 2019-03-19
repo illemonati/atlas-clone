@@ -102,7 +102,15 @@ void TRecalibrationEM::_initializeRecalibrationParametersFromFile(std::string fi
 			if(readGroups->readGroupExists(vec[0])){
 				//read read group, mate and model
 				int rg = readGroups->find(vec[0]);
-				bool isSecondMate = stringToInt(vec[1]);
+				bool isSecondMate;
+				if(vec[1] == "second"){
+					isSecondMate = true;
+				} else if(vec[1] == "first"){
+					isSecondMate = false;
+				} else {
+					throw "unknown second mate information!";
+				}
+
 				std::string modelTag = vec[2];
 
 				//clean up vec to only contain parameters (remove read group, mate, model and LL)
