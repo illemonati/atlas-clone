@@ -674,10 +674,11 @@ bool TAlignmentParser::readAlignment(){
 			previousAlignmentChr = bamAlignment.RefID;
 //			chrNumber = previousAlignmentChr;
 			chrChanged = true;
-		} //else
+		} else
 			chrChanged = false;
+
 		if(bamAlignment.Position < previousAlignmentPos)
-			throw "BAM file must be sorted by position!";
+			throw "BAM file must be sorted by position! Alignment '" + bamAlignment.Name + "' is at position " + toString(bamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(previousAlignmentPos) + ")";
 		previousAlignmentPos = bamAlignment.Position;
 
 //		//jump to next chromosome if not in use
