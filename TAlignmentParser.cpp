@@ -590,8 +590,9 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 			previousAlignmentPos = -1;
 			if(window.start - maxReadLength < 0)
 				bamReader.Jump(chrNumber, 0);
-			else
+			else{
 				bamReader.Jump(chrNumber, window.start - maxReadLength);
+			}
 		}
 		return true;
 	} else
@@ -842,6 +843,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	while(readAlignment()){
 		//fill alignment
 		fillAlignment(*oldAlignment);
+
 		++counter;
 
 		//check if alignment starts after current window end -> break

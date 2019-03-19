@@ -150,7 +150,7 @@ void TWindow::cleanUpUsedAlignments(){
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
 	for(TAlignment* alignmentIt : usedAlignments)
-		std::cout << " " << alignmentIt << ":" << alignmentIt->alignmentName << " pos " << alignmentIt->position;
+		std::cout << " " << alignmentIt << " : " << alignmentIt->alignmentName << " pos " << alignmentIt->position;
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
@@ -178,7 +178,6 @@ void TWindow::fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth){
 			while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
 				++p;
 			if(p == alignmentIt->length){
-//				std::cout << (*(alignmentIt-1))->alignmentName << " " << (*(alignmentIt-1))->position << std::endl;
 				throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 			}
 		}
@@ -219,10 +218,11 @@ void TWindow::fillSites(const int & readUpToDepth){
 
 		//is the beginning of the read part of previous window? increase starting p for adding bases!
 		if(firstPos < 0){
-			while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
+			while(firstPos + alignmentIt->bases[p].alignedPos < 0){
 				++p;
-			if(p == alignmentIt->length){
-				throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
+				if(p == alignmentIt->length){
+					throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
+				}
 			}
 		}
 

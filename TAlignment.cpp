@@ -267,13 +267,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					bases[d].base = genoMap.getBase(bamAlignment.QueryBases[d]);
 					qualityOriginal[d] = (int) bamAlignment.Qualities[d];
 					bases[d].errorRate = qualityMap.qualityToErrorMap[(int) bamAlignment.Qualities[d]];
-					if(bases[d].base == N){
-						bases[d].aligned = false;
-						bases[d].alignedPos = -1;
-					} else {
-						bases[d].aligned = true;
-						bases[d].alignedPos = p;
-					}
+					bases[d].aligned = true;
+					bases[d].alignedPos = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
@@ -343,7 +338,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	//TODO: check if we need lastPositionPlusOne and lastAlignedPos
 	lastAlignedPositionWithRespectToRef = position + p - 1;
 	lastPositionPlusOne = position + length;
-	lastAlignedPos = p - 1; //why -1??
+	lastAlignedPos = p - 1; //why -1? -> same reason as above
 	if(passedFilters && length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
