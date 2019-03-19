@@ -156,21 +156,21 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std
 
 	//quality: should be two numbers
 	if(values[0].size() != 2)
-		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+		throw "Wrong number of quality parameters for model " + _name + ": expected 2 but found " + toString(values[0].size()) + "!";
 
 	_betas[0] = values[0][0];
 	_betas[1] = values[0][1] / 100.0;  //scale!
 
 	//position
 	if(values[1].size() != 2)
-		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(vec.size()) + "!";
+		throw "Wrong number of position parameters for model " + _name + ": expected 2 but found " + toString(values[1].size()) + "!";
 
 	_betas[2] = values[1][0] / 100.0; //scale!
 	_betas[3] = values[1][1] / 100.0; //scale!
 
-	//context: should be a dash
-	if(vec[2].size() != 1)
-		throw "Wrong number of position parameters for model " + _name + ": expected 1 but found " + toString(vec.size()) + "!";
+	//context: should be a single value for all contexts
+	if(values[2].size() != 1)
+		throw "Wrong number of position parameters for model " + _name + ": expected 1 but found " + toString(values[2].size()) + "!";
 	_betas[4] = values[2][0];
 };
 
