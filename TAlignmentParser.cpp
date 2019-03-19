@@ -74,13 +74,13 @@ TAlignmentParser::TAlignmentParser(){
 	mask = NULL;
 
 	//filters
-	applyQualityFilter = false;
-	minQual = 0;
-	maxQual = 93;
 	applyDepthFilter = false;
 	readUpToDepth = 10000;
 	minDepth = 0;
 	maxDepth = 10000;
+	applyQualityFilter = false;
+	minQual = 33;
+	maxQual = 126;
 	minPhredInt = 0;
 	maxPhredInt = 93;
 	minQualForPrinting = 33;
@@ -116,7 +116,6 @@ TAlignmentParser::TAlignmentParser(){
 
 TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile){
 	TAlignmentParser();
-	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
 
 	init(MaxReadLength, params, Logfile);
 };
@@ -357,7 +356,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	if(minPhredInt < 0) throw "minQual must be >= 0!";
 	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
 	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
-	setQualityFilters(minPhredInt+33, maxPhredInt+33);
+	setQualityFilters(minPhredInt, maxPhredInt);
 	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
 
 	//quality filters for printing
@@ -420,10 +419,12 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		keepOnlyRev = true;
 };
 
-void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
+void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 	applyQualityFilter = true;
-	minQual = MinQual;
-	maxQual = MaxQual;
+	minPhredInt = MinPhredInt;
+	maxPhredInt = MaxPhredInt;
+	minQual = qualMap.phredIntToQuality(minPhredInt);
+	maxQual = qualMap.phredIntToQuality(maxPhredInt);
 };
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
@@ -586,6 +587,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chrNumber);
 		//should we jump or are we already close enough to next window
 		if(abs(window.start - previousAlignmentPos) > maxReadLength){
+			previousAlignmentPos = -1;
 			if(window.start - maxReadLength < 0)
 				bamReader.Jump(chrNumber, 0);
 			else
@@ -765,12 +767,12 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		alignment.fillReadGroupInfo(readGroupId);
 		alignment.fillPmdProbabilities(pmdObjects);
 
+		if(applyQualityFilter)
+			alignment.filterForBaseQuality(minQual, maxQual);
 		if(doRecalibration)
 			recalibrate(alignment);
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
-		if(applyQualityFilter)
-			alignment.filterForBaseQuality(minQual, maxQual);
 	}
 }
 
@@ -1037,7 +1039,7 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 	if(recalObject->recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
-			if(alignment.bases[d].aligned){
+			if(alignment.bases[d].aligned && alignment.bases[d].base != N){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
 			}
 		}

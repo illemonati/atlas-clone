@@ -28,14 +28,14 @@ public:
 	double* phredIntToLogErrorMap;
 	int* illuminaQualityBins;
 	double min;
-	int minPhred, sizeQual;
+	int minPhredInt, sizeQual;
 
 	TQualityMap(){
 		//only up to phred = 255, else always return 255
-		minPhred = 255;
-		sizeQual = minPhred + 34;
-		phredIntToErrorMap = new double[minPhred+1];
-		phredIntToLogErrorMap = new double[minPhred+1];
+		minPhredInt = 255 - 33;
+		sizeQual = minPhredInt + 34;
+		phredIntToErrorMap = new double[minPhredInt+1];
+		phredIntToLogErrorMap = new double[minPhredInt+1];
 		qualityToErrorMap = new double[sizeQual];
 
 
@@ -46,12 +46,12 @@ public:
 
 		//and now others
 		double tmp = - log(10) / 10.0;;
-		for(int i=0; i<(minPhred+1); ++i){
+		for(int i=0; i<(minPhredInt+1); ++i){
 			phredIntToErrorMap[i] = phredToError(i);
 			phredIntToLogErrorMap[i] = i * tmp;
 			qualityToErrorMap[i+33] = phredIntToErrorMap[i];
 		}
-		min = phredToError(minPhred);
+		min = phredToError(minPhredInt);
 
 		//Create map of illumina quality bins
 		illuminaQualityBins = new int[sizeQual];
@@ -81,7 +81,7 @@ public:
 	};
 
 	double phredIntToError(int phredInt){
-		if(phredInt >= minPhred)
+		if(phredInt >= minPhredInt)
 			return min;
 		else return phredIntToErrorMap[phredInt];
 	};
@@ -106,7 +106,7 @@ public:
 
 	inline double errorToPhred(const double & errorRate){
 		if(errorRate < min)
-			return minPhred;
+			return minPhredInt;
 		else
 			return -10.0 * log10(errorRate);
 	};

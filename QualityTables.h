@@ -119,40 +119,40 @@ public:
 //---------------------------------------------------------------
 class TQualityTransformTable{
 public:
-	int maxQ;
-	int maxQPlusOne;
+	int maxQInTable;
+	int maxQInTablePlusOne;
 	double** table; //old qual / new qual
 	bool initialized;
 
-	TQualityTransformTable(int MaxQ){
+	TQualityTransformTable(int maxPhredIntInTable){
 		initialized = false;
-		initialize(MaxQ);
+		initialize(maxPhredIntInTable);
 	};
 
 	TQualityTransformTable(){
 		initialized = false;
-		maxQ = 0;
-		maxQPlusOne = 0;
+		maxQInTable = 0;
+		maxQInTablePlusOne = 0;
 		table = NULL;
 	};
 
 	~TQualityTransformTable(){
-		for(int i=0; i<maxQPlusOne; ++i){
+		for(int i=0; i<maxQInTablePlusOne; ++i){
 			delete[] table[i];
 		}
 		delete[] table;
 	};
 
-	void initialize(int MaxQ){
+	void initialize(int maxPhredIntInTable){
 		if(initialized == true)
 			throw "Quality table already initialized!";
 
-		maxQ = MaxQ + 33;
-		maxQPlusOne = maxQ + 1;
-		table = new double*[maxQPlusOne];
-		for(int i=0; i<maxQPlusOne; ++i){
-			table[i] = new double[maxQPlusOne];
-			for(int j=0; j<maxQPlusOne; ++j){
+		maxQInTable = maxPhredIntInTable + 33;
+		maxQInTablePlusOne = maxQInTable + 1;
+		table = new double*[maxQInTablePlusOne];
+		for(int i=0; i<maxQInTablePlusOne; ++i){
+			table[i] = new double[maxQInTablePlusOne];
+			for(int j=0; j<maxQInTablePlusOne; ++j){
 				table[i][j] = 0;
 			}
 		}
@@ -160,15 +160,15 @@ public:
 	};
 
 	void add(const int oldQuality, const int newQuality){
-		if(oldQuality < maxQ && newQuality < maxQ){
+		if(oldQuality < maxQInTable && newQuality < maxQInTable){
 			table[oldQuality][newQuality] += 1.0;
 		}
 	};
 
 	double size(){
 		double size = 0;
-		for(int i=33; i<maxQPlusOne; ++i){
-			for(int j=33; j<maxQPlusOne; ++j){
+		for(int i=33; i<maxQInTablePlusOne; ++i){
+			for(int j=33; j<maxQInTablePlusOne; ++j){
 				size += table[i][j];
 			}
 		}
@@ -182,7 +182,7 @@ public:
 
 		//print header
 		out << "oldQ/newQ";
-		for(int i=33; i<maxQPlusOne; ++i)
+		for(int i=33; i<maxQInTablePlusOne; ++i)
 			out << "\t" << i-33;
 		out << "\n";
 
@@ -190,10 +190,12 @@ public:
 		double sum = size();
 
 		//print rows
-		for(int i=33; i<maxQPlusOne; ++i){
+		for(int i=33; i<maxQInTablePlusOne; ++i){
 			out << i-33;
-			for(int j=33; j<maxQPlusOne; ++j){
+			for(int j=33; j<maxQInTablePlusOne; ++j){
 				out << "\t" << table[i][j] / sum;
+				if(i != j && table[i][j] != 0.0)
+					std::cout << table[i][j] << std::endl;
 			}
 			out << "\n";
 		}

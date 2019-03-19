@@ -74,8 +74,8 @@ void TRecalibrationEMModel_Base::_freeBetaMemory(){
 };
 
 double TRecalibrationEMModel_Base::_calcEpsilon(double & eta){
-	if(eta > 16.11) return 0.9999999;
-	if(eta < -16.11) return 0.0000001;
+	if(eta > 23.03) return 0.9999999999;
+	if(eta < -23.03) return 0.0000000001;
 
 	eta = exp(eta);
 	return eta / (1.0 + eta);
