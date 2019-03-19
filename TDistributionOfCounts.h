@@ -5,42 +5,44 @@
  *      Author: phaentu
  */
 
-#ifndef TDEPTHCOUNTS_H_
-#define TDEPTHCOUNTS_H_
+#ifndef TDISTRIBUTIONOFCOUNTS_H_
+#define TDISTRIBUTIONOFCOUNTS_H_
 
 #include "TFile.h"
 
-class TDepthCounts{
+class TDistributionOfCounts{
 private:
-	int maxDepth;
+	int maxValue;
 	int numBins;
 	int lastBin;
+	std::string whatIsCounted;
 
 	unsigned int* counts;
 
 public:
-	TDepthCounts(int MaxDepth){
-		maxDepth = MaxDepth;
-		numBins = maxDepth + 2; //starts at zero and includes bin to lump > maxDepth
-		lastBin = maxDepth + 1;
+	TDistributionOfCounts(int MaxValue, std::string nameOfCounts){
+		whatIsCounted = nameOfCounts;
+		maxValue = MaxValue;
+		numBins = maxValue + 2; //starts at zero and includes bin to lump > maxValue
+		lastBin = maxValue + 1;
 		counts = new unsigned int[numBins];
 		for(int i=0; i<numBins; ++i)
 			counts[i] = 0;
 	};
 
-	~TDepthCounts(){
+	~TDistributionOfCounts(){
 		delete[] counts;
 	};
 
 	void add(int depth){
-		if(depth > maxDepth)
+		if(depth > maxValue)
 			++counts[lastBin];
 		else
 			++counts[depth];
 	};
 
 	void add(int depth, int number){
-		if(depth > maxDepth)
+		if(depth > maxValue)
 			counts[lastBin] += number;
 		else
 			counts[depth] += number;
@@ -56,71 +58,71 @@ public:
 	void writeCounts(std::string filename){
 		//open file
 		TOutputFilePlain out(filename);
-		out.writeHeader({"depth", "counts"});
+		out.writeHeader({whatIsCounted, "counts"});
 
 		//write bins
-		for(int i=0; i<=maxDepth; i++)
+		for(int i=0; i<=maxValue; i++)
 			out << i << counts[i] << std::endl;
 
 		//write last bin
-		out << ">" + toString(maxDepth) << counts[lastBin] << std::endl;
+		out << ">" + toString(maxValue) << counts[lastBin] << std::endl;
 	};
 
 	void writeNormalizedCounts(std::string filename){
 		//open file
 		TOutputFilePlain out(filename);
-		out.writeHeader({"depth", "density"});
+		out.writeHeader({whatIsCounted, "density"});
 
 		//get sum
 		double sum = totNumSites();
 
 		//write bins
-		for(int i=0; i<=maxDepth; i++)
+		for(int i=0; i<=maxValue; i++)
 			out << i << counts[i] / sum << std::endl;
 
 		//write last bin
-		out << ">" + toString(maxDepth) << counts[lastBin] / sum << std::endl;
+		out << ">" + toString(maxValue) << counts[lastBin] / sum << std::endl;
 	};
 
 	void writeCumulativeCounts(std::string filename){
 		//open file
 		TOutputFilePlain out(filename);
-		out.writeHeader({"depth", "cumulativeCounts"});
+		out.writeHeader({whatIsCounted, "cumulativeCounts"});
 
 		//write bins
 		unsigned cumul = 0;
-		for(int i=0; i<=maxDepth; i++){
+		for(int i=0; i<=maxValue; i++){
 			cumul += counts[i];
 			out << i << cumul << std::endl;
 		}
 
 		//write last bin
-		out << ">" + toString(maxDepth) << cumul + counts[lastBin] << std::endl;
+		out << ">" + toString(maxValue) << cumul + counts[lastBin] << std::endl;
 	};
 
 	void writeNormalizedCumulativeCounts(std::string filename){
 		//open file
 		TOutputFilePlain out(filename);
-		out.writeHeader({"depth", "cumulativeDensity"});
+		out.writeHeader({whatIsCounted, "cumulativeDensity"});
 
 		//get sum
 		double sum = totNumSites();
 
 		//write bins
 		double cumul = 0.0;
-		for(int i=0; i<=maxDepth; i++){
+		for(int i=0; i<=maxValue; i++){
 			cumul += counts[i] / sum;
 			out << i << cumul << std::endl;
 		}
 
 		//write last bin
-		out << ">" + toString(maxDepth) << 1.0 << std::endl;
+		out << ">" + toString(maxValue) << 1.0 << std::endl;
 	};
 
 	void writeQuantiles(std::string filename){
 		//open file
 		TOutputFilePlain out(filename);
-		out.writeHeader({"quantile", "depth"});
+		out.writeHeader({"quantile", whatIsCounted});
 
 		//normalized cumulative distribution and quantiles
 		float quantiles[16] = {0.0, 0.001, 0.005, 0.01, 0.025, 0.05, 0.2, 0.5, 0.8, 0.9, 0.95, 0.975, 0.99, 0.995, 0.999, 1.0};
@@ -133,7 +135,7 @@ public:
 		double cumul = 0.0;
 		int nextQuantile = 0;
 
-		for(int i=0; i<=maxDepth; i++){
+		for(int i=0; i<=maxValue; i++){
 			cumul += counts[i] / sum;
 
 			while(cumul >= quantiles[nextQuantile] && nextQuantile < numQuantiles){
@@ -144,9 +146,9 @@ public:
 
 		//write >max for remaining
 		for(int p=nextQuantile; p<numQuantiles; ++p)
-			out << quantiles[p] << ">" + toString(maxDepth) << std::endl;
+			out << quantiles[p] << ">" + toString(maxValue) << std::endl;
 	};
 };
 
 
-#endif /* TDEPTHCOUNTS_H_ */
+#endif /* TDISTRIBUTIONOFCOUNTS_H_ */

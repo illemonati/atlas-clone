@@ -2391,7 +2391,7 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 void TGenome::estimateDepthPerSite(TParameters & params){
 	//initialize count object
 	int maxDepth = params.getParameterIntWithDefault("maxDepth", 20);
-	TDepthCounts counts(maxDepth);
+	TDistributionOfCounts counts(maxDepth, "depth");
 
 	//prepare windows
 	TWindow window;
@@ -2461,7 +2461,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 
 	//create storage
 	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
-	TDepthCounts counts(maxCounts);
+	TDistributionOfCounts counts(maxCounts, "readStarts");
 
 	//iterate through windows
 	int curChr = 0;
