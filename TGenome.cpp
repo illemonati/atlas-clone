@@ -811,10 +811,10 @@ void TGenome::printQualityTransformation(TParameters & params){
 	//prepare alignment
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
-	int maxQ = params.getParameterIntWithDefault("maxQ", 100);
+	int maxPhredInt = params.getParameterIntWithDefault("maxQ", 100);
 
 	//create table to store counts
-	TQualityTransformTables QTtables(alignmentParser.readGroups, maxQ);
+	TQualityTransformTables QTtables(alignmentParser.readGroups, maxPhredInt);
 
 	//check what we compare
 	bool compareToOtherRecalibration = false;

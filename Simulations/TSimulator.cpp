@@ -572,8 +572,14 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 					readSimulators.back()->setQualityTransformation(tp, logfile);
 				} else
 					readSimulators.back()->setQualityTransformation(qtIt->second, logfile);
-			} else
-				readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
+			} else{
+				if(readSimulators.back()->type == "single"){
+					TSimulatorQualityTransformParameters tp(qualTransformMap.begin()->second.type, qualTransformMap.begin()->second.parameters_firstMate, "-");
+					readSimulators.back()->setQualityTransformation(tp, logfile);
+				} else
+					readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
+
+			}
 
 			// D) PMD
 			if(pmdPerReadGroup){
