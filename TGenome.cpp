@@ -16,6 +16,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 
 	//initialize alignment parser
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
+
 	alignmentParser.init(maxReadLength, params, logfile);
 
 	//outputname

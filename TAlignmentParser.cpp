@@ -116,7 +116,6 @@ TAlignmentParser::TAlignmentParser(){
 
 TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile){
 	TAlignmentParser();
-	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
 
 	init(MaxReadLength, params, Logfile);
 };
