@@ -637,8 +637,8 @@ bool TAtlasTest_theta::run(){
 	//2) Run ATLAS to estimateTheta
 	//-----------------------------
 	//only simulate BAM if it does not already exist
-	std::string filenameTheta = filenameTag + "_theta_estimates.txt";
-	std::ifstream in(filenameTheta.c_str());
+	std::string filenameTheta = filenameTag + "_theta_estimates.txt.gz";
+	gz::igzstream in(filenameTheta.c_str());
 	if(!in){
 		_testParams.addParameter("bam", bamFileName);
 		if(!runTGenomeFromInputfile("estimateTheta"))
@@ -654,9 +654,9 @@ bool TAtlasTest_theta::run(){
 
 bool TAtlasTest_theta::checkThetaFile(){
 	//open theta file
-	std::string filename = filenameTag + "_theta_estimates.txt";
+	std::string filename = filenameTag + "_theta_estimates.txt.gz";
 	logfile->list("Checking theta file '" + filename + "'.");
-	std::ifstream in(filename.c_str());
+	gz::igzstream in(filename.c_str());
 	if(!in)
 		throw "Failed to open file '" + filename + "'!";
 	logfile->done();
@@ -674,7 +674,8 @@ bool TAtlasTest_theta::checkThetaFile(){
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
-		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		std::getline(in, tmp);
+		fillVectorFromStringWhiteSpace(tmp, line);
 
 		//skip empty
 		if(line.size() == 0) continue;
