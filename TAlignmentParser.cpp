@@ -58,9 +58,9 @@ TAlignmentParser::TAlignmentParser(){
 
 	//window parameters
 	windowNumber = -1;
-	windowSize = -1;
+	windowSize = 0;
 	numWindowsOnChr = -1;
-	maxReadLength = -1;
+	maxReadLength = 0;
 	maxMissing = 1.0;
 	maxRefN = 1.0;
 	windowsPredefined = false;
@@ -459,13 +459,21 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 
 std::string TAlignmentParser::chrNumberToName(int chrNumber){
 	int counter = 0;
-	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt){
+	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
 		if(counter == chrNumber)
 			return chrIt->Name;
-		++counter;
 	}
 	throw "chrNumber not in header";
-}
+};
+
+int TAlignmentParser::chrNumberToLength(int chrNumber){
+	int counter = 0;
+	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
+		if(counter == chrNumber)
+			return stringToInt(chrIt->Length);
+	}
+	throw "chrNumber not in header";
+};
 
 long TAlignmentParser::calcReferenceLength(){
 	int chrNum = 0;
@@ -473,7 +481,7 @@ long TAlignmentParser::calcReferenceLength(){
     for(chrIterator = bamHeader.Sequences.Begin(); chrIterator!=bamHeader.Sequences.End(); ++chrIterator, ++chrNum)
         if(useChromosome[chrNum]) totLength += stringToLong(chrIterator->Length);
     return totLength;
-}
+};
 
 //--------------
 //move genome
@@ -481,14 +489,14 @@ long TAlignmentParser::calcReferenceLength(){
 void TAlignmentParser::jumpToEnd(){
 	chrIterator = bamHeader.Sequences.End();
 	chrNumber = -1;
-}
+};
 
 void TAlignmentParser::restartChromosomes(TWindow & window){
 	chrIterator = bamHeader.Sequences.Begin();
 	chrNumber = 0;
 
 	moveChromosome(window);
-}
+};
 
 void TAlignmentParser::moveChromosome(TWindow & window){
 	//jump reader

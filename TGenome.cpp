@@ -2388,38 +2388,10 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 	output.close();
 };
 
-/*
-
-void TGenome::estimateDuplicationCounts(TParameters & params){
-	//assembles distribution of how often a read is duplicated
-	//now: just ho wmany reads start at the same positions
-
-	//create storage
-	int maxCounts = params.getParameterIntWithDefault("maxCount", 100);
-	int* sameStart = new int[maxCounts + 2]; //also for = maxcount and combined bin for all above
-
-		//iterate through windows
-	while(alignmentParser.readDataInNextWindow(window)){
-		//write chromosome to file
-		if(window.passedFilters){
-			//write to file
-			logfile->listFlush("Writing sequencing depth estimates to file ...");
-			if(window.depth == -1.0) output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
-			else output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
-			logfile->done();
-		}
-	}
-
-	//clean up
-	if(nCharOnLine > 0) output << '\n';
-	output.close();
-};
-*/
-
 void TGenome::estimateDepthPerSite(TParameters & params){
 	//initialize count object
 	int maxDepth = params.getParameterIntWithDefault("maxDepth", 20);
-	TDepthCounts counts(maxDepth);
+	TDistributionOfCounts counts(maxDepth, "depth");
 
 	//prepare windows
 	TWindow window;
@@ -2478,7 +2450,58 @@ void TGenome::writeDepthPerSite(TParameters & params){
 
 	//clean up
 	out.close();
-}
+};
+
+void TGenome::estimateDuplicationCounts(TParameters & params){
+	//assembles distribution of how often a read is duplicated
+	//now: just how many reads start at the same positions
+
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+
+	//create storage
+	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
+	TDistributionOfCounts counts(maxCounts, "readStarts");
+
+	//iterate through windows
+	int curChr = 0;
+	int curChrLength = alignmentParser.chrNumberToLength(curChr);
+	int curPos = 0;
+	int countsAtPos = 0;
+	while (alignmentParser.readNextAlignment(alignment)){
+		if(alignment.chrNumber != curChr){
+			//add last pos with data
+			counts.add(countsAtPos);
+			countsAtPos = 0;
+
+			//add all positions until chromosome end to structure
+			counts.add(0, curChrLength - curPos);
+			curChr = alignment.chrNumber;
+			curPos = 0;
+		}
+
+		if(alignment.position > curPos){
+			//add last pos with data
+			counts.add(countsAtPos);
+
+			//add zero for all positions until here
+			counts.add(0, alignment.position - curPos);
+
+			//set counts at current position
+			curPos = alignment.position;
+			countsAtPos = 1;
+		} else if(alignment.position == curPos){
+
+		} else
+			throw "Bam file is not sorted!";
+	}
+
+	//write output
+	std::string filename = outputName + "_readStartsPerSite.txt";
+	logfile->listFlush("Writing distribution of read starts per site to '" + filename + "' ...");
+	counts.writeCounts(filename);
+	logfile->done();
+};
 
 //---------------------------------------------------
 //PMD

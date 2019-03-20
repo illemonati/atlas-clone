@@ -480,7 +480,7 @@ void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
 };
 
-void TWindow::countDepthPerSite(TDepthCounts & counts){
+void TWindow::countDepthPerSite(TDistributionOfCounts & counts){
 	for(int i=0; i<length; ++i)
 		counts.add(sites[i].depth());
 };

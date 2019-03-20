@@ -423,7 +423,8 @@ bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, c
 		logfile->newLine();
 		logfile->conclude( "Read number " + toString(pairNumber) + ": query bases not same size as qualities!");
 		return false;
-	} if(bamAlignment.Qualities.size() > bamAlignment.InsertSize){
+	}
+	if(bamAlignment.Qualities.size() > bamAlignment.InsertSize){
 		logfile->newLine();
 		logfile->conclude( "Read number " + toString(pairNumber) + ": longer than insert size!");
 		return false;
