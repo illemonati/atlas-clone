@@ -773,13 +773,11 @@ void TGenome::printQualityDistribution(TParameters & params){
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
-        if(alignment.passedFilters){
-			//update and write (only if alignment qualities could be calculated)
-			alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
+		//update and write (only if alignment qualities could be calculated)
+		alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
 
-			//report
-			reportProgressParsingBamFile(counter, start);
-        }
+		//report
+		reportProgressParsingBamFile(counter, start);
 	}
 
 	//report
@@ -882,9 +880,9 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	else if(withPMD && !alignmentParser.hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
 	if(withPMD && !alignmentParser.hasReference) throw "Cannot run recalBAM withPMD without reference!";
 
-	//should we include reads that don't pass filter?
-	bool allReads = false;
-	if(params.parameterExists("allReads")) allReads = true;
+//	//should we include reads that don't pass filter?
+//	bool allReads = false;
+//	if(params.parameterExists("allReads")) allReads = true;
 
 	//other tmp variables
 	long counter = 0;
@@ -900,8 +898,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	if(withPMD){
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
-			if(!alignment.passedFilters || !allReads)
-				continue;
 			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 			reportProgressParsingBamFile(counter, start);
@@ -909,8 +905,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
-			if(!alignment.passedFilters || !allReads)
-				continue;
 			alignmentParser.recalibrate(alignment);
 			alignment.save(bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			reportProgressParsingBamFile(counter, start);
@@ -2066,8 +2060,6 @@ void TGenome::downSampleBamFile(TParameters & params){
 	while (alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
-        if(!alignment.passedFilters) continue;
-
 		//accept read or not?
 		for(i=0; i<numProbs; ++i){
 			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
@@ -2200,9 +2192,6 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     //now parse through bam file and sum number of aligned bases
 	while (alignmentParser.readNextAlignment(alignment)){
-    	//filters
-        if(!alignment.passedFilters) continue;
-
         //fragment length
         if(alignment.isProperPair){
         	if(!alignment.isReverseStrand){
@@ -2611,17 +2600,16 @@ void TGenome::runPMDS(TParameters & params){
 	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
-        if(alignment.passedFilters){
+		//calc PMD
+		PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
 
-			//calc PMD
-			PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
+		//update and write
+		if(PMDS > minPMDS && PMDS < maxPMDS){
+			alignment.updateOptionalSamField("DS", PMDS);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+		} else ++counterF;
 
-			//update and write
-			if(PMDS > minPMDS && PMDS < maxPMDS){
-				alignment.updateOptionalSamField("DS", PMDS);
-				alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
-			} else ++counterF;
-		} else alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+		alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 
 		//report progress
 		if(counter % 1000000 == 0){
