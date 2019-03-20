@@ -2447,7 +2447,6 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
-	alignmentParser.keepDuplicates();
 
 	//create storage
 	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
