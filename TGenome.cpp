@@ -2481,7 +2481,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 			curPos = alignment.position;
 			countsAtPos = 1;
 		} else if(alignment.position == curPos){
-			counts.add(countsAtPos);
+			countsAtPos = countsAtPos + 1;
 		} else
 			throw "Bam file is not sorted!";
 	}
