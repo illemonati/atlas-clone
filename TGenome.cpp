@@ -2447,6 +2447,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
+	alignmentParser.keepDuplicates();
 
 	//create storage
 	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
@@ -2480,7 +2481,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 			curPos = alignment.position;
 			countsAtPos = 1;
 		} else if(alignment.position == curPos){
-
+			counts.add(countsAtPos);
 		} else
 			throw "Bam file is not sorted!";
 	}
