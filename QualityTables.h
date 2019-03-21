@@ -194,8 +194,6 @@ public:
 			out << i-33;
 			for(int j=33; j<maxQInTablePlusOne; ++j){
 				out << "\t" << table[i][j] / sum;
-				if(i != j && table[i][j] != 0.0)
-					std::cout << table[i][j] << std::endl;
 			}
 			out << "\n";
 		}
