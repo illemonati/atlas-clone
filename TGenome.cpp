@@ -187,6 +187,17 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		alignmentParser.setApplyFragmentLengthFilter(filter);
 	}
 
+	if(params.parameterExists("keepOnlyFwd")){
+		bool keepOnlyFwd = true;
+		alignmentParser.setKeepOnlyFwdFilter(keepOnlyFwd);
+		logfile->list("Will only keep reads marked as forward");
+	}
+	if(params.parameterExists("keepOnlyRev")){
+		bool keepOnlyRev = true;
+		alignmentParser.setKeepOnlyRevFilter(keepOnlyRev);
+		logfile->list("Will only keep reads marked as reverse");
+	}
+
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
 	if(params.parameterExists("chr")){

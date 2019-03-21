@@ -61,6 +61,7 @@ private:
 	int minQual, maxQual;
 	int minQualForPrinting, maxQualForPrinting;
 	bool applyFragmentLengthFilter;
+	bool keepOnlyFwd, keepOnlyRev;
 
 	//read trimming
 	bool trimReads;
@@ -150,6 +151,8 @@ public:
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 	void setApplyFragmentLengthFilter(bool filterYesNo);
+	void setKeepOnlyFwdFilter(bool filterYesNo);
+	void setKeepOnlyRevFilter(bool filterYesNo);
 	int measureOverlap();
 
 	//functions to read and parse

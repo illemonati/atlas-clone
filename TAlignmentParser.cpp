@@ -57,6 +57,8 @@ TAlignmentParser::TAlignmentParser(){
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
 	applyFragmentLengthFilter = false;
+	keepOnlyFwd = false;
+	keepOnlyRev = false;
 
 	//details
 	length = 0;
@@ -172,6 +174,14 @@ void TAlignmentParser::setQualityFilters(int MinQual, int MaxQual){
 
 void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
 	applyFragmentLengthFilter = filterYesNo;
+}
+
+void TAlignmentParser::setKeepOnlyFwdFilter(bool filterYesNo){
+	keepOnlyFwd = filterYesNo;
+}
+
+void TAlignmentParser::setKeepOnlyRevFilter(bool filterYesNo){
+	keepOnlyRev = filterYesNo;
 }
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
@@ -461,6 +471,11 @@ bool TAlignmentParser::readAlignment(BamTools::BamReader & bamReader){
 
 	//check if read passes basic QC
 	passedFilters = bamAlignment.IsMapped() && !bamAlignment.IsFailedQC() && bamAlignment.IsPrimaryAlignment() && !bamAlignment.IsSupplementary() && (_keepDuplicates || !bamAlignment.IsDuplicate());
+
+	//keep only fwd or reverse reads?
+	if((keepOnlyFwd && bamAlignment.IsReverseStrand()) || (keepOnlyRev && !bamAlignment.IsReverseStrand())){
+		passedFilters = false;
+	}
 
 	//check read length
 	if(bamAlignment.AlignedBases.size() > maxSize)
