@@ -716,23 +716,25 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 	//call default of base
 	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
 
-//	//change betas such that the context are zero on average
-//	//first regular context and positions 1 through maxPos
-//	double sum = 0.0;
-//	for(int c=2; c<18; c++)
-//		sum += _betas[c];
-//	for(int c=2; c<18; c++)
-//		_betas[c] -= sum;
-//	for(int p=_numParamsWithoutPositions + 1; p<_numParamsWithoutPositions + _maxPosPlusOne; p++)
-//		_betas[p] += sum;
-//
-//	//now for first position
-//	sum = 0.0;
-//	for(int c=18; c<22; c++)
-//		sum += _betas[c];
-//	for(int c=18; c<22; c++)
-//		_betas[c] -= sum;
-//	_betas[_numParamsWithoutPositions] += sum;
+	//change betas such that the context are zero on average
+	//first regular context and positions 1 through maxPos
+	double mean = 0.0;
+	for(int c=2; c<18; c++)
+		mean += _betas[c];
+	mean /= 16.0;
+	for(int c=2; c<18; c++)
+		_betas[c] -= mean;
+	for(int p = _numParamsWithoutPositions + 1; p < _numParamsWithoutPositions + _maxPosPlusOne; p++)
+		_betas[p] += mean;
+
+	//now for first position
+	mean = 0.0;
+	for(int c=18; c<22; c++)
+		mean += _betas[c];
+	mean /= 4.0;
+	for(int c=18; c<22; c++)
+		_betas[c] -= mean;
+	_betas[_numParamsWithoutPositions] += mean;
 };
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TRecalibrationEMReadData & data){

@@ -109,7 +109,6 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecific(){};
 
-//	void proposeNewParameters(double & lambda, arma::mat & JxF);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
@@ -184,6 +183,7 @@ public:
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
 	bool solveJxF(const int numSites);
 	void proposeNewParameters(double lambda);
+	void scaleParameters();
 	void rejectProposedParameters();
 	double getSteepestGradient();
 	void printJacobianToStdOut();
