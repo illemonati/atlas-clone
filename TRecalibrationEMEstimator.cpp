@@ -468,7 +468,7 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 				if(Q > curQ){
 					acceptMove = true; //accept
 					logfile->write(" accepting move!");
-					logfile->conclude("Q was reduced from " + toString(curQ) + " to " + toString(Q));
+					logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
 					curQ = Q;
 				} else {
 					lambda = lambda / 2.0; //backtrack;

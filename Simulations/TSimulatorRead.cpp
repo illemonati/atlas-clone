@@ -234,7 +234,7 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimul
 	applyPMD(bases, bamAlignment, fragmentLength);
 
 	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length, false);
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length, bamAlignment.IsReverseStrand());
 
 	//add to alignment and save
 	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);

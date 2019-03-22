@@ -289,7 +289,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 	//transform quality
 	Base previousBase = N;
 	if(isReverseStrand){
-		for(p=len - 1; p>=0; ++p){
+		for(p=len - 1; p>=0; --p){
 			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
 			previousBase = bases[p];
 		}
