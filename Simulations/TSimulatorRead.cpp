@@ -223,6 +223,7 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimul
 	//fill bam alignment
 	bamAlignment.Position = pos;
 	bamAlignment.SetIsReverseStrand( randomGenerator->getRand() < 0.5);
+	bamAlignment.Name = getNextReadName();
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
@@ -311,9 +312,6 @@ void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransfo
 	if(!qualityDistInitialized)
 		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
 
-	if(parameters.parameters_secondMate != "-")
-		throw "Quality transformation for second mate provided, but read group is single end!";
-
 	if(parameters.type == "none"){
 		qualityTransform = new TSimulatorQualityTransformation(qualityDist, randomGenerator);
 		qualityTransform_secondMate = new TSimulatorQualityTransformation(qualityDist, randomGenerator);
@@ -347,17 +345,20 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 	// Fill FIRST mate
 	//------------------
 	bamAlignment.Position = pos;
+	bamAlignment.Name = getNextReadName();
+	bamAlignment.Length = readLength;
+	bamAlignment.InsertSize = fragmentLength;
 
 	if(readIsContaminated)
-		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
+		memcpy(bases, contaminationSource->getPointerToRef() + pos, readLength);
 	else
-		memcpy(bases, haplotype + pos, bamAlignment.Length);
+		memcpy(bases, haplotype + pos, readLength);
 
 	//apply PMD
 	applyPMD(bases, bamAlignment, fragmentLength);
 
 	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length, false);
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, false);
 
 	//add to alignment and save
 	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
@@ -371,31 +372,41 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 		//reuse
 		std::vector<BamTools::BamAlignment*>::iterator it = bamAlignmentSecondMates_idle.begin();
 		secondMate = *it;
-		bamAlignmentSecondMates.push_back(*it);
 		bamAlignmentSecondMates_idle.erase(it);
 	} else {
 		//create new
-		bamAlignmentSecondMates.push_back(new BamTools::BamAlignment);
-		initializeSecondMateAlignment(*bamAlignmentSecondMates.back());
-		secondMate = bamAlignmentSecondMates.back();
+		secondMate = new BamTools::BamAlignment;
+		initializeSecondMateAlignment(*secondMate);
 	}
 
 	//fill bases
+	secondMate->Name = bamAlignment.Name;
+	secondMate->RefID = bamAlignment.RefID;
 	secondMate->Position = pos + fragmentLength - readLength;
+	secondMate->Length = readLength;
+	secondMate->InsertSize = -fragmentLength;
 
 	if(readIsContaminated)
-		memcpy(bases, contaminationSource->getPointerToRef() + secondMate->Position, bamAlignment.Length);
+		memcpy(bases, contaminationSource->getPointerToRef() + secondMate->Position, readLength);
 	else
-		memcpy(bases, haplotype + secondMate->Position, bamAlignment.Length);
+		memcpy(bases, haplotype + secondMate->Position, readLength);
 
 	//apply PMD
-	applyPMD(bases, bamAlignment, fragmentLength);
+	applyPMD(bases, *secondMate, fragmentLength);
 
 	//simulate qualities and errors
-	qualityTransform_secondMate->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length, true);
+	qualityTransform_secondMate->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, true);
 
-	//add to alignment BUT: do not save! Only save later
-	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
+	//add to alignment
+	fillAlignmentDetails(*secondMate, bases, phredIntQualities);
+
+	//write if it starts at same position as first, and keep for writing later otherwiese
+	if(secondMate->Position == pos){
+		bamFile.saveAlignment(*secondMate);
+		bamAlignmentSecondMates_idle.push_back(secondMate);
+	} else {
+		bamAlignmentSecondMates.push_back(secondMate);
+	}
 };
 
 void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){
