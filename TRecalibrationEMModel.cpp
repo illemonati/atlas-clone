@@ -488,13 +488,14 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 	_numParamsWithoutPositions = 2;
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
-	_name = qualfuncPosSpecificContext_name;
+	_name = qualfuncPosSpecific_name;
 
 	_allocateBetaMemory();
 };
 
 TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	_numParamsWithoutPositions = 2;
+	_name = qualfuncPosSpecific_name;
 	std::vector<double> values[2];
 
 	//parse parameter strings
@@ -684,6 +685,7 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	_numParamsWithoutPositions = 22;
+	_name = qualfuncPosSpecificContext_name;
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
