@@ -89,8 +89,8 @@ TAlignmentParser::TAlignmentParser(){
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
 	applyFragmentLengthFilter = false;
-	keepOnlyFwd = false;
-	keepOnlyRev = false;
+	useStrand[0] = true; useStrand[1] = true;
+	useMate[0] = true; useMate[1] = true;
 
 	//blacklist
 	_updateBlacklist = false;
@@ -405,18 +405,22 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		logfile->list("Will keep duplicate reads.");
 	}
 
-	if(params.parameterExists("dontFilterReadsLongerFragment")){
-		bool filter = false;
-		setApplyFragmentLengthFilter(filter);
-	} else {
-		bool filter = true;
-		setApplyFragmentLengthFilter(filter);
-	}
+	if(params.parameterExists("dontFilterReadsLongerFragment"))
+		setApplyFragmentLengthFilter(false);
+	else
+		setApplyFragmentLengthFilter(true);
 
-	if(params.parameterExists("keepOnlyFwd")){
-		keepOnlyFwd = true;
-	} else if(params.parameterExists("keepOnlyRev"))
-		keepOnlyRev = true;
+	//strand
+	if(params.parameterExists("keepOnlyFwd"))
+		useStrand[1] = false;
+	else if(params.parameterExists("keepOnlyRev"))
+		useStrand[0] = false;
+
+	//mate
+	if(params.parameterExists("keepOnlyFirst"))
+		useMate[1] = false;
+	else if(params.parameterExists("keepOnlySecond"))
+		useMate[0] = false;
 };
 
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
@@ -749,13 +753,12 @@ bool TAlignmentParser::applyFilters(){
 					&& bamAlignment.IsPrimaryAlignment()
 					&& !bamAlignment.IsSupplementary()
 					&& useChromosome[bamAlignment.RefID]
-					&& (_keepDuplicates || !bamAlignment.IsDuplicate());
-
-	if((keepOnlyFwd && bamAlignment.IsReverseStrand()) || (keepOnlyRev && !bamAlignment.IsReverseStrand()))
-		filtersPassed = false;
+					&& (_keepDuplicates || !bamAlignment.IsDuplicate())
+					&& useStrand[bamAlignment.IsReverseStrand()]
+					&& useMate[bamAlignment.IsSecondMate()];
 
 	return filtersPassed;
-}
+};
 
 void TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//make sure container is empty

@@ -93,7 +93,9 @@ private:
 	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
 	bool applyFragmentLengthFilter;
-	bool keepOnlyFwd, keepOnlyRev;
+	//bool keepOnlyFwd, keepOnlyRev;
+	bool useStrand[2];
+	bool useMate[2];
 
 	//blacklist
 	bool _updateBlacklist;
