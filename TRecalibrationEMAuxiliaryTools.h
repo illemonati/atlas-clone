@@ -165,6 +165,8 @@ public:
 	};
 
 	void reportReadGroupsNotUsed(TLog* logfile, TReadGroups & readGroups);
+	void reportReadGroupsConsideredSingleEnd(TLog* logfile, TReadGroups & readGroups);
+	void warningForMissingReadGroups(TLog* logfile, TReadGroups & readGroups);
 };
 
 

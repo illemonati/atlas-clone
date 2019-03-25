@@ -219,3 +219,18 @@ void TRecalibrationEMReadGroupIndex::reportReadGroupsNotUsed(TLog* logfile, TRea
 	}
 };
 
+void TRecalibrationEMReadGroupIndex::reportReadGroupsConsideredSingleEnd(TLog* logfile, TReadGroups & readGroups){
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		if(!readGroupInUse[rg][1])
+			logfile->list(readGroups.getName(rg));
+	}
+};
+
+void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile, TReadGroups & readGroups){
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		if(!readGroupInUse[rg][0])
+			logfile->warning("No recal parameters provided for " + readGroups.getName(rg) + " (first mate of paired or single-end). Are you using the correct recal file?");
+	}
+
+}
+

@@ -993,6 +993,14 @@ void TRecalibrationEMModels::reportReadGroupsNotUsed(TReadGroups & readGroups){
 	readGroupIndex.reportReadGroupsNotUsed(logfile, readGroups);
 };
 
+void TRecalibrationEMModels::reportReadGroupsConsideredSingleEnd(TReadGroups & readGroups){
+	readGroupIndex.reportReadGroupsConsideredSingleEnd(logfile, readGroups);
+}
+
+void TRecalibrationEMModels::warningForMissingReadGroups(TReadGroups & readGroups){
+	readGroupIndex.warningForMissingReadGroups(logfile, readGroups);
+}
+
 void TRecalibrationEMModels::setEMParamsToZero(){
 	Jacobian.resize(totNumParameters, totNumParameters);
 	F.resize(totNumParameters);
