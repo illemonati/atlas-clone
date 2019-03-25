@@ -43,6 +43,7 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
+	_keepImproperPairs = false;
 	_parse = false;
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;
@@ -745,7 +746,9 @@ bool TAlignmentParser::readAlignment(){
 
 bool TAlignmentParser::applyFilters(){
 	bool filtersPassed = readGroups.readGroupInUse(curReadGroupID)
-					&& bamAlignment.IsMapped() && !bamAlignment.IsFailedQC()
+					&& (_keepImproperPairs || (!bamAlignment.IsPaired() || bamAlignment.IsProperPair()))
+					&& bamAlignment.IsMapped()
+					&& !bamAlignment.IsFailedQC()
 					&& bamAlignment.IsPrimaryAlignment()
 					&& !bamAlignment.IsSupplementary()
 					&& useChromosome[bamAlignment.RefID]
@@ -1081,64 +1084,64 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	}
 };
 
+void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality){
+	if(adaptQuality){
+		double likelihood[4];
+		double sum = 0.0;
+		for(int i=0; i<4; ++i){
+			if(bestBase.base == i){
+				likelihood[i] = 1.0 - bestBase.errorRate;
+			} else {
+				likelihood[i] = bestBase.errorRate / 3.0;
+			}
+
+			if(worstBase.base == i){
+				likelihood[i] *= 1.0 - worstBase.errorRate;
+			} else {
+				likelihood[i] *= worstBase.errorRate / 3.0;
+			}
+			sum += likelihood[i];
+
+		}
+		bestBase.errorRate = 1.0 - likelihood[bestBase.base] / sum;
+	}
+
+	worstBase.errorRate = 1.0;
+	worstBase.base = N;
+}
+
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	std::cout << "will merge up until pos " << fwdAlignment->lastAlignedPositionWithRespectToRef << std::endl;
 
 	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
+		std::cout << "found overlapping positions" << std::endl;
+		fwdAlignment->setAlignmentHasChanged();
+		revAlignment->setAlignmentHasChanged();
+
 		//reads overlap -> check if there are bases overlapping same position in ref
 		//alignedPos is with respect to read
 		int fwdP = 0;
 		int revP = 0;
-		for(long i = revAlignment->position; i <= fwdAlignment->lastAlignedPositionWithRespectToRef; ++i){
-			std::cout << "#### i " << i << std::endl;
-			while(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < i){
-				++fwdP;
-				std::cout << "incremented fwdP to " << fwdP << std::endl;
-			} while(revAlignment->position + revAlignment->bases[revP].alignedPos < i){
-				++revP;
-				std::cout << "incremented revP to " << revP << std::endl;
-			}
-			std::cout << "done incrementing" << std::endl;
-			std::cout << "fwdP " << fwdP << " revP " << revP << std::endl;
-			if(i == fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos && fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
+			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+				std::cout << "merge bases" << std::endl;
+
 				//bases overlap same position in ref -> decide which one to keep
-				std::cout << "bases overlap!" << std::endl;
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
-//					std::cout << "error rate of fwd is smaller" << std::endl;
-					//keep base of fwd read
-					revAlignment->bases[revP].errorRate = 1;
-					revAlignment->bases[revP].base = N;
-					if(adaptQuality){
-						if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
-							//bases agree -> multiply error rates and keep fwd
-							double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
-							revAlignment->bases[fwdP].errorRate = newError;
-						} else {
-							//bases don't agree -> new error = errorFwd * (1 - errorRev)
-							fwdAlignment->bases[fwdP].errorRate = fwdAlignment->bases[fwdP].errorRate * (1 - revAlignment->bases[revP].errorRate);
-						}
-					}
+					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
-					//keep base of rev read
-					fwdAlignment->bases[fwdP].errorRate = 1;
-					fwdAlignment->bases[fwdP].base = N;
-					if(fwdAlignment->bases[fwdP].base == revAlignment->bases[revP].base){
-						//bases agree -> multiply error rates and keep rev
-						double newError = fwdAlignment->bases[fwdP].errorRate * revAlignment->bases[revP].errorRate;
-						revAlignment->bases[revP].errorRate = newError;
-					} else {
-						//bases don't agree -> choose one to be error
-						//bases don't agree -> new error = errorFwd * (1 - errorRev)
-						revAlignment->bases[revP].errorRate = revAlignment->bases[revP].errorRate * (1 - fwdAlignment->bases[fwdP].errorRate);
-					}
+					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
 				}
+
+				//increment both counters
+				++fwdP;
+				++revP;
+			} else if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < revAlignment->position + revAlignment->bases[revP].alignedPos){
+				++fwdP;
+			} else {
+				++revP;
 			}
 		}
-	}
-
-	if(adaptQuality){
-		recalibrate(*fwdAlignment);
-		recalibrate(*revAlignment);
 	}
 }

@@ -59,6 +59,7 @@ private:
 
 	TLog* logfile;
 	bool _keepDuplicates;
+	bool _keepImproperPairs;
 	bool _parse;
 	int previousAlignmentPos;
 	int previousAlignmentChr;
@@ -122,6 +123,7 @@ private:
 	void fillAlignment(TAlignment & alignment);
 	void readAlignmentsIntoWindow(TWindow & window);
 	void applyFilters(TWindow & window);
+	void adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
 
 public:
 	//alignment: goal is to make this private!
@@ -185,6 +187,7 @@ public:
 	void setApplyFragmentLengthFilter(bool filterYesNo);
 
 	void keepDuplicates(){_keepDuplicates = true;};
+	void keepImproperPairs(){_keepImproperPairs = true;};
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);
@@ -202,7 +205,7 @@ public:
 	void addToBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignment.alignmentName, 1);
-		ignoredReads << "Rea	d " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
+		ignoredReads << "Read " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
 	};
 	void addToBlacklist(BamTools::BamAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove

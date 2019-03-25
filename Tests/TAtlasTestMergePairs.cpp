@@ -224,7 +224,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	//TODO: parser should write out message to ignoredReads file stating that read was too long
+	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert : longer than insert size (TLEN)");
 
 	// second mate
 	setToRevMate(bamAlignment);
@@ -239,7 +239,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("Blacklist: Reverse read of pair with name 5th_pair_longerThanInsert because it was in the blacklist\n");
+	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert isReverse=1 : was in the blacklist");
 
 	//--------------------------------------------------------
 
@@ -257,6 +257,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'G'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 
 	//7) second too far away
 	// first mate
@@ -272,6 +274,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(40)));
 
 	//second too far away second mate
 	setToRevMate(bamAlignment);
@@ -286,7 +290,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(40)));
 
 	// 6 Mate too far away second mate
 	setToRevMate(bamAlignment);
@@ -301,17 +306,53 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'G'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+//	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
 
 	//--------------------------------------------------------
-	//8) mate on different chr
+	// 8) //normal overlap
+	setToFwdMate(bamAlignment);
+	bamAlignment.AddTag("RG", "Z", readGroupName);
+	bamAlignment.MapQuality = 50;
+	bamAlignment.Position = 3752;
+	bamAlignment.InsertSize = 100;
+	bamAlignment.MatePosition = 3782;
+	bamAlignment.Length = 70;
+	bamAlignment.Name = "8th_pair";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
+
+	//2nd mate
+	setToRevMate(bamAlignment);
+	bamAlignment.Position = 3782;
+	bamAlignment.InsertSize = -100;
+	bamAlignment.MatePosition = 3752;
+	bamAlignment.Name = "8th_pair";
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(std::string(40, 'N') + std::string(30, 'A'));
+	trueQualities.push_back(std::string(40, qualMap.phredIntToQuality(1)) + std::string(30, qualMap.phredIntToQuality(30)));
+
+	//--------------------------------------------------------
+	//9) mate on different chr
 	// first mate
 	setToRevMate(bamAlignment);
-	bamAlignment.Position = 3751;
+	bamAlignment.Position = 4000;
 	bamAlignment.InsertSize = -100;
 	bamAlignment.MatePosition = 20;
 	bamAlignment.Length = 20;
-	bamAlignment.Name = "8th_pair_mateOnDiffChr";
+	bamAlignment.Name = "9th_pair_mateOnDiffChr";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
@@ -326,7 +367,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.InsertSize = 100;
 	bamAlignment.MatePosition = 20;
 	bamAlignment.Length = 20;
-	bamAlignment.Name = "8th_pair_mateOnDiffChr";
+	bamAlignment.Name = "9th_pair_mateOnDiffChr";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
@@ -335,39 +376,6 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamWriter.SaveAlignment(bamAlignment);
 	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
 
-	//--------------------------------------------------------
-	// 9) //normal overlap
-	setToFwdMate(bamAlignment);
-	bamAlignment.AddTag("RG", "Z", readGroupName);
-	bamAlignment.MapQuality = 50;
-	bamAlignment.Position = 600;
-	bamAlignment.InsertSize = 100;
-	bamAlignment.MatePosition = 630;
-	bamAlignment.Length = 70;
-	bamAlignment.Name = "9th_pair";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(50));
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-
-	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
-	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
-
-	//2nd mate
-	setToRevMate(bamAlignment);
-	bamAlignment.Position = 630;
-	bamAlignment.InsertSize = -100;
-	bamAlignment.MatePosition = 600;
-	bamAlignment.Name = "9th_pair";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-
-	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(40, 'N') + std::string(30, 'A'));
-	trueQualities.push_back(std::string(40, qualMap.phredIntToQuality(1)) + std::string(30, qualMap.phredIntToQuality(30)));
 
 	//--------------------------------------------------------
 
@@ -467,7 +475,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		logfile->conclude("Incorrect number of alignments in merged BAM file");
 		return false;
 	}
-/*
+
 	if(trueIgnoredReadMessages.size() > 0){
 		//check ignored reads file
 		std::string ignoredReadsFile = filenameTag + "_ignoredReads.txt.gz";
@@ -498,6 +506,6 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 			return false;
 		}
 	}
-*/
+
 	return true;
 }

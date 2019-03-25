@@ -835,6 +835,10 @@ void TAlignment::setToSingleEnd(){
 	bamAlignment.InsertSize = 0;
 }
 
+void TAlignment::setIsProperPair(const bool & ok){
+	bamAlignment.SetIsProperPair(ok);
+	isProperPair = false;
+}
 
 void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap){
 	if(changed){

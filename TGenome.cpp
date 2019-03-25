@@ -1460,17 +1460,38 @@ bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool>
 		return false;
 }
 
-bool TGenome::ignoreReadAfterRemovingDistantReads(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates){
-	bool ignore = false;
-	while(alignmentStorage.size() > 0 && alignment.position - alignmentStorage.begin()->first->position > acceptedDistanceBetweenMates){
-		std::cout << "erasing " << alignmentStorage.begin()->first->alignmentName << std::endl;
-		if(alignmentStorage.begin()->first->alignmentName == alignment.alignmentName)
-			ignore = true;
-		else
-			alignmentParser.addToBlacklist(*alignmentStorage.begin()->first, "mate that is farther away than " + toString(acceptedDistanceBetweenMates) + " bp");
-		alignmentStorage.erase(alignmentStorage.begin());
+void TGenome::setOrphanedReadsToWritableButImproper(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates){
+	unsigned int i = 0;
+	while(alignmentStorage.size() > 0 && alignment.position - alignmentStorage[i].first->position > acceptedDistanceBetweenMates && alignmentStorage[i].second == false && i < alignmentStorage.size()){
+		std::cout << "setting orphaned read to writable" << alignmentStorage[i].first->alignmentName << std::endl;
+		alignmentStorage[i].first->setIsProperPair(false);
+		alignmentStorage[i].second = true;
+
+		++i;
 	}
-	return ignore;
+}
+
+void TGenome::writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, bool & wroteAllReadsInStorage){
+	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
+
+	for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
+		if(it->second){
+			//save the alignment to the bam file
+			(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+			std::cout << "saved alignment " << it->first->alignmentName << " is reversed=" << it->first->isReverseStrand  << " address " << it->first <<" . then, deleting it"<< std::endl;
+			delete it->first;
+		} else {
+			//arrived at first read in storage that can't be written -> break writing loop
+			it = alignmentStorage.erase(alignmentStorage.begin(), it);
+			break;
+		}
+	}
+
+	if(it == alignmentStorage.end()){
+		wroteAllReadsInStorage = true;
+	} else {
+		wroteAllReadsInStorage = false;
+	}
 }
 
 void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
@@ -1574,14 +1595,6 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 				}
 				continue;
 			}
-//			} if(!alignment.isProperPair ||(alignment.isReverseStrand() && alignment.isMateReverseStrand()) || (!bamAlignment.IsReverseStrand() && !bamAlignment.IsMateReverseStrand())){
-//				if(bamAlignment.IsReverseStrand())
-//					ignoredReads << "SAMFlagError: Reverse read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
-//				else
-//					ignoredReads << "SAMFlagError: Forward read of pair with name " << bamAlignment.Name << " is ignored because of its SAM flag\n";
-//				readsToOmit.emplace(bamAlignment.Name, 1);
-//				continue;
-//			}
 
 			else {
 				//if on new chromosome, empty storage
@@ -1593,8 +1606,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 				}
 
 				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
-				if(ignoreReadAfterRemovingDistantReads(alignmentStorage, alignment, acceptedDistanceBetweenMates))
-					continue;
+				setOrphanedReadsToWritableButImproper(alignmentStorage, alignment, acceptedDistanceBetweenMates);
 
 				//add alignment to storage
 				if(alignment.isProperPair){
@@ -1616,15 +1628,18 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 							std::cout << "found pair!" << std::endl;
 
-							//check if this read accepts mate
-							if(it->second)
-								throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
-
-							//merge
-							std::cout << "trying to merge bases of bam reads" << std::endl;
-							alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
-							it->second = true;
-							std::cout << "managed to merge bases of bam reads" << std::endl;
+							//if mate was considered too far away it is set to be written without merging
+							if(it->second){
+								if(it->first->isProperPair){
+									throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
+								}
+							} else {
+								//merge
+								std::cout << "trying to merge bases of bam reads" << std::endl;
+								alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
+								it->second = true;
+								std::cout << "managed to merge bases of bam reads" << std::endl;
+							}
 
 							//write if is first in vector
 							if(it == alignmentStorage.begin()){
@@ -1634,26 +1649,18 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 //									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 								std::cout << "added rev alignment to storage" <<  std::endl;
 								std::cout << "now starting to check if we can write" << std::endl;
+
 								//write all that are OK
-								for(it = alignmentStorage.begin(); it != alignmentStorage.end(); ++it){
-									if(it->second){
-										//save the alignment to the bam file
-										(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-										std::cout << "saved alignment " << it->first->alignmentName << " is reversed=" << it->first->isReverseStrand  << " address " << it->first <<" . then, deleting it"<< std::endl;
-										delete it->first;
-									} else {
-										//arrived at first read in storage that can't be written -> break writing loop
-										it = alignmentStorage.erase(alignmentStorage.begin(), it);
-										break;
-									}
-								}
-								if(it == alignmentStorage.end()){
+								bool wroteAllReadsInStorage;
+								writeAllReadsThatAreReady(bamWriter, alignmentStorage, wroteAllReadsInStorage);
+
+								if(wroteAllReadsInStorage){
 									std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
 									alignmentStorage.clear();
 									std::cout << "finished clearing alignment storage" << std::endl;
 								}
 							} else {
-								//add reverse to storage
+								//read has no mate in storage -> add to storage
 								std::cout << "alignment was not the last in storage, pushing it back" << std::endl;
 								alignmentStorage.emplace_back(new TAlignment(alignment), true);
 							}
@@ -1682,7 +1689,10 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 		//read is in single-end read group
 		else{
-			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+			if(alignmentStorage.empty()){
+				alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+			} else
+				alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 		}
 
 		//report

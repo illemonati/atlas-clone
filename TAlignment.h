@@ -88,8 +88,10 @@ public:
 
 	//functions to write / print alignment
 	void setToSingleEnd();
+	void setIsProperPair(const bool & ok);
 	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
 	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
+	void setAlignmentHasChanged(){ changed = true; };
 
 	//accessed by alignmentParser
 	void filterForBaseQuality(int & minQual, int & maxQual);
