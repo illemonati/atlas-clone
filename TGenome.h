@@ -68,9 +68,6 @@ public:
 //	void randomBaseCaller(TParameters & params);
 //	void majorityBaseCaller(TParameters & params);
 
-	//other
-	void writeGLF(TParameters & params);
-	void printPileup(TParameters & params);
 
 	//recalibration
 	void estimateErrorCalibration(TParameters & params);
@@ -79,6 +76,10 @@ public:
 	void BQSR(TParameters & params);
 	void printQualityDistribution(TParameters & params);
 	void printQualityTransformation(TParameters & params);
+
+	//other
+	void writeGLF(TParameters & params);
+	void printPileup(TParameters & params);
 	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
 	void reportProgressParsingBamFileNoCheck(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
@@ -93,9 +94,10 @@ public:
 	void runPMDS(TParameters & params);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergePairedEndReads(TParameters & params);
-	void setOrphanedReadsToWritableButImproper(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates);
+	void updateOrphanedReadsAtBeginningOfStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates, const bool & filterOrphanedReads);
 	void writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, bool & wroteAllReadsInStorage);
-	bool ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterPairsDiffChr);
+	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups, bool & allReadGroupsPaired);
+	bool ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterOrphanedReads);
 	void mergePairedEndReadsNoOrder(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);

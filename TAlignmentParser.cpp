@@ -398,6 +398,31 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	initializeRecalibration(params);
 
 	//------------
+	//blacklist
+	//------------
+	//TODO: this blacklist does nothing!!! write blacklist class that is then used in readAlignment
+	if(params.parameterExists("blacklist")){
+		//open blacklist file
+		std::string blacklist = params.getParameterString("blacklist");
+		logfile->listFlush("Reading reads to be omitted from '" + blacklist + "...");
+		std::ifstream file(blacklist.c_str());
+		if(!file) throw "Failed to open file '" + blacklist + "!";
+
+		int lineNum = 0;
+		std::vector<std::string> vec;
+
+		//fill list of reads to omit
+		while(file.good() && !file.eof()){
+			++lineNum;
+			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			if(!vec.empty())
+				addToBlacklist(vec[0], "user-defined blacklist");
+		}
+		logfile->write("done! Read " + toString(lineNum) + " read names");
+	}
+
+
+	//------------
 	//other
 	//------------
 
@@ -412,16 +437,24 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		setApplyFragmentLengthFilter(true);
 
 	//strand
-	if(params.parameterExists("keepOnlyFwd"))
+	if(params.parameterExists("keepOnlyFwd")){
 		useStrand[1] = false;
-	else if(params.parameterExists("keepOnlyRev"))
+		logfile->list("Will keep only forward mapping reads.");
+	}
+	else if(params.parameterExists("keepOnlyRev")){
 		useStrand[0] = false;
+		logfile->list("Will keep only reverse mapping reads.");
+	}
 
 	//mate
-	if(params.parameterExists("keepOnlyFirst"))
+	if(params.parameterExists("keepOnlyFirst")){
 		useMate[1] = false;
-	else if(params.parameterExists("keepOnlySecond"))
+		logfile->list("Will keep only the first mates.");
+	}
+	else if(params.parameterExists("keepOnlySecond")){
 		useMate[0] = false;
+		logfile->list("Will keep only the second mates.");
+	}
 };
 
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
@@ -1115,9 +1148,7 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 }
 
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
-	std::cout << "will merge up until pos " << fwdAlignment->lastAlignedPositionWithRespectToRef << std::endl;
-
-	//deletions in overlap (denoted as '-' in aligned bases) will be overwritten by mate if it only exists in one. insertions will be kept
+	//deletions and insertions are kept as is. these positions are not compared
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
 		std::cout << "found overlapping positions" << std::endl;
 		fwdAlignment->setAlignmentHasChanged();

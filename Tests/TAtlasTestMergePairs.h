@@ -20,10 +20,12 @@ private:
 	int readLength;
 	int chrLength;
 	int phredError;
+	bool filterOrphanedReads;
 //	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 	std::vector<std::string> trueQueryBases;
 	std::vector<std::string> trueQualities;
+	std::vector<bool> trueIsProper;
 	std::vector<std::string> trueIgnoredReadMessages;
 
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
