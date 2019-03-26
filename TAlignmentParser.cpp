@@ -729,8 +729,9 @@ bool TAlignmentParser::readAlignment(){
 		//filter
 		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
 		filtersPassed = true;
-		//check if insert size is shorter than read length-insertions+deletions=alignedBases + numInsertions, this means we are reading the adaptor sequence
-		//TODO: should add insertions to bamAlignment.AlignedBases.length()
+		/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
+		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
+		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
@@ -1128,15 +1129,12 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		int revP = 0;
 		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
 			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
-				std::cout << "merge bases" << std::endl;
-
 				//bases overlap same position in ref -> decide which one to keep
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
 					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
 					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
 				}
-
 				//increment both counters
 				++fwdP;
 				++revP;

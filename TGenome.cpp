@@ -1437,21 +1437,28 @@ void TGenome::mergeReadGroups(TParameters & params){
 //	}
 //}
 
-bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, BamTools::BamWriter & bamWriter){
+bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterPairsDiffChr){
 	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
 
 	//add reads in storage to blacklist
 	if(alignmentStorage.size() > 0){
 		for(; it!=alignmentStorage.end(); ++it){
-			alignmentParser.addToBlacklist(alignment, "on different chr than its mate");
-			//clear
-			delete it->first;
+			if(filterPairsDiffChr){
+				//add reads in storage to blacklist
+				alignmentParser.addToBlacklist(alignment, "on different chr than its mate");
+				//clear
+				delete it->first;
+			} else {
+				//set reads in storage to improper pairs but ready for writing
+				it->first->setIsProperPair(false);
+				it->second = true;
+			}
 		}
 		alignmentStorage.clear();
 	}
 
 	//check if current alignment is in blacklist now
-	if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+	if(filterPairsDiffChr && alignmentParser.isInBlacklist(alignment.alignmentName)){
 		std::cout << "found alignment in blacklist" << std::endl;
 		//no need to keep mate in list anymore
 		alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
@@ -1466,7 +1473,6 @@ void TGenome::setOrphanedReadsToWritableButImproper(std::vector< std::pair<TAlig
 		std::cout << "setting orphaned read to writable" << alignmentStorage[i].first->alignmentName << std::endl;
 		alignmentStorage[i].first->setIsProperPair(false);
 		alignmentStorage[i].second = true;
-
 		++i;
 	}
 }
@@ -1501,6 +1507,10 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	alignmentParser.setUpdateBlacklistToTrue();
 
 	int acceptedDistanceBetweenMates = params.getParameterIntWithDefault("acceptedDistance", 2000);
+	bool filterPairsDiffChr = false;
+	if(params.parameterExists("filterPairsDiffChr")){
+		filterPairsDiffChr = true;
+	}
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1588,103 +1598,72 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
 			continue;
 		} else if(allReadGroupsPaired || pairedReadGroups[alignment.readGroupId]){
-			int insertSize = abs(alignment.bamAlignment.InsertSize);
-			if(insertSize < alignment.lastAlignedPos){
-				if(alignment.isProperPair){
-					alignmentParser.addToBlacklist(alignment, "longer than the insert size");
-				}
-				continue;
+			//if on new chromosome, empty storage
+			if(curChr != alignment.chrNumber){
+				std::cout << "!!!!!!!! found new chr" << std::endl;
+				curChr = alignment.chrNumber;
+				if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, filterPairsDiffChr))
+					continue;
 			}
 
-			else {
-				//if on new chromosome, empty storage
-				if(curChr != alignment.chrNumber){
-					std::cout << "!!!!!!!! found new chr" << std::endl;
-					curChr = alignment.chrNumber;
-					if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, bamWriter))
-						continue;
+			//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
+			setOrphanedReadsToWritableButImproper(alignmentStorage, alignment, acceptedDistanceBetweenMates);
+
+			//add alignment to storage
+			if(alignment.isProperPair){
+				std::cout << "alignment is proper pair" << std::endl;
+
+				if(alignmentStorage.size() == 0){
+					alignmentStorage.emplace_back(new TAlignment(alignment), false);
+					std::cout << "added alignment " << alignmentStorage.begin()->first->alignmentName << std::endl;
+					continue;
 				}
+				int a = 0;
+				for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it, ++a){
+					std::cout << "alignmentStorage size " << alignmentStorage.size() << std::endl;
+//						std::cout << "name in storage is " << it->first->alignmentName;
+					std::cout << " and searched read name is " << alignment.alignmentName << std::endl;
 
-				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
-				setOrphanedReadsToWritableButImproper(alignmentStorage, alignment, acceptedDistanceBetweenMates);
+					//found its mate!
+					std::cout << "a is " << a << std::endl;
+					if(it->first->alignmentName == alignment.alignmentName){
 
-				//add alignment to storage
-				if(alignment.isProperPair){
-					std::cout << "alignment is proper pair" << std::endl;
+						std::cout << "found pair!" << std::endl;
 
-					if(alignmentStorage.size() == 0){
-						alignmentStorage.emplace_back(new TAlignment(alignment), false);
-						std::cout << "added alignment " << alignmentStorage.begin()->first->alignmentName << std::endl;
-						continue;
-					}
-
-					for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-						std::cout << "alignmentStorage size " << alignmentStorage.size() << std::endl;
-						std::cout << "name in storage is " << it->first->alignmentName;
-						std::cout << " and searched read name is " << alignment.alignmentName << std::endl;
-
-						//found its mate!
-						if(it->first->alignmentName == alignment.alignmentName){
-
-							std::cout << "found pair!" << std::endl;
-
-							//if mate was considered too far away it is set to be written without merging
-							if(it->second){
-								if(it->first->isProperPair){
-									throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
-								}
+						//if mate was considered too far away it is set to be written without merging
+						if(it->second){
+							if(it->first->isProperPair){
+								throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
 							} else {
-								//merge
-								std::cout << "trying to merge bases of bam reads" << std::endl;
-								alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
-								it->second = true;
-								std::cout << "managed to merge bases of bam reads" << std::endl;
-							}
-
-							//write if is first in vector
-							if(it == alignmentStorage.begin()){
-								std::cout << "first mate was at beginning of storage -> going to try writing!" << std::endl;
-								//add reverse to storage (have to add after check otherwise "it" no longer defined)
-								alignmentStorage.emplace_back(new TAlignment(alignment), true);
-//									alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
-								std::cout << "added rev alignment to storage" <<  std::endl;
-								std::cout << "now starting to check if we can write" << std::endl;
-
-								//write all that are OK
-								bool wroteAllReadsInStorage;
-								writeAllReadsThatAreReady(bamWriter, alignmentStorage, wroteAllReadsInStorage);
-
-								if(wroteAllReadsInStorage){
-									std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
-									alignmentStorage.clear();
-									std::cout << "finished clearing alignment storage" << std::endl;
-								}
-							} else {
-								//read has no mate in storage -> add to storage
-								std::cout << "alignment was not the last in storage, pushing it back" << std::endl;
+								alignment.setIsProperPair(false);
 								alignmentStorage.emplace_back(new TAlignment(alignment), true);
 							}
-							//break search for pair
-							break;
+						} else {
+							//merge
+							std::cout << "trying to merge bases of bam reads" << std::endl;
+							alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
+							it->second = true;
+							alignmentStorage.emplace_back(new TAlignment(alignment), true);
+							std::cout << "managed to merge bases of bam reads" << std::endl;
 						}
+						break;
 					}
-					if(alignmentStorage.size() == 0)
-						//mate was found and storage was emptied -> it cannot be at end()
-						continue;
-					//mate not read yet, add to storage!
-					else if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
-						std::cout << "did not find mate! adding " << alignment.alignmentName << " to storage" << std::endl;
-						alignmentStorage.emplace_back(new TAlignment(alignment), false);
-						continue;
-					} //else: the mate was found but not all reads in storage could be written
-				} else {
-					//read is not paired: add to storage or write
-					if(alignmentStorage.empty()){
-						alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-					} else
-						alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 				}
+
+				//mate not read yet, add to storage!
+				if(it == alignmentStorage.end()){ //!alignmentStorage.empty() &&
+					std::cout << "did not find mate! adding " << alignment.alignmentName << " to storage" << std::endl;
+					alignmentStorage.emplace_back(new TAlignment(alignment), false);
+					continue;
+				} //else: the mate was found but not all reads in storage could be written
+			} else {
+				//read is not paired: add to storage or write
+				if(alignmentStorage.empty()){
+					alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+				} else
+					alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
 			}
+
 		}
 
 		//read is in single-end read group
@@ -1693,6 +1672,21 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 				alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 			} else
 				alignmentStorage.push_back(std::pair<TAlignment*, bool>(new TAlignment(alignment), true));
+		}
+
+		//write if first in vector is ready to be written
+		if(alignmentStorage.begin()->second){
+			std::cout << "beginning of storage is ready to be written-> going to try writing!" << std::endl;
+
+			//write all that are OK
+			bool wroteAllReadsInStorage;
+			writeAllReadsThatAreReady(bamWriter, alignmentStorage, wroteAllReadsInStorage);
+
+			if(wroteAllReadsInStorage){
+				std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
+				alignmentStorage.clear();
+				std::cout << "finished clearing alignment storage" << std::endl;
+			}
 		}
 
 		//report

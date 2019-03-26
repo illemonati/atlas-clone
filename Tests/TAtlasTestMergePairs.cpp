@@ -374,7 +374,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("DistanceError: Read with name 6th_pair_mateTooFarAway has a mate that is farther away than 2000 bp\n");
+	trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr isReverse=1 : on different chr than its mate");
 
 
 	//--------------------------------------------------------
@@ -490,10 +490,16 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		while(file.good() && !file.eof()){
 			std::string line;
 			if(getline(file, line)){
+				std::cout << "checking lineNum " << lineNum << " and vector size is " << trueIgnoredReadMessages.size() << std::endl;
+				if(lineNum >= trueIgnoredReadMessages.size()){
+					logfile->newLine();
+					logfile->conclude("Too many entries in ignored messages file. Expected " + toString(trueIgnoredReadMessages.size()) + " but reading line " + toString(lineNum + 1));
+					return false;
+				}
 				if(line != trueIgnoredReadMessages.at(lineNum)){
 					logfile->newLine();
 					logfile->conclude("Incorrect entry in ignored reads file on line " + toString(lineNum) + ". Was expecting '" + trueIgnoredReadMessages.at(lineNum) + "'  but read '" + line + "'");
-	//				return false;
+					return false;
 				}
 				++lineNum;
 			}
