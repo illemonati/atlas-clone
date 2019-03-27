@@ -769,12 +769,12 @@ bool TAlignmentParser::readAlignment(){
 			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			filtersPassed = false;
 			if(_updateBlacklist)
-				addToBlacklist(bamAlignment.Name, "longer than insert size (TLEN)");
+				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = applyFilters();
 			if(_updateBlacklist && !filtersPassed){
-				addToBlacklist(bamAlignment.Name, "did not pass parser filters");
+				addToBlacklist(bamAlignment, "did not pass parser filters");
 			}
 		}
 	} while(!filtersPassed);

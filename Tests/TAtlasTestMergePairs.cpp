@@ -241,7 +241,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert : longer than insert size (TLEN)");
+	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, fwd : longer than insert size (TLEN)");
 
 	// second mate
 	setToRevMate(bamAlignment);
@@ -256,7 +256,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert isReverse=1 : was in the blacklist");
+	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : was in the blacklist");
 
 	//--------------------------------------------------------
 
@@ -267,7 +267,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.InsertSize = 3000;
 	bamAlignment.MatePosition = 3751;
 	bamAlignment.Length = 20;
-	bamAlignment.Name = "6th_pair_mateTooFarAway";
+	bamAlignment.Name = "6th_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
@@ -279,7 +279,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway: orphaned read: mate is farther away than 2000 bp");
+		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway, fwd : orphaned read: mate is farther away than 2000 bp");
 	}
 
 	//7) second too far away
@@ -335,7 +335,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway: orphaned read: mate is farther away than 2000 bp");
+		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway, rev : orphaned read: mate is farther away than 2000 bp");
 	}
 
 	//--------------------------------------------------------
@@ -411,7 +411,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr isReverse=1 : on different chr than its mate");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : on different chr than its mate");
 	}
 
 
@@ -434,7 +434,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr isReverse=1 : on different chr than its mate");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : on different chr than its mate");
 	}
 
 

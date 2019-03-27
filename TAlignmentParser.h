@@ -207,12 +207,20 @@ public:
 	void addToBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignment.alignmentName, 1);
-		ignoredReads << "Read " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
+		if(alignment.isReverseStrand){
+			ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
+		} else {
+			ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+		}
 	};
 	void addToBlacklist(BamTools::BamAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignment.Name, 1);
-		ignoredReads << "Read " << alignment.Name << " isReverse=" << alignment.IsReverseStrand() << " : " << errorMessage << "\n";
+		if(alignment.IsReverseStrand()){
+			ignoredReads << "Read " << alignment.Name << ", rev : " << errorMessage << "\n";
+		} else {
+			ignoredReads << "Read " << alignment.Name << ", fwd : " << errorMessage << "\n";
+		}
 	};
 	void addToBlacklist(std::string & alignmentName, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
@@ -221,7 +229,11 @@ public:
 	};
 	void removeFromBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		blacklist.erase(alignment.alignmentName);
-		ignoredReads << "Read " << alignment.alignmentName << " isReverse=" << alignment.isReverseStrand << " : " << errorMessage << "\n";
+		if(alignment.isReverseStrand){
+			ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
+		} else {
+			ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+		}
 	};
 	bool isInBlacklist(std::string & alignmentName){
 		if(blacklist.count(alignmentName) > 0)

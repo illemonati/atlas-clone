@@ -1485,7 +1485,6 @@ bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool>
 
 	if(alignmentStorage.size() > 0){
 		std::cout << alignmentStorage.begin()->first->chrNumber << std::endl;
-
 	}
 
 	//check if current alignment is in blacklist now
@@ -1540,8 +1539,13 @@ void TGenome::writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::ve
 	}
 
 	if(it == alignmentStorage.end()){
+		if(alignmentStorage.size() != 0)
+			throw "wrote all reads but alignmentStorage is not empty!";
 		wroteAllReadsInStorage = true;
 	} else {
+		if(alignmentStorage.size() > 0){
+			std::cout << alignmentStorage.begin()->first->chrNumber << std::endl;
+		}
 		wroteAllReadsInStorage = false;
 	}
 }
@@ -1704,6 +1708,8 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			writeAllReadsThatAreReady(bamWriter, alignmentStorage, wroteAllReadsInStorage);
 
 			if(wroteAllReadsInStorage){
+				if(alignmentStorage.size() > 0)
+					throw "storage is empty even if wroteAllReadsInStorage is true";
 				std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
 				alignmentStorage.clear();
 				std::cout << "finished clearing alignment storage" << std::endl;
@@ -1714,11 +1720,6 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		++counter;
 		reportProgressParsingBamFile(counter, start);
 	}
-
-	//TODO: this pointer is not valid!!!!!!
-	std::cout << alignmentStorage.begin()->first->chrNumber << std::endl;
-
-	throw "done!";
 
 	//write all reads still in storage to file as improper pairs or to blacklist
 	if(alignmentStorage.size() > 0){
@@ -1732,20 +1733,17 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 					std::cout << it->first->chrNumber << std::endl;
 					std::string name = it->first->alignmentName;
 					alignmentParser.addToBlacklist(name, "orphaned read");
-					throw "got to here";
+//					if(it->first == nullptr){
+//						throw "null pointer";
+//					}
+//					if(it == alignmentStorage.end())
+//						throw "iterater became invalid after delete";
 
-					if(it->first == nullptr){
-						throw "null pointer";
-					}
-					if(it == alignmentStorage.end())
-						throw "iterater became invalid after delete";
-
-//					delete it->first;
+					delete it->first;
 					it = alignmentStorage.erase(it);
 				} else {
 					it++;
 				}
-				throw "managed one iteration";
 			}
 		} else {
 			//set all orphaned reads to improper
