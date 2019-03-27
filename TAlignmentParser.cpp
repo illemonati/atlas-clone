@@ -1150,7 +1150,6 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	//deletions and insertions are kept as is. these positions are not compared
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
-		std::cout << "found overlapping positions" << std::endl;
 		fwdAlignment->setAlignmentHasChanged();
 		revAlignment->setAlignmentHasChanged();
 
