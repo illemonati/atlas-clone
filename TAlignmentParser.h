@@ -99,7 +99,7 @@ private:
 	bool useMate[2];
 
 	//blacklist
-	bool _updateBlacklist;
+	bool _updateBlacklist, _writeBlackList;
 	std::map <std::string, int> blacklist;
 	gz::ogzstream ignoredReads;
 
@@ -199,40 +199,55 @@ public:
 	//blacklist
 	void setUpdateBlacklistToTrue(){
 		_updateBlacklist = true;
+		logfile->list("Storing ignored reads in a blacklist");
+	};
+
+	void setWriteBlacklistToFileToTrue(){
+		_writeBlackList = true;
 		std::string ignoredReadsFile = extractBeforeLast(filename, ".bam") + "_ignoredReads.txt.gz";
 		logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
 		ignoredReads.open(ignoredReadsFile.c_str());
 		if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
-	};
+	}
+
 	void addToBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignment.alignmentName, 1);
-		if(alignment.isReverseStrand){
-			ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-		} else {
-			ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+		if(_writeBlackList){
+			if(alignment.isReverseStrand){
+				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
+			} else {
+				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+			}
 		}
 	};
 	void addToBlacklist(BamTools::BamAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignment.Name, 1);
-		if(alignment.IsReverseStrand()){
-			ignoredReads << "Read " << alignment.Name << ", rev : " << errorMessage << "\n";
-		} else {
-			ignoredReads << "Read " << alignment.Name << ", fwd : " << errorMessage << "\n";
+		if(_writeBlackList){
+			if(alignment.IsReverseStrand()){
+				ignoredReads << "Read " << alignment.Name << ", rev : " << errorMessage << "\n";
+			} else {
+				ignoredReads << "Read " << alignment.Name << ", fwd : " << errorMessage << "\n";
+			}
 		}
+
 	};
 	void addToBlacklist(std::string & alignmentName, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignmentName, 1);
-		ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
+		if(_writeBlackList){
+			ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
+		}
 	};
 	void removeFromBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		blacklist.erase(alignment.alignmentName);
-		if(alignment.isReverseStrand){
-			ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-		} else {
-			ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+		if(_writeBlackList){
+			if(alignment.isReverseStrand){
+				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
+			} else {
+				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
+			}
 		}
 	};
 	bool isInBlacklist(std::string & alignmentName){

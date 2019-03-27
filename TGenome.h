@@ -17,6 +17,7 @@
 #include "TAlignmentParser.h"
 #include "TQualityMap.h"
 #include "TGenotypePrior.h"
+#include "TReadList.h"
 #include <typeinfo>
 #include <map>
 #include <algorithm>

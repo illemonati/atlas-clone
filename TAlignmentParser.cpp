@@ -95,6 +95,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	//blacklist
 	_updateBlacklist = false;
+	_writeBlackList = false;
 
 	//limit chr and windows
 	limitWindows = -1;
@@ -141,7 +142,7 @@ TAlignmentParser::~TAlignmentParser(){
 		delete oldAlignment;
 	}
 
-	if(_updateBlacklist)
+	if(_writeBlackList)
 		ignoredReads.close();
 }
 
@@ -396,31 +397,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	initializePostMortemDamage(params);
 	initializeRecalibration(params);
-
-	//------------
-	//blacklist
-	//------------
-	//TODO: this blacklist does nothing!!! write blacklist class that is then used in readAlignment
-	if(params.parameterExists("blacklist")){
-		//open blacklist file
-		std::string blacklist = params.getParameterString("blacklist");
-		logfile->listFlush("Reading reads to be omitted from '" + blacklist + "...");
-		std::ifstream file(blacklist.c_str());
-		if(!file) throw "Failed to open file '" + blacklist + "!";
-
-		int lineNum = 0;
-		std::vector<std::string> vec;
-
-		//fill list of reads to omit
-		while(file.good() && !file.eof()){
-			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty())
-				addToBlacklist(vec[0], "user-defined blacklist");
-		}
-		logfile->write("done! Read " + toString(lineNum) + " read names");
-	}
-
 
 	//------------
 	//other

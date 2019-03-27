@@ -1558,7 +1558,7 @@ bool TGenome::findAndMergeMates(std::vector< std::pair<TAlignment*, bool> > & al
 	}
 }
 
-void TGenome::dealWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads){
+void TGenome::decideWhatToDoWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads){
 	if(filterOrphanedReads){
 		//remove orphaned reads from storage and put them in blacklist
 		std::vector< std::pair<TAlignment*, bool> >::iterator it=alignmentStorage.begin();
@@ -1587,6 +1587,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
 	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
 
 	//filters that can only be applied with this task
 	int acceptedDistanceBetweenMates = params.getParameterIntWithDefault("acceptedDistance", 2000);
@@ -1653,7 +1654,6 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 					continue;
 				}
 			}
-
 			//check if first alignment in storage is too far away from current read (after checking for chr change)
 			//if yes, first alignment in storage is considered an orphan
 			updateOrphanedReadsAtBeginningOfStorage(alignmentStorage, alignment, acceptedDistanceBetweenMates, filterOrphanedReads);
@@ -1703,7 +1703,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 	//write all reads still in storage to file as improper pairs or to blacklist
 	if(alignmentStorage.size() > 0){
-		dealWithLastReadsInStorage(alignmentStorage, filterOrphanedReads);
+		decideWhatToDoWithLastReadsInStorage(alignmentStorage, filterOrphanedReads);
 		//write ok reads (should be all in container)
 		writeAllReadsThatAreReady(bamWriter, alignmentStorage);
 		if(alignmentStorage.size() > 0){
@@ -1736,6 +1736,9 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
+	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
+	TReadList keep;
 
 	//read downsampling rate
 	std::string prob = params.getParameterString("prob");
@@ -1812,9 +1815,22 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 		//accept read or not?
 		for(i=0; i<numProbs; ++i){
-			r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
-			if(r < downSampleProb[i])
+			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
+				continue;
+			} if(keep.isInReadList(alignment.alignmentName)){
 				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+			} else {
+				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
+				if(r < downSampleProb[i]){
+					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+					keep.addToReadList(alignment, "passed downsampling");
+				} else {
+					if(alignment.isProperPair){
+						alignmentParser.addToBlacklist(alignment, "did not pass downsampling");
+					}
+				}
+			}
 		}
 
 		//report
