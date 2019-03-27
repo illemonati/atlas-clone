@@ -86,6 +86,8 @@ public:
 	double calculateLogLikelihood(double* genotypeProbabilities);
 	void countAlleles(int* alleleCounts);
 	void countAllelesForImbalance(long**** siteImbalance);
+	void countMates(int* mateCounts);
+	void countFwdRev(int* frCounts);
 	void printPileup(gz::ogzstream & out);
 	void printPileupToScreen();
 

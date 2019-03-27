@@ -2392,6 +2392,30 @@ void TGenome::runPMDS(TParameters & params){
 	runtime = (end.tv_sec  - start.tv_sec)/60.0;
 	logfile->list("Analyzed " + toString(counter) + " reads in " + toString(runtime) + " min. and filtered out " + toString(counterF) + " of them!");
 
-}
+};
+
+void TGenome::printMateInformationPerSite(TParameters & params){
+	//open output file
+	std::string outputFileName = outputName + "_mateInformation.txt.gz";
+	logfile->list("Writing mate information to file '" + outputFileName + "'.");
+	TOutputFileZipped out(outputFileName);
+	out.writeHeader({"chr", "pos", "depth", "numA", "numC", "numG", "numT", "numAlleles", "numFirstMate", "numSecondMate", "numFwd", "numRev"});
+
+	//prepare windows
+	TWindow window;
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//write chromosome to file
+		if(window.passedFilters){
+			logfile->listFlush("Writing mate info per site ...");
+			window.printMateInformationPerSite(out, alignmentParser.chrIterator->Name);
+			logfile->done();
+		}
+	}
+
+	//clean up
+	out.close();
+};
 
 

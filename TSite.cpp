@@ -175,7 +175,23 @@ void TSite::countAllelesForImbalance(long**** siteImbalance){
 		++b[it->getBaseAsEnum()];
 	}
 	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
-}
+};
+
+void TSite::countMates(int* mateCounts){
+	mateCounts[0] = 0;
+	mateCounts[1] = 0;
+
+	for(TBase* it : bases)
+		++mateCounts[it->isSecondMate];
+};
+
+void TSite::countFwdRev(int* frCounts){
+	frCounts[0] = 0;
+	frCounts[1] = 0;
+
+	for(TBase* it : bases)
+		++frCounts[it->isReverseStrand];
+};
 
 void TSite::printPileup(gz::ogzstream & out){
 	out << "\t" << referenceBase;

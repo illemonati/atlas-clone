@@ -490,7 +490,41 @@ void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
 	for(int i=0; i<length; ++i){
 		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth() << "\n";
 	}
-}
+};
+
+void TWindow::printMateInformationPerSite(TOutputFileZipped & out, std::string & chr){
+	int* alleleCounts = new int[4];
+	int* mateCounts = new int[2];
+	int* frCounts = new int[2];
+
+	for(int i=0; i<length; ++i){
+		//chr, pos and depth
+		out << chr << start + i + 1 << sites[i].depth();
+
+		//num alleles
+		sites[i].countAlleles(alleleCounts);
+		int numAlleles = 0;
+		for(int b=0; b<4; ++b){
+			out << alleleCounts[b];
+			if(alleleCounts[b] > 0)
+				++numAlleles;
+		}
+		out << numAlleles;
+
+		//mates
+		sites[i].countMates(mateCounts);
+		out << mateCounts[0] << mateCounts[1];
+
+		//fwd / rev
+		sites[i].countFwdRev(frCounts);
+		out << frCounts[0] << frCounts[1];
+		out << std::endl;
+	}
+
+	delete[] alleleCounts;
+	delete[] mateCounts;
+	delete[] frCounts;
+};
 
 void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	//calculate and return imbalance

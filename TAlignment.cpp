@@ -233,13 +233,14 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 		fillContext(genoMap);
 
 		//set whether read is first or second
-		for(int d=0; d<length; ++d)
+		for(int d=0; d<length; ++d){
 			bases[d].isSecondMate = isSecondMate;
+			bases[d].isReverseStrand = isReverseStrand;
+		}
 
 		parsed = true;
 	}
 };
-
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	// iterate over CigarOps
