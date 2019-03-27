@@ -12,7 +12,7 @@
 #include "TRandomGenerator.h"
 #include "gzstream.h"
 #include "TSite.h"
-#include "TVCFFields.h"
+#include "Vcf/TVCFFields.h"
 #include "TLog.h"
 
 //------------------------------------------------------
