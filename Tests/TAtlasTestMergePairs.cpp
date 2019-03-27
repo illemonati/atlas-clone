@@ -256,7 +256,13 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : was in the blacklist");
+	if(!filterOrphanedReads){
+		trueQueryBases.push_back(std::string(bamAlignment.Length, 'T'));
+		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+		trueIsProper.push_back(false);
+	} else {
+		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : mate was in the blacklist");
+	}
 
 	//--------------------------------------------------------
 
@@ -267,7 +273,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	bamAlignment.InsertSize = 3000;
 	bamAlignment.MatePosition = 3751;
 	bamAlignment.Length = 20;
-	bamAlignment.Name = "6th_mateTooFarAway";
+	bamAlignment.Name = "6th_pair_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 	bamAlignment.CigarData.clear();
@@ -279,7 +285,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway, fwd : orphaned read: mate is farther away than 2000 bp");
+		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, fwd : orphaned read: mate is farther away than 2000 bp");
 	}
 
 	//7) second too far away
@@ -335,7 +341,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 6th_mateTooFarAway, rev : orphaned read: mate is farther away than 2000 bp");
+		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, rev : orphaned at chromosome switch");
 	}
 
 	//--------------------------------------------------------
@@ -411,7 +417,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : on different chr than its mate");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : orphaned at chromosome switch");
 	}
 
 
@@ -434,7 +440,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : on different chr than its mate");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : mate was in the blacklist");
 	}
 
 
@@ -557,7 +563,6 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		while(file.good() && !file.eof()){
 			std::string line;
 			if(getline(file, line)){
-				std::cout << "checking lineNum " << lineNum << " and vector size is " << trueIgnoredReadMessages.size() << std::endl;
 				if(lineNum >= trueIgnoredReadMessages.size()){
 					logfile->newLine();
 					logfile->conclude("Too many entries in ignored messages file. Expected " + toString(trueIgnoredReadMessages.size()) + " but reading line " + toString(lineNum + 1));

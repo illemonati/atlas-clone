@@ -1457,6 +1457,12 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 }
 
 bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterOrphanedReads){
+	std::cout << "at beginning of chr switch storage contains: " << std::flush;
+	for(int i = 0; i<alignmentStorage.size(); ++i){
+		std::cout << alignmentStorage[i].first->alignmentName << "," << std::flush;
+	}
+	std::cout << std::endl;
+
 	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
 
 	//add reads in storage to blacklist
@@ -1465,7 +1471,7 @@ bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool>
 			if(filterOrphanedReads){
 				//add reads in storage that have not found mate to blacklist and clear from storage
 				if(!it->second){
-					alignmentParser.addToBlacklist(alignment, "orphaned or mate is on different chr");
+					alignmentParser.addToBlacklist(*(it->first), "orphaned at chromosome switch");
 					delete it->first;
 					it = alignmentStorage.erase(it);
 				} else {
@@ -1483,13 +1489,16 @@ bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool>
 		}
 	}
 
-	if(alignmentStorage.size() > 0){
-		std::cout << alignmentStorage.begin()->first->chrNumber << std::endl;
+	std::cout << "in middle of chr switch storage contains: " << std::flush;
+	for(int i = 0; i<alignmentStorage.size(); ++i){
+		std::cout << alignmentStorage[i].first->alignmentName << "," << std::flush;
 	}
+	std::cout << std::endl;
 
 	//check if current alignment is in blacklist now
 	if(filterOrphanedReads && alignmentParser.isInBlacklist(alignment.alignmentName)){
 		//no need to keep mate in list anymore
+		std::cout << "adding read " << alignment.alignmentName << " to blacklist because its mate was in blacklist after chr change" << std::endl;
 		alignmentParser.removeFromBlacklist(alignment, "mate was in the blacklist");
 		return true;
 	} else
@@ -1497,11 +1506,13 @@ bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool>
 }
 
 void TGenome::updateOrphanedReadsAtBeginningOfStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates, const bool & filterOrphanedReads){
+	std::cout << "updatingOrphanedReadsAtBeginningOfStorage" << std::endl;
 	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
 
 	while(alignmentStorage.size() > 0 && alignment.position - it->first->position > acceptedDistanceBetweenMates && it->second == false && it != alignmentStorage.end()){
 		if(filterOrphanedReads){
-			alignmentParser.addToBlacklist(*alignmentStorage.begin()->first, "orphaned read: mate is farther away than " + toString(acceptedDistanceBetweenMates) + " bp");
+			std::cout << "adding " << alignmentStorage.begin()->first->alignmentName << " isRev " << alignmentStorage.begin()->first->isReverseStrand << " to blacklist" << std::endl;
+			alignmentParser.addToBlacklist(*(alignmentStorage.begin()->first), "orphaned read: mate is farther away than " + toString(acceptedDistanceBetweenMates) + " bp");
 			delete it->first;
 			it = alignmentStorage.erase(alignmentStorage.begin());
 		} else {
@@ -1609,7 +1620,12 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		if(alignmentParser.isInBlacklist(alignment.alignmentName)){
 			std::cout << "found alignment in blacklist" << std::endl;
 			//no need to keep mate in list anymore
-			alignmentParser.removeFromBlacklist(alignment, "was in the blacklist");
+			if(filterOrphanedReads){
+				alignmentParser.removeFromBlacklist(alignment, "mate was in the blacklist");
+			} else {
+				alignment.setIsProperPair(false);
+				alignmentStorage.emplace_back(new TAlignment(alignment), true);
+			}
 			continue;
 		} else if(allReadGroupsPaired || pairedReadGroups[alignment.readGroupId]){
 			//if on new chromosome, empty storage
@@ -1621,15 +1637,17 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 				writeAllReadsThatAreReady(bamWriter, alignmentStorage, wroteAllReadsInStorage);
 
 				if(wroteAllReadsInStorage){
-					std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
+					std::cout << "arrived at end of storage: about to clear alignment storage after switchin chromosome" << std::endl;
 					alignmentStorage.clear();
 					std::cout << "finished clearing alignment storage" << std::endl;
 				}
 
 				//what to do with current read and reads in storage that are not ok?
 				curChr = alignment.chrNumber;
-				if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, filterOrphanedReads))
+				if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, filterOrphanedReads)){
+					std::cout << "ignoreReadAfterChrSwitch was true" << std::endl;
 					continue;
+				}
 			}
 
 			//check if first alignment in storage is too far away from current read (after checking for chr change)
@@ -1710,7 +1728,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 			if(wroteAllReadsInStorage){
 				if(alignmentStorage.size() > 0)
 					throw "storage is empty even if wroteAllReadsInStorage is true";
-				std::cout << "arrived at end of storage: about to clear alignment storage" << std::endl;
+				std::cout << "arrived at end of storage after finishing reading of bam: about to clear alignment storage" << std::endl;
 				alignmentStorage.clear();
 				std::cout << "finished clearing alignment storage" << std::endl;
 			}
@@ -1723,16 +1741,20 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 	//write all reads still in storage to file as improper pairs or to blacklist
 	if(alignmentStorage.size() > 0){
-		std::cout << "at end of bam file storage size is " << alignmentStorage.size() << std::endl;
+		std::cout << "at end of bam file storage contains: " << std::flush;
+		for(int i = 0; i<alignmentStorage.size(); ++i){
+			std::cout << alignmentStorage[i].first->alignmentName << "," << std::flush;
+		}
+		std::cout << std::endl;
+
+
 		if(filterOrphanedReads){
 			//remove orphaned reads from storage and put them in blacklist
 			std::vector< std::pair<TAlignment*, bool> >::iterator it=alignmentStorage.begin();
-			std::cout << it->first->chrNumber << std::endl;
 			while(it!=alignmentStorage.end()){
 				if(!it->second){
-					std::cout << it->first->chrNumber << std::endl;
-					std::string name = it->first->alignmentName;
-					alignmentParser.addToBlacklist(name, "orphaned read");
+					std::cout << "adding to blacklist " << it->first->alignmentName << " is rev " << it->first->isReverseStrand << std::endl;
+					alignmentParser.addToBlacklist(*(it->first), "orphaned read");
 //					if(it->first == nullptr){
 //						throw "null pointer";
 //					}
