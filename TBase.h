@@ -49,6 +49,7 @@ public:
 	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
 	int alignedPos;
 	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
+	bool isReverseStrand;
 
 	TBase(){
 		base = N;
@@ -63,9 +64,10 @@ public:
 		aligned = false;
 		alignedPos = -1;
 		isSecondMate = false;
+		isReverseStrand = false;
 	}
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond, bool & IsReverseStrand){
 		base = Base;
 		errorRate = ErrorRate;
 		//posInRead = PosInRead;
@@ -78,6 +80,7 @@ public:
 		aligned = Aligned;
 		alignedPos = AlignedPos;
 		isSecondMate = IsSecond;
+		isReverseStrand = IsReverseStrand;
 	};
 
 	~TBase(){};

@@ -181,7 +181,9 @@ public:
 			} else if(task=="allelicDepth"){
 				logfile->startIndent("Finding allelic depth distribution (task=createDepthMask:");
 				genome.allelicDepth(*parameters);
-
+			} else if(task=="mateInfo"){
+				logfile->startIndent("Writing mate information per site (task=mateInfo:");
+				genome.printMateInformationPerSite(*parameters);
 			} else throw "Unknown task '" + task + "'!";
 		}
 		logfile->endIndent();

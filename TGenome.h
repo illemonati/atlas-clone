@@ -41,6 +41,8 @@ private:
 	TGenotypePrior* initializeGenotypePrior(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
+	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
+	void dealWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -92,7 +94,6 @@ public:
 	void estimatePMD(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
-	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergePairedEndReads(TParameters & params);
 	void updateOrphanedReadsAtBeginningOfStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates, const bool & filterOrphanedReads);
 	void writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::vector< std::pair<TAlignment*, bool> > & alignmentStorage);
@@ -112,6 +113,7 @@ public:
 	void estimateDuplicationCounts(TParameters & params);
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
+	void printMateInformationPerSite(TParameters & params);
 };
 
 
