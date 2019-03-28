@@ -56,6 +56,8 @@ class API_EXPORT BamReader {
                        const int& rightRefID,
                        const int& rightPosition);
 
+        int64_t tell();
+
         // ----------------------
         // access alignment data
         // ----------------------

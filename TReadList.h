@@ -17,6 +17,16 @@ private:
 	std::string filename;
 	std::map <std::string, int> readList;
 
+	void _write(const std::string & Name, const std::string & Error, const bool & isSecondMate){
+		if(_writeToFile){
+			if(isSecondMate){
+				ignoredReads << "Read " << Name << " (second mate): " << Error << "\n";
+			} else {
+				ignoredReads << "Read " << Name << " (first mate): " << Error << "\n";
+			}
+		}
+	};
+
 public:
 	TReadList(){
 		_writeToFile = false;
@@ -37,43 +47,28 @@ public:
 	void addToReadList(TAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		readList.emplace(alignment.alignmentName, 1);
-		if(_writeToFile){
-			if(alignment.isReverseStrand){
-				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
-			}
-		}
+		_write(alignment.alignmentName, errorMessage, alignment.isSecondMate);
 	};
+
 	void addToReadList(BamTools::BamAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		readList.emplace(alignment.Name, 1);
-		if(_writeToFile){
-			if(alignment.IsReverseStrand()){
-				ignoredReads << "Read " << alignment.Name << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.Name << ", fwd : " << errorMessage << "\n";
-			}
-		}
-
+		_write(alignment.Name, errorMessage, alignment.IsSecondMate());
 	};
+
 	void addToReadList(std::string & alignmentName, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		readList.emplace(alignmentName, 1);
 		if(_writeToFile){
-			ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
+			ignoredReads << "Read " << alignmentName << ": " << errorMessage << "\n";
 		}
 	};
+
 	void removeFromReadList(TAlignment & alignment, const std::string & errorMessage){
 		readList.erase(alignment.alignmentName);
-		if(_writeToFile){
-			if(alignment.isReverseStrand){
-				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
-			}
-		}
+		_write(alignment.alignmentName, errorMessage, alignment.isSecondMate);
 	};
+
 	bool isInReadList(std::string & alignmentName){
 		if(readList.count(alignmentName) > 0)
 			return true;

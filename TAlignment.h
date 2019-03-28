@@ -101,6 +101,7 @@ public:
 	//accessed by TGenome
 	int readGroupId;
 	bool isReverseStrand;
+	bool isPaired;
 	bool isProperPair;
 	int mappingQuality;
 	bool passedFilters;

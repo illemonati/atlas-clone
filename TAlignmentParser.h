@@ -67,6 +67,9 @@ private:
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
+	//counters
+	int totalNumberAlignmentsRead;
+	int64_t sizeOfBamFile;
 
 	//read trimming
 	bool trimReads;
@@ -107,6 +110,9 @@ private:
 	long limitWindows;
 	int limitChr;
 	bool* useChromosome;
+
+	//contructor functions
+	void openBamFile(std::string filename);
 
 	//move genome
 	void jumpToEnd();
@@ -181,6 +187,8 @@ public:
 	std::string recalibrationType(){ return recalObject->type(); };
 	int getWindowSize(){return windowSize;}
 	int getMaxPhredInt(){return maxPhredInt;}
+	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
+	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
 
 	//setters
 	void setQualityFilters(int minQual, int maxQual);
@@ -233,6 +241,7 @@ public:
 		}
 
 	};
+
 	void addToBlacklist(std::string & alignmentName, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		blacklist.emplace(alignmentName, 1);
@@ -240,6 +249,7 @@ public:
 			ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
 		}
 	};
+
 	void removeFromBlacklist(TAlignment & alignment, const std::string & errorMessage){
 		blacklist.erase(alignment.alignmentName);
 		if(_writeBlackList){
@@ -250,6 +260,7 @@ public:
 			}
 		}
 	};
+
 	bool isInBlacklist(std::string & alignmentName){
 		if(blacklist.count(alignmentName) > 0)
 			return true;
@@ -274,5 +285,29 @@ public:
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 };
+
+//-----------------------------------------------------
+// TBamProgressReporter
+//-----------------------------------------------------
+class TBamProgressReporter{
+private:
+	timeval start, end;
+	TAlignmentParser* parser;
+	TLog* logfile;
+	int progressFrequency;
+	int lastProgressPrinted;
+
+	void _init(int Frequency, TAlignmentParser* Parser, TLog* Logfile);
+	std::string _getRunTime();
+	void _printProgress();
+
+public:
+	TBamProgressReporter(int Frequency, TAlignmentParser* Parser, TLog* Logfile);
+	TBamProgressReporter(TAlignmentParser* Parser, TLog* Logfile);
+
+	void printProgress();
+	void printEnd();
+};
+
 
 #endif /* TALIGNMENTPARSER_H_ */

@@ -51,6 +51,9 @@ TAlignmentParser::TAlignmentParser(){
 	oldAlignmentInitialized = false;
 	oldAlignmentMustBeConsidered = false;
 
+	totalNumberAlignmentsRead = 0;
+	sizeOfBamFile = 0;
+
 	curReadGroupID = -1;
 
 	//initialize iterators
@@ -155,17 +158,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//---------------------
 
 	//open BAM file
-	filename = params.getParameterString("bam");
-	logfile->list("Reading data from BAM file '" + filename + "'.");
-	if (!bamReader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "'!";
-	//load index file
-	if(!bamReader.LocateIndex())
-		throw "No index file found for BAM file '" + filename + "'!";
-
-	//initialize bam stuff
-	bamHeader = bamReader.GetHeader();
-	chrIterator = bamHeader.Sequences.End();
+	openBamFile(params.getParameterString("bam"));
 
 //	//open FASTA reference
 //	if(params.parameterExists("fasta")){
@@ -433,6 +426,28 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	}
 };
 
+void TAlignmentParser::openBamFile(std::string filename){
+	//open BAM file
+	logfile->list("Reading data from BAM file '" + filename + "'.");
+	if (!bamReader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "'!";
+	//load index file
+	if(!bamReader.LocateIndex())
+		throw "No index file found for BAM file '" + filename + "'!";
+
+	//initialize bam stuff
+	bamHeader = bamReader.GetHeader();
+
+	//get file size
+	chrIterator = bamHeader.Sequences.End() - 1;
+	bamReader.Jump(bamHeader.Sequences.Size() - 1, stringToLong(chrIterator->Length));
+	sizeOfBamFile = bamReader.tell();
+	bamReader.Rewind();
+
+	//set iterator to end
+	chrIterator = bamHeader.Sequences.End();
+}
+
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 	applyQualityFilter = true;
 	minPhredInt = MinPhredInt;
@@ -692,6 +707,7 @@ bool TAlignmentParser::readAlignment(){
 		if(!bamReader.GetNextAlignment(bamAlignment)){
 			return false;
 		}
+		++totalNumberAlignmentsRead;
 
 		//check if bam file is sorted
 		if(bamAlignment.RefID != previousAlignmentChr){
@@ -1152,3 +1168,51 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		}
 	}
 }
+
+//-----------------------------------------------------
+// TBamProgressReporter
+//-----------------------------------------------------
+TBamProgressReporter::TBamProgressReporter(int Frequency, TAlignmentParser* Parser, TLog* Logfile){
+	_init(Frequency, Parser, Logfile);
+};
+
+TBamProgressReporter::TBamProgressReporter(TAlignmentParser* Parser, TLog* Logfile){
+	_init(1000000, Parser, Logfile);
+};
+
+void TBamProgressReporter::_init(int Frequency, TAlignmentParser* Parser, TLog* Logfile){
+	progressFrequency = Frequency;
+	parser = Parser;
+	logfile = Logfile;
+	gettimeofday(&start, NULL);
+	lastProgressPrinted = 0;
+
+	logfile->startIndent("Parsing through BAM file:");
+};
+
+std::string TBamProgressReporter::_getRunTime(){
+	gettimeofday(&end, NULL);
+	return toString((end.tv_sec  - start.tv_sec)/60.0);
+};
+
+void TBamProgressReporter::_printProgress(){
+	std::string percentOfFile = toString(parser->getPositionInFile() * 100);
+	int tmp = (double) parser->getNumAlignmentsRead() / 1000000.0;
+	std::string millionReads = toString(tmp);
+	logfile->list("Parsed " + millionReads + " million reads (" + percentOfFile + "%) in " + _getRunTime() + " min.");
+};
+
+void TBamProgressReporter::printProgress(){
+	if(parser->getNumAlignmentsRead() - lastProgressPrinted >= progressFrequency){
+		_printProgress();
+		lastProgressPrinted = parser->getNumAlignmentsRead();
+	}
+};
+
+void TBamProgressReporter::printEnd(){
+	logfile->list("Reached end of BAM file.");
+	logfile->conclude("Parsed a total of " + toString((double) parser->getNumAlignmentsRead()) + " reads in " + _getRunTime() + " min.");
+	logfile->endIndent("Reached end of BAM file.");
+};
+
+

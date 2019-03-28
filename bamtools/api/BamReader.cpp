@@ -381,3 +381,8 @@ bool BamReader::SetRegion(const int& leftRefID,
 {
     return d->SetRegion( BamRegion(leftRefID, leftBound, rightRefID, rightBound) );
 }
+
+//ADDED by Dan Wegmann
+int64_t BamReader::tell(){
+	return d->Tell();
+};

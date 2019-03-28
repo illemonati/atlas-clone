@@ -19,6 +19,7 @@ TAlignment::TAlignment(){
 	lastPositionPlusOne = 0;
 	lastAlignedPositionWithRespectToRef = 0;
 	isReverseStrand = false;
+	isPaired = false;
 	isProperPair = false;
 	mappingQuality = 0;
 	passedFilters = false;
@@ -65,6 +66,7 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	lastPositionPlusOne = Alignment.lastPositionPlusOne;
 	lastAlignedPositionWithRespectToRef = Alignment.lastAlignedPositionWithRespectToRef;
 	isReverseStrand = Alignment.isReverseStrand;
+	isPaired = Alignment.isPaired;
 	isProperPair = Alignment.isProperPair;
 	mappingQuality = Alignment.mappingQuality;
 	passedFilters = Alignment.passedFilters;
@@ -110,8 +112,7 @@ void TAlignment::clear(){
 	recalibrated = false;
 	changed = false;
 	passedFilters = false;
-
-}
+};
 
 void TAlignment::initStorage(){
 	clear();
@@ -158,6 +159,7 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	position = bamAlignment.Position;
 	alignmentName = bamAlignment.Name;
 	isReverseStrand = bamAlignment.IsReverseStrand();
+	isPaired = bamAlignment.IsPaired();
 	isProperPair = bamAlignment.IsProperPair();
 	mappingQuality = bamAlignment.MapQuality;
 	readGroupId = ReadGroupId;
@@ -359,12 +361,12 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 };
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
-	if(!isReverseStrand){
+	if(!isReverseStrand){ //is forward
 		for(int d=0; d<length; ++d){
 			bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
 			bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
 		}
-	} else {
+	} else { //is reverse
 		for(int d=0; d<length; ++d){
 			bases[d].PMD_CT = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
 			bases[d].PMD_GA = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);

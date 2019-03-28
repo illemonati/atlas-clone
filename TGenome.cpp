@@ -1436,12 +1436,15 @@ void TGenome::mergeReadGroups(TParameters & params){
 //		alignmentParser.recalibrate(*revAlignment);
 //	}
 //}
-void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups, bool & allReadGroupsPaired){
+
+void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups){
 	std::string pairedRG = params.getParameterStringWithDefault("pairedReadGroups", "all");
 	if(pairedRG == "all"){
 		//all are used, initialize to true
-		allReadGroupsPaired = true;
 		logfile->list("Will merge pairs in all read groups");
+
+		for(size_t i=0; i<pairedReadGroups.size(); ++i)
+			pairedReadGroups[i] = true;
 	} else {
 		//change the paired to true
 		std::vector<std::string> vec;
@@ -1452,135 +1455,8 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 			logfile->list(vec.at(i));
 		}
 		logfile->endIndent();
-		allReadGroupsPaired = false;
 	}
-}
-
-bool TGenome::ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterOrphanedReads){
-	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
-	//add reads in storage to blacklist
-	if(alignmentStorage.size() > 0){
-		while(it != alignmentStorage.end()){
-			if(filterOrphanedReads){
-				//add reads in storage that have not found mate to blacklist and clear from storage
-				if(!it->second){
-					alignmentParser.addToBlacklist(*(it->first), "orphaned at chromosome switch");
-					delete it->first;
-					it = alignmentStorage.erase(it);
-				} else {
-					++it;
-				}
-			} else {
-				if(!it->second){
-					//set reads in storage to improper pairs but ready for writing
-					it->first->setIsProperPair(false);
-					it->second = true;
-				}
-				++it;
-			}
-		}
-	}
-
-	//check if current alignment is in blacklist now
-	if(filterOrphanedReads && alignmentParser.isInBlacklist(alignment.alignmentName)){
-		//no need to keep mate in list anymore
-		alignmentParser.removeFromBlacklist(alignment, "mate was in the blacklist");
-		return true;
-	} else
-		return false;
-}
-
-void TGenome::updateOrphanedReadsAtBeginningOfStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates, const bool & filterOrphanedReads){
-	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
-	while(alignmentStorage.size() > 0 && alignment.position - it->first->position > acceptedDistanceBetweenMates && it->second == false && it != alignmentStorage.end()){
-		if(filterOrphanedReads){
-			alignmentParser.addToBlacklist(*(alignmentStorage.begin()->first), "orphaned read: mate is farther away than " + toString(acceptedDistanceBetweenMates) + " bp");
-			delete it->first;
-			it = alignmentStorage.erase(alignmentStorage.begin());
-		} else {
-			it->first->setIsProperPair(false);
-			it->second = true;
-			++it;
-		}
-	}
-}
-
-void TGenome::writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::vector< std::pair<TAlignment*, bool> > & alignmentStorage){
-	std::vector< std::pair<TAlignment*, bool> >::iterator it = alignmentStorage.begin();
-
-	while(it != alignmentStorage.end()){
-		if(it != alignmentStorage.begin()){
-			throw "iterator must always point to beginning of storage when writing!";
-		}
-		if(it->second){
-			//save the alignment to the bam file
-			(it->first)->save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-			delete it->first;
-			it = alignmentStorage.erase(it);
-		} else {
-			break;
-		}
-	}
-
-	if(it == alignmentStorage.end()){
-		if(alignmentStorage.size() != 0)
-			throw "wrote all reads but alignmentStorage is not empty!";
-	}
-}
-
-bool TGenome::findAndMergeMates(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & adaptQuality){
-	std::vector< std::pair<TAlignment*, bool> >::iterator it;
-	for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
-
-		//found its mate!
-		if(it->first->alignmentName == alignment.alignmentName){
-			//if mate was considered improper (orphaned or on different chromosome) it is set to be written without merging
-			if(it->second){
-				if(it->first->isProperPair){
-					throw "First read of '" + alignment.alignmentName + "' is not paired or has already been merged!";
-				} else {
-					alignment.setIsProperPair(false);
-				}
-			} else {
-				//merge
-				alignmentParser.mergeAlignedBasesBamReads(it->first, &alignment, adaptQuality);
-				it->second = true;
-			}
-			break;
-		}
-	}
-
-	if(it == alignmentStorage.end()){
-		//did not find mate
-		return false;
-	} else {
-		return true;
-	}
-}
-
-void TGenome::decideWhatToDoWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads){
-	if(filterOrphanedReads){
-		//remove orphaned reads from storage and put them in blacklist
-		std::vector< std::pair<TAlignment*, bool> >::iterator it=alignmentStorage.begin();
-		while(it!=alignmentStorage.end()){
-			if(!it->second){
-				alignmentParser.addToBlacklist(*(it->first), "orphaned read");
-				delete it->first;
-				it = alignmentStorage.erase(it);
-			} else {
-				it++;
-			}
-		}
-	} else {
-		//set all orphaned reads to improper
-		std::vector< std::pair<TAlignment*, bool> >::iterator it=alignmentStorage.begin();
-		while(it!=alignmentStorage.end()){
-			it->first->setIsProperPair(false);
-			it->second = true;
-			++it;
-		}
-	}
-}
+};
 
 void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//initialize alignment reading
@@ -1588,13 +1464,6 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	alignmentParser.setParsingToTrue();
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
-
-	//filters that can only be applied with this task
-	int acceptedDistanceBetweenMates = params.getParameterIntWithDefault("acceptedDistance", 2000);
-	bool filterOrphanedReads = false;
-	if(params.parameterExists("filterOrphanedReads")){
-		filterOrphanedReads = true;
-	}
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1604,120 +1473,71 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD) logfile->warning("PMD is given but relevant for read merging.");
+	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for read merging.");
 
 	//which read groups are paired-end?
-	std::vector<bool> pairedReadGroups(alignmentParser.numReadGroups(), false);
-	bool allReadGroupsPaired = true;
-	findPairedReadGroupsToMergeReads(params, pairedReadGroups, allReadGroupsPaired);
+	std::vector<bool> mergeThisReadGroup(alignmentParser.numReadGroups(), false);
+	findPairedReadGroupsToMergeReads(params, mergeThisReadGroup);
 
-	//should we adapt quality scores to reflect knowledge gained from overlap?
-	bool adaptQuality = false;
-	if(params.parameterExists("adaptQuality"))
-		adaptQuality = true;
+	//create alignment storage
+	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
+	if(params.parameterExists("keepOrphans")){
+		merger.keepOrphans();
+	}
+	if(params.parameterExists("keepOriginalQuality")){
+		merger.keepOriginalQuality();
+	}
 
-	//other temp variables
-	long counter = 0;
-
-	//create storage for reads until their mate was found
-	std::vector< std::pair<TAlignment*, bool> > alignmentStorage;
-	std::vector< std::pair<TAlignment*, bool> >::iterator it;
-	std::vector< std::pair<TAlignment*, bool> >::iterator IT;
-
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
-	int curChr = -1;
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
+	int curChr = 0;
 	while (alignmentParser.readNextAlignment(alignment)){
-		if(alignmentParser.isInBlacklist(alignment.alignmentName)){
-			if(filterOrphanedReads){
-				//no need to keep mate in list anymore
-				alignmentParser.removeFromBlacklist(alignment, "mate was in the blacklist");
+		//if on new chromosome, empty storage
+		if(curChr != alignment.chrNumber){
+			//write all ready currently in storage
+			merger.clear();
+			curChr = alignment.chrNumber;
+		}
+
+		//check if first alignment in storage is too far away from current read (after checking for chr change)
+		//if yes, first alignment in storage is considered an orphan
+		merger.writeUpTo(alignment.position);
+
+		//attempt merging of paired reads
+		if(alignment.isPaired && mergeThisReadGroup[alignment.readGroupId]){
+			//Ignore reads in black list
+			if(alignmentParser.isInBlacklist(alignment.alignmentName) || !alignment.isProperPair){
+				merger.addAsImproperPair(alignment);
 			} else {
-				//set to improper read
-				alignment.setIsProperPair(false);
-				alignmentStorage.emplace_back(new TAlignment(alignment), true);
-			}
-			continue;
-		} else if(allReadGroupsPaired || pairedReadGroups[alignment.readGroupId]){
-			//if on new chromosome, empty storage
-			if(curChr != alignment.chrNumber){
-				//write all that are ok
-				writeAllReadsThatAreReady(bamWriter, alignmentStorage);
-
-				//what to do with current read and reads in storage that are not ok?
-				curChr = alignment.chrNumber;
-				if(ignoreReadAfterChrSwitch(alignmentStorage, alignment, filterOrphanedReads)){
-					continue;
-				}
-			}
-			//check if first alignment in storage is too far away from current read (after checking for chr change)
-			//if yes, first alignment in storage is considered an orphan
-			updateOrphanedReadsAtBeginningOfStorage(alignmentStorage, alignment, acceptedDistanceBetweenMates, filterOrphanedReads);
-
-			if(alignment.isProperPair){
-
-				if(alignmentStorage.size() == 0){
-					//add alignment to storage without search
-					alignmentStorage.emplace_back(new TAlignment(alignment), false);
-				} else {
-					//search for mate!
-					if(findAndMergeMates(alignmentStorage, alignment, adaptQuality)){
-						//found and merged mates -> add (changed) alignment to storage
-						alignmentStorage.emplace_back(new TAlignment(alignment), true);
-					} else {
-						//did not find mate in storage -> add to storage unmerged
-						alignmentStorage.emplace_back(new TAlignment(alignment), false);
-					}
-				}
-
-			} else {
-				//read is not a proper pair: add to storage or write
-				if(alignmentStorage.empty()){
-					alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-				} else
-					alignmentStorage.emplace_back(new TAlignment(alignment), true);
+				//is a proper pair: attempt merging
+				merger.addToBeMerged(alignment);
 			}
 		}
 
 		//read is in single-end read group
-		else{
-			if(alignmentStorage.empty()){
-				alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
-			} else
-				alignmentStorage.emplace_back(new TAlignment(alignment), true);
-		}
-
-		//write if first in vector is ready to be written
-		if(alignmentStorage.begin()->second){
-			writeAllReadsThatAreReady(bamWriter, alignmentStorage);
+		else {
+			//Ignore reads in black list
+			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+				alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
+			} else {
+				merger.addReadyToBeWritten(alignment);
+			}
 		}
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
-	//write all reads still in storage to file as improper pairs or to blacklist
-	if(alignmentStorage.size() > 0){
-		decideWhatToDoWithLastReadsInStorage(alignmentStorage, filterOrphanedReads);
-		//write ok reads (should be all in container)
-		writeAllReadsThatAreReady(bamWriter, alignmentStorage);
-		if(alignmentStorage.size() > 0){
-			throw "some alignments were not written to file!";
-		}
-	}
+	//write unwritten reads
+	merger.clear();
+
+	//report end
+	reporter.printEnd();
 
 	//close bam writer
 	bamWriter.Close();
-
-	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
 
 	//create index of new bam file
 	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
@@ -2279,9 +2099,7 @@ void TGenome::estimatePMD(TParameters & params){
 	TPMDTables pmdTables(alignmentParser.readGroups, maxLengthForInference, maxReadLength, readGroupMap);
 
 	//measure progress and runtime
-	struct timeval start;
-	long numreadsAdded = 0;
-	gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//iterate through BAM file
 	while(alignmentParser.readNextAlignment(alignment)){
@@ -2289,16 +2107,10 @@ void TGenome::estimatePMD(TParameters & params){
 		alignment.addToPMDTables(pmdTables, genoMap);
 
 		//report
-		++numreadsAdded;
-//		if(numreadsAdded > 10)
-//			break;
-		reportProgressParsingBamFile(numreadsAdded, start);
+		reporter.printProgress();
 	}
-
 	//report
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
-	reportProgressParsingBamFileNoCheck(numreadsAdded, start);
+	reporter.printEnd();
 
 	//print tables and data
 	std::string filename = outputName + "_PMD_Table.txt";

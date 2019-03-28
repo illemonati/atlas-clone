@@ -21,6 +21,7 @@
 #include <typeinfo>
 #include <map>
 #include <algorithm>
+#include "TAlignmentMerger.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -44,6 +45,7 @@ private:
 	void indexBamFile(std::string & filename);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void dealWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads);
+	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params);
@@ -62,15 +64,6 @@ public:
 
 	//callers
 	void callGenotypes(TParameters & params);
-
-//	bool openFastaReferenceForCaller(TParameters & params, BamTools::Fasta & reference);
-//	void writeVcfHeader(gz::ogzstream* output, bool limitToSitesWithKnownAlleles, bool onlyPhredGP);
-//	void callMLEGenotypes(TParameters & params);
-//	void callBayesianGenotypes(TParameters & params);
-//	void callAllelePresence(TParameters & params);
-//	void randomBaseCaller(TParameters & params);
-//	void majorityBaseCaller(TParameters & params);
-
 
 	//recalibration
 	void estimateErrorCalibration(TParameters & params);
@@ -95,13 +88,6 @@ public:
 	void estimatePMD(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
-	void mergePairedEndReads(TParameters & params);
-	void updateOrphanedReadsAtBeginningOfStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, int & acceptedDistanceBetweenMates, const bool & filterOrphanedReads);
-	void writeAllReadsThatAreReady(BamTools::BamWriter & bamWriter, std::vector< std::pair<TAlignment*, bool> > & alignmentStorage);
-	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups, bool & allReadGroupsPaired);
-	bool ignoreReadAfterChrSwitch(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & filterOrphanedReads);
-	bool findAndMergeMates(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, TAlignment & alignment, const bool & adaptQuality);
-	void decideWhatToDoWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads);
 	void mergePairedEndReadsNoOrder(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
