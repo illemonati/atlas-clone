@@ -121,7 +121,7 @@ private:
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
-	void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods);
+	void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods, const std::string & vcfVersion);
 	void closeVCF();
 
 public:
