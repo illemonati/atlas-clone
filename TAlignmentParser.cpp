@@ -440,7 +440,9 @@ void TAlignmentParser::openBamFile(std::string filename){
 
 	//get file size
 	chrIterator = bamHeader.Sequences.End() - 1;
-	bamReader.Jump(bamHeader.Sequences.Size() - 1, stringToLong(chrIterator->Length));
+	bamReader.Jump(bamHeader.Sequences.Size() - 1, 0);
+	BamTools::BamAlignment bamAlignment;
+	bamReader.GetNextAlignment(bamAlignment);
 	sizeOfBamFile = bamReader.tell();
 	bamReader.Rewind();
 
@@ -1192,14 +1194,13 @@ void TBamProgressReporter::_init(int Frequency, TAlignmentParser* Parser, TLog* 
 
 std::string TBamProgressReporter::_getRunTime(){
 	gettimeofday(&end, NULL);
-	return toString((end.tv_sec  - start.tv_sec)/60.0);
+	return to_string_with_precision((end.tv_sec  - start.tv_sec)/60.0, 2);
 };
 
 void TBamProgressReporter::_printProgress(){
-	std::string percentOfFile = toString(parser->getPositionInFile() * 100);
-	int tmp = (double) parser->getNumAlignmentsRead() / 1000000.0;
-	std::string millionReads = toString(tmp);
-	logfile->list("Parsed " + millionReads + " million reads (" + percentOfFile + "%) in " + _getRunTime() + " min.");
+	std::string percentOfFile = to_string_with_precision(parser->getPositionInFile() * 100, 2);
+	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
+	logfile->list("Parsed " + millionReads + " million reads (est. " + percentOfFile + "%) in " + _getRunTime() + " min.");
 };
 
 void TBamProgressReporter::printProgress(){

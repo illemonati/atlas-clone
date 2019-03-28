@@ -23,6 +23,14 @@ inline std::string toString(const unsigned long & input){ return std::to_string(
 inline std::string toString(const float & input){ return std::to_string(input); };
 inline std::string toString(const double & input){ return std::to_string(input); };
 
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int digits = 6){
+    std::ostringstream out;
+    out.precision(digits);
+    out << std::fixed << a_value;
+    return out.str();
+};
+
 int stringToInt(const std::string & s);
 unsigned int stringToUnsignedInt(const std::string & s);
 long stringToLong(const std::string & s);
