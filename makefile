@@ -1,6 +1,6 @@
 #make file for atlas
 
-SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard Tests/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
+SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard Tests/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard Vcf/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
 GIT_HEADER = gitversion.h
 
 OBJ = $(SRC:%.cpp=%.o)
@@ -29,7 +29,7 @@ $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
 
 
 %.o: %.cpp
-	$(CXX) -O3 -c -Ibamtools -ITests -ISimulations $(OBJFLAG)  $< -o $@
+	$(CXX) -O3 -c -Ibamtools -ITests -ISimulations -IVcf $(OBJFLAG)  $< -o $@
 
 
 .PHONY : clean
