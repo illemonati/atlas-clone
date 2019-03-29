@@ -18,12 +18,18 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 void TAlignmentMerger::_writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it){
 	//save the alignment to the bam file
 	it->alignment->save(*writer, parser->genoMap, parser->minQualForPrinting, parser->maxQualForPrinting, parser->qualMap);
+	//delete it->alignment;
+	it = alignmentStorage.erase(it);
+};
+
+void TAlignmentMerger::_addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error){
+	parser->addToBlacklist(*(it->alignment), error);
+	//delete it->alignment;
 	it = alignmentStorage.erase(it);
 };
 
 void TAlignmentMerger::_writeAllThatAreReady(){
 	std::vector< TAlignmentMergerEntry >::iterator it = alignmentStorage.begin();
-
 	while(it != alignmentStorage.end() && it->ready){
 		_writeAlignment(it);
 	}
@@ -43,7 +49,6 @@ std::vector< TAlignmentMergerEntry >::iterator TAlignmentMerger::_findMate(TAlig
 
 void TAlignmentMerger::addToBeMerged(TAlignment & alignment){
 	std::vector< TAlignmentMergerEntry >::iterator it = _findMate(alignment);
-
 	if(it == alignmentStorage.end()){
 		//no mate found: add to storage
 		alignmentStorage.emplace_back(alignment, false);
@@ -82,8 +87,7 @@ void TAlignmentMerger::writeUpTo(const int position){
 			_writeAlignment(it);
 		} else {
 			if(_filterOrphans){
-				parser->addToBlacklist(*(alignmentStorage.begin()->alignment), "orphaned read: mate is farther away than " + toString(_maxDistanceBetweenMates) + " bp");
-				it = alignmentStorage.erase(alignmentStorage.begin());
+				_addToBlacklist(it, "orphaned read: mate is farther away than " + toString(_maxDistanceBetweenMates) + " bp");
 			} else {
 				it->setAsNonProperPair();
 				_writeAlignment(it);
@@ -96,25 +100,20 @@ void TAlignmentMerger::clear(){
 	//write everything and mark reads with missing mates as improper.
 	std::vector< TAlignmentMergerEntry >::iterator it = alignmentStorage.begin();
 
-	//addToBeMerged reads in storage to blacklist
+	//reads still in storage are no-proper pairs: write or add to black list
 	while(it != alignmentStorage.end()){
- 		if(!it->ready){
+		if(it->ready){
+			_writeAlignment(it);
+		} else {
 			if(_filterOrphans){
-				//addToBeMerged reads in storage that have not found mate to blacklist and clear from storage
-				parser->addToBlacklist(*(it->alignment), "orphaned at chromosome switch");
-				it = alignmentStorage.erase(it);
+				_addToBlacklist(it, "mate on different chromosome");
 			} else {
 				//set reads in storage to improper pairs but ready for writing
 				it->setAsNonProperPair();
 				_writeAlignment(it);
 			}
-		} else {
-			_writeAlignment(it); //writing increments iterator
-
 		}
 	}
 };
-
-
 
 

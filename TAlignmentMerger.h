@@ -72,6 +72,7 @@ private:
 	bool _adaptQuality;
 
 	void _writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it);
+	void _addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error);
 	void _writeAllThatAreReady();
 	std::vector< TAlignmentMergerEntry >::iterator _findMate(TAlignment & alignment);
 
