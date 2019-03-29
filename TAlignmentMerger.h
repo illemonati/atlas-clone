@@ -11,7 +11,6 @@
 #include "TReadList.h"
 #include "TAlignmentParser.h"
 
-
 class TAlignmentMergerEntry{
 private:
 
@@ -56,7 +55,7 @@ public:
 	};
 
 	void setAsNonProperPair(){
-		alignment->isProperPair = false;
+		alignment->setIsProperPair(false);
 		ready = true;
 	};
 };

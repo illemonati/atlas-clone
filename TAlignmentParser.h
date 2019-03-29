@@ -213,7 +213,7 @@ public:
 	void setWriteBlacklistToFileToTrue(){
 		_writeBlackList = true;
 		std::string ignoredReadsFile = extractBeforeLast(filename, ".bam") + "_ignoredReads.txt.gz";
-		logfile->list("Writing sequencing depth estimates to '" + ignoredReadsFile + "'");
+		logfile->list("Writing ignored reads to '" + ignoredReadsFile + "'");
 		ignoredReads.open(ignoredReadsFile.c_str());
 		if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
 	}

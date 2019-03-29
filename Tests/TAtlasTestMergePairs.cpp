@@ -17,7 +17,7 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
 //	filterPairsDiffChr = params.parameterExists("filterPairsDiffChr");
-	filterOrphanedReads = params.parameterExists("filterOrphanedReads");
+	filterOrphanedReads = !params.parameterExists("keepOrphans");
 
 }
 
@@ -35,9 +35,11 @@ bool TAtlasTest_mergePairs::run(){
 //	if(filterPairsDiffChr){
 //		_testParams.addParameter("filterPairsDiffChr", "");
 //	}
-	if(filterOrphanedReads){
-		_testParams.addParameter("filterOrphanedReads", "");
+	if(!filterOrphanedReads){
+		_testParams.addParameter("keepOrphans", "");
 	}
+
+	_testParams.addParameter("keepOriginalQuality", "");
 
 	if(!runTGenomeFromInputfile("mergeReads"))
 		return false;
@@ -261,7 +263,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : mate was in the blacklist");
+		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : not a proper pair (orphan)");
 	}
 
 	//--------------------------------------------------------
@@ -341,7 +343,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, rev : orphaned at chromosome switch");
+		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, rev : not a proper pair (orphan)");
 	}
 
 	//--------------------------------------------------------
@@ -440,7 +442,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : mate was in the blacklist");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : not a proper pair (orphan)");
 	}
 
 
@@ -528,7 +530,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 			return false;
 		if(bamAlignment.QueryBases != trueQueryBases.at(counter)){
 			logfile->newLine();
-			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": query bases not same as true bases!");
+			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": query bases not same as true bases! Read " + bamAlignment.QueryBases + " but was expecting " + trueQueryBases[counter]);
 			return false;
 		} if(bamAlignment.Qualities != trueQualities.at(counter)){
 			logfile->newLine();
@@ -537,7 +539,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 			return false;
 		} if(bamAlignment.IsProperPair() != trueIsProper.at(counter)){
 			logfile->newLine();
-			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": proper pair flag is " + toString(bamAlignment.IsProperPair()) + " but should be " + toString(trueIsProper.at(counter)));
+			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": proper pair flag is " + toString(bamAlignment.IsProperPair()) + " but was expecting " + toString(trueIsProper.at(counter)));
 			return false;
 		}
 

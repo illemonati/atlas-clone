@@ -69,7 +69,7 @@ void TAlignmentMerger::addAsImproperPair(TAlignment & alignment){
 		parser->removeFromBlacklist(alignment, "not a proper pair (orphan)");
 	} else {
 		//set to improper read
-		alignment.isProperPair = false;
+		alignment.setIsProperPair(false);
 		addReadyToBeWritten(alignment);
 	}
 };
@@ -77,7 +77,6 @@ void TAlignmentMerger::addAsImproperPair(TAlignment & alignment){
 void TAlignmentMerger::writeUpTo(const int position){
 	//writes all that are ready or too far away
 	std::vector< TAlignmentMergerEntry >::iterator it = alignmentStorage.begin();
-
 	while(it != alignmentStorage.end() && (it->ready || position - it->alignment->position > _maxDistanceBetweenMates)){
 		if(it->ready){
 			_writeAlignment(it);
@@ -99,8 +98,7 @@ void TAlignmentMerger::clear(){
 
 	//addToBeMerged reads in storage to blacklist
 	while(it != alignmentStorage.end()){
-		//
-		if(!it->ready){
+ 		if(!it->ready){
 			if(_filterOrphans){
 				//addToBeMerged reads in storage that have not found mate to blacklist and clear from storage
 				parser->addToBlacklist(*(it->alignment), "orphaned at chromosome switch");
@@ -108,11 +106,12 @@ void TAlignmentMerger::clear(){
 			} else {
 				//set reads in storage to improper pairs but ready for writing
 				it->setAsNonProperPair();
+				_writeAlignment(it);
 			}
-		}
+		} else {
+			_writeAlignment(it); //writing increments iterator
 
-		//save the alignment to the bam file
-		_writeAlignment(it);
+		}
 	}
 };
 

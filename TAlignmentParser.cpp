@@ -158,7 +158,8 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	//---------------------
 
 	//open BAM file
-	openBamFile(params.getParameterString("bam"));
+	filename = params.getParameterString("bam");
+	openBamFile(filename);
 
 //	//open FASTA reference
 //	if(params.parameterExists("fasta")){
