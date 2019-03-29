@@ -81,7 +81,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	empty = false;
 
 	//copy data from arrays
-	softClippedLength = new int[2];
 	softClippedEntry = Alignment.softClippedEntry;
 	std::copy(Alignment.softClippedLength, Alignment.softClippedLength + 2, softClippedLength);
 	std::copy(Alignment.softClippedBase[0], Alignment.softClippedBase[0] + Alignment.softClippedLength[0], softClippedBase[0]);

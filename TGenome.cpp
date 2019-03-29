@@ -1493,7 +1493,8 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
     //now parse through bam file and write alignments
 	int curChr = 0;
-	while (alignmentParser.readNextAlignment(alignment)){
+
+	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
 		if(curChr != alignment.chrNumber){
 			//write all ready currently in storage
