@@ -1482,10 +1482,17 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//create alignment storage
 	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
 	if(params.parameterExists("keepOrphans")){
+		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
+	} else {
+		logfile->list("Will ignore orphaned reads (use keepOrphans to keep them).");
 	}
+
 	if(params.parameterExists("keepOriginalQuality")){
+		logfile->list("Will keep original qualities of prefered base.");
 		merger.keepOriginalQuality();
+	} else {
+		logfile->list("Will adapt qualities over overlapping bases to reflect additional information (use keepOriginalQuality to turn off).");
 	}
 
 	//measure progress and runtime
