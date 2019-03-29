@@ -23,7 +23,7 @@ public:
 		ready = readyForWriting;
 	};
 
-	constexpr TAlignmentMergerEntry(TAlignmentMergerEntry && other):alignment(nullptr),ready(false){
+	TAlignmentMergerEntry(TAlignmentMergerEntry && other):alignment(nullptr),ready(false){
 		//copy from other
 		alignment = other.alignment;
 		ready = other.ready;
@@ -33,7 +33,7 @@ public:
 		other.ready = false;
 	};
 
-	constexpr TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other){
+	TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other){
 		if(this != &other){
 			//free object
 			delete alignment;
