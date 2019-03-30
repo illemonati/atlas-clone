@@ -175,7 +175,7 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int
 	// - 1 intercept for all contexts
 	// -> in total, 5 variables to estimate
 	_numParameters = 5;
-	_name = qualfuncPosFunc_name;
+	_name = qualFuncPosFunc_name;
 	_allocateBetaMemory();
 };
 
@@ -333,7 +333,7 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 24 variables to estimate
 	_numParameters = 24;
-	_name = qualfuncPosFuncContext_name;
+	_name = qualFuncPosFuncContext_name;
 	_allocateBetaMemory();
 };
 
@@ -488,14 +488,14 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 	_numParamsWithoutPositions = 2;
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
-	_name = qualfuncPosSpecific_name;
+	_name = qualFuncPosSpecific_name;
 
 	_allocateBetaMemory();
 };
 
 TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	_numParamsWithoutPositions = 2;
-	_name = qualfuncPosSpecific_name;
+	_name = qualFuncPosSpecific_name;
 	std::vector<double> values[2];
 
 	//parse parameter strings
@@ -678,14 +678,14 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 	_numParamsWithoutPositions = 22;
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
-	_name = qualfuncPosSpecificContext_name;
+	_name = qualFuncPosSpecificContext_name;
 
 	_allocateBetaMemory();
 };
 
 TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	_numParamsWithoutPositions = 22;
-	_name = qualfuncPosSpecificContext_name;
+	_name = qualFuncPosSpecificContext_name;
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -880,37 +880,40 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 //--------------------------------------------------------------------
 // Global functions to create models
 //--------------------------------------------------------------------
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile){
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile){
 	trimString(modelTag);
 
-	if(modelTag == qualfuncPosFuncContext_name){
-		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		return new TRecalibrationEMModel_qualFuncPosFuncContext(values, shift);
-	} else if(modelTag == qualfuncPosFunc_name){
-		if(verbose) logfile->list("Will use simplified model with only quality, quality squared, position, position squared and one intercept.");
-		return new TRecalibrationEMModel_qualFuncPosFunc(values, shift);
-	} else if(modelTag == qualfuncPosSpecificContext_name){
-		if(verbose) logfile->list("Will use a model with quality, quality squared, 20 context and each position.");
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, shift);
-	} else if(modelTag == noRecal_name){
+	if(modelTag == noRecal_name){
 		if(verbose) logfile->list("Will use a model that does not recalibrate.");
 		return new TRecalibrationEMModel_noRecal(shift);
+	} else if(modelTag == qualFuncPosFunc_name){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, position, position squared and one intercept.");
+		return new TRecalibrationEMModel_qualFuncPosFunc(values, shift);
+	} else if(modelTag == qualFuncPosFuncContext_name){
+		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(values, shift);
+	} else if(modelTag == qualFuncPosSpecific_name){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and one intercept.");
+		return new TRecalibrationEMModel_qualFuncPosSpecific(values, shift);
+	} else if(modelTag == qualFuncPosSpecificContext_name){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts.");
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, shift);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, int maxPos, int shift, bool verbose, TLog* logfile){
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, int maxPos, int shift, bool verbose, TLog* logfile){
 	trimString(modelTag);
 
-	if(modelTag == qualfuncPosFuncContext_name){
-		return new TRecalibrationEMModel_qualFuncPosFuncContext(shift);
-	} else if(modelTag == qualfuncPosFunc_name){
-		return new TRecalibrationEMModel_qualFuncPosFunc(shift);
-	} else if(modelTag == qualfuncPosSpecificContext_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(shift, maxPos);
-	} else if(modelTag == qualfuncPosSpecific_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecific(shift, maxPos);
-	} else if(modelTag == noRecal_name){
+	if(modelTag == noRecal_name){
 		return new TRecalibrationEMModel_noRecal(shift);
+	} else if(modelTag == qualFuncPosFunc_name){
+		return new TRecalibrationEMModel_qualFuncPosFunc(shift);
+	} else if(modelTag == qualFuncPosFuncContext_name){
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(shift);
+	} else if(modelTag == qualFuncPosSpecific_name){
+		return new TRecalibrationEMModel_qualFuncPosSpecific(shift, maxPos);
+	} else if(modelTag == qualFuncPosSpecificContext_name){
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(shift, maxPos);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
@@ -957,24 +960,11 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 };
 
 void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos){
-	trimString(modelTag);
-
 	//add to read group index
 	readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
-	//add model according to tag
-	if(modelTag == qualfuncPosFuncContext_name){
-		models.push_back(new TRecalibrationEMModel_qualFuncPosFuncContext(totNumParameters));
-	} else if(modelTag == qualfuncPosFunc_name){
-		models.push_back(new TRecalibrationEMModel_qualFuncPosFunc(totNumParameters));
-	} else if(modelTag == qualfuncPosSpecificContext_name){
-		models.push_back(new TRecalibrationEMModel_qualFuncPosSpecificContext(totNumParameters, maxPos));
-	} else if(modelTag == qualfuncPosSpecific_name){
-		models.push_back(new TRecalibrationEMModel_qualFuncPosSpecific(totNumParameters, maxPos));
-	} else if(modelTag == noRecal_name){
-		models.push_back(new TRecalibrationEMModel_noRecal(totNumParameters));
-	} else throw "Unknown recalibration model '" + modelTag + "'!";
-
+	//create model
+	models.push_back(createTRecalibrationEMModel(modelTag, maxPos, totNumParameters, false, logfile));
 	totNumParameters += models.back()->numParameters();
 };
 

@@ -119,13 +119,13 @@ private:
 	TGenotypeMap genoMap;
 
 	//private functions
-	void fillTransformationTable(std::string & modelTag, std::vector<std::string> & values, int maxReadLength);
+	void fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength);
 	void clearTransformationTable();
 	void transformQualities(Base* bases, int* qualities, const int & len, bool & isReverseStrand);
 
 public:
-	TSimulatorQualityTransformationRecal(std::string & string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
-	TSimulatorQualityTransformationRecal(std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityTransformationRecal(std::string string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityTransformationRecal(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	~TSimulatorQualityTransformationRecal(){
 		clearTransformationTable();
 	};

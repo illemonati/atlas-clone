@@ -200,7 +200,7 @@ void TWindow::fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth){
 		}
 		++numReadsInWindow;
 	}
-}
+};
 
 void TWindow::fillSites(const int & readUpToDepth){
 	//add reads in usedAlignments to sites in window
@@ -230,19 +230,18 @@ void TWindow::fillSites(const int & readUpToDepth){
 		int internalPos;
 		//p is at first position of read in window
 		for(; p < alignmentIt->length; ++p){
-			if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
-				internalPos = firstPos + alignmentIt->bases[p].alignedPos;
-				//if read extends past window length
-				if(internalPos >= length)
-					break; //since part of the read maps to next window
-				if(sites[internalPos].depth() < readUpToDepth)
-					sites[internalPos].add(&alignmentIt->bases[p]);
-			}
+				if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
+					internalPos = firstPos + alignmentIt->bases[p].alignedPos;
+					//if read extends past window length
+					if(internalPos >= length)
+						break; //since part of the read maps to next window
+					if(sites[internalPos].depth() < readUpToDepth)
+						sites[internalPos].add(&alignmentIt->bases[p]);
+				}
 		}
 		++numReadsInWindow;
 	}
-}
-
+};
 
 void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	if(!referenceBaseAdded){

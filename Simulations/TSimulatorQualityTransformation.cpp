@@ -216,7 +216,7 @@ void TSimulatorQualityTransformation::printDetails(TLog* logfile){
 //-------------------------------------
 //TSimulatorQualityTransformationRecal
 //-------------------------------------
-TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::string & string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
+TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::string string, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
 	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 
 	//code copied from TRecalbrationEM
@@ -240,15 +240,14 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::
 	fillTransformationTable(modelTag, tmpVec, maxReadLength);
 };
 
-TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
+TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
 	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 
 	//precalculate transformation table
 	fillTransformationTable(modelTag, values, maxReadLength);
 };
 
-
-void TSimulatorQualityTransformationRecal::fillTransformationTable(std::string & modelTag, std::vector<std::string> & values, int maxReadLength){
+void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength){
 	//set size
 	maxReadLengthPlusOne = maxReadLength + 1;
 	maxQualPlusOne = qualityDist->max() + 1;

@@ -123,7 +123,7 @@ void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransfor
 	if(!qualityDistInitialized)
 		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
 
-	if(parameters.parameters_secondMate != parameters.parameters_firstMate)
+	if(parameters.parameters_secondMate != "-" && parameters.parameters_secondMate != parameters.parameters_firstMate)
 		throw "Quality transformation for second mate provided, but read group is single end!";
 
 	if(parameters.type == "none")

@@ -13,12 +13,12 @@
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
-#define qualfuncPosFuncContext_name "qualFuncPosFuncContext"
-#define qualfuncPosFunc_name "qualFuncPosFunc"
-#define qualfuncPosSpecificContext_name "qualFuncPosSpecificContext"
-#define qualfuncPosSpecific_name "qualFuncPosSpecific"
-#define noRecal_name "none"
 
+#define noRecal_name "none"
+#define qualFuncPosFunc_name "qualFuncPosFunc"
+#define qualFuncPosFuncContext_name "qualFuncPosFuncContext"
+#define qualFuncPosSpecific_name "qualFuncPosSpecific"
+#define qualFuncPosSpecificContext_name "qualFuncPosSpecificContext"
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
@@ -139,8 +139,8 @@ public:
 //--------------------------------------------------------------------
 // Global function to create models
 //--------------------------------------------------------------------
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile);
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string & modelTag, int maxPos, int shift, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, int maxPos, int shift, bool verbose, TLog* logfile);
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModels
