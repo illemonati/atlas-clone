@@ -1055,10 +1055,15 @@ void TRecalibrationEMModels::writeHeader(TOutputFilePlain & out){
 	out.writeHeader({"readGroup", "mate", "model", "quality", "position", "context"});
 };
 
-void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups & readGroups){
-	for(int r=0; r<readGroupIndex.numReadGroups(); ++r){
-		_writeParameters(out, readGroups.getName(r), r, false);
-		_writeParameters(out, readGroups.getName(r), r, true);
+void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
+	for(int r=0; r<readGroups.size(); ++r){
+		int index = ReadGroupMap[r];
+		if(readGroupIndex.inUse(index, false)){
+			_writeParameters(out, readGroups.getName(r), index, false);
+		}
+		if(readGroupIndex.inUse(index, true)){
+			_writeParameters(out, readGroups.getName(r), index, true);
+		}
 	}
 };
 

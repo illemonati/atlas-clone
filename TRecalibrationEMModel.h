@@ -192,7 +192,7 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 	void writeHeader(TOutputFilePlain & out);
-	void writeParameters(TOutputFilePlain & out, TReadGroups & readGroups);
+	void writeParameters(TOutputFilePlain & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
 	inline double getErrorRate(TBase & base){
 		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate) ]->getErrorRate(base);
 	};
