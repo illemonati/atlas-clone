@@ -13,19 +13,18 @@
 //---------------------------------------------------
 //TAnnotator
 //---------------------------------------------------
-VcfDiagnostics::VcfDiagnostics(TParameters* Params, TLog* Logfile){
-	params = Params;
+VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
 	logfile = Logfile;
-	verbose = params->parameterExists("verbose");
+	verbose = Params.parameterExists("verbose");
 	randomGeneratorInitialized = false;
 	randomGenerator = NULL;
 	chr=-1;
 
 	//open vcf file
-	openVCF(vcfFile);
+	openVCF(Params.getParameterString("vcf"), vcfFile);
 
 	//outputname
-	outname = params->getParameterStringWithDefault("out", "");
+	outname = Params.getParameterStringWithDefault("out", "");
 	if(outname == ""){
 		//guess from filename
 		outname = vcfFile.filename;
@@ -39,9 +38,8 @@ VcfDiagnostics::VcfDiagnostics(TParameters* Params, TLog* Logfile){
 }
 
 //open input stream
-void VcfDiagnostics::openVCF(TVcfFile_base & vcfFile){
+void VcfDiagnostics::openVCF(std::string filename, TVcfFile_base & vcfFile){
 	//open vcf file
-	std::string filename = params->getParameterString("vcf");
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading vcf from file '" + filename + "'.");
 		vcfFile.openStream(filename, false);
@@ -221,7 +219,7 @@ int VcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> & f
 	return lastPassedFilterIndex;
 }
 
-void VcfDiagnostics::assessAllelicImbalance(){
+void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 	//enable parsers
 	vcfFile.enablePositionParsing();
 	vcfFile.enableFormatParsing();
@@ -232,10 +230,10 @@ void VcfDiagnostics::assessAllelicImbalance(){
 	logfile->list("Writing files to '" + outname + "_allelicDepth.txt'");
 
 	//limit input?
-	int maxDP = params->getParameterIntWithDefault("maxDepth", 100);
+	int maxDP = Params.getParameterIntWithDefault("maxDepth", 100);
 	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
-	long inputLines = params->getParameterLongWithDefault("inputLines", -1);
+	long inputLines = Params.getParameterLongWithDefault("inputLines", -1);
 	if(inputLines <= 0){
 		logfile->list("Reading whole vcf.");
 	} else
@@ -243,7 +241,7 @@ void VcfDiagnostics::assessAllelicImbalance(){
 
 	//initialize tables
 	logfile->startIndent("Initializing count tables:");
-	std::string qualityString = params->getParameterStringWithDefault("qualities", "0,10,20,30,40,50");
+	std::string qualityString = Params.getParameterStringWithDefault("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
 	fillVectorFromString(qualityString, qualities, ',');
 

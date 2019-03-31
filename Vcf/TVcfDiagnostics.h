@@ -104,7 +104,6 @@ public:
 
 class VcfDiagnostics{
 private:
-	TParameters* params;
 	TLog* logfile;
 	int chr;
 	std::ifstream vcfFileStream;
@@ -116,18 +115,18 @@ private:
 	std::string outname;
 	bool isZipped;
 
-	void openVCF(TVcfFile_base & vcfFile);
+	void openVCF(std::string filename, TVcfFile_base & vcfFile);
 	void initializeRandomGenerator();
 	std::pair<char, char> getGenotypeFromIndex(int index);
 
 public:
-	VcfDiagnostics(TParameters* Params, TLog* Logfile);
+	VcfDiagnostics(TParameters & Params, TLog* Logfile);
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 	int baseToNumber(char base, std::string & marker);
 	void vcfToBeagle();
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
-	void assessAllelicImbalance();
-	void filterAllelicImbalance();
+	void assessAllelicImbalance(TParameters & Params);
+	//void filterAllelicImbalance();
 	void vcfToInvariantBed();
 
 	void fixIntAsFloat();

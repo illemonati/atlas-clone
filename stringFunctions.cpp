@@ -146,6 +146,65 @@ std::string getFirstNonUniqueString(std::vector<std::string> vec){
 }
 
 //-----------------------------------------------------------------------
+//compare
+//-----------------------------------------------------------------------
+unsigned int levenshteinDistance(const std::string s, const std::string t, const int insertionCost, const int deletionCost){
+	//calculate Levenshtein Distance. Code adapted from Wikipedia
+	unsigned int m = s.length();
+	unsigned int n = t.length();
+
+	// create two work vectors of integer distances
+	unsigned int* v0 = new unsigned int[n + 1];
+	unsigned int* v1 = new unsigned int[n + 1];
+
+	 // initialize v0 (the previous row of distances)
+	// this row is A[0][i]: edit distance for an empty s
+	// the distance is just the number of characters to delete from t
+	for(unsigned int i=0; i<=n; ++i){
+		v0[i] = i;
+	}
+
+	for(unsigned int i=0; i<m; ++i){
+		// calculate v1 (current row distances) from the previous row v0
+		// first element of v1 is A[i+1][0]
+		//   edit distance is delete (i+1) chars from s to match empty t
+		v1[0] = i + 1;
+
+		// use formula to fill in the rest of the row
+		for(unsigned int j=0; j<n; ++j){
+			// calculating costs for A[i+1][j+1]
+			unsigned int minDist = v0[j + 1] + deletionCost; //deletion cost
+			if(v1[j] + 1 < minDist){
+				minDist = v1[j] + insertionCost; //insertion cost
+			}
+			if(s[i] == t[j]){ //substitution cost
+				if(v0[j] < minDist){
+					minDist = v0[j];
+				}
+			} else {
+				if(v0[j] + 1 < minDist){
+					minDist = v0[j] + insertionCost + deletionCost;
+				}
+			}
+
+			v1[j + 1] = minDist;
+		}
+
+		// copy v1 (current row) to v0 (previous row) for next iteration
+	   unsigned int* tmp = v0;
+	   v0 = v1;
+	   v1 = tmp;
+	}
+
+	// after the last swap, the results of v1 are now in v0
+	int ret = v0[n];
+	delete[] v0;
+	delete[] v1;
+
+	return ret;
+};
+
+//-----------------------------------------------------------------------
 //modify
 //-----------------------------------------------------------------------
 void eraseAllOccurences(std::string & s, std::string delim){

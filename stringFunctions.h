@@ -53,6 +53,9 @@ bool stringContainsNumbers(const std::string & haystack);
 bool allEntriesAreUnique(const std::vector<std::string> vec);
 std::string getFirstNonUniqueString(std::vector<std::string> vec);
 
+//compare
+unsigned int levenshteinDistance(const std::string s, const std::string t, const int insertionCost, const int deletionCost);
+
 //modify
 void eraseAllOccurences(std::string & s, std::string delim);
 void eraseAllOccurencesAny(std::string & s, std::string delim);

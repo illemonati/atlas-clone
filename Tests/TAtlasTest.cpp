@@ -8,7 +8,6 @@
 
 #include "TAtlasTest.h"
 
-
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
@@ -25,10 +24,10 @@ bool TAtlasTest::runTGenomeFromInputfile(std::string task){
 	_testParams.addParameter("verbose", "");
 
 	//open task switcher and run task
-	atlasTaskSwitcher taskSwitcher(&_testParams, logfile);
+	TTaskList taskList;
 	bool returnVal = true;
 	try{
-		taskSwitcher.runTask();
+		taskList.run(task, _testParams, logfile);
 	}
 	catch (std::string & error){
 		logfile->conclude(error);

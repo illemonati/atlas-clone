@@ -8,7 +8,6 @@
 #ifndef TESTS_TVCFTEST_H_
 #define TESTS_TVCFTEST_H_
 
-#include "../atlasTaskSwitcher.h"
 #include "TAtlasTest.h"
 
 #include <vector>

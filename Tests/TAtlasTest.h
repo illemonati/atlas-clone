@@ -8,7 +8,7 @@
 #ifndef TATLASTEST_H_
 #define TATLASTEST_H_
 
-#include "../atlasTaskSwitcher.h"
+#include "../TTaskList.h"
 
 #include <vector>
 #include <map>

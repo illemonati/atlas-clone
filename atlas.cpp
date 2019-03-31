@@ -6,9 +6,10 @@
  */
 
 #include "Tests/TAtlasTesting.h"
-#include "atlasTaskSwitcher.h"
 #include "TVcfDiagnostics.h"
 #include "gitversion.h"
+
+#include "TTaskList.h"
 
 //---------------------------------------------------------------------------
 //Main function
@@ -25,44 +26,53 @@ int main(int argc, char* argv[]){
 	logfile.write("***************************");
     try{
 		//read parameters from the command line
-    	TParameters myParameters(argc, argv, &logfile);
+    	TParameters parameters(argc, argv, &logfile);
 
 		//verbose?
-		bool verbose = myParameters.parameterExists("verbose");
-		if(!verbose) logfile.listNoFile("Running in silent mode (use 'verbose' to get a status report on screen)");
-		logfile.setVerbose(verbose);
+		bool silent = parameters.parameterExists("silent");
+		if(silent) logfile.listNoFile("Running in silent mode (omit argument 'silent' to get a status report on screen)");
+		logfile.setVerbose(!silent);
+
 		//warnings?
-		bool suppressWarnings=myParameters.parameterExists("suppressWarnings");
+		bool suppressWarnings=parameters.parameterExists("suppressWarnings");
 		if(suppressWarnings){
 			logfile.list("Suppressing Warnings");
 			logfile.suppressWarings();
 		}
 
 		//open log file that handles the output
-		std::string  logFilename=myParameters.getParameterString("logFile", false);
+		std::string  logFilename=parameters.getParameterString("logFile", false);
 		if(logFilename.length()>0){
 			logfile.openFile(logFilename.c_str());
-			logfile.flush(" ATLAS 1.0, commit ");
+			logfile.flush(" ATLAS 0.9, commit ");
 			logfile.write(version.substr(0,7));
 			logfile.writeFileOnly("***************************");
 		}
 
+		//is task provided?
+		if(!parameters.parameterExists("task")){
+			TTaskList taskList;
+			logfile.setVerbose(true);
+			taskList.printAvailableTasks(&logfile);
+			throw "The parameter 'task' is not defined!";
+		}
+
 		//what to do?
-		std::string task = myParameters.getParameterString("task");
+		std::string task = parameters.getParameterString("task");
 		if(task == "test"){
 			//run testing utilities
 			logfile.startIndent("Unit testing of atlas functionalities:");
-			TAtlasTesting test(myParameters, &logfile);
+			TAtlasTesting test(parameters, &logfile);
 			test.runTests();
 		} else {
 			//run requested task
-			atlasTaskSwitcher taskSwitcher(&myParameters, &logfile);
-			taskSwitcher.runTask(task);
+			TTaskList taskList;
+			taskList.run(task, parameters, &logfile);
 		}
 		logfile.clearIndent();
 
 		//write unsused parameters
-		std::string unusedParams=myParameters.getListOfUnusedParameters();
+		std::string unusedParams=parameters.getListOfUnusedParameters();
 		if(unusedParams!=""){
 			logfile.newLine();
 			logfile.warning("The following parameters were not used: " + unusedParams + "!");
