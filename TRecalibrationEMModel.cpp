@@ -979,17 +979,29 @@ void TRecalibrationEMModels::addNoRecalModelIfMissing(){
 		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal_name, 0);
 };
 
+void TRecalibrationEMModels::reportReadGroupsNotUsed(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
+	readGroupIndex.reportReadGroupsNotUsed(logfile, readGroups, ReadGroupMap);
+};
+
 void TRecalibrationEMModels::reportReadGroupsNotUsed(TReadGroups & readGroups){
 	readGroupIndex.reportReadGroupsNotUsed(logfile, readGroups);
 };
 
+void TRecalibrationEMModels::reportReadGroupsConsideredSingleEnd(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
+	readGroupIndex.reportReadGroupsConsideredSingleEnd(logfile, readGroups, ReadGroupMap);
+};
+
 void TRecalibrationEMModels::reportReadGroupsConsideredSingleEnd(TReadGroups & readGroups){
 	readGroupIndex.reportReadGroupsConsideredSingleEnd(logfile, readGroups);
-}
+};
+
+void TRecalibrationEMModels::warningForMissingReadGroups(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
+	readGroupIndex.warningForMissingReadGroups(logfile, readGroups, ReadGroupMap);
+};
 
 void TRecalibrationEMModels::warningForMissingReadGroups(TReadGroups & readGroups){
 	readGroupIndex.warningForMissingReadGroups(logfile, readGroups);
-}
+};
 
 void TRecalibrationEMModels::setEMParamsToZero(){
 	Jacobian.resize(totNumParameters, totNumParameters);

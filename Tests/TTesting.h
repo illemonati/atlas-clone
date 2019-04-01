@@ -13,7 +13,7 @@
 //-----------------------------------
 //TAtlasTesting
 //-----------------------------------
-class TAtlasTesting{
+class TTesting{
 private:
 	TLog* logfile;
 	std::string outputName;
@@ -23,8 +23,8 @@ private:
 	void parseTests(TParameters & params);
 
 public:
-	TAtlasTesting(TParameters & params, TLog* Logfile);
-	~TAtlasTesting(){};
+	TTesting(TParameters & params, TLog* Logfile);
+	~TTesting(){};
 	void printTests();
 	void addTest(std::string & name, TParameters & params);
 	void runTests();

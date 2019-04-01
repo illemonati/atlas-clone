@@ -124,6 +124,8 @@ void TRecalibrationEM::_initializeRecalibrationParametersFromFile(std::string fi
 	}
 	logfile->done();
 
+
+
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	if(models->hasReadGroupsWithoutModel()){
 //		logfile->warning("Missing read groups in file '" + filename + "'!");
