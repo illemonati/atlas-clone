@@ -417,67 +417,11 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 	changed = true;
 };
 
-/*
-void TAlignment::recalibrate(TRecalibration & recalObject, TQualityMap & qualityMap){
-	//make sure read is parsed and has reference
-	if(!parsed) throw "Read was not parsed!";
-
-	if(recalObject.recalibrationChangesQualities()){
-		//recalibrate quality scores
-		for(int d=0; d<length; ++d){
-//			int k = length - d - 1;
-			bases[d].errorRate = recalObject.getErrorRate(bases[d]);
-			qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].errorRate);
-
-//			bases[d].error = recalObject.getErrorRate(readGroupId, qualityOriginal[d], d, k, bases[d].context);
-//			qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].error);
-		}
-
-		quality = qualityRecalibrated;
-		changed = true;
-	} else changed = false;
-	recalibrated = true;
-
-};
-
-void TAlignment::recalibrate(TRecalibration & recalObject, TPMD* pmdObjects, TFastaBuffer* fastaBuffer, TQualityMap & qualityMap){
-	//make sure read is parsed and has reference
-	if(!parsed) throw "Read was not parsed!";
-	if(!hasReference) throw "Reference was not added!";
-
-	//get PMD probs
-	fillPmdProbabilities(pmdObjects);
-
-	//recalibrate quality scores
-	for(int d=0; d<length; ++d){
-//		int k = length - d - 1;
-		if(recalObject.recalibrationChangesQualities())
-			bases[d].errorRate = recalObject.getErrorRate(bases[d]);
-
-		//now add effect of PMD
-		if(aligned[d]){
-			if(bases[d].base == T && referenceSequence[alignedPos[d]] == 'C')
-				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(bases[d].base == A && referenceSequence[alignedPos[d]] == 'G')
-				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
-		}
-
-		qualityRecalibrated[d] = qualityMap.errorToQuality(bases[d].errorRate);
-	}
-
-	//set pointer to recalibrated scores
-	quality = qualityRecalibrated;
-	recalibrated = true;
-	changed = true;
-};
-*/
-
-
 void TAlignment::fillReadGroupInfo(int & readGroupID){
 	for(int d=0; d<length; ++d){
 		bases[d].readGroup = readGroupID;
 	}
-}
+};
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	//make sure read is parsed
@@ -509,12 +453,11 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 		}
 	}
 	changed = true;
-}
+};
 
 //--------------------------------------
 //functions to fill other classes
 //--------------------------------------
-
 void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//make sure read is parsed and has reference
 	if(!parsed) throw "Read was not parsed!";
@@ -550,7 +493,6 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	if(!hasReference) throw "Reference was not added!";
 
 	for(int d=0; d<length; ++d){
-//		int k = length - d - 1;
 		if(bases[d].aligned){
 			//recalibrate quality scores
 			if(recalObject->recalibrationChangesQualities())
@@ -571,7 +513,6 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	recalibrated = true;
 	changed = true;
 };
-
 
 double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//make sure read is parsed and has reference
@@ -675,7 +616,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	}
 
 	return PMDS;
-}
+};
 
 void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
 	//count S, not S, S pattern from cigar string
@@ -778,7 +719,7 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 	}
 
 	changed = true;
-}
+};
 
 int TAlignment::measureOverlap(){
 	//make sure read is parsed
@@ -804,7 +745,7 @@ int TAlignment::measureOverlap(){
 	} else
 		//not relevant
 		return -1;
-}
+};
 
 void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap){
 	//make sure read is parsed
@@ -814,10 +755,6 @@ void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qual
 		qualTable.add(qual);
 	}
 };
-
-
-
-
 
 //--------------------------------------------
 //functions to write / print alignment

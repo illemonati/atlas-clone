@@ -1589,10 +1589,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1619,7 +1617,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 		}
 
 		//report
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer and clean up memory
@@ -1629,11 +1627,9 @@ void TGenome::downSampleBamFile(TParameters & params){
 	delete[] downSampleProb;
 	delete[] bamWriter;
 
-	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
-}
+	//report end
+	reporter.printEnd();
+};
 
 void TGenome::downSampleReads(TParameters & params){
 	//initialize alignment reading
@@ -1653,14 +1649,11 @@ void TGenome::downSampleReads(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
-	long counter = 0;
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1668,26 +1661,24 @@ void TGenome::downSampleReads(TParameters & params){
 		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
-	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
-}
+	//report end
+	reporter.printEnd();
+};
 
 void TGenome::diagnoseBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
 
 	//get max params
 	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
-	int maxRL = params.getParameterIntWithDefault("maxReadLength", 1000);
+	int maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
 
     //open output files
     std::ofstream outputDepth;
@@ -1717,29 +1708,26 @@ void TGenome::diagnoseBamFile(TParameters & params){
     //calculate length of genome
     double totLength = (double) alignmentParser.calcReferenceLength();
 
-    //prepare reporting
-    logfile->startIndent("Parsing through BAM file:");
-    struct timeval start;
-    gettimeofday(&start, NULL);
-
     //other temp variables
-    long counter = 0;
-    std::vector<double> cov;
-    double totCov = 0.0;
+    std::vector<double> depth;
+    double totalDepth = 0.0;
     int numProperPairs = 0;
     long sumFragLen = 0;
     long sumSquaredFragLen = 0;
     int numReadGroups = alignmentParser.readGroups.size();
 
-    long** MQ = new long*[numReadGroups];
-    long** RL = new long*[numReadGroups];
+    long** mappingQuality = new long*[numReadGroups];
+    long** readLength = new long*[numReadGroups];
     for(int i = 0; i < numReadGroups; ++i){
-    	cov.push_back(0);
-    	MQ[i] = new long[maxMQ + 1]; //+1 for zero bin
-    	RL[i] = new long[maxRL + 1];
-    	for(int j=0; j<100; ++j) MQ[i][j]=0;
-    	for(int j=0; j<500; ++j) RL[i][j]=0;
+    	depth.push_back(0);
+    	mappingQuality[i] = new long[maxMQ + 1]; //+1 for zero bin
+    	readLength[i] = new long[maxReadLength + 1];
+    	for(int j=0; j<100; ++j) mappingQuality[i][j]=0;
+    	for(int j=0; j<500; ++j) readLength[i][j]=0;
     }
+
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and sum number of aligned bases
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1753,69 +1741,69 @@ void TGenome::diagnoseBamFile(TParameters & params){
         	}
         }
 
-        totCov += alignment.getLength();
-        cov[alignment.readGroupId] += alignment.getLength();
+        //depth
+        totalDepth += alignment.getLength();
+        depth[alignment.readGroupId] += alignment.getLength();
+
+        //mapping quality
         if(alignment.mappingQuality > maxMQ)
         	throw "Mapping quality of alignment " + alignment.alignmentName + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
+        ++mappingQuality[alignment.readGroupId][alignment.mappingQuality];
 
-        ++MQ[alignment.readGroupId][alignment.mappingQuality];
-       if(alignment.getLength() > maxRL)
-    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getLength()) + ">" + toString(maxRL) +")";
+        //read length
+        if(alignment.getLength() > maxReadLength)
+    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getLength()) + ">" + toString(maxReadLength) +")";
 
-        ++RL[alignment.readGroupId][alignment.getLength()];
+        ++readLength[alignment.readGroupId][alignment.getLength()];
 
         //report
-        ++counter;
-        reportProgressParsingBamFile(counter, start);
+        reporter.printProgress();
     }
 
-    //report
-    reportProgressParsingBamFile(counter, start);logfile->list("Reached end of BAM file!");
-    logfile->removeIndent();
-    logfile->list("Approximate sequencing depth was estimated at " + toString(totCov/totLength));
+	//report end
+	reporter.printEnd();
+	logfile->list("Approximate sequencing depth was estimated at " + toString(totalDepth/totLength));
 
-    logfile->listFlush("Writing to output files ...");
+	//writing output files
+	logfile->listFlush("Writing to output files ...");
 
-    //cov
-    outputDepth << "RG\tApproximate_depth";
-    outputDepth << "\nallReadGroups\t" << totCov/totLength;
+    //depth
+    outputDepth << "readGroup\tApproximate_depth";
+    outputDepth << "\nallReadGroups\t" << totalDepth/totLength;
     for(int r=0; r<numReadGroups; ++r){
-        outputDepth << "\n" << alignmentParser.readGroups.getName(r) << "\t" << cov[r]/totLength;
+        outputDepth << "\n" << alignmentParser.readGroups.getName(r) << "\t" << depth[r]/totLength;
     }
     outputDepth << "\n";
 
-
     //MQ
     long tot;
-    outputMQ << "RG\tMapping_quality\tCount";
+    outputMQ << "readGroup\tMapping_quality\tCount";
     for(int i=0; i<100; ++i){
     	tot = 0;
-    	for(int r=0; r<numReadGroups; ++r) tot += MQ[r][i];
+    	for(int r=0; r<numReadGroups; ++r) tot += mappingQuality[r][i];
 		outputMQ << "\nallReadGroups\t" << i << "\t" << tot;
 
     }
     for(int r=0; r<numReadGroups; ++r){
         for(int i=0; i<100; ++i){
-            outputMQ << "\n" << alignmentParser.readGroups.getName(r) << "\t" << i << "\t" << MQ[r][i];
+            outputMQ << "\n" << alignmentParser.readGroups.getName(r) << "\t" << i << "\t" << mappingQuality[r][i];
         }
     }
     outputMQ << "\n";
 
-
     //RL
-    outputReadLen << "RG\tRead_length\tCount";
+    outputReadLen << "readGroup\tRead_length\tCount";
     for(int i=0; i<500; ++i){
     	tot = 0;
-    	for(int r=0; r<numReadGroups; ++r) tot += RL[r][i];
+    	for(int r=0; r<numReadGroups; ++r) tot += readLength[r][i];
 		outputReadLen << "\nallReadGroups\t" << i << "\t" << tot;
     }
     for(int r=0; r<numReadGroups; ++r){
         for(int i=0; i<500; ++i){
-            outputReadLen << "\n" << alignmentParser.readGroups.getName(r)<< "\t" << i << "\t" << RL[r][i];
+            outputReadLen << "\n" << alignmentParser.readGroups.getName(r)<< "\t" << i << "\t" << readLength[r][i];
         }
     }
     outputReadLen << "\n";
-
 
     //FL
     float mean = float(sumFragLen)/float(numProperPairs);
@@ -1824,17 +1812,18 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
     logfile->done();
 
+    //clena up
     outputDepth.close();
     outputMQ.close();
     outputReadLen.close();
     fragmentStats.close();
 
     for(int i = 0; i < numReadGroups; ++i){
-    	delete[] MQ[i];
-    	delete[] RL[i];
+    	delete[] mappingQuality[i];
+    	delete[] readLength[i];
     }
-    delete [] MQ;
-    delete [] RL;
+    delete [] mappingQuality;
+    delete [] readLength;
 }
 
 void TGenome::allelicDepth(TParameters & params){
