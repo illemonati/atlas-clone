@@ -98,11 +98,9 @@ public:
 		run(task, parameters, logfile);
 	};
 
-	void run(const std::string task, TParameters & parameters, TLog* logfile){
-		TTask* t = getTask(task, logfile);
-		logfile->startIndent(t->explanation() + "(task = " + task + "):");
-		t->run(parameters, logfile);
-		logfile->endIndent();
+	void run(const std::string taskName, TParameters & parameters, TLog* logfile){
+		TTask* task = getTask(taskName, logfile);
+		task->run(taskName, parameters, logfile);
 	};
 
 	void printAvailableTasks(TLog* logfile){

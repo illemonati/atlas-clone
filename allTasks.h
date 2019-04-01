@@ -22,6 +22,14 @@
 #include "TInbreedingEstimator.h"
 
 //---------------------------------------------------------------------------
+// TTask class specific to this application (optional)
+//---------------------------------------------------------------------------
+class TTask_atlas:public TTask{
+public:
+	TTask_atlas(){ _citations.push_back("Link et al. (2019) SOMEWHERE"); };
+};
+
+//---------------------------------------------------------------------------
 // Function to create map of tasks (adjust in allTasks.cpp file)
 //---------------------------------------------------------------------------
 void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< std::string, TTask* > & taskMap_debug);
@@ -29,7 +37,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 //---------------------------------------------------------------------------
 // Create a class for each task, as shown in the example below
 //---------------------------------------------------------------------------
-//	class TTask_NAME:public TTask{
+//	class TTask_NAME:public TTask{ //or derive from class specific task
 //		public:
 //		TTask_NAME(){ _explanation = "SAY WHAT THIS TASK IS DOING"; };
 
@@ -42,7 +50,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 //---------------------------------------------------------------------------
 // Read groups
 //---------------------------------------------------------------------------
-class TTask_splitRGbyLength:public TTask{
+class TTask_splitRGbyLength:public TTask_atlas{
 public:
 	TTask_splitRGbyLength(){ _explanation = "Splitting single end read groups in a BAM file"; };
 
@@ -52,7 +60,7 @@ public:
 	};
 };
 
-class TTask_mergeReadGroups:public TTask{
+class TTask_mergeReadGroups:public TTask_atlas{
 public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 
@@ -65,7 +73,7 @@ public:
 //---------------------------------------------------------------------------
 // BAM file tools
 //---------------------------------------------------------------------------
-class TTask_pileup:public TTask{
+class TTask_pileup:public TTask_atlas{
 public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 
@@ -75,7 +83,7 @@ public:
 	};
 };
 
-class TTask_BAMDiagnostics:public TTask{
+class TTask_BAMDiagnostics:public TTask_atlas{
 public:
 	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
 
@@ -85,7 +93,7 @@ public:
 	};
 };
 
-class TTask_assessReadOverlap:public TTask{
+class TTask_assessReadOverlap:public TTask_atlas{
 public:
 	TTask_assessReadOverlap(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
 
@@ -95,7 +103,7 @@ public:
 	};
 };
 
-class TTask_mergeReads:public TTask{
+class TTask_mergeReads:public TTask_atlas{
 public:
 	TTask_mergeReads(){ _explanation = "Merging paired-end reads in BAM file"; };
 
@@ -105,7 +113,7 @@ public:
 	};
 };
 
-class TTask_assessDuplication:public TTask{
+class TTask_assessDuplication:public TTask_atlas{
 public:
 	TTask_assessDuplication(){ _explanation = "Quantifying read duplication"; };
 
@@ -115,7 +123,7 @@ public:
 	};
 };
 
-class TTask_mateInfo:public TTask{
+class TTask_mateInfo:public TTask_atlas{
 public:
 	TTask_mateInfo(){ _explanation = "Writing mate information per site"; };
 
@@ -125,7 +133,7 @@ public:
 	};
 };
 
-class TTask_assessSoftClipping:public TTask{
+class TTask_assessSoftClipping:public TTask_atlas{
 public:
 	TTask_assessSoftClipping(){ _explanation = "WAssessing level of soft clipping in BAM file"; };
 
@@ -135,7 +143,7 @@ public:
 	};
 };
 
-class TTask_removeSoftClippedBasesFromReads:public TTask{
+class TTask_removeSoftClippedBasesFromReads:public TTask_atlas{
 public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 
@@ -148,7 +156,7 @@ public:
 //---------------------------------------------------------------------------
 // Depth
 //---------------------------------------------------------------------------
-class TTask_writeDepthPerWindow:public TTask{
+class TTask_writeDepthPerWindow:public TTask_atlas{
 public:
 	TTask_writeDepthPerWindow(){ _explanation = "Estimating depth per window"; };
 
@@ -158,7 +166,7 @@ public:
 	};
 };
 
-class TTask_depthPerSiteDist:public TTask{
+class TTask_depthPerSiteDist:public TTask_atlas{
 public:
 	TTask_depthPerSiteDist(){ _explanation = "Estimating depth per site"; };
 
@@ -168,7 +176,7 @@ public:
 	};
 };
 
-class TTask_writeDepthPerSite:public TTask{
+class TTask_writeDepthPerSite:public TTask_atlas{
 public:
 	TTask_writeDepthPerSite(){ _explanation = "Writing sequencing depth for each site"; };
 
@@ -178,7 +186,7 @@ public:
 	};
 };
 
-class TTask_createDepthMask:public TTask{
+class TTask_createDepthMask:public TTask_atlas{
 public:
 	TTask_createDepthMask(){ _explanation = "Creating depth mask BED file"; };
 
@@ -188,7 +196,7 @@ public:
 	};
 };
 
-class TTask_allelicDepth:public TTask{
+class TTask_allelicDepth:public TTask_atlas{
 public:
 	TTask_allelicDepth(){ _explanation = "Estimating allelic depth distribution"; };
 
@@ -198,7 +206,7 @@ public:
 	};
 };
 
-class TTask_downsample:public TTask{
+class TTask_downsample:public TTask_atlas{
 public:
 	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
 
@@ -208,7 +216,7 @@ public:
 	};
 };
 
-class TTask_downSampleReads:public TTask{
+class TTask_downSampleReads:public TTask_atlas{
 public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
 
@@ -221,7 +229,7 @@ public:
 //---------------------------------------------------------------------------
 // PMD
 //---------------------------------------------------------------------------
-class TTask_estimatePMD:public TTask{
+class TTask_estimatePMD:public TTask_atlas{
 public:
 	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 
@@ -231,11 +239,11 @@ public:
 	};
 };
 
-class TTask_PMDS:public TTask{
+class TTask_PMDS:public TTask_atlas{
 public:
 	TTask_PMDS(){
 		_explanation = "Filtering for ancient reads using PMDS";
-		citations.push_back("Skoglund et al. (2014) PNAS");
+		_citations.push_back("Skoglund et al. (2014) PNAS");
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
@@ -244,7 +252,7 @@ public:
 	};
 };
 
-class TTask_PSMC:public TTask{
+class TTask_PSMC:public TTask_atlas{
 public:
 	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
 
@@ -257,11 +265,11 @@ public:
 //---------------------------------------------------------------------------
 // Recalibration
 //---------------------------------------------------------------------------
-class TTask_recal:public TTask{
+class TTask_recal:public TTask_atlas{
 public:
 	TTask_recal(){
 		_explanation = "Estimating error re-calibration parameters";
-		citations.push_back("Kousathanas et al. (2017) Genetics");
+		_citations.push_back("Kousathanas et al. (2017) Genetics");
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
@@ -270,7 +278,7 @@ public:
 	};
 };
 
-class TTask_recalLL:public TTask{
+class TTask_recalLL:public TTask_atlas{
 public:
 	TTask_recalLL(){ _explanation = "Calculating LL for error re-calibration function"; };
 
@@ -280,11 +288,11 @@ public:
 	};
 };
 
-class TTask_BQSR:public TTask{
+class TTask_BQSR:public TTask_atlas{
 public:
 	TTask_BQSR(){
 		_explanation = "Estimating BQSR error re-calibration parameters";
-		citations.push_back("Hofmanova et al. (2016) PNAS");
+		_citations.push_back("Hofmanova et al. (2016) PNAS");
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
@@ -293,7 +301,7 @@ public:
 	};
 };
 
-class TTask_recalBAM:public TTask{
+class TTask_recalBAM:public TTask_atlas{
 public:
 	TTask_recalBAM(){ _explanation = "Recalibrating quality scores in a BAM file"; };
 
@@ -303,7 +311,7 @@ public:
 	};
 };
 
-class TTask_qualityDist:public TTask{
+class TTask_qualityDist:public TTask_atlas{
 public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
@@ -313,7 +321,7 @@ public:
 	};
 };
 
-class TTask_qualityTransformation:public TTask{
+class TTask_qualityTransformation:public TTask_atlas{
 public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 
@@ -323,7 +331,7 @@ public:
 	};
 };
 
-class TTask_binQualityScores:public TTask{
+class TTask_binQualityScores:public TTask_atlas{
 public:
 	TTask_binQualityScores(){ _explanation = "Binning quality scores"; };
 
@@ -336,7 +344,7 @@ public:
 //---------------------------------------------------------------------------
 // Caller
 //---------------------------------------------------------------------------
-class TTask_call:public TTask{
+class TTask_call:public TTask_atlas{
 public:
 	TTask_call(){ _explanation = "Calling genotypes"; };
 
@@ -349,11 +357,11 @@ public:
 //---------------------------------------------------------------------------
 // Diversity (theta)
 //---------------------------------------------------------------------------
-class TTask_estimateTheta:public TTask{
+class TTask_estimateTheta:public TTask_atlas{
 public:
 	TTask_estimateTheta(){
 		_explanation = "Estimating heterozygosity (theta)";
-		citations.push_back("Kousathanas et al. (2017) Genetics");
+		_citations.push_back("Kousathanas et al. (2017) Genetics");
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
@@ -362,7 +370,7 @@ public:
 	};
 };
 
-class TTask_estimateThetaRatio:public TTask{
+class TTask_estimateThetaRatio:public TTask_atlas{
 public:
 	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
 
@@ -372,7 +380,7 @@ public:
 	};
 };
 
-class TTask_thetaLLSurface:public TTask{
+class TTask_thetaLLSurface:public TTask_atlas{
 public:
 	TTask_thetaLLSurface(){ _explanation = "Calculating the theta LL surface for each window"; };
 
@@ -386,7 +394,7 @@ public:
 //---------------------------------------------------------------------------
 // Population tools
 //---------------------------------------------------------------------------
-class TTask_GLF:public TTask{
+class TTask_GLF:public TTask_atlas{
 public:
 	TTask_GLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
@@ -396,7 +404,7 @@ public:
 	}
 };
 
-class TTask_printGLF:public TTask{
+class TTask_printGLF:public TTask_atlas{
 public:
 	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
 
@@ -407,7 +415,7 @@ public:
 	};
 };
 
-class TTask_majorMinor:public TTask{
+class TTask_majorMinor:public TTask_atlas{
 public:
 	TTask_majorMinor(){ _explanation = "Estimating major and minor alles"; };
 
@@ -417,7 +425,7 @@ public:
 	};
 };
 
-class TTask_estimateDist:public TTask{
+class TTask_estimateDist:public TTask_atlas{
 public:
 	TTask_estimateDist(){ _explanation = "Estimating the genetic distance between individuals"; };
 
@@ -427,7 +435,7 @@ public:
 	};
 };
 
-class TTask_estimateAlleleCounts:public TTask{
+class TTask_estimateAlleleCounts:public TTask_atlas{
 public:
 	TTask_estimateAlleleCounts(){ _explanation = "Estimating population allele counts"; };
 
@@ -437,7 +445,7 @@ public:
 	};
 };
 
-class TTask_estimateAlleleFreq:public TTask{
+class TTask_estimateAlleleFreq:public TTask_atlas{
 public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
 
@@ -447,7 +455,7 @@ public:
 	};
 };
 
-class TTask_estimateInbreeding:public TTask{
+class TTask_estimateInbreeding:public TTask_atlas{
 public:
 	TTask_estimateInbreeding(){ _explanation = "Estimating the inbreeding coefficient"; };
 
@@ -457,7 +465,7 @@ public:
 	};
 };
 
-class TTask_inbreedingLikelihood:public TTask{
+class TTask_inbreedingLikelihood:public TTask_atlas{
 public:
 	TTask_inbreedingLikelihood(){ _explanation = "Estimating likelihood surfaces for the inbreeding model"; };
 
@@ -479,7 +487,7 @@ public:
 //---------------------------------------------------------------------------
 // Simulations
 //---------------------------------------------------------------------------
-class TTask_simulate:public TTask{
+class TTask_simulate:public TTask_atlas{
 public:
 	TTask_simulate(){
 		_explanation = "Generating simulations";
@@ -493,7 +501,7 @@ public:
 //---------------------------------------------------------------------------
 // VCF tools
 //---------------------------------------------------------------------------
-class TTask_VCFDiagnostics:public TTask{
+class TTask_VCFDiagnostics:public TTask_atlas{
 public:
 	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
 
@@ -503,7 +511,7 @@ public:
 	};
 };
 
-class TTask_VCFToInvariantBed:public TTask{
+class TTask_VCFToInvariantBed:public TTask_atlas{
 public:
 	TTask_VCFToInvariantBed(){ _explanation = "Diagnosing a VCF file"; };
 
@@ -513,7 +521,7 @@ public:
 	};
 };
 
-class TTask_VCFFixInt:public TTask{
+class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
 
@@ -524,7 +532,7 @@ public:
 };
 
 /*
-class TTask_filterVCF:public TTask{
+class TTask_filterVCF:public TTask_atlas{
 public:
 	TTask_filterVCF(){ _explanation = "Filtering a VCF file"; };
 
