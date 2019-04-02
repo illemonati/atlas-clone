@@ -440,14 +440,9 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 };
 
 void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
-	//variables
-	double maxF;
-	double lambda; //used in backtracking
-	bool acceptMove;
 	bool NRconverged = false;
 
 	//calculate Q at current location
-	double Q;
 	double curQ = 0.0;
 	for(TRecalibrationEMWindow* curWindow : windows)
 		curQ += curWindow->calcQ(*models, tmpEpsilon);
@@ -470,14 +465,14 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 			logfile->done();
 
 			//update params for each read group using backtracking
-			lambda = 1.0;
-			acceptMove = false;
+			double lambda = 1.0;
+			bool acceptMove = false;
 			while(!acceptMove){
-				logfile->listFlush("Proposing move with lambda = " + toString(lambda) + " ...");
+				logfile->listFlush("Proposing move with log10(lambda) = " + toString(log10(lambda)) + " ...");
 				models->proposeNewParameters(lambda);
 
 				//calculate Q at new location
-				Q = 0.0;
+				double Q = 0.0;
 				for(TRecalibrationEMWindow* curWindow : windows)
 					Q += curWindow->calcQ(*models, tmpEpsilon);
 
@@ -491,7 +486,7 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 					lambda = lambda / 2.0; //backtrack;
 					logfile->write(" rejecting move!");
 					models->rejectProposedParameters();
-					if(lambda < 0.000000001){
+					if(lambda < 1.0E-20){
 						acceptMove = true; //accept
 						NRconverged = true;
 						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
@@ -504,7 +499,7 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 		}
 
 		//get largest gradient (F) to check if we break
-		maxF = models->getSteepestGradient();
+		double maxF = models->getSteepestGradient();
 		logfile->conclude("max(F) = " + toString(maxF));
 		logfile->endIndent();
 		if(maxF < NewtonRaphsonMaxF || NRconverged) break;

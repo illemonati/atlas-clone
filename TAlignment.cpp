@@ -531,7 +531,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//go over all bases in read
 	for(int d=0; d<length; ++d){
 		//limit to aligned positions
-		if(bases[d].aligned){
+		if(bases[d].aligned && bases[d].base != N && referenceSequence[bases[d].alignedPos] != 'N'){
 			//Prepare variables
 			epsThird = bases[d].errorRate / 3.0;
 			fourEpsThird = 4.0 * epsThird;
@@ -550,7 +550,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird-1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == T){
+				else { //T
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(1.0-fourEpsThird);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
@@ -568,7 +568,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + bases[d].PMD_GA*(fourEpsThird*pi - pi);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == T){
+				else { //T
 					probPMD = epsThird + (1.0-pi)*bases[d].PMD_CT*(1.0-fourEpsThird);
 					probNoPMD = epsThird;
 				}
@@ -586,12 +586,12 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + (1.0-pi)*bases[d].PMD_GA*(fourEpsThird-1.0);
 					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
-				else if(bases[d].base == T){
+				else { //T
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(1.0-fourEpsThird);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
 			}
-			else if(referenceSequence[bases[d].alignedPos] == 'T'){
+			else { //T
 				if(bases[d].base == A){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - epsThird*pi*bases[d].PMD_CT + pi*bases[d].PMD_GA*(1.0-bases[d].errorRate);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
@@ -604,7 +604,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird - 1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == T){
+				else { //T
 					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + bases[d].PMD_CT*(pi/3.0-fourEpsThird*pi/3.0);
 					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
