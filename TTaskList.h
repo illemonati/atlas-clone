@@ -112,11 +112,11 @@ public:
 		}
 
 		//now print all tasks
-		logfile->startIndent("Available tasks:");
+		logfile->startNumbering("Available tasks:");
 		for(std::map< std::string, TTask* >::iterator it = taskMap_regular.begin(); it != taskMap_regular.end(); ++it){
 			std::string s = it->first;
 			s.append(maxLen - it->first.length() + 3, ' '); //add white spaces to align explanations
-			logfile->list(s + it->second->explanation());
+			logfile->number(s + it->second->explanation());
 		}
 
 		logfile->endIndent();

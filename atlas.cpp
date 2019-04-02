@@ -11,7 +11,7 @@
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	TMain main("Atlas", "0.9");
+	TMain main("Atlas", "0.9", "https://bitbucket.org/wegmannlab/atlas");
 	return main.run(argc, argv);
 };
 

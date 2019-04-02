@@ -79,7 +79,6 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 			for(unsigned int k=0; k<numReads; ++k){
 				B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
-//				tmp += log(B[g][k] * epsilon[k] - D[g][k] + 1.0);
 			}
 			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
 			if(g==0) max = P_g_given_d_oldBeta[g];

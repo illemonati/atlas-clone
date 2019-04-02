@@ -718,6 +718,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 	//call default of base
 	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
 
+	/*
 	//change betas such that the context are zero on average
 	//first regular context and positions 1 through maxPos
 	double mean = 0.0;
@@ -737,6 +738,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 	for(int c=18; c<22; c++)
 		_betas[c] -= mean;
 	_betas[_numParamsWithoutPositions] += mean;
+	*/
 };
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TRecalibrationEMReadData & data){
@@ -1028,6 +1030,13 @@ bool TRecalibrationEMModels::solveJxF(const int numSites){
 	//scale F and J by 1/#sites
 	Jacobian = Jacobian / (double) numSites;
 	F = F / (double) numSites;
+
+	/*
+	std::cout << "F =";
+	for(int i=0; i<F.size(); ++i)
+		std::cout << " " << F(i);
+	std::cout << std::endl;
+*/
 
 	//now solve J^-1 x F
 	return solve(JxF, Jacobian, F);
