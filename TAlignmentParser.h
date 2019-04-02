@@ -185,8 +185,8 @@ public:
 	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
 	int numReadGroups(){ return readGroups.size(); };
 	std::string recalibrationType(){ return recalObject->type(); };
-	int getWindowSize(){return windowSize;}
-	int getMaxPhredInt(){return maxPhredInt;}
+	int getWindowSize(){return windowSize;};
+	int getMaxPhredInt(){return maxPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
 

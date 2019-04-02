@@ -38,6 +38,9 @@ private:
 	std::vector<TAlignment*> emptyAlignments;
 
 	void fillPGenotype(double* pGenotype);
+	void setCoordinates(long Start, long End, int ChrNumber);
+	void cleanUpUsedAlignments();
+	void clearAllUsedAlignments();
 	//std::vector<TAlignment*>::iterator lastAlignmentwithEndInWindow;
 	//std::vector<TAlignment*>::iterator firstAlignmentwithPosOutsideWindow;
 
@@ -66,8 +69,8 @@ public:
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End, int chrNumber);
+	void jump(long Start, long End, int ChrNumber);
 	void review();
-	void cleanUpUsedAlignments();
 	void printStacks();
 	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
 	void fillSites(const int & readUpToDepth);

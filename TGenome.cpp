@@ -629,6 +629,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TQualityMap qualityMap;
 
 	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+//	recalObjectEM.initializeFromString(params.getParameterString("initialRecalValues"));
 
 	//prepare windows
 	TWindow window;
@@ -654,6 +655,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
 	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+	recalObjectEM.initializeFromString(params.getParameterString("recalForLL"));
 
 	//prepare windows
 	TWindow window;

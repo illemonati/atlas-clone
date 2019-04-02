@@ -291,6 +291,10 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	models = new TRecalibrationEMModels(_readGroups->size(), logfile);
 };
 
+void TRecalibrationEMEstimator::initializeFromString(const std::string string){
+	models->createModels(string, *_readGroups);
+}
+
 void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool & writeTmpTables){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
@@ -369,7 +373,7 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 
 	//initialize tmp variables in windows and model
-	_prepareWindowsforEM();
+	_initializeTmpEpsilon();
 
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
@@ -495,19 +499,19 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 	logfile->endIndent();
 };
 
-void TRecalibrationEMEstimator::_prepareWindowsforEM(){
-	if(tmpEpsilonInitialized) delete[] tmpEpsilon;
+void TRecalibrationEMEstimator::_initializeTmpEpsilon(){
+	if(!tmpEpsilonInitialized){
+		int maxDepth = 0;
+		for(TRecalibrationEMWindow* curWindow : windows){
+			int tmp = curWindow->getMaxDepth();
+			if(tmp > maxDepth)
+				maxDepth = tmp;
+		}
 
-	int maxDepth = 0;
-	for(TRecalibrationEMWindow* curWindow : windows){
-		int tmp = curWindow->getMaxDepth();
-		if(tmp > maxDepth)
-			maxDepth = tmp;
+		//now crate array
+		tmpEpsilon = new float[maxDepth];
+		tmpEpsilonInitialized = true;
 	}
-
-	//now crate array
-	tmpEpsilon = new float[maxDepth];
-	tmpEpsilonInitialized = true;
 };
 
 void TRecalibrationEMEstimator::addNewWindow(TBaseFrequencies* freqs){
@@ -555,6 +559,7 @@ void TRecalibrationEMEstimator::writeCurrentEstimates(std::string filename){
 };
 
 double TRecalibrationEMEstimator::calcLL(){
+	_initializeTmpEpsilon();
 	double LL = 0.0;
 	for(TRecalibrationEMWindow* curWindow : windows)
 		LL += curWindow->calcLL(*models, tmpEpsilon);

@@ -158,8 +158,10 @@ private:
 	arma::vec F;
 	arma::mat JxF;
 
-
 	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
+	void _createModelsFromString(std::string & string, TReadGroups & readGroups);
+	void _createModelsFromFile(std::string filename, TReadGroups & readGroups);
+
 	void _writeParameters(TOutputFilePlain & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
@@ -169,6 +171,7 @@ public:
 	void addSingleModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos);
+	void createModels(std::string string, TReadGroups & readGroups);
 
 	inline TRecalibrationEMModel_Base* operator[](int index){ return models[index]; };
 	int numModels(){ return models.size(); };

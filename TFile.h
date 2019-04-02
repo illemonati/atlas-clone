@@ -117,6 +117,10 @@ public:
 	};
 
 	//writing data
+	void setPrecision(int precision){
+		*_filePointer << std::setprecision(precision);
+	};
+
 	template<typename T>
 	void writeLine(std::vector<T> & data){
 		if(_colsWritten != 0)

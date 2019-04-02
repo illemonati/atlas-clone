@@ -86,6 +86,12 @@ public:
 		fillTaskMap_all();
 	};
 
+	~TTaskList(){
+		for(std::map< std::string, TTask* >::iterator it = taskMap_all.begin(); it != taskMap_all.end(); ++it){
+			delete it->second;
+		}
+	};
+
 	bool taskExists(const std::string task){
 		if(taskMap_all.find(task) != taskMap_all.end())
 			return true;

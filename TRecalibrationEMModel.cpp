@@ -760,6 +760,9 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(arma::v
 	q[0] = _qualPosMap.eta[data.quality];
 	q[1] = _qualPosMap.etaSquared[data.quality];
 
+	std::cout << "q[0] " << q[0] << std::endl;
+	throw "done";
+
 	//add to F
 	//-------------------------------------
 	//quality, quality squared: Derivatives are given by the q's
@@ -966,6 +969,102 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 	//create model
 	models.push_back(createTRecalibrationEMModel(modelTag, maxPos, totNumParameters, false, logfile));
 	totNumParameters += models.back()->numParameters();
+};
+
+void TRecalibrationEMModels::createModels(std::string string, TReadGroups & readGroups){
+	//initialize from string or file
+	int pos = string.find_first_of('[');
+	if(pos == std::string::npos)
+		_createModelsFromFile(string, readGroups);
+	else
+		_createModelsFromString(string, readGroups);
+};
+
+void TRecalibrationEMModels::_createModelsFromString(std::string & string, TReadGroups & readGroups){
+	//string has format model[param1, param2, param3, ...]
+	logfile->startIndent("Initializing recal with string '" + string + "' for all read groups:");
+
+	//read model tag
+	size_t pos = string.find_first_of('[');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing '['!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
+	std::string modelTag = string.substr(0,pos);
+	string.erase(0, pos+1);
+
+	//read parameters: quality, position and context separted by semicolon (;)
+	pos = string.find_first_of(']');
+	if(pos == std::string::npos)
+		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
+	std::vector<std::string> tmpVec;
+	fillVectorFromString(string.substr(0, pos), tmpVec, ";");
+	if(tmpVec.size() != 3)
+		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
+
+	//initialize model
+	addSingleModelForAllReadGroups(modelTag, tmpVec, true);
+
+	logfile->endIndent();
+};
+
+void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGroups & readGroups){
+	//read parameters from file
+	logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open file '" + filename + "' for reading!";
+
+	//skip header
+	std::string line;
+	std::getline(file, line);
+
+	//tmp variables for reading
+	int lineNum = 0;
+	std::vector<std::string> vec;
+
+	//parse file to read details for each read group
+	while(file.good() && !file.eof()){
+		++lineNum;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+
+		//skip empty lines
+		if(vec.size() > 0){
+			if(vec.size() != 6)
+				throw "Wrong number of entries in file '" + filename + "' on line " + toString(lineNum) + ": expected 6 but found " + toString(vec.size()) + "!";
+
+			//check if read group exists
+			if(readGroups.readGroupExists(vec[0])){
+				//read read group, mate and model
+				int rg = readGroups.find(vec[0]);
+				bool isSecondMate;
+				if(vec[1] == "second")
+					isSecondMate = true;
+				else if(vec[1] == "first")
+					isSecondMate = false;
+				else
+					throw "Unknown mate '" + vec[1] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
+
+				std::string modelTag = vec[2];
+
+				//clean up vec to only contain parameters (remove read group, mate, model and LL)
+				vec.erase(vec.begin(), vec.begin() + 3);
+
+				//create model
+				addModel(rg, isSecondMate, modelTag, vec, false);
+			} else {
+				logfile->warning("Read group '" + vec[0] + "' does not exist in the BAM header! Are you using the correct recal file?");
+			}
+		}
+	}
+	logfile->done();
+
+	//report read groups for which no recal model was given and initialize them as "no_recal" model
+	if(hasReadGroupsWithoutModel()){
+//		logfile->warning("Missing read groups in file '" + filename + "'!");
+		warningForMissingReadGroups(readGroups);
+		logfile->startIndent("Will assume the following read groups to be single end (no recalibration provided for second mate):");
+		reportReadGroupsConsideredSingleEnd(readGroups);
+		addNoRecalModelIfMissing();
+		logfile->endIndent();
+	}
 };
 
 bool TRecalibrationEMModels::hasReadGroupsWithoutModel(){

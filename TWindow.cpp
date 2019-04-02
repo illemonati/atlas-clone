@@ -99,7 +99,7 @@ void TWindow::clear(){
 	passedFilters = false;
 };
 
-void TWindow::move(long Start, long End, int ChrNumber){
+void TWindow::setCoordinates(long Start, long End, int ChrNumber){
 	start = Start;
 	end = End;
 	chrNumber = ChrNumber;
@@ -109,9 +109,17 @@ void TWindow::move(long Start, long End, int ChrNumber){
 		else
 			clear();
 	} else initSites(end - start);
+}
 
+void TWindow::move(long Start, long End, int ChrNumber){
+	setCoordinates(Start, End, ChrNumber);
 	cleanUpUsedAlignments();
 };
+
+void TWindow::jump(long Start, long End, int ChrNumber){
+	setCoordinates(Start, End, ChrNumber);
+	clearAllUsedAlignments();
+}
 
 void TWindow::review(){
 	//update pointers
@@ -129,21 +137,28 @@ void TWindow::cleanUpUsedAlignments(){
 //	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		if(!((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber)){
-//			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
+		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
+			++alignmentIt;
+		} else{
 			(*alignmentIt)->clear();
 			emptyAlignments.push_back(*alignmentIt);
-			usedAlignments.erase(alignmentIt);
-		} else{
-			++alignmentIt;
+			alignmentIt = usedAlignments.erase(alignmentIt);
 		}
 
-		if((*alignmentIt)->position >= end){
-			usedAlignments.erase(alignmentIt, usedAlignments.end());
-//			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
-			break;
-		}
+//		if((*alignmentIt)->position >= end){
+//			usedAlignments.erase(alignmentIt, usedAlignments.end());
+////			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
+//			break;
+//		}
 //		std::cout << std::endl;
+	}
+}
+
+void TWindow::clearAllUsedAlignments(){
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+		(*alignmentIt)->clear();
+		emptyAlignments.push_back(*alignmentIt);
+		alignmentIt = usedAlignments.erase(alignmentIt);
 	}
 }
 

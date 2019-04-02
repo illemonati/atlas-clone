@@ -93,7 +93,7 @@ private:
 
 	void _runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables);
 	void _runNewtonRaphson(int numSitesWithData);
-	void _prepareWindowsforEM();
+	void _initializeTmpEpsilon();
 
 
 public:
@@ -117,6 +117,7 @@ public:
 	long cumulativeDepth();
 
 	//function to estimate
+	void initializeFromString(const std::string string);
 	void performEstimation(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();
