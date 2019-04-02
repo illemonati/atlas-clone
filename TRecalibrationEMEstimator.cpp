@@ -79,7 +79,6 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 			for(unsigned int k=0; k<numReads; ++k){
 				B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
-//				tmp += log(B[g][k] * epsilon[k] - D[g][k] + 1.0);
 			}
 			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
 			if(g==0) max = P_g_given_d_oldBeta[g];
@@ -274,7 +273,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	logfile->startIndent("Settings regarding the EM algorithm:");
 	modelTagForEstimation = args.getParameterStringWithDefault("model", "qualFuncPosFuncContext");
 	logfile->list("Will fit the model '" + modelTagForEstimation + "'.");
-	minRequiredObservations = 1000; //constant for reporting
+	minRequiredObservations = 10000; //constant for reporting
 	numEMIterations = args.getParameterIntWithDefault("iterations", 100);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
 	maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
@@ -323,11 +322,10 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	int numModelsWithLittleData = 0;
 	int numModelsWithoutData = 0;
 
-	for(int rg = 0; rg < _readGroups->size(); ++rg){
+	for(int rg = 0; rg < _readGroupMap->numReadGroups; ++rg){
 		for(int mate = 0; mate < 2; ++mate){
 			if(dataTable.countsPerReadGroup[rg][mate] > 0){
 				models->addModel(rg, mate, modelTagForEstimation, dataTable.maxPos[rg][mate]);
-
 				if(dataTable.countsPerReadGroup[rg][mate] < minRequiredObservations)
 					++numModelsWithLittleData;
 			} else ++numModelsWithoutData;
@@ -340,11 +338,13 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	if(numModelsWithLittleData > 0){
 		logfile->warning("Some read groups have very little data!");
 		logfile->startIndent("Consider merging these read groups:");
+
 		for(int rg = 0; rg < _readGroups->size(); ++rg){
-			if(dataTable.countsPerReadGroup[rg][0] > 0 && dataTable.countsPerReadGroup[rg][0] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(dataTable.countsPerReadGroup[rg][0]) + " observations.");
-			if(dataTable.countsPerReadGroup[rg][1] > 0 && dataTable.countsPerReadGroup[rg][1] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg) + " (second mate): only " + toString(dataTable.countsPerReadGroup[rg][0]) + " observations.");
+			int index = _readGroupMap->getIndex(rg);
+			if(dataTable.countsPerReadGroup[index][0] > 0 && dataTable.countsPerReadGroup[index][0] < minRequiredObservations)
+				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(dataTable.countsPerReadGroup[index][0]) + " observations.");
+			if(dataTable.countsPerReadGroup[index][1] > 0 && dataTable.countsPerReadGroup[index][1] < minRequiredObservations)
+				logfile->list(_readGroups->getName(rg) + " (second mate): only " + toString(dataTable.countsPerReadGroup[index][0]) + " observations.");
 		}
 		logfile->endIndent();
 	}
@@ -352,7 +352,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	//report read groups without data
 	if(numModelsWithoutData > 0){
 		logfile->startIndent("The following " + toString(numModelsWithoutData) + " read groups do not have data and will not be recalibrated:");
-		models->reportReadGroupsNotUsed(*_readGroups);
+		models->reportReadGroupsNotUsed(*_readGroups, *_readGroupMap);
 		logfile->endIndent();
 	}
 

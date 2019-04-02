@@ -7,11 +7,11 @@
 
 
 
-#include "TAtlasTesting.h"
+#include "TTesting.h"
 
 
 
-TAtlasTesting::TAtlasTesting(TParameters & params, TLog* Logfile){
+TTesting::TTesting(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
 	//get name of report file
@@ -24,7 +24,7 @@ TAtlasTesting::TAtlasTesting(TParameters & params, TLog* Logfile){
 	printTests();
 };
 
-void TAtlasTesting::printTests(){
+void TTesting::printTests(){
 	if(testList.size() > 1)
 		logfile->startIndent("Will run the following " + toString(testList.size()) + " tests:");
 	else if(testList.size() == 1)
@@ -35,12 +35,12 @@ void TAtlasTesting::printTests(){
 	logfile->endIndent();
 };
 
-void TAtlasTesting::addTest(std::string & name, TParameters & params){
+void TTesting::addTest(std::string & name, TParameters & params){
 	if(!testList.initializeTest(name, params, logfile))
 		throw "Failed to initialize test '" + name + "': test does not exist!";
 };
 
-void TAtlasTesting::runTests(){
+void TTesting::runTests(){
 	//open report file
 	std::ofstream out(outputName.c_str());
 	if(!out)

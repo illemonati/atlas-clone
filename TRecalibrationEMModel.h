@@ -181,9 +181,13 @@ public:
 
 	bool hasReadGroupsWithoutModel();
 	void addNoRecalModelIfMissing();
+	void reportReadGroupsNotUsed(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
 	void reportReadGroupsNotUsed(TReadGroups & readGroups);
+	void reportReadGroupsConsideredSingleEnd(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
 	void reportReadGroupsConsideredSingleEnd(TReadGroups & readGroups);
+	void warningForMissingReadGroups(TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
 	void warningForMissingReadGroups(TReadGroups & readGroups);
+
 	void setEMParamsToZero();
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
 	bool solveJxF(const int numSites);
