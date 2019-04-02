@@ -143,6 +143,7 @@ public:
 	void setAllAsUsed();
 	void setAllToSingleIndex();
 	int setAsUsed(int readGroup, bool isSecondMate);
+	void setAsNotUsed(int readGroup, bool isSecondMate);
 
 	bool inUse(const int readGroup, const bool isSecondMate){
 		return readGroupInUse[readGroup][isSecondMate];

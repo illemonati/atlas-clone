@@ -619,17 +619,17 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	if(alignmentParser.qualitiesScoresAreRecalibrated() && !params.parameterExists("rerecalibrate"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument 'rerecalibrate' to overwrite this error)";
 
+	//initialize maps
+	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
+	TQualityMap qualityMap;
+
 	//create recalibration object
 	bool writeTmpTables = false;
 	if(params.parameterExists("writeTmpTables")){
 		writeTmpTables = true;
 		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
 	}
-	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
-	TQualityMap qualityMap;
-
 	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
-//	recalObjectEM.initializeFromString(params.getParameterString("initialRecalValues"));
 
 	//prepare windows
 	TWindow window;
@@ -653,7 +653,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 //TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
+	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 	recalObjectEM.initializeFromString(params.getParameterString("recalForLL"));
 
@@ -691,7 +691,7 @@ void TGenome::BQSR(TParameters & params){
 	TWindow window;
 
 	//create BQSR object
-	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
+	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TRecalibrationBQSREstimator bqsr(params, logfile, &alignmentParser.readGroups, &readGroupMap);
 
 	if(bqsr.allConverged()){
@@ -2046,7 +2046,7 @@ void TGenome::estimatePMD(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//prepare maps
-	TReadGroupMap readGroupMap(&alignmentParser.bamHeader, params, logfile);
+	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TGenotypeMap genoMap;
 
 	//prepare PMD table

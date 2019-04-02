@@ -751,6 +751,9 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TReca
 
 	//add position
 	//Note: no check on maxPos! Assuming it was properly initialized for estimation
+//	std::cout << data.context << std::endl;
+//	std::cout << data.position << std::endl;
+//	std::cout << _maxPosPlusOne << std::endl;
 	eta += _betas[_numParamsWithoutPositions + data.position]; //Position starts at 0
 
 	return _calcEpsilon(eta);
@@ -761,9 +764,6 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(arma::v
 	double q[2];
 	q[0] = _qualPosMap.eta[data.quality];
 	q[1] = _qualPosMap.etaSquared[data.quality];
-
-	std::cout << "q[0] " << q[0] << std::endl;
-	throw "done";
 
 	//add to F
 	//-------------------------------------
@@ -944,14 +944,12 @@ void TRecalibrationEMModels::_addModel(std::string & modelTag, std::vector<std::
 	totNumParameters += models.back()->numParameters();
 };
 
-void TRecalibrationEMModels::addSingleModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose){
+void TRecalibrationEMModels::addSameModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose){
 	trimString(modelTag);
 
-	//add to read group index
-	readGroupIndex.setAllToSingleIndex();
-
-	//add model
-	_addModel(modelTag, values, verbose);
+	std::pair<int, bool> missingReadGroupInfo;
+	while(readGroupIndex.nextNotInUse(missingReadGroupInfo))
+		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, modelTag, values, false);
 };
 
 void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::string modelTag, std::vector<std::string> & values, bool verbose){
@@ -973,11 +971,38 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 	totNumParameters += models.back()->numParameters();
 };
 
-void TRecalibrationEMModels::createModels(std::string string, TReadGroups & readGroups){
+void TRecalibrationEMModels::addModelIfItDoesNotExist(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos){
+	if(readGroupIndex.inUse(readGroupId,isSecondMate)){
+		//check model
+		if(!models[readGroupIndex.index(readGroupId, isSecondMate)]->checkParameterRange(maxPos)){
+			throw "Largest position in data (" + toString(maxPos) + ") does not match number of position parameters!";
+		}
+	} else {
+		//add to read group index
+		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
+
+		//create model
+		models.push_back(createTRecalibrationEMModel(modelTag, maxPos, totNumParameters, false, logfile));
+		totNumParameters += models.back()->numParameters();
+	}
+};
+
+void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
+	int index = readGroupIndex.index(readGroupId, isSecondMate);
+	int shift = models[index]->shift();
+	totNumParameters -= models[index]->numParameters();
+	std::vector<TRecalibrationEMModel_Base*>::iterator it = models.erase(models.begin() + index);
+	for(; it != models.end(); ++it){
+		(*it)->setShift(shift);
+		shift += (*it)->numParameters();
+	}
+};
+
+void TRecalibrationEMModels::createModels(std::string string, TReadGroups & readGroups, TReadGroupMap & readGroupMap){
 	//initialize from string or file
 	int pos = string.find_first_of('[');
 	if(pos == std::string::npos)
-		_createModelsFromFile(string, readGroups);
+		_createModelsFromFile(string, readGroups, readGroupMap);
 	else
 		_createModelsFromString(string, readGroups);
 };
@@ -1003,14 +1028,15 @@ void TRecalibrationEMModels::_createModelsFromString(std::string & string, TRead
 		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 
 	//initialize model
-	addSingleModelForAllReadGroups(modelTag, tmpVec, true);
+	addSameModelForAllReadGroups(modelTag, tmpVec, true);
 
 	logfile->endIndent();
 };
 
-void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGroups & readGroups){
+void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGroups & readGroups, TReadGroupMap & readGroupMap){
 	//read parameters from file
 	logfile->listFlush("Reading recalibration parameters from '" + filename + "' ...");
+
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "' for reading!";
 
@@ -1035,7 +1061,7 @@ void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGr
 			//check if read group exists
 			if(readGroups.readGroupExists(vec[0])){
 				//read read group, mate and model
-				int rg = readGroups.find(vec[0]);
+				int rg = readGroupMap.getIndex(readGroups.find(vec[0]));
 				bool isSecondMate;
 				if(vec[1] == "second")
 					isSecondMate = true;

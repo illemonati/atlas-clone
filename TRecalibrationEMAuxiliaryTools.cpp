@@ -196,6 +196,20 @@ int TRecalibrationEMReadGroupIndex::setAsUsed(int readGroup, bool isSecondMate){
 	return readGroupIndex[readGroup][isSecondMate];
 };
 
+void TRecalibrationEMReadGroupIndex::setAsNotUsed(int readGroup, bool isSecondMate){
+	readGroupInUse[readGroup][isSecondMate] = false;
+	--_numIndices;
+	--_numCasesWithIndex;
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		for(int j=0; j<2; ++j){
+			if(readGroupIndex[rg][j] > readGroupIndex[readGroup][isSecondMate]){
+				--readGroupIndex[rg][j];
+			}
+		}
+	}
+	readGroupIndex[readGroup][isSecondMate] = -1;
+}
+
 bool TRecalibrationEMReadGroupIndex::nextNotInUse(std::pair<int, bool> & pair){
 	//check if there are read groups not in use. If so, return true and fill pair. Otherwise, return false
 	for(int rg = 0; rg<_numReadGroups; ++rg){

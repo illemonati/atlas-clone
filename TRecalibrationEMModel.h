@@ -50,6 +50,9 @@ public:
 
 	std::string name(){ return _name; };
 	int numParameters(){ return _numParameters; };
+	int shift(){ return _myShift; };
+	void setShift(int shift){ _myShift = shift;};
+	virtual bool checkParameterRange(int maxPos){ return true; }; //check if parameters are in correct range
 	virtual void proposeNewParameters(double & lambda, arma::mat & JxF);
 	void rejectProposedParameters();
 	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
@@ -109,6 +112,7 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecific(){};
 
+	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
@@ -160,7 +164,7 @@ private:
 
 	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
 	void _createModelsFromString(std::string & string, TReadGroups & readGroups);
-	void _createModelsFromFile(std::string filename, TReadGroups & readGroups);
+	void _createModelsFromFile(std::string filename, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 
 	void _writeParameters(TOutputFilePlain & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
@@ -168,13 +172,16 @@ public:
 	TRecalibrationEMModels(int numReadGroups, TLog* Logfile);
 	~TRecalibrationEMModels();
 
-	void addSingleModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose);
+	void addSameModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos);
-	void createModels(std::string string, TReadGroups & readGroups);
+	void addModelIfItDoesNotExist(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos);
+	void removeModel(int readGroupId, bool isSecondMate);
+	void createModels(std::string string, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 
 	inline TRecalibrationEMModel_Base* operator[](int index){ return models[index]; };
 	int numModels(){ return models.size(); };
+	bool modelExists(int readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
 		return models[ readGroupIndex.index(data) ]->calcEpsilon(data);
 	};

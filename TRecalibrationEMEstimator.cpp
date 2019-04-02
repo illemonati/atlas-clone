@@ -269,10 +269,21 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	_readGroups = ReadGroups;
 	_readGroupMap = ReadGroupMap;
 
+	//models
+	models = new TRecalibrationEMModels(_readGroups->size(), logfile);
+
 	//estimation parameters
 	logfile->startIndent("Settings regarding the EM algorithm:");
+	std::string recalFile = args.getParameterString("initialRecalValues", false);
 	modelTagForEstimation = args.getParameterStringWithDefault("model", "qualFuncPosFuncContext");
-	logfile->list("Will fit the model '" + modelTagForEstimation + "'.");
+	if(recalFile.empty()){
+		logfile->list("Will fit the model '" + modelTagForEstimation + "' for all read groups.");
+	} else {
+		logfile->list("Will read models and initial values from file '" + recalFile + "'.");
+		logfile->list("Will fit the model '" + modelTagForEstimation + "' for read groups not in file '" + recalFile + "'.");
+		initializeFromString(recalFile);
+	}
+
 	minRequiredObservations = 10000; //constant for reporting
 	numEMIterations = args.getParameterIntWithDefault("iterations", 100);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
@@ -285,13 +296,10 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	equalBaseFrequencies = args.parameterExists("equalBaseFreq");
 	if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
 	logfile->endIndent();
-
-	//models
-	models = new TRecalibrationEMModels(_readGroups->size(), logfile);
 };
 
 void TRecalibrationEMEstimator::initializeFromString(const std::string string){
-	models->createModels(string, *_readGroups);
+	models->createModels(string, *_readGroups, *_readGroupMap);
 }
 
 void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool & writeTmpTables){
@@ -325,10 +333,15 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	for(int rg = 0; rg < _readGroupMap->numReadGroups; ++rg){
 		for(int mate = 0; mate < 2; ++mate){
 			if(dataTable.countsPerReadGroup[rg][mate] > 0){
-				models->addModel(rg, mate, modelTagForEstimation, dataTable.maxPos[rg][mate]);
+				models->addModelIfItDoesNotExist(rg, mate, modelTagForEstimation, dataTable.maxPos[rg][mate]);
 				if(dataTable.countsPerReadGroup[rg][mate] < minRequiredObservations)
 					++numModelsWithLittleData;
-			} else ++numModelsWithoutData;
+			} else {
+				if(models->modelExists(rg, mate)){
+					models->removeModel(rg, mate);
+				}
+				++numModelsWithoutData;
+			}
 		}
 	}
 	logfile->done();
