@@ -665,7 +665,6 @@ void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimula
 	delete[] qualTermForTransformation;
 };
 
-
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecificContext
 //---------------------------------------------------------------
@@ -718,7 +717,6 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 	//call default of base
 	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
 
-	/*
 	//change betas such that the context are zero on average
 	//first regular context and positions 1 through maxPos
 	double mean = 0.0;
@@ -738,7 +736,6 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 	for(int c=18; c<22; c++)
 		_betas[c] -= mean;
 	_betas[_numParamsWithoutPositions] += mean;
-	*/
 };
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TRecalibrationEMReadData & data){
@@ -879,6 +876,223 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 	delete[] qualTermForTransformation;
 };
 
+//---------------------------------------------------------------
+// TRecalibrationEMModel_qualFuncPosSpecificContextNew
+//---------------------------------------------------------------
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
+	// - transformed quality
+	// - square of transformed quality
+	// - one parameter per position from 0 to maxPos
+	// - 20 context indicators (either 0.0 or 1.0)
+	// -> in total, 22 + maxPos + 1 variables to estimate
+	_numParamsWithoutPositions = 22;
+	_maxPosPlusOne = MaxPos + 1;
+	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
+	_name = qualFuncPosSpecificContext_name;
+
+	_allocateBetaMemory();
+};
+
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
+	_numParamsWithoutPositions = 22;
+	_name = qualFuncPosSpecificContext_name;
+	std::vector<double> values[3];
+	_parseParameterString(vec, values);
+
+	//first position so that the memory can be allocated
+	if(values[1].size() < 1)
+		throw "Missing position values for model " + _name + "!";
+
+	//allocate memory
+	_maxPosPlusOne = values[1].size(); //starts at zero!
+	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
+
+	_allocateBetaMemory();
+
+	//quality
+	parseQualityParameters(&_betas[0], values[0]);
+
+	//context (starts at 2!)
+	if(values[2].size() != 20)
+		throw "Wrong number of context parameters for model " + _name + ": expected 20 but found " + toString(values[2].size()) + "!";
+
+	for(int i=0; i<20; i++)
+		_betas[2+i] = values[2][i];
+
+	//copy position (starts at 22!)
+	for(int i=0; i<_maxPosPlusOne; i++)
+		_betas[22 + i] = values[1][i];
+};
+
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::proposeNewParameters(double & lambda, arma::mat & JxF){
+	//call default of base
+	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
+
+	//change betas such that the context are zero on average
+	//first regular context and positions 1 through maxPos
+	/*
+	double mean = 0.0;
+	for(int c=2; c<18; c++)
+		mean += _betas[c];
+	mean /= 16.0;
+	for(int c=2; c<18; c++)
+		_betas[c] -= mean;
+	for(int p = _numParamsWithoutPositions + 1; p < _numParamsWithoutPositions + _maxPosPlusOne; p++)
+		_betas[p] += mean;
+
+	//now for first position
+	mean = 0.0;
+	for(int c=18; c<22; c++)
+		mean += _betas[c];
+	mean /= 4.0;
+	for(int c=18; c<22; c++)
+		_betas[c] -= mean;
+	_betas[_numParamsWithoutPositions] += mean;
+	*/
+};
+
+double TRecalibrationEMModel_qualFuncPosSpecificContextNew::calcEpsilon(const TRecalibrationEMReadData & data){
+	//quality, quality squared
+	double eta = _qualPosMap.eta[data.quality] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+
+	//add context
+	eta += _betas[2 + data.context];
+
+	//add position
+	//Note: no check on maxPos! Assuming it was properly initialized for estimation
+	eta += _betas[_numParamsWithoutPositions + data.position]; //Position starts at 0
+
+	return _calcEpsilon(eta);
+};
+
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+	//fill q
+	double q[2];
+	q[0] = _qualPosMap.eta[data.quality];
+	q[1] = _qualPosMap.etaSquared[data.quality];
+
+	//add to F
+	//-------------------------------------
+	//quality, quality squared: Derivatives are given by the q's
+	F(_myShift    ) += weightF * q[0];
+	F(_myShift + 1) += weightF * q[1];
+
+	//now context: start at position 2 in F!
+	F(_myShift + 2 + data.context) += weightF;
+
+	//now position
+	//NOT FIRST TWO POSITIONS!
+	if(data.position > 1)
+		F(_myShift + _numParamsWithoutPositions + data.position) += weightF;
+
+	//add to Jacobian (only upper triangle)
+	//-------------------------------------
+	//quality and quality squared
+	Jacobian(_myShift    , _myShift    ) +=  weightJacobian * q[0] * q[0];
+	Jacobian(_myShift    , _myShift + 1) +=  weightJacobian * q[0] * q[1];
+	Jacobian(_myShift + 1, _myShift + 1) +=  weightJacobian * q[1] * q[1];
+
+	//intercept x quality
+	int tmpIndexContext = _myShift + 2 + data.context;
+	Jacobian(_myShift    , tmpIndexContext) += weightJacobian * q[0];
+	Jacobian(_myShift + 1, tmpIndexContext) += weightJacobian * q[1];
+
+	//intercept x intercept: only add to diagonal, as all others are 0
+	Jacobian(tmpIndexContext, tmpIndexContext) += weightJacobian;
+
+	//position x quality
+	//NOT FIRST TWO POSITIONS!
+	if(data.position > 1){
+		int tmpIndexPos = _myShift + _numParamsWithoutPositions + data.position;
+		Jacobian(_myShift    , tmpIndexPos) += weightJacobian * q[0];
+		Jacobian(_myShift + 1, tmpIndexPos) += weightJacobian * q[1];
+
+		//position x intercept
+		Jacobian(tmpIndexContext, tmpIndexPos) += weightJacobian;
+
+		//position x position
+		Jacobian(tmpIndexPos, tmpIndexPos) += weightJacobian;
+	}
+	++_numSitesAdded;
+};
+
+std::string TRecalibrationEMModel_qualFuncPosSpecificContextNew::getPositionString(){
+	return concatenateString(&_betas[22], _maxPosPlusOne, ",");
+};
+
+std::string TRecalibrationEMModel_qualFuncPosSpecificContextNew::getContextString(){
+	return concatenateString(&_betas[2], 20, ",");
+};
+
+double TRecalibrationEMModel_qualFuncPosSpecificContextNew::getErrorRate(TBase & base){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	// q[0] is transformed quality
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+	double eta = _betas[0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += _betas[1] * originalErrorRate * originalErrorRate;
+
+	//q[2] until q[21] are indicators for the context. Just pick the matching one!
+	eta += _betas[2 + base.context];
+
+	//As of q[22]: position specific effect
+	if(base.distFrom5Prime >= _maxPosPlusOne)
+		//TODO: give better error. But need read group info for that!
+		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")!";
+
+	eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
+
+	//now calculate epsilon from eta
+	return _calcEpsilon(eta);
+};
+
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+	if(MaxPosPlusOne > _maxPosPlusOne)
+		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
+
+	//quality term
+	double* qualTermForTransformation = new double[MaxQualPlusOne];
+	double tmp;
+	tmp = pow(10.0, -(double) 0.0000000001 / 10.0);
+	qualTermForTransformation[0] = log(tmp / (1.0 - tmp));
+
+	for(int i=1; i<MaxQualPlusOne; ++i){
+		tmp = pow(10.0, -(double) i / 10.0);
+		qualTermForTransformation[i] = log(tmp / (1.0 - tmp));
+	}
+
+	//now fill table
+	for(int q=0; q<MaxQualPlusOne; ++q){
+		for(int p=0; p<MaxPosPlusOne; ++p){
+			for(int c=0; c<20; ++c){
+				//quality scores
+				//now calc transformed quality
+				double constant = _betas[22 + p] + _betas[2 + c] - qualTermForTransformation[q];
+				double transQual;
+
+				if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
+				}
+				if(_betas[1] == 0.0){
+					transQual = -constant / _betas[0];
+				} else {
+					tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
+					transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
+				}
+
+				transQual = exp(transQual);
+				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
+				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+			}
+		}
+	}
+
+	//clean up
+	delete[] qualTermForTransformation;
+};
+
 //--------------------------------------------------------------------
 // Global functions to create models
 //--------------------------------------------------------------------
@@ -900,6 +1114,9 @@ TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, st
 	} else if(modelTag == qualFuncPosSpecificContext_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts.");
 		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, shift);
+	} else if(modelTag == qualFuncPosSpecificContextNew_name){
+		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts (NEW!).");
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(values, shift);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
@@ -916,6 +1133,8 @@ TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, in
 		return new TRecalibrationEMModel_qualFuncPosSpecific(shift, maxPos);
 	} else if(modelTag == qualFuncPosSpecificContext_name){
 		return new TRecalibrationEMModel_qualFuncPosSpecificContext(shift, maxPos);
+	} else if(modelTag == qualFuncPosSpecificContextNew_name){
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(shift, maxPos);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 

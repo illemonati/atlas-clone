@@ -19,6 +19,7 @@
 #define qualFuncPosFuncContext_name "qualFuncPosFuncContext"
 #define qualFuncPosSpecific_name "qualFuncPosSpecific"
 #define qualFuncPosSpecificContext_name "qualFuncPosSpecificContext"
+#define qualFuncPosSpecificContextNew_name "qualFuncPosSpecificContextNew"
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
@@ -130,6 +131,26 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecificContext(int Shift, int MaxPos);
 	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
+
+	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
+	void proposeNewParameters(double & lambda, arma::mat & JxF);
+	double calcEpsilon(const TRecalibrationEMReadData & data);
+	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	std::string getPositionString();
+	std::string getContextString();
+	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+};
+
+class TRecalibrationEMModel_qualFuncPosSpecificContextNew:public TRecalibrationEMModel_Base{
+private:
+	int _maxPosPlusOne;
+	int _numParamsWithoutPositions;
+
+public:
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(int Shift, int MaxPos);
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, int Shift);
+	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
 	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
 	void proposeNewParameters(double & lambda, arma::mat & JxF);
