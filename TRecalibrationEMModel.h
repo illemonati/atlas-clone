@@ -53,7 +53,7 @@ public:
 	int numParameters(){ return _numParameters; };
 	int shift(){ return _myShift; };
 	void setShift(int shift){ _myShift = shift;};
-	virtual bool checkParameterRange(int maxPos){ return true; }; //check if parameters are in correct range
+	virtual void checkParameterRange(int maxPos){}; //check if parameters are in correct range
 	virtual void proposeNewParameters(double & lambda, arma::mat & JxF);
 	void rejectProposedParameters();
 	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
@@ -113,7 +113,7 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecific(){};
 
-	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
+	void checkParameterRange(int maxPos);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
@@ -132,7 +132,7 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
 
-	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
+	void checkParameterRange(int maxPos);
 	void proposeNewParameters(double & lambda, arma::mat & JxF);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
@@ -153,7 +153,7 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
-	bool checkParameterRange(int maxPos){ if(_maxPosMinusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
+	void checkParameterRange(int maxPos);
 	void proposeNewParameters(double & lambda, arma::mat & JxF);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);

@@ -270,7 +270,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	_readGroupMap = ReadGroupMap;
 
 	//models
-	models = new TRecalibrationEMModels(_readGroups->size(), logfile);
+	models = new TRecalibrationEMModels(_readGroupMap->numReadGroups, logfile);
 
 	//estimation parameters
 	logfile->startIndent("Settings regarding the EM algorithm:");

@@ -535,6 +535,11 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 		_betas[_numParamsWithoutPositions + i] = values[1][i];
 };
 
+void TRecalibrationEMModel_qualFuncPosSpecific::checkParameterRange(int maxPos){
+	if(_maxPosPlusOne != maxPos + 1)
+		throw "Largest position in data (" + toString(maxPos + 1) + ") does not match number of position parameters (" + toString(_maxPosPlusOne) + ")!";
+};
+
 double TRecalibrationEMModel_qualFuncPosSpecific::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared
 	double eta = _qualPosMap.eta[data.quality] * _betas[0];
@@ -711,6 +716,11 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 	//copy position (starts at 22!)
 	for(int i=0; i<_maxPosPlusOne; i++)
 		_betas[22 + i] = values[1][i];
+};
+
+void TRecalibrationEMModel_qualFuncPosSpecificContext::checkParameterRange(int maxPos){
+	if(_maxPosPlusOne < maxPos + 1)
+		throw "Largest position in data (" + toString(maxPos + 1) + ") does not match number of position parameters (" + toString(_maxPosPlusOne) + ")!";
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(double & lambda, arma::mat & JxF){
@@ -924,6 +934,11 @@ TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualF
 	//copy position (starts at 22!)
 	for(int i=0; i<_maxPosMinusOne; i++)
 		_betas[22 + i] = values[1][i];
+};
+
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::checkParameterRange(int maxPos){
+	if(_maxPosPlusOne != maxPos + 1)
+		throw "Largest position in data (" + toString(maxPos + 1) + ") does not match number of position parameters (" + toString(_maxPosPlusOne) + ")!";
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContextNew::proposeNewParameters(double & lambda, arma::mat & JxF){
@@ -1196,9 +1211,7 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 void TRecalibrationEMModels::addModelIfItDoesNotExist(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos){
 	if(readGroupIndex.inUse(readGroupId,isSecondMate)){
 		//check model
-		if(!models[readGroupIndex.index(readGroupId, isSecondMate)]->checkParameterRange(maxPos)){
-			throw "Largest position in data (" + toString(maxPos) + ") does not match number of position parameters!";
-		}
+		models[readGroupIndex.index(readGroupId, isSecondMate)]->checkParameterRange(maxPos);
 	} else {
 		//add to read group index
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
@@ -1210,19 +1223,31 @@ void TRecalibrationEMModels::addModelIfItDoesNotExist(int readGroupId, bool isSe
 };
 
 void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
+	//get index of model
 	int index = readGroupIndex.index(readGroupId, isSecondMate);
-	int shift = models[index]->shift();
+
+	//adjust total number of parameters
 	totNumParameters -= models[index]->numParameters();
+
+	//store shift of model to be erased for later use
+	int shift = models[index]->shift();
+
+	//erase
 	std::vector<TRecalibrationEMModel_Base*>::iterator it = models.erase(models.begin() + index);
+
+	//update shift of all model after the one erased
 	for(; it != models.end(); ++it){
 		(*it)->setShift(shift);
 		shift += (*it)->numParameters();
 	}
+
+	//update read group index
+	readGroupIndex.setAsNotUsed(readGroupId, isSecondMate);
 };
 
 void TRecalibrationEMModels::createModels(std::string string, TReadGroups & readGroups, TReadGroupMap & readGroupMap){
 	//initialize from string or file
-	int pos = string.find_first_of('[');
+	size_t pos = string.find_first_of('[');
 	if(pos == std::string::npos)
 		_createModelsFromFile(string, readGroups, readGroupMap);
 	else
@@ -1284,6 +1309,7 @@ void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGr
 			if(readGroups.readGroupExists(vec[0])){
 				//read read group, mate and model
 				int rg = readGroupMap.getIndex(readGroups.find(vec[0]));
+
 				bool isSecondMate;
 				if(vec[1] == "second")
 					isSecondMate = true;
@@ -1292,13 +1318,16 @@ void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGr
 				else
 					throw "Unknown mate '" + vec[1] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
 
-				std::string modelTag = vec[2];
+				//if read group is pooled. And if so, only create model using the values of the first read group of the pool
+				if(!modelExists(rg, isSecondMate)){
+					std::string modelTag = vec[2];
 
-				//clean up vec to only contain parameters (remove read group, mate, model and LL)
-				vec.erase(vec.begin(), vec.begin() + 3);
+					//clean up vec to only contain parameters (remove read group, mate, model and LL)
+					vec.erase(vec.begin(), vec.begin() + 3);
 
-				//create model
-				addModel(rg, isSecondMate, modelTag, vec, false);
+					//create model
+					addModel(rg, isSecondMate, modelTag, vec, false);
+				}
 			} else {
 				logfile->warning("Read group '" + vec[0] + "' does not exist in the BAM header! Are you using the correct recal file?");
 			}
@@ -1308,10 +1337,9 @@ void TRecalibrationEMModels::_createModelsFromFile(std::string filename, TReadGr
 
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	if(hasReadGroupsWithoutModel()){
-//		logfile->warning("Missing read groups in file '" + filename + "'!");
-		warningForMissingReadGroups(readGroups);
+		warningForMissingReadGroups(readGroups, readGroupMap);
 		logfile->startIndent("Will assume the following read groups to be single end (no recalibration provided for second mate):");
-		reportReadGroupsConsideredSingleEnd(readGroups);
+		reportReadGroupsConsideredSingleEnd(readGroups, readGroupMap);
 		addNoRecalModelIfMissing();
 		logfile->endIndent();
 	}
