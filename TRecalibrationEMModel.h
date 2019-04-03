@@ -131,6 +131,7 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
 
+	bool checkParameterRange(int maxPos){ if(_maxPosPlusOne == maxPos + 1) return true; else return false; }; //check if parameters are in correct range
 	void proposeNewParameters(double & lambda, arma::mat & JxF);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);

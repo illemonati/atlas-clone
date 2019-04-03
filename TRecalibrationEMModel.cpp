@@ -751,9 +751,6 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TReca
 
 	//add position
 	//Note: no check on maxPos! Assuming it was properly initialized for estimation
-//	std::cout << data.context << std::endl;
-//	std::cout << data.position << std::endl;
-//	std::cout << _maxPosPlusOne << std::endl;
 	eta += _betas[_numParamsWithoutPositions + data.position]; //Position starts at 0
 
 	return _calcEpsilon(eta);
