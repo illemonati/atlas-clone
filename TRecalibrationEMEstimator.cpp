@@ -57,27 +57,27 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
-	double tmp;
-	float B;
 	for(int g=0; g<4; ++g){
-		tmp = 1.0;
+		double tmp = 1.0;
 		//loop over all reads
 		for(unsigned int k=0; k<numReads; ++k){
-			B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 			tmp *= B * epsilon[k] - data[k].D[g] + 1.0;
 		}
 		P_g_given_d_oldBeta[g] = tmp * freqs[g];
 		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
 	}
 
+	double max = 0.0;
+
 	if(P_g_given_d_theta_denominator < 1.0E-25){
 		//do again but in log
-		double max = 0.0;
+
 		for(int g=0; g<4; ++g){
-			tmp = 0.0;
+			double tmp = 0.0;
 			//loop over all reads
 			for(unsigned int k=0; k<numReads; ++k){
-				B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+				double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
 			}
 			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
@@ -99,8 +99,8 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 	}
 
 	//return LL = P_g_given_d_theta_denominator
-	return log(P_g_given_d_theta_denominator);
-}
+	return log(P_g_given_d_theta_denominator) + max;
+};
 
 double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon){
 	calcEpsilon(models, epsilon);
@@ -117,9 +117,33 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, float* & fr
 		LL += tmp * freqs[g];
 	}
 
-	//return LL = P_g_given_d_theta_denominator
-	return log(LL);
-}
+	if(LL < 1.0E-25){
+		//do again but in log
+		double max = 0.0;
+		double tmp_log[4];
+		for(int g=0; g<4; ++g){
+			double tmp = 0.0;
+			//loop over all reads
+			for(unsigned int k=0; k<numReads; ++k){
+				double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
+			}
+			tmp_log[g] = tmp + log(freqs[g]);
+			if(g==0) max = tmp_log[g];
+			else if(tmp_log[g] > max) max = tmp_log[g];
+		}
+
+		//rescale and delog
+		LL = 0.0;
+		for(int g=0; g<4; ++g){
+			LL += exp(tmp_log[g] - max);
+		}
+
+		return log(LL) + max;
+	} else {
+		return log(LL);
+	}
+};
 
 double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, float* & epsilon){
 	calcEpsilon(models, epsilon);
@@ -405,6 +429,11 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
 		//DEBUG--------------------------------------------------------
+		//calc and print LL
+		//logfile->conclude("DEBUG LL = " + toString(calcLL()));
+		//DEBUG--------------------------------------------------------
+
+		//DEBUG--------------------------------------------------------
 		//calc Q surface for current old params
 		//calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 21);
 		//DEBUG--------------------------------------------------------
@@ -572,7 +601,7 @@ double TRecalibrationEMEstimator::calcLL(){
 	for(TRecalibrationEMWindow* curWindow : windows)
 		LL += curWindow->calcLL(*models, tmpEpsilon);
 	return LL;
-}
+};
 
 /*
 void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
