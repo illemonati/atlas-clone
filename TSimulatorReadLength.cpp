@@ -70,7 +70,7 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGen
 	alpha = -1.0;
 	beta = -1.0;
 	_min = -1.0;
-	_max = -1.0;
+	_maxPlusOne = -1.0;
 	meanLength = -1.0;
 
 	gammaDensity = NULL;
@@ -113,16 +113,16 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
-	_max = stringToDouble(s.substr(0,pos));
-	if(_max <= _min)
+	_maxPlusOne = stringToDouble(s.substr(0,pos));
+	if(_maxPlusOne <= _min)
 			throw "Fail to understand function '" + orig + "': max must be > min!";
 };
 
 void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	//prepare storage
-	gammaDensity = new double[_max];
-	gammaCumulDensity = new double[_max];
-	positionProbs = new double[_max];
+	gammaDensity = new double[_maxPlusOne];
+	gammaCumulDensity = new double[_maxPlusOne];
+	positionProbs = new double[_maxPlusOne];
 	initialized = true;
 
 	//1) calc density and get weighted average
@@ -132,37 +132,37 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 
 	//then calculate densities for all bins <_max
 	double gammaDensity_i;
-	for(int i=_min; i<(_max-1); ++i){
+	for(int i=_min; i<(_maxPlusOne-1); ++i){
 		gammaDensity[i] = exp(randomGenerator->gammaLogDensityFunction(i, alpha, beta));
 		totalArea += gammaDensity[i];
 	}
 
 	//add area >= max and 0's for < min to table
-	gammaDensity[_max - 1] = (1.0 - randomGenerator->gammaCumulativeDistributionFunction(_max - 0.5, alpha, beta));
-	totalArea += gammaDensity[_max - 1];
+	gammaDensity[_maxPlusOne - 1] = (1.0 - randomGenerator->gammaCumulativeDistributionFunction(_maxPlusOne - 0.5, alpha, beta));
+	totalArea += gammaDensity[_maxPlusOne - 1];
 
 	//normalize densities (needed because truncated at _min)
 	//also calc mean read length
 	meanLength = 0.0;
-	for(int i=_min; i<_max; ++i){
+	for(int i=_min; i<_maxPlusOne; ++i){
 		gammaDensity[i] /= totalArea;
 		meanLength += i * gammaDensity[i];
 	}
 
 	//2) make table for cumulative gamma distribution
 	gammaCumulDensity[0] = gammaDensity[0];
-	for(int i=1; i < _max; ++i)	gammaCumulDensity[i] = gammaCumulDensity[i-1] + gammaDensity[i];
+	for(int i=1; i < _maxPlusOne; ++i)	gammaCumulDensity[i] = gammaCumulDensity[i-1] + gammaDensity[i];
 
 	//3) distribution of position probabilities (=normalized 1 - cumul)
 	positionProbs[0] = 1.0; //position 1 is always present in read
 	double sum = positionProbs[0];
-	for(int i=1; i < _max; ++i){
+	for(int i=1; i < _maxPlusOne; ++i){
 		positionProbs[i] = 1.0 -  gammaCumulDensity[i-1];
 		sum += positionProbs[i];
 	}
 
 	//normalize
-	for(int i=0; i < _max; ++i)
+	for(int i=0; i < _maxPlusOne; ++i)
 		positionProbs[i] /= sum;
 
 	if(gammaCumulDensity[_min] > 0.5) logfile->warning("This readLength distribution results in "+ toString(gammaCumulDensity[_min]*100) + "% discarded fragments because they are smaller than the minimum read length! Choose different parameters to reduce run time.");
@@ -172,12 +172,12 @@ void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
 	fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
 	while(fragmentLength < _min)
 		fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	readLength = std::min(fragmentLength, _max);
+	readLength = std::min(fragmentLength, _maxPlusOne);
 }
 
 void TSimulatorReadLengthGamma::printDetails(TLog* logfile){
 	logfile->list("Gamma distributed fragment length with alpha=" + toString(alpha) + " and beta=" + toString(beta) + " of at least " + toString(_min) + ".");
-	logfile->list("Fragments  > " + toString(_max) + " will result in reads of length " + toString(_max) + ".");
+	logfile->list("Fragments  > " + toString(_maxPlusOne) + " will result in reads of length " + toString(_maxPlusOne) + ".");
 	if(probAcceptance() < 0.9)
 		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };
@@ -208,7 +208,7 @@ TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string & s, TR
 
 void TSimulatorReadLengthGammaMode::printDetails(TLog* logfile){
 	logfile->list("Gamma distributed fragment length with mode=" + toString(mode) + " and variance=" + toString(var) + " of at least " + toString(_min) + ".");
-	logfile->list("Fragments  > " + toString(_max) + " will result in reads of length " + toString(_max) + ".");
+	logfile->list("Fragments  > " + toString(_maxPlusOne) + " will result in reads of length " + toString(_maxPlusOne) + ".");
 	if(probAcceptance() < 0.9)
 		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };

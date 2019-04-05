@@ -40,7 +40,7 @@ class TSimulatorReadLengthGamma:public TSimulatorReadLength{
 protected:
 	double meanLength;
 	double alpha, beta;
-	int _min, _max;
+	int _min, _maxPlusOne;
 	bool initialized;
 
 	double* gammaDensity;
@@ -60,7 +60,7 @@ public:
 		}
 	};
 	void sample(int & readLength, int & fragmentLength);
-	virtual int max(){return _max;};
+	virtual int max(){return _maxPlusOne;};
 	virtual double mean(){return meanLength;};
 	virtual void printDetails(TLog* logfile);
 };
