@@ -1267,10 +1267,10 @@ TRecalibrationEMModels::~TRecalibrationEMModels(){
 		delete it;
 };
 
-void TRecalibrationEMModels::_addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose){
+void TRecalibrationEMModels::_addModel(int readGroupId, std::string & modelTag, std::vector<std::string> & values, bool verbose){
 	trimString(modelTag);
 
-	models.push_back(createTRecalibrationEMModel(modelTag, values, verbose, logfile));
+	models.push_back(createTRecalibrationEMModel(readGroupId, modelTag, values, verbose, logfile));
 
 	totNumParameters += models.back()->numParameters();
 };
@@ -1290,7 +1290,7 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 	readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
 	//add model according to tag
-	_addModel(modelTag, values, verbose);
+	_addModel(readGroupId, modelTag, values, verbose);
 };
 
 void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos){
@@ -1298,7 +1298,7 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 	readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
 	//create model
-	models.push_back(createTRecalibrationEMModel(modelTag, maxPos, false, logfile));
+	models.push_back(createTRecalibrationEMModel(readGroupId, modelTag, maxPos, false, logfile));
 	totNumParameters += models.back()->numParameters();
 };
 
@@ -1311,7 +1311,7 @@ void TRecalibrationEMModels::addModelIfItDoesNotExist(int readGroupId, bool isSe
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
 		//create model
-		models.push_back(createTRecalibrationEMModel(modelTag, maxPos, false, logfile));
+		models.push_back(createTRecalibrationEMModel(readGroupId, modelTag, maxPos, false, logfile));
 		totNumParameters += models.back()->numParameters();
 	}
 };
@@ -1324,7 +1324,7 @@ void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
 	totNumParameters -= models[index]->numParameters();
 
 	//erase
-	std::vector<TRecalibrationEMModel_Base*>::iterator it = models.erase(models.begin() + index);
+	models.erase(models.begin() + index);
 
 	//update read group index
 	readGroupIndex.setAsNotUsed(readGroupId, isSecondMate);

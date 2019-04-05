@@ -184,8 +184,8 @@ public:
 //--------------------------------------------------------------------
 // Global function to create models
 //--------------------------------------------------------------------
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, std::vector<std::string> & values, bool verbose, TLog* logfile);
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, int maxPos, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, std::vector<std::string> & values, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, int maxPos, bool verbose, TLog* logfile);
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModels
@@ -198,7 +198,7 @@ private:
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	TLog* logfile;
 
-	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
+	void _addModel(int readGroupId, std::string & modelTag, std::vector<std::string> & values, bool verbose);
 	void _createModelsFromString(std::string & string, TReadGroups & readGroups);
 	void _createModelsFromFile(std::string filename, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 

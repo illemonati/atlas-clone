@@ -475,8 +475,6 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 };
 
 void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
-	bool NRconverged = false;
-
 	//calculate Q at current location
 	models->setQToZero();
 	for(TRecalibrationEMWindow* curWindow : windows)
@@ -500,7 +498,6 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 
 		//update params for each read group using backtracking
 		double lambda = 1.0;
-		bool acceptMove = false;
 		int numUpdatedModels = 0;
 		int numUpdatedModels_old;
 
@@ -520,6 +517,8 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 			double Q = models->curQ();
 
 			logfile->write(toString(numUpdatedModels) + "/" + toString(models->numModels()) + " models converged.");
+
+			std::cout << "numUpdatedModels = " << numUpdatedModels << " > numUpdatedModels_old = " << numUpdatedModels_old << std::endl;
 
 			if(numUpdatedModels > numUpdatedModels_old){
 				logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
