@@ -98,7 +98,112 @@ double TRecalibrationEMModel_Base::_calcEpsilon(double & eta){
 	return eta / (1.0 + eta);
 };
 
-void TRecalibrationEMModel_Base::proposeNewParameters(double & lambda, arma::mat & JxF){
+void TRecalibrationEMModel_Base::setEMParamsToZero(){
+	Jacobian.resize(_numParameters, _numParameters);
+	F.resize(_numParameters);
+	JxF.resize(_numParameters, 1);
+
+	Jacobian.zeros();
+	F.zeros();
+
+	_numSitesAdded = 0;
+};
+
+
+void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
+	bool NRconverged = false;
+
+	//calculate Q at current location
+	double curQ = 0.0;
+	for(TRecalibrationEMWindow* curWindow : windows)
+		curQ += curWindow->calcQ(*models, tmpEpsilon);
+
+	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
+	logfile->startIndent("Running Newton-Raphson optimization:");
+	for(int i=0; i<NewtonRaphsonNumIterations; ++i){
+		logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
+		logfile->listFlush("Calculating Jacobian and gradient ...");
+
+		//set to zero
+		models->setEMParamsToZero();
+
+		//fill Jacobin and F: loop over all sites
+		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
+			(*curWindow)->addToJacobianAndF(*models, tmpEpsilon);
+
+		//now solve J^-1 x F
+		if(models->solveJxF(numSitesWithData)){
+			logfile->done();
+
+			//update params for each read group using backtracking
+			double lambda = 1.0;
+			bool acceptMove = false;
+			while(!acceptMove){
+				logfile->listFlush("Proposing move with log10(lambda) = " + toString(log10(lambda)) + " ...");
+				models->proposeNewParameters(lambda);
+
+				//calculate Q at new location
+				double Q = 0.0;
+				for(TRecalibrationEMWindow* curWindow : windows)
+					Q += curWindow->calcQ(*models, tmpEpsilon);
+
+				//check if we accept or backtrack
+				if(Q > curQ){
+					acceptMove = true; //accept
+					logfile->write(" accepting move!");
+					logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
+					curQ = Q;
+				} else {
+					lambda = lambda / 2.0; //backtrack;
+					logfile->write(" rejecting move!");
+					models->rejectProposedParameters();
+					if(lambda < 1.0E-20){
+						acceptMove = true; //accept
+						NRconverged = true;
+						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
+					}
+				}
+			}
+		} else {
+			models->printJacobianToStdOut();
+			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
+		}
+
+		//get largest gradient (F) to check if we break
+		double maxF = models->getSteepestGradient();
+		logfile->conclude("max(F) = " + toString(maxF));
+		logfile->endIndent();
+		if(maxF < NewtonRaphsonMaxF || NRconverged) break;
+	}
+	logfile->endIndent();
+};
+
+
+bool TRecalibrationEMModel_Base::solveJxF(){
+	//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
+	for(unsigned int i=0; i<(_numParameters-1); ++i){
+		for(unsigned int j=i+1; j<_numParameters; ++j){
+			//copy from upper triangle to lower triangle
+			Jacobian(j,i) = Jacobian(i,j);
+		}
+	}
+
+	//scale F and J by 1/#sites
+	Jacobian = Jacobian / (double) _numSitesAdded;
+	F = F / (double) _numSitesAdded;
+
+	/*
+	std::cout << "F =";
+	for(int i=0; i<F.size(); ++i)
+		std::cout << " " << F(i);
+	std::cout << std::endl;
+*/
+
+	//now solve J^-1 x F
+	return solve(JxF, Jacobian, F);
+};
+
+void TRecalibrationEMModel_Base::proposeNewParameters(double & lambda){
 	//save old parameters
 	for(unsigned int i=0; i<_numParameters; ++i)
 		_oldBetas[i] = _betas[i];
@@ -206,7 +311,7 @@ double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEM
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[4];
 	q[0] = _qualPosMap.eta[data.quality];
@@ -366,7 +471,7 @@ double TRecalibrationEMModel_qualFuncPosFuncContext::calcEpsilon(const TRecalibr
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[4];
 	q[0] = _qualPosMap.eta[data.quality];
@@ -554,7 +659,7 @@ double TRecalibrationEMModel_qualFuncPosSpecific::calcEpsilon(const TRecalibrati
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecific::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel_qualFuncPosSpecific::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
 	q[0] = _qualPosMap.eta[data.quality];
@@ -723,9 +828,9 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::checkParameterRange(int m
 		throw "Largest position in data (" + toString(maxPos + 1) + ") does not match number of position parameters (" + toString(_maxPosPlusOne) + ")!";
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(double & lambda, arma::mat & JxF){
+void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(double & lambda){
 	//call default of base
-	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
+	TRecalibrationEMModel_Base::proposeNewParameters(lambda);
 
 	//change betas such that the context are zero on average
 	//first regular context and positions 1 through maxPos
@@ -763,7 +868,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TReca
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
 	q[0] = _qualPosMap.eta[data.quality];
@@ -899,14 +1004,14 @@ TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualF
 	_maxPosMinusOne = MaxPos - 1;
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosMinusOne;
-	_name = qualFuncPosSpecificContext_name;
+	_name = qualFuncPosSpecificContextNew_name;
 
 	_allocateBetaMemory();
 };
 
 TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
 	_numParamsWithoutPositions = 22;
-	_name = qualFuncPosSpecificContext_name;
+	_name = qualFuncPosSpecificContextNew_name;
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -941,9 +1046,9 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::checkParameterRange(in
 		throw "Largest position in data (" + toString(maxPos + 1) + ") does not match number of position parameters (" + toString(_maxPosPlusOne) + ")!";
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContextNew::proposeNewParameters(double & lambda, arma::mat & JxF){
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::proposeNewParameters(double & lambda){
 	//call default of base
-	TRecalibrationEMModel_Base::proposeNewParameters(lambda, JxF);
+	TRecalibrationEMModel_Base::proposeNewParameters(lambda);
 
 	//change betas such that the context are zero on average
 	//first regular context and positions 1 through maxPos
@@ -984,7 +1089,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContextNew::calcEpsilon(const TR
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
 	q[0] = _qualPosMap.eta[data.quality];
@@ -1381,16 +1486,13 @@ void TRecalibrationEMModels::warningForMissingReadGroups(TReadGroups & readGroup
 };
 
 void TRecalibrationEMModels::setEMParamsToZero(){
-	Jacobian.resize(totNumParameters, totNumParameters);
-	F.resize(totNumParameters);
-	JxF.resize(totNumParameters, 1);
-
-	Jacobian.zeros();
-	F.zeros();
+	for(TRecalibrationEMModel_Base* model : models){
+		model->setEMParamsToZero();
+	}
 };
 
 void TRecalibrationEMModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
-	models[ readGroupIndex.index(data) ]->addToFandJacobian(F, Jacobian, data, weightF, weightJacobian);
+	models[ readGroupIndex.index(data) ]->addToFandJacobian(data, weightF, weightJacobian);
 };
 
 bool TRecalibrationEMModels::solveJxF(const int numSites){

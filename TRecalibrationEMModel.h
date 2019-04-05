@@ -30,11 +30,16 @@ protected:
 	unsigned int _numParameters;
 	int _myShift;
 	TRecalibrationEMQualityPositionMap _qualPosMap;
-	long _numSitesAdded;
+	unsigned int _numSitesAdded;
 
 	double* _betas; //betas of the model
 	double* _oldBetas; //use during estimation
 	bool _initialized;
+
+	//Newton Raphson Parameters
+	arma::mat Jacobian;
+	arma::vec F;
+	arma::mat JxF;
 
 	void _parseParameterString(std::vector<std::string> & vec, std::vector<double>* values);
 	void parseQualityParameters(double* betaPointer, std::vector<double> & values); //default function assuming quadratic model
@@ -53,11 +58,15 @@ public:
 	int numParameters(){ return _numParameters; };
 	int shift(){ return _myShift; };
 	void setShift(int shift){ _myShift = shift;};
+	void setEMParamsToZero();
 	virtual void checkParameterRange(int maxPos){}; //check if parameters are in correct range
-	virtual void proposeNewParameters(double & lambda, arma::mat & JxF);
+
+	bool solveJxF();
+
+	virtual void proposeNewParameters(double & lambda);
 	void rejectProposedParameters();
 	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
-	virtual void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
+	virtual void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
 	void writeParametersToFile(TOutputFilePlain & out);
 	std::string getModelString();
 	virtual std::string getQualityString(); //default function assuming quadratic model
@@ -85,7 +94,7 @@ public:
 	~TRecalibrationEMModel_qualFuncPosFunc(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getContextString();
 	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
@@ -98,7 +107,7 @@ public:
 	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	double getErrorRate(TBase & base);
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
@@ -115,7 +124,7 @@ public:
 
 	void checkParameterRange(int maxPos);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
@@ -133,9 +142,9 @@ public:
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
 
 	void checkParameterRange(int maxPos);
-	void proposeNewParameters(double & lambda, arma::mat & JxF);
+	void proposeNewParameters(double & lambda);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
@@ -154,9 +163,9 @@ public:
 	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
 	void checkParameterRange(int maxPos);
-	void proposeNewParameters(double & lambda, arma::mat & JxF);
+	void proposeNewParameters(double & lambda);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(arma::vec & F, arma::mat & Jacobian, const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
@@ -179,11 +188,6 @@ private:
 	unsigned int totNumParameters;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	TLog* logfile;
-
-	//Newton Raphson Parameters
-	arma::mat Jacobian;
-	arma::vec F;
-	arma::mat JxF;
 
 	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
 	void _createModelsFromString(std::string & string, TReadGroups & readGroups);

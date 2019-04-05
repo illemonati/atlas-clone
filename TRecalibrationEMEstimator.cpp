@@ -149,17 +149,14 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, float* & eps
 	calcEpsilon(models, epsilon);
 
 	//now calculate P(d, g, new params)
-	double P_d_given_g_beta;
 	double Q = 0.0;
-	float B;
 
 	for(int g=0; g<4; ++g){
-		P_d_given_g_beta = 1.0;
+		double P_d_given_g_beta = 1.0;
 		//loop over all reads
 		for(unsigned int k=0; k<numReads; ++k){
-			B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
 			P_d_given_g_beta *= B * epsilon[k] - data[k].D[g] + 1;
-//			P_d_given_g_beta *= B[g][k] * epsilon[k] - D[g][k] + 1;
 		}
 
 		if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
