@@ -30,7 +30,7 @@ public:
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
-	void updateAndAccept(double value, bool inModelWithF);
+	void updateAndAccept(const double & value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
 	void resetPosterior();
 	float probMovingToModelNoF();
@@ -191,6 +191,7 @@ public:
 		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
+	double getLogLikelihoodCurrentParams();
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);
