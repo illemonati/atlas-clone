@@ -10,7 +10,7 @@
 //---------------------------------------------------------------
 //TRecalibrationEMModel_Base
 //---------------------------------------------------------------
-TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(uint16_t ReadGroupId){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -18,23 +18,18 @@ TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(){
 	// - square of position
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 24 variables to estimate
+	_readGroupId = ReadGroupId;
 	_initialized = false;
 	_numSitesAdded = 0;
-	_myShift = 0;
 	_betas = NULL;
 	_oldBetas = NULL;
 	_numParameters = 0;
 	_name = "base";
-};
-
-TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(int Shift){
-	_initialized = false;
+	_NRStepAccepted = false;
 	_numSitesAdded = 0;
-	_myShift = Shift;
-	_betas = NULL;
-	_oldBetas = NULL;
-	_numParameters = 0;
-	_name = "base";
+	_NRconverged = false;
+	_Q = 0.0;
+	_oldQ = 0.0;
 };
 
 void TRecalibrationEMModel_Base::_parseParameterString(std::vector<std::string> & vec, std::vector<double>* values){
@@ -107,115 +102,109 @@ void TRecalibrationEMModel_Base::setEMParamsToZero(){
 	F.zeros();
 
 	_numSitesAdded = 0;
+	_NRconverged = false;
 };
 
+void TRecalibrationEMModel_Base::setQToZero(){
+	if(!_NRStepAccepted){
+		_oldQ = _Q;
+		_Q = 0.0;
+	}
+};
 
-void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
-	bool NRconverged = false;
-
-	//calculate Q at current location
-	double curQ = 0.0;
-	for(TRecalibrationEMWindow* curWindow : windows)
-		curQ += curWindow->calcQ(*models, tmpEpsilon);
-
-	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
-	logfile->startIndent("Running Newton-Raphson optimization:");
-	for(int i=0; i<NewtonRaphsonNumIterations; ++i){
-		logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
-		logfile->listFlush("Calculating Jacobian and gradient ...");
-
-		//set to zero
-		models->setEMParamsToZero();
-
-		//fill Jacobin and F: loop over all sites
-		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
-			(*curWindow)->addToJacobianAndF(*models, tmpEpsilon);
-
-		//now solve J^-1 x F
-		if(models->solveJxF(numSitesWithData)){
-			logfile->done();
-
-			//update params for each read group using backtracking
-			double lambda = 1.0;
-			bool acceptMove = false;
-			while(!acceptMove){
-				logfile->listFlush("Proposing move with log10(lambda) = " + toString(log10(lambda)) + " ...");
-				models->proposeNewParameters(lambda);
-
-				//calculate Q at new location
-				double Q = 0.0;
-				for(TRecalibrationEMWindow* curWindow : windows)
-					Q += curWindow->calcQ(*models, tmpEpsilon);
-
-				//check if we accept or backtrack
-				if(Q > curQ){
-					acceptMove = true; //accept
-					logfile->write(" accepting move!");
-					logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
-					curQ = Q;
-				} else {
-					lambda = lambda / 2.0; //backtrack;
-					logfile->write(" rejecting move!");
-					models->rejectProposedParameters();
-					if(lambda < 1.0E-20){
-						acceptMove = true; //accept
-						NRconverged = true;
-						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
-					}
+void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, float* P_g_given_d_oldBeta){
+	if(!_NRStepAccepted){
+		for(int g=0; g<4; ++g){
+			double P_d_given_g_beta = 1.0;
+			//loop over all reads
+			for(unsigned int k=0; k<numReads; ++k){
+				if(data[k].readGroup == _readGroupId){
+					double eps = calcEpsilon(data[k]);
+					double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
+					P_d_given_g_beta *= B * eps - data[k].D[g] + 1.0;
 				}
 			}
-		} else {
-			models->printJacobianToStdOut();
-			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
-		}
 
-		//get largest gradient (F) to check if we break
-		double maxF = models->getSteepestGradient();
-		logfile->conclude("max(F) = " + toString(maxF));
-		logfile->endIndent();
-		if(maxF < NewtonRaphsonMaxF || NRconverged) break;
+			//if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
+			_Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
+		}
 	}
-	logfile->endIndent();
 };
 
-
 bool TRecalibrationEMModel_Base::solveJxF(){
-	//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-	for(unsigned int i=0; i<(_numParameters-1); ++i){
-		for(unsigned int j=i+1; j<_numParameters; ++j){
-			//copy from upper triangle to lower triangle
-			Jacobian(j,i) = Jacobian(i,j);
+	if(!_NRStepAccepted){
+		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
+		for(unsigned int i=0; i<(_numParameters-1); ++i){
+			for(unsigned int j=i+1; j<_numParameters; ++j){
+				//copy from upper triangle to lower triangle
+				Jacobian(j,i) = Jacobian(i,j);
+			}
 		}
+
+		//scale F and J by 1/#sites
+		Jacobian = Jacobian / (double) _numSitesAdded;
+		F = F / (double) _numSitesAdded;
+
+		/*
+		std::cout << "F =";
+		for(int i=0; i<F.size(); ++i)
+			std::cout << " " << F(i);
+		std::cout << std::endl;
+	*/
+
+		//now solve J^-1 x F
+		return solve(JxF, Jacobian, F);
 	}
-
-	//scale F and J by 1/#sites
-	Jacobian = Jacobian / (double) _numSitesAdded;
-	F = F / (double) _numSitesAdded;
-
-	/*
-	std::cout << "F =";
-	for(int i=0; i<F.size(); ++i)
-		std::cout << " " << F(i);
-	std::cout << std::endl;
-*/
-
-	//now solve J^-1 x F
-	return solve(JxF, Jacobian, F);
+	return true;
 };
 
 void TRecalibrationEMModel_Base::proposeNewParameters(double & lambda){
-	//save old parameters
-	for(unsigned int i=0; i<_numParameters; ++i)
-		_oldBetas[i] = _betas[i];
+	if(!_NRStepAccepted){
+		//save old parameters
+		for(unsigned int i=0; i<_numParameters; ++i)
+			_oldBetas[i] = _betas[i];
 
-	//update new ones
-	for(unsigned int i=0; i<_numParameters; ++i)
-		_betas[i] = _oldBetas[i] - lambda * JxF(_myShift + i);
+		//update new ones
+		for(unsigned int i=0; i<_numParameters; ++i)
+			_betas[i] = _oldBetas[i] - lambda * JxF(i);
+	}
+};
+
+bool TRecalibrationEMModel_Base::acceptProposedParametersBasedOnQ(){
+	if(_NRStepAccepted) return true;
+	if(_Q > _oldQ){
+		_NRStepAccepted = true;
+	} else {
+		_NRStepAccepted = false;
+		rejectProposedParameters();
+		_Q = _oldQ;
+	}
+	return _NRStepAccepted;
 };
 
 void TRecalibrationEMModel_Base::rejectProposedParameters(){
 	for(unsigned int i=0; i<_numParameters; ++i)
 		_betas[i] = _oldBetas[i];
+};
+
+double TRecalibrationEMModel_Base::getSteepestGradient(){
+	double maxF = 0.0;
+	for(unsigned int i=0; i<_numParameters; ++i){
+		if(fabs(F(i)) > maxF) maxF = fabs(F(i));
+	}
+	return maxF;
+};
+
+void TRecalibrationEMModel_Base::printJacobianToStdOut(){
+	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian << std::endl << std::endl;
+};
+
+void TRecalibrationEMModel_Base::printFToStdOut(){
+	std::cout << std::endl << std::endl << "F:" << std::endl << F << std::endl << std::endl;
+};
+
+void TRecalibrationEMModel_Base::printJxFToStdOut(){
+	std::cout << std::endl << std::endl << "JxF:" << std::endl << JxF << std::endl << std::endl;
 };
 
 void TRecalibrationEMModel_Base::writeParametersToFile(TOutputFilePlain & out){
@@ -244,7 +233,7 @@ std::string TRecalibrationEMModel_Base::getContextString(){
 //---------------------------------------------------------------
 //TRecalibrationEMModel_noRecal
 //---------------------------------------------------------------
-TRecalibrationEMModel_noRecal::TRecalibrationEMModel_noRecal(int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_noRecal::TRecalibrationEMModel_noRecal(uint16_t ReadGroupId):TRecalibrationEMModel_Base(ReadGroupId){
 	_numParameters = 0;
 	_name = noRecal_name;
 };
@@ -271,7 +260,7 @@ void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** 
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosFunc
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(uint16_t ReadGroupId):TRecalibrationEMModel_Base(ReadGroupId){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -284,7 +273,7 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(int
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFunc(Shift){
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(uint16_t ReadGroupId, std::vector<std::string> & vec):TRecalibrationEMModel_qualFuncPosFunc(ReadGroupId){
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -322,27 +311,27 @@ void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(const TRecalibrati
 	//add to F
 	//-------------------------------------
 	//quality, quality squared, position, position squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
-	F(_myShift + 2) += weightF * q[2];
-	F(_myShift + 3) += weightF * q[3];
+	F(0) += weightF * q[0];
+	F(1) += weightF * q[1];
+	F(2) += weightF * q[2];
+	F(3) += weightF * q[3];
 
 	//now intercept: is at position 4 in F!
-	F(_myShift + 4) += weightF;
+	F(4) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
 	//all rows except context
 	for(int row=0; row<4; ++row){
 		for(int col=row; col<4; ++col){
-			Jacobian(_myShift + row, _myShift + col) +=  weightJacobian * q[row] * q[col];
+			Jacobian(row, col) +=  weightJacobian * q[row] * q[col];
 		}
 	}
 
 	//intercept column
-	int tmpIndex = _myShift + 4;
+	int tmpIndex = 4;
 	for(int p=0; p<4; ++p){
-		Jacobian(_myShift + p, tmpIndex) += weightJacobian * q[p];
+		Jacobian(p, tmpIndex) += weightJacobian * q[p];
 	}
 	//intercept x intercept
 	Jacobian(tmpIndex, tmpIndex) += weightJacobian;
@@ -429,7 +418,7 @@ void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation
 //---------------------------------------------------------------
 //TRecalibrationEMModel
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(uint16_t ReadGroupId):TRecalibrationEMModel_Base(ReadGroupId){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -442,7 +431,7 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_qualFuncPosFuncContext(Shift){
+TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(uint16_t ReadGroupId, std::vector<std::string> & vec):TRecalibrationEMModel_qualFuncPosFuncContext(ReadGroupId){
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -482,27 +471,27 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(const TReca
 	//add to F
 	//-------------------------------------
 	//quality, quality squared, position, position squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
-	F(_myShift + 2) += weightF * q[2];
-	F(_myShift + 3) += weightF * q[3];
+	F(0) += weightF * q[0];
+	F(1) += weightF * q[1];
+	F(2) += weightF * q[2];
+	F(3) += weightF * q[3];
 
 	//now context: start at position 4 in F!
-	F(_myShift + 4 + data.context) += weightF;
+	F(4 + data.context) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
 	//all rows except context
 	for(int row=0; row<4; ++row){
 		for(int col=row; col<4; ++col){
-			Jacobian(_myShift + row, _myShift + col) +=  weightJacobian * q[row] * q[col];
+			Jacobian(row, col) +=  weightJacobian * q[row] * q[col];
 		}
 	}
 
 	//context column
-	int tmpIndex = _myShift + 4 + data.context;
+	int tmpIndex = 4 + data.context;
 	for(int p=0; p<4; ++p){
-		Jacobian(_myShift + p, tmpIndex) += weightJacobian * q[p];
+		Jacobian(p, tmpIndex) += weightJacobian * q[p];
 	}
 
 	//context x context: only add to diagonal, as all others are 0
@@ -584,7 +573,7 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecific
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(uint16_t ReadGroupId, int MaxPos):TRecalibrationEMModel_Base(ReadGroupId){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 0 to maxPos
@@ -598,7 +587,7 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(uint16_t ReadGroupId, std::vector<std::string> & vec):TRecalibrationEMModel_Base(ReadGroupId){
 	_numParamsWithoutPositions = 2;
 	_name = qualFuncPosSpecific_name;
 	std::vector<double> values[2];
@@ -668,29 +657,29 @@ void TRecalibrationEMModel_qualFuncPosSpecific::addToFandJacobian(const TRecalib
 	//add to F
 	//-------------------------------------
 	//quality, quality squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
+	F(0) += weightF * q[0];
+	F(1) += weightF * q[1];
 
 	//no context intercept!
 
 	//now position: start at 2 in F!
-	F(_myShift + _numParamsWithoutPositions + data.position) += weightF;
+	F(_numParamsWithoutPositions + data.position) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
 	//quality and quality squared
-	Jacobian(_myShift    , _myShift    ) +=  weightJacobian * q[0] * q[0];
-	Jacobian(_myShift    , _myShift + 1) +=  weightJacobian * q[0] * q[1];
-	Jacobian(_myShift + 1, _myShift + 1) +=  weightJacobian * q[1] * q[1];
+	Jacobian(0, 0) +=  weightJacobian * q[0] * q[0];
+	Jacobian(0, 1) +=  weightJacobian * q[0] * q[1];
+	Jacobian(1, 1) +=  weightJacobian * q[1] * q[1];
 
 	//no context x quality
 
 	//no context x context: only add to diagonal, as all others are 0
 
 	//position x quality
-	int tmpIndexPos = _myShift + _numParamsWithoutPositions + data.position;
-	Jacobian(_myShift    , tmpIndexPos) += weightJacobian * q[0];
-	Jacobian(_myShift + 1, tmpIndexPos) += weightJacobian * q[1];
+	int tmpIndexPos = _numParamsWithoutPositions + data.position;
+	Jacobian(0, tmpIndexPos) += weightJacobian * q[0];
+	Jacobian(1, tmpIndexPos) += weightJacobian * q[1];
 
 	//no position x context
 
@@ -778,7 +767,7 @@ void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimula
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecificContext
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(uint16_t ReadGroupId, int MaxPos):TRecalibrationEMModel_Base(ReadGroupId){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 0 to maxPos
@@ -792,7 +781,7 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(uint16_t ReadGroupId, std::vector<std::string> & vec):TRecalibrationEMModel_Base(ReadGroupId){
 	_numParamsWithoutPositions = 22;
 	_name = qualFuncPosSpecificContext_name;
 	std::vector<double> values[3];
@@ -877,34 +866,34 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(const T
 	//add to F
 	//-------------------------------------
 	//quality, quality squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
+	F(0) += weightF * q[0];
+	F(1) += weightF * q[1];
 
 	//now context: start at position 2 in F!
-	F(_myShift + 2 + data.context) += weightF;
+	F(2 + data.context) += weightF;
 
 	//now position
-	F(_myShift + _numParamsWithoutPositions + data.position) += weightF;
+	F(_numParamsWithoutPositions + data.position) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
 	//quality and quality squared
-	Jacobian(_myShift    , _myShift    ) +=  weightJacobian * q[0] * q[0];
-	Jacobian(_myShift    , _myShift + 1) +=  weightJacobian * q[0] * q[1];
-	Jacobian(_myShift + 1, _myShift + 1) +=  weightJacobian * q[1] * q[1];
+	Jacobian(0, 0) +=  weightJacobian * q[0] * q[0];
+	Jacobian(0, 1) +=  weightJacobian * q[0] * q[1];
+	Jacobian(1, 1) +=  weightJacobian * q[1] * q[1];
 
 	//intercept x quality
-	int tmpIndexContext = _myShift + 2 + data.context;
-	Jacobian(_myShift    , tmpIndexContext) += weightJacobian * q[0];
-	Jacobian(_myShift + 1, tmpIndexContext) += weightJacobian * q[1];
+	int tmpIndexContext = 2 + data.context;
+	Jacobian(0, tmpIndexContext) += weightJacobian * q[0];
+	Jacobian(1, tmpIndexContext) += weightJacobian * q[1];
 
 	//intercept x intercept: only add to diagonal, as all others are 0
 	Jacobian(tmpIndexContext, tmpIndexContext) += weightJacobian;
 
 	//position x quality
-	int tmpIndexPos = _myShift + _numParamsWithoutPositions + data.position;
-	Jacobian(_myShift    , tmpIndexPos) += weightJacobian * q[0];
-	Jacobian(_myShift + 1, tmpIndexPos) += weightJacobian * q[1];
+	int tmpIndexPos = _numParamsWithoutPositions + data.position;
+	Jacobian(0, tmpIndexPos) += weightJacobian * q[0];
+	Jacobian(1, tmpIndexPos) += weightJacobian * q[1];
 
 	//position x intercept
 	Jacobian(tmpIndexContext, tmpIndexPos) += weightJacobian;
@@ -994,7 +983,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecificContextNew
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(int Shift, int MaxPos):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(uint16_t ReadGroupId, int MaxPos):TRecalibrationEMModel_Base(ReadGroupId){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 2 to maxPos (excluding position 0 and 1 as these are taken care of by context)
@@ -1009,7 +998,7 @@ TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualF
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, int Shift):TRecalibrationEMModel_Base(Shift){
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(uint16_t ReadGroupId, std::vector<std::string> & vec):TRecalibrationEMModel_Base(ReadGroupId){
 	_numParamsWithoutPositions = 22;
 	_name = qualFuncPosSpecificContextNew_name;
 	std::vector<double> values[3];
@@ -1098,28 +1087,28 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(cons
 	//add to F
 	//-------------------------------------
 	//quality, quality squared: Derivatives are given by the q's
-	F(_myShift    ) += weightF * q[0];
-	F(_myShift + 1) += weightF * q[1];
+	F(0) += weightF * q[0];
+	F(1) += weightF * q[1];
 
 	//now context: start at position 2 in F!
-	F(_myShift + 2 + data.context) += weightF;
+	F(2 + data.context) += weightF;
 
 	//now position
 	//NOT FIRST TWO POSITIONS!
 	if(data.position > 1)
-		F(_myShift + _numParamsWithoutPositions + data.position - 2) += weightF;
+		F(_numParamsWithoutPositions + data.position - 2) += weightF;
 
 	//add to Jacobian (only upper triangle)
 	//-------------------------------------
 	//quality and quality squared
-	Jacobian(_myShift    , _myShift    ) +=  weightJacobian * q[0] * q[0];
-	Jacobian(_myShift    , _myShift + 1) +=  weightJacobian * q[0] * q[1];
-	Jacobian(_myShift + 1, _myShift + 1) +=  weightJacobian * q[1] * q[1];
+	Jacobian(0, 0) +=  weightJacobian * q[0] * q[0];
+	Jacobian(0, 1) +=  weightJacobian * q[0] * q[1];
+	Jacobian(1, 1) +=  weightJacobian * q[1] * q[1];
 
 	//intercept x quality
-	int tmpIndexContext = _myShift + 2 + data.context;
-	Jacobian(_myShift    , tmpIndexContext) += weightJacobian * q[0];
-	Jacobian(_myShift + 1, tmpIndexContext) += weightJacobian * q[1];
+	int tmpIndexContext = 2 + data.context;
+	Jacobian(0, tmpIndexContext) += weightJacobian * q[0];
+	Jacobian(1, tmpIndexContext) += weightJacobian * q[1];
 
 	//intercept x intercept: only add to diagonal, as all others are 0
 	Jacobian(tmpIndexContext, tmpIndexContext) += weightJacobian;
@@ -1127,9 +1116,9 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(cons
 	//position x quality
 	//NOT FIRST TWO POSITIONS!
 	if(data.position > 1){
-		int tmpIndexPos = _myShift + _numParamsWithoutPositions + data.position - 2;
-		Jacobian(_myShift    , tmpIndexPos) += weightJacobian * q[0];
-		Jacobian(_myShift + 1, tmpIndexPos) += weightJacobian * q[1];
+		int tmpIndexPos = _numParamsWithoutPositions + data.position - 2;
+		Jacobian(0, tmpIndexPos) += weightJacobian * q[0];
+		Jacobian(1, tmpIndexPos) += weightJacobian * q[1];
 
 		//position x intercept
 		Jacobian(tmpIndexContext, tmpIndexPos) += weightJacobian;
@@ -1222,45 +1211,45 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTabl
 //--------------------------------------------------------------------
 // Global functions to create models
 //--------------------------------------------------------------------
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, std::vector<std::string> & values, int shift, bool verbose, TLog* logfile){
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, std::vector<std::string> & values, bool verbose, TLog* logfile){
 	trimString(modelTag);
 
 	if(modelTag == noRecal_name){
 		if(verbose) logfile->list("Will use a model that does not recalibrate.");
-		return new TRecalibrationEMModel_noRecal(shift);
+		return new TRecalibrationEMModel_noRecal(ReadGroupId);
 	} else if(modelTag == qualFuncPosFunc_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, position, position squared and one intercept.");
-		return new TRecalibrationEMModel_qualFuncPosFunc(values, shift);
+		return new TRecalibrationEMModel_qualFuncPosFunc(ReadGroupId, values);
 	} else if(modelTag == qualFuncPosFuncContext_name){
 		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		return new TRecalibrationEMModel_qualFuncPosFuncContext(values, shift);
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(ReadGroupId, values);
 	} else if(modelTag == qualFuncPosSpecific_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and one intercept.");
-		return new TRecalibrationEMModel_qualFuncPosSpecific(values, shift);
+		return new TRecalibrationEMModel_qualFuncPosSpecific(ReadGroupId, values);
 	} else if(modelTag == qualFuncPosSpecificContext_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts.");
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, shift);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(ReadGroupId, values);
 	} else if(modelTag == qualFuncPosSpecificContextNew_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts (NEW!).");
-		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(values, shift);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(ReadGroupId, values);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, int maxPos, int shift, bool verbose, TLog* logfile){
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, int maxPos, bool verbose, TLog* logfile){
 	trimString(modelTag);
 
 	if(modelTag == noRecal_name){
-		return new TRecalibrationEMModel_noRecal(shift);
+		return new TRecalibrationEMModel_noRecal(ReadGroupId);
 	} else if(modelTag == qualFuncPosFunc_name){
-		return new TRecalibrationEMModel_qualFuncPosFunc(shift);
+		return new TRecalibrationEMModel_qualFuncPosFunc(ReadGroupId);
 	} else if(modelTag == qualFuncPosFuncContext_name){
-		return new TRecalibrationEMModel_qualFuncPosFuncContext(shift);
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(ReadGroupId);
 	} else if(modelTag == qualFuncPosSpecific_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecific(shift, maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecific(ReadGroupId, maxPos);
 	} else if(modelTag == qualFuncPosSpecificContext_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(shift, maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(ReadGroupId, maxPos);
 	} else if(modelTag == qualFuncPosSpecificContextNew_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(shift, maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(ReadGroupId, maxPos);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
@@ -1281,7 +1270,7 @@ TRecalibrationEMModels::~TRecalibrationEMModels(){
 void TRecalibrationEMModels::_addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose){
 	trimString(modelTag);
 
-	models.push_back(createTRecalibrationEMModel(modelTag, values, totNumParameters, verbose, logfile));
+	models.push_back(createTRecalibrationEMModel(modelTag, values, verbose, logfile));
 
 	totNumParameters += models.back()->numParameters();
 };
@@ -1309,7 +1298,7 @@ void TRecalibrationEMModels::addModel(int readGroupId, bool isSecondMate, std::s
 	readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
 	//create model
-	models.push_back(createTRecalibrationEMModel(modelTag, maxPos, totNumParameters, false, logfile));
+	models.push_back(createTRecalibrationEMModel(modelTag, maxPos, false, logfile));
 	totNumParameters += models.back()->numParameters();
 };
 
@@ -1322,7 +1311,7 @@ void TRecalibrationEMModels::addModelIfItDoesNotExist(int readGroupId, bool isSe
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 
 		//create model
-		models.push_back(createTRecalibrationEMModel(modelTag, maxPos, totNumParameters, false, logfile));
+		models.push_back(createTRecalibrationEMModel(modelTag, maxPos, false, logfile));
 		totNumParameters += models.back()->numParameters();
 	}
 };
@@ -1334,17 +1323,8 @@ void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
 	//adjust total number of parameters
 	totNumParameters -= models[index]->numParameters();
 
-	//store shift of model to be erased for later use
-	int shift = models[index]->shift();
-
 	//erase
 	std::vector<TRecalibrationEMModel_Base*>::iterator it = models.erase(models.begin() + index);
-
-	//update shift of all model after the one erased
-	for(; it != models.end(); ++it){
-		(*it)->setShift(shift);
-		shift += (*it)->numParameters();
-	}
 
 	//update read group index
 	readGroupIndex.setAsNotUsed(readGroupId, isSecondMate);
@@ -1495,33 +1475,50 @@ void TRecalibrationEMModels::addToFandJacobian(const TRecalibrationEMReadData & 
 	models[ readGroupIndex.index(data) ]->addToFandJacobian(data, weightF, weightJacobian);
 };
 
-bool TRecalibrationEMModels::solveJxF(const int numSites){
-	//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-	for(unsigned int i=0; i<(totNumParameters-1); ++i){
-		for(unsigned int j=i+1; j<totNumParameters; ++j){
-			//copy from upper triangle to lower triangle
-			Jacobian(j,i) = Jacobian(i,j);
+void TRecalibrationEMModels::setQToZero(){
+	for(TRecalibrationEMModel_Base* model : models){
+		model->setQToZero();
+	}
+};
+
+void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, float* P_g_given_d_oldBeta){
+	for(TRecalibrationEMModel_Base* model : models){
+		model->addToQ(data, numReads, P_g_given_d_oldBeta);
+	}
+};
+
+double TRecalibrationEMModels::curQ(){
+	double Q = 0.0;
+	for(TRecalibrationEMModel_Base* model : models){
+		Q += model->curQ();
+	}
+	return Q;
+};
+
+bool TRecalibrationEMModels::solveJxF(){
+	bool couldSolve = true;
+	for(TRecalibrationEMModel_Base* model : models){
+		if(!model->solveJxF()){
+			model->printJacobianToStdOut();
+			throw "Issue solving JxF! This may be due to a lack of data. Consider adding more sites.";
+			couldSolve = false;
 		}
 	}
-
-	//scale F and J by 1/#sites
-	Jacobian = Jacobian / (double) numSites;
-	F = F / (double) numSites;
-
-	/*
-	std::cout << "F =";
-	for(int i=0; i<F.size(); ++i)
-		std::cout << " " << F(i);
-	std::cout << std::endl;
-*/
-
-	//now solve J^-1 x F
-	return solve(JxF, Jacobian, F);
+	return couldSolve;
 };
 
 void TRecalibrationEMModels::proposeNewParameters(double lambda){
-	for(TRecalibrationEMModel_Base* it : models)
-		it->proposeNewParameters(lambda, JxF);
+	for(TRecalibrationEMModel_Base* it : models){
+		it->proposeNewParameters(lambda);
+	}
+};
+
+unsigned int TRecalibrationEMModels::acceptProposedParametersBasedOnQ(){
+	unsigned int numAccepted = 0;
+	for(TRecalibrationEMModel_Base* model : models){
+		numAccepted += model->acceptProposedParametersBasedOnQ();
+	}
+	return numAccepted;
 };
 
 void TRecalibrationEMModels::rejectProposedParameters(){
@@ -1531,22 +1528,11 @@ void TRecalibrationEMModels::rejectProposedParameters(){
 
 double TRecalibrationEMModels::getSteepestGradient(){
 	double maxF = 0.0;
-	for(unsigned int i=0; i<totNumParameters; ++i){
-		if(fabs(F(i)) > maxF) maxF = fabs(F(i));
+	for(TRecalibrationEMModel_Base* model : models){
+		double tmp = model->getSteepestGradient();
+		if(fabs(tmp) > maxF) maxF = fabs(tmp);
 	}
 	return maxF;
-};
-
-void TRecalibrationEMModels::printJacobianToStdOut(){
-	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian << std::endl << std::endl;
-};
-
-void TRecalibrationEMModels::printFToStdOut(){
-	std::cout << std::endl << std::endl << "F:" << std::endl << F << std::endl << std::endl;
-};
-
-void TRecalibrationEMModels::printJxFToStdOut(){
-	std::cout << std::endl << std::endl << "JxF:" << std::endl << JxF << std::endl << std::endl;
 };
 
 void TRecalibrationEMModels::writeHeader(TOutputFilePlain & out){

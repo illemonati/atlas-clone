@@ -262,7 +262,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::st
 	}
 
 	//fill table using a recal model
-	model = createTRecalibrationEMModel(modelTag, values, 0, false, NULL);
+	model = createTRecalibrationEMModel(modelTag, values, false, NULL);
 	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne);
 
 };

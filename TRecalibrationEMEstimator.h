@@ -34,6 +34,7 @@ public:
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
 	double calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
 	double calcQ(TRecalibrationEMModels & models, float* & epsilon);
+	void addToQ(TRecalibrationEMModels & models);
 	void addToJacobianAndF(TRecalibrationEMModels & models, float* & epsilon);
 };
 
@@ -63,6 +64,7 @@ public:
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
 	double calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
 	double calcQ(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	void addToQ(TRecalibrationEMModels & models);
 	void addToJacobianAndF(TRecalibrationEMModels & models, float* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };

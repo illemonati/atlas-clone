@@ -164,7 +164,11 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, float* & eps
 	}
 
 	return Q;
-}
+};
+
+void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
+	models.addToQ(data, numReads, P_g_given_d_oldBeta);
+};
 
 void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, float* & epsilon){
 	//calculate tmpEpsilon with current parameters
@@ -259,14 +263,19 @@ double TRecalibrationEMWindow::calcLL(TRecalibrationEMModels & models, float* & 
 	for(TRecalibrationEMSite* site : sites)
 		LL += site->calcLL(models, freqs, tmpEpsilon);
 	return LL;
-}
+};
 
 double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, float* & tmpEpsilon){
 	double Q = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		Q += site->calcQ(models, tmpEpsilon);
 	return Q;
-}
+};
+
+void TRecalibrationEMWindow::addToQ(TRecalibrationEMModels & models){
+	for(TRecalibrationEMSite* site : sites)
+		site->addToQ(models);
+};
 
 void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModels & models, float* & tmpEpsilon){
 	for(TRecalibrationEMSite* site : sites)
@@ -469,66 +478,67 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 	bool NRconverged = false;
 
 	//calculate Q at current location
-	double curQ = 0.0;
+	models->setQToZero();
 	for(TRecalibrationEMWindow* curWindow : windows)
-		curQ += curWindow->calcQ(*models, tmpEpsilon);
+		curWindow->addToQ(*models);
+	double curQ = models->curQ();
 
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
 	for(int i=0; i<NewtonRaphsonNumIterations; ++i){
 		logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
-		logfile->listFlush("Calculating Jacobian and gradient ...");
-
-		//set to zero
-		models->setEMParamsToZero();
 
 		//fill Jacobin and F: loop over all sites
+		logfile->listFlush("Calculating Jacobian and gradient ...");
+		models->setEMParamsToZero();
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
 			(*curWindow)->addToJacobianAndF(*models, tmpEpsilon);
 
 		//now solve J^-1 x F
-		if(models->solveJxF(numSitesWithData)){
-			logfile->done();
+		models->solveJxF();
+		logfile->done();
 
-			//update params for each read group using backtracking
-			double lambda = 1.0;
-			bool acceptMove = false;
-			while(!acceptMove){
-				logfile->listFlush("Proposing move with log10(lambda) = " + toString(log10(lambda)) + " ...");
-				models->proposeNewParameters(lambda);
+		//update params for each read group using backtracking
+		double lambda = 1.0;
+		bool acceptMove = false;
+		int numUpdatedModels = 0;
+		int numUpdatedModels_old;
 
-				//calculate Q at new location
-				double Q = 0.0;
-				for(TRecalibrationEMWindow* curWindow : windows)
-					Q += curWindow->calcQ(*models, tmpEpsilon);
+		while(numUpdatedModels < models->numModels() && lambda > 1.0E-20){
+			//propose move
+			logfile->listFlush("Proposing move with log10(lambda) = " + toString(log10(lambda)) + " ... ");
+			models->proposeNewParameters(lambda);
 
-				//check if we accept or backtrack
-				if(Q > curQ){
-					acceptMove = true; //accept
-					logfile->write(" accepting move!");
-					logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
-					curQ = Q;
-				} else {
-					lambda = lambda / 2.0; //backtrack;
-					logfile->write(" rejecting move!");
-					models->rejectProposedParameters();
-					if(lambda < 1.0E-20){
-						acceptMove = true; //accept
-						NRconverged = true;
-						logfile->conclude("No improvement even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
-					}
-				}
+			//calculate Q at new location
+			models->setQToZero();
+			for(TRecalibrationEMWindow* curWindow : windows)
+				curWindow->addToQ(*models);
+
+			//check if we accept or backtrack
+			numUpdatedModels_old = numUpdatedModels;
+			numUpdatedModels = models->acceptProposedParametersBasedOnQ();
+			double Q = models->curQ();
+
+			logfile->write(toString(numUpdatedModels) + "/" + toString(models->numModels()) + " models converged.");
+
+			if(numUpdatedModels > numUpdatedModels_old){
+				logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
 			}
-		} else {
-			models->printJacobianToStdOut();
-			throw "Issue solving JxF in TRecalibrationEM::runNewtonRalphson()! This may be due to a lack of data. Consider adding more sites.";
+			curQ = Q;
+
+			//backtrack
+			lambda = lambda / 2.0; //backtrack;
 		}
 
-		//get largest gradient (F) to check if we break
+		if(numUpdatedModels < models->numModels()){
+			logfile->conclude("Some models did not improve even with lambda = " + toString(lambda) + ", aborting Newton-Raphson.");
+		}
+
+		//get largest gradient (F) to check if we break NR optimization
 		double maxF = models->getSteepestGradient();
 		logfile->conclude("max(F) = " + toString(maxF));
 		logfile->endIndent();
-		if(maxF < NewtonRaphsonMaxF || NRconverged) break;
+		if(maxF < NewtonRaphsonMaxF || numUpdatedModels == 0) break;
 	}
 	logfile->endIndent();
 };
