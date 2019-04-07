@@ -103,6 +103,7 @@ void TRecalibrationEMModel_Base::setEMParamsToZero(){
 
 	_numSitesAdded = 0;
 	_NRconverged = false;
+	_NRStepAccepted = false;
 };
 
 void TRecalibrationEMModel_Base::setQToZero(){
@@ -112,8 +113,8 @@ void TRecalibrationEMModel_Base::setQToZero(){
 	}
 };
 
-void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, float* P_g_given_d_oldBeta){
-	if(!_NRStepAccepted){
+void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta){
+	if(!_NRconverged){
 		for(int g=0; g<4; ++g){
 			double P_d_given_g_beta = 1.0;
 			//loop over all reads
@@ -132,7 +133,9 @@ void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const un
 };
 
 bool TRecalibrationEMModel_Base::solveJxF(){
-	if(!_NRStepAccepted){
+	if(_NRconverged){
+		return true;
+	} else {
 		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 		for(unsigned int i=0; i<(_numParameters-1); ++i){
 			for(unsigned int j=i+1; j<_numParameters; ++j){
@@ -145,17 +148,9 @@ bool TRecalibrationEMModel_Base::solveJxF(){
 		Jacobian = Jacobian / (double) _numSitesAdded;
 		F = F / (double) _numSitesAdded;
 
-		/*
-		std::cout << "F =";
-		for(int i=0; i<F.size(); ++i)
-			std::cout << " " << F(i);
-		std::cout << std::endl;
-	*/
-
 		//now solve J^-1 x F
 		return solve(JxF, Jacobian, F);
 	}
-	return true;
 };
 
 void TRecalibrationEMModel_Base::proposeNewParameters(double & lambda){
@@ -1481,7 +1476,7 @@ void TRecalibrationEMModels::setQToZero(){
 	}
 };
 
-void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, float* P_g_given_d_oldBeta){
+void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta){
 	for(TRecalibrationEMModel_Base* model : models){
 		model->addToQ(data, numReads, P_g_given_d_oldBeta);
 	}

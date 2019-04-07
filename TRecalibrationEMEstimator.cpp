@@ -52,7 +52,7 @@ void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTable & dataTable)
 		dataTable.add(data[k]);
 };
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon){
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon){
 	calcEpsilon(models, epsilon);
 
 	//over all genotypes
@@ -70,7 +70,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 
 	double max = 0.0;
 
-	if(P_g_given_d_theta_denominator < 1.0E-25){
+	if(P_g_given_d_theta_denominator < 1.0E-20){
 		//do again but in log
 
 		for(int g=0; g<4; ++g){
@@ -102,7 +102,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 	return log(P_g_given_d_theta_denominator) + max;
 };
 
-double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon){
+double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon){
 	calcEpsilon(models, epsilon);
 
 	//over all genotypes
@@ -117,7 +117,7 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, float* & fr
 		LL += tmp * freqs[g];
 	}
 
-	if(LL < 1.0E-25){
+	if(LL < 1.0E-20){
 		//do again but in log
 		double max = 0.0;
 		double tmp_log[4];
@@ -145,7 +145,7 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, float* & fr
 	}
 };
 
-double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, float* & epsilon){
+double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, double* & epsilon){
 	calcEpsilon(models, epsilon);
 
 	//now calculate P(d, g, new params)
@@ -170,7 +170,7 @@ void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
 	models.addToQ(data, numReads, P_g_given_d_oldBeta);
 };
 
-void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, float* & epsilon){
+void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
 	//calculate tmpEpsilon with current parameters
 	calcEpsilon(models, epsilon);
 
@@ -205,7 +205,7 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, fl
 //TRecalibrationEMWindow
 //---------------------------------------------------------------
 TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, TReadGroupMap* ReadGroupMap){
-	freqs = new float[4];
+	freqs = new double[4];
 	for(int i=0; i<4; ++i) freqs[i] = (*baseFreqs)[i];
 	readGroupMapObject = ReadGroupMap;
 }
@@ -250,7 +250,7 @@ long TRecalibrationEMWindow::cumulativeDepth(){
 	return cumulDepth;
 }
 
-double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon){
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites){
 		LL += site->fill_P_g_given_d_beta_AND_calcLL(models, freqs, tmpEpsilon);
@@ -258,14 +258,14 @@ double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEM
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon){
+double TRecalibrationEMWindow::calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		LL += site->calcLL(models, freqs, tmpEpsilon);
 	return LL;
 };
 
-double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, float* & tmpEpsilon){
+double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon){
 	double Q = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		Q += site->calcQ(models, tmpEpsilon);
@@ -277,7 +277,7 @@ void TRecalibrationEMWindow::addToQ(TRecalibrationEMModels & models){
 		site->addToQ(models);
 };
 
-void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModels & models, float* & tmpEpsilon){
+void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModels & models, double* & tmpEpsilon){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToJacobianAndF(models, tmpEpsilon);
 };
@@ -496,10 +496,6 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 		models->solveJxF();
 		logfile->done();
 
-		double maxF = models->getSteepestGradient();
-		std::cout << "max(F) = " + toString(maxF) << std::endl;
-
-
 		//update params for each read group using backtracking
 		double lambda = 1.0;
 		int numUpdatedModels = 0;
@@ -554,7 +550,7 @@ void TRecalibrationEMEstimator::_initializeTmpEpsilon(){
 		}
 
 		//now crate array
-		tmpEpsilon = new float[maxDepth];
+		tmpEpsilon = new double[maxDepth];
 		tmpEpsilonInitialized = true;
 	}
 };

@@ -19,7 +19,7 @@
 class TRecalibrationEMSite{
 public:
 	TRecalibrationEMReadData* data;
-	float P_g_given_d_oldBeta[4];
+	double P_g_given_d_oldBeta[4];
 	unsigned int numReads;
 
 	TRecalibrationEMSite();
@@ -27,15 +27,15 @@ public:
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
 
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
-	inline void calcEpsilon(TRecalibrationEMModels & models, float* & epsilon){
+	inline void calcEpsilon(TRecalibrationEMModels & models, double* & epsilon){
 		for(unsigned int k=0; k<numReads; ++k)
 			epsilon[k] = models.calcEpsilon(data[k]);
 	};
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
-	double calcLL(TRecalibrationEMModels & models, float* & freqs, float* & epsilon);
-	double calcQ(TRecalibrationEMModels & models, float* & epsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
+	double calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
+	double calcQ(TRecalibrationEMModels & models, double* & epsilon);
 	void addToQ(TRecalibrationEMModels & models);
-	void addToJacobianAndF(TRecalibrationEMModels & models, float* & epsilon);
+	void addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon);
 };
 
 //--------------------------------------------------------------------
@@ -44,7 +44,7 @@ public:
 class TRecalibrationEMWindow{
 public:
 	std::vector<TRecalibrationEMSite*> sites;
-	float* freqs; //base frequencies
+	double* freqs; //base frequencies
 	TReadGroupMap* readGroupMapObject;
 
 	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, TReadGroupMap* ReadGroupMap);
@@ -61,11 +61,11 @@ public:
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
-	double calcLL(TRecalibrationEMModels & models, float* & tmpEpsilon);
-	double calcQ(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
+	double calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
+	double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void addToQ(TRecalibrationEMModels & models);
-	void addToJacobianAndF(TRecalibrationEMModels & models, float* & tmpEpsilon);
+	void addToJacobianAndF(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };
 
@@ -89,7 +89,7 @@ private:
 	double NewtonRaphsonMaxF;
 	unsigned int minRequiredObservations;
 	std::string modelTagForEstimation;
-	float* tmpEpsilon;
+	double* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
 
