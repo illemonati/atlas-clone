@@ -107,7 +107,7 @@ void TRecalibrationEMModel_Base::setEMParamsToZero(){
 };
 
 void TRecalibrationEMModel_Base::setQToZero(){
-	if(!_NRStepAccepted){
+	if(!_NRconverged){
 		_oldQ = _Q;
 		_Q = 0.0;
 	}
@@ -126,7 +126,7 @@ void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const un
 				}
 			}
 
-			//if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
+//			if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
 			_Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
 		}
 	}
