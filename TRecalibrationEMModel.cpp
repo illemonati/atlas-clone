@@ -183,6 +183,7 @@ void TRecalibrationEMModel_Base::rejectProposedParameters(){
 };
 
 double TRecalibrationEMModel_Base::getSteepestGradient(){
+	if(_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
 	for(unsigned int i=0; i<_numParameters; ++i){
 		if(fabs(F(i)) > maxF) maxF = fabs(F(i));
