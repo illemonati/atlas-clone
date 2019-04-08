@@ -135,6 +135,8 @@ private:
 	void initAdditionalTmpStorage();
 	void fillP_G();
 	double calcFisherInfo(double* _pGenotype, double* deriv_pGenotype);
+	void NRAllParams();
+	void NROnlyTheta();
 	void runEMForTheta();
 	void estimateConfidenceInterval();
 
