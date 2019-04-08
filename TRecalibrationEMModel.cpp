@@ -113,20 +113,13 @@ void TRecalibrationEMModel_Base::setQToZero(){
 	}
 };
 
-void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta){
+void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
 	if(!_NRconverged){
+		//add this data for all genotypes
 		for(int g=0; g<4; ++g){
-			double P_d_given_g_beta = 1.0;
-			//loop over all reads
-			for(unsigned int k=0; k<numReads; ++k){
-				if(data[k].readGroup == _readGroupId){
-					double eps = calcEpsilon(data[k]);
-					double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-					P_d_given_g_beta *= B * eps - data[k].D[g] + 1.0;
-				}
-			}
-
-//			if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
+			double eps = calcEpsilon(data);
+			double B = 4.0 / 3.0 * data.D[g] - 1.0;
+			double P_d_given_g_beta = B * eps - data.D[g] + 1.0;
 			_Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
 		}
 	}
@@ -1478,8 +1471,8 @@ void TRecalibrationEMModels::setQToZero(){
 };
 
 void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta){
-	for(TRecalibrationEMModel_Base* model : models){
-		model->addToQ(data, numReads, P_g_given_d_oldBeta);
+	for(unsigned int k=0; k<numReads; ++k){
+		models[ readGroupIndex.index(data[k]) ]->addToQ(data[k], P_g_given_d_oldBeta);
 	}
 };
 

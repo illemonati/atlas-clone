@@ -498,12 +498,13 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 
 		//update params for each read group using backtracking
 		double lambda = 1.0;
+		int log2_lambda = 0;
 		int numUpdatedModels = 0;
 		int numUpdatedModels_old;
 
 		while(numUpdatedModels < models->numModels() && lambda > 1.0E-20){
 			//propose move
-			logfile->listFlush("Proposing move with log2(lambda) = " + toString(log2(lambda)) + " ... ");
+			logfile->listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
 			models->proposeNewParameters(lambda);
 
 			//calculate Q at new location
@@ -525,10 +526,11 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
 
 			//backtrack
 			lambda = lambda / 2.0; //backtrack;
+			--log2_lambda;
 		}
 
 		if(numUpdatedModels < models->numModels()){
-			logfile->conclude("Some models did not improve even with log2(lambda) = " + toString(log2(lambda)) + ", aborting Newton-Raphson.");
+			logfile->conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) + ", aborting Newton-Raphson.");
 		}
 
 		//get largest gradient (F) to check if we break NR optimization

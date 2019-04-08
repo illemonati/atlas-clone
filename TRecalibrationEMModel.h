@@ -62,7 +62,7 @@ public:
 	virtual void checkParameterRange(int maxPos){}; //check if parameters are in correct range
 
 	void setQToZero();
-	void addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta);
+	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
 	bool solveJxF();
 	virtual void proposeNewParameters(double & lambda);
