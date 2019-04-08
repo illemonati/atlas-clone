@@ -552,7 +552,7 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	}
 };
 
-void TWindow::applyDepthFilter(int minDepth, size_t maxDepth){
+void TWindow::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			if(sites[i].bases.size() < minDepth || sites[i].bases.size() > maxDepth)

@@ -90,7 +90,7 @@ public:
 	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
 	void printMateInformationPerSite(TOutputFileZipped & out, std::string & chr);
 	void countAlleles(long**** siteImbalance, const unsigned int & maxDepth);
-	void applyDepthFilter(int minDepth, size_t maxDepth);
+	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
 
 	//add sites to data structures

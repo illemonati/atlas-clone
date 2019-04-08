@@ -167,7 +167,9 @@ double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, double* & ep
 };
 
 void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
-	models.addToQ(data, numReads, P_g_given_d_oldBeta);
+	for(unsigned int k=0; k<numReads; ++k){
+		models.addToQ(data[k], P_g_given_d_oldBeta);
+	}
 };
 
 void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){

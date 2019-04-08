@@ -1470,10 +1470,8 @@ void TRecalibrationEMModels::setQToZero(){
 	}
 };
 
-void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData* data, const unsigned int & numReads, double* P_g_given_d_oldBeta){
-	for(unsigned int k=0; k<numReads; ++k){
-		models[ readGroupIndex.index(data[k]) ]->addToQ(data[k], P_g_given_d_oldBeta);
-	}
+void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
+	models[ readGroupIndex.index(data) ]->addToQ(data, P_g_given_d_oldBeta);
 };
 
 double TRecalibrationEMModels::curQ(){
