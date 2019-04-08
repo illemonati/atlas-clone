@@ -53,8 +53,8 @@ void TThetaEstimator_base::initTmpStorage(){
 
 void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & params){
 	logfile->startIndent("Parameters of the initial theta search:");
-	initalTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
-	logfile->list("Will start with an initial theta of " + toString(initalTheta) + ".");
+	initialTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	logfile->list("Will start with an initial theta of " + toString(initialTheta) + ".");
 	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
 	if(initThetaNumSearchIterations > 0){
 		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
@@ -91,7 +91,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 	thisData->fillBaseFreq(thisTheta.baseFreq);
 
 	//variables
-	double initTheta = initalTheta;
+	double initTheta = initialTheta;
 	double oldTheta = initTheta;
 	double expTheta = exp(-initTheta);
 
@@ -184,7 +184,7 @@ TThetaEstimator::TThetaEstimator(TLog* Logfile):TThetaEstimator_base(Logfile){
 	maxEpsilon = 0.0;
 	NewtonRaphsonNumIterations = -1;
 	NewtonRaphsonMaxF = 0.0;
-	initalTheta = 0.0;
+	initialTheta = 0.0;
 	initThetaSearchFactor = -1;
 	initThetaNumSearchIterations = -1;
 };
@@ -248,8 +248,12 @@ double TThetaEstimator::calcFisherInfo(double* _pGenotype, double* deriv_pGenoty
 	return(FisherInfo);
 };
 
-void TThetaEstimator::NRAllParams(){
-	//update all parameters in EM
+bool TThetaEstimator::NRAllParams(){
+	//calculate substitution probabilities
+	fillPGenotype(pGenotype, theta);
+
+	//Calculate all genotype probabilities for all sites
+	fillP_G();
 
 	//prepare storage
 	arma::mat Jacobian(6,6);
@@ -297,7 +301,6 @@ void TThetaEstimator::NRAllParams(){
 		}
 
 		//iii) now estimate new parameters
-		int failedAttempts = 0;
 		double mu = data->sizeWithData();
 
 		if(solve(JxF, Jacobian, F)){
@@ -313,56 +316,46 @@ void TThetaEstimator::NRAllParams(){
 				if(F(i) > maxF) maxF = F(i);
 			}
 
-			if(maxF < NewtonRaphsonMaxF || n == (NewtonRaphsonNumIterations-1)){
+			if(maxF < NewtonRaphsonMaxF){
 				theta.setTheta(-log(rho / (1.0 + rho)));
-				break;
+				return true;
 			}
 		} else {
-			++failedAttempts;
-
-			//solve did not work -> start with higher theta!
-			theta.setTheta(initalTheta);
-			for(int i=0; i<failedAttempts; ++i)
-				theta.theta *= 10.0;
-
-			//reset others
-			mu = data->sizeWithData();
-			theta.LL = -9e100;
-			break;
+			return false;
 		}
 	}
-}
+	return true;
+};
 
 void TThetaEstimator::NROnlyTheta(){
-	//update only theta: most difficult parameter and it is much faster to update only this one alone.
+	//calculate	substitution probabilities
+	fillPGenotype(pGenotype, theta);
 
-	//prepare storage
-	arma::mat Jacobian(6,6);
-	arma::vec F(6);
-	arma::mat JxF(6,6);
+	//Calculate all genotype probabilities for all sites
+	fillP_G();
 
 	double rho = theta.expTheta / (1.0 - theta.expTheta);
 
 	double* baseFreq = theta.baseFreq; //store pointer for cleaner code
 	for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 		//i) calculate F() (Note: index is zero based!)
-		F(4) = data->sizeWithData();
+		double F = data->sizeWithData();
 		for(int k=0; k<4; ++k){
 			Genotype geno = genoMap.getGenotype(k, k);
-			F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
+			F -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
 		}
 		//ii) fill Jacobian (Note: index is zero based!)
-		Jacobian(4,4) = 0.0;
+		double Jacobian = 0.0;
 		for(int k=0; k<4; ++k){
 			double tmpSum = P_G[genoMap.getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
-			Jacobian(4,4) += tmpSum * (1.0 - baseFreq[k]);
+			Jacobian += tmpSum * (1.0 - baseFreq[k]);
 		}
 
 		//iii) now estimate new parameters
-		rho = rho - F(4) / Jacobian(4,4);
+		rho = rho - F / Jacobian;
 
 		//check if we break
-		if(F(4) < NewtonRaphsonMaxF){
+		if(F < NewtonRaphsonMaxF){
 			theta.setTheta(-log(rho / (1.0 + rho)));
 			break;
 		}
@@ -371,42 +364,44 @@ void TThetaEstimator::NROnlyTheta(){
 
 void TThetaEstimator::runEMForTheta(){
 
-	double oldLL = -9e100;
+	theta.LL = -9e100;
+
+	//increase initialTheta if we fail to calculate inverse of Jacobian.
+	// this may be the case if initialTheta is smaller than true theta and likelihood is very flat
+	int failedAttempts = 0;
+	double startingTheta = initialTheta;
+	while(!NRAllParams()){
+		++failedAttempts;
+		//solve did not work -> start with higher theta!
+		startingTheta *= 2.0;
+		theta.setTheta(startingTheta);
+		if(startingTheta > 1.0)
+			throw "Failed to estimate Theta, issues calculating inverse of Jacobian!";
+	}
 
 	//start EM loop
-	int totIterations = numIterations * numThetaOnlyUpdates;
-	for(int iter = 0; iter < totIterations; ++iter){
-		//a) pre-calc expTheta
-		double oldTheta = theta.theta;
-
-		//b) calculate	substitution probabilities
-		fillPGenotype(pGenotype, theta);
-
-		//c) Calculate all genotype probabilities for all sites
-		fillP_G();
-		//data->fillP_G(P_G, pGenotype);
-
-		//d) Find new parameter estimates using Newton-Raphson
-
-		//prepare storage
-		arma::mat Jacobian(6,6);
-		arma::vec F(6);
-		arma::mat JxF(6,6);
-
-		for(int i=0; i<numThetaOnlyUpdates; ++i){
+	for(int iter = 0; iter < numIterations; ++iter){
+		//update only theta: most difficult parameter and it is much faster to update only this one alone.
+		int i=0;
+		double oldTheta = 0.0;
+		do{
+			oldTheta = theta.theta;
 			NROnlyTheta();
-		}
+			++i;
+		}while(i<numThetaOnlyUpdates && theta.theta != oldTheta);
 
+		//update all params
 		NRAllParams();
 
-
 		//e) do we break EM? Check LL
-		oldLL = theta.LL;
+		double oldLL = theta.LL;
 		theta.LL = data->calcLogLikelihood(pGenotype);
-		if(theta.LL > -9e100 && (theta.LL - oldLL) < maxEpsilon) break;
+		if((theta.LL - oldLL) < maxEpsilon)
+			break;
 
 		//maybe theta = 0?
 		if(theta.theta < 0.1/(double) data->size()){
+			//(theta is somewhere between 1/numLoci and 0,
 			oldLL = theta.LL;
 			oldTheta = theta.theta;
 
@@ -415,6 +410,7 @@ void TThetaEstimator::runEMForTheta(){
 			fillPGenotype(pGenotype, theta);
 			theta.LL = data->calcLogLikelihood(pGenotype);
 
+			//theta is between zero and a very small number -> don't care about exact value
 			if(theta.LL < oldLL){
 				theta.setTheta(oldTheta);
 				theta.LL = oldLL;

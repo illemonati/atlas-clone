@@ -83,7 +83,7 @@ protected:
 	TGenotypeMap genoMap;
 
 	//initial theta
-	double initalTheta;
+	double initialTheta;
 	double initThetaSearchFactor;
 	int initThetaNumSearchIterations;
 
@@ -135,7 +135,7 @@ private:
 	void initAdditionalTmpStorage();
 	void fillP_G();
 	double calcFisherInfo(double* _pGenotype, double* deriv_pGenotype);
-	void NRAllParams();
+	bool NRAllParams();
 	void NROnlyTheta();
 	void runEMForTheta();
 	void estimateConfidenceInterval();
