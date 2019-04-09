@@ -317,11 +317,11 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	}
 
 	minRequiredObservations = 10000; //constant for reporting
-	numEMIterations = args.getParameterIntWithDefault("iterations", 100);
+	numEMIterations = args.getParameterIntWithDefault("iterations", 200);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
 	maxEpsilon = args.getParameterDoubleWithDefault("maxEps", 0.000001);
 	logfile->list("Will stop EM when deltaLL < " + toString(maxEpsilon));
-	NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 10);
+	NewtonRaphsonNumIterations = args.getParameterIntWithDefault("NRiterations", 20);
 	logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 	NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 	logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
