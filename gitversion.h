@@ -1,1 +1,3 @@
-#define GITVERSION "f3d039379dbede7add4048eb2da8bb9f23c04cfa"
+#include <string>
+
+std::string getGitVersion();

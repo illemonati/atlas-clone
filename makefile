@@ -1,7 +1,7 @@
 #make file for atlas
 
 SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard Tests/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard Vcf/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
-GIT_HEADER = gitversion.h
+GIT_HEADER = gitversion.cpp
 
 OBJ = $(SRC:%.cpp=%.o)
 BIN = atlas
@@ -22,7 +22,7 @@ $(BIN): $(GIT_HEADER) $(OBJ)
 
 
 $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
-	echo "#define GITVERSION \"$(shell git rev-parse HEAD)\"" > $@
+	echo "#include \"gitversion.h\"\nstd::string getGitVersion(){\n\treturn \"$(shell git rev-parse HEAD)\";\n}" > $@
 
 .git/COMMIT_EDITMSG :
 	touch $@

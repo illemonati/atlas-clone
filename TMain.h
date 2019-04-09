@@ -41,7 +41,7 @@ private:
 
 		//commit (first extra space)
 		tmp.push_back("");
-		tmp.push_back(std::string("Commit ") + GITVERSION);
+		tmp.push_back(std::string("Commit ") + getGitVersion());
 
 		//get max length
 		size_t len = tmp[0].length();
