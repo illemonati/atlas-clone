@@ -135,7 +135,7 @@ public:
 
 class TTask_assessSoftClipping:public TTask_atlas{
 public:
-	TTask_assessSoftClipping(){ _explanation = "WAssessing level of soft clipping in BAM file"; };
+	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters);
