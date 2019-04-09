@@ -22,7 +22,10 @@ $(BIN): $(GIT_HEADER) $(OBJ)
 
 
 $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
-	echo "#include \"gitversion.h\"\nstd::string getGitVersion(){\n\treturn \"$(shell git rev-parse HEAD)\";\n}" > $@
+	echo "#include \"gitversion.h\"" > $@
+	echo "std::string getGitVersion(){" >> $@
+	echo "return \"$(shell git rev-parse HEAD)\";" >> $@
+	echo "}" >> $@
 
 .git/COMMIT_EDITMSG :
 	touch $@
