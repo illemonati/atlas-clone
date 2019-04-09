@@ -647,7 +647,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 			restartChromosomes(window);
 
 			if(chrIterator == bamHeader.Sequences.End())
-				throw "found no predefined windows in BED file!";
+				throw "found no predefined windows in BED file! Does file exist?";
 
 		} else {
 			//now move coordinates of next window
