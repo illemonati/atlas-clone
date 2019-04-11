@@ -108,6 +108,12 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	//close file
 	file.close();
 
+	logfile->startIndent("Will use the following samples:");
+	for(std::map<std::string, int>::iterator it = samples.begin(); it!=samples.end(); ++it){
+		logfile->list(it->first + ", population " + toString(it->second));
+	}
+	logfile->endIndent();
+
 	//fill sample order by population
 	fillSampleOrder();
 };
