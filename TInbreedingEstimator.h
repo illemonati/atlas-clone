@@ -53,14 +53,15 @@ private:
 	std::vector<double> sumIterations;
 	std::vector<double> sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
-	std::vector<float> proposalWidths;
+	long numLociModelP;
 
 public:
 	std::vector<bool> modelP;
 	std::vector<int> posteriorProbModelP;
+	std::vector<double> initialAlleleFreq;
+	std::vector<float> proposalWidths;
 
 	long numLoci;
-	long numLociModelP;
 	float probMovingToModel0;
 	double lambda;
 	double minAlleleFreq;
@@ -184,6 +185,7 @@ private:
 	void resetAcceptanceRates();
 	void adjustProposalWidths();
 	void writeParameterEstimatesOfIteration(std::ofstream & out);
+	void writePosteriors(int i);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
