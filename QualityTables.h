@@ -119,37 +119,37 @@ public:
 //---------------------------------------------------------------
 class TQualityTransformTable{
 public:
-	int maxQ;
+	int maxQInTable;
 	double** table; //old qual / new qual
 
 	TQualityTransformTable(int MaxQ){
-		maxQ = MaxQ + 34;
-		table = new double*[maxQ];
-		for(int i=0; i<maxQ; ++i){
-			table[i] = new double[maxQ];
-			for(int j=0; j<maxQ; ++j){
+		maxQInTable = MaxQ + 34;
+		table = new double*[maxQInTable];
+		for(int i=0; i<maxQInTable; ++i){
+			table[i] = new double[maxQInTable];
+			for(int j=0; j<maxQInTable; ++j){
 				table[i][j] = 0;
 			}
 		}
 	};
 
 	~TQualityTransformTable(){
-		for(int i=0; i<maxQ; ++i){
+		for(int i=0; i<maxQInTable; ++i){
 			delete[] table[i];
 		}
 		delete[] table;
 	};
 
 	void add(int oldQuality, int newQuality){
-		if(oldQuality < maxQ && newQuality < maxQ){
+		if(oldQuality < maxQInTable && newQuality < maxQInTable){
 			table[oldQuality][newQuality] += 1.0;
 		}
 	};
 
 	double size(){
 		double size = 0;
-		for(int i=33; i<maxQ; ++i){
-			for(int j=33; j<maxQ; ++j){
+		for(int i=33; i<maxQInTable; ++i){
+			for(int j=33; j<maxQInTable; ++j){
 				size += table[i][j];
 			}
 		}
@@ -159,16 +159,16 @@ public:
 	void printTable(std::ofstream & out){
 		//print header
 		out << "oldQ/newQ";
-		for(int i=33; i<maxQ; ++i) out << "\t" << i-33;
+		for(int i=33; i<maxQInTable; ++i) out << "\t" << i-33;
 		out << "\n";
 
 		//get total
 		double sum = size();
 
 		//print rows
-		for(int i=33; i<maxQ; ++i){
+		for(int i=33; i<maxQInTable; ++i){
 			out << i-33;
-			for(int j=33; j<maxQ; ++j){
+			for(int j=33; j<maxQInTable; ++j){
 				out << "\t" << table[i][j] / sum;
 			}
 			out << "\n";

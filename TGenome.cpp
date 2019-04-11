@@ -187,6 +187,17 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 		alignmentParser.setApplyFragmentLengthFilter(filter);
 	}
 
+	if(params.parameterExists("keepOnlyFwd")){
+		bool keepOnlyFwd = true;
+		alignmentParser.setKeepOnlyFwdFilter(keepOnlyFwd);
+		logfile->list("Will only keep reads marked as forward");
+	}
+	if(params.parameterExists("keepOnlyRev")){
+		bool keepOnlyRev = true;
+		alignmentParser.setKeepOnlyRevFilter(keepOnlyRev);
+		logfile->list("Will only keep reads marked as reverse");
+	}
+
 	//limit chrs and / or windows
 	useChromosome = new bool[bamHeader.Sequences.Size()];
 	if(params.parameterExists("chr")){
@@ -402,6 +413,7 @@ bool TGenome::readData(TWindowPair & windowPair){
 	}
 
 	while(alignmentParser.readAlignment(bamReader) && alignmentParser.chrNumber==chrNumber){
+
 		if(alignmentParser.passedFilters && readGroups.readGroupInUse(alignmentParser.readGroupId)){
 			//now parse alignment
 			alignmentParser.parse();
@@ -2539,6 +2551,9 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (bamReader.GetNextAlignment(bamAlignment)){
+		if(alignmentStorage.size() > 1000)
+			std::cout <<"alignmentStorage.size() " << alignmentStorage.size() << std::endl;
+
 		if((readsToOmit.count(bamAlignment.Name) > 0)){
 			//no need to keep mate in list anymore
 			readsToOmit.erase(bamAlignment.Name);
@@ -2583,8 +2598,13 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 				//check if first alignment in storage is too far away from current read (after checking for chr change) -> if yes erase from storage!
 				while(alignmentStorage.size() > 0 && bamAlignment.Position - alignmentStorage.begin()->first->Position > acceptedDistanceBetweenMates){
+//					std::cout << "new alignment " << bamAlignment.Name << std::endl;
+//					std::cout << "first read in storage " << alignmentStorage.begin()->first->Name << std::endl;
+//					std::cout << "bamAlignment.Position " << bamAlignment.Position << " alignmentStorage.begin()->first->Position " << alignmentStorage.begin()->first->Position << std::endl;
 					readsToOmit.emplace(alignmentStorage.begin()->first->Name, 1);
 					ignoredReads << "DistanceError: Fwd read with name " << alignmentStorage.begin()->first->Name << " has a mate that is farther away than " << acceptedDistanceBetweenMates << " bp\n";
+					if(alignmentStorage.begin()->second == true)
+						break;
 					alignmentStorage.erase(alignmentStorage.begin());
 				}
 
@@ -2598,7 +2618,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 						//find first mate -> should be in storage
 						for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 							if(it->first->Name == bamAlignment.Name){
-
 								//check if this read accepts mate
 								if(it->second)
 									throw "First read of '" + bamAlignment.Name + "' is not paired or has already been merged!";
@@ -2673,7 +2692,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 								it->second = true;
 
 								//write if is first in vector
-								if(it == alignmentStorage.begin()){
+								if(alignmentStorage.begin()->second){
 
 									//write all that are OK
 									for(; it != alignmentStorage.end(); ++it){

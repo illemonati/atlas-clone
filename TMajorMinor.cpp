@@ -246,8 +246,9 @@ TMajorMinor::TMajorMinor(TParameters & params, TLog* Logfile){
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 };
 
-void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods){
-	if(vcfOpened) closeVCF();
+void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods, const std::string & vcfVersion){
+	if(vcfOpened)
+		closeVCF();
 
 	//open vcf file
 	filenameTag += ".vcf.gz";
@@ -256,7 +257,7 @@ void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, 
 
 	//write info
 	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	vcf << "##fileformat=VCFv4.3\n";
+	vcf << "##fileformat=VCFv" + vcfVersion + "\n";
 	vcf << "##source=ATLAS_GLF_Caller\n";
 	glfReader.writeVCFHeader(vcf, usePhredLikelihoods);
 };
@@ -321,8 +322,19 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_majorMinor");
 	logfile->list("Will write output files with tag '" + outname + "'.");
 
+	//vcf format version
+	std::string vcfVersion = "4.3";
+	if(params.parameterExists("vcfVersion")){
+		vcfVersion = params.getParameterString("vcfVersion");
+		if(vcfVersion != "4.3"){
+			if(vcfVersion != "4.2" && vcfVersion != "4.1" && vcfVersion != "4.0"){
+				throw "cannot create vcf with version " + vcfVersion;
+			}
+		}
+	}
+
 	//open vcf file
-	openVCF(outname, glfReader, usePhredLikelihoods);
+	openVCF(outname, glfReader, usePhredLikelihoods, vcfVersion);
 
 	//vars
 	logfile->startIndent("Parsing through glf files:");
