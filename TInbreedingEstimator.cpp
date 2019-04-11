@@ -16,6 +16,8 @@ TInbreedingF::TInbreedingF(){
 	_sdProposal = -1.0;
 	_inModelWithF = false;
 	_lambda = -1.0;
+	_logLambda = -1.0;
+	_expMinusLambda = -1.0;
 	_posteriorProbModelWithF = -1;
 }
 
@@ -25,6 +27,8 @@ TInbreedingF::TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdPr
 	_sdProposal = SdProposal;
 	_inModelWithF = InModelWithF;
 	_lambda = Lambda;
+	_logLambda = log(Lambda);
+	_expMinusLambda = log(1-exp(-_lambda));
 	_posteriorProbModelWithF = 0;
 }
 
@@ -83,7 +87,7 @@ void TInbreedingF::resetPosterior(){
 }
 
 double TInbreedingF::logPDFExp(const double & thisF){
-	return log(_lambda) - _lambda * thisF;
+	return _logLambda - _lambda * thisF;
 }
 
 double TInbreedingF::logPDFExp(){
@@ -92,7 +96,7 @@ double TInbreedingF::logPDFExp(){
 
 double TInbreedingF::PDFExp(const double & thisF){
 	//truncated at 1 -> need to divide by cumulative prob at 1
-	return _lambda * exp(-_lambda* thisF) - log(1-exp(-_lambda));
+	return _lambda * exp(-_lambda* thisF) - _expMinusLambda;
 }
 
 double TInbreedingF::PDFExp(){
@@ -130,6 +134,8 @@ TAlleleFreq::TAlleleFreq(){
 	numLoci = -1;
 	numLociModelP = -1;
 	lambda = -1.0;
+	logLambda = -1.0;
+	expMinusLambda = -1.0;
 	minAlleleFreq = -1.0;
 	probMovingToModel0 = -1.0;
 }
@@ -141,6 +147,8 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	numLoci = alleleFreq.size();
 	numLociModelP = 0;
 	lambda = Lambda;
+	logLambda = log(Lambda);
+	expMinusLambda = log(1-exp(-lambda));
 	minAlleleFreq = 1.0 / ((double) 2.0 * numSamples) / 100.0;
 	probMovingToModel0 = ProbMovingToModel0;
 
@@ -284,7 +292,7 @@ long TAlleleFreq::getNumLociInModel0(){
 
 double TAlleleFreq::logPDFExp(const double & thisP){
 	//truncated at 1 -> need to divide by cumulative prob at 1
-	return log(lambda) - lambda * thisP - log(1-exp(-lambda));
+	return logLambda - lambda * thisP - expMinusLambda;
 }
 
 double TAlleleFreq::logPDFExp(const long & thisLocus){
@@ -355,11 +363,15 @@ TPi::TPi(){
 	proposalWidth = -1.0;
 	_pi = -1.0;
 	_minPi = -1.0;
+	_logPi = -1.0;
+	_logOneMinusPi = -1.0;
 }
 
 TPi::TPi(double & ProposalWidth, double & initialValue){
 	proposalWidth = ProposalWidth;
 	_pi = initialValue;
+	_logPi = log(_pi);
+	_logOneMinusPi = log(1.0 - _pi);
 	_minPi = 0.000000000000001;
 	if(_pi == 0.0)
 		_pi = _minPi;
@@ -371,6 +383,8 @@ void TPi::update(const double & newNaturalScaleValue){
 	if(newNaturalScaleValue < 0)
 		throw "updating pi to negative value!";
 	_pi = newNaturalScaleValue;
+	_logPi = log(_pi);
+	_logOneMinusPi = log(1.0 - _pi);
 }
 
 void TPi::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
@@ -502,13 +516,6 @@ void TInbreedingEstimator::initializeGamma(){
 //		betaF = 0.01;
 //	double logBeta = log(betaF);
 //	beta.update(logBeta, betaF);
-
-
-
-	double trueVal = 0.2;
-	double logTrueVal = log(0.2);
-	Gamma.update(logTrueVal, trueVal);
-//	beta.update(logTrueVal, trueVal);
 
 	logfile->list("Initialized gamma to " + toString(Gamma.getNaturalScaleValue()));
 }
@@ -669,12 +676,13 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			//propose model0
 			double gammaNat = Gamma.getNaturalScaleValue();
 			double logH = 2.0 * randomGenerator->gammaln(gammaNat)
-					+ log(1.0 - pi.getPi())
+					+ pi.getLogOneMinusPi()
+//					+ log(1.0 - pi.getPi())
 					+ p.logPDFExp(locusNum)
 					- (gammaNat-1.0) * log(p[locusNum])
 					- (gammaNat-1.0) * log(1.0-p[locusNum])
 					- randomGenerator->gammaln(2.0*gammaNat)
-					- log(pi.getPi())
+					- pi.getLogPi()
 					- log(p.probMovingToModel0) //if prob is zero we never get here
 					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
 					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
@@ -745,12 +753,12 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 			throw "proposed negative newP in move from model0 to modelP: " + toString(newP);
 		double gammaNat = Gamma.getNaturalScaleValue();
 		double logH = - 2.0 * randomGenerator->gammaln(gammaNat)
-				- log(1.0 - pi.getPi())
+				- pi.getLogOneMinusPi()
 				- p.logPDFExp(newP)
 				+ (gammaNat-1.0) * log(newP)
 				+ (gammaNat-1.0) * log(1.0-newP)
 				+ randomGenerator->gammaln(2.0*gammaNat)
-				+ log(pi.getPi())
+				+ pi.getLogPi()
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
 				+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F());
 		if(p.probMovingToModel0 == 0.0){

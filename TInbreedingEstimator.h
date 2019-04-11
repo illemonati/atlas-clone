@@ -22,7 +22,7 @@ private:
 	float _probMovingToModelNoF;
 	double _sdProposal;
 	bool _inModelWithF;
-	double _lambda;
+	double _lambda, _logLambda, _expMinusLambda;
 	int _posteriorProbModelWithF;
 
 public:
@@ -63,7 +63,7 @@ public:
 
 	long numLoci;
 	float probMovingToModel0;
-	double lambda;
+	double lambda, logLambda, expMinusLambda;
 	double minAlleleFreq;
 
 	TAlleleFreq();
@@ -117,6 +117,8 @@ class TPi{
 private:
 	double _pi;
 	double _minPi;
+	double _logPi;
+	double _logOneMinusPi;
 public:
 	double proposalWidth;
 
@@ -126,6 +128,8 @@ public:
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
 	double getPi();
+	double getLogPi(){ return _logPi; };
+	double getLogOneMinusPi(){ return _logOneMinusPi; };
 	double getProposalWidth();
 	double proposeNew(TRandomGenerator* randomGenerator);
 };
