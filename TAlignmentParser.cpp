@@ -920,7 +920,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		window.addReferenceBaseToSites(subset);
 	} else {
 		window.fillSites(readUpToDepth);
-		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+		if(hasReference) window.addReferenceBaseToSites(*fastaReference);
 	}
 
 	//report
@@ -946,7 +946,7 @@ void TAlignmentParser::applyFilters(TWindow & window){
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(*fastaReference, previousAlignmentChr);
+			window.maskCpG(*fastaReference);
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

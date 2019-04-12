@@ -258,7 +258,7 @@ void TWindow::fillSites(const int & readUpToDepth){
 	}
 };
 
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
+void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
 	if(!referenceBaseAdded){
 
 		std::cout << std::endl;
@@ -269,7 +269,7 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 
 		std::cout << "STRING SIZE = " << ref.size() << ", chr = " << chrNumber << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
 
-		reference.GetSequence(refId, start, stop, ref);
+		reference.GetSequence(chrNumber, start, stop, ref);
 
 		std::cout << "STRING SIZE = " << ref.size() << ", chr = " << chrNumber << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
 
@@ -329,16 +329,16 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 			}
 		}
 	}
-}
+};
 
-void TWindow::maskCpG(BamTools::Fasta & reference, int & refId){
+void TWindow::maskCpG(BamTools::Fasta & reference){
 	std::string ref; //fasta object fills string
 	//note that end is last position + 1
 	for(int i=0; i<length; ++i){
 		if(ref[i+1] == 'C' && ref[i+2] == 'G') sites[i].clear();
 		else if(ref[i] == 'C' && ref[i+1] == 'G') sites[i].clear();
 	}
-}
+};
 
 void TWindow::estimateBaseFrequencies(){
 	//estimate initial base frequencies
@@ -347,18 +347,18 @@ void TWindow::estimateBaseFrequencies(){
 		sites[i].addToBaseFrequencies(baseFreq);
 	}
 	baseFreq.normalize();
-}
+};
 
 void TWindow::calculateEmissionProbabilities(){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
 	}
-}
+};
 
 void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
 	//add reference to sites
-	addReferenceBaseToSites(reference, chrNumber);
+	addReferenceBaseToSites(reference);
 
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
