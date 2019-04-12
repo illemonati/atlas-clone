@@ -38,16 +38,24 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int nu
 	double newProposalWidth = _sdProposal;
 	newProposalWidth *=  ((double) numAcceptedFModelF / (double) numIterInModelF) * 3.0;
 
-	if(newProposalWidth / _sdProposal < 0.1)
+	if(numIterInModelF == 0){
+		_lambda *= 10;
+		_logLambda = log(_lambda);
+	}
+
+	else if(newProposalWidth / _sdProposal < 0.1)
 		newProposalWidth = 0.1 * _sdProposal;
 	else if(_sdProposal / newProposalWidth < 0.1)
 		newProposalWidth = 10 * _sdProposal;
 
-	if(newProposalWidth > 1.0)
+	else if(newProposalWidth > 1.0)
 		newProposalWidth = 1.0;
 
-	if(newProposalWidth < 0.0000001 || numAcceptedFModelF == 0)
-		newProposalWidth = 0.0000001;
+	else if(newProposalWidth < 0.00001 || numAcceptedFModelF == 0){
+		newProposalWidth = 0.00001;
+		std::cout << "numAcceptedFModelF is zero!";
+	}
+
 
 	_sdProposal = newProposalWidth;
 
@@ -1185,7 +1193,7 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 //			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
 
 	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getPi();
-	for(int l=0; l<1000; ++l){
+	for(int l=0; l<100; ++l){
 		out << "\t" << p[l];
 	}
 
@@ -1309,7 +1317,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 	//write header of trace file
 	out << "F\tgamma\tgammaLog\tpi";
-	for(int l=0; l<1000; ++l){
+	for(int l=0; l<100; ++l){
 		out << "\tp[" << l << "]";
 	}
 
