@@ -8,6 +8,57 @@
 #include "TRecalibrationEMAuxiliaryTools.h"
 
 //--------------------------------------------------------------------
+// TRecalibrationEMQualityPositionMap
+// Look-up tables for position and quality. Only indexes will be stored.
+//--------------------------------------------------------------------
+TRecalibrationEMQualityPositionMap::TRecalibrationEMQualityPositionMap(){
+	initialized = false;
+	initialize(255, 255); //TODO: think about default!
+};
+
+TRecalibrationEMQualityPositionMap::~TRecalibrationEMQualityPositionMap(){
+	clear();
+};
+
+void TRecalibrationEMQualityPositionMap::clear(){
+	if(initialized){
+		delete[] eta;
+		delete[] etaSquared;
+		delete[] position;
+		delete[] positionSquared;
+		initialized = false;
+	}
+};
+
+void TRecalibrationEMQualityPositionMap::initialize(int MaxQualPhredInt, int MaxPos){
+	clear();
+	maxQualPhredInt = MaxQualPhredInt;
+	maxPos = MaxPos;
+	eta = new double[maxQualPhredInt+1];
+	etaSquared = new double[maxQualPhredInt+1];
+	position = new double[maxPos+1];
+	positionSquared = new double[maxPos+1];
+	initialized = true;
+
+	//fill qualities. Use TQualityMap for conversion
+	TQualityMap qualiMap;
+	for(int q=0; q<=maxQualPhredInt; q++){
+		double eps = qualiMap.phredIntToError(q);
+		if(eps < 0.0000000001) eps = 0.0000000001;
+		else if(eps > 0.9999999999) eps = 0.9999999999;
+
+		eta[q] = log(eps / (1.0 - eps));
+		etaSquared[q] = eta[q] * eta[q];
+	}
+
+	//fill positions
+	for(int p = 0; p<=maxPos; p++){
+		position[p] = p;
+		positionSquared[p] = p * p;
+	}
+};
+
+//--------------------------------------------------------------------
 // TRecalibrationEMReadData
 //--------------------------------------------------------------------
 void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
@@ -93,7 +144,7 @@ void TRecalibrationEMDataTable::clear(){
 };
 
 void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
-	++qualities[data.readGroup][(int) data.isSecond][data.quality];
+	++qualities[data.readGroup][(int) data.isSecond][data.qualityPhredInt];
 	if(maxPos[data.readGroup][data.isSecond] < data.position)
 		maxPos[data.readGroup][data.isSecond] = data.position;
 };

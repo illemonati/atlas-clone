@@ -230,16 +230,16 @@ double TRecalibrationEMModel_noRecal::getErrorRate(TBase & base){
 	return base.errorRate;
 };
 
-void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	//now fill table
-	transformedQuality = new int**[MaxQualPlusOne];
+	transformedQualityPhredInt = new int**[MaxQualPlusOne];
 	for(int q=0; q<MaxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[MaxPosPlusOne];
+		transformedQualityPhredInt[q] = new int*[MaxPosPlusOne];
 		for(int p=0; p<MaxPosPlusOne; ++p){
-			transformedQuality[q][p] = new int[20];
+			transformedQualityPhredInt[q][p] = new int[20];
 			for(int c=0; c<20; ++c){
 				//no recal!
-				transformedQuality[q][p][c] = q;
+				transformedQualityPhredInt[q][p][c] = q;
 			}
 		}
 	}
@@ -277,8 +277,8 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std
 
 double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared, position and position squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	double eta = _qualPosMap.eta[data.qualityPhredInt] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.qualityPhredInt] * _betas[1];
 	eta += _qualPosMap.position[data.position] * _betas[2];
 	eta += _qualPosMap.positionSquared[data.position] * _betas[3];
 
@@ -291,8 +291,8 @@ double TRecalibrationEMModel_qualFuncPosFunc::calcEpsilon(const TRecalibrationEM
 void TRecalibrationEMModel_qualFuncPosFunc::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[4];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[0] = _qualPosMap.eta[data.qualityPhredInt];
+	q[1] = _qualPosMap.etaSquared[data.qualityPhredInt];
 	q[2] = _qualPosMap.position[data.position];
 	q[3] = _qualPosMap.positionSquared[data.position];
 
@@ -353,7 +353,7 @@ double TRecalibrationEMModel_qualFuncPosFunc::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	//quality term
 	double* qualTermForTransformation = new double[MaxQualPlusOne];
 	double tmp;
@@ -394,7 +394,7 @@ void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation
 
 			//now store for each context
 			for(int c=0; c<20; ++c)
-				transformedQuality[q][p][c] = newQual;
+				transformedQualityPhredInt[q][p][c] = newQual;
 		}
 	}
 
@@ -437,8 +437,8 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 
 double TRecalibrationEMModel_qualFuncPosFuncContext::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared, position and position squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	double eta = _qualPosMap.eta[data.qualityPhredInt] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.qualityPhredInt] * _betas[1];
 	eta += _qualPosMap.position[data.position] * _betas[2];
 	eta += _qualPosMap.positionSquared[data.position] * _betas[3];
 
@@ -451,8 +451,8 @@ double TRecalibrationEMModel_qualFuncPosFuncContext::calcEpsilon(const TRecalibr
 void TRecalibrationEMModel_qualFuncPosFuncContext::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[4];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[0] = _qualPosMap.eta[data.qualityPhredInt];
+	q[1] = _qualPosMap.etaSquared[data.qualityPhredInt];
 	q[2] = _qualPosMap.position[data.position];
 	q[3] = _qualPosMap.positionSquared[data.position];
 
@@ -509,7 +509,7 @@ double TRecalibrationEMModel_qualFuncPosFuncContext::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	//quality term
 	double* qualTermForTransformation = new double[MaxQualPlusOne];
 	double tmp;
@@ -548,7 +548,7 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 
 				transQual = exp(transQual);
 				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+				transformedQualityPhredInt[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
 		}
 	}
@@ -624,8 +624,8 @@ void TRecalibrationEMModel_qualFuncPosSpecific::checkParameterRange(std::vector<
 
 double TRecalibrationEMModel_qualFuncPosSpecific::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	double eta = _qualPosMap.eta[data.qualityPhredInt] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.qualityPhredInt] * _betas[1];
 
 	//no intercept to add -> is contained in position betas!
 
@@ -639,8 +639,8 @@ double TRecalibrationEMModel_qualFuncPosSpecific::calcEpsilon(const TRecalibrati
 void TRecalibrationEMModel_qualFuncPosSpecific::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[0] = _qualPosMap.eta[data.qualityPhredInt];
+	q[1] = _qualPosMap.etaSquared[data.qualityPhredInt];
 
 	//add to F
 	//-------------------------------------
@@ -707,7 +707,7 @@ double TRecalibrationEMModel_qualFuncPosSpecific::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	if(MaxPosPlusOne > _maxPosPlusOne)
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
@@ -744,7 +744,7 @@ void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimula
 			if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
 			double tmp = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			for(int c=0; c<20; ++c)
-				transformedQuality[q][p][c] = tmp;
+				transformedQualityPhredInt[q][p][c] = tmp;
 		}
 	}
 
@@ -832,8 +832,8 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::proposeNewParameters(doub
 
 double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	double eta = _qualPosMap.eta[data.qualityPhredInt] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.qualityPhredInt] * _betas[1];
 
 	//add context
 	eta += _betas[2 + data.context];
@@ -848,8 +848,8 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::calcEpsilon(const TReca
 void TRecalibrationEMModel_qualFuncPosSpecificContext::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[0] = _qualPosMap.eta[data.qualityPhredInt];
+	q[1] = _qualPosMap.etaSquared[data.qualityPhredInt];
 
 	//add to F
 	//-------------------------------------
@@ -923,7 +923,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	if(MaxPosPlusOne > _maxPosPlusOne)
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
@@ -959,7 +959,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 
 				transQual = exp(transQual);
 				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+				transformedQualityPhredInt[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
 		}
 	}
@@ -1052,8 +1052,8 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::proposeNewParameters(d
 
 double TRecalibrationEMModel_qualFuncPosSpecificContextNew::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality, quality squared
-	double eta = _qualPosMap.eta[data.quality] * _betas[0];
-	eta += _qualPosMap.etaSquared[data.quality] * _betas[1];
+	double eta = _qualPosMap.eta[data.qualityPhredInt] * _betas[0];
+	eta += _qualPosMap.etaSquared[data.qualityPhredInt] * _betas[1];
 
 	//add context
 	eta += _betas[2 + data.context];
@@ -1069,8 +1069,8 @@ double TRecalibrationEMModel_qualFuncPosSpecificContextNew::calcEpsilon(const TR
 void TRecalibrationEMModel_qualFuncPosSpecificContextNew::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill q
 	double q[2];
-	q[0] = _qualPosMap.eta[data.quality];
-	q[1] = _qualPosMap.etaSquared[data.quality];
+	q[0] = _qualPosMap.eta[data.qualityPhredInt];
+	q[1] = _qualPosMap.etaSquared[data.qualityPhredInt];
 
 	//add to F
 	//-------------------------------------
@@ -1149,7 +1149,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContextNew::getErrorRate(TBase &
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	if(MaxPosPlusOne > _maxPosMinusOne)
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosMinusOne) + "!";
 
@@ -1187,7 +1187,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTabl
 
 				transQual = exp(transQual);
 				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+				transformedQualityPhredInt[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
 		}
 	}
@@ -1271,7 +1271,7 @@ void TRecalibrationEMModel_qualSpecficPosSpecific::checkParameterRange(std::vect
 double TRecalibrationEMModel_qualSpecficPosSpecific::calcEpsilon(const TRecalibrationEMReadData & data){
 	//quality
 	//Note: no check! Assuming it was properly initialized for estimation
-	double eta = _betas[_qualityIndex[data.quality]];
+	double eta = _betas[_qualityIndex[data.qualityPhredInt]];
 
 	//add position
 	//Note: no check on maxPos! Assuming it was properly initialized for estimation
@@ -1284,7 +1284,7 @@ void TRecalibrationEMModel_qualSpecficPosSpecific::addToFandJacobian(const TReca
 	//add to F
 	//-------------------------------------
 	//quality
-	int qIndex = _qualityIndex[data.quality];
+	int qIndex = _qualityIndex[data.qualityPhredInt];
 	F(qIndex) += weightF;
 
 	//now position
@@ -1319,8 +1319,7 @@ std::string TRecalibrationEMModel_qualSpecficPosSpecific::getContextString(){
 
 double TRecalibrationEMModel_qualSpecficPosSpecific::getErrorRate(TBase & base){
 	//quality: calculate from error rate
-	//TODO: SHOULD BE PHRED INT????
-	int q = qualMap.errorToQuality(base.errorRate);
+	int q = qualMap.errorToPhredInt(base.errorRate);
 
 	if(q >= _maxQualPlusOne || _qualityIndex[q] < 0)
 		//TODO: give better error. But need read group info for that!
@@ -1339,7 +1338,7 @@ double TRecalibrationEMModel_qualSpecficPosSpecific::getErrorRate(TBase & base){
 	return _calcEpsilon(eta);
 };
 
-void TRecalibrationEMModel_qualSpecficPosSpecific::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+void TRecalibrationEMModel_qualSpecficPosSpecific::fillTransformationTableForSimulation(int*** transformedQualityPhredInt, int MaxPosPlusOne, int MaxQualPlusOne){
 	if(MaxPosPlusOne > _maxPosPlusOne)
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
@@ -1375,7 +1374,7 @@ void TRecalibrationEMModel_qualSpecficPosSpecific::fillTransformationTableForSim
 
 				transQual = exp(transQual);
 				if(transQual == 0) throw "Choose different quality transformation parameters! transQual == 0";
-				transformedQuality[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
+				transformedQualityPhredInt[q][p][c] = round(-10.0 * log10(transQual / (1.0 + transQual)));
 			}
 		}
 	}

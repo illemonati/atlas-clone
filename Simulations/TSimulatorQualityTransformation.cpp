@@ -250,29 +250,29 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const
 void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength){
 	//set size
 	maxReadLengthPlusOne = maxReadLength + 1;
-	maxQualPlusOne = qualityDist->max() + 1;
+	maxQualPhredIntPlusOne = qualityDist->max() + 1;
 	numContext = genoMap.numContextsNotN;
 
 	//allocate table
-	transformedQuality = new int**[maxQualPlusOne];
-	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxReadLengthPlusOne];
+	transformedQualityPhredInt = new int**[maxQualPhredIntPlusOne];
+	for(int q=0; q<maxQualPhredIntPlusOne; ++q){
+		transformedQualityPhredInt[q] = new int*[maxReadLengthPlusOne];
 		for(int p=0; p<maxReadLengthPlusOne; ++p)
-			transformedQuality[q][p] = new int[numContext];
+			transformedQualityPhredInt[q][p] = new int[numContext];
 	}
 
 	//fill table using a recal model
 	model = createTRecalibrationEMModel(modelTag, values, false, NULL);
-	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne);
+	model->fillTransformationTableForSimulation(transformedQualityPhredInt, maxReadLengthPlusOne, maxQualPhredIntPlusOne);
 };
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){
-	for(int q=0; q<maxQualPlusOne; ++q){
+	for(int q=0; q<maxQualPhredIntPlusOne; ++q){
 		for(p=0; p<maxReadLengthPlusOne; ++p)
-			delete[] transformedQuality[q][p];
-		delete[] transformedQuality[q];
+			delete[] transformedQualityPhredInt[q][p];
+		delete[] transformedQualityPhredInt[q];
 	}
-	delete[] transformedQuality;
+	delete[] transformedQualityPhredInt;
 	delete model;
 };
 
@@ -288,12 +288,12 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 	Base previousBase = N;
 	if(isReverseStrand){
 		for(p=len - 1; p>=0; --p){
-			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
+			qualities[p] = transformedQualityPhredInt[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
 			previousBase = bases[p];
 		}
 	} else {
 		for(p=0; p<len; ++p){
-			qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
+			qualities[p] = transformedQualityPhredInt[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
 			previousBase = bases[p];
 		}
 	}

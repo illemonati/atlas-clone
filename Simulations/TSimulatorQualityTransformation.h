@@ -113,9 +113,9 @@ class TSimulatorQualityTransformationRecal:public TSimulatorQualityTransformatio
 private:
 	TRecalibrationEMModel_Base* model;
 	int maxReadLengthPlusOne;
-	int maxQualPlusOne;
+	int maxQualPhredIntPlusOne;
 	int numContext;
-	int*** transformedQuality; //index are [qual][pos][context]
+	int*** transformedQualityPhredInt; //index are [qual][pos][context]
 	TGenotypeMap genoMap;
 
 	//private functions
@@ -130,8 +130,8 @@ public:
 		clearTransformationTable();
 	};
 
-	int getTransformedQuality(int qual, int pos, int context){
-		return(transformedQuality[qual][pos][context]);
+	int getTransformedQualityPhredInt(int qual, int pos, int context){
+		return(transformedQualityPhredInt[qual][pos][context]);
 	};
 
 	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);

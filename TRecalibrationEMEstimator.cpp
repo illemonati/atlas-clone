@@ -28,8 +28,8 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGro
 		//read group. Note: also encodes whether it is first or second mate
 		data[k].readGroup = ReadGroupMap[it->readGroup];
 
-		//quality
-		data[k].quality = qualiMap.errorToQuality(it->errorRate);
+		//quality as phred int
+		data[k].qualityPhredInt = qualiMap.errorToPhredInt(it->errorRate);
 
 		//position
 		data[k].position = it->distFrom5Prime;

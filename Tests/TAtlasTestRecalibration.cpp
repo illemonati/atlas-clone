@@ -427,8 +427,8 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 	std::vector<int> transformedQualScores;
 	int numQualScores = trueQualScores.size();
 	for(int i=0; i<numQualScores; ++i){
-		transformedQualScores.push_back(recalObject->getTransformedQuality(trueQualScores[i],0,0));
-		std::cout << recalObject->getTransformedQuality(trueQualScores[i],0,0) << " " << trueQualScores[i]<< std::endl;
+		transformedQualScores.push_back(recalObject->getTransformedQualityPhredInt(trueQualScores[i],0,0));
+		std::cout << recalObject->getTransformedQualityPhredInt(trueQualScores[i],0,0) << " " << trueQualScores[i]<< std::endl;
 	}
 
 	//is the rest = 0?

@@ -21,7 +21,7 @@
 //--------------------------------------------------------------------
 class TRecalibrationEMQualityPositionMap{
 public:
-	int maxQual;
+	int maxQualPhredInt;
 	int maxPos;
 	double* eta;
 	double* etaSquared;
@@ -29,61 +29,19 @@ public:
 	double* positionSquared;
 	bool initialized;
 
-	TRecalibrationEMQualityPositionMap(){
-		initialized = false;
-		initialize(500, 255); //TODO: think about default!
-	};
+	TRecalibrationEMQualityPositionMap();
+	~TRecalibrationEMQualityPositionMap();
 
-	~TRecalibrationEMQualityPositionMap(){
-		clear();
-	};
-
-	void clear(){
-		if(initialized){
-			delete[] eta;
-			delete[] etaSquared;
-			delete[] position;
-			delete[] positionSquared;
-			initialized = false;
-		}
-	};
-
-	void initialize(int MaxQual, int MaxPos){
-		clear();
-		maxQual = MaxQual;
-		maxPos = MaxPos;
-		eta = new double[maxQual+1];
-		etaSquared = new double[maxQual+1];
-		position = new double[maxPos+1];
-		positionSquared = new double[maxPos+1];
-		initialized = true;
-
-		//fill qualities. Use TQualityMap for conversion
-		TQualityMap qualiMap;
-		for(int q=0; q<=maxQual; q++){
-			double eps = qualiMap.qualityToError(q);
-			if(eps < 0.0000000001) eps = 0.0000000001;
-			else if(eps > 0.9999999999) eps = 0.9999999999;
-
-			eta[q] = log(eps / (1.0 - eps));
-			etaSquared[q] = eta[q] * eta[q];
-		}
-
-		//fill positions
-		for(int p = 0; p<=maxPos; p++){
-			position[p] = p;
-			positionSquared[p] = p * p;
-		}
-	};
+	void clear();
+	void initialize(int MaxQualPhredInt, int MaxPos);
 };
-
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
 // Per site data storage
 //--------------------------------------------------------------------
 struct TRecalibrationEMReadData{
-	uint8_t quality;
+	uint8_t qualityPhredInt;
 	uint8_t position;
 	float D[4];
 	uint8_t context;
