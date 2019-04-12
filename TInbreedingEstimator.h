@@ -62,12 +62,13 @@ public:
 	std::vector<float> proposalWidths;
 
 	long numLoci;
-	float probMovingToModel0;
+	double probMovingToModel0, probMovingToModelP;
+	double logProbMovingToModel0, logProbMovingToModelP;
 	double lambda, logLambda, expMinusLambda;
 	double minAlleleFreq;
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, float & ProbMovingToModel0, double & Lambda);
+	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda);
 
 	double operator[](long index){
 		//Note: no check on range!
@@ -176,6 +177,8 @@ private:
 
 //	void initializeAlphaBeta();
 	void initializeGamma();
+	void initF(TParameters & parameters);
+	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma);
