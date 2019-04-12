@@ -260,10 +260,15 @@ void TWindow::fillSites(const int & readUpToDepth){
 
 void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 	if(!referenceBaseAdded){
+
+		std::cout << std::endl;
 		std::cout << "ADDING REF TO SITES!" << std::endl;
 
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
+
+		std::cout << "STRING SIZE = " << ref.size() << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
+
 		reference.GetSequence(refId, start, stop, ref);
 
 		std::cout << "STRING SIZE = " << ref.size() << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
