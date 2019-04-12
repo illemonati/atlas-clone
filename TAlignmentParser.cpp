@@ -21,6 +21,9 @@ TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
 }
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
+
+	std::cout << "MOVE to " << pos << " on chr " << chr << std::endl;
+
 	curChr = chr;
 	curStart = pos;
 	curEnd = pos + bufferSize;
@@ -29,12 +32,23 @@ void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
 }
 
 void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref){
+
+	std::cout << "FILL from " << start << " to " << end << " on chr " << chr << std::endl;
+
 	//move buffer, if necessary
-	if(chr != curChr || end > curEnd || start < curStart)
+	if(chr != curChr || end > curEnd || start < curStart){
+		if(end - start + 1 > bufferSize){
+			bufferSize = end - start + 1;
+		}
 		moveTo(chr, start);
+	}
+
+
 
 	//now copy to string
 	ref.assign(referenceSequence, start - curStart, end - start + 1);
+
+	std::cout << "FILL successful" << std::endl;
 }
 
 //-----------------------------------------------------

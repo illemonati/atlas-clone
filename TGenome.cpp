@@ -527,7 +527,7 @@ void TGenome::printPileup(TParameters & params){
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		window.printPileup(alignmentParser.recalObject, out, printOnlySitesWithData);
+		//window.printPileup(alignmentParser.recalObject, out, printOnlySitesWithData);
 	}
 
 	//clean up
