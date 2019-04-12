@@ -260,27 +260,15 @@ void TWindow::fillSites(const int & readUpToDepth){
 
 void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
 	if(!referenceBaseAdded){
-
-		std::cout << std::endl;
-		std::cout << "ADDING REF TO SITES!" << std::endl;
-
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
-
-		std::cout << "STRING SIZE = " << ref.size() << ", chr = " << chrNumber << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
-
 		reference.GetSequence(chrNumber, start, stop, ref);
-
-		std::cout << "STRING SIZE = " << ref.size() << ", chr = " << chrNumber << ", start = " << start << ", end = " << end << ", length = " << length << ", end - start = " << end - start << std::endl;
-
 		for(int i=0; i<length; ++i){
 			sites[i].setRefBase(ref[i]);
 		}
 		referenceBaseAdded = true;
-
-		std::cout << "SUCCESSFULL!" << std::endl;
 	}
-}
+};
 
 void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 	if(!referenceBaseAdded){
@@ -295,7 +283,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 		}
 		referenceBaseAdded = true;
 	}
-}
+};
 
 void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	int pos;
@@ -318,8 +306,8 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 				sites[i].clear();
 			}
 		//else clear entire window
-		} else	clear();
-	} else{
+		} else clear();
+	} else {
 		if(mask->hasPositionsInWindow(start)){
 			std::vector<long> thesePos = mask->getPositionInWindow(start);
 			//skip sites listed in mask by setting their hasData = false
@@ -388,55 +376,6 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, B
 	}
 };
 
-
-
-/*
-
-void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
-	if(isVCF){
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				if(sites[i].hasData)
-					sites[i].calcEmissionProbabilities();
-				std::string basesString = sites[i].getBases();
-				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].calcEmissionProbabilities();
-					std::string basesString = sites[i].getBases();
-					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
-					out << "\n";
-				}
-			}
-		}
-	} else {
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				if(sites[i].hasData)
-					sites[i].calcEmissionProbabilities();
-				sites[i].callMLEGenotype(genoMap, randomGenerator, out);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].calcEmissionProbabilities();
-					sites[i].callMLEGenotype(genoMap, randomGenerator, out);
-					out << "\n";
-				}
-			}
-		}
-	}
-}
-
-*/
 void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){

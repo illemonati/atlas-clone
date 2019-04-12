@@ -12,7 +12,7 @@
 //TFastaBuffer
 //-----------------------------------------------------
 TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
-	bufferSize = 10000000;
+	bufferSize = 100000;
 	reference = Reference;
 	referenceSequence = "";
 	curStart = -1;
@@ -231,8 +231,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 				throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
 		logfile->endIndent();
-
-
 	} else {
 		if(params.parameterExists("limitChr")){
 			//set all chromosomes to false
@@ -601,7 +599,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	//write progress
 	logfile->endIndent();
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
-}
+};
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
@@ -649,7 +647,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 		return true;
 	} else
 		return false;
-}
+};
 
 bool TAlignmentParser::moveWindow(TWindow & window){
 	//returns false when end of genome is reached
@@ -710,8 +708,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 	return true;
-
-}
+};
 
 //------------------------------
 //reading alignments
@@ -787,7 +784,7 @@ bool TAlignmentParser::readAlignment(){
 	} while(!filtersPassed);
 
 	return true;
-}
+};
 
 bool TAlignmentParser::applyFilters(){
 	bool filtersPassed = readGroups.readGroupInUse(curReadGroupID)
@@ -830,7 +827,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 	}
-}
+};
 
 //------------------------
 //read data in alignments
@@ -844,7 +841,7 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 		return true;
 	}
 	return false;
-}
+};
 
 bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
@@ -856,7 +853,7 @@ bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 		blacklist.emplace(bamAlignment.Name, 1);
 	}
 	return false;
-}
+};
 
 //---------------------
 //read data in windows

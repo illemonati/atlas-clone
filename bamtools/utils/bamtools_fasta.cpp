@@ -396,12 +396,6 @@ bool Fasta::FastaPrivate::GetNextSequence(string& sequence) {
 }
 
 bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const int& stop, string& sequence) {
- 
-
-    std::cout << std::endl << "---------------- IN BAM TOOLS ---------------" << std::endl;
-    std::cout << ">>> " << refId << " at " << start << " / " << stop << std::endl;
-
-
     // make sure FASTA file is open
     if ( !IsOpen ) {
         cerr << "FASTA error : file not open for reading" << endl;
@@ -430,8 +424,6 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
             return false;
         }*/
 
-        std::cout << ">>> " << refId << " at " << start << " / " << stop << ", referenceData.Length = " << referenceData.Length << std::endl;
-
         std::string addBefore = "";
         std::string addAfter = "";
         int thisStart = start;
@@ -447,14 +439,10 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         	thisStart = 0;
         }
 
-        std::cout << "BEFORE = " << addBefore.size() << std::endl;
-
         if(stop > referenceData.Length){
         	for(int i=referenceData.Length; i<stop; ++i) addAfter += 'N';
         	thisStop = referenceData.Length;
         }
-
-        std::cout << "AFTER = " << addAfter.size() << std::endl;
 
         //--------------------------------------------------------------------
         
@@ -472,16 +460,8 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
         }
         
         // set sub-sequence & return success
-        std::cout << "GTE SEQ ...." << std::flush;
         const int seqLength = (thisStop - thisStart) + 1;
-
-        std::string tmp = fullSequence.substr(thisStart, seqLength);
-
-        std::cout << " got " << tmp.size() << std::endl;
-
         sequence = addBefore + fullSequence.substr(thisStart, seqLength) + addAfter;
-
-        std::cout << "FINAL LENGTH = " << sequence.size() << std::endl;
 
         return true;
     }
