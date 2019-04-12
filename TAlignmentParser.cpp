@@ -572,7 +572,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		bamReader.Jump(chrNumber, window.start);
 
 	} else {
-		while(!useChromosome[chrNumber] && skipWindows * windowSize > chrLength){
+		while(!useChromosome[chrNumber] || skipWindows * windowSize > chrLength){
 			++chrIterator;
 			++chrNumber;
 			chrLength = stringToLong(chrIterator->Length);
