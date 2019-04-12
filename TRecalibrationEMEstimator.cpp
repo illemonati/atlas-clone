@@ -361,11 +361,13 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	logfile->listFlush("Initializing recalibration models ...");
 	int numModelsWithLittleData = 0;
 	int numModelsWithoutData = 0;
+	std::vector<int> qualities;
 
 	for(int rg = 0; rg < _readGroupMap->numReadGroups; ++rg){
 		for(int mate = 0; mate < 2; ++mate){
 			if(dataTable.countsPerReadGroup[rg][mate] > 0){
-				models->addModelIfItDoesNotExist(rg, mate, modelTagForEstimation, dataTable.maxPos[rg][mate]);
+				dataTable.fillVectorWithUsedQualities(rg, mate, qualities);
+				models->addModelIfItDoesNotExist(rg, mate, modelTagForEstimation, qualities, dataTable.maxPos[rg][mate]);
 				if(dataTable.countsPerReadGroup[rg][mate] < minRequiredObservations)
 					++numModelsWithLittleData;
 			} else {

@@ -112,6 +112,7 @@ public:
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	void assembleCountsPerReadGroup();
+	void fillVectorWithUsedQualities(int readGroupId, bool isSecondMate, std::vector<int> & Q);
 };
 
 

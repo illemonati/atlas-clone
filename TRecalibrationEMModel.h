@@ -20,6 +20,9 @@
 #define qualFuncPosSpecific_name "qualFuncPosSpecific"
 #define qualFuncPosSpecificContext_name "qualFuncPosSpecificContext"
 #define qualFuncPosSpecificContextNew_name "qualFuncPosSpecificContextNew"
+#define qualSpecificPosSpecific_name "qualSpecificPosSpecific"
+#define qualSpecificPosSpecificContext_name "qualSpecificPosSpecificContext"
+
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
@@ -27,7 +30,6 @@
 class TRecalibrationEMModel_Base{
 protected:
 	std::string _name;
-	uint16_t _readGroupId;
 	unsigned int _numParameters;
 	TRecalibrationEMQualityPositionMap _qualPosMap;
 
@@ -53,13 +55,13 @@ protected:
 
 public:
 
-	TRecalibrationEMModel_Base(uint16_t ReadGroupId);
+	TRecalibrationEMModel_Base();
 	virtual ~TRecalibrationEMModel_Base(){ _freeBetaMemory(); };
 
 	std::string name(){ return _name; };
 	int numParameters(){ return _numParameters; };
 	void setEMParamsToZero();
-	virtual void checkParameterRange(int maxPos){}; //check if parameters are in correct range
+	virtual void checkParameterRange(std::vector<int> & Qualities, int maxPos){}; //check if parameters are in correct range
 
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
@@ -87,7 +89,7 @@ public:
 
 class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_noRecal(uint16_t ReadGroupId);
+	TRecalibrationEMModel_noRecal();
 	~TRecalibrationEMModel_noRecal(){};
 	double getErrorRate(TBase & base);
 	std::string getQualityString(){return "-";};
@@ -98,8 +100,8 @@ public:
 
 class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFunc(uint16_t ReadGroupId);
-	TRecalibrationEMModel_qualFuncPosFunc(uint16_t ReadGroupId, std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosFunc();
+	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec);
 	~TRecalibrationEMModel_qualFuncPosFunc(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
@@ -111,8 +113,8 @@ public:
 
 class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFuncContext(uint16_t ReadGroupId);
-	TRecalibrationEMModel_qualFuncPosFuncContext(uint16_t ReadGroupId, std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosFuncContext();
+	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec);
 	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
@@ -127,11 +129,11 @@ private:
 	int _numParamsWithoutPositions;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecific(uint16_t ReadGroupId, int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecific(uint16_t ReadGroupId, std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos);
+	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec);
 	~TRecalibrationEMModel_qualFuncPosSpecific(){};
 
-	void checkParameterRange(int maxPos);
+	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getPositionString();
@@ -146,11 +148,11 @@ private:
 	int _numParamsWithoutPositions;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecificContext(uint16_t ReadGroupId, int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecificContext(uint16_t ReadGroupId, std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos);
+	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
 
-	void checkParameterRange(int maxPos);
+	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
 	void proposeNewParameters(double & lambda);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
@@ -167,11 +169,11 @@ private:
 	int _numParamsWithoutPositions;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(uint16_t ReadGroupId, int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(uint16_t ReadGroupId, std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos);
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec);
 	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
-	void checkParameterRange(int maxPos);
+	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
 	void proposeNewParameters(double & lambda);
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
@@ -181,11 +183,34 @@ public:
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
 };
 
+class TRecalibrationEMModel_qualSpecficPosSpecific:public TRecalibrationEMModel_Base{
+private:
+	int _maxPosPlusOne;
+	int _numQualities;
+	int _maxQualPlusOne;
+	int* _qualityIndex;
+	TQualityMap qualMap;
+
+public:
+	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos);
+	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec);
+	~TRecalibrationEMModel_qualSpecficPosSpecific(){};
+
+	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
+	double calcEpsilon(const TRecalibrationEMReadData & data);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	std::string getQualityString();
+	std::string getPositionString();
+	std::string getContextString();
+	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+};
+
 //--------------------------------------------------------------------
 // Global function to create models
 //--------------------------------------------------------------------
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, std::vector<std::string> & values, bool verbose, TLog* logfile);
-TRecalibrationEMModel_Base* createTRecalibrationEMModel(uint16_t ReadGroupId, std::string modelTag, int maxPos, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, std::vector<std::string> & values, bool verbose, TLog* logfile);
+TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, int maxPos, bool verbose, TLog* logfile);
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModels
@@ -198,7 +223,7 @@ private:
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	TLog* logfile;
 
-	void _addModel(int readGroupId, std::string & modelTag, std::vector<std::string> & values, bool verbose);
+	void _addModel(std::string & modelTag, std::vector<std::string> & values, bool verbose);
 	void _createModelsFromString(std::string & string, TReadGroups & readGroups);
 	void _createModelsFromFile(std::string filename, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 
@@ -211,7 +236,7 @@ public:
 	void addSameModelForAllReadGroups(std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, std::vector<std::string> & values, bool verbose);
 	void addModel(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos);
-	void addModelIfItDoesNotExist(int readGroupId, bool isSecondMate, std::string modelTag, int maxPos);
+	void addModelIfItDoesNotExist(int readGroupId, bool isSecondMate, std::string modelTag, std::vector<int> & Qualities, int maxPos);
 	void removeModel(int readGroupId, bool isSecondMate);
 	void createModels(std::string string, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 
