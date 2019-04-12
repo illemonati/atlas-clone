@@ -18,23 +18,17 @@ TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
 	curStart = -1;
 	curChr = -1;
 	curEnd = -1;
-}
+};
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
-
-	std::cout << "MOVE to " << pos << " on chr " << chr << std::endl;
-
 	curChr = chr;
 	curStart = pos;
 	curEnd = pos + bufferSize;
 	if(!reference->GetSequence(chr, curStart, curEnd, referenceSequence))
 		throw "Problem reading " + toString(chr) + ":" + toString(curStart) + "-" + toString(curEnd) + " from fasta file!";
-}
+};
 
 void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref){
-
-	std::cout << "FILL from " << start << " to " << end << " on chr " << chr << std::endl;
-
 	//move buffer, if necessary
 	if(chr != curChr || end > curEnd || start < curStart){
 		if(end - start + 1 > bufferSize){
@@ -43,13 +37,9 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 		moveTo(chr, start);
 	}
 
-
-
 	//now copy to string
 	ref.assign(referenceSequence, start - curStart, end - start + 1);
-
-	std::cout << "FILL successful" << std::endl;
-}
+};
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -116,6 +106,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	//limit chr and windows
 	limitWindows = -1;
+	skipWindows = 0;
 	limitChr = -1;
 	useChromosome = NULL;
 
@@ -275,8 +266,13 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 //		std::cout << "useChromosome, num " << num << ": " << useChromosome[num] << std::endl;;
 
 
+	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
+	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome.");
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+	if(limitWindows <= skipWindows)
+		throw "limitWwindows has to be larger than skipWindows!";
+
 
 	//------------
 	//masks
@@ -576,21 +572,23 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		bamReader.Jump(chrNumber, window.start);
 
 	} else {
-		while(!useChromosome[chrNumber]){
+		while(!useChromosome[chrNumber] && skipWindows * windowSize > chrLength){
 			++chrIterator;
 			++chrNumber;
 			chrLength = stringToLong(chrIterator->Length);
 			chrLength = stringToLong(chrIterator->Length);
 		}
 		window.chrName = chrIterator->Name;
-		bamReader.Jump(chrNumber, 0);
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
-		int nextEnd = windowSize;
+
+		int curStart = skipWindows * windowSize;
+		bamReader.Jump(chrNumber, curStart);
+		int nextEnd = curStart + windowSize;
 		//TODO:!!! removed +1 because we are zero-based. Check if true!
 		if(nextEnd > chrLength){
 			nextEnd = chrLength;
 		}
-		window.move(0, nextEnd, chrNumber);
+		window.move(curStart, nextEnd, chrNumber);
 	}
 
 	if(chrIterator == bamHeader.Sequences.End())

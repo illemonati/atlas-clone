@@ -264,7 +264,6 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 		std::string ref; //fasta object fills string
 		reference.GetSequence(refId, start, stop, ref);
 		for(int i=0; i<length; ++i){
-	//		if(sites[i].hasData)
 			sites[i].setRefBase(ref[i]);
 		}
 		referenceBaseAdded = true;
@@ -273,6 +272,7 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
 
 void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 	if(!referenceBaseAdded){
+		std::cout << "ADDING REF TO SITES!" << std::endl;
 		if(subset->hasPositionsInWindow(start)){
 			//now only run over sites listed in that window
 			std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -283,6 +283,8 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 			}
 		}
 		referenceBaseAdded = true;
+
+		std::cout << "SUCCESSFULL!" << std::endl;
 	}
 }
 
