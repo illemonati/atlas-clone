@@ -397,6 +397,11 @@ bool Fasta::FastaPrivate::GetNextSequence(string& sequence) {
 
 bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const int& stop, string& sequence) {
  
+
+    std::cout << std::endl << "---------------- IN BAM TOOLS ---------------" << std::endl;
+    std::cout << ">>> " << refId << " at " << start << " / " << stop << std::endl;
+
+
     // make sure FASTA file is open
     if ( !IsOpen ) {
         cerr << "FASTA error : file not open for reading" << endl;
@@ -425,10 +430,7 @@ bool Fasta::FastaPrivate::GetSequence(const int& refId, const int& start, const 
             return false;
         }*/
 
-
-        std::cout << std::endl << "---------------- IN BAM TOOLS ---------------" << std::endl;
-        std::cout << ">>> " << start << " / " << stop << ", referenceData.Length = " << referenceData.Length << std::endl;
-
+        std::cout << ">>> " << refId << " at " << start << " / " << stop << ", referenceData.Length = " << referenceData.Length << std::endl;
 
         std::string addBefore = "";
         std::string addAfter = "";
