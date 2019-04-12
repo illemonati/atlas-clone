@@ -805,7 +805,8 @@ bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSample
 				return false;
 			}
 
-		}
+		} else
+			return false;
 	}
 }
 
