@@ -258,18 +258,17 @@ void TWindow::fillSites(const int & readUpToDepth){
 	}
 };
 
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference, int & refId){
+void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
-		reference.GetSequence(refId, start, stop, ref);
+		reference.GetSequence(chrNumber, start, stop, ref);
 		for(int i=0; i<length; ++i){
-	//		if(sites[i].hasData)
 			sites[i].setRefBase(ref[i]);
 		}
 		referenceBaseAdded = true;
 	}
-}
+};
 
 void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 	if(!referenceBaseAdded){
@@ -284,7 +283,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 		}
 		referenceBaseAdded = true;
 	}
-}
+};
 
 void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	int pos;
@@ -307,8 +306,8 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 				sites[i].clear();
 			}
 		//else clear entire window
-		} else	clear();
-	} else{
+		} else clear();
+	} else {
 		if(mask->hasPositionsInWindow(start)){
 			std::vector<long> thesePos = mask->getPositionInWindow(start);
 			//skip sites listed in mask by setting their hasData = false
@@ -318,16 +317,16 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 			}
 		}
 	}
-}
+};
 
-void TWindow::maskCpG(BamTools::Fasta & reference, int & refId){
+void TWindow::maskCpG(BamTools::Fasta & reference){
 	std::string ref; //fasta object fills string
 	//note that end is last position + 1
 	for(int i=0; i<length; ++i){
 		if(ref[i+1] == 'C' && ref[i+2] == 'G') sites[i].clear();
 		else if(ref[i] == 'C' && ref[i+1] == 'G') sites[i].clear();
 	}
-}
+};
 
 void TWindow::estimateBaseFrequencies(){
 	//estimate initial base frequencies
@@ -336,18 +335,18 @@ void TWindow::estimateBaseFrequencies(){
 		sites[i].addToBaseFrequencies(baseFreq);
 	}
 	baseFreq.normalize();
-}
+};
 
 void TWindow::calculateEmissionProbabilities(){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
 	}
-}
+};
 
 void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
 	//add reference to sites
-	addReferenceBaseToSites(reference, chrNumber);
+	addReferenceBaseToSites(reference);
 
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
@@ -377,55 +376,6 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, B
 	}
 };
 
-
-
-/*
-
-void TWindow::callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef){
-	if(isVCF){
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				if(sites[i].hasData)
-					sites[i].calcEmissionProbabilities();
-				std::string basesString = sites[i].getBases();
-				sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].calcEmissionProbabilities();
-					std::string basesString = sites[i].getBases();
-					sites[i].callMLEGenotypeVCF(genoMap, randomGenerator, out, gVCF, noAltIfHomoRef, basesString);
-					out << "\n";
-				}
-			}
-		}
-	} else {
-		if(printAll){
-			for(int i=0; i<length; ++i){
-				out << chr << "\t" << start + i + 1;
-				if(sites[i].hasData)
-					sites[i].calcEmissionProbabilities();
-				sites[i].callMLEGenotype(genoMap, randomGenerator, out);
-				out << "\n";
-			}
-		} else {
-			for(int i=0; i<length; ++i){
-				if(sites[i].hasData){
-					out << chr << "\t" << start + i + 1;
-					sites[i].calcEmissionProbabilities();
-					sites[i].callMLEGenotype(genoMap, randomGenerator, out);
-					out << "\n";
-				}
-			}
-		}
-	}
-}
-
-*/
 void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){

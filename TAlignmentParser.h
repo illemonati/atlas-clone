@@ -108,6 +108,7 @@ private:
 
 	//limit chr and windows
 	long limitWindows;
+	int skipWindows;
 	int limitChr;
 	bool* useChromosome;
 

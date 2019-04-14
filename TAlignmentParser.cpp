@@ -12,13 +12,13 @@
 //TFastaBuffer
 //-----------------------------------------------------
 TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
-	bufferSize = 10000000;
+	bufferSize = 100000;
 	reference = Reference;
 	referenceSequence = "";
 	curStart = -1;
 	curChr = -1;
 	curEnd = -1;
-}
+};
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
 	curChr = chr;
@@ -26,16 +26,20 @@ void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
 	curEnd = pos + bufferSize;
 	if(!reference->GetSequence(chr, curStart, curEnd, referenceSequence))
 		throw "Problem reading " + toString(chr) + ":" + toString(curStart) + "-" + toString(curEnd) + " from fasta file!";
-}
+};
 
 void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref){
 	//move buffer, if necessary
-	if(chr != curChr || end > curEnd || start < curStart)
+	if(chr != curChr || end > curEnd || start < curStart){
+		if(end - start + 1 > bufferSize){
+			bufferSize = end - start + 1;
+		}
 		moveTo(chr, start);
+	}
 
 	//now copy to string
 	ref.assign(referenceSequence, start - curStart, end - start + 1);
-}
+};
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -102,6 +106,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	//limit chr and windows
 	limitWindows = -1;
+	skipWindows = 0;
 	limitChr = -1;
 	useChromosome = NULL;
 
@@ -226,8 +231,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 				throw "Chromosome '" + *it + "' is not present in the bam header!";
 		}
 		logfile->endIndent();
-
-
 	} else {
 		if(params.parameterExists("limitChr")){
 			//set all chromosomes to false
@@ -261,8 +264,13 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 //		std::cout << "useChromosome, num " << num << ": " << useChromosome[num] << std::endl;;
 
 
+	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
+	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome.");
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+	if(limitWindows <= skipWindows)
+		throw "limitWwindows has to be larger than skipWindows!";
+
 
 	//------------
 	//masks
@@ -562,21 +570,23 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		bamReader.Jump(chrNumber, window.start);
 
 	} else {
-		while(!useChromosome[chrNumber]){
+		while(!useChromosome[chrNumber] || skipWindows * windowSize > chrLength){
 			++chrIterator;
 			++chrNumber;
 			chrLength = stringToLong(chrIterator->Length);
 			chrLength = stringToLong(chrIterator->Length);
 		}
 		window.chrName = chrIterator->Name;
-		bamReader.Jump(chrNumber, 0);
 		numWindowsOnChr = ceil(chrLength / (double) windowSize);
-		int nextEnd = windowSize;
+
+		int curStart = skipWindows * windowSize;
+		bamReader.Jump(chrNumber, curStart);
+		int nextEnd = curStart + windowSize;
 		//TODO:!!! removed +1 because we are zero-based. Check if true!
 		if(nextEnd > chrLength){
 			nextEnd = chrLength;
 		}
-		window.move(0, nextEnd, chrNumber);
+		window.move(curStart, nextEnd, chrNumber);
 	}
 
 	if(chrIterator == bamHeader.Sequences.End())
@@ -589,7 +599,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	//write progress
 	logfile->endIndent();
 	logfile->startNumbering("Parsing chromosome '" + chrIterator->Name + "':");
-}
+};
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
@@ -637,7 +647,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 		return true;
 	} else
 		return false;
-}
+};
 
 bool TAlignmentParser::moveWindow(TWindow & window){
 	//returns false when end of genome is reached
@@ -698,8 +708,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chrIterator->Name + "':");
 	logfile->addIndent();
 	return true;
-
-}
+};
 
 //------------------------------
 //reading alignments
@@ -775,7 +784,7 @@ bool TAlignmentParser::readAlignment(){
 	} while(!filtersPassed);
 
 	return true;
-}
+};
 
 bool TAlignmentParser::applyFilters(){
 	bool filtersPassed = readGroups.readGroupInUse(curReadGroupID)
@@ -818,7 +827,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 	}
-}
+};
 
 //------------------------
 //read data in alignments
@@ -832,7 +841,7 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 		return true;
 	}
 	return false;
-}
+};
 
 bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
@@ -844,7 +853,7 @@ bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 		blacklist.emplace(bamAlignment.Name, 1);
 	}
 	return false;
-}
+};
 
 //---------------------
 //read data in windows
@@ -908,7 +917,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 		window.addReferenceBaseToSites(subset);
 	} else {
 		window.fillSites(readUpToDepth);
-		if(hasReference) window.addReferenceBaseToSites(*fastaReference, previousAlignmentChr);
+		if(hasReference) window.addReferenceBaseToSites(*fastaReference);
 	}
 
 	//report
@@ -934,7 +943,7 @@ void TAlignmentParser::applyFilters(TWindow & window){
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(*fastaReference, previousAlignmentChr);
+			window.maskCpG(*fastaReference);
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

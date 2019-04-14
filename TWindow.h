@@ -74,10 +74,10 @@ public:
 	void printStacks();
 	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
 	void fillSites(const int & readUpToDepth);
-	void addReferenceBaseToSites(BamTools::Fasta & reference, int & refId);
+	void addReferenceBaseToSites(BamTools::Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
-	void maskCpG(BamTools::Fasta & reference, int & refId);
+	void maskCpG(BamTools::Fasta & reference);
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities();
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
