@@ -81,10 +81,11 @@ public:
 
 	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
 	void setReferenceAdded();
-	int getPosition(){return position;};
-	int getLength(){return length;};
-	std::string name(){return alignmentName;};
-	int32_t getInsertSize(){return bamAlignment.InsertSize;};
+	int getPosition(){ return position; };
+	int getParsedLength(){ return length; };
+	int getBamAlignmentLength(){ return bamAlignment.Length; };
+	std::string name(){ return alignmentName; };
+	int32_t getInsertSize(){ return bamAlignment.InsertSize; };
 
 	//functions to write / print alignment
 	void setToSingleEnd();

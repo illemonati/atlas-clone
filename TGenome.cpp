@@ -1245,13 +1245,15 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
-			if(alignment.getLength() == singleEndRGIT->second.maxLen)
+			if(alignment.getBamAlignmentLength() == singleEndRGIT->second.maxLen){
 				alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
 //				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
-			else if(alignment.getLength() > singleEndRGIT->second.maxLen){
+			} else if(alignment.getBamAlignmentLength() > singleEndRGIT->second.maxLen){
 				if(allowForLarger)
 					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
-				else logfile->warning("Length of read " + alignment.alignmentName + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+				else {
+					logfile->warning("Length of read " + alignment.alignmentName + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+				}
 			}
 		}
 
@@ -1676,7 +1678,6 @@ void TGenome::downSampleReads(TParameters & params){
 void TGenome::diagnoseBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
 
 	//get max params
 	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
@@ -1744,8 +1745,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
         }
 
         //depth
-        totalDepth += alignment.getLength();
-        depth[alignment.readGroupId] += alignment.getLength();
+        totalDepth += alignment.getBamAlignmentLength();
+        depth[alignment.readGroupId] += alignment.getBamAlignmentLength();
 
         //mapping quality
         if(alignment.mappingQuality > maxMQ)
@@ -1753,10 +1754,10 @@ void TGenome::diagnoseBamFile(TParameters & params){
         ++mappingQuality[alignment.readGroupId][alignment.mappingQuality];
 
         //read length
-        if(alignment.getLength() > maxReadLength)
-    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getLength()) + ">" + toString(maxReadLength) +")";
+        if(alignment.getBamAlignmentLength() > maxReadLength)
+    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getParsedLength()) + ">" + toString(maxReadLength) +")";
 
-        ++readLength[alignment.readGroupId][alignment.getLength()];
+        ++readLength[alignment.readGroupId][alignment.getBamAlignmentLength()];
 
         //report
         reporter.printProgress();
