@@ -313,18 +313,22 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 			//skip sites listed in mask by setting their hasData = false
 			for(std::vector<long>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 				pos = *it - start;
-				if(pos < length) sites[pos].clear();
+				if(pos < length)
+					sites[pos].clear();
 			}
 		}
 	}
 };
 
-void TWindow::maskCpG(BamTools::Fasta & reference){
+void TWindow::maskCpG(){
+	throw "maskCpG is not functional!";
 	std::string ref; //fasta object fills string
 	//note that end is last position + 1
 	for(int i=0; i<length; ++i){
-		if(ref[i+1] == 'C' && ref[i+2] == 'G') sites[i].clear();
-		else if(ref[i] == 'C' && ref[i+1] == 'G') sites[i].clear();
+		if(ref[i+1] == 'C' && ref[i+2] == 'G')
+			sites[i].clear();
+		else if(ref[i] == 'C' && ref[i+1] == 'G')
+			sites[i].clear();
 	}
 };
 
@@ -356,7 +360,7 @@ void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fas
 	}
 };
 
-void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset){
+void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset){
 	//check if we need to process this window
 	if(subset.hasPositionsInWindow(start)){
 		//add reference to sites

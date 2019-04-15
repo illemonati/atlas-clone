@@ -943,7 +943,7 @@ void TAlignmentParser::applyFilters(TWindow & window){
 			logfile->done();
 		} else if(doCpGMasking){
 			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG(*fastaReference);
+			window.maskCpG();
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

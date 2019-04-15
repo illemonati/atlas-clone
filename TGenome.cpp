@@ -440,7 +440,7 @@ void TGenome::callGenotypes(TParameters & params){
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
-					window.callKnwonAlleles(*caller, *alignmentParser.recalObject, reference, subset);
+					window.callKnwonAlleles(*caller, *alignmentParser.recalObject, subset);
 					logfile->done();
 				}
 			}

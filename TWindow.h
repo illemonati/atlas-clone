@@ -77,7 +77,7 @@ public:
 	void addReferenceBaseToSites(BamTools::Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
-	void maskCpG(BamTools::Fasta & reference);
+	void maskCpG();
 	void estimateBaseFrequencies();
 	void calculateEmissionProbabilities();
 	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
@@ -107,7 +107,7 @@ public:
 
 	//callers
 	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
-	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference, TSiteSubset & subset);
+	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset);
 
 	//other
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
