@@ -22,19 +22,23 @@ private:
 	float _probMovingToModelNoF;
 	double _sdProposal;
 	bool _inModelWithF;
-	double _lambda;
+	double _lambda, _logLambda, _expMinusLambda;
 	int _posteriorProbModelWithF;
 
 public:
 	TInbreedingF();
 	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
-	void adjustProposalWidthAfterBurnin(int numAcceptedF, int numUpdates, TLog* logfile);
-	double proposeNew(TRandomGenerator & randomGenerator);
-	void update(double value, bool inModelWithF);
+	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
+	double proposeNew(TRandomGenerator* randomGenerator);
+	void updateAndAccept(const double & value, const bool & inModelWithF);
+	void updateAndReject(bool inModelWithF);
+	void resetPosterior();
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
+	double logPDFExp(const double & thisF);
 	double logPDFExp();
+	double PDFExp(const double & thisF);
 	double PDFExp();
 	double lambda();
 	int posteriorProbModelWithF();
@@ -46,34 +50,47 @@ public:
 //---------------------------
 class TAlleleFreq{
 private:
-	double* sumIterations;
-	double* sumOfSquaresIterations;
+	std::vector<double> sumIterations;
+	std::vector<double> sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
-	double minAlleleFreq;
-	float* proposalWidths;
+	long numLociModelP;
 
 public:
-	long numLoci;
+	std::vector<bool> modelP;
+	std::vector<int> posteriorProbModelP;
+	std::vector<double> initialAlleleFreq;
+	std::vector<float> proposalWidths;
 
+	long numLoci;
+	double probMovingToModel0, probMovingToModelP;
+	double logProbMovingToModel0, logProbMovingToModelP;
+	double lambda, logLambda, expMinusLambda;
+	double minAlleleFreq;
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, float initialProposalWidth, int numSamples);
+	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda);
+
 	double operator[](long index){
 		//Note: no check on range!
 		return alleleFreq[index];
 	};
-	void setSumsToZero();
+//	void initializeModels();
+	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
-	void adjustProposalWidthAfterBurnin(int* numAcceptedP, int numUpdates);
-	double proposeNew(long & locusNum, TRandomGenerator & randomGenerator);
-	void update(long & index, double value);
+	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
+	double proposeNew(long & locusNum, TRandomGenerator* randomGenerator);
+	void update(long & index, const double & value, const bool modelP);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
+	long getNumLociInModelP();
+	long getNumLociInModel0();
+	double logPDFExp(const double & thisP);
+	double logPDFExp(const long & thisLocus);
 };
 
 //---------------------------
-// alphaOrBeta
+// gamma
 //---------------------------
 
 class TGamma{
@@ -94,12 +111,36 @@ public:
 };
 
 //---------------------------
+// Pi
+//---------------------------
+
+class TPi{
+private:
+	double _pi;
+	double _minPi;
+	double _logPi;
+	double _logOneMinusPi;
+public:
+	double proposalWidth;
+
+	TPi();
+	TPi(double & ProposalWidth, double & initialValue);
+	void update(const double & newNaturalScaleValue);
+	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
+
+	double getPi();
+	double getLogPi(){ return _logPi; };
+	double getLogOneMinusPi(){ return _logOneMinusPi; };
+	double getProposalWidth();
+	double proposeNew(TRandomGenerator* randomGenerator);
+};
+//---------------------------
 // TInbreedingEstimator
 //---------------------------
 
 class TInbreedingEstimator{
 private:
-	TRandomGenerator randomGenerator;
+	TRandomGenerator* randomGenerator;
 	TQualityMap qualMap;
 
 	//log
@@ -110,8 +151,13 @@ private:
 	int numIterations;
 	double sdF;
 	int numAcceptedF;
-	int* numAcceptedP;
+	int numAcceptedFModelF;
+	int numIterInModelF;
+	std::vector<int> numAcceptedP;
+	std::vector<int> numAcceptedPModelP;
+	std::vector<int> numIterInModelP;
 	int numAcceptedGamma;
+	int numAcceptedPi;
 	int numBurnins;
 	int burninLength;
 	int thinning;
@@ -127,13 +173,17 @@ private:
 	bool trueAlleleFreqProvided;
 	std::vector<double> trueAlleleFreq;
 	TGamma Gamma;
+	TPi pi;
 
 //	void initializeAlphaBeta();
 	void initializeGamma();
-	void initParams(TRandomGenerator & randomGenerator, TParameters & parameters);
+	void initF(TParameters & parameters);
+	void initAlleleFreq(TParameters & parameters);
+	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
 	bool updateF();
 	bool updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma);
 	bool updateGamma();
+	bool updatePi();
 	double logProbPGivenGamma();
 	double logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF);
 	void wholeLogLikelihood();
@@ -142,13 +192,15 @@ private:
 	void resetAcceptanceRates();
 	void adjustProposalWidths();
 	void writeParameterEstimatesOfIteration(std::ofstream & out);
+	void writePosteriors(int i);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
 	~TInbreedingEstimator(){
-		delete numAcceptedP;
+		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
+	double getLogLikelihoodCurrentParams();
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);
