@@ -35,14 +35,22 @@ public:
 	};
 
 	int& getIndexFromQuality(const int & quality){
-		if(quality < 33) throw "Quality is negative!";
-		if(quality > maxPhredInt + 33) return last;
+		if(quality < 33){
+			throw "Quality is negative!";
+		}
+		if(quality > maxPhredInt + 33){
+			return last;
+		}
 		return index[quality - 33];
 	};
 
 	int& getIndexFromPhredInt(const int & phredInt){
-		if(phredInt < 33) throw "Quality is negative!";
-		if(phredInt > maxPhredInt ) return last;
+		if(phredInt < 0){
+			throw "Quality is negative!";
+		}
+		if(phredInt > maxPhredInt){
+			return last;
+		}
 		return index[phredInt];
 	};
 
@@ -220,8 +228,8 @@ public:
 	TRecalibrationBQSRStorage();
 	~TRecalibrationBQSRStorage();
 
-	void initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex);
-	void initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex);
+	void initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
 	void initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex);
 	void initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex);
 

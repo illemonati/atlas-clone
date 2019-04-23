@@ -14,7 +14,7 @@
 #include "../TQualityMap.h"
 #include "../TParameters.h"
 #include "TSimulatorReadLength.h"
-#include "../TRecalibrationEMModel.h"
+#include "TRecalibrationEMModel.h"
 
 //-------------------------------
 //TSimulatorQualityDist

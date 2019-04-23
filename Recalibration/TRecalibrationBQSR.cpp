@@ -134,7 +134,8 @@ void TBQSR_cellQuality::doStoreData(){
 void TBQSR_cellQuality::empty(){
 	if(!estimationConverged){
 		TBQSR_cell_base::empty();
-		if(!store) numMatches = 0;
+		if(!store)
+			numMatches = 0;
 	} else {
 		clearStorage();
 	}
@@ -191,6 +192,8 @@ void TBQSR_cellQuality::recalculateDerivativesFromDataInMemory(){
 		empty();
 
 		//first the last batch, which is not filled to the end
+		if(D_storage.size() == 0)
+			throw "trying to get last item of D_storage but it's empty";
 		batchIt = D_storage.rbegin();
 		pointerToBatch = *batchIt;
 		for(int i=0; i<next; ++i){ //next is set when adding sites
@@ -342,7 +345,7 @@ void TBQSR_cellPosition::addToLL(float & D, float & epsilon){
 }
 
 float TBQSR_cellPosition::getEpsilon(TBase* base, TQualityMap & qualMap){
-	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromQuality(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
+	return  BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromPhredInt(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
 }
 
 void TBQSR_cellPosition::addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap){
@@ -485,7 +488,7 @@ void TBQSR_cellPositionRev::init(int ReadGroup, TQualityIndex* QualityIndex, TBQ
 }
 
 float TBQSR_cellPositionRev::getEpsilon(TBase* base, TQualityMap & qualMap){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromQuality(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromPhredInt(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
 	return  epsilonAlpha;
 }
@@ -576,26 +579,37 @@ TRecalibrationBQSRStorage::~TRecalibrationBQSRStorage(){
 	}
 };
 
-void TRecalibrationBQSRStorage::initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex){
+void TRecalibrationBQSRStorage::initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	numReadGroups = NumReadGroups;
 	numQuality = NumQuality;
+	qualityCells = new TBQSR_cellQuality*[numReadGroups];
+
 	for(int i=0; i<numReadGroups; ++i){
 		qualityCells[i] = new TBQSR_cellQuality[NumQuality];
-		for(int q=0; q<NumQuality; ++q)
+		for(int q=0; q<NumQuality; ++q){
 			qualityCells[i][q].init(i, qualityMap.qualityToError(qualityIndex->getPhredIntFromIndex(q)));
+			if(_storeDataInMemory){
+				qualityCells[i][q].doStoreData();
+			}
+		}
 	}
 	considerQuality = true;
 };
 
-void TRecalibrationBQSRStorage::initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex){
+void TRecalibrationBQSRStorage::initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	if(NumReadGroups != numReadGroups)
 		throw "Unequal number of read groups in TRecalibrationBQSRStorage!";
 	maxPos = MaxPos;
+	positionCells = new TBQSR_cellPosition*[numReadGroups];
 
 	for(int r=0; r<numReadGroups; ++r){
 		positionCells[r] = new TBQSR_cellPosition[maxPos];
-		for(int p=0; p<maxPos; ++p)
+		for(int p=0; p<maxPos; ++p){
 			positionCells[r][p].init(r, qualityIndex, qualityCells);
+			if(_storeDataInMemory){
+				positionCells[r][p].doStoreData();
+			}
+		}
 	}
 	considerPosition = true;
 };
@@ -605,6 +619,7 @@ void TRecalibrationBQSRStorage::initializePositionReverseCells(int NumReadGroups
 		throw "Unequal number of read groups in TRecalibrationBQSRStorage!";
 	maxPosReverse = MaxPos;
 
+	positionReverseCells = new TBQSR_cellPositionRev*[numReadGroups];
 	for(int r=0; r<numReadGroups; ++r){
 		positionReverseCells[r] = new TBQSR_cellPositionRev[maxPosReverse];
 		for(int p=0; p< maxPosReverse; ++p){
@@ -715,7 +730,7 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupQualityTableFromFile(std::strin
 	qualityIndex = new TQualityIndex(0, maxQ);
 
 	//create corresponding objects
-	storage.initializeQualityCells(_readGroups->size(), qualityIndex->numQ, _qualityMap, qualityIndex);
+	storage.initializeQualityCells(_readGroups->size(), qualityIndex->numQ, _qualityMap, qualityIndex, false);
 
 	//open file
 	std::ifstream file(filename.c_str());
@@ -755,7 +770,7 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionTableFromFile(std::stri
 	int maxPos = storage.getMaxValueFromFile(filename, 1, 5);
 
 	//create corresponding objects
-	storage.initializePositionCells(_readGroups->size(), maxPos, qualityIndex);
+	storage.initializePositionCells(_readGroups->size(), maxPos, qualityIndex, false);
 
 	//open file
 	std::ifstream file(filename.c_str());
@@ -944,7 +959,7 @@ void TRecalibrationBQSREstimator::_initializeBQSRReadGroupQualityTable(TParamete
 		qualityIndex = new TQualityIndex(0, maxQ);
 
 		//initialize BQSR table
-		storage.initializeQualityCells(_readGroupMap->getNumReadGroups(), qualityIndex->numQ, _qualityMap, qualityIndex);
+		storage.initializeQualityCells(_readGroupMap->getNumReadGroups(), qualityIndex->numQ, _qualityMap, qualityIndex, _storeDataInMemory);
 		_fillBQSRReadGroupQualityTableFromFile(filename);
 	} else {
 		_logfile->list("Will estimate BQSR quality table.");
@@ -959,7 +974,7 @@ void TRecalibrationBQSREstimator::_initializeBQSRReadGroupQualityTable(TParamete
 		qualityIndex = new TQualityIndex(minQ, maxQ);
 
 		//initialize BQSR table
-		storage.initializeQualityCells(_readGroupMap->getNumReadGroups(), qualityIndex->numQ, _qualityMap, qualityIndex);
+		storage.initializeQualityCells(_readGroupMap->getNumReadGroups(), qualityIndex->numQ, _qualityMap, qualityIndex, _storeDataInMemory);
 
 		//check if we set initial values from file
 		if(params.parameterExists("initialBQSRQuality")){
@@ -1014,7 +1029,7 @@ void TRecalibrationBQSREstimator::_initializeBQSRReadGroupPositionTable(TParamet
 		int maxPos = params.getParameterInt("maxPos");
 		if(maxPos < 1) throw "Max position has to be larger than zero!";
 		_logfile->list("Considering positions up to " + toString(maxPos));
-		storage.initializePositionCells(_readGroupMap->getNumReadGroups(), maxPos, qualityIndex);
+		storage.initializePositionCells(_readGroupMap->getNumReadGroups(), maxPos, qualityIndex, _storeDataInMemory);
 
 		//check if we set initial values from file
 		if(params.parameterExists("initialBQSRPosition"))
@@ -1202,12 +1217,13 @@ void TRecalibrationBQSREstimator::addSite(TSite & site, TQualityMap & qualMap){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!_qualityConverged){
 			for(TBase* it : site.bases){
-				storage.qualityCells[_readGroupMap->getIndex(it->readGroup)][qualityIndex->getIndexFromQuality(qualMap.errorToPhredInt(it->errorRate))].addBase(it, refBase, qualMap);
+				storage.qualityCells[_readGroupMap->getIndex(it->readGroup)][qualityIndex->getIndexFromQuality(qualMap.errorToQuality(it->errorRate))].addBase(it, refBase, qualMap);
 			}
 		}
 		else if(storage.considerPosition && !_positionConverged){
 			for(TBase* it : site.bases){
-				if(it->distFrom5Prime >= storage.maxPos) throw "Position of base is > maxPos specified!";
+				if(it->distFrom5Prime >= storage.maxPos)
+					throw "Position of base is > maxPos specified!";
 				storage.positionCells[_readGroupMap->getIndex(it->readGroup)][it->distFrom5Prime].addBase(it, refBase, qualMap);
 			}
 		}

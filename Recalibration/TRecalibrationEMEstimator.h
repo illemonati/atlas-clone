@@ -9,7 +9,7 @@
 #define TRECALIBRATIONEMESTIMATOR_H_
 
 #include "TRecalibrationEMModel.h"
-#include "TSite.h"
+#include "../TSite.h"
 
 
 //--------------------------------------------------------------------

@@ -8,12 +8,12 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
-#include "TQualityMap.h"
-#include "TGenotypeMap.h"
-#include "stringFunctions.h"
-#include "TBase.h"
-#include "TLog.h"
-#include "TReadGroups.h"
+#include "../TQualityMap.h"
+#include "../TGenotypeMap.h"
+#include "../stringFunctions.h"
+#include "../TBase.h"
+#include "../TLog.h"
+#include "../TReadGroups.h"
 
 //--------------------------------------------------------------------
 // TRecalibrationEMQualityPositionMap
