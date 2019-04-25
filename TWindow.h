@@ -87,11 +87,11 @@ public:
 	void calcFracN();
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);
 	void countDepthPerSite(TDistributionOfCounts & counts);
-	void printDepthPerSite(gz::ogzstream & out, std::string & chr);
-	void printMateInformationPerSite(TOutputFileZipped & out, std::string & chr);
+	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
+	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
 	void countAlleles(long**** siteImbalance, const unsigned int & maxDepth);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
-	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, std::string & chr);
+	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);
 
 	//add sites to data structures
 	void addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap);

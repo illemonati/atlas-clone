@@ -453,14 +453,14 @@ void TWindow::countDepthPerSite(TDistributionOfCounts & counts){
 		counts.add(sites[i].depth());
 };
 
-void TWindow::printDepthPerSite(gz::ogzstream & out, std::string & chr){
+void TWindow::printDepthPerSite(gz::ogzstream & out, const std::string & chr){
 	//print depth for each site to file
 	for(int i=0; i<length; ++i){
 		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth() << "\n";
 	}
 };
 
-void TWindow::printMateInformationPerSite(TOutputFileZipped & out, std::string & chr){
+void TWindow::printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr){
 	int* alleleCounts = new int[4];
 	int* mateCounts = new int[2];
 	int* frCounts = new int[2];
@@ -515,7 +515,7 @@ void TWindow::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	}
 };
 
-void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, std::ofstream & outputMaskFile, std::string & chr){
+void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, std::ofstream & outputMaskFile, const std::string & chr){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			if(sites[i].bases.size() < minDepthForMask || sites[i].bases.size() > maxDepthForMask){
