@@ -208,6 +208,7 @@ public:
 	long calcReferenceLength();
 	std::string getCurChrName();
 	long getCurChrLength();
+	int getCurChrPloidy();
 
 	//blacklist
 	void setUpdateBlacklistToTrue(){

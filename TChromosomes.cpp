@@ -21,7 +21,7 @@ TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
 	for(BamTools::SamSequenceIterator chrIt=bamHeader->Sequences.Begin(); chrIt!=bamHeader->Sequences.End(); ++chrIt, ++num){
 		names.push_back(chrIt->Name);
 		lengths.push_back(stringToLong(chrIt->Length));
-		inUse.push_back(true);
+		isInUse.push_back(true);
 		nameMap.emplace(chrIt->Name, num);
 	}
 
@@ -34,7 +34,7 @@ void TChromosomes::limitChr(std::string & limitName){
 		throw "Chromosome limit not found in BAM header!";
 	int limitIndex = nameMap.find(limitName)->second;
 	for(int i = limitIndex + 1; i<numChromosomes; ++i){
-		inUse[i] = false;
+		isInUse[i] = false;
 	}
 }
 
@@ -43,14 +43,14 @@ void TChromosomes::useSpecifiedChr(std::vector<std::string> & chrNames, TLog* lo
 
 	//set all chromosomes to false
 	for(int i=0; i<numChromosomes; ++i)
-			inUse[i] = false;
+			isInUse[i] = false;
 
 	for(std::vector<std::string>::iterator it=chrNames.begin(); it!=chrNames.end(); ++it){
 		//find chromosome
 		if(nameMap.find(*it) == nameMap.end()){
 			throw "Chromosome " + *it + " not found in BAM header!";
 		}
-		inUse[nameMap.find(*it)->second] = true;
+		isInUse[nameMap.find(*it)->second] = true;
 		logfile->list(*it);
 	}
 	logfile->endIndent();
@@ -85,38 +85,41 @@ void TChromosomes::jumpToBeginningOfLastChr(){
 		throw "Found no chromosomes in BAM header!";
 };
 
-long TChromosomes::calcReferenceLength(){
+long TChromosomes::referenceLength(){
 	int chrNum = 0;
 	long totLength = 0;
 	for(BamTools::SamSequenceIterator chrIterator = bamHeader->Sequences.Begin(); chrIterator!=bamHeader->Sequences.End(); ++chrIterator, ++chrNum)
-	    if(inUse[chrNum]) totLength += stringToLong(chrIterator->Length);
+	    if(isInUse[chrNum]) totLength += stringToLong(chrIterator->Length);
 	return totLength;
 };
 
 //getters
-
-int TChromosomes::getNumberOfChr(){
+int TChromosomes::size(){
 	return numChromosomes;
 }
 
-int TChromosomes::getCurIndex(){
+int TChromosomes::curIndex(){
 	return curChrNumber;
 };
 
-long TChromosomes::getCurLength(){
+long TChromosomes::length(const int index){
+	return lengths[index];
+};
+
+long TChromosomes::curLength(){
 	//TODO: do we need to check range?
 	return lengths[curChrNumber];
 };
 
-std::string TChromosomes::getCurName(){
+std::string TChromosomes::curName(){
 	return names[curChrNumber];
 };
 
-std::string TChromosomes::getNameAtIndex(int & index){
+std::string TChromosomes::name(const int index){
 	return names[index];
 }
 
-int TChromosomes::getIndexFromName(const std::string & chrName){
+int TChromosomes::getIndexFromName(const std::string chrName){
 	if(nameMap.find(chrName) != nameMap.end()){
 		return nameMap.find(chrName)->second;
 	} else {
@@ -124,10 +127,19 @@ int TChromosomes::getIndexFromName(const std::string & chrName){
 	}
 }
 
-bool TChromosomes::chrInUse(int & index){
-	return inUse[index];
-}
+bool TChromosomes::inUse(const int index){
+	return isInUse[index];
+};
 
-bool TChromosomes::curChrInUse(){
-	return inUse[curChrNumber];
-}
+bool TChromosomes::curInUse(){
+	return isInUse[curChrNumber];
+};
+
+int TChromosomes::ploidy(const int index){
+	return ploidies[index];
+};
+
+int TChromosomes::curPloidy(){
+	return ploidies[curChrNumber];
+};
+

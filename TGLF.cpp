@@ -31,33 +31,35 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	if(gzfp == NULL)
 		throw "Failed to open file '" + filename + "' for writing!";
 	isOpen = true;
-	curChr = "";
+	curChr.clear();
 
 	//write header
 	header = Header;
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(const std::string & name, const uint32_t & length){
-	if(curChr != "")
+void TGlfWriter::newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy){
+	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 
-	//write new chromosome: length of label, label, length of ref sequence
+	//save cur info
+	curChr.update(name, length, ploidy);
+
+	//write new chromosome: length of label, label, length of ref sequence, ploidy
 	uint32_t labelLength = name.size();
 
 	write(&labelLength, sizeof(uint32_t));
 	write(name.c_str(), name.length() * sizeof(char));
 	write(&length, sizeof(uint32_t));
+	write(&ploidy, sizeof(uint8_t));
 
 	//set oldPos and curChr
 	oldPos = 0;
-	curChr = name;
-	++curChrNumber;
 };
 
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL){
 	//record type
-	//TODO: add reference
+	//TODO: add reference?
 	write(&recordType1, sizeof(uint8_t));
 
 	//offset
@@ -92,10 +94,7 @@ void TGlfReader::init(){
 	maxLL = 0;
 	depth = 0;
 	RMS_mappingQual = 0;
-	curChr = "";
-	curChrNumber = 0;
 	positionInFile = 0;
-	_chrLength = 0;
 	depth_mask = 0xFFFFFF;
 	tmpInt32 = 0;
 	tmpInt8 = 0;
@@ -106,28 +105,29 @@ void TGlfReader::init(){
 		genotypeQualitiesMissingData[i] = 0;
 };
 
-std::string TGlfReader::getNameOfParsedChr(int chrNumber){
-	if(curChrNumber == chrNumber)
-		return curChr;
-	else if(curChrNumber > chrNumber)
-		return chromosomesAlreadyParsed[chrNumber].first;
+std::string TGlfReader::getNameOfParsedChr(uint32_t chrNumber){
+	if(curChr.number == chrNumber)
+		return curChr.name;
+	else if(curChr.number > chrNumber)
+		return chromosomesAlreadyParsed[chrNumber].name;
 	else throw "TGlfReader does not know name of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
 };
 
-long TGlfReader::getLengthOfParsedChr(int chrNumber){
-	if(curChrNumber == chrNumber)
-		return _chrLength;
-	else if(curChrNumber > chrNumber)
-		return chromosomesAlreadyParsed[chrNumber].second;
+long TGlfReader::getLengthOfParsedChr(uint32_t chrNumber){
+	if(curChr.number == chrNumber)
+		return curChr.length;
+	else if(curChr.number > chrNumber)
+		return chromosomesAlreadyParsed[chrNumber].length;
 	else throw "TGlfReader does not know length of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
 };
 
 bool TGlfReader::readChr(){
 	//store current chromosome name in list of chromosomes parsed
-	if(curChr != "")
-		chromosomesAlreadyParsed.push_back(std::pair<std::string, long>(curChr, _chrLength));
+	if(curChr.name != "")
+		chromosomesAlreadyParsed.emplace_back(curChr);
 
 	//read chromosome info
+	//name
 	uint32_t len;
 	if(!read(&len, sizeof(uint32_t))){
 		_eof = true;
@@ -135,20 +135,29 @@ bool TGlfReader::readChr(){
 	}
 	char* tmp = new char[len];
 	read(tmp, len*sizeof(char));
-	curChr.assign(tmp, len);
-	++curChrNumber;
+	std::string name(tmp, len);
+	delete[] tmp;
 
-	read(&tmpInt32, sizeof(uint32_t));
-	_chrLength = tmpInt32;
+	//length
+	uint32_t length;
+	read(&length, sizeof(uint32_t));
+
+	//ploidy
+	uint8_t ploidy;
+	read(&ploidy, sizeof(uint8_t));
+
+	//update
+	curChr.update(name, length, ploidy);
+
+	//set first position = 0
 	position = 0;
 
-	delete[] tmp;
 	return true;
 };
 
 bool TGlfReader::chromosomeParsed(std::string & chr){
-	for(std::vector< std::pair<std::string, long> >::iterator it=chromosomesAlreadyParsed.begin(); it!=chromosomesAlreadyParsed.end(); ++it){
-		if(it->first == chr)
+	for(std::vector< TGlfChromosome >::iterator it=chromosomesAlreadyParsed.begin(); it!=chromosomesAlreadyParsed.end(); ++it){
+		if(it->name == chr)
 			return true;
 	}
 	return false;
@@ -201,8 +210,7 @@ void TGlfReader::open(){
 	if(gzfp == NULL)
 		throw "Failed to open file '" + filename + "' for reading!";
 	isOpen = true;
-	curChr = "";
-	curChrNumber = 0;
+	curChr.clear();
 	positionInFile = 0;
 
 	//parse header
@@ -273,8 +281,8 @@ bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::st
 	if(chromosomeParsed(chr)) return false;
 
 	//move to correct chromosome
-	if(curChr != chr){
-		while(curChr != chr){
+	if(curChr.name != chr){
+		while(curChr.name != chr){
 			jumpToEndOfChr();
 			readChr();
 		}
@@ -335,11 +343,11 @@ void TGlfReader::fillGenotypeQualities(uint8_t* destination){
 
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << curChr << "' of length " << _chrLength << "\n";
+	std::cout << "CHROMOSOME: '" << curChr.name << "' of length " << curChr.length << " and ploidy " << (int) curChr.ploidy << "\n";
 };
 
 void TGlfReader::printSite(){
-	std::cout << curChr << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
+	std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	for(int i=0; i<10; ++i)
 		std::cout << "\t" << unsigned(genotypeQualities[i]);
 	std::cout << "\n";
@@ -352,11 +360,11 @@ void TGlfReader::printToEnd(){ //For debugging
 	printChr();
 
 	//now parse file
-	std::string oldChr = curChr;
+	std::string oldChr = curChr.name;
 	while(readNext()){
-		if(oldChr != curChr){
+		if(oldChr != curChr.name){
 			printChr();
-			oldChr = curChr;
+			oldChr = curChr.name;
 		}
 		printSite();
 	}

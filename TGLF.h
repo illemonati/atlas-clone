@@ -19,6 +19,52 @@
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
 
+//----------------------------------------------------
+//TGlfChromosome
+//struct to store info on chromosome
+//----------------------------------------------------
+class TGlfChromosome{
+public:
+	uint32_t number;
+	std::string name;
+	uint32_t length;
+	uint8_t ploidy;
+
+	TGlfChromosome(){
+		number = 0;
+		length = 0;
+		ploidy = 2;
+		name = "";
+	};
+
+	TGlfChromosome(std::string Name, uint32_t Length, uint8_t Ploidy){
+		name = Name;
+		length = Length;
+		ploidy = Ploidy;
+		number = 1;
+	};
+
+	TGlfChromosome(const TGlfChromosome & other){
+		name = other.name;
+		length = other.length;
+		ploidy = other.ploidy;
+		number = 1;
+	};
+
+	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
+		name = Name;
+		length = Length;
+		ploidy = Ploidy;
+		++number;
+	};
+
+	void clear(){
+		name = "";
+		number = 0;
+		length = 0;
+		ploidy = 2;
+	};
+};
 
 //----------------------------------------------------
 //TGlfHandle
@@ -32,10 +78,9 @@ protected:
 	std::string version;
 	uint8_t zero8, one8;
 	uint32_t zero32;
-	std::string curChr;
-	int curChrNumber;
 	std::string header;
 	long positionInFile;
+	TGlfChromosome curChr;
 
 public:
 	TGlfHandle(){
@@ -46,7 +91,6 @@ public:
 		zero8 = 0;
 		one8 = 1;
 		zero32 = 0;
-		curChrNumber = 0;
 		positionInFile = 0;
 	};
 
@@ -62,11 +106,11 @@ public:
 	};
 
 	std::string chr(){
-		return curChr;
+		return curChr.name;
 	};
 
 	int chrNumber(){
-		return curChrNumber;
+		return curChr.number;
 	};
 };
 
@@ -103,7 +147,7 @@ public:
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
-	void newChromosome(const std::string & name, const uint32_t & length);
+	void newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL);
 };
 
@@ -121,11 +165,10 @@ private:
 	uint8_t tmpInt8;
 	int SNPRecordSize;
 	uint8_t tmpRecordStorage[19];
-	long _chrLength;
 	int _lenRead;
 	bool _eof;
 	uint8_t genotypeQualitiesMissingData[10];
-	std::vector< std::pair<std::string, long> > chromosomesAlreadyParsed;
+	std::vector< TGlfChromosome > chromosomesAlreadyParsed;
 
 	void init();
 	template <typename T>
@@ -165,10 +208,10 @@ public:
 	};
 
 	//get details
-	long chrLength(){ return _chrLength; };
+	long chrLength(){ return curChr.length; };
 	bool eof(){ return _eof;};
-	std::string getNameOfParsedChr(int chrNumber);
-	long getLengthOfParsedChr(int chrNumber);
+	std::string getNameOfParsedChr(uint32_t chrNumber);
+	long getLengthOfParsedChr(uint32_t chrNumber);
 
 	//open file and parse header
 	void setFilename(std::string Filename);
