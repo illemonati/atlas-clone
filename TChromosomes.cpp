@@ -22,6 +22,7 @@ TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
 		names.push_back(chrIt->Name);
 		lengths.push_back(stringToLong(chrIt->Length));
 		isInUse.push_back(true);
+		ploidies.push_back(2);
 		nameMap.emplace(chrIt->Name, num);
 	}
 
@@ -52,6 +53,37 @@ void TChromosomes::useSpecifiedChr(std::vector<std::string> & chrNames, TLog* lo
 		}
 		isInUse[nameMap.find(*it)->second] = true;
 		logfile->list(*it);
+	}
+	logfile->endIndent();
+}
+
+void TChromosomes::specifyPloidy(std::ifstream & ploidyFile, TLog* logfile){
+	logfile->startIndent("Setting ploidy for following chromosomes to:");
+	while(ploidyFile.good() && !ploidyFile.eof()){
+		std::string line;
+		std::getline(ploidyFile, line);
+		std::vector<std::string> vec;
+		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		//skip empty lines
+		if(vec.size() > 0){
+			if(nameMap.find(vec[0]) == nameMap.end())
+				throw "Chromosome " + vec[0] + " not found in BAM header!";
+			ploidies[nameMap.find(vec[0])->second] = stringToInt(vec[1]);
+			logfile->list(vec[0] + ": " + toString(ploidies[nameMap.find(vec[0])->second]));
+		}
+	}
+	ploidyFile.close();
+	logfile->endIndent();
+}
+
+void TChromosomes::setToHaploid(std::vector<std::string> chrNames, TLog* logfile){
+	logfile->startIndent("Setting the following chromosomes to be haploid:");
+	for(std::vector<std::string>::iterator it=chrNames.begin(); it!=chrNames.end(); ++it){
+		if(nameMap.find(*it) == nameMap.end()){
+			throw "Chromosome " + *it + " not found in BAM header!";
+		}
+		logfile->list(*it);
+		ploidies[nameMap.find(*it)->second] = 1;
 	}
 	logfile->endIndent();
 }

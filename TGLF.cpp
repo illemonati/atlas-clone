@@ -450,11 +450,11 @@ void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 	//assume that GLF file names are given in a file if string does not contain ".gz"
 	if(!stringContains(parameter,".gz")){
 		logfile->list("Reading glf input names from file '" + parameter + "'");
-		std::ifstream in;
-		in.open(parameter.c_str());
-		std::vector<std::string> vec;
+		std::ifstream in(parameter.c_str());
+		if(!in) throw "Failed to open file '" + parameter + "'!";
 
 		//read file
+		std::vector<std::string> vec;
 		while(in.good() && !in.eof()){
 			std::string line;
 			std::getline(in, line);

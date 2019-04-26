@@ -109,7 +109,8 @@ TAlignmentParser::TAlignmentParser(){
 	hasReference = false;
 	fastaReference = NULL;
 	fastaBuffer = NULL;
-	chrChanged = false;
+	chrChangedAlignment = false;
+	chrChangedWindow = false;
 
 	//post mortem damage and recalibration
 	hasPMD = false;
@@ -151,31 +152,56 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	logfile = Logfile;
 
-	//---------------------
-	//Bamtools
-	//---------------------
-
-	//open BAM file
+	//BAM file
 	filename = params.getParameterString("bam");
 	openBamFile(filename);
 
-//	//open FASTA reference
-//	if(params.parameterExists("fasta")){
-//		std::string fastaFile = params.getParameterString("fasta");
-//		std::string fastaIndex = fastaFile + ".fai";
-//		logfile->list("Reading reference sequence aaa from '" + fastaFile + "'");
-//		if(!fastaReference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
-//		hasReference = true;
-//		addReference(&fastaReference);
-//	} else hasReference = false;
-
-	//---------------------
-	//window parameters
-	//---------------------
+	//alignments
 	maxReadLength = MaxReadLength;
 	oldAlignment = new TAlignment(maxReadLength);
 	oldAlignmentInitialized = true;
 
+	//initialize
+	initializeSiteSubset(params);
+	initializeReadGroups(params);
+	initializePostMortemDamage(params);
+	initializeRecalibration(params);
+
+	//settings
+	setWindowParameters(params);
+	setChrAndWindowLimits(params);
+	setMasks(params);
+	setFilters(params);
+	setChrPloidy(params);
+};
+
+void TAlignmentParser::openBamFile(std::string filename){
+	//open BAM file
+	logfile->list("Reading data from BAM file '" + filename + "'.");
+	if (!bamReader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "'!";
+	//load index file
+	if(!bamReader.LocateIndex())
+		throw "No index file found for BAM file '" + filename + "'!";
+
+	//initialize bam stuff
+	bamHeader = bamReader.GetHeader();
+
+	//initialize chromosomes
+	chromosomes = TChromosomes(&bamHeader);
+
+	//get file size
+	chromosomes.jumpToBeginningOfLastChr();
+	bamReader.Jump(bamHeader.Sequences.Size() - 1, 0);
+	BamTools::BamAlignment bamAlignment;
+	bamReader.GetNextAlignment(bamAlignment);
+	sizeOfBamFile = bamReader.tell();
+	bamReader.Rewind();
+
+	chromosomes.jumpToEnd();
+};
+
+void TAlignmentParser::setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
 	//check if it is a number
@@ -193,101 +219,9 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
 	}
 	numWindowsOnChr = 0;
+};
 
-	//--------------------
-	//limit chrs and / or windows
-	//--------------------
-
-	if(params.parameterExists("chr")){
-		//parse chromosome names
-		std::vector<std::string> vec;
-		fillVectorFromString(params.getParameterString("chr"), vec, ',');
-		chromosomes.useSpecifiedChr(vec, logfile);
-	} else {
-		if(params.parameterExists("limitChr")){
-			std::string limitName = params.getParameterString("limitChr");
-			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName);
-			chromosomes.limitChr(limitName);
-			indexOfLimitChr = chromosomes.getIndexFromName(limitName) + 1;
-		}
-	}
-
-//	int num = 0;
-//	for(BamTools::SamSequenceIterator chrIt = bamHeader.Sequences.Begin(); chrIt != bamHeader.Sequences.End(); ++chrIt, ++num)
-//		std::cout << "useChromosome, num " << num << ": " << useChromosome[num] << std::endl;;
-
-
-	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
-	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome.");
-	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
-	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
-	if(limitWindows <= skipWindows)
-		throw "limitWwindows has to be larger than skipWindows!";
-
-
-	//------------
-	//masks
-	//------------
-	//normal mask
-	if(params.parameterExists("mask")){
-		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
-		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
-		doMasking = true;
-		std::string maskFile = params.getParameterString("mask");
-		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
-		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->done();
-		logfile->endIndent();
-		//mask->print();
-	} else doMasking = false;
-
-	//reverse masking
-	if(params.parameterExists("regions")){
-		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
-		considerRegions = true;
-		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
-		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
-		logfile->done();
-		logfile->endIndent();
-	} else considerRegions = false;
-
-	//CpG mask
-	if(params.parameterExists("maskCpG")){
-		if(!hasReference) throw "Cannot mask CpG sites without reference!";
-		doCpGMasking = true;
-		std::string maskFile = params.getParameterString("maskCpG");
-		logfile->list("Will mask all CpG sites");
-	} else doCpGMasking = false;
-
-	//-------------
-	//sites
-	//-------------
-
-	//only call at specific sites?
-	if(params.parameterExists("invariantSites") && params.parameterExists("variantSites"))
-		throw "Can only use variant OR invariant sites!";
-	if(params.parameterExists("invariantSites")){
-		bool variantSites = false;
-		if(hasReference)
-			subset = new TSiteSubset(params.getParameterString("invariantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
-		else subset = new TSiteSubset(params.getParameterString("invariantSites"), windowSize, logfile, variantSites);
-		sitesProvided = true;
-	} else if(params.parameterExists("variantSites")){
-		bool variantSites = true;
-		if(hasReference)
-			subset = new TSiteSubset(params.getParameterString("variantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
-		else subset = new TSiteSubset(params.getParameterString("variantSites"), windowSize, logfile, variantSites);
-		sitesProvided = true;
-	}
-
-	//------------
-	//filters
-	//------------
+void TAlignmentParser::setFilters(TParameters & params){
 	//depth filter
 	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
@@ -332,36 +266,13 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
 
-	//-----------------
-	//read groups
-	//-----------------
-
-	readGroups.fill(bamHeader);
-
-	//limit readGroups
-	if(params.parameterExists("readGroup")){
-		readGroups.filterReadGroups(params.getParameterString("readGroup"));
-		logfile->startIndent("Will limit analysis to the following read groups:");
-		readGroups.printReadgroupsInUse(logfile);
-		logfile->endIndent();
-	}
-
-	//------------
-	//recal and pmd
-	//------------
-
-	initializePostMortemDamage(params);
-	initializeRecalibration(params);
-
-	//------------
-	//other
-	//------------
-
+	//duplicates
 	if(params.parameterExists("keepDuplicates")){
 		keepDuplicates();
 		logfile->list("Will keep duplicate reads.");
 	}
 
+	//fragment length
 	if(params.parameterExists("dontFilterReadsLongerFragment"))
 		setApplyFragmentLengthFilter(false);
 	else
@@ -386,32 +297,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 		useMate[0] = false;
 		logfile->list("Will keep only the second mates.");
 	}
-};
-
-void TAlignmentParser::openBamFile(std::string filename){
-	//open BAM file
-	logfile->list("Reading data from BAM file '" + filename + "'.");
-	if (!bamReader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "'!";
-	//load index file
-	if(!bamReader.LocateIndex())
-		throw "No index file found for BAM file '" + filename + "'!";
-
-	//initialize bam stuff
-	bamHeader = bamReader.GetHeader();
-
-	//initialize chromosomes
-	chromosomes = TChromosomes(&bamHeader);
-
-	//get file size
-	chromosomes.jumpToBeginningOfLastChr();
-	bamReader.Jump(bamHeader.Sequences.Size() - 1, 0);
-	BamTools::BamAlignment bamAlignment;
-	bamReader.GetNextAlignment(bamAlignment);
-	sizeOfBamFile = bamReader.tell();
-	bamReader.Rewind();
-
-	chromosomes.jumpToEnd();
 }
 
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
@@ -427,6 +312,44 @@ void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
 	maxQualForPrinting = maxQual;
 };
 
+void TAlignmentParser::setMasks(TParameters & params){
+	//normal mask
+	if(params.parameterExists("mask")){
+		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
+		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
+		doMasking = true;
+		std::string maskFile = params.getParameterString("mask");
+		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+		logfile->listFlush("Reading file ...");
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
+		logfile->done();
+		logfile->endIndent();
+		//mask->print();
+	} else doMasking = false;
+
+	//reverse masking
+	if(params.parameterExists("regions")){
+		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
+		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
+		considerRegions = true;
+		std::string regionsFile = params.getParameterString("regions");
+		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
+		logfile->listFlush("Reading file ...");
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
+		logfile->done();
+		logfile->endIndent();
+	} else considerRegions = false;
+
+	//CpG mask
+	if(params.parameterExists("maskCpG")){
+		if(!hasReference) throw "Cannot mask CpG sites without reference!";
+		doCpGMasking = true;
+		std::string maskFile = params.getParameterString("maskCpG");
+		logfile->list("Will mask all CpG sites");
+	} else doCpGMasking = false;
+}
+
 void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 	trimmingLength3Prime = trim3Prime;
 	trimmingLength5Prime = trim5Prime;
@@ -436,6 +359,78 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
 	applyFragmentLengthFilter = filterYesNo;
 }
+
+void TAlignmentParser::initializeSiteSubset(TParameters & params){
+	//only call at specific sites?
+	if(params.parameterExists("invariantSites") && params.parameterExists("variantSites"))
+		throw "Can only use variant OR invariant sites!";
+	if(params.parameterExists("invariantSites")){
+		bool variantSites = false;
+		if(hasReference)
+			subset = new TSiteSubset(params.getParameterString("invariantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
+		else subset = new TSiteSubset(params.getParameterString("invariantSites"), windowSize, logfile, variantSites);
+		sitesProvided = true;
+	} else if(params.parameterExists("variantSites")){
+		bool variantSites = true;
+		if(hasReference)
+			subset = new TSiteSubset(params.getParameterString("variantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
+		else subset = new TSiteSubset(params.getParameterString("variantSites"), windowSize, logfile, variantSites);
+		sitesProvided = true;
+	}
+};
+
+void TAlignmentParser::initializeReadGroups(TParameters & params){
+	readGroups.fill(bamHeader);
+
+	//limit readGroups
+	if(params.parameterExists("readGroup")){
+		readGroups.filterReadGroups(params.getParameterString("readGroup"));
+		logfile->startIndent("Will limit analysis to the following read groups:");
+		readGroups.printReadgroupsInUse(logfile);
+		logfile->endIndent();
+	}
+};
+
+void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
+	if(params.parameterExists("chr")){
+		//parse chromosome names
+		std::vector<std::string> vec;
+		fillVectorFromString(params.getParameterString("chr"), vec, ',');
+		chromosomes.useSpecifiedChr(vec, logfile);
+	} else {
+		if(params.parameterExists("limitChr")){
+			std::string limitName = params.getParameterString("limitChr");
+			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName);
+			chromosomes.limitChr(limitName);
+			indexOfLimitChr = chromosomes.getIndexFromName(limitName) + 1;
+		}
+	}
+
+	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
+	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome.");
+	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
+	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+	if(limitWindows <= skipWindows)
+		throw "limitWwindows has to be larger than skipWindows!";
+};
+
+void TAlignmentParser::setChrPloidy(TParameters & params){
+	logfile->list("Chromosomes with no further specifications are assumed to be diploid. Use ploidy or haploid to change ploidy.");
+	if(params.parameterExists("ploidy")){
+		std::string ploidyFileName = params.getParameterString("ploidy");
+		logfile->list("Reading ploidy specification per chromosome from file '" + ploidyFileName + "'");
+		std::ifstream ploidyFile(ploidyFileName.c_str());
+		if(!ploidyFile)
+			throw "Failed to open file '" + ploidyFileName + "'!";
+		chromosomes.specifyPloidy(ploidyFile, logfile);
+	}
+
+	if(params.parameterExists("haploid")){
+		std::vector<std::string> vec;
+		fillVectorFromString(params.getParameterString("haploid"), vec, ',');
+		chromosomes.setToHaploid(vec, logfile);
+	}
+};
 
 void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
@@ -618,6 +613,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 
 			if(chromosomes.end())
 				throw "found no predefined windows in BED file! Does file exist?";
+			chrChangedWindow = true;
 
 		} else {
 			//now move coordinates of next window
@@ -629,17 +625,21 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 					return false;
 
 				moveChromosome(window);
+				chrChangedWindow = true;
 
 				if(chromosomes.end())
 					return false;
 				++windowNumber;
-			}
+			} else
+				//was able to move to next window on chr
+				chrChangedWindow = false;
 		}
 
 	} else {
 		//if at beginning of BAM file
 		if(chromosomes.end()){
 			restartChromosomes(window);
+			chrChangedWindow = true;
 		} else {
 			if(!moveToNextWindowOnChr(window)){
 				//there is no window left on chr
@@ -656,9 +656,14 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 					return false;
 				}
 				moveChromosome(window);
+				chrChangedWindow = true;
+			} else {
+				chrChangedWindow = false;
 			}
 		}
 	}
+
+
 
 	//report
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
@@ -677,14 +682,14 @@ bool TAlignmentParser::readAlignment(){
 		}
 		++totalNumberAlignmentsRead;
 
-		//check if bam file is sorted
+		//check if chromosome changed
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
 //			chrNumber = previousAlignmentChr;
-			chrChanged = true;
+			chrChangedAlignment = true;
 		} else
-			chrChanged = false;
+			chrChangedAlignment = false;
 
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position! Alignment '" + bamAlignment.Name + "' is at position " + toString(bamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(previousAlignmentPos) + ")";

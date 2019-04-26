@@ -485,9 +485,9 @@ void TGenome::writeGLF(TParameters & params){
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		if(alignmentParser.chrChanged)
+		if(alignmentParser.chrChangedWindow){
 			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), alignmentParser.getCurChrPloidy());
-		if(window.passedFilters){
+		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
 			window.calculateEmissionProbabilities();
@@ -561,7 +561,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
-		if(alignmentParser.chrChanged){
+		if(alignmentParser.chrChangedWindow){
 			if(nCharOnLine > 0) output << '\n';
 				output << '>' << alignmentParser.getCurChrName() << '\n';
 		}
