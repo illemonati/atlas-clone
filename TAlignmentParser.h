@@ -164,7 +164,8 @@ public:
 
  	//reference
 	bool hasReference;
-	bool chrChanged;
+	bool chrChangedAlignment;
+	bool chrChangedWindow;
 	BamTools::Fasta* fastaReference;
 	TFastaBuffer* fastaBuffer;
 

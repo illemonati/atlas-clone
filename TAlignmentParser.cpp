@@ -109,7 +109,8 @@ TAlignmentParser::TAlignmentParser(){
 	hasReference = false;
 	fastaReference = NULL;
 	fastaBuffer = NULL;
-	chrChanged = false;
+	chrChangedAlignment = false;
+	chrChangedWindow = false;
 
 	//post mortem damage and recalibration
 	hasPMD = false;
@@ -614,6 +615,7 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 
 			if(chromosomes.end())
 				throw "found no predefined windows in BED file! Does file exist?";
+			chrChangedWindow = true;
 
 		} else {
 			//now move coordinates of next window
@@ -625,17 +627,21 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 					return false;
 
 				moveChromosome(window);
+				chrChangedWindow = true;
 
 				if(chromosomes.end())
 					return false;
 				++windowNumber;
-			}
+			} else
+				//was able to move to next window on chr
+				chrChangedWindow = false;
 		}
 
 	} else {
 		//if at beginning of BAM file
 		if(chromosomes.end()){
 			restartChromosomes(window);
+			chrChangedWindow = true;
 		} else {
 			if(!moveToNextWindowOnChr(window)){
 				//there is no window left on chr
@@ -652,9 +658,14 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 					return false;
 				}
 				moveChromosome(window);
+				chrChangedWindow = true;
+			} else {
+				chrChangedWindow = false;
 			}
 		}
 	}
+
+
 
 	//report
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.getCurName() + "':");
@@ -673,14 +684,14 @@ bool TAlignmentParser::readAlignment(){
 		}
 		++totalNumberAlignmentsRead;
 
-		//check if bam file is sorted
+		//check if chromosome changed
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = -1;
 			previousAlignmentChr = bamAlignment.RefID;
 //			chrNumber = previousAlignmentChr;
-			chrChanged = true;
+			chrChangedAlignment = true;
 		} else
-			chrChanged = false;
+			chrChangedAlignment = false;
 
 		if(bamAlignment.Position < previousAlignmentPos)
 			throw "BAM file must be sorted by position! Alignment '" + bamAlignment.Name + "' is at position " + toString(bamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(previousAlignmentPos) + ")";
