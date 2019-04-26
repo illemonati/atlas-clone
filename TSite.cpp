@@ -83,11 +83,11 @@ void TSite::calcEmissionProbabilities(double* vec){
 		for(int i=0; i<numGenotypes; ++i)
 			vec[i] = exp(vec[i] - max);
 	}
-}
+};
 
 void TSite::calcEmissionProbabilities(){
 	calcEmissionProbabilities(emissionProbabilities);
-}
+};
 
 std::string TSite::getBases(){
 	if(!hasData) return "-";
@@ -95,7 +95,7 @@ std::string TSite::getBases(){
 	for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
 		b += getBaseAsChar((*baseIterator)->getBaseAsEnum());
 	return b;
-}
+};
 
 int TSite::depth(){
 	if(!hasData) return 0;
@@ -111,6 +111,7 @@ int TSite::refDepth(){
 	}
 	return counter;
 };
+
 std::string TSite::getEmissionProbs(){
 	std::string b;
 	if(!hasData){
@@ -125,7 +126,7 @@ std::string TSite::getEmissionProbs(){
 		}
 	}
 	return b;
-}
+};
 
 void TSite::calculateP_g(double* genotypeProbabilities, double* P_g){
 	//calculate normalized genotype probabilities according to Bayes rule

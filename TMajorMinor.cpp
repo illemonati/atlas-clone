@@ -10,11 +10,11 @@
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
-
 TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(int NumSamples, TRandomGenerator* RandomGenerator){
 	numSamples = NumSamples;
 	genotypeLikelihoods = new double[3*numSamples];
-	genotypeFrequencies = new double[3];
+	isHaploid = new bool[numSamples];
+	genotypeFrequencies = new double[5]; //the frequencies of 3 diploid (AA, AC, CC) + 2 haploid (A, C) genotypes
 	L10L_perCombination = new double[6];
 	allelicCombination = 0;
 	minor = A;
@@ -31,14 +31,19 @@ TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
 
 double TMajorMinorEstimatorBase::calculateLog10Likelihood(double* genotypeFrequencies){
 	double LL = 0.0;
-	for(int i = 0; i < 3 * numSamples; i += 3){
-		LL += log10(genotypeLikelihoods[i] * genotypeFrequencies[0]
-			    + genotypeLikelihoods[i+1] * genotypeFrequencies[1]
-		        + genotypeLikelihoods[i+2] * genotypeFrequencies[2]);
+	for(int i = 0; i < numSamples; i++){
+		int ind = 3 * i;
+		if(isHaploid[i]){
+			LL += log10(genotypeLikelihoods[ind]   * genotypeFrequencies[3]
+					  + genotypeLikelihoods[ind+2] * genotypeFrequencies[4]);
+		} else {
+			LL += log10(genotypeLikelihoods[ind]   * genotypeFrequencies[0]
+                      + genotypeLikelihoods[ind+1] * genotypeFrequencies[1]
+					  + genotypeLikelihoods[ind+2] * genotypeFrequencies[2]);
+		}
 	}
 	return LL;
 };
-
 
 void TMajorMinorEstimatorBase::fillLikelihoods(uint8_t** phred, Genotype* genotypes){
 	for(int i=0; i<numSamples; ++i){
@@ -50,28 +55,51 @@ void TMajorMinorEstimatorBase::fillLikelihoods(uint8_t** phred, Genotype* genoty
 };
 
 void TMajorMinorEstimatorBase::guessGenotypeFrequencies(double* genotypeFrequencies){
-	//calculate by using MLE genotype for each individual
+	//set all to zero
 	genotypeFrequencies[0] = 0.0; genotypeFrequencies[1] = 0.0; genotypeFrequencies[2] = 0.0;
-	for(int i = 0 ; i < 3 * numSamples; i += 3){
-		if(genotypeLikelihoods[i + 1] > genotypeLikelihoods[i]){
-			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i + 1]) genotypeFrequencies[2] += 1.0;
-			else genotypeFrequencies[1] += 1.0;
+	genotypeFrequencies[3] = 0.0; genotypeFrequencies[4] = 0.0;
+
+	//calculate by using MLE genotype for each individual
+	for(int i = 0; i < numSamples; i++){
+		int ind = 3 * i;
+
+		if(isHaploid[i]){
+			if(genotypeLikelihoods[ind + 2] > genotypeLikelihoods[ind]) genotypeFrequencies[4] += 1.0;
+			else genotypeFrequencies[3] += 1.0;
 		} else {
-			if(genotypeLikelihoods[i + 2] > genotypeLikelihoods[i]) genotypeFrequencies[2] += 1.0;
-			else genotypeFrequencies[0] += 1.0;
+			if(genotypeLikelihoods[ind + 1] > genotypeLikelihoods[ind]){
+				if(genotypeLikelihoods[ind + 2] > genotypeLikelihoods[ind + 1]) genotypeFrequencies[2] += 1.0;
+				else genotypeFrequencies[1] += 1.0;
+			} else {
+				if(genotypeLikelihoods[ind + 2] > genotypeLikelihoods[ind]) genotypeFrequencies[2] += 1.0;
+				else genotypeFrequencies[0] += 1.0;
+			}
 		}
 	}
 
-	double sum = 0.0;
-	for(int g = 0; g<3; ++g){
-		genotypeFrequencies[g] /= (double) numSamples;
+	//normalize
+	normalizeGenotypeFrequencies();
+
+	//make sure no frequency is 0 or 1
+	for(int g = 0; g<5; ++g){
 		if(genotypeFrequencies[g] <= 0.0) genotypeFrequencies[g] = 0.01;
 		if(genotypeFrequencies[g] >= 1.0) genotypeFrequencies[g] = 0.99;
-		sum += genotypeFrequencies[g];
 	}
-	for(int g = 0; g<3; ++g){
-		genotypeFrequencies[g] /= sum;
-	}
+
+	//normalize again
+	normalizeGenotypeFrequencies();
+};
+
+void TMajorMinorEstimatorBase::normalizeGenotypeFrequencies(){
+	//normalize
+	double sum = genotypeFrequencies[0] + genotypeFrequencies[1] + genotypeFrequencies[2];
+	genotypeFrequencies[0] /= sum;
+	genotypeFrequencies[1] /= sum;
+	genotypeFrequencies[2] /= sum;
+
+	sum = genotypeFrequencies[3] + genotypeFrequencies[4];
+	genotypeFrequencies[3] /= sum;
+	genotypeFrequencies[4] /= sum;
 };
 
 void TMajorMinorEstimatorBase::chooseMLAllelicCombinationAmongThoseWithEqualLikelihood(){
@@ -82,7 +110,7 @@ void TMajorMinorEstimatorBase::chooseMLAllelicCombinationAmongThoseWithEqualLike
 			MLE_combinations.push_back(i);
 	}
 	allelicCombination = MLE_combinations[randomGenerator->pickOne(MLE_combinations.size())];
-}
+};
 
 void TMajorMinorEstimatorBase::findMLAllelicCombination(uint8_t** phred){
 	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(uint8_t** phred) not implemented for base class!";
@@ -118,24 +146,28 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(uint8_t** phred){
 // TMajorMinorEstimatorSkotte
 //---------------------------------------------------
 TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(int NumSamples, TRandomGenerator* RandomGenerator):TMajorMinorEstimatorBase(NumSamples, RandomGenerator){
-	genotypeLikelihoods = new double[3*numSamples];
-
-	priorGenotypeFrequencies = new double[3];
+	priorGenotypeFrequencies = new double[5];
+	//diploid
 	priorGenotypeFrequencies[0] = 0.25;
 	priorGenotypeFrequencies[1] = 0.50;
 	priorGenotypeFrequencies[2] = 0.25;
+
+	//haploid
+	priorGenotypeFrequencies[3] = 0.50;
+	priorGenotypeFrequencies[4] = 0.50;
 };
 
 TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){
 	delete[] priorGenotypeFrequencies;
 };
 
-
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(uint8_t** phred){
-	//calculate L10L for each allelic combination
+	//calculate L10L for first allelic combination
 	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[0]);
 	L10L_perCombination[0] = calculateLog10Likelihood(priorGenotypeFrequencies);
 	L10L = L10L_perCombination[0];
+
+	//calculate L10L for all other allelic combination
 	for(int i=1; i<6; ++i){
 		fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[i]);
 		L10L_perCombination[i] = calculateLog10Likelihood(priorGenotypeFrequencies);
@@ -144,13 +176,13 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(uint8_t** phred){
 		}
 	}
 
-	//pick combination
+	//pick combination with highest likelihood
 	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
 
 	//now guess genotype frequencies at MLE
 	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[allelicCombination]);
 	guessGenotypeFrequencies(genotypeFrequencies);
-}
+};
 
 //---------------------------------------------------
 // TMajorMinorEstimatorMLE
@@ -160,7 +192,7 @@ TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(int NumSamples, TRandomGenerato
 
 	tmpGenotypeFrequencies = new double*[6];
 	for(int i=0; i<6; ++i) tmpGenotypeFrequencies[i] = new double[3];
-}
+};
 
 TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
 	for(int i=0; i<6; ++i) delete[] tmpGenotypeFrequencies[i];
@@ -170,7 +202,7 @@ TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
 void TMajorMinorEstimatorMLE::estimateGenotypeFrequenciesEM(double* genotypeFrequencies){
 	//prepare variables
 	double weightsNull[3];
-	double genoFreq_old[3];
+	double genoFreq_old[5];
 
 	//estimate initial frequencies from MLEs
 	guessGenotypeFrequencies(genotypeFrequencies);
@@ -178,25 +210,39 @@ void TMajorMinorEstimatorMLE::estimateGenotypeFrequenciesEM(double* genotypeFreq
 	//run EM for max 1000 steps
 	for(int s=0; s<1000; ++s){
 		//set genofreq and calc P(g|f)
-		for(int g=0; g<3; ++g){
+		for(int g=0; g<5; ++g){
 			genoFreq_old[g] = genotypeFrequencies[g];
 			genotypeFrequencies[g] = 0.0;
 		}
 
 		//estimate new genotype frequencies
-		for(int i = 0; i < 3 * numSamples; i += 3){
-			double sum = 0.0;
-			for(int g = 0; g < 3; ++g){
-				weightsNull[g] = genotypeLikelihoods[i + g] * genoFreq_old[g];
-				sum += weightsNull[g];
+		int numDiploid = 0;
+		for(int i = 0; i < numSamples; i++){
+			int ind = 3 * i;
+
+			if(isHaploid[i]){
+				weightsNull[0] = genotypeLikelihoods[ind    ] * genoFreq_old[3];
+				weightsNull[2] = genotypeLikelihoods[ind + 2] * genoFreq_old[3];
+				genotypeFrequencies[3] += weightsNull[0] / weightsNull[0] + weightsNull[2];
+			} else {
+				++numDiploid;
+				weightsNull[0] = genotypeLikelihoods[ind    ] * genoFreq_old[0];
+				weightsNull[1] = genotypeLikelihoods[ind + 1] * genoFreq_old[1];
+				weightsNull[2] = genotypeLikelihoods[ind + 2] * genoFreq_old[2];
+
+				double sum = weightsNull[0] + weightsNull[1] + weightsNull[2];
+
+				genotypeFrequencies[0] += weightsNull[0] / sum;
+				genotypeFrequencies[2] += weightsNull[2] / sum;
 			}
-			genotypeFrequencies[0] += weightsNull[0] / sum;
-			genotypeFrequencies[2] += weightsNull[2] / sum;
 		}
 
-		genotypeFrequencies[0] /= (double) numSamples;
-		genotypeFrequencies[2] /= (double) numSamples;
+		//normalize by sample size
+		genotypeFrequencies[0] /= (double) numDiploid;
+		genotypeFrequencies[2] /= (double) numDiploid;
 		genotypeFrequencies[1] = 1.0 - genotypeFrequencies[0] - genotypeFrequencies[2];
+		genotypeFrequencies[3] /= (double) (numSamples - numDiploid);
+		genotypeFrequencies[4] = 1.0 - genotypeFrequencies[3];
 
 		//check if we stop
 		if(fabs(genotypeFrequencies[0] - genoFreq_old[0]) < maxF && fabs(genotypeFrequencies[2] - genoFreq_old[2]) < maxF) break;
@@ -207,7 +253,7 @@ double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(uint8_t** phred, con
 	fillLikelihoods(phred, genoMap.alleleicCombinationToGenotypes[alleleicCombination]);
 	estimateGenotypeFrequenciesEM(tmpGenotypeFrequencies[alleleicCombination]);
 	return calculateLog10Likelihood(tmpGenotypeFrequencies[alleleicCombination]);
-}
+};
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	//calculate L10L for each allelic combination
@@ -226,7 +272,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(uint8_t** phred){
 	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
 
 	genotypeFrequencies = tmpGenotypeFrequencies[allelicCombination];
-}
+};
 
 //---------------------------------------------------
 // TMajorMinor
@@ -265,7 +311,6 @@ void TMajorMinor::closeVCF(){
 	vcf.close();
 	vcfOpened = false;
 };
-
 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files

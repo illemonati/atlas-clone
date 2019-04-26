@@ -112,6 +112,14 @@ public:
 	int chrNumber(){
 		return curChr.number;
 	};
+
+	long chrLength(){
+		return curChr.length;
+	};
+
+	bool chrIsHaploid(){
+		return curChr.ploidy == 1;
+	};
 };
 
 //----------------------------------------------------
@@ -208,7 +216,6 @@ public:
 	};
 
 	//get details
-	long chrLength(){ return curChr.length; };
 	bool eof(){ return _eof;};
 	std::string getNameOfParsedChr(uint32_t chrNumber);
 	long getLengthOfParsedChr(uint32_t chrNumber);
@@ -266,9 +273,13 @@ private:
 
 	bool moveToNextChromosome();
 
+	void writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+
 public:
 	uint8_t** data;
 	bool* hasData;
+	bool* isHaploid;
 	bool dataInitialized;
 
 	TGlfMultiReader();

@@ -404,7 +404,7 @@ void TGlfMultiReader::init(){
 	_numActiveFilesWithData = 0;
 
 	for(int i=0; i<10; ++i)
-			genotypeQualitiesMissingData[i] = 0;
+		genotypeQualitiesMissingData[i] = 0;
 
 };
 
@@ -638,6 +638,13 @@ bool TGlfMultiReader::moveToNextChromosome(){
 		}
 	}
 
+	//store whether this chromosome is haploid for each file
+	int i = 0;
+	for(TGlfReader* it : pointerToActiveGLFs){
+		isHaploid[i] = it->chrIsHaploid();
+		i++;
+	}
+
 	return true;
 };
 
@@ -666,7 +673,6 @@ bool TGlfMultiReader::readNext(){
 	}
 
 	//filter sites (i.e., jump to next)
-
 	return true;
 };
 
@@ -682,8 +688,8 @@ void TGlfMultiReader::print(){
 void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep){
 	//sample names are file names without glf ending
 	if(numActiveFiles > 0){
-		for(int i=0; i<numActiveFiles; ++i){
-			std::string name = GLFs[i].name();
+		for(TGlfReader* it : pointerToActiveGLFs){
+			std::string name = it->name();
 			out << sep << readBeforeLast(name, ".glf");
 		}
 	}
@@ -707,7 +713,7 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoo
 };
 
 void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
-	//TODO: find way to harmonize code with MLE caller in TSite
+	//TODO: find way to harmonize code with Tcaller
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
 
@@ -734,48 +740,89 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 
 	//now write active samples
 	for(int i=0; i<numActiveFiles; ++i){
-		if(hasData[i]){
-			//find min qual
-			int minQual = data[i][refHomIndex];
-			if(data[i][hetIndex] < minQual) minQual = data[i][hetIndex];
-			if(data[i][altHomIndex] < minQual) minQual = data[i][altHomIndex];
-
-			//get all genotypes with minQual (=MLE)
-			std::vector<int> mleGenotypes;
-			if(data[i][refHomIndex] == minQual) mleGenotypes.push_back(0);
-			if(data[i][hetIndex] == minQual) mleGenotypes.push_back(1);
-			if(data[i][altHomIndex] == minQual) mleGenotypes.push_back(2);
-
-			//write MLE genoytpe
-			int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-			if(mleGeno == 0) vcf << "\t0/0:";
-			else if(mleGeno == 1) vcf << "\t0/1:";
-			else vcf << "\t1/1:";
-
-			//write genotype quality
-			if(mleGenotypes.size() > 1) vcf << "0:";
-			else {
-				//find second highest quality
-				int secondLowestQual = 999;
-				if(data[i][refHomIndex] > minQual) secondLowestQual = data[i][refHomIndex];
-				if(data[i][hetIndex] > minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
-				if(data[i][altHomIndex] == minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
-				vcf << round(secondLowestQual - minQual) << ":";
-			}
-
-			//write depth
-			vcf << GLFs[i].depth << ':';
-
-			//write likelihoods
-			if(usePhredLikelihoods)
-				vcf << (data[i][refHomIndex] - minQual) << "," << (data[i][hetIndex] - minQual) << "," << (data[i][altHomIndex] - minQual);
-			else
-				vcf << (data[i][refHomIndex] - minQual) / -10.0 << "," << (data[i][hetIndex] - minQual) / -10.0 << "," << (data[i][altHomIndex] - minQual) / -10.0;
-		} else {
-			vcf << "\t./.:.:.:.";
-		}
+		if(isHaploid[i])
+			writeHaploidIndividualToVCF(i, vcf, refHomIndex, hetIndex, altHomIndex, randomGenerator, usePhredLikelihoods);
+		else
+			writeDiploidIndividualToVCF(i, vcf, refHomIndex, hetIndex, altHomIndex, randomGenerator, usePhredLikelihoods);
 	}
 
 	//end of line
 	vcf << '\n';
 };
+
+void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+	if(hasData[ind]){
+		//find min qual
+		int minQual = data[ind][refHomIndex];
+		if(data[ind][hetIndex] < minQual) minQual = data[ind][hetIndex];
+		if(data[ind][altHomIndex] < minQual) minQual = data[ind][altHomIndex];
+
+		//get all genotypes with minQual (=MLE)
+		std::vector<int> mleGenotypes;
+		if(data[ind][refHomIndex] == minQual) mleGenotypes.push_back(0);
+		if(data[ind][hetIndex] == minQual) mleGenotypes.push_back(1);
+		if(data[ind][altHomIndex] == minQual) mleGenotypes.push_back(2);
+
+		//write MLE genoytpe
+		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
+		if(mleGeno == 0) vcf << "\t0/0:";
+		else if(mleGeno == 1) vcf << "\t0/1:";
+		else vcf << "\t1/1:";
+
+		//write genotype quality
+		if(mleGenotypes.size() > 1) vcf << "0:";
+		else {
+			//find second highest quality
+			int secondLowestQual = 999;
+			if(data[ind][refHomIndex] > minQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][altHomIndex] == minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+			vcf << round(secondLowestQual - minQual) << ":";
+		}
+
+		//write depth
+		vcf << GLFs[ind].depth << ':';
+
+		//write likelihoods
+		if(usePhredLikelihoods)
+			vcf << (data[ind][refHomIndex] - minQual) << "," << (data[ind][hetIndex] - minQual) << "," << (data[ind][altHomIndex] - minQual);
+		else
+			vcf << (data[ind][refHomIndex] - minQual) / -10.0 << "," << (data[ind][hetIndex] - minQual) / -10.0 << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+	} else {
+		vcf << "\t./.:.:.:.";
+	}
+};
+
+void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+	if(hasData[ind]){
+		//find min qual
+		int minQual = data[ind][refHomIndex];
+		if(data[ind][altHomIndex] < minQual) minQual = data[ind][altHomIndex];
+
+		//get all genotypes with minQual (=MLE)
+		std::vector<int> mleGenotypes;
+		if(data[ind][refHomIndex] == minQual) mleGenotypes.push_back(0);
+		if(data[ind][altHomIndex] == minQual) mleGenotypes.push_back(2);
+
+		//write MLE genoytpe
+		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
+		if(mleGeno == 0) vcf << "\t0:";
+		else vcf << "\t1:";
+
+		//write genotype quality
+		if(mleGeno == 0) vcf << round(data[ind][altHomIndex] - minQual) << ":";
+		else  vcf << round(data[ind][refHomIndex] - minQual) << ":";
+
+		//write depth
+		vcf << GLFs[ind].depth << ':';
+
+		//write likelihoods
+		if(usePhredLikelihoods)
+			vcf << (data[ind][refHomIndex] - minQual) << "," << (data[ind][altHomIndex] - minQual);
+		else
+			vcf << (data[ind][refHomIndex] - minQual) / -10.0 << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+	} else {
+		vcf << "\t.:.:.:.";
+	}
+};
+

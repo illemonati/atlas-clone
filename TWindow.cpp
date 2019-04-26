@@ -134,7 +134,6 @@ void TWindow::review(){
 }
 
 void TWindow::cleanUpUsedAlignments(){
-//	std::cout << "cleaning up used alignemtns:" << std::flush;
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
@@ -144,13 +143,6 @@ void TWindow::cleanUpUsedAlignments(){
 			emptyAlignments.push_back(*alignmentIt);
 			alignmentIt = usedAlignments.erase(alignmentIt);
 		}
-
-//		if((*alignmentIt)->position >= end){
-//			usedAlignments.erase(alignmentIt, usedAlignments.end());
-////			std::cout << (*alignmentIt)->alignmentName << ":" << (*alignmentIt)->position<< "\t" << std::flush;
-//			break;
-//		}
-//		std::cout << std::endl;
 	}
 }
 
@@ -390,7 +382,7 @@ void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool
 			out << "\n";
 		}
 	}
-}
+};
 
 void TWindow::printPileupToScreen(TRecalibration* recalObject){
 	//print pileup
@@ -400,7 +392,7 @@ void TWindow::printPileupToScreen(TRecalibration* recalObject){
 		sites[i].printPileupToScreen();
 		std::cout << "\n";
 	}
-}
+};
 
 void TWindow::calcDepth(){
 	//calculate and return coverage

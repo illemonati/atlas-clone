@@ -25,11 +25,13 @@ protected:
 
 	int numSamples;
 	double* genotypeLikelihoods;
+	bool* isHaploid;
 	double* L10L_perCombination;
 
 	double calculateLog10Likelihood(double* genotypeFrequencies);
 	void fillLikelihoods(uint8_t** phred, Genotype* genotypes);
 	void guessGenotypeFrequencies(double* genotypeFrequencies);
+	void normalizeGenotypeFrequencies();
 	void calculateL10LPerCombination();
 	void chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
 	virtual void findMLAllelicCombination(uint8_t** phred);
