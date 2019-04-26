@@ -114,6 +114,13 @@ private:
 
 	//contructor functions
 	void openBamFile(std::string filename);
+	void setWindowParameters(TParameters & params);
+	void setFilters(TParameters & params);
+	void setMasks(TParameters & params);
+	void initializeSiteSubset(TParameters & params);
+	void initializeReadGroups(TParameters & params);
+	void setChrAndWindowLimits(TParameters & params);
+	void setChrPloidy(TParameters & params);
 
 	//move genome
 	void jumpToEnd();

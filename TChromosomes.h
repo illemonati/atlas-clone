@@ -33,6 +33,8 @@ public:
 	TChromosomes(BamTools::SamHeader* BamHeader);
 	void limitChr(std::string & limitName);
 	void useSpecifiedChr(std::vector<std::string> & chrNames, TLog* logfile);
+	void specifyPloidy(std::ifstream & ploidyFile, TLog* logfile);
+	void setToHaploid(std::vector<std::string> chrNames, TLog* logfile);
 
 	//move
 	void begin();
