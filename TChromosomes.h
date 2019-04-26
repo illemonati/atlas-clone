@@ -21,8 +21,8 @@ private:
 	int numChromosomes;
 	std::vector<std::string> names;
 	std::vector<long> lengths;
-	std::vector<bool> diploid;
-	std::vector<bool> inUse;
+	std::vector<int> ploidies;
+	std::vector<bool> isInUse;
 	std::map<std::string, int> nameMap;
 
 	int curChrNumber;
@@ -42,15 +42,19 @@ public:
 	void jumpToBeginningOfLastChr();
 
 	//getters
-	int getNumberOfChr();
-	int getCurIndex();
-	long calcReferenceLength();
-	long getCurLength();
-	std::string getCurName();
-	std::string getNameAtIndex(int & index);
-	int getIndexFromName(const std::string & chrName);
-	bool chrInUse(int & index);
-	bool curChrInUse();
+	int size();
+	int curIndex();
+	long referenceLength();
+	int getIndexFromName(const std::string chrName);
+
+	long length(const int index);
+	long curLength();
+	std::string name(const int index);
+	std::string curName();
+	bool inUse(const int index);
+	bool curInUse();
+	int ploidy(const int index);
+	int curPloidy();
 };
 
 

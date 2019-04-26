@@ -486,7 +486,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChanged)
-			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), 2);
+			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), alignmentParser.getCurChrPloidy());
 		if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
