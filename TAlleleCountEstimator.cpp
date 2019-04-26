@@ -251,19 +251,18 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
-	bool* sampleIsMissing = new bool[samples.numSamples()];
+	TPopulationLikehoodStorage data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
+	while(reader.readDataFromVCF(data, samples, logfile)){
 		//write chromosome and position
 		aleleCountFile << reader.chr() << sep << reader.position();
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
 			//calculate allele frequency likelihoods
-			saf[p]->fill(&curLocus[3*samples.startIndex(p)]);
+			saf[p]->fill(&data.phredLikelihoods[3*samples.startIndex(p)]);
 
 			//and print MLE counts
 			//TODO: find way to estimate counts among samples with data!
@@ -274,11 +273,9 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 	}
 
 	//clean up
-	delete[] curLocus;
 	for(int p=0; p<samples.numPopulations(); p++)
 		delete saf[p];
 	delete[] saf;
-	delete[] sampleIsMissing;
 
 	//report final status
 	logfile->endIndent();

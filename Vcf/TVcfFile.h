@@ -69,7 +69,7 @@ public:
 	GTLikelihoods _genotypeLikelihoods(TVcfLine* line, unsigned int sample);
 	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
 	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
-	void fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl);
+	void fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl);
 	int sampleNumber(std::string & Name);
 	int numSamples();
 	std::string sampleName(unsigned int num);
@@ -140,6 +140,8 @@ public:
 	void updateField(std::string tag, std::string & Data, unsigned int sample);
 	bool sampleIsMissing(unsigned int sample);
 	bool sampleHasUndefinedGenotype(unsigned int sample);
+	bool sampleIsHaploid(unsigned int sample);
+	bool sampleIsDiploid(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
 	char getFirstAlleleOfSample(unsigned int num);

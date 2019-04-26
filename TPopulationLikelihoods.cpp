@@ -364,6 +364,7 @@ void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
 
+/*
 bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName){
 	//set time at beginning
 	if(!vcfParsingStarted){
@@ -449,8 +450,9 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 	logfile->list("Reached end of VCF file.");
 	return false;
 }
+*/
 
-bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & storage, TPopulationSamples & samples, TLog* logfile){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -523,8 +525,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 				numIndividualsWithData++;
 
 			//store phred scaled likelihoods
-			sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
-			vcfFile.fillPhredScore(vcfIndex, &data[3 * s]);
+			storage.sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
+			storage.sampleIsHaploid[s] = vcfFile.sampleIsHaploid(vcfIndex);
+			vcfFile.fillPhredScore(vcfIndex, &storage.phredLikelihoods[3 * s]);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -536,7 +539,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(uint8_t* data, bool* sampleIsM
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 			// estimate allele frequency (EM algorithm)
-			estimateGenotypeFrequenciesNullModel(data, samples.numSamples(), epsilonF);
+			estimateGenotypeFrequenciesNullModel(storage.phredLikelihoods, samples.numSamples(), epsilonF);
 
 			if(_MAF < freqFilter){
 				_lowFreqSNPCounter++;
@@ -652,6 +655,7 @@ void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TVcfFilter                                                                                 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
+/*
 TVcfFilter::TVcfFilter(TParameters & Parameters, TLog* Logfile){
 	vcfRead = false;
 	_numLoci = 0;
@@ -703,6 +707,7 @@ void TVcfFilter::filterVCF(TParameters & Parameters){
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
 };
+*/
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleFreqEstimator                                                                               //
@@ -736,8 +741,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
-	bool* sampleIsMissing = new bool[samples.numSamples()];
+	TPopulationLikehoodStorage storage(samples.numSamples());
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
@@ -752,7 +756,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
+    while(reader.readDataFromVCF(storage, samples, logfile)){
 
     	//print SNP
  		out << reader.chr() << "\t" << reader.position() << "\t" << reader.allelFrequency() << "\n";
@@ -761,10 +765,8 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
  		++_numLoci;
      }
 
-
     //clean up
 	vcfRead = true;
-	delete[] curLocus;
 	out.close();
 
     //report final status
@@ -801,8 +803,7 @@ void TPopulationLikelihoods::init(){
 };
 
 void TPopulationLikelihoods::clean(){
-	for(std::vector<uint8_t*>::iterator it=genotypePhredScores.begin(); it < genotypePhredScores.end(); it++)
-		delete[] *it;
+	data.clear();
 	vcfRead = false;
 };
 
@@ -856,22 +857,19 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	uint8_t* curLocus = new uint8_t[samples.numSamples() * 3];
-	bool* sampleIsMissing = new bool[samples.numSamples()];
+	data.emplace_back(samples.numSamples());
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    _numLoci = 0;
     std::string curChr = "";
-    while(reader.readDataFromVCF(curLocus, sampleIsMissing, samples, logfile)){
+    while(reader.readDataFromVCF(*data.end(), samples, logfile)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
 			curChr = reader.chr();
 		}
 
-		//store SNP
-		genotypePhredScores.emplace_back(curLocus);
+		//store SNP info
 		position.emplace_back(reader.position());
 		if(saveAlleleFrequencies)
 			alleleFrequencies.emplace_back(reader.allelFrequency());
@@ -879,13 +877,13 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 			trueAlleleFrequencies.emplace_back(reader.trueAlleleFrequency());
 
 		//update for next
-		curLocus = new uint8_t[samples.numSamples() * 3];
-		++_numLoci;
+		data.emplace_back(samples.numSamples());
     }
 
     //clean up
-	delete[] curLocus;
+    data.pop_back(); //remove last, empty container
 	vcfRead = true;
+	_numLoci = data.size();
 
     //report final status
 	logfile->endIndent();
@@ -907,14 +905,17 @@ long TPopulationLikelihoods::getNumLoci(){
 	return _numLoci;
 };
 
-uint8_t* TPopulationLikelihoods::getDataAtLocus(long index){
-	return genotypePhredScores[index];
+uint8_t* TPopulationLikelihoods::getPhredLikelihoodsAtLocus(long index){
+	return data[index].phredLikelihoods;
+};
+
+TPopulationLikehoodStorage* TPopulationLikelihoods::getDataAtLocus(long index){
+	return &data[index];
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // functions to loop over data                                                                  //
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
 void TPopulationLikelihoods::begin(){
 	curLocusIndex = 0;
 	curChrIt = chromosomes.begin();
@@ -945,8 +946,12 @@ void TPopulationLikelihoods::next(){
 	}
 };
 
-uint8_t* TPopulationLikelihoods::curData(){
-	return &(genotypePhredScores[curLocusIndex][3*individualStartIndex]);
+uint8_t* TPopulationLikelihoods::curPhredLikelihoods(){
+	return &(data[curLocusIndex].phredLikelihoods[3*individualStartIndex]);
+};
+
+TPopulationLikehoodStorage* TPopulationLikelihoods::curData(){
+	return &(data[curLocusIndex]);
 };
 
 std::string TPopulationLikelihoods::curSampleName(int index){
@@ -985,7 +990,7 @@ void TPopulationLikelihoods::print(){
 		std::cout << curChr() << "\t" << curPosition();
 
 		//print data
-		uint8_t* data = curData();
+		uint8_t* data = curPhredLikelihoods();
 		for(int s=0; s<curSampleSize(); ++s){
 			int index = 3*s;
 			std::cout << "\t" << toString(data[index]) << "," << toString(data[index+1]) << "," << toString(data[index+2]);

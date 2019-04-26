@@ -558,7 +558,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 		gz::igzstream file(ignoredReadsFile.c_str());
 		if(!file) throw "Failed to open file '" + ignoredReadsFile + "!";
 
-		int lineNum = 0;
+		size_t lineNum = 0;
 		std::vector<std::string> vec;
 
 		//fill list of reads to omit
