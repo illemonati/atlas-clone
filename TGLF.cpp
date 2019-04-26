@@ -38,7 +38,7 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(std::string name, uint32_t length, uint8_t ploidy){
+void TGlfWriter::newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy){
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 

@@ -15,12 +15,12 @@
 #include "TGenotypeMap.h"
 #include "TReadGroups.h"
 #include "TLog.h"
-#include "TRecalibration.h"
 #include "TPostMortemDamage.h"
 #include "TAlignment.h"
 #include "TWindow.h"
 #include "TBed.h"
 #include "TBedReader.h"
+#include "TChromosomes.h"
 #include <vector>
 
 //-----------------------------------------------------
@@ -77,8 +77,8 @@ private:
 	int trimmingLength5Prime;
 
 	//iterators
- 	int chrNumber;
- 	long chrLength;
+// 	int chrNumber;
+// 	long chrLength;
 
 	//window params
 	int windowSize;
@@ -109,8 +109,8 @@ private:
 	//limit chr and windows
 	long limitWindows;
 	int skipWindows;
-	int limitChr;
-	bool* useChromosome;
+	int indexOfLimitChr;
+//	bool* useChromosome;
 
 	//contructor functions
 	void openBamFile(std::string filename);
@@ -159,7 +159,8 @@ public:
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
- 	BamTools::SamSequenceIterator chrIterator;
+ 	TChromosomes chromosomes;
+// 	BamTools::SamSequenceIterator chrIterator;
 
  	//reference
 	bool hasReference;
@@ -204,6 +205,8 @@ public:
 	std::string chrNumberToName(int chrNumber);
 	int chrNumberToLength(int chrNumber);
 	long calcReferenceLength();
+	std::string getCurChrName();
+	long getCurChrLength();
 
 	//blacklist
 	void setUpdateBlacklistToTrue(){

@@ -137,7 +137,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 
 			//estimate Theta
 			if(thetaEstimator.estimateTheta()){
-				out.writeWindow(alignmentParser.chrIterator->Name, window.start, window.end, &thetaEstimator);
+				out.writeWindow(alignmentParser.getCurChrName(), window.start, window.end, &thetaEstimator);
 				//out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
 			}
 
@@ -258,7 +258,7 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 
 			//open file
 			gz::ogzstream out;
-			filename = outputName + alignmentParser.chrIterator->Name + "_" + toString(window.start) + "_LLsurface.txt";
+			filename = outputName + alignmentParser.getCurChrName() + "_" + toString(window.start) + "_LLsurface.txt";
 			out.open(filename.c_str());
 			if(!out) throw "Failed to open output file '" + outputName + "'!";
 
@@ -310,8 +310,8 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->startIndent("Adding sites to data structures:");
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		region1.setChr(alignmentParser.chrIterator->Name);
-		region2.setChr(alignmentParser.chrIterator->Name);
+		region1.setChr(alignmentParser.getCurChrName());
+		region2.setChr(alignmentParser.getCurChrName());
 		if(window.passedFilters){
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
@@ -431,7 +431,7 @@ void TGenome::callGenotypes(TParameters & params){
 		logfile->endIndent();
 
 		while(alignmentParser.readDataInNextWindow(window)){
-			subset.setChr(alignmentParser.chrIterator->Name);
+			subset.setChr(alignmentParser.getCurChrName());
 			if(window.passedFilters){
 				//read data for current window
 				if(window.passedFilters || caller->printSitesWithNoData()){
@@ -486,7 +486,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChanged)
-			writer.newChromosome(alignmentParser.chrIterator->Name, stringToLong(alignmentParser.chrIterator->Length));
+			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), 2);
 		if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
@@ -563,7 +563,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 		//write chromosome to file
 		if(alignmentParser.chrChanged){
 			if(nCharOnLine > 0) output << '\n';
-				output << '>' << alignmentParser.chrIterator->Name << '\n';
+				output << '>' << alignmentParser.getCurChrName() << '\n';
 		}
 		if(window.passedFilters){
 			//set base frequencies
@@ -605,7 +605,7 @@ void TGenome::createDepthMask(TParameters & params){
 		//read data for current window
 		if(window.passedFilters){
 			logfile->listFlush("Writing sites to mask to output file ...");
-			window.createDepthMask(minDepthForMask, maxDepthForMask, output, alignmentParser.chrIterator->Name);
+			window.createDepthMask(minDepthForMask, maxDepthForMask, output, alignmentParser.getCurChrName());
 			logfile->done();
 		}
 	}
@@ -1909,8 +1909,8 @@ void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
 		if(window.passedFilters){
 			//write to file
 			logfile->listFlush("Writing sequencing depth estimates to file ...");
-			if(window.depth == -1.0) output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
-			else output << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
+			if(window.depth == -1.0) output << alignmentParser.getCurChrName() << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
+			else output << alignmentParser.getCurChrName() << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
 			logfile->done();
 		}
 	}
@@ -1975,7 +1975,7 @@ void TGenome::writeDepthPerSite(TParameters & params){
 		//write chromosome to file
 		if(window.passedFilters){
 			logfile->listFlush("Writing depth per site ...");
-			window.printDepthPerSite(out, alignmentParser.chrIterator->Name);
+			window.printDepthPerSite(out, alignmentParser.getCurChrName());
 			logfile->done();
 		}
 	}
@@ -2178,7 +2178,7 @@ void TGenome::printMateInformationPerSite(TParameters & params){
 		//write chromosome to file
 		if(window.passedFilters){
 			logfile->listFlush("Writing mate info per site ...");
-			window.printMateInformationPerSite(out, alignmentParser.chrIterator->Name);
+			window.printMateInformationPerSite(out, alignmentParser.getCurChrName());
 			logfile->done();
 		}
 	}

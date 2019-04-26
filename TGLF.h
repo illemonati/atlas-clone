@@ -147,7 +147,7 @@ public:
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
-	void newChromosome(std::string name, uint32_t length, uint8_t ploidy);
+	void newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL);
 };
 
