@@ -32,7 +32,7 @@ public:
 
 	TQualityMap(){
 		//only up to phred = 255, else always return 255
-		minPhredInt = 255 - 33;
+		minPhredInt = 255;
 		sizeQual = minPhredInt + 34;
 		phredIntToErrorMap = new double[minPhredInt+1];
 		phredIntToLogErrorMap = new double[minPhredInt+1];

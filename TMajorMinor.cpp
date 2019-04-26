@@ -42,8 +42,6 @@ double TMajorMinorEstimatorBase::calculateLog10Likelihood(double* genotypeFreque
 					  + genotypeLikelihoods[ind+2] * genotypeFrequencies[2]);
 		}
 	}
-	if(LL != LL)
-		throw "LL is not a number!";
 	return LL;
 };
 
