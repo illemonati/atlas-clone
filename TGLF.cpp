@@ -423,6 +423,7 @@ TGlfMultiReader::~TGlfMultiReader(){
 void TGlfMultiReader::_openGLFs(TLog* logfile){
 	numGLFs = GLFNames.size();
 	GLFIsActive = new bool[numGLFs];
+	isHaploid = new bool[numGLFs];
 
 	//open files
 	GLFs = new TGlfReader[numGLFs];

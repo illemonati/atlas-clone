@@ -42,6 +42,8 @@ double TMajorMinorEstimatorBase::calculateLog10Likelihood(double* genotypeFreque
 					  + genotypeLikelihoods[ind+2] * genotypeFrequencies[2]);
 		}
 	}
+	if(LL != LL)
+		throw "LL is not a number!";
 	return LL;
 };
 
@@ -191,7 +193,7 @@ TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(int NumSamples, TRandomGenerato
 	maxF = MaxF;
 
 	tmpGenotypeFrequencies = new double*[6];
-	for(int i=0; i<6; ++i) tmpGenotypeFrequencies[i] = new double[3];
+	for(int i=0; i<6; ++i) tmpGenotypeFrequencies[i] = new double[5];
 };
 
 TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
@@ -360,6 +362,9 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 	while(glfReader.readNext()){
 		++counter;
+		//fill ploidy
+		MMEstimator->isHaploid = glfReader.isHaploid;
+
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 
