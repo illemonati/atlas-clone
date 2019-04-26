@@ -25,7 +25,6 @@ protected:
 
 	int numSamples;
 	double* genotypeLikelihoods;
-	bool* isHaploid;
 	double* L10L_perCombination;
 
 	double calculateLog10Likelihood(double* genotypeFrequencies);
@@ -37,6 +36,7 @@ protected:
 	virtual void findMLAllelicCombination(uint8_t** phred);
 
 public:
+	bool* isHaploid;
 	Base minor, major;
 	int allelicCombination;
 	double L10L;
