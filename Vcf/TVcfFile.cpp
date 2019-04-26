@@ -125,7 +125,7 @@ void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, 
 	parser.fillGenotypeLikelihoods(*line, sample, gtl);
 }
 
-void TVcfFile_base::fillPhrdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl){
+void TVcfFile_base::fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl){
 	parser.fillPhredScore(*line, sample, gtl);
 }
 
@@ -275,7 +275,7 @@ void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl
 }
 
 void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t* gtl){
-	fillPhrdScore(&tempLine, sample, gtl);
+	fillPherdScore(&tempLine, sample, gtl);
 }
 
 long TVcfFileSingleLine::position(){
@@ -320,6 +320,12 @@ bool TVcfFileSingleLine::sampleIsMissing(unsigned int sample){
 bool TVcfFileSingleLine::sampleHasUndefinedGenotype(unsigned int sample){
 	return TVcfFile_base::sampleIsMissing(&tempLine, sample);
 }
+bool TVcfFileSingleLine::sampleIsHaploid(unsigned int sample){
+	return parser.sampleIsHaploid(tempLine, sample);
+};
+bool TVcfFileSingleLine::sampleIsDiploid(unsigned int sample){
+	return parser.sampleIsDiploid(tempLine, sample);
+};
 bool TVcfFileSingleLine::sampleIsHomoRef(unsigned int sample){
 	return parser.sampleIsHomoRef(tempLine, sample);
 }

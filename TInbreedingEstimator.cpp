@@ -628,7 +628,7 @@ bool TInbreedingEstimator::updateF(){
 
 			long l = 0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				uint8_t* data = likelihoods.curData();
+				uint8_t* data = likelihoods.curPhredLikelihoods();
 				logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0)
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 			}
@@ -653,7 +653,7 @@ bool TInbreedingEstimator::updateF(){
 			long l = 0;
 			double logH = 0.0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				uint8_t* data = likelihoods.curData();
+				uint8_t* data = likelihoods.curPhredLikelihoods();
 				logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
 				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 			}
@@ -678,7 +678,7 @@ bool TInbreedingEstimator::updateF(){
 
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			uint8_t* data = likelihoods.curData();
+			uint8_t* data = likelihoods.curPhredLikelihoods();
 			logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
 			- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0);
 		}
@@ -956,7 +956,7 @@ double TInbreedingEstimator::getLogLikelihoodCurrentParams(){
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 //		if(l == 736){
-			uint8_t* data = likelihoods.curData();
+			uint8_t* data = likelihoods.curPhredLikelihoods();
 			logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 //		}
 	}
@@ -997,7 +997,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 		std::cout << "thisF " << thisF << std::endl;
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			uint8_t* data = likelihoods.curData();
+			uint8_t* data = likelihoods.curPhredLikelihoods();
 			logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], thisF);
 		}
 
@@ -1070,7 +1070,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 	double logLikelihood = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		uint8_t* data = likelihoods.curData();
+		uint8_t* data = likelihoods.curPhredLikelihoods();
 		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
 		if(logLikelihood > 0)
 			throw "likelihood is larger than 1!";
@@ -1140,7 +1140,7 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 //		if(l == 736){
-			uint8_t* data = likelihoods.curData();
+			uint8_t* data = likelihoods.curPhredLikelihoods();
 			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
 //		}
 	}

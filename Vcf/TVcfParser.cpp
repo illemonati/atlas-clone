@@ -180,6 +180,102 @@ void TVcfSample::filter(TVcfFilter* filter){
 }
 */
 //--------------------------------------------------------------------
+// TVcfSample
+//--------------------------------------------------------------------
+TVcfSample::TVcfSample(){
+	missing = true;
+	hasGenotype = false;
+	unknownGenotype = false;
+	isHaploid = false;
+};
+
+void TVcfSample::readData(std::string s){
+	//split by ':'
+	fillVectorFromString(s, data, ':');
+};
+
+void TVcfSample::addData(std::string d){
+	data.push_back(d);
+};
+
+void TVcfSample::updateData(int pos, std::string d){
+	data.at(pos) = d;
+};
+
+void TVcfSample::setGenotype(int firstAllele, int secondAllele){
+	genotype.first = firstAllele;
+	genotype.second = secondAllele;
+	missing = false;
+	hasGenotype = true;
+	isHaploid = false;
+};
+
+void TVcfSample::setGenotype(int haploidAllele){
+	genotype.first = haploidAllele;
+	genotype.second = 0;
+	missing = false;
+	hasGenotype = true;
+	isHaploid = true;
+};
+
+void TVcfSample::setMissingGenotype(){
+	genotype.first = 0;
+	genotype.second = 0;
+	missing = true;
+	hasGenotype = false;
+};
+
+bool TVcfSample::parse(std::string s, const int genotypeCol){
+	//parse into std::vector (split by ':')
+	readData(s);
+
+	//get genotype
+	if(genotypeCol < 0){
+		setMissingGenotype();
+	} else {
+		std::string gt = getCol(genotypeCol);
+		//check if data is missing: GT is either "." or "./." or ".|."
+		if(gt=="." || gt=="./." || gt==".|."){
+			setMissingGenotype();
+		} else if(gt.length() == 1){
+			setGenotype(stringToInt(gt));
+		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
+			setGenotype(gt[0] - '0', gt[2] - '0'); //turn into int by removing char of 0
+		} else return false;
+	}
+
+	return true;
+};
+
+bool TVcfSample::checkGenotype(int max){
+	if(genotype.first < 0 || genotype.second < 0 || genotype.first > max || genotype.second > max)
+		return false;
+	return true;
+};
+
+std::string TVcfSample::getCol(const int col){
+	return data[col];
+};
+
+void TVcfSample::write(std::ostream & out, unsigned int numFields){
+	if(missing){
+		out << "\t./.";
+		for(unsigned int i=1; i<numFields; ++i) out << ":.";
+	}
+	else {
+		out << "\t";
+		bool first=true;
+		for(std::vector<std::string>::iterator it=data.begin(); it!=data.end(); ++it){
+			if(!first) out << ":";
+			else first=false;
+			out << *it;
+		}
+	}
+};
+
+//--------------------------------------------------------------------
+// TVcfLine
+//--------------------------------------------------------------------
 TVcfLine::TVcfLine(){
 	positionParsed=false;  variantParsed=false;  idParsed=false;  filterParsed=false;  qualityParsed=false;  infoParsed=false; formatParsed=false; samplesParsed=false;
 	lineNumber = -1;
@@ -277,8 +373,8 @@ void TVcfParser::parseVariant(TVcfLine & line){
 				if(buf.length() == 1){
 					var=buf.c_str()[0];
 					if(var!='A' && var!='G' && var!='C' && var!='T') throw "Unknown alternative allele '" + toString(var) + "' in VCF file on line " + toString(line.lineNumber) + "!";
-				}else{
-					if(buf=="<NON_REF>") var='X';
+				} else {
+					if(buf=="<NON_REF>") var = 'X';
 					else var= 'I'; //insertion
 				}
 				if(!line.addVariant(var)){
@@ -381,10 +477,12 @@ GTLikelihoods TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s)
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	GTLikelihoods gt;
 	if(line.samples[s].missing){
-		gt.AA=-1; gt.AB=-1; gt.BB=-1;
+		gt.AA = -1; gt.AB = -1; gt.BB = -1;
 	} else {
-		int col=getFormatCol(line, "PL");
-		std::string d=line.samples[s].data[col];
+		int col = getFormatCol(line, "PL");
+		std::string d = line.samples[s].data[col];
+
+
 		//std::string a=d.extract_sub_str(',');
 		stringToDouble(extractBefore(d, ','));
 		gt.AA=dePhred(stringToDouble(extractBefore(d, ',')));
@@ -400,10 +498,11 @@ GTLikelihoods TVcfParser::genotypeLikelihoodsPhred(TVcfLine & line, unsigned int
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	GTLikelihoods gt;
 	if(line.samples[s].missing){
-		gt.AA=-1; gt.AB=-1; gt.BB=-1;
+		gt.AA = -1; gt.AB = -1; gt.BB = -1;
 	} else {
 		int col=getFormatCol(line, "PL");
-		std::string d=line.samples[s].data[col];
+		std::string d = line.samples[s].data[col];
+
 		gt.AA=stringToDouble(extractBefore(d, ','));
 		d.erase(0,1);
 		gt.AB=stringToDouble(extractBefore(d, ','));
@@ -469,35 +568,42 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phre
 				phred[0] = 0; phred[1] = 0; phred[2] = 0;
 			} else {
 				//GL field exists
-				std::string d = line.samples[s].data[col];
-				std::string phreddie = extractBefore(d, ',');
-				saveGLAsPhredScore(phreddie, phred[0]);
-				d.erase(0,1);
+				std::vector<std::string> phreddie;
+				fillVectorFromString(line.samples[s].data[col], phreddie, ',');
 
-				phreddie = extractBefore(d, ',');
-				saveGLAsPhredScore(phreddie, phred[1]);
-				d.erase(0,1);
-
-				phreddie = extractBefore(d, ',');
-				saveGLAsPhredScore(phreddie, phred[2]);
+				//diploid or haploid?
+				if(line.samples[s].isHaploid){
+					//haploid: only two are given
+					saveGLAsPhredScore(phreddie[0], phred[0]);
+					saveGLAsPhredScore(phreddie[1], phred[2]);
+					phred[1] = 255; //set heterozygous to a maximum value
+				} else {
+					//diploid
+					saveGLAsPhredScore(phreddie[0], phred[0]);
+					saveGLAsPhredScore(phreddie[1], phred[1]);
+					saveGLAsPhredScore(phreddie[2], phred[2]);
+				}
 			}
 		} else {
 			//PL field exists
-			std::string d = line.samples[s].data[col];
-			std::string phreddie = extractBefore(d, ',');
-			savePhredScore(phreddie, phred[0]);
-			d.erase(0,1);
+			std::vector<std::string> phreddie;
+			fillVectorFromString(line.samples[s].data[col], phreddie, ',');
 
-			phreddie = extractBefore(d, ',');
-			savePhredScore(phreddie, phred[1]);
-			d.erase(0,1);
-
-			phreddie = extractBefore(d, ',');
-			savePhredScore(phreddie, phred[2]);
+			//diploid or haploid?
+			if(line.samples[s].isHaploid){
+				//haploid: only two are given
+				savePhredScore(phreddie[0], phred[0]);
+				savePhredScore(phreddie[1], phred[2]);
+				phred[1] = 255; //set heterozygous to a maximum value
+			} else {
+				//diploid
+				savePhredScore(phreddie[0], phred[0]);
+				savePhredScore(phreddie[1], phred[1]);
+				savePhredScore(phreddie[2], phred[2]);
+			}
 		}
 	}
 };
-
 
 std::string TVcfParser::sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample){
 	checkSampleNum(line, sample);
@@ -624,6 +730,16 @@ void TVcfParser::updateField(TVcfLine & line, std::string & tag, std::string & D
 	int col = getFormatCol(tag, line);
 	if(col < 0) throw "Column '" + tag + "' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 	line.samples[sample].data[col] = Data;
+};
+
+bool TVcfParser::sampleIsHaploid(TVcfLine & line, unsigned int & sample){
+	checkSampleNum(line, sample);
+	return line.samples[sample].isHaploid;
+};
+
+bool TVcfParser::sampleIsDiploid(TVcfLine & line, unsigned int & sample){
+	checkSampleNum(line, sample);
+	return !line.samples[sample].isHaploid;
 };
 
 bool TVcfParser::sampleIsHomoRef(TVcfLine & line, unsigned int & sample){
@@ -753,53 +869,27 @@ void TVcfParser::parseInfo(TVcfLine & line){
 		}
 		line.infoParsed=true;
 	}
-}
+};
 
 void TVcfParser::parseSamples(TVcfLine & line){
 	if(!line.samplesParsed){
 
+		//make sure variant and format are parsed
 		parseVariant(line);
 		parseFormat(line);
 
-		//do it for all samples
+		//parse all samples
 		int gtCol = getFormatCol(genotypeTag, line);
-		std::string gt;
+
 		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
-			line.samples.push_back(TVcfSample());
-			//parse into std::vector (split by ':')
-			while(!line.data[i].empty() > 0){
-				line.samples.rbegin()->addData(extractBefore(line.data[i], ':'));
-				line.data[i].erase(0,1);
-			}
-			//get genotype
-			if(gtCol >= 0){
-				gt = line.samples.rbegin()->getCol(gtCol);
-				//check if data is missing: GT is either "." or "./." or ".|."
-				if(gt=="." || gt=="./." || gt==".|."){
-					line.samples.rbegin()->missing=true;
-				} else {
-					line.samples.rbegin()->missing=false;
-					line.samples.rbegin()->hasGenotype=true;
-					//check genotype
-					if(gt.length()!=3 || (gt[1]!='/' && gt[1]!='|')) throw  "Unknown genotype '"+gt+"' in VCF file on line " + toString(line.lineNumber) + "!\n";
-				}
-				if(gt[1]=='/'){
-					line.samples.rbegin()->setGenotype(stringToInt(extractBefore(gt, '/')), stringToInt(extractAfter(gt, '/')));
-				}else if(gt[1]=='|'){
-					line.samples.rbegin()->setGenotype(stringToInt(extractBefore(gt, '|')), stringToInt(extractAfter(gt, '|')));
-				}
-				if(!line.samples.rbegin()->checkGenotype(line.variants.size()-1)){
-					std::cerr << "Unknown genotype '"+gt+"' in VCF file on line " + toString(line.lineNumber) + "!\n";
-					line.samples.rbegin()->unknownGenotype = true;
-				}
-			} else {
-				line.samples.rbegin()->missing=false;
-				line.samples.rbegin()->hasGenotype=false;
+			line.samples.emplace_back();
+			if(!line.samples.end()->parse(line.data[i], gtCol)){
+				throw "Unknown genotype '" + line.samples.end()->getCol(gtCol) +"' in VCF file on line " + toString(line.lineNumber) + "!\n";
 			}
 		}
 		line.samplesParsed=true;
 	}
-}
+};
 
 void TVcfParser::writeColumnDescriptionHeader(std::ostream & out){
 	out << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";

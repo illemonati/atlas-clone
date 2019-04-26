@@ -23,7 +23,9 @@
 #include "TVcfFile.h"
 #include "TQualityMap.h"
 
-
+//------------------------------------------------
+//TPopulationSamples
+//------------------------------------------------
 class TPopulationSamples{
 private:
 	bool _hasSamples;
@@ -60,6 +62,30 @@ public:
 	uint8_t* getPointerToDataInPop(uint8_t* data, int population){ return &data[3*startIndexPerPop[population]]; };
 	int numSamplesMissingInPop(bool* sampleMissing, int population);
 	int numSamplesWithDataInPop(bool* sampleMissing, int population);
+};
+
+//------------------------------------------------
+//TPopulationLikehoodStorage
+//------------------------------------------------
+class TPopulationLikehoodStorage{
+public:
+	int numSamples;
+	uint8_t* phredLikelihoods;
+	bool* sampleIsHaploid;
+	bool* sampleIsMissing;
+
+	TPopulationLikehoodStorage(int NumSamples){
+		numSamples = NumSamples;
+		phredLikelihoods = new uint8_t[numSamples * 3];
+		sampleIsHaploid = new bool[numSamples];
+		sampleIsMissing = new bool[numSamples];
+	};
+
+	~TPopulationLikehoodStorage(){
+		delete[] phredLikelihoods;
+		delete[] sampleIsHaploid;
+		delete[] sampleIsMissing;
+	};
 };
 
 //-------------------------------------------------
@@ -114,8 +140,6 @@ private:
     void estimateGenotypeFrequenciesNullModel(uint8_t* phredScores, const int & numSamples, double epsilonF);
 
 public:
-    uint8_t* data;
-
 	TPopulationLikelihoodReader();
 	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
 	~TPopulationLikelihoodReader();
@@ -127,7 +151,7 @@ public:
 	void openVCF(std::string, TLog* logfile);
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
     bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
-	bool readDataFromVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile);
+	bool readDataFromVCF(TPopulationLikehoodStorage & storage, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
@@ -211,7 +235,7 @@ private:
 	long _numLoci;
 	std::map<int, std::string> chromosomes; //first SNP index and name
 	std::vector<long> position;
-    std::vector<uint8_t*> genotypePhredScores;
+    std::vector<TPopulationLikehoodStorage> data;
     std::vector<double> alleleFrequencies;
     std::vector<double> trueAlleleFrequencies;
     bool saveAlleleFrequencies;
@@ -254,7 +278,8 @@ public:
     void beginOnePop(int population);
     bool end();
     void next();
-    uint8_t* curData();
+    uint8_t* curPhredLikelihoods();
+    TPopulationLikehoodStorage* curData();
     std::string curSampleName(int index);
     int curSampleSize();
     std::string curChr();
@@ -263,7 +288,8 @@ public:
     // get main constants (n, L, D, K) and names of environmental variables
     int getNumIndividuals();
     long getNumLoci();
-    uint8_t* getDataAtLocus(long index);
+    uint8_t* getPhredLikelihoodsAtLocus(long index);
+    TPopulationLikehoodStorage* getDataAtLocus(long index);
     void print();
 };
 

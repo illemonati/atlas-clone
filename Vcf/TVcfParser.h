@@ -105,36 +105,27 @@ public:
 */
 //---------------------------------------------------------------------------------------------------------
 class TVcfSample{
+private:
+
 public:
 	std::vector<std::string> data;
 	std::pair<int, int> genotype;
 	bool missing;
 	bool hasGenotype;
 	bool unknownGenotype;
-	TVcfSample(){missing=true; hasGenotype =false; unknownGenotype=false;}
-	void addData(std::string d){data.push_back(d);};
-	void updateData(int pos, std::string d){data.at(pos)=d;};
-	void setGenotype(int f, int s){genotype.first=f; genotype.second=s; hasGenotype=true;};
-	bool checkGenotype(int max){
-		if(genotype.first<0 || genotype.second<0 || genotype.first > max || genotype.second > max) return false;
-		return true;
-	};
-	std::string getCol(int & col){return data[col];};
-	void write(std::ostream & out, unsigned int numFields){
-		if(missing){
-			out << "\t./.";
-			for(unsigned int i=1; i<numFields; ++i) out << ":.";
-		}
-		else {
-			out << "\t";
-			bool first=true;
-			for(std::vector<std::string>::iterator it=data.begin(); it!=data.end(); ++it){
-				if(!first) out << ":";
-				else first=false;
-				out << *it;
-			}
-		}
-	};
+	bool isHaploid;
+
+	TVcfSample();
+	void readData(std::string s);
+	void addData(std::string d);
+	void updateData(int pos, std::string d);
+	void setGenotype(int firstAllele, int secondAllele);
+	void setGenotype(int haploidAllele);
+	void setMissingGenotype();
+	bool parse(std::string s, const int genotypeCol);
+	bool checkGenotype(int max);
+	std::string getCol(const int col);
+	void write(std::ostream & out, unsigned int numFields);
 };
 //---------------------------------------------------------------------------------------------------------
 
@@ -230,6 +221,8 @@ public:
 	void updateField(TVcfLine & line, std::string & tag, std::string & Data, unsigned int & sample);
 
 	//retrieve sample info
+	bool sampleIsHaploid(TVcfLine & line, unsigned int & sample);
+	bool sampleIsDiploid(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHomoRef(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample);
 	char getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample);
