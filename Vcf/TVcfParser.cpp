@@ -883,7 +883,7 @@ void TVcfParser::parseSamples(TVcfLine & line){
 
 		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
 			line.samples.emplace_back();
-			if(!line.samples.end()->parse(line.data[i], gtCol)){
+			if(!line.samples.rbegin()->parse(line.data[i], gtCol)){
 				throw "Unknown genotype '" + line.samples.end()->getCol(gtCol) +"' in VCF file on line " + toString(line.lineNumber) + "!\n";
 			}
 		}

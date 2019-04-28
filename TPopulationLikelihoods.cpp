@@ -862,7 +862,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     std::string curChr = "";
-    while(reader.readDataFromVCF(*data.end(), samples, logfile)){
+    while(reader.readDataFromVCF(*data.rbegin(), samples, logfile)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
