@@ -525,9 +525,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & s
 				numIndividualsWithData++;
 
 			//store phred scaled likelihoods
-			storage.sampleIsMissing[s] = vcfFile.sampleIsMissing(vcfIndex);
-			storage.sampleIsHaploid[s] = vcfFile.sampleIsHaploid(vcfIndex);
-			vcfFile.fillPhredScore(vcfIndex, &storage.phredLikelihoods[3 * s]);
+			storage[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
+			storage[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
+			vcfFile.fillPhredScore(vcfIndex, storage[s].phredLikelihoods);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -539,7 +539,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & s
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 			// estimate allele frequency (EM algorithm)
-			estimateGenotypeFrequenciesNullModel(storage.phredLikelihoods, samples.numSamples(), epsilonF);
+			estimateGenotypeFrequenciesNullModel(storage, epsilonF);
 
 			if(_MAF < freqFilter){
 				_lowFreqSNPCounter++;
@@ -578,15 +578,19 @@ void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
 		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
 };
 
-void TPopulationLikelihoodReader::guessGenotypeFrequencies(uint8_t* phredScores, const int & numSamples){
+void TPopulationLikelihoodReader::guessGenotypeFrequencies(TPopulationLikehoodStorage & storage){
+
+	//TODO: adjust to account for haploid samples
+
+	/*
 	//calculate by using MLE genotype for each individual
 	_genotypeFrequencies[0] = 0.0; _genotypeFrequencies[1] = 0.0; _genotypeFrequencies[2] = 0.0;
-	for(int i = 0 ; i < 3 * numSamples; i += 3){
-		if(phredScores[i + 1] < phredScores[i]){
-			if(phredScores[i + 2] < phredScores[i + 1]) _genotypeFrequencies[2] += 1.0;
+	for(int i = 0; i < numSamples; i++){
+		if(storage[i][1] < storage[i][0]){
+			if(storage[i][2] < storage[i][1]) _genotypeFrequencies[2] += 1.0;
 			else _genotypeFrequencies[1] += 1.0;
 		} else {
-			if(phredScores[i + 2] < phredScores[i]) _genotypeFrequencies[2] += 1.0;
+			if(storage[i][2] < storage[i][0]) _genotypeFrequencies[2] += 1.0;
 			else _genotypeFrequencies[0] += 1.0;
 		}
 	}
@@ -601,16 +605,17 @@ void TPopulationLikelihoodReader::guessGenotypeFrequencies(uint8_t* phredScores,
 	for(int g = 0; g < 3; ++g){
 		_genotypeFrequencies[g] /= sum;
 	}
+	*/
 }
 
-void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* phredScores, const int & numSamples, double epsilonF){
+void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(TPopulationLikehoodStorage & storage, double epsilonF){
 	//prepare variables
 	double sum;
 	double weightsNull[3];
 	double genoFreq_old[3];
 
 	//estimate initial frequencies from MLEs
-	guessGenotypeFrequencies(phredScores, numSamples);
+	guessGenotypeFrequencies(storage);
 
 	//run EM for max 1000 steps
 	for (int s = 0; s < 1000; ++s){
@@ -621,18 +626,18 @@ void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(uint8_t* 
 		}
 
 		//estimate new genotype frequencies
-		for(int i = 0; i < 3 * numSamples; i += 3){
+		for(int i = 0; i < storage.numSamples; i++){
 			sum = 0.0;
 			for(int g = 0; g < 3; ++g){
-				weightsNull[g] = phredToGTLMap[phredScores[i + g]] * genoFreq_old[g];
+				weightsNull[g] = phredToGTLMap[storage[i].phredLikelihoods[g]] * genoFreq_old[g];
 				sum += weightsNull[g];
 			}
 			_genotypeFrequencies[0] += weightsNull[0] / sum;
 			_genotypeFrequencies[2] += weightsNull[2] / sum;
 		}
 
-		_genotypeFrequencies[0] /= (double) numSamples;
-		_genotypeFrequencies[2] /= (double) numSamples;
+		_genotypeFrequencies[0] /= (double) storage.numSamples;
+		_genotypeFrequencies[2] /= (double) storage.numSamples;
 		_genotypeFrequencies[1] = 1.0 - _genotypeFrequencies[0] - _genotypeFrequencies[2];
 
 		//check if we stop
@@ -905,10 +910,6 @@ long TPopulationLikelihoods::getNumLoci(){
 	return _numLoci;
 };
 
-uint8_t* TPopulationLikelihoods::getPhredLikelihoodsAtLocus(long index){
-	return data[index].phredLikelihoods;
-};
-
 TPopulationLikehoodStorage* TPopulationLikelihoods::getDataAtLocus(long index){
 	return &data[index];
 };
@@ -944,10 +945,6 @@ void TPopulationLikelihoods::next(){
 		++curChrIt;
 		++nextChrIt;
 	}
-};
-
-uint8_t* TPopulationLikelihoods::curPhredLikelihoods(){
-	return &(data[curLocusIndex].phredLikelihoods[3*individualStartIndex]);
 };
 
 TPopulationLikehoodStorage* TPopulationLikelihoods::curData(){

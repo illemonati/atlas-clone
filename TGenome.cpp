@@ -1450,7 +1450,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	}
 
 	if(params.parameterExists("keepOriginalQuality")){
-		logfile->list("Will keep original qualities of prefered base.");
+		logfile->list("Will keep original qualities of preferred base.");
 		merger.keepOriginalQuality();
 	} else {
 		logfile->list("Will adapt qualities over overlapping bases to reflect additional information (use keepOriginalQuality to turn off).");

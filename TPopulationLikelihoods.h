@@ -67,24 +67,29 @@ public:
 //------------------------------------------------
 //TPopulationLikehoodStorage
 //------------------------------------------------
+class TPopulationLikehoodSample{
+public:
+	uint8_t phredLikelihoods[3];
+	bool isHaploid;
+	bool isMissing;
+};
+
 class TPopulationLikehoodStorage{
 public:
 	int numSamples;
-	uint8_t* phredLikelihoods;
-	bool* sampleIsHaploid;
-	bool* sampleIsMissing;
+	TPopulationLikehoodSample* samples;
 
 	TPopulationLikehoodStorage(int NumSamples){
 		numSamples = NumSamples;
-		phredLikelihoods = new uint8_t[numSamples * 3];
-		sampleIsHaploid = new bool[numSamples];
-		sampleIsMissing = new bool[numSamples];
+		samples = new TPopulationLikehoodSample[numSamples];
 	};
 
 	~TPopulationLikehoodStorage(){
-		delete[] phredLikelihoods;
-		delete[] sampleIsHaploid;
-		delete[] sampleIsMissing;
+		delete[] samples;
+	};
+
+	TPopulationLikehoodSample & operator[](int index){
+		return samples[index];
 	};
 };
 
@@ -136,8 +141,8 @@ private:
     void printProgressFrequencyFiltering(TLog* logfile);
 
     // EM algorithm for genotype frequencies
-    void guessGenotypeFrequencies(uint8_t* phredScores, const int & numSamples);
-    void estimateGenotypeFrequenciesNullModel(uint8_t* phredScores, const int & numSamples, double epsilonF);
+    void guessGenotypeFrequencies(TPopulationLikehoodStorage & storage);
+    void estimateGenotypeFrequenciesNullModel(TPopulationLikehoodStorage & storage, double epsilonF);
 
 public:
 	TPopulationLikelihoodReader();
@@ -278,7 +283,6 @@ public:
     void beginOnePop(int population);
     bool end();
     void next();
-    uint8_t* curPhredLikelihoods();
     TPopulationLikehoodStorage* curData();
     std::string curSampleName(int index);
     int curSampleSize();
@@ -288,7 +292,6 @@ public:
     // get main constants (n, L, D, K) and names of environmental variables
     int getNumIndividuals();
     long getNumLoci();
-    uint8_t* getPhredLikelihoodsAtLocus(long index);
     TPopulationLikehoodStorage* getDataAtLocus(long index);
     void print();
 };

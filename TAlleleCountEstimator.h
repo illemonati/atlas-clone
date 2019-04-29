@@ -12,28 +12,47 @@
 #include "TPopulationLikelihoods.h"
 
 //-------------------------------------------------
+// TSAFChooseStorage
+//-------------------------------------------------
+class TSAFChooseStorage{
+private:
+	int _k;
+	double* log_choose_k_j;
+
+public:
+	TSAFChooseStorage(int k);
+	~TSAFChooseStorage();
+
+	double logChoose(int j);
+	double operator[](int j);
+};
+
+//-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
 class TSiteAlleleFrequencyLikelihoods{
 private:
 	TQualityMap qualMap;
-	int numInd_k;
 	double logOf2;
 	int numAlleleCounts; //from 0 to 2k
-	double* log_choose_2k_j;
+	int storageSize;
 	double* log_alleleFrequencyLikelihoods_h;
+	std::map<int, TSAFChooseStorage*> log_choose;
 
+	void updateStorage(int numRequiredAlleleCounts);
 	double protectedSumInLog(double a, double b);
 	double protectedSumInLog(double a, double b, double c);
 	void normalize();
 
-	void fillLog(uint8_t* phred);
-	void fillNatural(uint8_t* phred);
+	TSAFChooseStorage* getLogChoose(int counts);
+	void fillLog(const TPopulationLikehoodSample* data, int numSamples);
+	void fillNatural(const TPopulationLikehoodSample* data, int numSamples);
+
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
-	void fill(uint8_t* phred);
+	void fill(const TPopulationLikehoodSample* data, int numSamples);
 	int getMLAlleleCount(TRandomGenerator & randomGenerator);
 	void print();
 };
@@ -55,3 +74,4 @@ public:
 
 
 #endif /* TALLELECOUNTESTIMATOR_H_ */
+

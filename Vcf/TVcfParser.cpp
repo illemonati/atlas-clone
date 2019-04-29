@@ -575,7 +575,7 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phre
 				if(line.samples[s].isHaploid){
 					//haploid: only two are given
 					saveGLAsPhredScore(phreddie[0], phred[0]);
-					saveGLAsPhredScore(phreddie[1], phred[2]);
+					saveGLAsPhredScore(phreddie[1], phred[1]);
 					phred[1] = 255; //set heterozygous to a maximum value
 				} else {
 					//diploid
