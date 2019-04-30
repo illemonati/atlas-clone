@@ -70,8 +70,23 @@ public:
 class TPopulationLikehoodSample{
 public:
 	uint8_t phredLikelihoods[3];
+	//uint8_t phredLikelihoods_0;
+	//uint8_t phredLikelihoods_1;
+	//uint8_t phredLikelihoods_2;
+
 	bool isHaploid;
 	bool isMissing;
+
+	uint8_t operator[](int genotype){
+		return phredLikelihoods[genotype];
+		/*
+		if(genotype == 0) return phredLikelihoods_0;
+		if(genotype == 1) return phredLikelihoods_1;
+		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";
+		if(genotype == 2) return phredLikelihoods_2;
+		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
+		*/
+	};
 };
 
 class TPopulationLikehoodStorage{
