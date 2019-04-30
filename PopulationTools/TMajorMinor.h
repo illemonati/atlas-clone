@@ -12,7 +12,9 @@
 #include "TGLF.h"
 #include "TGenotypeMap.h"
 #include "TQualityMap.h"
-
+#include "TRandomGenerator.h"
+#include "TPopulationLikelihoodStorage.h"
+#include "TGenotypeFrequencies.h"
 
 //-----------------------------------------------
 //TMajorMinorEstimator
@@ -23,55 +25,48 @@ protected:
 	TGenotypeMap genoMap;
 	TRandomGenerator* randomGenerator;
 
-	int numSamples;
-	double* genotypeLikelihoods;
+	TPopulationLikehoodStorage genotypeLikelihoods;
+	TGenotypeFrequencies genotypeFrequencies;
 	double* L10L_perCombination;
 
-	double calculateLog10Likelihood(double* genotypeFrequencies);
-	void fillLikelihoods(uint8_t** phred, Genotype* genotypes);
-	void guessGenotypeFrequencies(double* genotypeFrequencies);
-	void normalizeGenotypeFrequencies();
 	void calculateL10LPerCombination();
 	void chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
-	virtual void findMLAllelicCombination(uint8_t** phred);
+	virtual void findMLAllelicCombination(TGlfMultiReader & glfReader);
 
 public:
-	bool* isHaploid;
 	Base minor, major;
 	int allelicCombination;
 	double L10L;
 	int variantQuality;
-	double* genotypeFrequencies;
 
-
-	TMajorMinorEstimatorBase(int NumSamples, TRandomGenerator* RandomGenerator);
+	TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorBase();
 
-	void estimateMajorMinor(uint8_t** phred);
+	void estimateMajorMinor(TGlfMultiReader & glfReader);
 };
 
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
 private:
-	double* priorGenotypeFrequencies;
+	double epsilonF;
+	TGenotypeFrequencies priorGenotypeFrequencies;
 
-	void findMLAllelicCombination(uint8_t** phred);
+	void findMLAllelicCombination(TGlfMultiReader & glfReader);
 
 public:
-	TMajorMinorEstimatorSkotte(int NumSamples, TRandomGenerator* RandomGenerator);
+	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF);
 	virtual ~TMajorMinorEstimatorSkotte();
 };
 
 class TMajorMinorEstimatorMLE:public TMajorMinorEstimatorBase{
 private:
-	double maxF;
-	double** tmpGenotypeFrequencies;
+	double epsilonF;
+	TGenotypeFrequencies* tmpGenotypeFrequencies;
 
-	void estimateGenotypeFrequenciesEM(double* genotypeFrequencies);
-	double estimateGenotypeFrequencies(uint8_t** phred, const int alleleicCombination);
-	void findMLAllelicCombination(uint8_t** phred);
+	double estimateGenotypeFrequencies(TGlfMultiReader & glfReader, const int alleleicCombination);
+	void findMLAllelicCombination(TGlfMultiReader & glfReader);
 
 public:
-	TMajorMinorEstimatorMLE(int NumSamples, TRandomGenerator* RandomGenerator, double MaxF);
+	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorMLE();
 
 };

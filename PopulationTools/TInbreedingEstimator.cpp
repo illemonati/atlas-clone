@@ -693,7 +693,7 @@ bool TInbreedingEstimator::updateF(){
 	}
 }
 
-bool TInbreedingEstimator::updateP(TPopulationLikehoodSample* data, long & locusNum, int curSampleSize, TGamma & Gamma){
+bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, long & locusNum, int curSampleSize, TGamma & Gamma){
 //	std::cout << "locusNum " << locusNum << std::endl;
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
@@ -883,7 +883,7 @@ bool TInbreedingEstimator::updatePi(){
 	}
 }
 
-double TInbreedingEstimator::logLikelihoodAllInds(TPopulationLikehoodSample* data, int curSampleSize, double thisP, double thisF){
+double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, int curSampleSize, double thisP, double thisF){
 	if(thisP < 0)
 		throw "allele freq is negative!";
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)

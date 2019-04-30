@@ -181,11 +181,11 @@ private:
 	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
 	bool updateF();
-	bool updateP(TPopulationLikehoodSample* data, long & locusNum, int curSampleSize, TGamma & Gamma);
+	bool updateP(TSampleLikelihoods* data, long & locusNum, int curSampleSize, TGamma & Gamma);
 	bool updateGamma();
 	bool updatePi();
 	double logProbPGivenGamma();
-	double logLikelihoodAllInds(TPopulationLikehoodSample* data, int curSampleSize, double thisP, double thisF);
+	double logLikelihoodAllInds(TSampleLikelihoods* data, int curSampleSize, double thisP, double thisF);
 	void wholeLogLikelihood();
 	void oneMCMCIteration(int iterationNum);
 	void printAcceptanceRates(int numIterations);

@@ -22,6 +22,8 @@
 #include "TRandomGenerator.h"
 #include "TVcfFile.h"
 #include "TQualityMap.h"
+#include "TPopulationLikelihoodStorage.h"
+#include "TGenotypeFrequencies.h"
 
 //------------------------------------------------
 //TPopulationSamples
@@ -64,89 +66,6 @@ public:
 	int numSamplesWithDataInPop(bool* sampleMissing, int population);
 };
 
-//------------------------------------------------
-// TPopulationLikehoodStorage
-//------------------------------------------------
-class TPopulationLikehoodSample{
-public:
-	uint8_t phredLikelihood_0;
-	uint8_t phredLikelihood_1;
-	uint8_t phredLikelihood_2;
-
-	bool isHaploid;
-	bool isMissing;
-
-	uint8_t operator[](int genotype){
-		if(genotype == 0) return phredLikelihood_0;
-		if(genotype == 1) return phredLikelihood_1;
-		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";
-		if(genotype == 2) return phredLikelihood_2;
-		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
-	};
-};
-
-//------------------------------------------------
-// TPopulationLikehoodStorage
-// class used when reading line by line
-//------------------------------------------------
-class TPopulationLikehoodStorage{
-public:
-	int numSamples;
-	TPopulationLikehoodSample* samples;
-
-	TPopulationLikehoodStorage(int NumSamples){
-		numSamples = 0;
-		resize(NumSamples);
-	};
-
-	~TPopulationLikehoodStorage(){
-		clear();
-	};
-
-	void clear(){
-		if(numSamples > 0)
-			delete[] samples;
-	};
-
-	void resize(int NumSamples){
-		if(NumSamples != numSamples){
-			clear();
-			numSamples = NumSamples;
-			samples = new TPopulationLikehoodSample[numSamples];
-		}
-	};
-
-	TPopulationLikehoodSample & operator[](int index){
-		return samples[index];
-	};
-};
-
-//------------------------------------------------
-// TGenotypeFreqencies
-//------------------------------------------------
-class TGenotypeFreqencies{
-private:
-
-	void setFrequencenciesToZero();
-	void normalize();
-	void ensureAllFrequenciesAreNonZero();
-
-public:
-	double diploidFrequencies[3];
-	double haploidFrequencies[2];
-	double alleleFrequency;
-	double MAF;
-	int numDiploidSamples;
-	int numHaploidSamples;
-
-	TGenotypeFreqencies();
-
-	void clear();
-	bool isMonomorphic();
-	void guess(TPopulationLikehoodSample* samples, int numSamples);
-	void estimate(TPopulationLikehoodSample* samples, int numSamples, TQualityMap & phredToGTLMap, double epsilonF);
-};
-
 //-------------------------------------------------
 //TPopulationLikelihoodReader
 //-------------------------------------------------
@@ -182,7 +101,7 @@ private:
 	long _numAcceptedLoci;
 
 	//tmp variables used for reading
-	TGenotypeFreqencies genoFrequencies;
+	TGenotypeFrequencies genoFrequencies;
 	double _trueAlleleFrequency;
 
 	void _init();
@@ -205,7 +124,7 @@ public:
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
     bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
     bool readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TLog* logfile);
-	bool readDataFromVCF(TPopulationLikehoodSample* data, TPopulationSamples & samples, TLog* logfile);
+	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
@@ -213,7 +132,7 @@ public:
 	long position(){ return vcfFile.position(); };
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
-	TGenotypeFreqencies* genotypeFrequencies(){ return &genoFrequencies; };
+	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
 	double* diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
 	double allelFrequency(){ return genoFrequencies.alleleFrequency; };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
@@ -290,7 +209,7 @@ private:
 	long _numLoci;
 	std::map<int, std::string> chromosomes; //first SNP index and name
 	std::vector<long> position;
-    std::vector<TPopulationLikehoodSample*> data;
+    std::vector<TSampleLikelihoods*> data;
     std::vector<double> alleleFrequencies;
     std::vector<double> trueAlleleFrequencies;
     bool saveAlleleFrequencies;
@@ -336,7 +255,7 @@ public:
     void beginOnePop(int population);
     bool end();
     void next();
-    TPopulationLikehoodSample* curData();
+    TSampleLikelihoods* curData();
     std::string curSampleName(int index);
     int curSampleSize();
     std::string curChr();
@@ -345,7 +264,7 @@ public:
     // get main constants (n, L, D, K) and names of environmental variables
     int getNumIndividuals();
     long getNumLoci();
-    TPopulationLikehoodSample* getDataAtLocus(long index);
+    TSampleLikelihoods* getDataAtLocus(long index);
     void print();
 };
 

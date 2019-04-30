@@ -78,7 +78,10 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, ui
 
 	//genotype likelihoods
 	//TODO: test if using more accuracy on qualities matters
-	write(genoQualities, 10*sizeof(uint8_t));
+	if(curChr.ploidy == 1)
+		write(genoQualities, 4*sizeof(uint8_t));
+	else
+		write(genoQualities, 10*sizeof(uint8_t));
 };
 
 //---------------------------------
@@ -189,7 +192,10 @@ void TGlfReader::readSNPRecord(){
 	RMS_mappingQual = (int) tmpInt8;
 
 	//genotype likelihoods
-	read(genotypeQualities, 10*sizeof(uint8_t));
+	if(curChr.ploidy == 1)
+		read(genotypeQualities, 4*sizeof(uint8_t));
+	else
+		read(genotypeQualities, 10*sizeof(uint8_t));
 };
 
 
@@ -256,8 +262,6 @@ bool TGlfReader::jumpToEndOfChr(){
 
 	//tmp variables
 	while(recordType != 0){
-
-
 		//skipRecord();
 		readSNPRecord();
 
@@ -385,6 +389,7 @@ TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfi
 TGlfMultiReader::TGlfMultiReader(TParameters & params, TLog* logfile){
 	init();
 	openGLFs(params, logfile);
+	setDepthFilter(params.getParameterIntWithDefault("minDepth", 0), logfile);
 };
 
 void TGlfMultiReader::init(){
@@ -406,6 +411,7 @@ void TGlfMultiReader::init(){
 	for(int i=0; i<10; ++i)
 		genotypeQualitiesMissingData[i] = 0;
 
+	minDepth = 0;
 };
 
 TGlfMultiReader::~TGlfMultiReader(){
@@ -482,6 +488,12 @@ void TGlfMultiReader::closeGLF(){
 		numGLFs = 0;
 		readersOpened = false;
 	}
+};
+
+void TGlfMultiReader::setDepthFilter(int MinDepth, TLog* logfile){
+	minDepth = MinDepth;
+	if(minDepth > 0)
+		logfile->list("Will only keep sites with depth >= " + toString(minDepth) + ".");
 };
 
 //-------------------------------------
@@ -662,7 +674,7 @@ bool TGlfMultiReader::readNext(){
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(!it->eof() && it->chrNumber() == _curChrNumber && it->position < _position)
 			it->readNext();
-		if(!it->eof() && it->chrNumber() == _curChrNumber && it->position == _position){
+		if(!it->eof() && it->chrNumber() == _curChrNumber && it->position == _position && it->depth > minDepth){
 			data[i] = it->genotypeQualities;
 			hasData[i] = true;
 			++_numActiveFilesWithData;
@@ -683,6 +695,25 @@ void TGlfMultiReader::print(){
 		std::cout << "File " << i << ":";
 		for(int g=0; g<10; ++g) std::cout << "\t" << unsigned(data[i][g]);
 		std::cout << std::endl;
+	}
+};
+
+void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, int alleleicCombination){
+	storage.resize(numActiveFiles);
+	for(int i=0; i<numActiveFiles; ++i){
+		storage[i].isHaploid = isHaploid[i];
+		storage[i].isMissing = !hasData[i];
+		if(isHaploid[i]){
+			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][0]];
+			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][1]];
+			storage[i].phredLikelihood_2 = 255;
+		} else {
+			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][0]];
+			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][1]];
+			storage[i].phredLikelihood_2 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][2]];
+		}
+
+		std::cout << "hasData = " << hasData[i] << ", storage[i].phredLikelihood_0 = " << (int) storage[i].phredLikelihood_0 << std::endl;
 	}
 };
 
@@ -714,6 +745,7 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoo
 };
 
 void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with Tcaller
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";

@@ -18,6 +18,7 @@
 #include "stringFunctions.h"
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
+#include "TPopulationLikelihoodStorage.h"
 
 //----------------------------------------------------
 //TGlfChromosome
@@ -40,6 +41,8 @@ public:
 	TGlfChromosome(std::string Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
+		if(Ploidy < 1 || Ploidy > 2)
+			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
 		ploidy = Ploidy;
 		number = 1;
 	};
@@ -54,6 +57,8 @@ public:
 	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
+		if(Ploidy < 1 || Ploidy > 2)
+			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
 		ploidy = Ploidy;
 		++number;
 	};
@@ -234,7 +239,6 @@ public:
 	void printChr();
 	void printSite();
 	void printToEnd();
-
 };
 
 //----------------------------------------------------
@@ -270,6 +274,7 @@ private:
 	std::string _curChrName;
 	int _numActiveFilesWithData;
 	uint8_t genotypeQualitiesMissingData[10];
+	int minDepth;
 
 	bool moveToNextChromosome();
 
@@ -292,6 +297,7 @@ public:
 	void openGLFs(const std::vector<std::string> & Filenames, TLog* logfile);
 	void openGLFs(TParameters & params, TLog* logfile);
 	void closeGLF();
+	void setDepthFilter(int MinDepth, TLog* logfile);
 
 	//set active / inactive
 	void setActive(const int index);
@@ -313,6 +319,7 @@ public:
 	//parse
 	bool readNext();
 	void print();
+	void fill(TPopulationLikehoodStorage & data, int alleleicCombination);
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
 	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);

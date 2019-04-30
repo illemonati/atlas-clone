@@ -45,14 +45,14 @@ private:
 	void normalize();
 
 	TSAFChooseStorage* getLogChoose(int counts);
-	void fillLog(const TPopulationLikehoodSample* data, int numSamples);
-	void fillNatural(const TPopulationLikehoodSample* data, int numSamples);
+	void fillLog(const TSampleLikelihoods* data, int numSamples);
+	void fillNatural(const TSampleLikelihoods* data, int numSamples);
 
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
-	void fill(const TPopulationLikehoodSample* data, int numSamples);
+	void fill(const TSampleLikelihoods* data, int numSamples);
 	int getMLAlleleCount(TRandomGenerator & randomGenerator);
 	void print();
 };
