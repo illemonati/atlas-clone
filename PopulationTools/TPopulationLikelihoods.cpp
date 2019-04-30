@@ -297,15 +297,15 @@ void TGenotypeFreqencies::guess(TPopulationLikehoodSample* samples, int numSampl
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
 			if(samples[i].isHaploid){
-				if(samples[i].phredLikelihoods[1] < samples[i].phredLikelihoods[0]) haploidFrequencies[1] += 1.0;
+				if(samples[i].phredLikelihood_1 < samples[i].phredLikelihood_0) haploidFrequencies[1] += 1.0;
 				else haploidFrequencies[0] += 1.0;
 				++numHaploidSamples;
 			} else {
-				if(samples[i].phredLikelihoods[1] < samples[i].phredLikelihoods[0]){
-					if(samples[i].phredLikelihoods[2] < samples[i].phredLikelihoods[1]) diploidFrequencies[2] += 1.0;
+				if(samples[i].phredLikelihood_1 < samples[i].phredLikelihood_0){
+					if(samples[i].phredLikelihood_2 < samples[i].phredLikelihood_1) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[1] += 1.0;
 				} else {
-					if(samples[i].phredLikelihoods[2] < samples[i].phredLikelihoods[0]) diploidFrequencies[2] += 1.0;
+					if(samples[i].phredLikelihood_2 < samples[i].phredLikelihood_0) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[0] += 1.0;
 				}
 				++numDiploidSamples;
@@ -317,7 +317,7 @@ void TGenotypeFreqencies::guess(TPopulationLikehoodSample* samples, int numSampl
 	normalize();
 };
 
-void TGenotypeFreqencies::estimate(TPopulationLikehoodSample* samples, int numSamples, const TQualityMap & phredToGTLMap, double epsilonF){
+void TGenotypeFreqencies::estimate(TPopulationLikehoodSample* samples, int numSamples, TQualityMap & phredToGTLMap, double epsilonF){
 	//prepare variables
 	double weights[3];
 	double diploidFrequencies_old[3];
@@ -342,16 +342,16 @@ void TGenotypeFreqencies::estimate(TPopulationLikehoodSample* samples, int numSa
 		//estimate new genotype frequencies
 		for(int i = 0; i < numSamples; i++){
 			if(samples[i].isHaploid){
-				weights[0] = phredToGTLMap[samples[i].phredLikelihoods[0]] * haploidFrequencies_old[0];
-				weights[1] = phredToGTLMap[samples[i].phredLikelihoods[1]] * haploidFrequencies_old[1];
+				weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * haploidFrequencies_old[0];
+				weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * haploidFrequencies_old[1];
 
 				double sum = weights[0] + weights[1];
 
 				diploidFrequencies[0] += weights[0] / sum;
 			} else {
-				weights[0] = phredToGTLMap[samples[i].phredLikelihoods[0]] * diploidFrequencies_old[0];
-				weights[1] = phredToGTLMap[samples[i].phredLikelihoods[1]] * diploidFrequencies_old[1];
-				weights[2] = phredToGTLMap[samples[i].phredLikelihoods[2]] * diploidFrequencies_old[2];
+				weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * diploidFrequencies_old[0];
+				weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * diploidFrequencies_old[1];
+				weights[2] = phredToGTLMap[samples[i].phredLikelihood_2] * diploidFrequencies_old[2];
 
 				double sum = weights[0] + weights[1] + weights[2];
 
@@ -423,9 +423,7 @@ void TPopulationLikelihoodReader::_init(){
 	resetCounters();
 
 	//allele frequency
-	_alleleFrequency = 0.0;
 	_trueAlleleFrequency = -1.0;
-	_MAF = 0.0;
 };
 
 void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile, bool saveAlleleFreq){
@@ -619,7 +617,12 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 }
 */
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & storage, TPopulationSamples & samples, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TLog* logfile){
+	data.resize(samples.numSamples());
+	return readDataFromVCF(data.samples, samples, logfile);
+};
+
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodSample* data, TPopulationSamples & samples, TLog* logfile){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -692,9 +695,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & s
 				numIndividualsWithData++;
 
 			//store phred scaled likelihoods
-			storage[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
-			storage[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
-			vcfFile.fillPhredScore(vcfIndex, storage[s].phredLikelihoods);
+			data[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
+			data[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
+			vcfFile.fillPhredScore(vcfIndex, data[s].phredLikelihood_0, data[s].phredLikelihood_1, data[s].phredLikelihood_2);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -705,10 +708,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & s
 
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-			// estimate allele frequency (EM algorithm)
-			estimateGenotypeFrequenciesNullModel(storage, epsilonF);
+			genoFrequencies.estimate(data, samples.numSamples(), phredToGTLMap, epsilonF);
 
-			if(_MAF < freqFilter){
+			if(genoFrequencies.MAF < freqFilter){
 				_lowFreqSNPCounter++;
 				continue;
 			}
@@ -743,85 +745,6 @@ void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
 		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
 	if(_lowFreqSNPCounter > 0)
 		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
-};
-
-void TPopulationLikelihoodReader::guessGenotypeFrequencies(TPopulationLikehoodStorage & storage){
-
-	//TODO: adjust to account for haploid samples
-
-	/*
-	//calculate by using MLE genotype for each individual
-	_genotypeFrequencies[0] = 0.0; _genotypeFrequencies[1] = 0.0; _genotypeFrequencies[2] = 0.0;
-	for(int i = 0; i < numSamples; i++){
-		if(storage[i][1] < storage[i][0]){
-			if(storage[i][2] < storage[i][1]) _genotypeFrequencies[2] += 1.0;
-			else _genotypeFrequencies[1] += 1.0;
-		} else {
-			if(storage[i][2] < storage[i][0]) _genotypeFrequencies[2] += 1.0;
-			else _genotypeFrequencies[0] += 1.0;
-		}
-	}
-
-	double sum = 0.0;
-	for(int g = 0; g < 3; ++g){
-		_genotypeFrequencies[g] /= (double) numSamples;
-		if(_genotypeFrequencies[g] <= 0.0) _genotypeFrequencies[g] = 0.01;
-		if(_genotypeFrequencies[g] >= 1.0) _genotypeFrequencies[g] = 0.99;
-		sum += _genotypeFrequencies[g];
-	}
-	for(int g = 0; g < 3; ++g){
-		_genotypeFrequencies[g] /= sum;
-	}
-	*/
-}
-
-void TPopulationLikelihoodReader::estimateGenotypeFrequenciesNullModel(TPopulationLikehoodStorage & storage, double epsilonF){
-	//prepare variables
-	double sum;
-	double weightsNull[3];
-	double genoFreq_old[3];
-
-	//estimate initial frequencies from MLEs
-	guessGenotypeFrequencies(storage);
-
-	//run EM for max 1000 steps
-	for (int s = 0; s < 1000; ++s){
-		//set genofreq and calc P(g|f)
-		for(int g = 0; g < 3; ++g){
-			genoFreq_old[g] = _genotypeFrequencies[g];
-			_genotypeFrequencies[g] = 0.0;
-		}
-
-		//estimate new genotype frequencies
-		for(int i = 0; i < storage.numSamples; i++){
-			sum = 0.0;
-			for(int g = 0; g < 3; ++g){
-				weightsNull[g] = phredToGTLMap[storage[i].phredLikelihoods[g]] * genoFreq_old[g];
-				sum += weightsNull[g];
-			}
-			_genotypeFrequencies[0] += weightsNull[0] / sum;
-			_genotypeFrequencies[2] += weightsNull[2] / sum;
-		}
-
-		_genotypeFrequencies[0] /= (double) storage.numSamples;
-		_genotypeFrequencies[2] /= (double) storage.numSamples;
-		_genotypeFrequencies[1] = 1.0 - _genotypeFrequencies[0] - _genotypeFrequencies[2];
-
-		//check if we stop
-//		std::cout << "_genotypeFrequencies[0] " << _genotypeFrequencies[0] << std::endl;
-//		std::cout << "genoFreq_old[0] " << genoFreq_old[0] << std::endl;
-//		std::cout << "epsilonF " << epsilonF << std::endl;
-//		std::cout << "_genotypeFrequencies[2] " << _genotypeFrequencies[2] << std::endl;
-//		std::cout << "genoFreq_old[2] " << genoFreq_old[2] << std::endl;
-
-		if(fabs(_genotypeFrequencies[0] - genoFreq_old[0]) < epsilonF && fabs(_genotypeFrequencies[2] - genoFreq_old[2]) < epsilonF)
-			break;
-	}
-
-	//now set allele frequencies
-	_alleleFrequency = _genotypeFrequencies[2] + 0.5 * _genotypeFrequencies[1];
-	if(_alleleFrequency > 0.5) _MAF = 1.0 - _alleleFrequency;
-	else _MAF = _alleleFrequency;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -975,6 +898,9 @@ void TPopulationLikelihoods::init(){
 };
 
 void TPopulationLikelihoods::clean(){
+	for(TPopulationLikehoodSample* it : data){
+		delete it;
+	}
 	data.clear();
 	vcfRead = false;
 };
@@ -986,6 +912,9 @@ void TPopulationLikelihoods::readData(TParameters & Parameters, TLog* Logfile){
 
 	//read Data
 	readDataFromVCF(Parameters, Logfile);
+
+	//make sure loop goes across all samples
+	useAllSamples();
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1029,12 +958,12 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	data.emplace_back(samples.numSamples());
+	data.emplace_back(new TPopulationLikehoodSample[samples.numSamples()]);
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     std::string curChr = "";
-    while(reader.readDataFromVCF(*data.rbegin(), samples, logfile)){
+    while(reader.readDataFromVCF(data.back(), samples, logfile)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
@@ -1049,11 +978,14 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 			trueAlleleFrequencies.emplace_back(reader.trueAlleleFrequency());
 
 		//update for next
-		data.emplace_back(samples.numSamples());
+		data.emplace_back(new TPopulationLikehoodSample[samples.numSamples()]);
     }
 
+    //remove last, empty container
+    delete data.back();
+    data.pop_back();
+
     //clean up
-    data.pop_back(); //remove last, empty container
 	vcfRead = true;
 	_numLoci = data.size();
 
@@ -1077,27 +1009,37 @@ long TPopulationLikelihoods::getNumLoci(){
 	return _numLoci;
 };
 
-TPopulationLikehoodStorage* TPopulationLikelihoods::getDataAtLocus(long index){
-	return &data[index];
+TPopulationLikehoodSample* TPopulationLikelihoods::getDataAtLocus(long index){
+	return data[index];
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // functions to loop over data                                                                  //
 //////////////////////////////////////////////////////////////////////////////////////////////////
-void TPopulationLikelihoods::begin(){
-	curLocusIndex = 0;
-	curChrIt = chromosomes.begin();
-	nextChrIt = std::next(chromosomes.begin(),1);
+void TPopulationLikelihoods::useAllSamples(){
 	individualStartIndex = 0;
 	usedSampleSize = samples.numSamples();
 };
 
-void TPopulationLikelihoods::beginOnePop(int population){
+void TPopulationLikelihoods::limitToSinglePopulation(int population){
+	individualStartIndex = samples.startIndex(population);
+	usedSampleSize = samples.numSamplesInPop(population);
+};
+
+void TPopulationLikelihoods::begin(){
 	curLocusIndex = 0;
 	curChrIt = chromosomes.begin();
 	nextChrIt = std::next(chromosomes.begin(),1);
-	individualStartIndex = samples.startIndex(population);
-	usedSampleSize = samples.numSamplesInPop(population);
+};
+
+void TPopulationLikelihoods::beginAll(){
+	useAllSamples();
+	begin();
+};
+
+void TPopulationLikelihoods::beginOnePop(int population){
+	limitToSinglePopulation(population);
+	begin();
 };
 
 bool TPopulationLikelihoods::end(){
@@ -1114,8 +1056,8 @@ void TPopulationLikelihoods::next(){
 	}
 };
 
-TPopulationLikehoodStorage* TPopulationLikelihoods::curData(){
-	return &(data[curLocusIndex]);
+TPopulationLikehoodSample* TPopulationLikelihoods::curData(){
+	return data[curLocusIndex];
 };
 
 std::string TPopulationLikelihoods::curSampleName(int index){
@@ -1154,10 +1096,9 @@ void TPopulationLikelihoods::print(){
 		std::cout << curChr() << "\t" << curPosition();
 
 		//print data
-		uint8_t* data = curPhredLikelihoods();
+		TPopulationLikehoodSample* data = curData();
 		for(int s=0; s<curSampleSize(); ++s){
-			int index = 3*s;
-			std::cout << "\t" << toString(data[index]) << "," << toString(data[index+1]) << "," << toString(data[index+2]);
+			std::cout << "\t" << toString(data[s].phredLikelihood_0) << "," << toString(data[s].phredLikelihood_1) << "," << toString(data[s].phredLikelihood_2);
 		}
 
 		std::cout << std::endl;

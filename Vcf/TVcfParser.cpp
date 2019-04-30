@@ -235,8 +235,12 @@ bool TVcfSample::parse(std::string s, const int genotypeCol){
 	} else {
 		std::string gt = getCol(genotypeCol);
 		//check if data is missing: GT is either "." or "./." or ".|."
-		if(gt=="." || gt=="./." || gt==".|."){
+		if(gt=="."){
 			setMissingGenotype();
+			isHaploid = true;
+		} else if(gt=="./." || gt==".|."){
+			setMissingGenotype();
+			isHaploid = false;
 		} else if(gt.length() == 1){
 			setGenotype(stringToInt(gt));
 		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
@@ -555,17 +559,17 @@ void TVcfParser::saveGLAsPhredScore(std::string & GLString, uint8_t & phred){
 	else phred = round(tmp);
 };
 
-void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phred){
+void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	if(line.samples[s].missing){
-		phred[0] = 0; phred[1] = 0; phred[2] = 0;
+		gtl_0 = 0; gtl_1 = 0; gtl_2 = 0;
 	} else {
 		int col = getFormatCol(line, "PL");
 		if(col < 0){
 			col = getFormatCol(line, "GL");
 			if(col < 0){
 				//neither PL nor GL tag: set missing
-				phred[0] = 0; phred[1] = 0; phred[2] = 0;
+				gtl_0 = 0; gtl_1 = 0; gtl_2 = 0;
 			} else {
 				//GL field exists
 				std::vector<std::string> phreddie;
@@ -574,14 +578,14 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phre
 				//diploid or haploid?
 				if(line.samples[s].isHaploid){
 					//haploid: only two are given
-					saveGLAsPhredScore(phreddie[0], phred[0]);
-					saveGLAsPhredScore(phreddie[1], phred[1]);
-					phred[1] = 255; //set heterozygous to a maximum value
+					saveGLAsPhredScore(phreddie[0], gtl_0);
+					saveGLAsPhredScore(phreddie[1], gtl_1);
+					gtl_2 = 255; //set heterozygous to a maximum value
 				} else {
 					//diploid
-					saveGLAsPhredScore(phreddie[0], phred[0]);
-					saveGLAsPhredScore(phreddie[1], phred[1]);
-					saveGLAsPhredScore(phreddie[2], phred[2]);
+					saveGLAsPhredScore(phreddie[0], gtl_0);
+					saveGLAsPhredScore(phreddie[1], gtl_1);
+					saveGLAsPhredScore(phreddie[2], gtl_2);
 				}
 			}
 		} else {
@@ -592,14 +596,14 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phre
 			//diploid or haploid?
 			if(line.samples[s].isHaploid){
 				//haploid: only two are given
-				savePhredScore(phreddie[0], phred[0]);
-				savePhredScore(phreddie[1], phred[2]);
-				phred[1] = 255; //set heterozygous to a maximum value
+				savePhredScore(phreddie[0], gtl_0);
+				savePhredScore(phreddie[1], gtl_1);
+				gtl_2 = 255; //set heterozygous to a maximum value
 			} else {
 				//diploid
-				savePhredScore(phreddie[0], phred[0]);
-				savePhredScore(phreddie[1], phred[1]);
-				savePhredScore(phreddie[2], phred[2]);
+				savePhredScore(phreddie[0], gtl_0);
+				savePhredScore(phreddie[1], gtl_1);
+				savePhredScore(phreddie[2], gtl_2);
 			}
 		}
 	}
@@ -733,7 +737,7 @@ void TVcfParser::updateField(TVcfLine & line, std::string & tag, std::string & D
 };
 
 bool TVcfParser::sampleIsHaploid(TVcfLine & line, unsigned int & sample){
-	checkSampleNum(line, sample);
+	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	return line.samples[sample].isHaploid;
 };
 
@@ -883,7 +887,7 @@ void TVcfParser::parseSamples(TVcfLine & line){
 
 		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
 			line.samples.emplace_back();
-			if(!line.samples.rbegin()->parse(line.data[i], gtCol)){
+			if(!line.samples.back().parse(line.data[i], gtCol)){
 				throw "Unknown genotype '" + line.samples.end()->getCol(gtCol) +"' in VCF file on line " + toString(line.lineNumber) + "!\n";
 			}
 		}

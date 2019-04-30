@@ -125,8 +125,8 @@ void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, 
 	parser.fillGenotypeLikelihoods(*line, sample, gtl);
 }
 
-void TVcfFile_base::fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t* gtl){
-	parser.fillPhredScore(*line, sample, gtl);
+void TVcfFile_base::fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
+	parser.fillPhredScore(*line, sample, gtl_0, gtl_1, gtl_2);
 }
 
 int TVcfFile_base::sampleNumber(std::string & Name){
@@ -274,8 +274,8 @@ void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl
 	fillGenotypeLiklihoods(&tempLine, sample, gtl);
 }
 
-void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t* gtl){
-	fillPherdScore(&tempLine, sample, gtl);
+void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
+	fillPherdScore(&tempLine, sample, gtl_0, gtl_1, gtl_2);
 }
 
 long TVcfFileSingleLine::position(){

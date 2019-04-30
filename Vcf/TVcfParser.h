@@ -8,7 +8,7 @@
 #ifndef TVCFPARSER_H_
 #define TVCFPARSER_H_
 
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include <vector>
 #include <map>
 #include <iostream>
@@ -235,7 +235,7 @@ public:
 	GTLikelihoods genotypeLikelihoods(TVcfLine & line, unsigned int & sample);
 	GTLikelihoods genotypeLikelihoodsPhred(TVcfLine & line, unsigned int & sample);
 	void fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, float* gtl);
-	void fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t* phred);
+	void fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	std::string sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample);
 	std::string sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample);
 	int phred(double x);

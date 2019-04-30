@@ -628,9 +628,8 @@ bool TInbreedingEstimator::updateF(){
 
 			long l = 0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				uint8_t* data = likelihoods.curPhredLikelihoods();
-				logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0)
-				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0)
+				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
 			}
 
 			//accept?
@@ -653,9 +652,8 @@ bool TInbreedingEstimator::updateF(){
 			long l = 0;
 			double logH = 0.0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				uint8_t* data = likelihoods.curPhredLikelihoods();
-				logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
-				- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
+				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
 			}
 
 			//accept?
@@ -678,9 +676,8 @@ bool TInbreedingEstimator::updateF(){
 
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			uint8_t* data = likelihoods.curPhredLikelihoods();
-			logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
-			- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0);
+			logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
+			- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0);
 		}
 
 		//accept?
@@ -696,7 +693,7 @@ bool TInbreedingEstimator::updateF(){
 	}
 }
 
-bool TInbreedingEstimator::updateP(uint8_t* data, long & locusNum, int curSampleSize, TGamma & Gamma){
+bool TInbreedingEstimator::updateP(TPopulationLikehoodSample* data, long & locusNum, int curSampleSize, TGamma & Gamma){
 //	std::cout << "locusNum " << locusNum << std::endl;
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
@@ -886,7 +883,7 @@ bool TInbreedingEstimator::updatePi(){
 	}
 }
 
-double TInbreedingEstimator::logLikelihoodAllInds(uint8_t* data, int curSampleSize, double thisP, double thisF){
+double TInbreedingEstimator::logLikelihoodAllInds(TPopulationLikehoodSample* data, int curSampleSize, double thisP, double thisF){
 	if(thisP < 0)
 		throw "allele freq is negative!";
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
@@ -904,18 +901,19 @@ double TInbreedingEstimator::logLikelihoodAllInds(uint8_t* data, int curSampleSi
 	}
 
 	for(int s=0; s<curSampleSize; ++s){
-		int index = 3*s;
-		//calculate and add ratio for each genotype
-		double integrationOverGeno = qualMap.phredToError(data[index]) * PGeno[0];
-		integrationOverGeno += qualMap.phredToError(data[index + 1]) * PGeno[1];
-		integrationOverGeno += qualMap.phredToError(data[index + 2]) * PGeno[2];
+		if(!data[s].isMissing && !data[s].isHaploid){
+			//calculate and add ratio for each genotype
+			double integrationOverGeno = qualMap.phredToError(data[s].phredLikelihood_0) * PGeno[0];
+			integrationOverGeno += qualMap.phredToError(data[s].phredLikelihood_1) * PGeno[1];
+			integrationOverGeno += qualMap.phredToError(data[s].phredLikelihood_2) * PGeno[2];
 
-		//check if likelihood of sample is a probability
-		if(integrationOverGeno < 0){
-			throw "Probability of genotype is negative: " + toString(integrationOverGeno);
+			//check if likelihood of sample is a probability
+			if(integrationOverGeno < 0){
+				throw "Probability of genotype is negative: " + toString(integrationOverGeno);
+			}
+
+			sumOverInds += log(integrationOverGeno);
 		}
-
-		sumOverInds += log(integrationOverGeno);
 	}
 
 	if(sumOverInds != sumOverInds )
@@ -956,8 +954,7 @@ double TInbreedingEstimator::getLogLikelihoodCurrentParams(){
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 //		if(l == 736){
-			uint8_t* data = likelihoods.curPhredLikelihoods();
-			logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
 //		}
 	}
 
@@ -997,8 +994,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 		std::cout << "thisF " << thisF << std::endl;
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			uint8_t* data = likelihoods.curPhredLikelihoods();
-			logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], thisF);
+			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF);
 		}
 
 		//add P(p|alpha,beta)
@@ -1070,8 +1066,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 	double logLikelihood = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		uint8_t* data = likelihoods.curPhredLikelihoods();
-		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
 		if(logLikelihood > 0)
 			throw "likelihood is larger than 1!";
 	}
@@ -1140,8 +1135,7 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 //		if(l == 736){
-			uint8_t* data = likelihoods.curPhredLikelihoods();
-			numAcceptedP[l] += updateP(data, l, likelihoods.curSampleSize(), Gamma);
+			numAcceptedP[l] += updateP(likelihoods.curData(), l, likelihoods.curSampleSize(), Gamma);
 //		}
 	}
 
