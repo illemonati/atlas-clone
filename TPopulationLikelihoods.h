@@ -93,6 +93,32 @@ public:
 	};
 };
 
+//------------------------------------------------
+// TGenotypeFreqencies
+//------------------------------------------------
+class TGenotypeFreqencies{
+private:
+
+	void setFrequencenciesToZero();
+	void normalize();
+	void ensureAllFrequenciesAreNonZero();
+
+public:
+	double diploidFrequencies[3];
+	double haploidFrequencies[2];
+	double alleleFrequency;
+	double MAF;
+	int numDiploidSamples;
+	int numHaploidSamples;
+
+	TGenotypeFreqencies();
+
+	void clear();
+	bool isMonomorphic();
+	void guess(TPopulationLikehoodSample* samples, int numSamples);
+	void estimate(TPopulationLikehoodSample* samples, int numSamples, const TQualityMap & phredToGTLMap, double epsilonF);
+};
+
 //-------------------------------------------------
 //TPopulationLikelihoodReader
 //-------------------------------------------------
