@@ -319,7 +319,7 @@ public:
 	//parse
 	bool readNext();
 	void print();
-	void fill(TPopulationLikehoodStorage & data, int alleleicCombination);
+	void fill(TPopulationLikehoodStorage & data, const int alleleicCombination);
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
 	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);

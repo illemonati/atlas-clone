@@ -63,7 +63,7 @@ void TGenome::initializeRandomGenerator(TParameters & params){
 	}
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 	randomGeneratorInitialized = true;
-}
+};
 
 void TGenome::indexBamFile(std::string & filename){
 	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
@@ -77,7 +77,7 @@ void TGenome::indexBamFile(std::string & filename){
 	//close BAM file
 	reader.Close();
 	logfile->done();
-}
+};
 
 //-----------------------------------------------------
 //Functions for theta estimation

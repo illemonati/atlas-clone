@@ -154,7 +154,10 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 	//run EM for max 1000 steps
 	double maxF = 10000.0;
 	int s = 0;
+
 	while(maxF > epsilonF && s < 1000){
+		++s;
+
 		//set genofreq
 		diploidFrequencies_old[0] = diploidFrequencies[0];
 		diploidFrequencies_old[1] = diploidFrequencies[1];
@@ -165,28 +168,30 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 
 		//estimate new genotype frequencies
 		for(int i = 0; i < numSamples; i++){
-			if(samples[i].isHaploid){
-				weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * haploidFrequencies_old[0];
-				weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * haploidFrequencies_old[1];
+			if(!samples[i].isMissing){
+				if(samples[i].isHaploid){
+					weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * haploidFrequencies_old[0];
+					weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * haploidFrequencies_old[1];
 
-				double sum = weights[0] + weights[1];
+					double sum = weights[0] + weights[1];
 
-				diploidFrequencies[0] += weights[0] / sum;
-			} else {
-				weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * diploidFrequencies_old[0];
-				weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * diploidFrequencies_old[1];
-				weights[2] = phredToGTLMap[samples[i].phredLikelihood_2] * diploidFrequencies_old[2];
+					haploidFrequencies[0] += weights[0] / sum;
+				} else {
+					weights[0] = phredToGTLMap[samples[i].phredLikelihood_0] * diploidFrequencies_old[0];
+					weights[1] = phredToGTLMap[samples[i].phredLikelihood_1] * diploidFrequencies_old[1];
+					weights[2] = phredToGTLMap[samples[i].phredLikelihood_2] * diploidFrequencies_old[2];
 
-				double sum = weights[0] + weights[1] + weights[2];
+					double sum = weights[0] + weights[1] + weights[2];
 
-				diploidFrequencies[0] += weights[0] / sum;
-				diploidFrequencies[2] += weights[2] / sum;
+					diploidFrequencies[0] += weights[0] / sum;
+					diploidFrequencies[2] += weights[2] / sum;
+				}
 			}
 		}
 
 		diploidFrequencies[0] /= (double) numDiploidSamples;
 		diploidFrequencies[2] /= (double) numDiploidSamples;
-		diploidFrequencies[1] = 1.0 - diploidFrequencies_old[0] - diploidFrequencies_old[2];
+		diploidFrequencies[1] = 1.0 - diploidFrequencies[0] - diploidFrequencies[2];
 
 		haploidFrequencies[0] /= (double) numHaploidSamples;
 		haploidFrequencies[1] = 1.0 - haploidFrequencies[0];
@@ -216,26 +221,18 @@ double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodStorage
 
 double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap){
 	double LL = 0.0;
-	std::cout << "LL = " << LL;
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
 			if(samples[i].isHaploid){
 				LL += log10(phredToGTLMap[samples[i].phredLikelihood_0] * haploidFrequencies[0]
 						  + phredToGTLMap[samples[i].phredLikelihood_1] * haploidFrequencies[1]);
 			} else {
-
-				std::cout << "(" << (int) samples[i].phredLikelihood_0 << ", " << (int) samples[i].phredLikelihood_1 << ", " << (int) samples[i].phredLikelihood_2 << ")";
-
-
 				LL += log10(phredToGTLMap[samples[i].phredLikelihood_0] * diploidFrequencies[0]
 						  + phredToGTLMap[samples[i].phredLikelihood_1] * diploidFrequencies[1]
 						  + phredToGTLMap[samples[i].phredLikelihood_2] * diploidFrequencies[2]);
 			}
-
-			std::cout << " " << LL;
 		}
 	}
-	std::cout << std::endl;
 	return LL;
 };
 

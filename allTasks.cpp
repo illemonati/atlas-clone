@@ -9,7 +9,6 @@
 
 void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< std::string, TTask* > & taskMap_debug){
 	taskMap_regular["splitRGbyLength"] = new TTask_splitRGbyLength();
-	taskMap_regular["splitRGbyLength"] = new TTask_splitRGbyLength();
 	taskMap_regular["mergeReadGroups"] = new TTask_mergeReadGroups();
 	taskMap_regular["pileup"] = new TTask_pileup();
 	taskMap_regular["BAMDiagnostics"] = new TTask_BAMDiagnostics();

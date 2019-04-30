@@ -20,7 +20,9 @@ TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(TRandomGenerator* RandomGener
 	variantQuality = 0;
 };
 
-TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){};
+TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
+	delete[] L10L_perCombination;
+};
 
 void TMajorMinorEstimatorBase::chooseMLAllelicCombinationAmongThoseWithEqualLikelihood(){
 	//select MLE combination
@@ -126,27 +128,19 @@ double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TGlfMultiReader & gl
 };
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfReader){
-
-	std::cout << "--------------- HERE ----------------" << std::endl;
-
 	//calculate L10L for each allelic combination
 	L10L_perCombination[0] = estimateGenotypeFrequencies(glfReader, 0);
 	L10L = L10L_perCombination[0];
-
-	std::cout << "L10L = " << L10L << std::endl;
 
 	for(int i=1; i<6; ++i){
 		L10L_perCombination[i] = estimateGenotypeFrequencies(glfReader, i);
 		if(L10L_perCombination[i] > L10L){
 			L10L = L10L_perCombination[i];
 		}
-
-		std::cout << "L10L = " << L10L << std::endl;
 	}
 
 	//pick combination
 	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
-
 	genotypeFrequencies.set(tmpGenotypeFrequencies[allelicCombination]);
 };
 
@@ -161,11 +155,15 @@ TMajorMinor::TMajorMinor(TParameters & params, TLog* Logfile){
 	//TODO: do the random generator initialization in the task switcher?
 	logfile->listFlush("Initializing random generator ...");
 	if(params.parameterExists("fixedSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
+		randomGenerator = new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
 	} else if(params.parameterExists("addToSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else randomGenerator=new TRandomGenerator();
+		randomGenerator = new TRandomGenerator(params.getParameterLong("addToSeed"), false);
+	} else randomGenerator = new TRandomGenerator();
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
+};
+
+TMajorMinor::~TMajorMinor(){
+	delete randomGenerator;
 };
 
 void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods){
@@ -196,7 +194,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//estimation method
 	std::string method = params.getParameterStringWithDefault("method", "MLE");
 	TMajorMinorEstimatorBase* MMEstimator;
-	double maxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	double maxF = params.getParameterDoubleWithDefault("maxF", 0.0000001);
 	if(method == "Skotte"){
 		logfile->list("Will estimate major / minor alleles using the method of Skotte et al. (2012) with maxF " + toString(maxF) + ".");
 		MMEstimator = new TMajorMinorEstimatorSkotte(randomGenerator, maxF);
@@ -239,8 +237,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	while(glfReader.readNext()){
 		++counter;
 
-		std::cout << "Parsing site " << counter << " ..." << std::endl;
-
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 
@@ -273,5 +269,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 	//clean storage
 	closeVCF();
+	delete MMEstimator;
 };
 

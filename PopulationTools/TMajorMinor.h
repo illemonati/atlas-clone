@@ -87,6 +87,7 @@ private:
 
 public:
 	TMajorMinor(TParameters & params, TLog* Logfile);
+	~TMajorMinor();
 
 	void estimateMajorMinor(TParameters & params);
 

@@ -422,6 +422,7 @@ TGlfMultiReader::~TGlfMultiReader(){
 
 	if(readersOpened){
 		delete[] GLFIsActive;
+		delete[] isHaploid;
 		closeGLF();
 	}
 };
@@ -693,12 +694,16 @@ void TGlfMultiReader::print(){
 	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChrName << std::endl;
 	for(int i=0; i<numActiveFiles; ++i){
 		std::cout << "File " << i << ":";
-		for(int g=0; g<10; ++g) std::cout << "\t" << unsigned(data[i][g]);
+		if(isHaploid[i]){
+			for(int g=0; g<4; ++g) std::cout << "\t" << unsigned(data[i][g]);
+		} else {
+			for(int g=0; g<10; ++g) std::cout << "\t" << unsigned(data[i][g]);
+		}
 		std::cout << std::endl;
 	}
 };
 
-void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, int alleleicCombination){
+void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, const int alleleicCombination){
 	storage.resize(numActiveFiles);
 	for(int i=0; i<numActiveFiles; ++i){
 		storage[i].isHaploid = isHaploid[i];
@@ -712,8 +717,6 @@ void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, int alleleicCom
 			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][1]];
 			storage[i].phredLikelihood_2 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][2]];
 		}
-
-		std::cout << "hasData = " << hasData[i] << ", storage[i].phredLikelihood_0 = " << (int) storage[i].phredLikelihood_0 << std::endl;
 	}
 };
 
@@ -817,10 +820,20 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 		vcf << GLFs[ind].depth << ':';
 
 		//write likelihoods
-		if(usePhredLikelihoods)
+		if(usePhredLikelihoods){
 			vcf << (data[ind][refHomIndex] - minQual) << "," << (data[ind][hetIndex] - minQual) << "," << (data[ind][altHomIndex] - minQual);
-		else
-			vcf << (data[ind][refHomIndex] - minQual) / -10.0 << "," << (data[ind][hetIndex] - minQual) / -10.0 << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+		} else {
+			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
+			if(data[ind][refHomIndex] == minQual) vcf << "0";
+			else vcf << (data[ind][refHomIndex] - minQual) / -10.0;
+
+			if(data[ind][hetIndex] == minQual) vcf << ",0";
+			else vcf << "," << (data[ind][hetIndex] - minQual) / -10.0;
+
+			if(data[ind][altHomIndex] == minQual) vcf << ",0";
+			else vcf << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+		}
+
 	} else {
 		vcf << "\t./.:.:.:.";
 	}
