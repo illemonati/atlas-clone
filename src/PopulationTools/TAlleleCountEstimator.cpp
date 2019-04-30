@@ -44,16 +44,12 @@ TSiteAlleleFrequencyLikelihoods::TSiteAlleleFrequencyLikelihoods(int numIndividu
 
 TSiteAlleleFrequencyLikelihoods::~TSiteAlleleFrequencyLikelihoods(){
 	delete[] log_alleleFrequencyLikelihoods_h;
-	for(std::pair<int, TSAFChooseStorage*> it : log_choose){
-		delete it.second;
-	}
 };
 
 void TSiteAlleleFrequencyLikelihoods::updateStorage(int numIndividuals){
 	int numRequiredAlleleCounts = 2*numIndividuals + 1;
 	if(numRequiredAlleleCounts > storageSize){
-		if(storageSize > 0)
-			delete[] log_alleleFrequencyLikelihoods_h;
+		delete[] log_alleleFrequencyLikelihoods_h;
 		log_alleleFrequencyLikelihoods_h = new double[numRequiredAlleleCounts];
 		storageSize = numRequiredAlleleCounts;
 	}

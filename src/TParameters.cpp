@@ -170,52 +170,52 @@ long TParameters::getParameterLongWithDefault(std::string my_name, long def){
 //---------------------------------------------------------------------------
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<int> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<long> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<double> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<float> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<bool> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVector(std::string my_name, std::vector<std::string> & vec, char delim, bool mandatory){
 	std::string str=getParameter(my_name, mandatory);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 //---------------------------------------------------------------------------
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<int> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<long> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<double> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<float> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<bool> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 void TParameters::fillParameterIntoVectorWithDefault(std::string my_name, std::vector<std::string> & vec, char delim, std::string def){
 	std::string str = getParameterStringWithDefault(my_name, def);
-	fillVectorFromStringSkipEmpty(str, vec, delim);
+	fillVectorFromString(str, vec, delim);
 }
 
 //---------------------------------------------------------------------------

@@ -95,7 +95,6 @@ public:
 	TPopulationLikehoodSample* samples;
 
 	TPopulationLikehoodStorage(int NumSamples){
-		numSamples = 0;
 		resize(NumSamples);
 	};
 
