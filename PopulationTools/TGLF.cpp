@@ -708,6 +708,7 @@ void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, const int allel
 	for(int i=0; i<numActiveFiles; ++i){
 		storage[i].isHaploid = isHaploid[i];
 		storage[i].isMissing = !hasData[i];
+
 		if(isHaploid[i]){
 			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][0]];
 			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][1]];

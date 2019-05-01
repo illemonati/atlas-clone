@@ -12,7 +12,7 @@
 //---------------------------------------------------
 TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator){
 	L10L_perCombination = new double[6];
-	allelicCombination = 0;
+	bestAllelicCombination = 0;
 	minor = A;
 	major = A;
 	L10L = 0.0;
@@ -24,14 +24,14 @@ TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
 	delete[] L10L_perCombination;
 };
 
-void TMajorMinorEstimatorBase::chooseMLAllelicCombinationAmongThoseWithEqualLikelihood(){
+void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualScores(){
 	//select MLE combination
-	std::vector<int> MLE_combinations;
+	std::vector<int> best_combinations;
 	for(int i=0; i<6; ++i){
 		if(L10L_perCombination[i] == L10L)
-			MLE_combinations.push_back(i);
+			best_combinations.push_back(i);
 	}
-	allelicCombination = MLE_combinations[randomGenerator->pickOne(MLE_combinations.size())];
+	bestAllelicCombination = best_combinations[randomGenerator->pickOne(best_combinations.size())];
 };
 
 void TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader){
@@ -43,11 +43,11 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader){
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency < 0.5){
-		major = genoMap.alleleicCombinationToBase[allelicCombination][1];
-		minor = genoMap.alleleicCombinationToBase[allelicCombination][0];
+		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
+		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
 	} else {
-		major = genoMap.alleleicCombinationToBase[allelicCombination][0];
-		minor = genoMap.alleleicCombinationToBase[allelicCombination][1];
+		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
+		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
 
 		//also flip frequencies
 		genotypeFrequencies.flip();
@@ -101,10 +101,10 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TGlfMultiReader & glfR
 	}
 
 	//pick combination with highest likelihood
-	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
+	chooseBestAllelicCombinationAmongThoseWithEqualScores();
 
 	//now guess genotype frequencies at MLE
-	glfReader.fill(genotypeLikelihoods, allelicCombination);
+	glfReader.fill(genotypeLikelihoods, bestAllelicCombination);
 
 	genotypeFrequencies.estimate(genotypeLikelihoods, qualiMap, epsilonF);
 };
@@ -121,10 +121,10 @@ TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
 	delete[] tmpGenotypeFrequencies;
 };
 
-double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TGlfMultiReader & glfReader, const int alleleicCombination){
-	glfReader.fill(genotypeLikelihoods, allelicCombination);
-	tmpGenotypeFrequencies[alleleicCombination].estimate(genotypeLikelihoods, qualiMap, epsilonF);
-	return tmpGenotypeFrequencies[alleleicCombination].calculateLog10Likelihood(genotypeLikelihoods, qualiMap);
+double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TGlfMultiReader & glfReader, int thisAlleleicCombination){
+	glfReader.fill(genotypeLikelihoods, thisAlleleicCombination);
+	tmpGenotypeFrequencies[thisAlleleicCombination].estimate(genotypeLikelihoods, qualiMap, epsilonF);
+	return tmpGenotypeFrequencies[thisAlleleicCombination].calculateLog10Likelihood(genotypeLikelihoods, qualiMap);
 };
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfReader){
@@ -140,8 +140,8 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfRead
 	}
 
 	//pick combination
-	chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
-	genotypeFrequencies.set(tmpGenotypeFrequencies[allelicCombination]);
+	chooseBestAllelicCombinationAmongThoseWithEqualScores();
+	genotypeFrequencies.set(tmpGenotypeFrequencies[bestAllelicCombination]);
 };
 
 //---------------------------------------------------
@@ -239,7 +239,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
-
 			//do major minor
 			MMEstimator->estimateMajorMinor(glfReader);
 

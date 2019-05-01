@@ -10,6 +10,7 @@
 
 #include "../mathFunctions.h"
 #include "TPopulationLikelihoods.h"
+#include "TFile.h"
 
 //-------------------------------------------------
 // TSAFChooseStorage
@@ -53,8 +54,9 @@ public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
 	void fill(const TSampleLikelihoods* data, int numSamples);
-	int getMLAlleleCount(TRandomGenerator & randomGenerator);
 	void print();
+	int getMLAlleleCount(TRandomGenerator & randomGenerator);
+	int getNumAlleles(){ return numAlleleCounts; };
 };
 
 //-------------------------------------------------

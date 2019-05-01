@@ -30,12 +30,12 @@ protected:
 	double* L10L_perCombination;
 
 	void calculateL10LPerCombination();
-	void chooseMLAllelicCombinationAmongThoseWithEqualLikelihood();
+	void chooseBestAllelicCombinationAmongThoseWithEqualScores();
 	virtual void findMLAllelicCombination(TGlfMultiReader & glfReader);
 
 public:
 	Base minor, major;
-	int allelicCombination;
+	int bestAllelicCombination;
 	double L10L;
 	int variantQuality;
 
