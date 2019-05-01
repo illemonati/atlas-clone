@@ -189,13 +189,16 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 			}
 		}
 
-		diploidFrequencies[0] /= (double) numDiploidSamples;
-		diploidFrequencies[2] /= (double) numDiploidSamples;
-		diploidFrequencies[1] = 1.0 - diploidFrequencies[0] - diploidFrequencies[2];
+		if(numDiploidSamples > 0){
+			diploidFrequencies[0] /= (double) numDiploidSamples;
+			diploidFrequencies[2] /= (double) numDiploidSamples;
+			diploidFrequencies[1] = 1.0 - diploidFrequencies[0] - diploidFrequencies[2];
+		}
 
-		haploidFrequencies[0] /= (double) numHaploidSamples;
-		haploidFrequencies[1] = 1.0 - haploidFrequencies[0];
-
+		if(numHaploidSamples > 0){
+			haploidFrequencies[0] /= (double) numHaploidSamples;
+			haploidFrequencies[1] = 1.0 - haploidFrequencies[0];
+		}
 
 		//check if we stop
 		maxF = fabs(diploidFrequencies[0] - diploidFrequencies_old[0]);
@@ -209,14 +212,15 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 		if(tmp > maxF) maxF = tmp;
 	}
 
-	//now set allele frequencies
-	if(numHaploidSamples > 0)
-		alleleFrequency = (numDiploidSamples * (2.0 * diploidFrequencies[2] + diploidFrequencies[1]) + numHaploidSamples * haploidFrequencies[1]) / (2.0 * numDiploidSamples + numHaploidSamples);
-	else
-		alleleFrequency = (numDiploidSamples * (2.0 * diploidFrequencies[2] + diploidFrequencies[1])) / (2.0 * numDiploidSamples);
+
+	std::cout << "DIPLOID = " << diploidFrequencies[0] << "," << diploidFrequencies[1] << "," << diploidFrequencies[2] << std::endl;
+
+	alleleFrequency = (numDiploidSamples * (2.0 * diploidFrequencies[2] + diploidFrequencies[1]) + numHaploidSamples * haploidFrequencies[1]) / (2.0 * numDiploidSamples + numHaploidSamples);
+
+
 	if(alleleFrequency > 0.5) MAF = 1.0 - alleleFrequency;
 	else MAF = alleleFrequency;
-	std::cout << "MAF " << MAF << std::endl;
+	std::cout << "MAF " << MAF << ", f = " << alleleFrequency << std::endl;
 };
 
 double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodStorage & samples, TQualityMap & phredToGTLMap){
