@@ -104,80 +104,89 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 	//all calculations done in log
 
 	//set all h_j = 0
+	numAlleleCounts = 0;
 	for(int j=0; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
 
-	//initialize with first individual
-	if(data[0].isHaploid){
-		log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
-		log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
-		numAlleleCounts = 1;
-	} else {
-		log_alleleFrequencyLikelihoods_h[0] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
-		log_alleleFrequencyLikelihoods_h[1] = logOf2 + qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
-		log_alleleFrequencyLikelihoods_h[2] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_2];
-		numAlleleCounts = 2;
+	//find first individual  with data
+	int s = 0;
+	while(data[s].isMissing && s < numSamples){
+		++s;
 	}
 
-	//Recursion
-	for(int s=1; s<numSamples; ++s){
-		if(!data[0].isMissing){
-			int j = numAlleleCounts;
+	if(s < numSamples){
+		//initialize with first individual
+		if(data[s].isHaploid){
+			log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
+			numAlleleCounts = 1;
+		} else {
+			log_alleleFrequencyLikelihoods_h[0] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = logOf2 + qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[2] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_2];
+			numAlleleCounts = 2;
+		}
 
-			if(data[0].isHaploid){
-				//first fill new ones to avoid multiplication with zero (relevant in log)
-				log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j];
+		//Recursion
+		for(++s; s<numSamples; ++s){
+			if(!data[s].isMissing){
+				int j = numAlleleCounts;
 
-				//now fill those already used
-				for(; j>1; j--){
-					log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-							qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j-1],
-							qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[j]    );
+				if(data[s].isHaploid){
+					//first fill new ones to avoid multiplication with zero (relevant in log)
+					log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j];
+
+					//now fill those already used
+					for(; j>1; j--){
+						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
+								qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j-1],
+								qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[j]    );
+					}
+
+					//special case for j=1,0
+					log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
+								qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[0],
+								qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[1]  );
+					log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[0];
+
+					//increase total number of haplotypes by one
+					numAlleleCounts += 1;
+				} else {
+					//first fill new ones to avoid multiplication with zero (relevant in log)
+					log_alleleFrequencyLikelihoods_h[j+2] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = protectedSumInLog(
+																qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j-1],
+													   logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j]    );
+
+					//now fill those already used
+					for(; j>1; j--){
+						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
+										 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j-2],
+								logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j-1],
+										 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[j]    );
+					}
+
+					//special case for j=1,0
+					log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
+								logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[0],
+										 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[1]  );
+
+					log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[0];
+
+					//increase total number of haplotypes by two
+					numAlleleCounts += 2;
 				}
-
-				//special case for j=1,0
-				log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-							qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[0],
-							qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[1]  );
-				log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[0];
-
-				//increase total number of haplotypes by one
-				numAlleleCounts += 1;
-			} else {
-				//first fill new ones to avoid multiplication with zero (relevant in log)
-				log_alleleFrequencyLikelihoods_h[j+2] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j];
-				log_alleleFrequencyLikelihoods_h[j+1] = protectedSumInLog(
-															qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j-1],
-												   logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j]    );
-
-				//now fill those already used
-				for(; j>1; j--){
-					log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-									 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2] + log_alleleFrequencyLikelihoods_h[j-2],
-							logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[j-1],
-									 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[j]    );
-				}
-
-				//special case for j=1,0
-				log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-							logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1] + log_alleleFrequencyLikelihoods_h[0],
-									 qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[1]  );
-
-				log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0] + log_alleleFrequencyLikelihoods_h[0];
-
-				//increase total number of haplotypes by two
-				numAlleleCounts += 2;
 			}
 		}
+
+		//Termination: add binomial coefficient
+		TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
+		for(int j=0; j<numAlleleCounts; j++)
+			log_alleleFrequencyLikelihoods_h[j] -= logChoose->logChoose(j);
+
+		//Normalization
+		normalize();
 	}
-
-	//Termination: add binomial coefficient
-	TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
-	for(int j=0; j<numAlleleCounts; j++)
-		log_alleleFrequencyLikelihoods_h[j] -= logChoose->logChoose(j);
-
-	//Normalization
-	normalize();
 };
 
 void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data, int numSamples){
@@ -185,74 +194,83 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 
 	//set all h_j = 0
+	numAlleleCounts = 0;
 	for(int j=0; j<numAlleleCounts; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
 
-	//initialize with first individual
-	if(data[0].isHaploid){
-		log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[0].phredLikelihood_0];
-		log_alleleFrequencyLikelihoods_h[1] =     qualMap.phredIntToErrorMap[data[0].phredLikelihood_1];
-		numAlleleCounts = 1;
-	} else {
-		log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[0].phredLikelihood_0];
-		log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[data[0].phredLikelihood_1];
-		log_alleleFrequencyLikelihoods_h[2] =     qualMap.phredIntToErrorMap[data[0].phredLikelihood_2];
-		numAlleleCounts = 2;
+	//find first individual  with data
+	int s = 0;
+	while(data[s].isMissing && s < numSamples){
+		++s;
 	}
 
-	//Recursion
-	for(int s=1; s<numSamples; ++s){
-		if(!data[0].isMissing){
-			int j = numAlleleCounts;
+	if(s < numSamples){
+		//initialize with first individual
+		if(data[s].isHaploid){
+			log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_1];
+			numAlleleCounts = 1;
+		} else {
+			log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[2] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2];
+			numAlleleCounts = 2;
+		}
 
-			if(data[0].isHaploid){
-				//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-				log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1];
+		//Recursion
+		for(++s; s<numSamples; ++s){
+			if(!data[s].isMissing){
+				int j = numAlleleCounts;
 
-				//now fill those already used
-				for(; j>1; j--){
-					log_alleleFrequencyLikelihoods_h[j] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
-														+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
+				if(data[s].isHaploid){
+					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
+					log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1];
+
+					//now fill those already used
+					for(; j>1; j--){
+						log_alleleFrequencyLikelihoods_h[j] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
+															+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
+					}
+
+					//special case for j=1,0
+					log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
+														+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
+					log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
+
+					//increase total number of haplotypes by one
+					numAlleleCounts += 1;
+				} else {
+					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
+					log_alleleFrequencyLikelihoods_h[j+2] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1]
+														  + 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j];
+
+					//now fill those already used
+					for(; j>1; j--){
+						log_alleleFrequencyLikelihoods_h[j] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-2]
+															+ 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
+															+     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
+					}
+
+					//special case for j=1,0
+					log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
+														+     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
+					log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
+
+					//increase total number of haplotypes by two
+					numAlleleCounts += 2;
 				}
-
-				//special case for j=1,0
-				log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
-													+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
-				log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
-
-				//increase total number of haplotypes by one
-				numAlleleCounts += 1;
-			} else {
-				//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-				log_alleleFrequencyLikelihoods_h[j+2] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j];
-				log_alleleFrequencyLikelihoods_h[j+1] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1]
-													  + 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j];
-
-				//now fill those already used
-				for(; j>1; j--){
-					log_alleleFrequencyLikelihoods_h[j] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-2]
-														+ 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
-														+     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
-				}
-
-				//special case for j=1,0
-				log_alleleFrequencyLikelihoods_h[1] = 2 * qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
-													+     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
-				log_alleleFrequencyLikelihoods_h[0] =     qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
-
-				//increase total number of haplotypes by two
-				numAlleleCounts += 2;
 			}
 		}
+
+		//Termination: put in log and add binomial coefficient
+		TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
+		for(int j=0; j<numAlleleCounts; j++)
+			log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j);
+
+		//Normalization
+		normalize();
 	}
-
-	//Termination: put in log and add binomial coefficient
-	TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
-	for(int j=0; j<numAlleleCounts; j++)
-		log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j);
-
-	//Normalization
-	normalize();
 };
 
 void TSiteAlleleFrequencyLikelihoods::fill(const TSampleLikelihoods* data, int numSamples){
@@ -263,6 +281,12 @@ void TSiteAlleleFrequencyLikelihoods::fill(const TSampleLikelihoods* data, int n
 		fillLog(data, numSamples);
 	else
 		fillNatural(data, numSamples);
+};
+
+void TSiteAlleleFrequencyLikelihoods::print(){
+	for(int j=0; j<numAlleleCounts; j++){
+		std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j];
+	}
 };
 
 int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomGenerator){
@@ -284,13 +308,6 @@ int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomG
 	//now choose randomly among those ate MLE
 	return MLEs[randomGenerator.pickOne(MLEs.size())];
 };
-
-void TSiteAlleleFrequencyLikelihoods::print(){
-	for(int j=0; j<numAlleleCounts; j++){
-		std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j];
-	}
-};
-
 
 //-------------------------------------------------
 // TAlleleCountEstimator
@@ -378,7 +395,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 			//and print MLE counts
 			//TODO: find way to estimate counts among samples with data!
 			//aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << 2*samples.numSamplesWithDataInPop(sampleIsMissing, p);
-			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << 2 * samples.numSamplesInPop(p);
+			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << saf[p]->getNumAlleles();
 		}
 		aleleCountFile << std::endl;
 	}
