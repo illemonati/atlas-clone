@@ -10,9 +10,9 @@
 
 #include <math.h>
 #include "TGLF.h"
-#include "TGenotypeMap.h"
-#include "TQualityMap.h"
-#include "TRandomGenerator.h"
+#include "../TGenotypeMap.h"
+#include "../TQualityMap.h"
+#include "../TRandomGenerator.h"
 #include "TPopulationLikelihoodStorage.h"
 #include "TGenotypeFrequencies.h"
 

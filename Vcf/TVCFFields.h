@@ -9,8 +9,8 @@
 #define TVCFFIELDS_H_
 
 #include <vector>
-#include "gzstream.h"
-#include "TLog.h"
+#include "../gzstream.h"
+#include "../TLog.h"
 
 //------------------------------------------------------
 // TVCFField

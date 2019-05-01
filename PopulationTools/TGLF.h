@@ -10,14 +10,14 @@
 
 #include <stdio.h>
 #include <zlib.h>
-#include "gzstream.h"
+#include "../gzstream.h"
 #include <algorithm>
 #include <string.h>
 #include <vector>
-#include "TParameters.h"
-#include "stringFunctions.h"
-#include "TGenotypeMap.h"
-#include "TRandomGenerator.h"
+#include "../TParameters.h"
+#include "../stringFunctions.h"
+#include "../TGenotypeMap.h"
+#include "../TRandomGenerator.h"
 #include "TPopulationLikelihoodStorage.h"
 
 //----------------------------------------------------

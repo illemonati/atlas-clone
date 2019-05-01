@@ -8,7 +8,7 @@
 #ifndef TVCFPARSER_H_
 #define TVCFPARSER_H_
 
-#include "stringFunctions.h"
+#include "../stringFunctions.h"
 #include <vector>
 #include <map>
 #include <iostream>

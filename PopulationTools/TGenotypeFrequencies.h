@@ -9,7 +9,7 @@
 #define POPULATIONTOOLS_TGENOTYPEFREQUENCIES_H_
 
 #include "TPopulationLikelihoodStorage.h"
-#include "TQualityMap.h"
+#include "../TQualityMap.h"
 #include <iostream>
 
 //------------------------------------------------

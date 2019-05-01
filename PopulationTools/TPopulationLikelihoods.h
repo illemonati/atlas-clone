@@ -17,11 +17,11 @@
 
 #include <iostream>
 #include <math.h>
-#include "stringFunctions.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "../stringFunctions.h"
+#include "../TParameters.h"
+#include "../TRandomGenerator.h"
 #include "TVcfFile.h"
-#include "TQualityMap.h"
+#include "../TQualityMap.h"
 #include "TPopulationLikelihoodStorage.h"
 #include "TGenotypeFrequencies.h"
 
