@@ -59,11 +59,12 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader){
 	for(int i=0; i<glfReader.numActiveSamples(); ++i){
 		if(glfReader.hasData[i]){
 			if(glfReader.isHaploid[i])
-				LL_fixed_phred += qualiMap[ glfReader.data[i][major] ];
+				LL_fixed_phred += glfReader.data[i][major];
 			else
-				LL_fixed_phred += qualiMap[ glfReader.data[i][refHomIndex] ];
+				LL_fixed_phred += glfReader.data[i][refHomIndex];
 		}
 	}
+
 	variantQuality = LL_fixed_phred - round(-10.0 * L10L);
 };
 
