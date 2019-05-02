@@ -83,7 +83,6 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, do
 	//normalize phred-scaled genotype likelihoods
 	for(int i=0; i<curChr.numLikelihoodValues; ++i){
 		uint32_t tmp = round(phredGenoQualities[i] - maxLL);
-		std::cout << "phredGenoQualities[i] - maxLL) = (" << phredGenoQualities[i] << " - " << maxLL << ") = " << (int) tmp << std::endl;
 		if(tmp > 255)
 			genoQualities[i] = 255;
 		else genoQualities[i] = tmp;
