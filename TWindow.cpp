@@ -577,24 +577,23 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, 
 	}
 };
 
-void TWindow::addToGLF(TGlfWriter & writer, bool printAll){
+void TWindow::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
-	uint8_t* gl = new uint8_t[10];
-	uint32_t maxLL;
+	double* phredGLs = new double[10];
 	if(printAll){
 		for(int i=0; i<length; ++i){
-			sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
-			writer.writeSite(start + i + 1, sites[i].depth(), 0, gl, maxLL);
+			sites[i].calculateDiploidPhredScaledGenotypeLikelihoods(phredGLs);
+			writer.writeSite(start + i + 1, sites[i].depth(), 0, phredGLs);
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				sites[i].calculateNormalizedGenotypeLikelihoods(gl, maxLL);
-				writer.writeSite(start + i + 1, sites[i].depth(), 0, gl, maxLL);
+				sites[i].calculateDiploidPhredScaledGenotypeLikelihoods(phredGLs);
+				writer.writeSite(start + i + 1, sites[i].depth(), 0, phredGLs);
 			}
 		}
 	}
-	delete[] gl;
+	delete[] phredGLs;
 };
 
 void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){

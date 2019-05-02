@@ -20,30 +20,43 @@
 #include "../TRandomGenerator.h"
 #include "TPopulationLikelihoodStorage.h"
 
+
 //----------------------------------------------------
 //TGlfChromosome
 //struct to store info on chromosome
 //----------------------------------------------------
 class TGlfChromosome{
+private:
+	void setPloidy(uint8_t Ploidy){
+		if(Ploidy < 1 || Ploidy > 2)
+			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
+		ploidy = Ploidy;
+		if(ploidy == 1){
+			numLikelihoodValues = 4;
+		} else {
+			numLikelihoodValues = 10;
+		}
+	};
+
 public:
 	uint32_t number;
 	std::string name;
 	uint32_t length;
 	uint8_t ploidy;
+	uint8_t numLikelihoodValues; //depends on ploidy
 
 	TGlfChromosome(){
 		number = 0;
 		length = 0;
 		ploidy = 2;
+		numLikelihoodValues = 10;
 		name = "";
 	};
 
 	TGlfChromosome(std::string Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
-		if(Ploidy < 1 || Ploidy > 2)
-			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
-		ploidy = Ploidy;
+		setPloidy(Ploidy);
 		number = 1;
 	};
 
@@ -51,15 +64,14 @@ public:
 		name = other.name;
 		length = other.length;
 		ploidy = other.ploidy;
-		number = 1;
+		number = other.number;
+		numLikelihoodValues = other.numLikelihoodValues;
 	};
 
 	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
-		if(Ploidy < 1 || Ploidy > 2)
-			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
-		ploidy = Ploidy;
+		setPloidy(Ploidy);
 		++number;
 	};
 
@@ -125,6 +137,14 @@ public:
 	bool chrIsHaploid(){
 		return curChr.ploidy == 1;
 	};
+
+	uint8_t chrPloidy(){
+		return curChr.ploidy;
+	};
+
+	uint8_t chrNumLikelihoodvalues(){
+		return curChr.numLikelihoodValues;
+	};
 };
 
 //----------------------------------------------------
@@ -134,7 +154,9 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long oldPos;
 	uint8_t recordType1;
+	uint8_t* genoQualities; //tmp used for writing
 
+	void init();
 	void writeHeader();
 
 	template <typename T>
@@ -150,18 +172,16 @@ public:
 		init();
 		open(Filename, "");
 	};
-	void init(){
-		oldPos = 0;
-		recordType1 = one8 << 4;
-	};
+
 	~TGlfWriter(){
 		close();
+		delete[] genoQualities;
 	};
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
 	void newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy);
-	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL);
+	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* phredGenoQualities);
 };
 
 

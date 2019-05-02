@@ -491,7 +491,7 @@ void TGenome::writeGLF(TParameters & params){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
 			window.calculateEmissionProbabilities();
-			window.addToGLF(writer, printIfNoData);
+			window.addToGLF(writer, alignmentParser.getCurChrPloidy(), printIfNoData);
 			logfile->done();
 		}
 	}

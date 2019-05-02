@@ -11,6 +11,12 @@
 //TGlfWriter
 //---------------------------------
 //PRIVATE
+void TGlfWriter::init(){
+	genoQualities = new uint8_t[curChr.numLikelihoodValues];
+	oldPos = 0;
+	recordType1 = one8 << 4;
+};
+
 void TGlfWriter::writeHeader(){
 	write(version.c_str(), 4*sizeof(char));
 
@@ -57,7 +63,7 @@ void TGlfWriter::newChromosome(const std::string name, const uint32_t length, co
 	oldPos = 0;
 };
 
-void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, uint8_t* genoQualities, uint32_t & maxLL){
+void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* phredGenoQualities){
 	//record type
 	//TODO: add reference?
 	write(&recordType1, sizeof(uint8_t));
@@ -67,9 +73,29 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, ui
 	oldPos = pos;
 	write(&offset, sizeof(uint32_t));
 
-	//maxLL (capped at 255) and depth as one uint32_t
-	if(maxLL > 255) maxLL = 255;
-	uint32_t tmp = maxLL << 24;
+	//maxLL
+	double maxLL = phredGenoQualities[0];
+	for(int i=1; i<curChr.numLikelihoodValues; ++i){
+		if(phredGenoQualities[i] < maxLL)
+			maxLL = phredGenoQualities[i];
+	}
+
+	//normalize phred-scaled genotype likelihoods
+	for(int i=0; i<curChr.numLikelihoodValues; ++i){
+		uint32_t tmp = round(phredGenoQualities[i] - maxLL);
+		std::cout << "phredGenoQualities[i] - maxLL) = (" << phredGenoQualities[i] << " - " << maxLL << ") = " << (int) tmp << std::endl;
+		if(tmp > 255)
+			genoQualities[i] = 255;
+		else genoQualities[i] = tmp;
+	}
+
+	//cap maxLL at 255 and store as uint8_t
+	if(maxLL > 255.0) maxLL = 255.0;
+	uint8_t maxLL_int = round(maxLL);
+
+	//write together with depth (capped at 2^24)
+	if(depth > 16777215) depth = 16777215;
+	uint32_t tmp = maxLL_int << 24;
 	tmp = tmp | depth;
 	write(&tmp, sizeof(uint32_t));
 
@@ -78,10 +104,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, ui
 
 	//genotype likelihoods
 	//TODO: test if using more accuracy on qualities matters
-	if(curChr.ploidy == 1)
-		write(genoQualities, 4*sizeof(uint8_t));
-	else
-		write(genoQualities, 10*sizeof(uint8_t));
+	write(genoQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
 };
 
 //---------------------------------
@@ -192,10 +215,7 @@ void TGlfReader::readSNPRecord(){
 	RMS_mappingQual = (int) tmpInt8;
 
 	//genotype likelihoods
-	if(curChr.ploidy == 1)
-		read(genotypeQualities, 4*sizeof(uint8_t));
-	else
-		read(genotypeQualities, 10*sizeof(uint8_t));
+	read(genotypeQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
 };
 
 
@@ -319,18 +339,15 @@ bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::st
 	while(position < end){
 		//fill in missing positions before
 		for(; i<position; ++i, ++index)
-			memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, 10*sizeof(int));
+			memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(int));
 
-		//now add data
-		//std::cout << "i = " << i << "\tindex = " << index << "\tposition = " << position << "\tgenotypeQualities[0] = " << genotypeQualities[0] << std::endl;
-
-		memcpy(genoLikelihoods[index], genotypeQualities, 10*sizeof(int));
+		memcpy(genoLikelihoods[index], genotypeQualities, curChr.numLikelihoodValues*sizeof(int));
 		++index; ++i;
 
 		//read next record
 		if(!readRecordType() || recordType == 0){
 			for(; i<end; ++i, ++index)
-				memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, 10*sizeof(int));
+				memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(int));
 			readChr();
 			break;
 		}
@@ -342,7 +359,7 @@ bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::st
 
 void TGlfReader::fillGenotypeQualities(uint8_t* destination){
 	//assumes pointer points to
-	memcpy(destination, genotypeQualities, 10*sizeof(uint8_t));
+	memcpy(destination, genotypeQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
 };
 
 //printing
@@ -352,7 +369,7 @@ void TGlfReader::printChr(){
 
 void TGlfReader::printSite(){
 	std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
-	for(int i=0; i<10; ++i)
+	for(int i=0; i<curChr.numLikelihoodValues; ++i)
 		std::cout << "\t" << unsigned(genotypeQualities[i]);
 	std::cout << "\n";
 };
