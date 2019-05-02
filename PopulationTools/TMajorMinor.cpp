@@ -43,11 +43,11 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader){
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency < 0.5){
-		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
-		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
-	} else {
 		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
 		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
+	} else {
+		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
+		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
 
 		//also flip frequencies
 		genotypeFrequencies.flip();

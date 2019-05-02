@@ -212,15 +212,10 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 		if(tmp > maxF) maxF = tmp;
 	}
 
-
-	std::cout << "DIPLOID = " << diploidFrequencies[0] << "," << diploidFrequencies[1] << "," << diploidFrequencies[2] << std::endl;
-
 	alleleFrequency = (numDiploidSamples * (2.0 * diploidFrequencies[2] + diploidFrequencies[1]) + numHaploidSamples * haploidFrequencies[1]) / (2.0 * numDiploidSamples + numHaploidSamples);
-
 
 	if(alleleFrequency > 0.5) MAF = 1.0 - alleleFrequency;
 	else MAF = alleleFrequency;
-	std::cout << "MAF " << MAF << ", f = " << alleleFrequency << std::endl;
 };
 
 double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodStorage & samples, TQualityMap & phredToGTLMap){
