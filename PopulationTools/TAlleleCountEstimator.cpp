@@ -104,9 +104,9 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 	//all calculations done in log
 
 	//set all h_j = 0
-	numAlleleCounts = 0;
-	for(int j=0; j<numAlleleCounts; j++)
+	for(int j=0; j<storageSize; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
+	numAlleleCounts = 0;
 
 	//find first individual  with data
 	int s = 0;
@@ -194,9 +194,9 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 
 	//set all h_j = 0
-	numAlleleCounts = 0;
-	for(int j=0; j<numAlleleCounts; j++)
+	for(int j=0; j<storageSize; j++)
 		log_alleleFrequencyLikelihoods_h[j] = 0.0;
+	numAlleleCounts = 0;
 
 	//find first individual  with data
 	int s = 0;
