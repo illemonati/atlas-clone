@@ -774,15 +774,6 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	vcf << genoMap.baseToChar[genoMap.genotypeToBase[refHomIndex][0]] << '\t' << genoMap.baseToChar[genoMap.genotypeToBase[altHomIndex][0]] << '\t';
 
 	//write quality of variant
-	//variant quality is relative LL of fixed versus polymorphic model
-	//Note: we work in phred scale!
-	double LL_fixed_phred = 0.0;
-	for(int i=0; i<numActiveFiles; ++i){
-		if(hasData[i]){
-			LL_fixed_phred += data[i][refHomIndex];
-		}
-	}
-
 	vcf << varianTQuality;
 
 	//write filter, info and format

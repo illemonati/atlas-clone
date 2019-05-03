@@ -247,7 +247,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 			if(MMEstimator->variantQuality >= minVariantQuality){
 
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->L10L, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
+				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 			}
 		} //end filter on missngness
 
