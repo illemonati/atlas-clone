@@ -445,6 +445,16 @@ public:
 	};
 };
 
+class TTask_writeAlleleFrequencyLikelihoods:public TTask_atlas{
+public:
+	TTask_writeAlleleFrequencyLikelihoods(){ _explanation = "Writing allele frequency likelihoods"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TAlleleCountEstimator alleleCountEst(parameters, logfile);
+		alleleCountEst.writeAlleleFrequencyLikelihoods(parameters);
+	};
+};
+
 class TTask_estimateAlleleFreq:public TTask_atlas{
 public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };

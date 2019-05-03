@@ -876,10 +876,16 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 		vcf << GLFs[ind].depth << ':';
 
 		//write likelihoods
-		if(usePhredLikelihoods)
+		if(usePhredLikelihoods){
 			vcf << (data[ind][major] - minQual) << "," << (data[ind][minor] - minQual);
-		else
-			vcf << (data[ind][major] - minQual) / -10.0 << "," << (data[ind][minor] - minQual) / -10.0;
+		} else {
+			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
+			if(data[ind][major] == minQual) vcf << "0";
+			else vcf << (data[ind][major] - minQual) / -10.0;
+
+			if(data[ind][minor] == minQual) vcf << ",0";
+			else vcf << "," << (data[ind][minor] - minQual) / -10.0;
+		}
 	} else {
 		vcf << "\t.:.:.:.";
 	}

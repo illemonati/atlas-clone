@@ -284,6 +284,12 @@ void TSiteAlleleFrequencyLikelihoods::print(){
 	}
 };
 
+void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream & file){
+	for(int j=0; j<numAlleleCounts; j++){
+		file << "\t" << log_alleleFrequencyLikelihoods_h[j];
+	}
+};
+
 int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomGenerator){
 	//first find ML and store all indexes that are at ML
 	double ML = log_alleleFrequencyLikelihoods_h[0];
@@ -366,8 +372,8 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 		logfile->list("Will print locus names (rather than chromosome and position).");
 		aleleCountFile << "Locus";
 		sep = '_';
-	} else
-		aleleCountFile << "chr\tpos";
+	}
+	aleleCountFile << "chr" << sep << "pos";
 	for(int p=0; p<samples.numPopulations(); p++)
 		aleleCountFile << "\t" << samples.getPopulationName(p);
 	aleleCountFile << "\n";
@@ -388,11 +394,92 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params){
 			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
 
 			//and print MLE counts
-			//TODO: find way to estimate counts among samples with data!
-			//aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << 2*samples.numSamplesWithDataInPop(sampleIsMissing, p);
 			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << saf[p]->getNumAlleles();
 		}
 		aleleCountFile << std::endl;
+	}
+
+	//clean up
+	for(int p=0; p<samples.numPopulations(); p++)
+		delete saf[p];
+	delete[] saf;
+
+	//report final status
+	logfile->endIndent();
+	reader.concludeFilters(logfile);
+	logfile->endIndent();
+};
+
+void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params){
+	//TODO: write proper saf
+	//read samples
+	TPopulationSamples samples;
+	if(params.parameterExists("samples"))
+		samples.readSamples(params.getParameterString("samples"), logfile);
+
+	//open VCF reader
+	std::string vcfFilename = params.getParameterString("vcf");
+	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
+	TPopulationLikelihoodReader reader(params, logfile, false);
+	reader.openVCF(vcfFilename, logfile);
+	logfile->endIndent();
+
+	//Match samples
+	if(samples.hasSamples())
+		samples.fillVCFOrder(reader.getSampleVCFNames());
+	 else
+		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+
+	//prepare site allele frequency likelihood calculators
+	TSiteAlleleFrequencyLikelihoods** saf = new TSiteAlleleFrequencyLikelihoods*[samples.numPopulations()];
+	for(int p=0; p<samples.numPopulations(); p++){
+		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
+	}
+
+	//open output file
+	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string outname = params.getParameterStringWithDefault("out", tmp);
+	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
+	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
+	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
+	if(!alleleFrequencyLikelihoodFile)
+		throw "Failed to open file '" + filename + "' for writing!";
+
+	//write header
+	bool useLocusName = params.parameterExists("useLocusName");
+	char sep = '\t';
+	if(useLocusName){
+		logfile->list("Will print locus names (rather than chromosome and position).");
+		alleleFrequencyLikelihoodFile << "Locus";
+		sep = '_';
+	}
+	alleleFrequencyLikelihoodFile << "chr" << sep << "pos\tnumAlleles";
+	for(int p=0; p<samples.numPopulations(); p++)
+		alleleFrequencyLikelihoodFile << "\t" << samples.getPopulationName(p);
+	alleleFrequencyLikelihoodFile << "\n";
+
+	// initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+	TPopulationLikehoodStorage data(samples.numSamples());
+
+	//run through VCF file
+	logfile->startIndent("Parsing VCF file and estimating allele counts:");
+	while(reader.readDataFromVCF(data, samples, logfile)){
+		//write chromosome and position
+		alleleFrequencyLikelihoodFile << reader.chr() << sep << reader.position();
+
+		//print MLE count for each population
+		for(int p=0; p<samples.numPopulations(); p++){
+			//calculate allele frequency likelihoods
+			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
+
+			//print num alleles
+			alleleFrequencyLikelihoodFile << "\t" << saf[p]->getNumAlleles();
+
+			//print AFL
+			saf[p]->write(alleleFrequencyLikelihoodFile);
+		}
+		alleleFrequencyLikelihoodFile << std::endl;
 	}
 
 	//clean up

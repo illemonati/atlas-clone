@@ -54,6 +54,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	//and debug tasks
 	taskMap_debug["inbreedingLikelihood"] = new TTask_inbreedingLikelihood();
 	taskMap_debug["thetaLLSurface"] = new TTask_thetaLLSurface();
+	taskMap_debug["alleleFrequencyLikelihoods"] = new TTask_writeAlleleFrequencyLikelihoods();
 };
 
 

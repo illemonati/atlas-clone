@@ -55,6 +55,7 @@ public:
 	~TSiteAlleleFrequencyLikelihoods();
 	void fill(const TSampleLikelihoods* data, int numSamples);
 	void print();
+	void write(gz::ogzstream & file);
 	int getMLAlleleCount(TRandomGenerator & randomGenerator);
 	int getNumAlleles(){ return numAlleleCounts; };
 };
@@ -72,6 +73,7 @@ public:
 	~TAlleleCountEstimator();
 
 	void estimateAlleleCounts(TParameters & params);
+	void writeAlleleFrequencyLikelihoods(TParameters & params);
 };
 
 
