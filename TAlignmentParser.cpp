@@ -522,6 +522,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 
 		//now jump
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex());
+		window.chrName = chromosomes.curName();
 		bamReader.Jump(chromosomes.curIndex(), window.start);
 
 	} else {
@@ -531,7 +532,6 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 //			chrLength = stringToLong(chrIterator->Length);
 			chromosomes.next();
 		}
-		window.chrName = chromosomes.curName();
 		numWindowsOnChr = ceil(chromosomes.curLength() / (double) windowSize);
 
 		int curStart = skipWindows * windowSize;
@@ -542,6 +542,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 			nextEnd = chromosomes.curLength();
 		}
 		window.move(curStart, nextEnd, chromosomes.curIndex());
+		window.chrName = chromosomes.curName();
 	}
 
 	if(chromosomes.end())
