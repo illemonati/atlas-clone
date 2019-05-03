@@ -224,14 +224,12 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 					log_alleleFrequencyLikelihoods_h[j+1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used
-					for(; j>1; j--){
+					for(; j>0; j--){
 						log_alleleFrequencyLikelihoods_h[j] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
 															+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
-					//special case for j=1,0
-					log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
-														+ qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
+					//special case for j=0
 					log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToErrorMap[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
