@@ -117,13 +117,13 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid){
-			log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
-			log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[0] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1];
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_0];
-			log_alleleFrequencyLikelihoods_h[1] = logOf2 + qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_1];
-			log_alleleFrequencyLikelihoods_h[2] =          qualMap.phredIntToLogErrorMap[data[0].phredLikelihood_2];
+			log_alleleFrequencyLikelihoods_h[0] =          qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = logOf2 + qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[2] =          qualMap.phredIntToLogErrorMap[data[s].phredLikelihood_2];
 			numAlleleCounts = 2;
 		}
 
