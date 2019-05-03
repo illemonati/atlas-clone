@@ -298,8 +298,8 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	uint8_t** data;
@@ -342,7 +342,7 @@ public:
 	void fill(TPopulationLikehoodStorage & data, const int alleleicCombination);
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
-	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 };
 
 #endif /* TGLF_H_ */

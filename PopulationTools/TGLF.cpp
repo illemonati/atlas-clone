@@ -764,14 +764,14 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoo
 
 };
 
-void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with Tcaller
 	//write position
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
 
 	//write major and minor
-	vcf << genoMap.baseToChar[genoMap.genotypeToBase[refHomIndex][0]] << '\t' << genoMap.baseToChar[genoMap.genotypeToBase[altHomIndex][0]] << '\t';
+	vcf << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t';
 
 	//write quality of variant
 	vcf << varianTQuality;
@@ -785,17 +785,22 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	//now write active samples
 	for(int i=0; i<numActiveFiles; ++i){
 		if(isHaploid[i])
-			writeHaploidIndividualToVCF(i, vcf, refHomIndex, hetIndex, altHomIndex, randomGenerator, usePhredLikelihoods);
+			writeHaploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
 		else
-			writeDiploidIndividualToVCF(i, vcf, refHomIndex, hetIndex, altHomIndex, randomGenerator, usePhredLikelihoods);
+			writeDiploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
 	}
 
 	//end of line
 	vcf << '\n';
 };
 
-void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const int refHomIndex, const int hetIndex, const int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
+		//get genotype indeces
+		int refHomIndex = genoMap.genotypeMap[major][major];
+		int hetIndex = genoMap.genotypeMap[major][minor];
+		int altHomIndex = genoMap.genotypeMap[minor][minor];
+
 		//find min qual
 		int minQual = data[ind][refHomIndex];
 		if(data[ind][hetIndex] < minQual) minQual = data[ind][hetIndex];
@@ -847,34 +852,34 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 	}
 };
 
-void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, int refHomIndex, int hetIndex, int altHomIndex, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, Base major, Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
 		//find min qual
-		int minQual = data[ind][refHomIndex];
-		if(data[ind][altHomIndex] < minQual) minQual = data[ind][altHomIndex];
+		int minQual = data[ind][major];
+		if(data[ind][minor] < minQual) minQual = data[ind][minor];
 
 		//get all genotypes with minQual (=MLE)
 		std::vector<int> mleGenotypes;
-		if(data[ind][refHomIndex] == minQual) mleGenotypes.push_back(0);
-		if(data[ind][altHomIndex] == minQual) mleGenotypes.push_back(2);
+		if(data[ind][major] == minQual) mleGenotypes.push_back(major);
+		if(data[ind][minor] == minQual) mleGenotypes.push_back(minor);
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-		if(mleGeno == 0) vcf << "\t0:";
+		if(mleGeno == major) vcf << "\t0:";
 		else vcf << "\t1:";
 
 		//write genotype quality
-		if(mleGeno == 0) vcf << round(data[ind][altHomIndex] - minQual) << ":";
-		else  vcf << round(data[ind][refHomIndex] - minQual) << ":";
+		if(mleGeno == major) vcf << round(data[ind][minor] - minQual) << ":";
+		else  vcf << round(data[ind][major] - minQual) << ":";
 
 		//write depth
 		vcf << GLFs[ind].depth << ':';
 
 		//write likelihoods
 		if(usePhredLikelihoods)
-			vcf << (data[ind][refHomIndex] - minQual) << "," << (data[ind][altHomIndex] - minQual);
+			vcf << (data[ind][major] - minQual) << "," << (data[ind][minor] - minQual);
 		else
-			vcf << (data[ind][refHomIndex] - minQual) / -10.0 << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+			vcf << (data[ind][major] - minQual) / -10.0 << "," << (data[ind][minor] - minQual) / -10.0;
 	} else {
 		vcf << "\t.:.:.:.";
 	}
