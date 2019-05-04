@@ -110,7 +110,7 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 
 	//find first individual  with data
 	int s = 0;
-	while(data[s].isMissing && s < numSamples){
+	while(s < numSamples && data[s].isMissing){
 		++s;
 	}
 
@@ -197,7 +197,7 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 
 	//find first individual  with data
 	int s = 0;
-	while(data[s].isMissing && s < numSamples){
+	while(s < numSamples && data[s].isMissing){
 		++s;
 	}
 
@@ -291,6 +291,9 @@ void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream & file){
 };
 
 int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomGenerator){
+	//return 0 in case of no data
+	if(numAlleleCounts == 0) return 0;
+
 	//first find ML and store all indexes that are at ML
 	double ML = log_alleleFrequencyLikelihoods_h[0];
 	for(int j=1; j<numAlleleCounts; j++){
