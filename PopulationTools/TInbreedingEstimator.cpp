@@ -204,13 +204,14 @@ void TAlleleFreq::setToValue(double fixedValue){
 
 void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates){
 	//adjust proposal with for p
+	long numLociAcceptanceZero = 0;
 	for(long l=0; l<numLoci; ++l){
 //		if(modelP[l]){
 			if(numAcceptedP[l] == 0){
-				std::cout << "!!!!!!!!! acceptance rate is zero for locus " << l << std::endl;
 	//			double minFreq = 1.0 / (double) numSamples;
 	//			alleleFreq[l] = minFreq;
 				proposalWidths[l] *= 0.1;
+				++numLociAcceptanceZero;
 			} else {
 				double newProposalWidth = proposalWidths[l];
 				newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates[l] * 3.0;
@@ -230,6 +231,9 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 			}
 
 //		}
+	}
+	if(numLociAcceptanceZero > 0){
+		std::cout << "!!!!! " << numLociAcceptanceZero << " out of " << numLoci << " have an acceptance rate = 0!" << std::endl;
 	}
 //	numUpdates = 0;
 }

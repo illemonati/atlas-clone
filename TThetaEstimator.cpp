@@ -726,7 +726,7 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & th
 	double logH = newLL - thisTheta.LL ;
 	double newLogPhiMinusMean = newLogTheta - otherLogThetaMean;
 	double oldLogPhiMinusMean = thisTheta.logTheta - otherLogThetaMean;
-	logH += phiPriorOneOverTwoVar * (oldLogPhiMinusMean*oldLogPhiMinusMean - newLogPhiMinusMean*newLogPhiMinusMean);
+	logH += phiPriorOneOverTwoVar * (newLogPhiMinusMean*newLogPhiMinusMean - oldLogPhiMinusMean*oldLogPhiMinusMean);
 
 	//accept or reject
 	if(log(randomGenerator.getRand()) < logH){
@@ -771,8 +771,8 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, 
 
 void TThetaEstimatorRatio::oneMCMCIteration(TRandomGenerator & randomGenerator){
 	//update theta
-	numAcceptedTheta1 += updateTheta(data, theta, theta2.logTheta - phiPriorMean, sdProposalKernelTheta1, randomGenerator);
-	numAcceptedTheta2 += updateTheta(data2, theta2, theta.logTheta + phiPriorMean, sdProposalKernelTheta2, randomGenerator);
+	numAcceptedTheta1 += updateTheta(data, theta, theta2.logTheta + phiPriorMean, sdProposalKernelTheta1, randomGenerator);
+	numAcceptedTheta2 += updateTheta(data2, theta2, theta.logTheta - phiPriorMean, sdProposalKernelTheta2, randomGenerator);
 
 	//update base frequencies
 	numAcceptedBaseFreq1 += updateBaseFrequencies(data, theta, sdProposalKernelBaseFreq1, randomGenerator);
