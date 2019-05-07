@@ -541,6 +541,15 @@ public:
 	};
 };
 
+class TTask_VCFCompare:public TTask_atlas{
+public:
+	TTask_VCFCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		throw "run not defined!";
+	};
+};
+
 /*
 class TTask_filterVCF:public TTask_atlas{
 public:
