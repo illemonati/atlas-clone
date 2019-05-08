@@ -16,18 +16,31 @@
 class TGenotypeComparisonTable{
 private:
 	int** counts;
-	int size = 11;
+	int size;
+	int missingIndex;
+	TGenotypeMap genoMap;
 
 public:
 	TGenotypeComparisonTable();
 
-	void add();
+	//add genotypes
+	void add(const Genotype g1, const Genotype g2);
+	void addFirstMissing(const Genotype g2);
+	void addSecondMissing(const Genotype g1);
+
+	//add from bases
+	void add(const char ind1_first, const char ind1_second, const char ind2_first, const char ind2_second);
+	void addFirstMissing(const char ind2_first, const char ind2_second);
+	void addSecondMissing(const char ind1_first, const char ind1_second);
+
+	void add(TVcfFileSingleLine & vcfFile1, TVcfFileSingleLine & vcfFile2);
+	void addFirstMissing(TVcfFileSingleLine & vcfFile2);
+	void addSecondMissing(TVcfFileSingleLine & vcfFile1);
 };
 
 
 class TVCFCompare{
 private:
-	TGenotypeComparisonTable countTable;
 	TLog* logfile;
 
 	void openVCF(std::string & filename, TVcfFileSingleLine & vcfFile);
