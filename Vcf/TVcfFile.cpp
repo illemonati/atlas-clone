@@ -338,12 +338,26 @@ float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 char TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
 	return parser.getFirstAlleleOfSample(tempLine, num);
 }
+
+Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
+	return genoMap.getBase(parser.getFirstAlleleOfSample(tempLine, num));
+};
+
 char TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 	return parser.getSecondAlleleOfSample(tempLine, num);
 }
+
+Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
+	return genoMap.getBase(parser.getSecondAlleleOfSample(tempLine, num));
+}
+
 short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 	//NOTE: only makes sense for biallelic sites! Missing = 3
 	return parser.sampleGenotype(tempLine, num);
+}
+
+Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num, TGenotypeMap & genoMap){
+	return genoMap.getGenotype(parser.getFirstAlleleOfSample(tempLine, num), parser.getSecondAlleleOfSample(tempLine, num));
 }
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){

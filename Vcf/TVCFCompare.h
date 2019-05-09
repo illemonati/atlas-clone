@@ -12,42 +12,52 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TVcfFile.h"
+#include "TFile.h"
 
 class TGenotypeComparisonTable{
 private:
 	int** counts;
 	int size;
 	int missingIndex;
-	TGenotypeMap genoMap;
+	int firstDiploidIndex;
 
 public:
 	TGenotypeComparisonTable();
+	~TGenotypeComparisonTable();
 
-	//add genotypes
+	//add haploid genotypes
+	void add(const Base b1, const Base b2);
+	void addOtherMissing(const int sample, const Base b);
+	void addFirstMissing(const Base b2);
+	void addSecondMissing(const Base b1);
+
+	//add diploid genotypes
 	void add(const Genotype g1, const Genotype g2);
+	void addOtherMissing(const int sample, const Genotype g);
 	void addFirstMissing(const Genotype g2);
 	void addSecondMissing(const Genotype g1);
 
-	//add from bases
-	void add(const char ind1_first, const char ind1_second, const char ind2_first, const char ind2_second);
-	void addFirstMissing(const char ind2_first, const char ind2_second);
-	void addSecondMissing(const char ind1_first, const char ind1_second);
+	//add haploid / diploid combination of genotypes
+	void add(const Genotype g1, const Base b2);
+	void add(const Base b1, const Genotype g2);
 
-	void add(TVcfFileSingleLine & vcfFile1, TVcfFileSingleLine & vcfFile2);
-	void addFirstMissing(TVcfFileSingleLine & vcfFile2);
-	void addSecondMissing(TVcfFileSingleLine & vcfFile1);
+	//write output
+	void write(const std::string filename, TGenotypeMap & genoMap);
 };
 
 
 class TVCFCompare{
 private:
 	TLog* logfile;
+	TGenotypeMap genoMap;
 
-	void openVCF(std::string & filename, TVcfFileSingleLine & vcfFile);
+	int openVCF(std::string & filename, TVcfFileSingleLine & vcfFile, std::string & sampleName);
+	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample, const int & sampleInVCF,  TVcfFileSingleLine & vcfFile);
+	void moveVcfFile(TVcfFileSingleLine & vcfFile, std::vector<std::string> & parsedChromosomesVcf);
 
 public:
 	TVCFCompare(TLog* Logfile);
-	~TVCFCompare();
+	~TVCFCompare(){};
 
 	void compareVCFFiles(TParameters & parameters);
 };

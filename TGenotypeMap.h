@@ -160,7 +160,7 @@ public:
 	};
 
 	//TODO: also make an array to speed up?
-	Base getBase(char & base){
+	Base getBase(const char base){
 		if(base == 'A') return A;
 		if(base == 'C') return C;
 		if(base == 'G') return G;
@@ -172,7 +172,7 @@ public:
 		return N;
 	};
 
-	Base getBaseOnlyCapitals(char & base){
+	Base getBaseOnlyCapitals(const char base){
 		if(base == 'A') return A;
 		if(base == 'C') return C;
 		if(base == 'G') return G;
