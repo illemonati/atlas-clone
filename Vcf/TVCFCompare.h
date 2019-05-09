@@ -45,15 +45,44 @@ public:
 	void write(const std::string filename, TGenotypeMap & genoMap);
 };
 
+class TVCFComapreVCF{
+private:
+	int sampleIndex;
+	std::vector<std::string> parsedChromosomes;
+	TVcfFileSingleLine* vcfFile;
+	bool vcfFileOpen;
+
+public:
+
+	TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
+	TVCFComapreVCF(TVCFComapreVCF&& other);
+	TVCFComapreVCF& operator=(TVCFComapreVCF&& other);
+	~TVCFComapreVCF();
+
+
+	void next();
+	void next(const int mindepth, const double minQual);
+	void depthFilter(const int minDepth);
+	void genotypeQualityFilter(const double minQual);
+
+	bool eof(){ return vcfFile->eof; };
+	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };
+	bool isDiploid(){ return vcfFile->sampleIsDiploid(sampleIndex); };
+	Genotype genotype(TGenotypeMap & genoMap){ return vcfFile->sampleGenotype(sampleIndex, genoMap); };
+	Base base(TGenotypeMap & genoMap){ return vcfFile->getFirstAlleleOfSample(sampleIndex, genoMap); };
+	std::string chr(){ return vcfFile->chr(); };
+	long position(){ return vcfFile->position(); };
+	bool chrParsed(const std::string chr);
+};
 
 class TVCFCompare{
 private:
 	TLog* logfile;
 	TGenotypeMap genoMap;
 
-	int openVCF(std::string & filename, TVcfFileSingleLine & vcfFile, std::string & sampleName);
-	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample, const int & sampleInVCF,  TVcfFileSingleLine & vcfFile);
-	void moveVcfFile(TVcfFileSingleLine & vcfFile, std::vector<std::string> & parsedChromosomesVcf);
+	std::vector<TVCFComapreVCF> vcfFiles;
+
+	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
 
 public:
 	TVCFCompare(TLog* Logfile);
