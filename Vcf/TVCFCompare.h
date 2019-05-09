@@ -52,8 +52,11 @@ private:
 	TVcfFileSingleLine* vcfFile;
 	bool vcfFileOpen;
 
-public:
+	int minDepth;
+	double minQual;
 
+public:
+	TVCFComapreVCF();
 	TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
 	TVCFComapreVCF(TVCFComapreVCF&& other);
 	TVCFComapreVCF& operator=(TVCFComapreVCF&& other);
@@ -61,9 +64,7 @@ public:
 
 
 	void next();
-	void next(const int mindepth, const double minQual);
-	void depthFilter(const int minDepth);
-	void genotypeQualityFilter(const double minQual);
+	void setFilters(const int mindepth, const double minQual);
 
 	bool eof(){ return vcfFile->eof; };
 	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };

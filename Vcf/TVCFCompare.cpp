@@ -127,12 +127,19 @@ void TGenotypeComparisonTable::write(const std::string filename, TGenotypeMap & 
 //--------------------------------------------------------------
 // TVCFComapreVCF
 //--------------------------------------------------------------
+TVCFComapreVCF::TVCFComapreVCF(){
+	sampleIndex = 0;
+	vcfFile = nullptr;
+	vcfFileOpen = false;
+	minDepth = 0;
+	minQual = 0.0;
+};
+
 TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile){
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
 		vcfFile = new TVcfFileSingleLine(filename, false);
-
 	} else {
 		logfile->list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
 		vcfFile = new TVcfFileSingleLine(filename, true);
@@ -148,9 +155,17 @@ TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName,
 	sampleIndex = vcfFile->sampleNumber(sampleName);
 
 	//move to first position
-	next();
+	vcfFile->next();
+
 	if(vcfFile->eof)
 		throw "Vcf file '" + filename + "' is empty!";
+
+	//store first chr
+	parsedChromosomes.push_back(vcfFile->chr());
+
+	//set filters to zero
+	minDepth = 0;
+	minQual = 0.0;
 };
 
 TVCFComapreVCF::TVCFComapreVCF(TVCFComapreVCF&& other){
@@ -162,6 +177,15 @@ TVCFComapreVCF::TVCFComapreVCF(TVCFComapreVCF&& other){
 
 	vcfFileOpen = other.vcfFileOpen;
 	other.vcfFileOpen = false;
+
+	minDepth = other.minDepth;
+	other.minDepth = 0;
+
+	minQual = other.minQual;
+	other.minQual = 0.0;
+
+	parsedChromosomes = other.parsedChromosomes;
+	other.parsedChromosomes.clear();
 };
 
 TVCFComapreVCF& TVCFComapreVCF::operator=(TVCFComapreVCF&& other){
@@ -175,6 +199,15 @@ TVCFComapreVCF& TVCFComapreVCF::operator=(TVCFComapreVCF&& other){
 
 		vcfFileOpen = other.vcfFileOpen;
 		other.vcfFileOpen = false;
+
+		minDepth = other.minDepth;
+		other.minDepth = 0;
+
+		minQual = other.minQual;
+		other.minQual = 0.0;
+
+		parsedChromosomes = other.parsedChromosomes;
+		other.parsedChromosomes.clear();
 	 }
 
 	 return *this;
@@ -187,25 +220,23 @@ TVCFComapreVCF::~TVCFComapreVCF(){
 
 void TVCFComapreVCF::next(){
 	vcfFile->next();
-	if(!vcfFile->eof && vcfFile->chr() != parsedChromosomes.back()){
-		parsedChromosomes.push_back(vcfFile->chr());
+	if(!vcfFile->eof){
+		//store chr if new
+		if(vcfFile->chr() != parsedChromosomes.back())
+			parsedChromosomes.push_back(vcfFile->chr());
+
+		//filter
+		if(vcfFile->sampleDepth(sampleIndex) < minDepth)
+			vcfFile->setSampleMissing(sampleIndex);
+
+		if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual)
+			vcfFile->setSampleMissing(sampleIndex);
 	}
 };
 
-void TVCFComapreVCF::next(const int minDepth, const double minQual){
-	next();
-	depthFilter(minDepth);
-	genotypeQualityFilter(minQual);
-};
-
-void TVCFComapreVCF::depthFilter(const int minDepth){
-	if(vcfFile->sampleDepth(sampleIndex) < minDepth)
-		vcfFile->setSampleMissing(sampleIndex);
-};
-
-void TVCFComapreVCF::genotypeQualityFilter(const double minQual){
-	if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual)
-		vcfFile->setSampleMissing(sampleIndex);
+void TVCFComapreVCF::setFilters(const int MinDepth, const double MinQual){
+	minDepth = MinDepth;
+	minQual = MinQual;
 };
 
 bool TVCFComapreVCF::chrParsed(const std::string chr){
@@ -260,6 +291,11 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	double minQual = parameters.getParameterDoubleWithDefault("minQual", 0.0);
 	if(minQual > 0){
 		logfile->list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
+	}
+
+	//set filters in VCF files
+	for(TVCFComapreVCF& it : vcfFiles){
+		it.setFilters(minDepth, minQual);
 	}
 
 	//prepare count table
