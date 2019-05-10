@@ -20,6 +20,7 @@
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
 #include "TInbreedingEstimator.h"
+#include "TVCFCompare.h"
 
 //---------------------------------------------------------------------------
 // TTask class specific to this application (optional)
@@ -548,6 +549,16 @@ public:
 	void run(TParameters & parameters, TLog* logfile){
 		VcfDiagnostics VcfDiagnoser(parameters, logfile);
 		VcfDiagnoser.fixIntAsFloat();
+	};
+};
+
+class TTask_VCFCompare:public TTask_atlas{
+public:
+	TTask_VCFCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TVCFCompare compare(logfile);
+		compare.compareVCFFiles(parameters);
 	};
 };
 

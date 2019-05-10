@@ -16,6 +16,7 @@
 #include <algorithm>
 #include "../TLog.h"
 #include "../gzstream.h"
+#include "TGenotypeMap.h"
 
 typedef void (TVcfParser::*pt2Function)(TVcfLine &);
 //---------------------------------------------------------------------------------------------------------
@@ -145,8 +146,11 @@ public:
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
 	char getFirstAlleleOfSample(unsigned int num);
+	Base getFirstAlleleOfSample(unsigned int num, TGenotypeMap & genoMap);
 	char getSecondAlleleOfSample(unsigned int num);
+	Base getSecondAlleleOfSample(unsigned int num, TGenotypeMap & genoMap);
 	short sampleGenotype(const unsigned int & num);
+	Genotype sampleGenotype(const unsigned int & num, TGenotypeMap & genoMap);
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);
 	// int sampleDepth(unsigned int sample);

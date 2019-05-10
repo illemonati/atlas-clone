@@ -50,6 +50,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["VCFDiagnostics"] = new TTask_VCFDiagnostics();
 	taskMap_regular["VCFToInvariantBed"] = new TTask_VCFToInvariantBed();
 	taskMap_regular["VCFFixInt"] = new TTask_VCFFixInt();
+	taskMap_regular["VCFCompare"] = new TTask_VCFCompare();
 	//taskMap_regular["filterVCF"] = new TTask_filterVCF();
 
 	//and debug tasks
