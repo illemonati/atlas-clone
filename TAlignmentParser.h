@@ -59,7 +59,12 @@ private:
 
 	TLog* logfile;
 	bool _keepDuplicates;
+	bool _filterSoftClips;
 	bool _keepImproperPairs;
+	bool _keepUnmappedReads;
+	bool _keepFailedQC;
+	bool _keepSecondary;
+	bool _keepSupplementary;
 	bool _parse;
 	int previousAlignmentPos;
 	int previousAlignmentChr;
@@ -207,7 +212,12 @@ public:
 	void setApplyFragmentLengthFilter(bool filterYesNo);
 
 	void keepDuplicates(){_keepDuplicates = true;};
+	void filterSoftClips(){_filterSoftClips = true;};
 	void keepImproperPairs(){_keepImproperPairs = true;};
+	void keepUnmappedReads(){_keepUnmappedReads = true;};
+	void keepFailedQC(){_keepFailedQC = true;};
+	void keepSecondaryReads(){_keepSecondary = true;};
+	void keepSupplementaryReads(){_keepSupplementary = true;};
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(int chrNumber);

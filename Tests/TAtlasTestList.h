@@ -14,6 +14,7 @@
 #include "../TParameters.h"
 #include "TVcfTest.h"
 #include "TAtlasTestMergePairs.h"
+#include "TAtlasTestFilter.h"
 
 
 //------------------------------------------
@@ -56,6 +57,7 @@ public:
 		testMap.emplace_back("theta", &createInstance<TAtlasTest_theta>);
 		testMap.emplace_back("invariantBed", &createInstance<TAtlasTest_invariantBed>);
 		testMap.emplace_back("mergePairs", &createInstance<TAtlasTest_mergePairs>);
+		testMap.emplace_back("filter", &createInstance<TAtlasTest_filter>);
 
 		//fill map of test suites
 		//Note: suites and tests within suites will be initialized in this order!

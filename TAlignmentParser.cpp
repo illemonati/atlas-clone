@@ -47,7 +47,12 @@ void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t en
 TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
 	_keepDuplicates = false;
+	_filterSoftClips = false;
 	_keepImproperPairs = false;
+	_keepUnmappedReads = false;
+	_keepFailedQC = false;
+	_keepSecondary = false;
+	_keepSupplementary = false;
 	_parse = false;
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;
@@ -270,6 +275,42 @@ void TAlignmentParser::setFilters(TParameters & params){
 	if(params.parameterExists("keepDuplicates")){
 		keepDuplicates();
 		logfile->list("Will keep duplicate reads.");
+	}
+
+	//soft clips
+	if(params.parameterExists("filterSoftClips")){
+		filterSoftClips();
+		logfile->list("Will filter out soft clipped reads");
+	}
+
+	//improper pairs
+	if(params.parameterExists("keepImproperPairs")){
+		keepImproperPairs();
+		logfile->list("Will keep improper pairs");
+	}
+
+	//unmapped reads
+	if(params.parameterExists("keepUnmappedReads")){
+		keepUnmappedReads();
+		logfile->list("Will keep unmapped pairs");
+	}
+
+	//failed QC
+	if(params.parameterExists("keepFailedQC")){
+		keepFailedQC();
+		logfile->list("Will keep reads that failed QC");
+	}
+
+	//secondary reads
+	if(params.parameterExists("keepSecondaryReads")){
+		keepSecondaryReads();
+		logfile->list("Will keep secondary reads");
+	}
+
+	//supplementary reads
+	if(params.parameterExists("keepSupplementaryReads")){
+		keepSupplementaryReads();
+		logfile->list("Will keep supplementary reads");
 	}
 
 	//fragment length
@@ -749,16 +790,23 @@ bool TAlignmentParser::readAlignment(){
 };
 
 bool TAlignmentParser::applyFilters(){
+	std::vector<int> clipSizes;
+	std::vector<int> readPositions;
+	std::vector<int> genomePositions;
+
 	bool filtersPassed = readGroups.readGroupInUse(curReadGroupID)
 					&& (_keepImproperPairs || (!bamAlignment.IsPaired() || bamAlignment.IsProperPair()))
-					&& bamAlignment.IsMapped()
-					&& !bamAlignment.IsFailedQC()
-					&& bamAlignment.IsPrimaryAlignment()
-					&& !bamAlignment.IsSupplementary()
+					&& (_keepUnmappedReads || bamAlignment.IsMapped())
+					&& (_keepFailedQC || !bamAlignment.IsFailedQC())
+					&& (_keepSecondary || bamAlignment.IsPrimaryAlignment())
+					&& (_keepSupplementary || !bamAlignment.IsSupplementary())
 					&& chromosomes.inUse(bamAlignment.RefID)
 					&& (_keepDuplicates || !bamAlignment.IsDuplicate())
+					&& (!_filterSoftClips || !bamAlignment.GetSoftClips(clipSizes, readPositions, genomePositions))
 					&& useStrand[bamAlignment.IsReverseStrand()]
 					&& useMate[bamAlignment.IsSecondMate()];
+
+	std::cout << bamAlignment.Name << " _keepDuplicates is set to " << _keepDuplicates << " and bamAlignment is isDuplciate " << bamAlignment.IsDuplicate() << " adnd filtersPassed is " << filtersPassed << std::endl;
 
 	return filtersPassed;
 };

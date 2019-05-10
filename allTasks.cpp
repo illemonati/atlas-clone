@@ -18,6 +18,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["mateInfo"] = new TTask_mateInfo();
 	taskMap_regular["assessSoftClipping"] = new TTask_assessSoftClipping();
 	taskMap_regular["removeSoftClippedBases"] = new TTask_removeSoftClippedBasesFromReads();
+	taskMap_regular["filter"] = new TTask_filterBAM();
 	taskMap_regular["writeDepthPerWindow"] = new TTask_writeDepthPerWindow();
 	taskMap_regular["depthPerSiteDist"] = new TTask_depthPerSiteDist();
 	taskMap_regular["writeDepthPerSite"] = new TTask_writeDepthPerSite();

@@ -153,6 +153,16 @@ public:
 	};
 };
 
+class TTask_filterBAM:public TTask_atlas{
+public:
+	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters);
+		genome.filterBAM(parameters);
+	};
+};
+
 //---------------------------------------------------------------------------
 // Depth
 //---------------------------------------------------------------------------

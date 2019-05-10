@@ -1419,6 +1419,98 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 	}
 };
 
+void TGenome::filterBAM(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_filtered.bam";
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for filtering!");
+
+	//create alignment storage
+	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
+	if(params.parameterExists("keepOrphans")){
+		logfile->list("Will keep keep orphaned reads.");
+		merger.keepOrphans();
+	} else {
+		logfile->list("Will ignore orphaned reads (use keepOrphans to keep them).");
+	}
+
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
+
+    //now parse through bam file and write alignments
+	int curChr = 0;
+
+	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
+		//if on new chromosome, empty storage
+		if(curChr != alignment.chrNumber){
+			//write all ready currently in storage
+			merger.clear();
+			curChr = alignment.chrNumber;
+		}
+
+		//check if first alignment in storage is too far away from current read (after checking for chr change)
+		//if yes, first alignment in storage is considered an orphan
+		merger.writeUpTo(alignment.position);
+
+		//attempt merging of paired reads
+		if(alignment.isPaired){
+			//Ignore reads in black list
+			if(alignmentParser.isInBlacklist(alignment.alignmentName) || !alignment.isProperPair){
+				merger.addAsImproperPair(alignment);
+			} else {
+				//is a proper pair: attempt merging
+				merger.addReadyToBeWritten(alignment);
+			}
+		}
+
+		//read is in single-end read group
+		else {
+			//Ignore reads in black list
+			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+				alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
+			} else {
+				merger.addReadyToBeWritten(alignment);
+			}
+		}
+
+		//report
+		reporter.printProgress();
+	}
+
+	//write unwritten reads
+	merger.clear();
+
+	//report end
+	reporter.printEnd();
+
+	//close bam writer
+	bamWriter.Close();
+
+	//create index of new bam file
+	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	//close BAM file
+	reader.Close();
+	logfile->done();
+}
+
 void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);

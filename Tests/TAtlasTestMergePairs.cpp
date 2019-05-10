@@ -13,9 +13,9 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "TestReadGroup";
-	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
+	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
-	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
 //	filterPairsDiffChr = params.parameterExists("filterPairsDiffChr");
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
 
@@ -510,6 +510,7 @@ bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, c
 
 	return true;
 }
+
 bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	//BamFile stuff
 	BamTools::BamReader bamReader;
