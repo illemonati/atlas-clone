@@ -83,6 +83,7 @@ public:
 	void keepOriginalQuality(){ _adaptQuality = false; };
 
 	void addToBeMerged(TAlignment & alignment);
+	void checkForMateAndWriteUnmerged(TAlignment & alignment);
 	void addAsImproperPair(TAlignment & alignment);
 	void addReadyToBeWritten(TAlignment & alignment);
 	void writeUpTo(const int position);

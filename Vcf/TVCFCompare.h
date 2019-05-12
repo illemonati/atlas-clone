@@ -8,11 +8,11 @@
 #ifndef VCF_TVCFCOMPARE_H_
 #define VCF_TVCFCOMPARE_H_
 
-#include "TGenotypeMap.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "../TGenotypeMap.h"
+#include "../TLog.h"
+#include "../TParameters.h"
 #include "TVcfFile.h"
-#include "TFile.h"
+#include "../TFile.h"
 
 class TGenotypeComparisonTable{
 private:

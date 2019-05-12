@@ -13,14 +13,14 @@
 
 class TAtlasTest_filter:public TAtlasTest{
 private:
-	std::string _name;
 	std::string filenameTag;
 	std::string bamFileName;
 	int readLength;
 	int chrLength;
 	int phredError;
 	std::string readGroupName;
-	bool filterOrphanedReads;
+	bool keepReadsLongerThanFragment;
+	bool keepOrphanedReads;
 	bool keepImproperPairs;
 	bool keepUnmappedReads;
 	bool keepFailedQC;
@@ -33,10 +33,12 @@ private:
 	std::vector<std::string> trueIgnoredReadMessages;
 
 	void writeBAM();
+	void setToSingleEnd(BamTools::BamAlignment & bamAlignment);
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
 	void setToFwdMate(BamTools::BamAlignment & bamAlignment);
 	void setToRevMate(BamTools::BamAlignment & bamAlignment);
 	bool checkfilteredBAMFile();
+
 
 
 public:

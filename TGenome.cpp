@@ -1420,6 +1420,9 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 };
 
 void TGenome::filterBAM(TParameters & params){
+
+	//soft clipped bases will translated to 'N'
+
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
@@ -1434,7 +1437,8 @@ void TGenome::filterBAM(TParameters & params){
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for filtering!");
+	if(alignmentParser.hasPMD)
+		logfile->warning("PMD is given but not relevant for filtering!");
 
 	//create alignment storage
 	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
@@ -1442,7 +1446,7 @@ void TGenome::filterBAM(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
 	}
 
 	//measure progress and runtime
@@ -1470,7 +1474,7 @@ void TGenome::filterBAM(TParameters & params){
 				merger.addAsImproperPair(alignment);
 			} else {
 				//is a proper pair: attempt merging
-				merger.addReadyToBeWritten(alignment);
+				merger.checkForMateAndWriteUnmerged(alignment);
 			}
 		}
 
@@ -1538,7 +1542,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
 	}
 
 	if(params.parameterExists("keepOriginalQuality")){

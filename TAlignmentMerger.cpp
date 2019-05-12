@@ -60,6 +60,18 @@ void TAlignmentMerger::addToBeMerged(TAlignment & alignment){
 	}
 };
 
+void TAlignmentMerger::checkForMateAndWriteUnmerged(TAlignment & alignment){
+	std::vector< TAlignmentMergerEntry >::iterator it = _findMate(alignment);
+	if(it == alignmentStorage.end()){
+		//no mate found: add to storage
+		alignmentStorage.emplace_back(alignment, false);
+	} else {
+		//mate found, merge!
+		it->ready = true;
+		alignmentStorage.emplace_back(alignment, true);
+	}
+};
+
 void TAlignmentMerger::addReadyToBeWritten(TAlignment & alignment){
 	if(alignmentStorage.empty()){
 		alignment.save(*writer, parser->genoMap, parser->minQualForPrinting, parser->maxQualForPrinting, parser->qualMap);
@@ -83,6 +95,7 @@ void TAlignmentMerger::writeUpTo(const int position){
 	//writes all that are ready or too far away
 	std::vector< TAlignmentMergerEntry >::iterator it = alignmentStorage.begin();
 	while(it != alignmentStorage.end() && (it->ready || position - it->alignment->position > _maxDistanceBetweenMates)){
+//		std::cout << "it->alignment->name " << it->alignment->alignmentName << " position - it->alignment->position " << position << "-" <<  it->alignment->position << std::endl;
 		if(it->ready){
 			_writeAlignment(it);
 		} else {

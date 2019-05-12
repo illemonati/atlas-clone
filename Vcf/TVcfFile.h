@@ -16,7 +16,7 @@
 #include <algorithm>
 #include "../TLog.h"
 #include "../gzstream.h"
-#include "TGenotypeMap.h"
+#include "../TGenotypeMap.h"
 
 typedef void (TVcfParser::*pt2Function)(TVcfLine &);
 //---------------------------------------------------------------------------------------------------------

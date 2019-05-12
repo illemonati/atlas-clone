@@ -314,7 +314,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	}
 
 	//fragment length
-	if(params.parameterExists("dontFilterReadsLongerFragment"))
+	if(params.parameterExists("dontFilterReadsLongerFragment") || params.parameterExists("keepReadsLongerThanFragment"))
 		setApplyFragmentLengthFilter(false);
 	else
 		setApplyFragmentLengthFilter(true);
@@ -805,8 +805,6 @@ bool TAlignmentParser::applyFilters(){
 					&& (!_filterSoftClips || !bamAlignment.GetSoftClips(clipSizes, readPositions, genomePositions))
 					&& useStrand[bamAlignment.IsReverseStrand()]
 					&& useMate[bamAlignment.IsSecondMate()];
-
-	std::cout << bamAlignment.Name << " _keepDuplicates is set to " << _keepDuplicates << " and bamAlignment is isDuplciate " << bamAlignment.IsDuplicate() << " adnd filtersPassed is " << filtersPassed << std::endl;
 
 	return filtersPassed;
 };

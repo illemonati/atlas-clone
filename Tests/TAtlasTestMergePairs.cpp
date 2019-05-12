@@ -419,7 +419,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : orphaned at chromosome switch");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_first, fwd : mate on different chromosome");
 	}
 
 
@@ -442,7 +442,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : not a proper pair (orphan)");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_second, rev : mate on different chromosome");
 	}
 
 

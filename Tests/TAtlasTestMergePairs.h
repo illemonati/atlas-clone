@@ -13,7 +13,6 @@
 
 class TAtlasTest_mergePairs:public TAtlasTest{
 private:
-	std::string _name;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string readGroupName;
