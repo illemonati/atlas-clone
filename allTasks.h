@@ -19,6 +19,7 @@
 #include "TVcfDiagnostics.h"
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
+#include "TAlleleFrequencyEstimator.h"
 #include "TInbreedingEstimator.h"
 #include "TVCFCompare.h"
 
@@ -471,8 +472,8 @@ public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
-		alleleFreqEstimator.estimateAlleleFreq(parameters);
+		//TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
+		//alleleFreqEstimator.estimateAlleleFreq(parameters);
 	};
 };
 

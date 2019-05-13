@@ -9,6 +9,7 @@
 #define TFILE_H_
 
 #include "stringFunctions.h"
+#include <iomanip>
 #include "gzstream.h"
 
 class TFile{

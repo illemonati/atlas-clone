@@ -130,6 +130,8 @@ public:
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
 	std::string chr(){ return vcfFile.chr(); };
 	long position(){ return vcfFile.position(); };
+	char refAllele(){ return vcfFile.getRefAllele(); };
+	char altAllele(){ return vcfFile.getFirstAltAllele(); };
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
@@ -139,6 +141,8 @@ public:
 	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
 	int numSamplesWithDataInPopulation(int population);
+
+	void writePosition(TOutputFile & out);
 };
 
 //------------------------------------------------
@@ -169,26 +173,6 @@ public:
     void filterVCF(TParameters & Parameters);
 
 
-};
-
-//------------------------------------------------
-//TAlleleFreqEstimator
-//------------------------------------------------
-class TAlleleFreqEstimator{
-	// about vcf-file
-	std::string vcfFilename;
-	bool vcfRead;
-	TLog* logfile;
-
-	// data on individuals
-	TPopulationSamples samples;
-
-	//data on loci
-	long _numLoci;
-
-public:
-	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);
-    void estimateAlleleFreq(TParameters & Parameters);
 };
 
 //-------------------------------------------------
