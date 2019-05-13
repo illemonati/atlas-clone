@@ -293,6 +293,15 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 		logfile->list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
 	}
 
+	//limitLines
+	bool limitLines = false;
+	long lineLimit = -1;
+	if(parameters.parameterExists("limitLines")){
+		limitLines = true;
+		logfile->list("Will stop reading after " + toString(limitLines) + " lines.");
+		lineLimit = parameters.getParameterLong("limitLines");
+	}
+
 	//set filters in VCF files
 	for(TVCFComapreVCF& it : vcfFiles){
 		it.setFilters(minDepth, minQual);
@@ -306,7 +315,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	uint32_t numLines = 0;
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	while(!vcfFiles[0].eof() || !vcfFiles[1].eof()){
+	while((!vcfFiles[0].eof() || !vcfFiles[1].eof()) && limitLines > 0 && numLines < lineLimit){
 		//is one end of file?
 		if(vcfFiles[0].eof()){
 			addToOtherMissing(counts, 1);
