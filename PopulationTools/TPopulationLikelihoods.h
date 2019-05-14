@@ -8,13 +8,6 @@
 #ifndef TPOPULATIONLIKELIHOODS_H_
 #define TPOPULATIONLIKELIHOODS_H_
 
-//
-// Created by Madleina Caduff on 19.10.18.
-//
-
-#ifndef LDLG_TDATA_H
-#define LDLG_TDATA_H
-
 #include <iostream>
 #include <math.h>
 #include "../stringFunctions.h"
@@ -251,10 +244,6 @@ public:
     TSampleLikelihoods* getDataAtLocus(long index);
     void print();
 };
-
-#endif //LDLG_TDATA_H
-
-
 
 
 #endif /* TPOPULATIONLIKELIHOODS_H_ */

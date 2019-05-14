@@ -48,13 +48,14 @@ private:
 		return it->second;
 	};
 
-	void throwErrorUnknownTask(std::string task){
+	void throwErrorUnknownTask(const std::string & Task){
 		//calculate Levenshtein Distance and return closes match
 		//initialize crazy values
 		std::string bestMatch;
 		unsigned int minDistance = 99999999;
 
 		//do comparison iresspective of case: do all in lower case
+		std::string task = Task;
 		std::transform(task.begin(), task.end(), task.begin(), ::tolower);
 
 		//now loop over all others
@@ -73,9 +74,9 @@ private:
 
 		//report best unless it has less than two characters overlapping
 		if(minDistance < 2*(task.length()-1))
-			throw "Unknown task '" + task + "'! Did you mean '" + bestMatch  + "'?";
+			throw "Unknown task '" + Task + "'! Did you mean '" + bestMatch  + "'?";
 		else
-			throw "Unknown task '" + task + "'!";
+			throw "Unknown task '" + Task + "'!";
 	};
 
 public:
