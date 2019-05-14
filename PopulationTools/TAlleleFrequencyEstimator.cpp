@@ -4,56 +4,195 @@
  *  Created on: May 13, 2019
  *      Author: wegmannd
  */
-/*
+
 #include "TAlleleFrequencyEstimator.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleHardyWeinbergFreqEstimator                                                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-TAlleleHardyWeinbergFreqEstimator::TAlleleHardyWeinbergFreqEstimator(){
+TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
-	f = 0.0;
 };
 
-double TAlleleHardyWeinbergFreqEstimator::estimate(TPopulationLikehoodStorage storage, double epsilonF){
-	double pGenotype[3];
-	pGenotype[0] = 1.0; pGenotype[1] = 1.0; pGenotype[2] = 1.0; //initialize all to equal
+double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodStorage & storage, double epsilonF){
+	pGenotype.set(0.5);
 	double weights[3];
 
 	//run EM
 	int iter = 0;
 	double epsilon = epsilonF + 1.0;
-	f = 0.0;
 	while(iter < maxIter && epsilon > epsilonF){
-		double old_f = f;
+		double old_f = pGenotype.f;
 
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
+		int n = 0;
 		for(int i=0; i<storage.numSamples; i++){
-			//calculate weights
-			weights[0] = storage[i][0] * pGenotype[0];
-			weights[1] = storage[i][1] * pGenotype[1];
-			weights[2] = storage[i][2] * pGenotype[2];
-			double sum = weights[0] + weights[1] + weights[2];
+			if(!storage[i].isMissing){
+				if(storage[i].isHaploid){
+					weights[0] = phredToGTLMap[ storage[i][0] ] * pGenotype.oneMinusf;
+					weights[1] = phredToGTLMap[ storage[i][1] ] * pGenotype.f;
+					double sum = weights[0] + weights[1];
 
-			//add to sums
-			sum_1 += weights[1] / sum;
-			sum_2 += weights[2] / sum;
+					//add to sums
+					sum_1 += weights[1] / sum;
+					n += 1;
+				} else {
+					//calculate weights
+					weights[0] = phredToGTLMap[ storage[i][0] ] * pGenotype[0];
+					weights[1] = phredToGTLMap[ storage[i][1] ] * pGenotype[1];
+					weights[2] = phredToGTLMap[ storage[i][2] ] * pGenotype[2];
+					double sum = weights[0] + weights[1] + weights[2];
+
+					//add to sums
+					sum_1 += weights[1] / sum;
+					sum_2 += weights[2] / sum;
+					n += 2;
+				}
+			}
 		}
 
 		//estimate f
-		f = (sum_1 + 2.0 * sum_2) / (2.0 * storage.numSamples);
-
-		//recaluclate pGenotype
-		pGenotype[0] = (1.0 - f) * (1.0 - f);
-		pGenotype[1] = 2.0 * f * (1.0 - f);
-		pGenotype[2] = f * f;
+		pGenotype.set((sum_1 + 2.0 * sum_2) / (double) n);
 
 		//calculate F
-		epsilon = fabs(f - old_f);
+		epsilon = fabs(pGenotype.f - old_f);
 	}
 
 	//return estimate
+	return pGenotype.f;
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// TAlleleHardyWeinbergFreqEstimator                                                          //
+////////////////////////////////////////////////////////////////////////////////////////////////
+TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator){
+	randomGenerator = RandomGenerator;
+	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
+	double mcmcLength = Parameters.getParameterIntWithDefault("mcmcLength", 100000);
+	logfile->list("Will run MCMC chains of length " + toString(mcmcLength) + ".");
+	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 3);
+	burninLength = Parameters.getParameterIntWithDefault("burninLength", 1000);
+	logfile->list("Will run " + toString(numBurnins) + " burnins of length " + toString(burninLength) + " each.");
+
+	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.5);
+	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
+	oneMinusAlpha = 1.0 - alpha;
+	oneMinusBeta = 1.0 - beta;
+	logfile->list("Will use a beta(" + toString(alpha) + "," + toString(beta) + ") prior.");
+	logfile->endIndent();
+
+	//initialize
+	mcmc.resize(mcmcLength);
+	lowerIndex = floor(mcmcLength * 0.05);
+	upperIndex = ceil(mcmcLength * 0.95);
+	f = 0.5;
+	f_lower = 0.0;
+	f_upper = 1.0;
+};
+
+double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodStorage & storage){
+	double sum_1 = 0.0;
+	double sum_2 = 0.0;
+	int n = 0;
+	for(int i=0; i<storage.numSamples; i++){
+		if(!storage[i].isMissing){
+			if(storage[i].isHaploid){
+				double sum = phredToGTLMap[ storage[i][0] ] + phredToGTLMap[ storage[i][1] ];
+
+				//add to sums
+				sum_1 += phredToGTLMap[ storage[i][1] ] / sum;
+				n += 1;
+			} else {
+				double sum = phredToGTLMap[ storage[i][0] ] + phredToGTLMap[ storage[i][1] ] + phredToGTLMap[ storage[i][2] ];
+
+				//add to sums
+				sum_1 += phredToGTLMap[ storage[i][1] ] / sum;
+				sum_2 += phredToGTLMap[ storage[i][2] ] / sum;
+				n += 2;
+			}
+		}
+	}
+
+	return (sum_1 + 2.0 * sum_2) / (double) n;
+};
+
+double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodStorage & storage, THardyWeinbergGenotypeProbabilities & pGenotype){
+	double LL = 0.0;
+
+	for(int i=0; i<storage.numSamples; i++){
+		if(!storage[i].isMissing){
+			if(storage[i].isHaploid){
+				LL += log(phredToGTLMap[ storage[i][0] ] * pGenotype.oneMinusf + phredToGTLMap[ storage[i][1] ] * pGenotype.f);
+			} else {
+				LL += log(phredToGTLMap[ storage[i][0] ] * pGenotype[0] + phredToGTLMap[ storage[i][1] ] * pGenotype[1] + phredToGTLMap[ storage[i][2] ] * pGenotype[2]);
+			}
+		}
+	}
+	return LL;
+};
+
+int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodStorage & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old){
+	int cur = 1-old;
+
+	//propose new f
+	pGenotype[cur].set(pGenotype[old].f + randomGenerator->getRand() * prop - prop / 2.0);
+
+	//calc hastings
+	double LL = calcLL(storage, pGenotype[cur]);
+	double priorRatio = oneMinusAlpha * (log(pGenotype[cur].f) - log(pGenotype[old].f)) + oneMinusBeta * (log(pGenotype[old].oneMinusf) - log(pGenotype[old].oneMinusf));
+	double hastings = LL - oldLL + priorRatio;
+
+	//accept or reject
+	if(log(randomGenerator->getRand()) < hastings){
+		old = cur;
+		oldLL = LL;
+		return true;
+	}
+	return false;
+};
+
+double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodStorage & storage){
+	//initialize
+	THardyWeinbergGenotypeProbabilities pGenotype[2];
+	int old = 0;
+	pGenotype[old].set(guessInitialAlleleFrequency(storage));
+	double prop = pGenotype[old][1] * 0.1;
+
+	//calc initial LL
+	double oldLL = calcLL(storage, pGenotype[old]);
+
+	//run burnins
+	for(int b=0; b<numBurnins; b++){
+		int acceptance = 0;
+		for(int i=0; i<burninLength; i++){
+			acceptance += makeMCMCUpdate(storage, oldLL, prop, pGenotype, old);
+		}
+
+		//adjust proposal range
+		prop = prop * 3.0 * (double) acceptance / (double) burninLength;
+	}
+
+	//run MCMC
+	for(size_t i=0; i<mcmc.size(); i++){
+		makeMCMCUpdate(storage, oldLL, prop, pGenotype, old);
+
+		//store current f
+		mcmc[i] = pGenotype[1-old].f;
+	}
+
+	//estimate posterior mean
+	double f = 0.0;
+	for(const double& sample : mcmc){
+		f += sample;
+	}
+	f /= (double) mcmc.size();
+
+	//estimate posterior quantiles
+	std::sort(mcmc.begin(), mcmc.end());
+	f_lower = mcmc[lowerIndex];
+	f_upper = mcmc[upperIndex];
+
 	return f;
 };
 
@@ -67,7 +206,7 @@ TAlleleFreqEstimator::TAlleleFreqEstimator(TParameters & Parameters, TLog* Logfi
 	logfile = Logfile;
 };
 
-void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
+void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	if(vcfRead)
 		throw "VCF already read!";
 
@@ -91,10 +230,21 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
 	struct timeval start; gettimeofday(&start, NULL);
 	TPopulationLikehoodStorage storage(samples.numSamples());
 
-	//create allele freqeuncy estimators
-	TAlleleHardyWeinbergFreqEstimator HWestimator;
+	//create allele frequency estimators
+	//1) Maximum likelihood HW estimator
+	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;
 	double epsF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
+
+	//2) Maximum Likelihood genotype count estimator (use estimates from reader)
 	reader.doEstimateGenotypeFrequencies();
+
+	//3) Bayesian HW estimator (optional)
+	TAlleleFreqEstimatorBayes* BHWEstimator;
+	bool doBayesian = false;
+	if(Parameters.parameterExists("doBayesian")){
+		doBayesian = true;
+		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
+	}
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
@@ -103,7 +253,13 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
 	TOutputFileZipped out(outputName);
 
 	//write header
-	out.writeHeader({"chr", "pos", "ref", "alt", "freqAltHW", "freqRefRef", "freqRefAlt", "freqAltAlt", "freqAltGeno"});
+	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "numDiploid", "numHaploid", "freqAltHW", "freqGenoRefRef", "freqGenoRefAlt", "freqGenoAltAlt", "freqGenoRef", "freqGenoAlt", "freqAltGeno"};
+	if(doBayesian){
+		header.push_back("freqAltHWBayes");
+		header.push_back("freqAltHWBayes_CI0.05");
+		header.push_back("freqAltHWBayes_CI0.95");
+	}
+	out.writeHeader(header);
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
@@ -111,15 +267,29 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
     	//print SNP
  		reader.writePosition(out);
 
+ 		//write num samples with data
+ 		out << reader.genotypeFrequencies()->numDiploid();
+ 		out << reader.genotypeFrequencies()->numHaploid();
+
  		//write HW estimates
- 		out << HWestimator.estimate(storage, epsF);
+ 		out << MLHWEstimator.estimate(storage, epsF);
 
  		//write genotype frequency estimates
  		reader.genotypeFrequencies()->writeDiploidFrequencies(out);
  		reader.genotypeFrequencies()->writeHaploidFrequencies(out);
 
  		//write frequency estimate based on genotype estimates
- 		out << reader.allelFrequency() << std::endl;
+ 		out << reader.allelFrequency();
+
+ 		//Bayesian estimation
+ 		if(doBayesian){
+ 			out << BHWEstimator->estimate(storage);
+ 			out << BHWEstimator->lowerCredibleInterval();
+ 			out << BHWEstimator->upperCredibleInterval();
+ 		};
+
+ 		//end line
+ 		out << std::endl;
 
  		//update for next
  		++_numLoci;
@@ -136,4 +306,4 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
 };
-*/
+

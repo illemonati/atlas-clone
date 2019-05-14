@@ -32,7 +32,6 @@ private:
  	TAlignmentParser alignmentParser;
 	BamTools::Fasta reference;
  	TRandomGenerator* randomGenerator;
- 	bool randomGeneratorInitialized;
 
 	TLog* logfile;
 	std::string outputName;
@@ -40,7 +39,6 @@ private:
 
 	void jumpToEnd();
 
-	void initializeRandomGenerator(TParameters & params);
 	TGenotypePrior* initializeGenotypePrior(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
@@ -49,10 +47,8 @@ private:
 	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
 
 public:
-	TGenome(TLog* Logfile, TParameters & params);
-	~TGenome(){
-		if(randomGeneratorInitialized) delete randomGenerator;
-	};
+	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
+	~TGenome(){};
 
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);

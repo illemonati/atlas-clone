@@ -10,17 +10,9 @@
 //---------------------------------------------------
 //TSimulator
 //---------------------------------------------------
-TSimulator::TSimulator(TLog* Logfile, TParameters & params){
+TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
-
-	//initialize random generator
-	logfile->listFlush("Initializing random generator ...");
-	if(params.parameterExists("fixedSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
-	} else if(params.parameterExists("addToSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else randomGenerator=new TRandomGenerator();
-	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
+	randomGenerator = RandomGenerator;
 
 	//set basic things to empty
 	refInitialized = false;
@@ -896,7 +888,7 @@ void TSimulator::runSimulations(){
 //---------------------------------------------------------
 //TSimulatorOneIndividual
 //---------------------------------------------------------
-TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & params):TSimulator(Logfile, params){
+TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
 	logfile->startIndent("Reading parameters to simulate a single individual:");
 
 	//first common stuff
@@ -960,7 +952,7 @@ void TSimulatorOneIndividual::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 //---------------------------------------------------------
 //TSimulatorPairOfIndividuals
 //---------------------------------------------------------
-TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params):TSimulator(Logfile, params){
+TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
 	logfile->startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	//first common stuff
@@ -1292,7 +1284,7 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 //---------------------------------------------------------
 //TSimulatorSFS
 //---------------------------------------------------------
-TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params):TSimulator(Logfile, params){
+TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
 	logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
 
 	//first common stuff
@@ -1486,7 +1478,7 @@ void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes,
 //---------------------------------------------------------
 //TSimulatorHardyWeinberg
 //---------------------------------------------------------
-TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params):TSimulator(Logfile, params){
+TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
 	logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	//first common stuff

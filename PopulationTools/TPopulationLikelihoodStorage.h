@@ -9,6 +9,7 @@
 #define POPULATIONTOOLS_TPOPULATIONLIKELIHOODSTORAGE_H_
 
 #include <stdint.h>
+#include <iostream>
 
 //------------------------------------------------
 // TSampleLikelihoods
@@ -45,6 +46,16 @@ public:
 		samples = nullptr;
 	};
 
+	TPopulationLikehoodStorage(TPopulationLikehoodStorage & other){
+		numSamples = 0;
+		resize(other.numSamples);
+
+		//copy data
+		for(int i=0; i<numSamples; i++){
+			samples[i] = other.samples[i];
+		}
+	};
+
 	TPopulationLikehoodStorage(int NumSamples){
 		numSamples = 0;
 		resize(NumSamples);
@@ -55,8 +66,10 @@ public:
 	};
 
 	void clear(){
-		if(numSamples > 0)
+		if(numSamples > 0){
 			delete[] samples;
+		}
+		numSamples = 0;
 	};
 
 	void resize(int NumSamples){

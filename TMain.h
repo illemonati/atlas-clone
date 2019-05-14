@@ -107,12 +107,10 @@ public:
 				logfile.writeFileOnly(title);
 			}
 
-			//create task list
-			TTaskList taskList;
-
 			//is a task provided?
 			if(!parameters.parameterExists("task")){
 				logfile.setVerbose(true);
+				TTaskList taskList;
 				taskList.printAvailableTasks(&logfile);
 				throw "The parameter 'task' is not defined!";
 			}
@@ -126,6 +124,7 @@ public:
 				test.runTests();
 			} else {
 				//run requested task
+				TTaskList taskList;
 				taskList.run(task, parameters, &logfile);
 			}
 			logfile.clearIndent();

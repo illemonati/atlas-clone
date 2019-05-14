@@ -45,6 +45,8 @@ public:
 	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap);
 	void writeDiploidFrequencies(TOutputFile & out);
 	void writeHaploidFrequencies(TOutputFile & out);
+	int numHaploid(){ return numHaploidSamples; };
+	int numDiploid(){ return numDiploidSamples; };
 };
 
 

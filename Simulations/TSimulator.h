@@ -79,11 +79,10 @@ protected:
 	//void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, Base* ref);
 
 public:
-	TSimulator(TLog* Logfile, TParameters & params);
+	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulator(){
 		for(TSimulatorSingleEndRead* readSimIt: readSimulators)
 			delete readSimIt;
-		delete randomGenerator;
 	};
 
 	//functions to set general parameters
@@ -112,7 +111,7 @@ private:
 
 
 public:
-	TSimulatorOneIndividual(TLog* Logfile, TParameters & params);
+	TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorOneIndividual();
 
 	void runSimulations();
@@ -140,7 +139,7 @@ private:
 
 public:
 
-	TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params);
+	TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorPairOfIndividuals(){ deleteTables(); };
 
 	void runSimulations();
@@ -160,7 +159,7 @@ private:
 	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 
 public:
-	TSimulatorSFS(TLog* Logfile, TParameters & params);
+	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorSFS();
 
 	void runSimulations();
@@ -184,7 +183,7 @@ private:
 	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 
 public:
-	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params);
+	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorHardyWeinberg(){};
 
 	void runSimulations();

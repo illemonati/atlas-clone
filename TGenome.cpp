@@ -10,9 +10,9 @@
 //-------------------------------------------------------
 //TGenome
 //-------------------------------------------------------
-TGenome::TGenome(TLog* Logfile, TParameters & params){
+TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
-	initializeRandomGenerator(params);
+	randomGenerator = RandomGenerator;
 
 	//initialize alignment parser
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
@@ -49,20 +49,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params){
 			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
 		}
 	}
-};
-
-void TGenome::initializeRandomGenerator(TParameters & params){
-	logfile->listFlush("Initializing random generator ...");
-
-	if(params.parameterExists("fixedSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
-	} else if(params.parameterExists("addToSeed")){
-		randomGenerator=new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else {
-		randomGenerator=new TRandomGenerator();
-	}
-	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
-	randomGeneratorInitialized = true;
 };
 
 void TGenome::indexBamFile(std::string & filename){
