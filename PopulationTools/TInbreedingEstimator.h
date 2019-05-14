@@ -14,7 +14,7 @@
 #include "TPopulationLikelihoods.h"
 #include <limits>
 //---------------------------
-// allele frequencies p
+// F
 //---------------------------
 class TInbreedingF{
 private:
@@ -43,6 +43,7 @@ public:
 	double lambda();
 	int posteriorProbModelWithF();
 	double proposalWidth();
+
 };
 
 //---------------------------
@@ -53,7 +54,8 @@ private:
 	std::vector<double> sumIterations;
 	std::vector<double> sumOfSquaresIterations;
 	std::vector<double> alleleFreq;
-	long numLociModelP;
+	long _numLociModelP;
+	long _numLociWithAcceptanceZero;
 
 public:
 	std::vector<bool> modelP;
@@ -85,6 +87,7 @@ public:
 	double getProposalWidth(const unsigned long & index);
 	long getNumLociInModelP();
 	long getNumLociInModel0();
+ 	long numLociWithAcceptanceZero();
 	double logPDFExp(const double & thisP);
 	double logPDFExp(const long & thisLocus);
 };

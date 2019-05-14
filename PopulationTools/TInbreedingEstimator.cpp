@@ -140,7 +140,7 @@ double TInbreedingF::proposalWidth(){
 //---------------------------
 TAlleleFreq::TAlleleFreq(){
 	numLoci = -1;
-	numLociModelP = -1;
+	_numLociModelP = -1;
 	lambda = -1.0;
 	logLambda = -1.0;
 	expMinusLambda = -1.0;
@@ -149,6 +149,7 @@ TAlleleFreq::TAlleleFreq(){
 	probMovingToModelP = -1.0;
 	logProbMovingToModel0 = -1.0;
 	logProbMovingToModelP = -1.0;
+	_numLociWithAcceptanceZero = -1;
 }
 
 
@@ -156,7 +157,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	alleleFreq = P;
 	initialAlleleFreq = P;
 	numLoci = alleleFreq.size();
-	numLociModelP = 0;
+	_numLociModelP = 0;
 	lambda = Lambda;
 	logLambda = log(Lambda);
 	expMinusLambda = log(1-exp(-lambda));
@@ -165,6 +166,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	probMovingToModelP = ProbMovingToModelP;
 	logProbMovingToModel0 = log(probMovingToModel0);
 	logProbMovingToModelP = log(probMovingToModelP);
+	_numLociWithAcceptanceZero = -1;
 
 	//vectors
 	//init proposal widths and check range of p
@@ -184,7 +186,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 		} else {
 			modelP.push_back(true);
 		}
-		numLociModelP = numLociModelP + modelP[l];
+		_numLociModelP = _numLociModelP + modelP[l];
 	}
 }
 
@@ -204,14 +206,14 @@ void TAlleleFreq::setToValue(double fixedValue){
 
 void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates){
 	//adjust proposal with for p
-	long numLociAcceptanceZero = 0;
+	_numLociWithAcceptanceZero = 0;
 	for(long l=0; l<numLoci; ++l){
 //		if(modelP[l]){
 			if(numAcceptedP[l] == 0){
 	//			double minFreq = 1.0 / (double) numSamples;
 	//			alleleFreq[l] = minFreq;
 				proposalWidths[l] *= 0.1;
-				++numLociAcceptanceZero;
+				++_numLociWithAcceptanceZero;
 			} else {
 				double newProposalWidth = proposalWidths[l];
 				newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates[l] * 3.0;
@@ -232,18 +234,16 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 
 //		}
 	}
-	if(numLociAcceptanceZero > 0){
-		std::cout << "!!!!! " << numLociAcceptanceZero << " out of " << numLoci << " have an acceptance rate = 0!" << std::endl;
-	}
+
 //	numUpdates = 0;
 }
 
 void TAlleleFreq::update(long & index, const double & value, const bool ModelP){
 	//update numLociModelP
 	if(modelP[index] == false && ModelP == true){
-		++numLociModelP;
+		++_numLociModelP;
 	} else if(modelP[index] == true && ModelP == false){
-		--numLociModelP;
+		--_numLociModelP;
 	}
 	//update current model
 	modelP[index] = ModelP;
@@ -304,11 +304,15 @@ double TAlleleFreq::getProposalWidth(const unsigned long & index){
 }
 
 long TAlleleFreq::getNumLociInModelP(){
-	return numLociModelP;
+	return _numLociModelP;
 }
 
 long TAlleleFreq::getNumLociInModel0(){
-	return numLoci - numLociModelP;
+	return numLoci - _numLociModelP;
+}
+
+long TAlleleFreq::numLociWithAcceptanceZero(){
+	return _numLociWithAcceptanceZero;
 }
 
 double TAlleleFreq::logPDFExp(const double & thisP){
@@ -1224,6 +1228,10 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(2) / numIterInModelP[2]));
 	else
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
+
+	if(p.numLociWithAcceptanceZero() > 0){
+		logfile->conclude(toString(p.numLociWithAcceptanceZero()) + " out of " + toString(numLoci) + " have an acceptance rate equal to zero");
+	}
 }
 
 
