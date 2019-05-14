@@ -11,6 +11,7 @@
 #include "TPopulationLikelihoodStorage.h"
 #include "../TQualityMap.h"
 #include <iostream>
+#include "TFile.h"
 
 //------------------------------------------------
 // TGenotypeFreqencies
@@ -42,6 +43,8 @@ public:
 	void estimate(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap, double epsilonF);
 	double calculateLog10Likelihood(TPopulationLikehoodStorage & samples, TQualityMap & phredToGTLMap);
 	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap);
+	void writeDiploidFrequencies(TOutputFile & out);
+	void writeHaploidFrequencies(TOutputFile & out);
 };
 
 

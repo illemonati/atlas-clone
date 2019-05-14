@@ -239,3 +239,10 @@ double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* sample
 	return LL;
 };
 
+void TGenotypeFrequencies::writeDiploidFrequencies(TOutputFile & out){
+	out << diploidFrequencies[0] << diploidFrequencies[1] << diploidFrequencies[2];
+};
+
+void TGenotypeFrequencies::writeHaploidFrequencies(TOutputFile & out){
+	out << haploidFrequencies[0] << haploidFrequencies[1];
+};

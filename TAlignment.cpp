@@ -222,7 +222,8 @@ void TAlignment::setDistancesFromEnds(){
 
 void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	if(!parsed){
-		if(!storageInitialized) throw "Alignment storage was not initialized!";
+		if(!storageInitialized)
+			throw "Alignment storage was not initialized!";
 
 		//first parse bases and qualities
 		parseBasesQualities(genoMap, qualityMap);

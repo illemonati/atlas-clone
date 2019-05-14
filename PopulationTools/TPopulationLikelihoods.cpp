@@ -286,7 +286,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 		throw "MAF filter must be within (0.0,0.5)!";
 	if(freqFilter > 0.0 || saveAlleleFreq){
 		estimateGenotypeFrequencies = true;
-		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0001);
+		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
 	} else {
 		estimateGenotypeFrequencies = false;
@@ -580,6 +580,10 @@ void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
 		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
 };
 
+void TPopulationLikelihoodReader::writePosition(TOutputFile & out){
+	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TVcfFilter                                                                                 //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -636,75 +640,6 @@ void TVcfFilter::filterVCF(TParameters & Parameters){
 	logfile->endIndent();
 };
 */
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-// TAlleleFreqEstimator                                                                               //
-////////////////////////////////////////////////////////////////////////////////////////////////
-
-TAlleleFreqEstimator::TAlleleFreqEstimator(TParameters & Parameters, TLog* Logfile){
-	vcfRead = false;
-	_numLoci = 0;
-	logfile = Logfile;
-}
-
-void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters){
-	if(vcfRead)
-		throw "VCF already read!";
-
-	//create reader
-	bool saveAlleleFrequencies = true;
-	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
-	reader.doEstimateGenotypeFrequencies();
-
-	// open vcf file
-	vcfFilename = Parameters.getParameterString("vcf");
-	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
-	reader.openVCF(vcfFilename, logfile);
-
-	//Match samples
-	if(samples.hasSamples())
-		samples.fillVCFOrder(reader.getSampleVCFNames());
-	 else
-		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
-
-	// initialize variables for vcf-file
-	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodStorage storage(samples.numSamples());
-
-	//output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreq.txt.gz";
-	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
-	gz::ogzstream out(outputName.c_str());
-	if(!out)
-		throw "Failed to open file '" + outputName + "' for writing!";
-
-	//write header
-	out << "chr\tpos\talleleFreq\n";
-
-    //run through VCF file
-    logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, logfile)){
-
-    	//print SNP
- 		out << reader.chr() << "\t" << reader.position() << "\t" << reader.allelFrequency() << "\n";
-
- 		//update for next
- 		++_numLoci;
-     }
-
-    //clean up
-	vcfRead = true;
-	out.close();
-
-    //report final status
-	logfile->endIndent();
-	reader.concludeFilters(logfile);
-	if(reader.numAcceptedLoci() < 1)
-		throw "No usable loci in VCF file '" + vcfFilename + "'!";
-	logfile->endIndent();
-};
-
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoods                                                                     //

@@ -828,6 +828,8 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		alignment.fillReadGroupInfo(readGroupId);
 		alignment.fillPmdProbabilities(pmdObjects);
 
+		if(trimReads)
+			alignment.trimRead(trimmingLength3Prime, trimmingLength5Prime);
 		if(applyQualityFilter)
 			alignment.filterForBaseQuality(minQual, maxQual);
 		if(doRecalibration)
