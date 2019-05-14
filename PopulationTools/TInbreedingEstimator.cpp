@@ -21,8 +21,8 @@ TInbreedingF::TInbreedingF(){
 	_posteriorProbModelWithF = -1;
 }
 
-TInbreedingF::TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
-	_F = F;
+TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
+	_F = -1.0;
 	_probMovingToModelNoF = ProbMovingToModelNoF;
 	_sdProposal = SdProposal;
 	_inModelWithF = InModelWithF;
@@ -513,8 +513,6 @@ void TInbreedingEstimator::initializeGamma(){
 	double sumXSquare = 0.0;
 	double alphaF;
 
-	std::cout << "p.numLoci "<< p.numLoci << std::endl;
-
 	for(unsigned int l = 0; l < numLoci; l++){
 		if(p.modelP[l]){
 			mean += p[l];
@@ -555,12 +553,13 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	if(parameters.parameterExists("startInZeroModel"))
 		startInModelWithF = false;
 	if(startInModelWithF){
-		F = TInbreedingF(randomGenerator->getExponentialRandom(lambdaF), probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
+		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
 		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
 //		F.updateAndAccept(0.2, true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	} else {
-		F = TInbreedingF(0, probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
+		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
+		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	}
 }
@@ -595,8 +594,6 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	if(p.numLoci != numLoci)
 		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.numLoci);
 	logfile->list("initialized allele frequencies for " + toString(p.numLoci) + " loci");
-
-	std::cout << "locus 0 is initialized to " << p[0] << std::endl;
 }
 
 void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParameters & parameters){
@@ -1150,17 +1147,24 @@ void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	numIterations = (double) numIterations;
-	std::cout << "numAcceptedPModelP.at(0) "  << numAcceptedPModelP.at(0) << std::endl;
-	std::cout << "numIterInModelP[0] "  << numIterInModelP[0] << std::endl;
-
 	logfile->conclude("total acceptance rate for F is " + toString((double) numAcceptedF / numIterations) + " and acceptance rate for moves within M_F " + toString((double) numAcceptedFModelF / (double) numIterInModelF));
 	logfile->conclude("total acceptance rate for gamma is " + toString((double) numAcceptedGamma / numIterations));
 	logfile->conclude("total acceptance rate for pi is " + toString((double) numAcceptedPi / numIterations));
-	logfile->conclude("total acceptance rate for first locus is " + toString((double) numAcceptedP.at(0) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(0) / numIterInModelP[0]));
-	logfile->conclude("total acceptance rate for second locus is " + toString((double) numAcceptedP.at(1) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(1) / numIterInModelP[1]));
-	logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(2) / numIterInModelP[2]));
-	logfile->conclude("total acceptance rate for fourth locus is " + toString((double) numAcceptedP.at(3) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(3) / numIterInModelP[3]));
-	logfile->conclude("total acceptance rate for fifth locus is " + toString((double) numAcceptedP.at(4) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(4) / numIterInModelP[4]));
+
+	if(numIterInModelP[0] > 0)
+		logfile->conclude("total acceptance rate for first locus is " + toString((double) numAcceptedP.at(0) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(0) / numIterInModelP[0]));
+	else
+		logfile->conclude("total acceptance rate for first locus is " + toString((double) numAcceptedP.at(0) / numIterations) + ". There were no moves within Model_p.");
+
+	if(numIterInModelP[1] > 0)
+		logfile->conclude("total acceptance rate for second locus is " + toString((double) numAcceptedP.at(1) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(1) / numIterInModelP[1]));
+	else
+		logfile->conclude("total acceptance rate for second locus is " + toString((double) numAcceptedP.at(1) / numIterations) + ". There were no moves within Model_p.");
+
+	if(numIterInModelP[2] > 0)
+		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(2) / numIterInModelP[2]));
+	else
+		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
 }
 
 
@@ -1283,7 +1287,6 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 
 void TInbreedingEstimator::writePosteriors(int i){
 	std::string tracefile = outname + "_" + toString(i) + "_inbreedingMCMC_posteriors.txt.gz";
-	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
@@ -1312,6 +1315,10 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	std::ofstream out(tracefile.c_str());
 	if(!out)
 		throw "Failed to open file '" + tracefile + "' for writing!";
+
+	//announce names of posterior files
+	tracefile = outname + "_*_inbreedingMCMC_posteriors.txt.gz";
+	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
 
 	//write header of trace file
 	out << "F\tgamma\tgammaLog\tpi";
@@ -1379,7 +1386,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	int oldProg = 0;
 	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
 	logfile->listFlush(progressString + "(0%)");
-	for(int i=1; i<numIterations; ++i){
+	for(int i=0; i<numIterations; ++i){
 
 		oneMCMCIteration(i);
 

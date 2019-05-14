@@ -27,7 +27,7 @@ private:
 
 public:
 	TInbreedingF();
-	TInbreedingF(double F, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
+	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
 	void updateAndAccept(const double & value, const bool & inModelWithF);
