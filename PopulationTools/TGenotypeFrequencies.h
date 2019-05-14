@@ -11,7 +11,7 @@
 #include "TPopulationLikelihoodStorage.h"
 #include "../TQualityMap.h"
 #include <iostream>
-#include "TFile.h"
+#include "../TFile.h"
 
 //------------------------------------------------
 // TGenotypeFreqencies

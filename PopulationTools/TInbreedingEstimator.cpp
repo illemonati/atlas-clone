@@ -501,42 +501,55 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	initParams(randomGenerator, Parameters);
 	resetAcceptanceRates();
 
+
 	//output name
 	std::string vcfFileName = likelihoods.getVCFName();
 	vcfFileName = extractBeforeLast(vcfFileName, ".vcf");
 	outname = Parameters.getParameterStringWithDefault("out", vcfFileName);
 }
 
-void TInbreedingEstimator::initializeGamma(){
+void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 	// estimate alpha_f and beta_f by method of moments
-	double mean = 0.0;
-	double sumXSquare = 0.0;
-	double alphaF;
+	if(parameters.parameterExists("initialGamma")){
+		double initialValue = parameters.getParameterDouble("initialGamma");
+		Gamma.update(log(initialValue), initialValue);
+	} else {
+		double mean = 0.0;
+		double sumXSquare = 0.0;
+		double alphaF;
 
-	for(unsigned int l = 0; l < numLoci; l++){
-		if(p.modelP[l]){
-			mean += p[l];
-			sumXSquare += p[l] * p[l];
+		for(unsigned int l = 0; l < numLoci; l++){
+			if(p.modelP[l]){
+				mean += p[l];
+				sumXSquare += p[l] * p[l];
+			}
 		}
+		mean /= (double) p.getNumLociInModelP();
+		sumXSquare /= (double) p.getNumLociInModelP();
+		double var = sumXSquare - mean  * mean;
+
+		//now estimate gamma -> just assume it's same as alpha
+		double tmp = ((mean * (1.0 - mean)) / var ) - 1.0;
+		alphaF = mean * tmp;
+		if(alphaF < 0.0)
+			alphaF = 0.01;
+		double logAlpha = log(alphaF);
+		Gamma.update(logAlpha, alphaF);
+	//	betaF = (1.0 - mean) * tmp;
+	//	if(betaF < 0.0)
+	//		betaF = 0.01;
+	//	double logBeta = log(betaF);
+	//	beta.update(logBeta, betaF);
 	}
-	mean /= (double) p.getNumLociInModelP();
-	sumXSquare /= (double) p.getNumLociInModelP();
-	double var = sumXSquare - mean  * mean;
-
-	//now estimate gamma -> just assume it's same as alpha
-	double tmp = ((mean * (1.0 - mean)) / var ) - 1.0;
-	alphaF = mean * tmp;
-	if(alphaF < 0.0)
-		alphaF = 0.01;
-	double logAlpha = log(alphaF);
-	Gamma.update(logAlpha, alphaF);
-//	betaF = (1.0 - mean) * tmp;
-//	if(betaF < 0.0)
-//		betaF = 0.01;
-//	double logBeta = log(betaF);
-//	beta.update(logBeta, betaF);
-
 	logfile->list("Initialized gamma to " + toString(Gamma.getNaturalScaleValue()));
+
+	if(parameters.parameterExists("fixedGamma")){
+		shouldUpdateGamma = false;
+		logfile->list("Will not update gamma");
+	} else{
+		shouldUpdateGamma = true;
+	}
+
 }
 
 void TInbreedingEstimator::initF(TParameters & parameters){
@@ -562,6 +575,24 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
 		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	}
+
+	if(parameters.parameterExists("initialF")){
+		double initialF = parameters.getParameterDouble("fixedF");
+		if(initialF == 0.0)
+			F.updateAndAccept(initialF, false);
+		else if(initialF > 0.0)
+			F.updateAndAccept(initialF, true);
+		else
+			throw "Initial F cannot be a negative number!";
+		logfile->list("Set F to fixed value " + toString(initialF));
+	}
+
+	if(parameters.parameterExists("fixedF")){
+		shouldUpdateF = false;
+		logfile->list("Will not update F");
+	} else {
+		shouldUpdateF = true;
+	}
 }
 
 void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
@@ -573,10 +604,13 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		tmp2 = likelihoods.donateTrueAlleleFrequencies();
 		trueAlleleFreq = tmp2;
 		trueAlleleFreqProvided = true;
-		logfile->list("initializing allele frequencies to true values read from trueAlleleFreq file");
+		logfile->list("Initializing allele frequencies to true values read from trueAlleleFreq file");
+	} else if(parameters.parameterExists("allP")){
+		p.setToValue(parameters.getParameterDouble("initialP"));
+		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameterDouble("allP")));
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
-		logfile->list("initializing allele frequencies to values estimated from sample genotype likelihoods");
+		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
 		trueAlleleFreqProvided = false;
 	}
 	double probMovingToModel0 = parameters.getParameterDoubleWithDefault("probMovingToModelP0", 0.1);
@@ -589,7 +623,13 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to " + toString(lambdaP));
 
 	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, probMovingToModelP, lambdaP);
-//	p.setToValue(0.2);
+
+	if(parameters.parameterExists("fixedP")){
+		shouldUpdateP = false;
+		logfile->list("Will not update allele frequencies");
+	} else {
+		shouldUpdateP = true;
+	}
 
 	if(p.numLoci != numLoci)
 		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.numLoci);
@@ -607,7 +647,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	double widthProposalKernelGamma = parameters.getParameterDoubleWithDefault("widthProposalKernelGamma", 0.35);
 	Gamma = TGamma(widthProposalKernelGamma);
 
-	initializeGamma();
+	initializeGamma(parameters);
 //	Gamma.update(log(0.5), 0.5);
 
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(alpha)");
@@ -615,10 +655,21 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 
 	//pi
 	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 1.0 / (double) p.numLoci);
-	double initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
-//	double initialValue = 0.8;
+	double initialValue;
+	if(parameters.parameterExists("initialPi")){
+		initialValue = parameters.getParameterDouble("initialPi");
+	} else {
+		initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
+	}
 	pi = TPi(widthProposalKernelPi, initialValue);
 	logfile->list("initialized pi to " + toString(pi.getPi()));
+
+	if(parameters.parameterExists("fixedPi")){
+		shouldUpdatePi = false;
+		logfile->list("Will not update pi");
+	} else {
+		shouldUpdatePi = true;
+	}
 }
 
 bool TInbreedingEstimator::updateF(){
@@ -1131,18 +1182,26 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
 	//update params
 
-	numAcceptedF += updateF();
-
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		if(l == 736){
-			numAcceptedP[l] += updateP(likelihoods.curData(), l, likelihoods.curSampleSize(), Gamma);
-//		}
+	if(shouldUpdateF){
+		numAcceptedF += updateF();
 	}
 
-	//Gamma
-	numAcceptedGamma += updateGamma();
-	numAcceptedPi += updatePi();
+	if(shouldUpdateP){
+		long l = 0;
+		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+	//		if(l == 736){
+				numAcceptedP[l] += updateP(likelihoods.curData(), l, likelihoods.curSampleSize(), Gamma);
+	//		}
+		}
+	}
+
+	if(shouldUpdateGamma){
+		numAcceptedGamma += updateGamma();
+	}
+
+	if(shouldUpdatePi){
+		numAcceptedPi += updatePi();
+	}
 }
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){

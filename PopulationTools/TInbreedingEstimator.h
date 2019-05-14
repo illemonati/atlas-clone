@@ -162,6 +162,11 @@ private:
 	int burninLength;
 	int thinning;
 
+	bool shouldUpdateF;
+	bool shouldUpdateP;
+	bool shouldUpdateGamma;
+	bool shouldUpdatePi;
+
 	//data
 	TPopulationLikelihoods likelihoods;
 	unsigned int numLoci;
@@ -176,7 +181,7 @@ private:
 	TPi pi;
 
 //	void initializeAlphaBeta();
-	void initializeGamma();
+	void initializeGamma(TParameters & parameters);
 	void initF(TParameters & parameters);
 	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
