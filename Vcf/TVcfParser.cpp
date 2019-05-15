@@ -707,8 +707,11 @@ double TVcfParser::variantQuality(TVcfLine & line){
 //--------------------------------------------------------------------
 
 void TVcfParser::checkSampleNum(TVcfLine & line, unsigned int & sample){
-	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
-	if(line.samples[sample].missing) throw "Sample " + toString(sample) + " is missing!";
+	if(sample >= line.samples.size())
+		throw "Sample " + toString(sample) + " does not exists!";
+	if(line.samples[sample].missing){
+		throw "Sample " + toString(sample) + " is missing!";
+	}
 }
 
 void TVcfParser::addInfoToSample(TVcfLine & line, unsigned int & sample, std::string & tag, std::string & Data){
@@ -775,8 +778,9 @@ short TVcfParser::sampleGenotype(TVcfLine & line, const unsigned int & sample){
 }
 
 bool TVcfParser::sampleIsMissing(TVcfLine & line, unsigned int & s){
-	if(s >= line.samples.size())
+	if(s >= line.samples.size()){
 		throw "Sample " + toString(s) + " does not exists!";
+	}
 	return line.samples[s].missing;
 }
 

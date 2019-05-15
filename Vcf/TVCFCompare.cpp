@@ -131,11 +131,12 @@ TVCFComapreVCF::TVCFComapreVCF(){
 	sampleIndex = 0;
 	vcfFile = nullptr;
 	vcfFileOpen = false;
+	doFilter = false;
 	minDepth = 0;
 	minQual = 0.0;
 };
 
-TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile){
+TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName, bool & DoFilter, TLog* logfile){
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
@@ -145,6 +146,7 @@ TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName,
 		vcfFile = new TVcfFileSingleLine(filename, true);
 	}
 	vcfFileOpen = true;
+	doFilter = DoFilter;
 
 	vcfFile->enablePositionParsing();
 	vcfFile->enableFormatParsing();
@@ -177,6 +179,9 @@ TVCFComapreVCF::TVCFComapreVCF(TVCFComapreVCF&& other){
 
 	vcfFileOpen = other.vcfFileOpen;
 	other.vcfFileOpen = false;
+
+	doFilter = other.doFilter;
+	other.doFilter = false;
 
 	minDepth = other.minDepth;
 	other.minDepth = 0;
@@ -225,12 +230,19 @@ void TVCFComapreVCF::next(){
 		if(vcfFile->chr() != parsedChromosomes.back())
 			parsedChromosomes.push_back(vcfFile->chr());
 
-		//filter
-		if(vcfFile->sampleDepth(sampleIndex) < minDepth)
-			vcfFile->setSampleMissing(sampleIndex);
+		//check if sample is missing
+		if(doFilter){
 
-		if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual)
-			vcfFile->setSampleMissing(sampleIndex);
+			if(vcfFile->tempLine.samples[sampleIndex].missing)
+				throw "cannot apply filters";
+
+			//filter
+			if(vcfFile->sampleDepth(sampleIndex) < minDepth)
+				vcfFile->setSampleMissing(sampleIndex);
+
+			if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual)
+				vcfFile->setSampleMissing(sampleIndex);
+		}
 	}
 };
 
@@ -269,6 +281,8 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	std::vector<std::string> sampleNames;
 	parameters.fillParameterIntoVector("samples", sampleNames, ',');
 
+	bool doFilter = parameters.parameterExists("applyFilters");
+
 	//currently only implemented for comparing two VCFs
 	if(fileNames.size() != 2)
 		throw "VCF comparison requires two VCF file names (not " + toString(fileNames.size()) + ")!";
@@ -279,7 +293,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 
 	//open VCF files
 	for(size_t i=0; i<fileNames.size(); i++){
-		vcfFiles.emplace_back(fileNames[i], sampleNames[i], logfile);
+		vcfFiles.emplace_back(fileNames[i], sampleNames[i], doFilter, logfile);
 	}
 	logfile->endIndent();
 
@@ -315,7 +329,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	uint32_t numLines = 0;
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	while((!vcfFiles[0].eof() || !vcfFiles[1].eof()) && limitLines > 0 && numLines < lineLimit){
+	while((!vcfFiles[0].eof() || !vcfFiles[1].eof()) && (!limitLines  || numLines < lineLimit)){
 		//is one end of file?
 		if(vcfFiles[0].eof()){
 			addToOtherMissing(counts, 1);

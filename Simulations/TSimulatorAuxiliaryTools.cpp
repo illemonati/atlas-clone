@@ -336,16 +336,16 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 				index.add(haplotypes[ind][0][l]);
 
 				//add genotype
-				genoString += toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
+				genoString += '\t' + toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
 			} else {
 				//make sure allele exists
 				index.add(haplotypes[ind][0][l]);
 				index.add(haplotypes[ind][1][l]);
 
 				if(index.index[haplotypes[ind][0][l]] < index.index[haplotypes[ind][1][l]])
-					genoString += toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][1][l]]);
+					genoString += '\t' + toString(index.index[haplotypes[ind][0][l]]) + '/' + toString(index.index[haplotypes[ind][1][l]]);
 				else
-					genoString += toString(index.index[haplotypes[ind][1][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
+					genoString += '\t' + toString(index.index[haplotypes[ind][1][l]]) + '/' + toString(index.index[haplotypes[ind][0][l]]);
 			}
 		}
 
@@ -356,7 +356,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 		trueGenoVCF << "\t.\t.\t.\tGT";
 
 		//now write genotypes
-		trueGenoVCF << '\t' << genoString << '\n';
+		trueGenoVCF <<  genoString << '\n';
 	}
 };
 

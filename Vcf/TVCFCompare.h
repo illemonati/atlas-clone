@@ -51,13 +51,14 @@ private:
 	std::vector<std::string> parsedChromosomes;
 	TVcfFileSingleLine* vcfFile;
 	bool vcfFileOpen;
+	bool doFilter;
 
 	int minDepth;
 	double minQual;
 
 public:
 	TVCFComapreVCF();
-	TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
+	TVCFComapreVCF(std::string & filename, std::string & sampleName, bool & DoFilter, TLog* logfile);
 	TVCFComapreVCF(TVCFComapreVCF&& other);
 	TVCFComapreVCF& operator=(TVCFComapreVCF&& other);
 	~TVCFComapreVCF();
