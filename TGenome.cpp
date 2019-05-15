@@ -1029,8 +1029,8 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 		//report
 		if(S_left + S_right > 0 || printAll){
-			out << alignment.alignmentName << "\t";
-			out	<< alignment.position << "\t";
+			out << alignment.name() << "\t";
+			out	<< alignment.getPosition() << "\t";
 			out	<< S_left << "\t";
 			if(printSequences) out	<< S_string_left << "\t";
 			out	<< middle  << "\t";
@@ -1238,7 +1238,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 				if(allowForLarger)
 					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
 				else {
-					logfile->warning("Length of read " + alignment.alignmentName + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
+					logfile->warning("Length of read " + alignment.name() + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
 				}
 			}
 		}
@@ -1451,12 +1451,12 @@ void TGenome::filterBAM(TParameters & params){
 
 		//check if first alignment in storage is too far away from current read (after checking for chr change)
 		//if yes, first alignment in storage is considered an orphan
-		merger.writeUpTo(alignment.position);
+		merger.writeUpTo(alignment.getPosition());
 
 		//attempt merging of paired reads
 		if(alignment.isPaired){
 			//Ignore reads in black list
-			if(alignmentParser.isInBlacklist(alignment.alignmentName) || !alignment.isProperPair){
+			if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
 				merger.addAsImproperPair(alignment);
 			} else {
 				//is a proper pair: attempt merging
@@ -1467,7 +1467,7 @@ void TGenome::filterBAM(TParameters & params){
 		//read is in single-end read group
 		else {
 			//Ignore reads in black list
-			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
 			} else {
 				merger.addReadyToBeWritten(alignment);
@@ -1554,12 +1554,12 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 
 		//check if first alignment in storage is too far away from current read (after checking for chr change)
 		//if yes, first alignment in storage is considered an orphan
-		merger.writeUpTo(alignment.position);
+		merger.writeUpTo(alignment.getPosition());
 
 		//attempt merging of paired reads
 		if(alignment.isPaired && mergeThisReadGroup[alignment.readGroupId]){
 			//Ignore reads in black list
-			if(alignmentParser.isInBlacklist(alignment.alignmentName) || !alignment.isProperPair){
+			if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
 				merger.addAsImproperPair(alignment);
 			} else {
 				//is a proper pair: attempt merging
@@ -1570,7 +1570,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		//read is in single-end read group
 		else {
 			//Ignore reads in black list
-			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
 			} else {
 				merger.addReadyToBeWritten(alignment);
@@ -1684,10 +1684,10 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 		//accept read or not?
 		for(i=0; i<numProbs; ++i){
-			if(alignmentParser.isInBlacklist(alignment.alignmentName)){
+			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
 				continue;
-			} if(keep.isInReadList(alignment.alignmentName)){
+			} if(keep.isInReadList(alignment.name())){
 				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
@@ -1832,12 +1832,12 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
         //mapping quality
         if(alignment.mappingQuality > maxMQ)
-        	throw "Mapping quality of alignment " + alignment.alignmentName + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
+        	throw "Mapping quality of alignment " + alignment.name() + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
         ++mappingQuality[alignment.readGroupId][alignment.mappingQuality];
 
         //read length
         if(alignment.getBamAlignmentLength() > maxReadLength)
-    	   throw "Read length of alignment " + alignment.alignmentName + " is larger than maxReadLength (" + toString(alignment.getParsedLength()) + ">" + toString(maxReadLength) +")";
+    	   throw "Read length of alignment " + alignment.name() + " is larger than maxReadLength (" + toString(alignment.getParsedLength()) + ">" + toString(maxReadLength) +")";
 
         ++readLength[alignment.readGroupId][alignment.getBamAlignmentLength()];
 
@@ -2094,17 +2094,17 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 			curPos = 0;
 		}
 
-		if(alignment.position > curPos){
+		if(alignment.getPosition() > curPos){
 			//add last pos with data
 			counts.add(countsAtPos);
 
 			//add zero for all positions until here
-			counts.add(0, alignment.position - curPos);
+			counts.add(0, alignment.getPosition() - curPos);
 
 			//set counts at current position
-			curPos = alignment.position;
+			curPos = alignment.getPosition();
 			countsAtPos = 1;
-		} else if(alignment.position == curPos){
+		} else if(alignment.getPosition() == curPos){
 			countsAtPos = countsAtPos + 1;
 		} else
 			throw "Bam file is not sorted!";

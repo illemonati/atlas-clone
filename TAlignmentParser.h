@@ -284,7 +284,7 @@ public:
 		}
 	};
 
-	bool isInBlacklist(std::string & alignmentName){
+	bool isInBlacklist(const std::string & alignmentName){
 		if(blacklist.count(alignmentName) > 0)
 			return true;
 		return false;

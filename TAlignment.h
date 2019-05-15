@@ -34,6 +34,11 @@ private:
 	unsigned int maxSize;
 	int length;
 
+	//BamAlignment data
+	std::string alignmentName;
+	int32_t insertSize;
+	int32_t position;
+
 	//booleans
 	bool parsed;
 	bool changed;
@@ -85,7 +90,7 @@ public:
 	int getParsedLength(){ return length; };
 	int getBamAlignmentLength(){ return bamAlignment.Length; };
 	std::string name(){ return alignmentName; };
-	int32_t getInsertSize(){ return bamAlignment.InsertSize; };
+	int32_t getInsertSize(){ return insertSize; };
 
 	//functions to write / print alignment
 	void setToSingleEnd();
@@ -107,12 +112,11 @@ public:
 	int mappingQuality;
 	bool passedFilters;
 	bool isSecondMate;
+	int32_t matePosition;
 	int chrNumber;
-	int32_t position;
 	int32_t lastPositionPlusOne;
 	int32_t lastAlignedPositionWithRespectToRef;
 	int32_t lastAlignedPos;
-	std::string alignmentName;
 
 	//TODO: move these functions to TGenome
 	void fillReadGroupInfo(int & readGroupID);

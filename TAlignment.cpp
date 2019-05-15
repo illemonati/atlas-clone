@@ -162,7 +162,9 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	isProperPair = bamAlignment.IsProperPair();
 	mappingQuality = bamAlignment.MapQuality;
 	readGroupId = ReadGroupId;
+	insertSize = bamAlignment.InsertSize;
 	isSecondMate = bamAlignment.IsSecondMate();
+	matePosition = bamAlignment.MatePosition;
 
 	empty = false;
 }
@@ -175,7 +177,7 @@ void TAlignment::setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
-		int fragmentLen = abs(bamAlignment.InsertSize) + numInsertions - numDeletions;
+		int fragmentLen = insertSize + numInsertions - numDeletions;
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
@@ -732,7 +734,7 @@ int TAlignment::measureOverlap(){
 			while(bases[k].alignedPos < 0)
 				--k;
 			int endPos = position + bases[k].alignedPos;
-			int overlap = endPos - bamAlignment.MatePosition;
+			int overlap = endPos - matePosition;
 
 			if(overlap < 0)
 				//there is no overlap
@@ -807,7 +809,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 };
 
 void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
-	std::cout << "NAME:\t" << bamAlignment.Name << std::endl;
+	std::cout << "NAME:\t" << alignmentName << std::endl;
 	std::cout << "aligned bases " << bamAlignment.AlignedBases << std::endl;
 	std::cout << "LEN:\t" << length << std::endl;
 

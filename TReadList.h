@@ -46,14 +46,8 @@ public:
 
 	void addToReadList(TAlignment & alignment, const std::string & errorMessage){
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
-		readList.emplace(alignment.alignmentName, 1);
-		_write(alignment.alignmentName, errorMessage, alignment.isSecondMate);
-	};
-
-	void addToReadList(BamTools::BamAlignment & alignment, const std::string & errorMessage){
-		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
-		readList.emplace(alignment.Name, 1);
-		_write(alignment.Name, errorMessage, alignment.IsSecondMate());
+		readList.emplace(alignment.name(), 1);
+		_write(alignment.name(), errorMessage, alignment.isSecondMate);
 	};
 
 	void addToReadList(std::string & alignmentName, const std::string & errorMessage){
@@ -65,11 +59,11 @@ public:
 	};
 
 	void removeFromReadList(TAlignment & alignment, const std::string & errorMessage){
-		readList.erase(alignment.alignmentName);
-		_write(alignment.alignmentName, errorMessage, alignment.isSecondMate);
+		readList.erase(alignment.name());
+		_write(alignment.name(), errorMessage, alignment.isSecondMate);
 	};
 
-	bool isInReadList(std::string & alignmentName){
+	bool isInReadList(const std::string & alignmentName){
 		if(readList.count(alignmentName) > 0)
 			return true;
 		return false;

@@ -39,7 +39,7 @@ std::vector< TAlignmentMergerEntry >::iterator TAlignmentMerger::_findMate(TAlig
 	std::vector< TAlignmentMergerEntry >::iterator it;
 	for(it=alignmentStorage.begin(); it!=alignmentStorage.end(); ++it){
 		//found its mate!
-		if(it->alignment->alignmentName == alignment.alignmentName){
+		if(it->alignment->name() == alignment.name()){
 			return it;
 		}
 	}
@@ -94,7 +94,7 @@ void TAlignmentMerger::addAsImproperPair(TAlignment & alignment){
 void TAlignmentMerger::writeUpTo(const int position){
 	//writes all that are ready or too far away
 	std::vector< TAlignmentMergerEntry >::iterator it = alignmentStorage.begin();
-	while(it != alignmentStorage.end() && (it->ready || position - it->alignment->position > _maxDistanceBetweenMates)){
+	while(it != alignmentStorage.end() && (it->ready || position - it->alignment->getPosition() > _maxDistanceBetweenMates)){
 //		std::cout << "it->alignment->name " << it->alignment->alignmentName << " position - it->alignment->position " << position << "-" <<  it->alignment->position << std::endl;
 		if(it->ready){
 			_writeAlignment(it);
