@@ -1230,7 +1230,7 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
 
 	if(p.numLociWithAcceptanceZero() > 0){
-		logfile->conclude(toString(p.numLociWithAcceptanceZero()) + " out of " + toString(numLoci) + " have an acceptance rate equal to zero");
+		logfile->conclude(toString(p.numLociWithAcceptanceZero()) + " out of " + toString(numLoci) + " loci have an acceptance rate equal to zero");
 	}
 }
 
