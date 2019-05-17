@@ -136,7 +136,9 @@ int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodStorage & stora
 	int cur = 1-old;
 
 	//propose new f
-	pGenotype[cur].set(pGenotype[old].f + randomGenerator->getRand() * prop - prop / 2.0);
+	double new_f = fabs(pGenotype[old].f + randomGenerator->getRand() * prop - prop / 2.0);
+	if(new_f > 1.0) new_f = 2.0 - new_f;
+	pGenotype[cur].set(new_f);
 
 	//calc hastings
 	double LL = calcLL(storage, pGenotype[cur]);
