@@ -212,6 +212,11 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	if(vcfRead)
 		throw "VCF already read!";
 
+	//read samples
+	TPopulationSamples samples;
+	if(Parameters.parameterExists("samples"))
+		samples.readSamples(Parameters.getParameterString("samples"), logfile);
+
 	//create reader
 	bool saveAlleleFrequencies = true;
 	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
