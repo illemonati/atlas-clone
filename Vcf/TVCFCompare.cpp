@@ -226,17 +226,15 @@ void TVCFComapreVCF::next(){
 			parsedChromosomes.push_back(vcfFile->chr());
 
 		//filter
-		if(!vcfFile->sampleIsMissing(sampleIndex)){
-			if(minDepth > 0){
-				if(vcfFile->sampleDepth(sampleIndex) < minDepth){
-					vcfFile->setSampleMissing(sampleIndex);
-				}
+		if(!vcfFile->sampleIsMissing(sampleIndex) && minDepth > 0){
+			if(vcfFile->sampleDepth(sampleIndex) < minDepth){
+				vcfFile->setSampleMissing(sampleIndex);
 			}
+		}
 
-			if(minQual > 0){
-				if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual){
-					vcfFile->setSampleMissing(sampleIndex);
-				}
+		if(!vcfFile->sampleIsMissing(sampleIndex) && minQual > 0){
+			if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual){
+				vcfFile->setSampleMissing(sampleIndex);
 			}
 		}
 	}
