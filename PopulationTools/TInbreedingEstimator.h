@@ -13,6 +13,30 @@
 #include "../TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
+
+//---------------------------
+// sigma stuff
+//---------------------------
+class TSigma{
+private:
+	double _sigma;
+	double _adjFactor;
+	double _normFrac;
+	double _normFracExp;
+	double pi;
+
+	void setAdjFactor(TRandomGenerator* randomGenerator, const double & sigma);
+
+public:
+	TSigma();
+	TSigma(TRandomGenerator* randomGenerator, double & Sigma);
+	void update(TRandomGenerator* randomGenerator, const double & newSigma);
+	double sigma(){ return _sigma; };
+	double logPDFNormal(double curValue);
+	double randomNumber(TRandomGenerator* randomGenerator);
+	double adjFactor(){ return _adjFactor; };
+};
+
 //---------------------------
 // F
 //---------------------------
@@ -22,24 +46,29 @@ private:
 	float _probMovingToModelNoF;
 	double _sdProposal;
 	bool _inModelWithF;
-	double _lambda, _logLambda, _expMinusLambda;
+	TSigma 	sigmaPrior, sigmaNewF;
 	int _posteriorProbModelWithF;
+	int _posteriorProbLargerThanZero;
+	TRandomGenerator* randomGenerator;
+
+	double setAdjFactor(TRandomGenerator* randomGenerator, double & sigma);
 
 public:
 	TInbreedingF();
-	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
+	TInbreedingF(TRandomGenerator* randomGenerator, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double & SigmaPrior, double & SigmaNewF);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
+	double proposeNewFromModel0(TRandomGenerator* randomGenerator);
 	void updateAndAccept(const double & value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
 	void resetPosterior();
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
-	double logPDFExp(const double & thisF);
-	double logPDFExp();
-	double PDFExp(const double & thisF);
-	double PDFExp();
+	double logPDFNormalPrior(double curValue);
+	double logPDFNormalPrior();
+	double logPDFNormalNewF(double curValue);
+	double logPDFNormalNewF();
 	double lambda();
 	int posteriorProbModelWithF();
 	double proposalWidth();
