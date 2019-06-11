@@ -71,6 +71,7 @@ public:
 	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
 	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
 	void fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
+	void fillLog10GenotypeLikelihoods(TVcfLine* line, unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	int sampleNumber(std::string & Name);
 	int numSamples();
 	std::string sampleName(unsigned int num);
@@ -126,6 +127,7 @@ public:
 	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
 	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
 	void fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
+	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	//variant info
 	long position();
 	std::string chr();

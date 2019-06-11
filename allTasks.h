@@ -452,7 +452,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleCountEstimator alleleCountEst(parameters, logfile);
-		alleleCountEst.estimateAlleleCounts(parameters);
+		alleleCountEst.estimateAlleleCounts(parameters, randomGenerator);
 	};
 };
 

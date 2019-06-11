@@ -7,12 +7,49 @@
 
 #include "TGLF.h"
 
+//----------------------------------------------------
+// TGlfConverter
+//----------------------------------------------------
+TGlfConverter::TGlfConverter(){
+	maxVal = 65535;
+	minLikelihood = pow(10.0, (double) maxVal / -1000.0);
+
+	//fill map
+	likelihoodMap.resize(maxVal+1);
+	for(int i=0; i<=maxVal; i++){
+		likelihoodMap[i] = pow(10.0, (double) i / -1000.0);
+	}
+};
+
+uint16_t TGlfConverter::toGlfFormat(double scaledLikelihood){
+	if(scaledLikelihood < minLikelihood){
+		return maxVal;
+	} else {
+		return round(-1000.0 * log10(scaledLikelihood));
+	}
+};
+
+uint16_t TGlfConverter::log10ToGlfFormat(double log10ScaledLikelihood){
+	uint32_t tmp = round(-1000.0 * log10ScaledLikelihood);
+	if(tmp > maxVal) return maxVal;
+	else return tmp;
+};
+
+uint16_t TGlfConverter::phredToGlfFormat(uint8_t phred){
+	return phred * 100;
+};
+
+double TGlfConverter::toScaledLikelihood(uint16_t glfValue){
+	if(glfValue > maxVal) return minLikelihood;
+	return likelihoodMap[glfValue];
+};
+
 //---------------------------------
 //TGlfWriter
 //---------------------------------
 //PRIVATE
 void TGlfWriter::init(){
-	genoQualities = new uint8_t[curChr.numLikelihoodValues];
+	glfValues = new uint8_t[curChr.maxNumLikelihoodValues];
 	oldPos = 0;
 	recordType1 = one8 << 4;
 };
@@ -45,6 +82,9 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 };
 
 void TGlfWriter::newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy){
+
+	std::cout << "IN NEW CHR PLOIDY = " << (int) ploidy << std::endl;
+
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 
@@ -52,18 +92,21 @@ void TGlfWriter::newChromosome(const std::string name, const uint32_t length, co
 	curChr.update(name, length, ploidy);
 
 	//write new chromosome: length of label, label, length of ref sequence, ploidy
-	uint32_t labelLength = name.size();
+	uint32_t labelLength = curChr.name.size();
 
 	write(&labelLength, sizeof(uint32_t));
-	write(name.c_str(), name.length() * sizeof(char));
-	write(&length, sizeof(uint32_t));
-	write(&ploidy, sizeof(uint8_t));
+	write(curChr.name.c_str(), name.length() * sizeof(char));
+	write(&curChr.length, sizeof(uint32_t));
+
+	std::cout << "WRITING PLOIDY = " << (int) curChr.ploidy << std::endl;
+
+	write(&curChr.ploidy, sizeof(uint8_t));
 
 	//set oldPos and curChr
 	oldPos = 0;
 };
 
-void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* phredGenoQualities){
+void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods){
 	//record type
 	//TODO: add reference?
 	write(&recordType1, sizeof(uint8_t));
@@ -74,36 +117,31 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, do
 	write(&offset, sizeof(uint32_t));
 
 	//maxLL
-	double maxLL = phredGenoQualities[0];
+	double maxLL = genotypeLikelihoods[0];
 	for(int i=1; i<curChr.numLikelihoodValues; ++i){
-		if(phredGenoQualities[i] < maxLL)
-			maxLL = phredGenoQualities[i];
+		if(genotypeLikelihoods[i] > maxLL)
+			maxLL = genotypeLikelihoods[i];
 	}
 
-	//normalize phred-scaled genotype likelihoods
+	//normalize and scale to uint16
 	for(int i=0; i<curChr.numLikelihoodValues; ++i){
-		uint32_t tmp = round(phredGenoQualities[i] - maxLL);
-		if(tmp > 255)
-			genoQualities[i] = 255;
-		else genoQualities[i] = tmp;
+		glfValues[i] = converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
 	}
 
-	//cap maxLL at 255 and store as uint8_t
-	if(maxLL > 255.0) maxLL = 255.0;
-	uint8_t maxLL_int = round(maxLL);
+	//write maxLL as uint16_t
+	uint16_t maxLL_int = converter.toGlfFormat(maxLL);
+	write(&maxLL_int, sizeof(uint16_t));
 
-	//write together with depth (capped at 2^24)
-	if(depth > 16777215) depth = 16777215;
-	uint32_t tmp = maxLL_int << 24;
-	tmp = tmp | depth;
-	write(&tmp, sizeof(uint32_t));
+	//write depth as uint16_t
+	if(depth > 65535) depth = 65535;
+	uint16_t tmp = depth;
+	write(&tmp, sizeof(uint16_t));
 
 	//root mean square of mapping qualities
 	write(&RMS_mappingQual, sizeof(uint8_t));
 
 	//genotype likelihoods
-	//TODO: test if using more accuracy on qualities matters
-	write(genoQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
+	write(glfValues, curChr.numLikelihoodValues*sizeof(uint16_t));
 };
 
 //---------------------------------
@@ -120,13 +158,12 @@ void TGlfReader::init(){
 	depth = 0;
 	RMS_mappingQual = 0;
 	positionInFile = 0;
-	depth_mask = 0xFFFFFF;
-	tmpInt32 = 0;
 	tmpInt8 = 0;
 	_lenRead = 0;
 	_eof = true;
 
-	for(int i=0; i<10; ++i)
+	genotypeQualitiesMissingData = new uint16_t[curChr.maxNumLikelihoodValues];
+	for(int i=0; i<curChr.maxNumLikelihoodValues; ++i)
 		genotypeQualitiesMissingData[i] = 0;
 };
 
@@ -204,17 +241,16 @@ void TGlfReader::readSNPRecord(){
 	read(&offset, sizeof(uint32_t));
 	position += offset;
 
-	//maxLL and depth
-	read(&tmpInt32, sizeof(uint32_t));
-	depth = tmpInt32 & depth_mask;
-	maxLL = tmpInt32 >> 24;
+	//maxLL and depth (both uint16)
+	read(&maxLL, sizeof(uint16_t));
+	read(&depth, sizeof(uint16_t));
 
 	//root mean square of mapping qualities
-	read(&tmpInt8, sizeof(uint8_t));
-	RMS_mappingQual = (int) tmpInt8;
+	read(&RMS_mappingQual, sizeof(uint8_t));
+	//RMS_mappingQual = (int) tmpInt8; DO WE NEED THIS??
 
 	//genotype likelihoods
-	read(genotypeQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
+	read(genotypeQualities, curChr.numLikelihoodValues*sizeof(uint16_t));
 };
 
 
@@ -298,7 +334,7 @@ bool TGlfReader::jumpToNextChr(){
 	return readNext();
 };
 
-bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::string chr, long start, long end){
+bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, std::string chr, long start, long end){
 	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
 	if(chromosomeParsed(chr)) return false;
@@ -356,9 +392,15 @@ bool TGlfReader::readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::st
 	return true;
 };
 
-void TGlfReader::fillGenotypeQualities(uint8_t* destination){
+void TGlfReader::fillGenotypeQualities(uint16_t* destination){
 	//assumes pointer points to
-	memcpy(destination, genotypeQualities, curChr.numLikelihoodValues*sizeof(uint8_t));
+	memcpy(destination, genotypeQualities, curChr.numLikelihoodValues*sizeof(uint16_t));
+};
+
+void TGlfReader::fillGenotypeLikelihoods(double* destination, TGlfConverter* converter){
+	for(int i=0; i<curChr.numLikelihoodValues; ++i){
+		destination[i] = converter->toScaledLikelihood(genotypeQualities[i]);
+	}
 };
 
 //printing
@@ -728,7 +770,7 @@ void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, const int allel
 		if(isHaploid[i]){
 			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][0]];
 			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][1]];
-			storage[i].phredLikelihood_2 = 255;
+			storage[i].phredLikelihood_2 = converter.maxValue();
 		} else {
 			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][0]];
 			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][1]];
@@ -822,7 +864,7 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 		if(mleGenotypes.size() > 1) vcf << "0:";
 		else {
 			//find second highest quality
-			int secondLowestQual = 999;
+			int secondLowestQual = converter.maxValue();
 			if(data[ind][refHomIndex] > minQual) secondLowestQual = data[ind][refHomIndex];
 			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
 			if(data[ind][altHomIndex] == minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
@@ -834,17 +876,19 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 
 		//write likelihoods
 		if(usePhredLikelihoods){
-			vcf << (data[ind][refHomIndex] - minQual) << "," << (data[ind][hetIndex] - minQual) << "," << (data[ind][altHomIndex] - minQual);
+			vcf << converter.toPhred(data[ind][refHomIndex] - minQual)
+				<< "," << converter.toPhred(data[ind][hetIndex] - minQual)
+				<< "," << converter.toPhred(data[ind][altHomIndex] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
 			if(data[ind][refHomIndex] == minQual) vcf << "0";
-			else vcf << (data[ind][refHomIndex] - minQual) / -10.0;
+			else vcf << converter.toLog10(data[ind][refHomIndex] - minQual);
 
 			if(data[ind][hetIndex] == minQual) vcf << ",0";
-			else vcf << "," << (data[ind][hetIndex] - minQual) / -10.0;
+			else vcf << "," << converter.toLog10(data[ind][hetIndex] - minQual);
 
 			if(data[ind][altHomIndex] == minQual) vcf << ",0";
-			else vcf << "," << (data[ind][altHomIndex] - minQual) / -10.0;
+			else vcf << "," << converter.toLog10(data[ind][altHomIndex] - minQual);
 		}
 
 	} else {

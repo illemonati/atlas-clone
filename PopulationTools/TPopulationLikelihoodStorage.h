@@ -16,9 +16,9 @@
 //------------------------------------------------
 class TSampleLikelihoods{
 public:
-	uint8_t phredLikelihood_0;
-	uint8_t phredLikelihood_1;
-	uint8_t phredLikelihood_2;
+	uint16_t phredLikelihood_0;
+	uint16_t phredLikelihood_1;
+	uint16_t phredLikelihood_2;
 
 	bool isHaploid;
 	bool isMissing;

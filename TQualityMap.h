@@ -45,7 +45,7 @@ public:
 		phredIntToErrorMap[0] = 1.0;
 
 		//and now others
-		double tmp = - log(10) / 10.0;;
+		double tmp = - log(10) / 10.0;
 		for(int i=0; i<(minPhredInt+1); ++i){
 			phredIntToErrorMap[i] = phredToError(i);
 			phredIntToLogErrorMap[i] = i * tmp;

@@ -33,7 +33,6 @@ public:
 //-------------------------------------------------
 class TSiteAlleleFrequencyLikelihoods{
 private:
-	TQualityMap qualMap;
 	double logOf2;
 	int numAlleleCounts; //from 0 to 2k
 	int storageSize;
@@ -46,14 +45,14 @@ private:
 	void normalize();
 
 	TSAFChooseStorage* getLogChoose(int counts);
-	void fillLog(const TSampleLikelihoods* data, int numSamples);
-	void fillNatural(const TSampleLikelihoods* data, int numSamples);
+	void fillLog(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
+	void fillNatural(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
 
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
-	void fill(const TSampleLikelihoods* data, int numSamples);
+	void fill(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
 	void print();
 	void write(gz::ogzstream & file);
 	int getMLAlleleCount(TRandomGenerator & randomGenerator);
@@ -66,13 +65,14 @@ public:
 class TAlleleCountEstimator{
 private:
 	TLog* logfile;
-	TRandomGenerator* randomGenerator;
+	//TRandomGenerator* randomGenerator;
+	TGlfConverter glfConverter;
 
 public:
 	TAlleleCountEstimator(TParameters & params, TLog* Logfile);
 	~TAlleleCountEstimator();
 
-	void estimateAlleleCounts(TParameters & params);
+	void estimateAlleleCounts(TParameters & params, TRandomGenerator* randomGenerator);
 	void writeAlleleFrequencyLikelihoods(TParameters & params);
 };
 

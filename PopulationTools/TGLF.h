@@ -20,6 +20,30 @@
 #include "../TRandomGenerator.h"
 #include "TPopulationLikelihoodStorage.h"
 
+//----------------------------------------------------
+// TGlfConverter
+// class to converted likelihoods to uint16 and back
+//----------------------------------------------------
+class TGlfConverter{
+private:
+	uint16_t maxVal;
+	double minLikelihood;
+	std::vector<double> likelihoodMap;
+	double logOf10DividedByMinus1000 = log(10) / -1000.0;
+
+public:
+	TGlfConverter();
+
+	uint16_t maxValue(){ return maxVal; };
+	uint16_t toGlfFormat(double scaledLikelihood);
+	uint16_t log10ToGlfFormat(double log10ScaledLikelihood);
+	uint16_t phredToGlfFormat(uint8_t phred);
+	double toScaledLikelihood(uint16_t glfValue);
+	double operator[](uint16_t glfValue){ return toScaledLikelihood(glfValue); }
+	uint8_t toPhred(uint16_t glfValue){ return round(glfValue / 100.0); };
+	double toLog10(uint16_t glfValue){ return glfValue / -1000.0; };
+	double toLog(uint16_t glfValue){ return glfValue * logOf10DividedByMinus1000; };
+};
 
 //----------------------------------------------------
 //TGlfChromosome
@@ -27,7 +51,7 @@
 //----------------------------------------------------
 class TGlfChromosome{
 private:
-	void setPloidy(uint8_t Ploidy){
+	void setPloidy(const uint8_t Ploidy){
 		if(Ploidy < 1 || Ploidy > 2)
 			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
 		ploidy = Ploidy;
@@ -36,6 +60,8 @@ private:
 		} else {
 			numLikelihoodValues = 10;
 		}
+
+		std::cout << "SETTTTTT PLOIDY = " << ploidy << std::endl;
 	};
 
 public:
@@ -44,12 +70,14 @@ public:
 	uint32_t length;
 	uint8_t ploidy;
 	uint8_t numLikelihoodValues; //depends on ploidy
+	uint8_t maxNumLikelihoodValues; //maximum possible
 
 	TGlfChromosome(){
 		number = 0;
 		length = 0;
 		ploidy = 2;
 		numLikelihoodValues = 10;
+		maxNumLikelihoodValues = 10;
 		name = "";
 	};
 
@@ -66,9 +94,10 @@ public:
 		ploidy = other.ploidy;
 		number = other.number;
 		numLikelihoodValues = other.numLikelihoodValues;
+		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 	};
 
-	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
+	void update(const std::string Name, const uint32_t Length, const uint8_t Ploidy){
 		name = Name;
 		length = Length;
 		setPloidy(Ploidy);
@@ -154,13 +183,18 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long oldPos;
 	uint8_t recordType1;
-	uint8_t* genoQualities; //tmp used for writing
+	uint8_t* glfValues; //tmp used for writing
+	TGlfConverter converter;
 
 	void init();
 	void writeHeader();
 
 	template <typename T>
 	inline void write(const T* buf, size_t len){
+
+		std::cout << "buf = " << buf << std::endl;
+		std::cout << "len = " << len << std::endl;
+
 		positionInFile += gzwrite(gzfp, buf, len);
 	};
 
@@ -175,13 +209,13 @@ public:
 
 	~TGlfWriter(){
 		close();
-		delete[] genoQualities;
+		delete[] glfValues;
 	};
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
 	void newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy);
-	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* phredGenoQualities);
+	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods);
 };
 
 
@@ -193,14 +227,12 @@ private:
 	bool reachedEndOfChr;
 	uint32_t HeaderLen;
 	uint32_t offset;
-	uint32_t depth_mask;
-	uint32_t tmpInt32;
 	uint8_t tmpInt8;
 	int SNPRecordSize;
 	uint8_t tmpRecordStorage[19];
 	int _lenRead;
 	bool _eof;
-	uint8_t genotypeQualitiesMissingData[10];
+	uint16_t* genotypeQualitiesMissingData;
 	std::vector< TGlfChromosome > chromosomesAlreadyParsed;
 
 	void init();
@@ -223,8 +255,8 @@ private:
 public:
 	int recordType;
 	long position;
-	int maxLL;
-	int depth;
+	uint16_t maxLL;
+	uint16_t depth;
 	int RMS_mappingQual;
 	uint8_t genotypeQualities[10];
 
@@ -252,8 +284,9 @@ public:
 	bool readNext();
 	bool jumpToEndOfChr();
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<uint8_t*> & genoLikelihoods, std::string chr, long start, long end);
-	void fillGenotypeQualities(uint8_t* destination);
+	bool readNextWindow(std::vector<uint16_t*> & genoLikelihoods, std::string chr, long start, long end);
+	void fillGenotypeQualities(uint16_t* destination);
+	void fillGenotypeLikelihoods(double* destination, TGlfConverter* converter);
 
 	//printing
 	void printChr();
@@ -271,6 +304,7 @@ private:
 	TGlfReader* GLFs;
 	bool readersOpened;
 	TGenotypeMap genoMap;
+	TGlfConverter converter;
 
 	void _openGLFs(TLog* logfile);
 

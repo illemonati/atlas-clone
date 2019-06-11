@@ -17,6 +17,7 @@
 #include "../TQualityMap.h"
 #include "TPopulationLikelihoodStorage.h"
 #include "TGenotypeFrequencies.h"
+#include "TGLF.h"
 
 //------------------------------------------------
 //TPopulationSamples
@@ -103,6 +104,7 @@ private:
 	void closeTrueAlleleFreqFile();
     void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
     void printProgressFrequencyFiltering(TLog* logfile);
+    int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
 
 public:
 	TPopulationLikelihoodReader();
@@ -116,8 +118,8 @@ public:
 	void openVCF(std::string, TLog* logfile);
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
     bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
-    bool readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TLog* logfile);
-	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TLog* logfile);
+    bool readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
+	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
@@ -204,6 +206,8 @@ private:
     void readDataFromVCF(TParameters & Parameters, TLog* logfile);
 
 public:
+    TGlfConverter glfConverter;
+
     TPopulationLikelihoods();
     TPopulationLikelihoods(TParameters & Parameters, TLog* Logfile);
     ~TPopulationLikelihoods();

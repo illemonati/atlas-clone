@@ -472,7 +472,10 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), alignmentParser.getCurChrPloidy());
+
+			std::cout << "IN GENOOOOOOOOOOOOOME PLOIDY = " << alignmentParser.getCurChrPloidy() << std::endl;
+
+			writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
