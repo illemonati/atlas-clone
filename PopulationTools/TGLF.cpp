@@ -44,12 +44,26 @@ double TGlfConverter::toScaledLikelihood(uint16_t glfValue){
 	return likelihoodMap[glfValue];
 };
 
+uint8_t TGlfConverter::toPhred(uint16_t glfValue){
+	uint16_t tmp = round(glfValue / 100.0);
+	if(tmp > 255) return 255;
+	return tmp;
+};
+
+double TGlfConverter::toLog10(uint16_t glfValue){
+	return glfValue / -1000.0;
+};
+
+double TGlfConverter::toLog(uint16_t glfValue){
+	return glfValue * logOf10DividedByMinus1000;
+};
+
 //---------------------------------
 //TGlfWriter
 //---------------------------------
 //PRIVATE
 void TGlfWriter::init(){
-	glfValues = new uint8_t[curChr.maxNumLikelihoodValues];
+	glfValues = new uint16_t[curChr.maxNumLikelihoodValues];
 	oldPos = 0;
 	recordType1 = one8 << 4;
 };
@@ -81,10 +95,7 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy){
-
-	std::cout << "IN NEW CHR PLOIDY = " << (int) ploidy << std::endl;
-
+void TGlfWriter::newChromosome(std::string name, uint32_t length, uint8_t ploidy){
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 
@@ -97,10 +108,7 @@ void TGlfWriter::newChromosome(const std::string name, const uint32_t length, co
 	write(&labelLength, sizeof(uint32_t));
 	write(curChr.name.c_str(), name.length() * sizeof(char));
 	write(&curChr.length, sizeof(uint32_t));
-
-	std::cout << "WRITING PLOIDY = " << (int) curChr.ploidy << std::endl;
-
-	write(&curChr.ploidy, sizeof(uint8_t));
+	write(&curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized varable" error with valgrind. Why?
 
 	//set oldPos and curChr
 	oldPos = 0;
@@ -129,8 +137,8 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, do
 	}
 
 	//write maxLL as uint16_t
-	uint16_t maxLL_int = converter.toGlfFormat(maxLL);
-	write(&maxLL_int, sizeof(uint16_t));
+	//uint16_t maxLL_int = converter.toGlfFormat(maxLL);
+	//write(&maxLL_int, sizeof(uint16_t));
 
 	//write depth as uint16_t
 	if(depth > 65535) depth = 65535;
@@ -154,7 +162,7 @@ void TGlfReader::init(){
 	recordType = 99;
 	offset = 0;
 	position = 0;
-	maxLL = 0;
+	//maxLL = 0;
 	depth = 0;
 	RMS_mappingQual = 0;
 	positionInFile = 0;
@@ -242,7 +250,7 @@ void TGlfReader::readSNPRecord(){
 	position += offset;
 
 	//maxLL and depth (both uint16)
-	read(&maxLL, sizeof(uint16_t));
+	//read(&maxLL, sizeof(uint16_t));
 	read(&depth, sizeof(uint16_t));
 
 	//root mean square of mapping qualities
@@ -279,6 +287,9 @@ void TGlfReader::open(){
 	char buffer[4];
 	read(buffer, 4*sizeof(char));
 	version.assign(buffer, 4);
+
+	if(version != "GLFA")
+		throw "Non-supported GLF version '" + version + "! Currently only version GLFA is supported.";
 
 	read(&HeaderLen, sizeof(uint32_t));
 
@@ -409,7 +420,8 @@ void TGlfReader::printChr(){
 };
 
 void TGlfReader::printSite(){
-	std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
+	//std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
+	std::cout << curChr.name << "\t" << position << "\t" << depth << "\t" << RMS_mappingQual;
 	for(int i=0; i<curChr.numLikelihoodValues; ++i)
 		std::cout << "\t" << unsigned(genotypeQualities[i]);
 	std::cout << "\n";
@@ -504,7 +516,6 @@ void TGlfMultiReader::_openGLFs(TLog* logfile){
 
 	_setAllInactive();
 };
-
 
 void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog* logfile){
 	GLFNames = FileNames;
@@ -617,7 +628,7 @@ void TGlfMultiReader::_prepareParsing(){
 		delete[] data;
 		delete[] hasData;
 	}
-	data = new uint8_t*[numActiveFiles];
+	data = new uint16_t*[numActiveFiles];
 	hasData = new bool[numActiveFiles];
 	dataInitialized = true;
 }

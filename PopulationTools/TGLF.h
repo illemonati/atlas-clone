@@ -40,9 +40,9 @@ public:
 	uint16_t phredToGlfFormat(uint8_t phred);
 	double toScaledLikelihood(uint16_t glfValue);
 	double operator[](uint16_t glfValue){ return toScaledLikelihood(glfValue); }
-	uint8_t toPhred(uint16_t glfValue){ return round(glfValue / 100.0); };
-	double toLog10(uint16_t glfValue){ return glfValue / -1000.0; };
-	double toLog(uint16_t glfValue){ return glfValue * logOf10DividedByMinus1000; };
+	uint8_t toPhred(uint16_t glfValue);
+	double toLog10(uint16_t glfValue);
+	double toLog(uint16_t glfValue);
 };
 
 //----------------------------------------------------
@@ -51,7 +51,7 @@ public:
 //----------------------------------------------------
 class TGlfChromosome{
 private:
-	void setPloidy(const uint8_t Ploidy){
+	void setPloidy(uint8_t Ploidy){
 		if(Ploidy < 1 || Ploidy > 2)
 			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
 		ploidy = Ploidy;
@@ -60,8 +60,6 @@ private:
 		} else {
 			numLikelihoodValues = 10;
 		}
-
-		std::cout << "SETTTTTT PLOIDY = " << ploidy << std::endl;
 	};
 
 public:
@@ -97,7 +95,7 @@ public:
 		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 	};
 
-	void update(const std::string Name, const uint32_t Length, const uint8_t Ploidy){
+	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
 		setPloidy(Ploidy);
@@ -133,7 +131,7 @@ public:
 		isOpen = false;
 		gzfp = NULL;
 		offset = 0;
-		version = "GLF3";
+		version = "GLFA";
 		zero8 = 0;
 		one8 = 1;
 		zero32 = 0;
@@ -183,7 +181,7 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long oldPos;
 	uint8_t recordType1;
-	uint8_t* glfValues; //tmp used for writing
+	uint16_t* glfValues; //tmp used for writing
 	TGlfConverter converter;
 
 	void init();
@@ -191,10 +189,6 @@ private:
 
 	template <typename T>
 	inline void write(const T* buf, size_t len){
-
-		std::cout << "buf = " << buf << std::endl;
-		std::cout << "len = " << len << std::endl;
-
 		positionInFile += gzwrite(gzfp, buf, len);
 	};
 
@@ -214,7 +208,7 @@ public:
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
-	void newChromosome(const std::string name, const uint32_t length, const uint8_t ploidy);
+	void newChromosome(std::string name, uint32_t length, uint8_t ploidy);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods);
 };
 
@@ -255,10 +249,10 @@ private:
 public:
 	int recordType;
 	long position;
-	uint16_t maxLL;
+	//uint16_t maxLL;
 	uint16_t depth;
 	int RMS_mappingQual;
-	uint8_t genotypeQualities[10];
+	uint16_t genotypeQualities[10];
 
 	TGlfReader(){
 		init();
@@ -269,7 +263,7 @@ public:
 	};
 	~TGlfReader(){
 		close();
-		//delete[] genotypeQualitiesMissingData;
+		delete[] genotypeQualitiesMissingData;
 	};
 
 	//get details
@@ -327,7 +321,7 @@ private:
 	long _curChrLength;
 	std::string _curChrName;
 	int _numActiveFilesWithData;
-	uint8_t genotypeQualitiesMissingData[10];
+	uint16_t genotypeQualitiesMissingData[10];
 	int minDepth;
 
 	bool moveToNextChromosome();
@@ -336,7 +330,7 @@ private:
 	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
-	uint8_t** data;
+	uint16_t** data;
 	bool* hasData;
 	bool* isHaploid;
 	bool dataInitialized;

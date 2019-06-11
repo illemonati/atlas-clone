@@ -175,8 +175,6 @@ public:
 //-------------------------------------------------
 class TPopulationLikelihoods{
 private:
-	TQualityMap phredToGTLMap;
-
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;

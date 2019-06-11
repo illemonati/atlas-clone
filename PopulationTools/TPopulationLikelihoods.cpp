@@ -564,7 +564,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-			genoFrequencies.estimate(data, samples.numSamples(), phredToGTLMap, epsilonF);
+			genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
 
 			if(genoFrequencies.MAF < freqFilter){
 				_lowFreqSNPCounter++;
