@@ -10,12 +10,12 @@
 
 #include <iostream>
 #include <math.h>
+#include <TPopulationLikelihoodLocus.h>
 #include "../stringFunctions.h"
 #include "../TParameters.h"
 #include "../TRandomGenerator.h"
 #include "TVcfFile.h"
 #include "../TQualityMap.h"
-#include "TPopulationLikelihoodStorage.h"
 #include "TGenotypeFrequencies.h"
 #include "TGLF.h"
 
@@ -118,7 +118,7 @@ public:
 	void openVCF(std::string, TLog* logfile);
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
     bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
-    bool readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
+    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
 	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
 	void concludeFilters(TLog* logfile);
 

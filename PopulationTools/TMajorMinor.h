@@ -9,11 +9,11 @@
 #define TMAJORMINOR_H_
 
 #include <math.h>
+#include <TPopulationLikelihoodLocus.h>
 #include "TGLF.h"
 #include "../TGenotypeMap.h"
 #include "../TQualityMap.h"
 #include "../TRandomGenerator.h"
-#include "TPopulationLikelihoodStorage.h"
 #include "TGenotypeFrequencies.h"
 
 //-----------------------------------------------
@@ -24,7 +24,7 @@ protected:
 	TGenotypeMap genoMap;
 	TRandomGenerator* randomGenerator;
 
-	TPopulationLikehoodStorage genotypeLikelihoods;
+	TPopulationLikehoodLocus genotypeLikelihoods;
 	TGenotypeFrequencies genotypeFrequencies;
 	double* L10L_perCombination;
 

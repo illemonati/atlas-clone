@@ -49,7 +49,7 @@ private:
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
-	double estimate(TPopulationLikehoodStorage & storage, double epsilonF, TGlfConverter & glfConverter);
+	double estimate(TPopulationLikehoodLocus & storage, double epsilonF, TGlfConverter & glfConverter);
 };
 
 //------------------------------------------------
@@ -68,13 +68,13 @@ private:
 	double f, f_lower, f_upper;
 	int lowerIndex, upperIndex;
 
-	double guessInitialAlleleFrequency(TPopulationLikehoodStorage & storage, TGlfConverter & glfConverter);
-	double calcLL(TPopulationLikehoodStorage & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
-	int makeMCMCUpdate(TPopulationLikehoodStorage & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old, TGlfConverter & glfConverter);
+	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
+	int makeMCMCUpdate(TPopulationLikehoodLocus & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old, TGlfConverter & glfConverter);
 
 public:
 	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator);
-	double estimate(TPopulationLikehoodStorage & storage, TGlfConverter & glfConverter);
+	double estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 
 	double posteriorMean(){ return f; };
 	double lowerCredibleInterval(){ return f_lower; };

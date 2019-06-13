@@ -1018,11 +1018,17 @@ double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, int 
 	}
 
 	for(int s=0; s<curSampleSize; ++s){
-		if(!data[s].isMissing && !data[s].isHaploid){
+		if(!data[s].isMissing){
 			//calculate and add ratio for each genotype
-			double integrationOverGeno = qualMap.phredToError(data[s].phredLikelihood_0) * PGeno[0];
-			integrationOverGeno += qualMap.phredToError(data[s].phredLikelihood_1) * PGeno[1];
-			integrationOverGeno += qualMap.phredToError(data[s].phredLikelihood_2) * PGeno[2];
+			double integrationOverGeno = 0;
+			if(data[s].isHaploid){
+				integrationOverGeno = qualMap.phredToError(data[s].glfLikelihood_0) * (1.0 - thisF)
+									+ qualMap.phredToError(data[s].glfLikelihood_1) * thisF;
+			} else {
+				integrationOverGeno = qualMap.phredToError(data[s].glfLikelihood_0) * PGeno[0]
+									+ qualMap.phredToError(data[s].glfLikelihood_1) * PGeno[1]
+									+ qualMap.phredToError(data[s].glfLikelihood_2) * PGeno[2];
+			}
 
 			//check if likelihood of sample is a probability
 			if(integrationOverGeno < 0){

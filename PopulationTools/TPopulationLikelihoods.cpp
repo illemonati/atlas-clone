@@ -450,7 +450,7 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 }
 */
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
 	data.resize(samples.numSamples());
 	return readDataFromVCF(data.samples, samples, glfConverter, logfile);
 };
@@ -472,7 +472,7 @@ int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopula
 	}
 
 	return numIndividualsWithData;
-}
+};
 
 bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
 	//set time at beginning
@@ -537,9 +537,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			for(int s = 0; s < samples.numSamples(); ++s){
 				int vcfIndex = samples.VCF_order(s);
 				vcfFile.fillLog10GenotypeLikelihoods(vcfIndex, tmp[0], tmp[1], tmp[2]);
-				data[s].phredLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
-				data[s].phredLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
-				data[s].phredLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
+				data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
+				data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
+				data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
 			}
 		} else if(vcfFile.formatColExists("PL")){
 			numIndividualsWithData = filterOnDepth(data, samples);
@@ -547,9 +547,9 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			for(int s = 0; s < samples.numSamples(); ++s){
 				int vcfIndex = samples.VCF_order(s);
 				vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[2], tmp[3]);
-				data[s].phredLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
-				data[s].phredLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
-				data[s].phredLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
+				data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
+				data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
+				data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
 			}
 		} else {
 			++_noPLCounter;
@@ -889,7 +889,7 @@ void TPopulationLikelihoods::print(){
 		//print data
 		TSampleLikelihoods* data = curData();
 		for(int s=0; s<curSampleSize(); ++s){
-			std::cout << "\t" << toString(data[s].phredLikelihood_0) << "," << toString(data[s].phredLikelihood_1) << "," << toString(data[s].phredLikelihood_2);
+			std::cout << "\t" << toString(data[s].glfLikelihood_0) << "," << toString(data[s].glfLikelihood_1) << "," << toString(data[s].glfLikelihood_2);
 		}
 
 		std::cout << std::endl;

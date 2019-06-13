@@ -106,7 +106,7 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 	normalize();
 };
 
-void TGenotypeFrequencies::guess(TPopulationLikehoodStorage & samples){
+void TGenotypeFrequencies::guess(TPopulationLikehoodLocus & samples){
 	guess(samples.samples, samples.numSamples);
 };
 
@@ -117,15 +117,15 @@ void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
 			if(samples[i].isHaploid){
-				if(samples[i].phredLikelihood_1 < samples[i].phredLikelihood_0) haploidFrequencies[1] += 1.0;
+				if(samples[i].glfLikelihood_1 < samples[i].glfLikelihood_0) haploidFrequencies[1] += 1.0;
 				else haploidFrequencies[0] += 1.0;
 				++numHaploidSamples;
 			} else {
-				if(samples[i].phredLikelihood_1 < samples[i].phredLikelihood_0){
-					if(samples[i].phredLikelihood_2 < samples[i].phredLikelihood_1) diploidFrequencies[2] += 1.0;
+				if(samples[i].glfLikelihood_1 < samples[i].glfLikelihood_0){
+					if(samples[i].glfLikelihood_2 < samples[i].glfLikelihood_1) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[1] += 1.0;
 				} else {
-					if(samples[i].phredLikelihood_2 < samples[i].phredLikelihood_0) diploidFrequencies[2] += 1.0;
+					if(samples[i].glfLikelihood_2 < samples[i].glfLikelihood_0) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[0] += 1.0;
 				}
 				++numDiploidSamples;
@@ -137,7 +137,7 @@ void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
 	normalize();
 };
 
-void TGenotypeFrequencies::estimate(TPopulationLikehoodStorage & samples, TGlfConverter & glfConverter, double epsilonF){
+void TGenotypeFrequencies::estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF){
 	estimate(samples.samples, samples.numSamples, glfConverter, epsilonF);
 };
 
@@ -170,16 +170,16 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 		for(int i = 0; i < numSamples; i++){
 			if(!samples[i].isMissing){
 				if(samples[i].isHaploid){
-					weights[0] = glfConverter[samples[i].phredLikelihood_0] * haploidFrequencies_old[0];
-					weights[1] = glfConverter[samples[i].phredLikelihood_1] * haploidFrequencies_old[1];
+					weights[0] = glfConverter[samples[i].glfLikelihood_0] * haploidFrequencies_old[0];
+					weights[1] = glfConverter[samples[i].glfLikelihood_1] * haploidFrequencies_old[1];
 
 					double sum = weights[0] + weights[1];
 
 					haploidFrequencies[0] += weights[0] / sum;
 				} else {
-					weights[0] = glfConverter[samples[i].phredLikelihood_0] * diploidFrequencies_old[0];
-					weights[1] = glfConverter[samples[i].phredLikelihood_1] * diploidFrequencies_old[1];
-					weights[2] = glfConverter[samples[i].phredLikelihood_2] * diploidFrequencies_old[2];
+					weights[0] = glfConverter[samples[i].glfLikelihood_0] * diploidFrequencies_old[0];
+					weights[1] = glfConverter[samples[i].glfLikelihood_1] * diploidFrequencies_old[1];
+					weights[2] = glfConverter[samples[i].glfLikelihood_2] * diploidFrequencies_old[2];
 
 					double sum = weights[0] + weights[1] + weights[2];
 
@@ -218,7 +218,7 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 	else MAF = alleleFrequency;
 };
 
-double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodStorage & samples, TGlfConverter & glfConverter){
+double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter){
 	return calculateLog10Likelihood(samples.samples, samples.numSamples, glfConverter);
 };
 
@@ -227,12 +227,12 @@ double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* sample
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
 			if(samples[i].isHaploid){
-				LL += log10(glfConverter[samples[i].phredLikelihood_0] * haploidFrequencies[0]
-						  + glfConverter[samples[i].phredLikelihood_1] * haploidFrequencies[1]);
+				LL += log10(glfConverter[samples[i].glfLikelihood_0] * haploidFrequencies[0]
+						  + glfConverter[samples[i].glfLikelihood_1] * haploidFrequencies[1]);
 			} else {
-				LL += log10(glfConverter[samples[i].phredLikelihood_0] * diploidFrequencies[0]
-						  + glfConverter[samples[i].phredLikelihood_1] * diploidFrequencies[1]
-						  + glfConverter[samples[i].phredLikelihood_2] * diploidFrequencies[2]);
+				LL += log10(glfConverter[samples[i].glfLikelihood_0] * diploidFrequencies[0]
+						  + glfConverter[samples[i].glfLikelihood_1] * diploidFrequencies[1]
+						  + glfConverter[samples[i].glfLikelihood_2] * diploidFrequencies[2]);
 			}
 		}
 	}

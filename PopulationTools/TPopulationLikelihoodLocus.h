@@ -5,8 +5,8 @@
  *      Author: wegmannd
  */
 
-#ifndef POPULATIONTOOLS_TPOPULATIONLIKELIHOODSTORAGE_H_
-#define POPULATIONTOOLS_TPOPULATIONLIKELIHOODSTORAGE_H_
+#ifndef POPULATIONTOOLS_TPOPULATIONLIKELIHOODLOCUS_H_
+#define POPULATIONTOOLS_TPOPULATIONLIKELIHOODLOCUS_H_
 
 #include <stdint.h>
 #include <iostream>
@@ -16,18 +16,18 @@
 //------------------------------------------------
 class TSampleLikelihoods{
 public:
-	uint16_t phredLikelihood_0;
-	uint16_t phredLikelihood_1;
-	uint16_t phredLikelihood_2;
+	uint16_t glfLikelihood_0;
+	uint16_t glfLikelihood_1;
+	uint16_t glfLikelihood_2;
 
 	bool isHaploid;
 	bool isMissing;
 
 	uint8_t operator[](int genotype){
-		if(genotype == 0) return phredLikelihood_0;
-		if(genotype == 1) return phredLikelihood_1;
+		if(genotype == 0) return glfLikelihood_0;
+		if(genotype == 1) return glfLikelihood_1;
 		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";
-		if(genotype == 2) return phredLikelihood_2;
+		if(genotype == 2) return glfLikelihood_2;
 		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
 	};
 };
@@ -36,17 +36,17 @@ public:
 // TPopulationLikehoodStorage
 // class used when reading line by line
 //------------------------------------------------
-class TPopulationLikehoodStorage{
+class TPopulationLikehoodLocus{
 public:
 	int numSamples;
 	TSampleLikelihoods* samples;
 
-	TPopulationLikehoodStorage(){
+	TPopulationLikehoodLocus(){
 		numSamples = 0;
 		samples = nullptr;
 	};
 
-	TPopulationLikehoodStorage(TPopulationLikehoodStorage & other){
+	TPopulationLikehoodLocus(TPopulationLikehoodLocus & other){
 		numSamples = 0;
 		resize(other.numSamples);
 
@@ -56,12 +56,12 @@ public:
 		}
 	};
 
-	TPopulationLikehoodStorage(int NumSamples){
+	TPopulationLikehoodLocus(int NumSamples){
 		numSamples = 0;
 		resize(NumSamples);
 	};
 
-	~TPopulationLikehoodStorage(){
+	~TPopulationLikehoodLocus(){
 		clear();
 	};
 
@@ -87,4 +87,4 @@ public:
 
 
 
-#endif /* POPULATIONTOOLS_TPOPULATIONLIKELIHOODSTORAGE_H_ */
+#endif /* POPULATIONTOOLS_TPOPULATIONLIKELIHOODLOCUS_H_ */

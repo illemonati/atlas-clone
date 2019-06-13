@@ -118,13 +118,13 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid){
-			log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].phredLikelihood_0);
-			log_alleleFrequencyLikelihoods_h[1] = glfConverter.toLog(data[s].phredLikelihood_1);
+			log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0);
+			log_alleleFrequencyLikelihoods_h[1] = glfConverter.toLog(data[s].glfLikelihood_1);
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] =          glfConverter.toLog(data[s].phredLikelihood_0);
-			log_alleleFrequencyLikelihoods_h[1] = logOf2 + glfConverter.toLog(data[s].phredLikelihood_1);
-			log_alleleFrequencyLikelihoods_h[2] =          glfConverter.toLog(data[s].phredLikelihood_2);
+			log_alleleFrequencyLikelihoods_h[0] =          glfConverter.toLog(data[s].glfLikelihood_0);
+			log_alleleFrequencyLikelihoods_h[1] = logOf2 + glfConverter.toLog(data[s].glfLikelihood_1);
+			log_alleleFrequencyLikelihoods_h[2] =          glfConverter.toLog(data[s].glfLikelihood_2);
 			numAlleleCounts = 2;
 		}
 
@@ -135,41 +135,41 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 
 				if(data[s].isHaploid){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+1] = glfConverter.toLog(data[s].phredLikelihood_1) + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
 						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-								glfConverter.toLog(data[s].phredLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
-								glfConverter.toLog(data[s].phredLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
+								glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
+								glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].phredLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+2] = glfConverter.toLog(data[s].phredLikelihood_2) + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+2] = glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j];
 					log_alleleFrequencyLikelihoods_h[j+1] = protectedSumInLog(
-																glfConverter.toLog(data[s].phredLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-1],
-													   logOf2 + glfConverter.toLog(data[s].phredLikelihood_1) + log_alleleFrequencyLikelihoods_h[j]    );
+																glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-1],
+													   logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j]    );
 
 					//now fill those already used
 					for(; j>1; j--){
 						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-										 glfConverter.toLog(data[s].phredLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-2],
-								logOf2 + glfConverter.toLog(data[s].phredLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
-										 glfConverter.toLog(data[s].phredLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
+										 glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-2],
+								logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
+										 glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=1,0
 					log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-								logOf2 + glfConverter.toLog(data[s].phredLikelihood_1) + log_alleleFrequencyLikelihoods_h[0],
-										 glfConverter.toLog(data[s].phredLikelihood_0) + log_alleleFrequencyLikelihoods_h[1]  );
+								logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[0],
+										 glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[1]  );
 
-					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].phredLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -205,13 +205,13 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid){
-			log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].phredLikelihood_0];
-			log_alleleFrequencyLikelihoods_h[1] =     glfConverter[data[s].phredLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].glfLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] =     glfConverter[data[s].glfLikelihood_1];
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].phredLikelihood_0];
-			log_alleleFrequencyLikelihoods_h[1] = 2 * glfConverter[data[s].phredLikelihood_1];
-			log_alleleFrequencyLikelihoods_h[2] =     glfConverter[data[s].phredLikelihood_2];
+			log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].glfLikelihood_0];
+			log_alleleFrequencyLikelihoods_h[1] = 2 * glfConverter[data[s].glfLikelihood_1];
+			log_alleleFrequencyLikelihoods_h[2] =     glfConverter[data[s].glfLikelihood_2];
 			numAlleleCounts = 2;
 		}
 
@@ -222,36 +222,36 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 
 				if(data[s].isHaploid){
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-					log_alleleFrequencyLikelihoods_h[j+1] = glfConverter[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1];
+					log_alleleFrequencyLikelihoods_h[j+1] = glfConverter[data[s].glfLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used
 					for(; j>0; j--){
-						log_alleleFrequencyLikelihoods_h[j] = glfConverter[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
-															+ glfConverter[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
+						log_alleleFrequencyLikelihoods_h[j] = glfConverter[data[s].glfLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
+															+ glfConverter[data[s].glfLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = glfConverter[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = glfConverter[data[s].glfLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-					log_alleleFrequencyLikelihoods_h[j+2] =     glfConverter[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j];
-					log_alleleFrequencyLikelihoods_h[j+1] =     glfConverter[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1]
-														  + 2 * glfConverter[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+2] =     glfConverter[data[s].glfLikelihood_2] * log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] =     glfConverter[data[s].glfLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-1]
+														  + 2 * glfConverter[data[s].glfLikelihood_1] * log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>1; j--){
-						log_alleleFrequencyLikelihoods_h[j] =     glfConverter[data[s].phredLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-2]
-															+ 2 * glfConverter[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
-															+     glfConverter[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
+						log_alleleFrequencyLikelihoods_h[j] =     glfConverter[data[s].glfLikelihood_2] * log_alleleFrequencyLikelihoods_h[j-2]
+															+ 2 * glfConverter[data[s].glfLikelihood_1] * log_alleleFrequencyLikelihoods_h[j-1]
+															+     glfConverter[data[s].glfLikelihood_0] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=1,0
-					log_alleleFrequencyLikelihoods_h[1] = 2 * glfConverter[data[s].phredLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
-														+     glfConverter[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
-					log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].phredLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[1] = 2 * glfConverter[data[s].glfLikelihood_1] * log_alleleFrequencyLikelihoods_h[0]
+														+     glfConverter[data[s].glfLikelihood_0] * log_alleleFrequencyLikelihoods_h[1];
+					log_alleleFrequencyLikelihoods_h[0] =     glfConverter[data[s].glfLikelihood_0] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -372,7 +372,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodStorage data(samples.numSamples());
+	TPopulationLikehoodLocus data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
@@ -452,7 +452,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodStorage data(samples.numSamples());
+	TPopulationLikehoodLocus data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");

@@ -13,12 +13,12 @@
 #include "../gzstream.h"
 #include <algorithm>
 #include <string.h>
+#include <TPopulationLikelihoodLocus.h>
 #include <vector>
 #include "../TParameters.h"
 #include "../stringFunctions.h"
 #include "../TGenotypeMap.h"
 #include "../TRandomGenerator.h"
-#include "TPopulationLikelihoodStorage.h"
 
 //----------------------------------------------------
 // TGlfConverter
@@ -367,7 +367,7 @@ public:
 	//parse
 	bool readNext();
 	void print();
-	void fill(TPopulationLikehoodStorage & data, const int alleleicCombination);
+	void fill(TPopulationLikehoodLocus & data, const int alleleicCombination);
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
 	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);

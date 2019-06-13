@@ -124,16 +124,32 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, do
 	oldPos = pos;
 	write(&offset, sizeof(uint32_t));
 
-	//maxLL
-	double maxLL = genotypeLikelihoods[0];
-	for(int i=1; i<curChr.numLikelihoodValues; ++i){
-		if(genotypeLikelihoods[i] > maxLL)
-			maxLL = genotypeLikelihoods[i];
-	}
+	//calculate likelihoods in GLF format
+	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
+	//TODO: maybe do in GLFChromosomes?
+	if(curChr.ploidy == 1){
+		double maxLL = genotypeLikelihoods[AA];
+		if(genotypeLikelihoods[CC] > maxLL) maxLL = genotypeLikelihoods[CC];
+		if(genotypeLikelihoods[GG] > maxLL) maxLL = genotypeLikelihoods[GG];
+		if(genotypeLikelihoods[TT] > maxLL) maxLL = genotypeLikelihoods[TT];
 
-	//normalize and scale to uint16
-	for(int i=0; i<curChr.numLikelihoodValues; ++i){
-		glfValues[i] = converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
+		//normalize and scale to uint16
+		glfValues[0] = converter.toGlfFormat(genotypeLikelihoods[AA] / maxLL);
+		glfValues[1] = converter.toGlfFormat(genotypeLikelihoods[CC] / maxLL);
+		glfValues[2] = converter.toGlfFormat(genotypeLikelihoods[GG] / maxLL);
+		glfValues[3] = converter.toGlfFormat(genotypeLikelihoods[TT] / maxLL);
+	} else {
+		//maxLL
+		double maxLL = genotypeLikelihoods[0];
+		for(int i=1; i<curChr.numLikelihoodValues; ++i){
+			if(genotypeLikelihoods[i] > maxLL)
+				maxLL = genotypeLikelihoods[i];
+		}
+
+		//normalize and scale to uint16
+		for(int i=0; i<curChr.numLikelihoodValues; ++i){
+			glfValues[i] = converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
+		}
 	}
 
 	//write maxLL as uint16_t
@@ -385,15 +401,15 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, std::s
 	while(position < end){
 		//fill in missing positions before
 		for(; i<position; ++i, ++index)
-			memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(int));
+			memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(uint16_t));
 
-		memcpy(genoLikelihoods[index], genotypeQualities, curChr.numLikelihoodValues*sizeof(int));
+		memcpy(genoLikelihoods[index], genotypeQualities, curChr.numLikelihoodValues*sizeof(uint16_t));
 		++index; ++i;
 
 		//read next record
 		if(!readRecordType() || recordType == 0){
 			for(; i<end; ++i, ++index)
-				memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(int));
+				memcpy(genoLikelihoods[index], genotypeQualitiesMissingData, curChr.numLikelihoodValues*sizeof(uint16_t));
 			readChr();
 			break;
 		}
@@ -772,20 +788,20 @@ void TGlfMultiReader::print(){
 	}
 };
 
-void TGlfMultiReader::fill(TPopulationLikehoodStorage & storage, const int alleleicCombination){
+void TGlfMultiReader::fill(TPopulationLikehoodLocus & storage, const int alleleicCombination){
 	storage.resize(numActiveFiles);
 	for(int i=0; i<numActiveFiles; ++i){
 		storage[i].isHaploid = isHaploid[i];
 		storage[i].isMissing = !hasData[i];
 
 		if(isHaploid[i]){
-			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][0]];
-			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][1]];
-			storage[i].phredLikelihood_2 = converter.maxValue();
+			storage[i].glfLikelihood_0 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][0]];
+			storage[i].glfLikelihood_1 = data[i][genoMap.alleleicCombinationToBase[alleleicCombination][1]];
+			storage[i].glfLikelihood_2 = converter.maxValue();
 		} else {
-			storage[i].phredLikelihood_0 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][0]];
-			storage[i].phredLikelihood_1 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][1]];
-			storage[i].phredLikelihood_2 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][2]];
+			storage[i].glfLikelihood_0 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][0]];
+			storage[i].glfLikelihood_1 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][1]];
+			storage[i].glfLikelihood_2 = data[i][genoMap.alleleicCombinationToGenotypes[alleleicCombination][2]];
 		}
 	}
 };
@@ -855,7 +871,7 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 		int altHomIndex = genoMap.genotypeMap[minor][minor];
 
 		//find min qual
-		int minQual = data[ind][refHomIndex];
+		uint16_t minQual = data[ind][refHomIndex];
 		if(data[ind][hetIndex] < minQual) minQual = data[ind][hetIndex];
 		if(data[ind][altHomIndex] < minQual) minQual = data[ind][altHomIndex];
 
@@ -932,14 +948,14 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 
 		//write likelihoods
 		if(usePhredLikelihoods){
-			vcf << (data[ind][major] - minQual) << "," << (data[ind][minor] - minQual);
+			vcf << converter.toPhred(data[ind][major] - minQual) << "," << converter.toPhred(data[ind][minor] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
 			if(data[ind][major] == minQual) vcf << "0";
-			else vcf << (data[ind][major] - minQual) / -10.0;
+			else vcf << converter.toLog10(data[ind][major] - minQual);
 
 			if(data[ind][minor] == minQual) vcf << ",0";
-			else vcf << "," << (data[ind][minor] - minQual) / -10.0;
+			else vcf << "," << converter.toLog10(data[ind][minor] - minQual);
 		}
 	} else {
 		vcf << "\t.:.:.:.";
