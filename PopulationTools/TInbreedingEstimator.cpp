@@ -8,48 +8,6 @@
 #include "TInbreedingEstimator.h"
 
 //---------------------------
-// sigma
-//---------------------------
-TSigma::TSigma(){
-	_sigma = -1.0;
-	_adjFactor = -1.0;
-	_normFrac = -1.0;
-	_normFracExp = -1.0;
-	pi = -1.0;
-};
-
-TSigma::TSigma(TRandomGenerator* randomGenerator, double & Sigma){
-	_sigma = Sigma;
-	update(randomGenerator, _sigma);
-	pi = 3.1415926535897;
-};
-
-void TSigma::setAdjFactor(TRandomGenerator* randomGenerator, const double & sigma){
-	//return adjustment factor for PDF of truncated normal N(0, sigma)[-1,1]
-	double oneTail = randomGenerator->normalCumulativeDistributionFunction(-1.0, 0.0, sigma);
-	_adjFactor = 1.0 / (2.0 * oneTail);
-};
-
-double TSigma::logPDFNormal(double curValue){
-	return log(_adjFactor * _normFrac * exp(curValue*curValue / _normFracExp));
-};
-
-double TSigma::randomNumber(TRandomGenerator* randomGenerator){
-	double r;
-	do {
-		r = randomGenerator->getNormalRandom(0, _sigma);
-	} while(r < -1.0 && r > 1.0);
-
-	return r;
-};
-
-void TSigma::update(TRandomGenerator* randomGenerator, const double & newSigma){
-	setAdjFactor(randomGenerator, newSigma);
-	_normFrac = 1.0 / sqrt(2.0 * pi * newSigma);
-	_normFracExp = 2.0 * newSigma * newSigma;
-};
-
-//---------------------------
 // F
 //---------------------------
 TInbreedingF::TInbreedingF(){
@@ -57,23 +15,21 @@ TInbreedingF::TInbreedingF(){
 	_probMovingToModelNoF = -1.0;
 	_sdProposal = -1.0;
 	_inModelWithF = false;
-	_posteriorProbModelWithF = -1,_posteriorProbLargerThanZero = -1;
-	randomGenerator = nullptr;
+	_lambda = -1.0;
+	_logLambda = -1.0;
+	_expMinusLambda = -1.0;
+	_posteriorProbModelWithF = -1;
 }
 
-TInbreedingF::TInbreedingF(TRandomGenerator* RandomGenerator, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double & SigmaPrior, double & SigmaNewF){
-	randomGenerator = RandomGenerator;
+TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
 	_F = -1.0;
 	_probMovingToModelNoF = ProbMovingToModelNoF;
 	_sdProposal = SdProposal;
 	_inModelWithF = InModelWithF;
-	sigmaPrior = TSigma(randomGenerator, SigmaPrior);
-	sigmaNewF = TSigma(randomGenerator, SigmaNewF);
-//	_logLambda = log(Lambda);
-//	_expMinusLambda = log(1-exp(-_lambda));
+	_lambda = Lambda;
+	_logLambda = log(Lambda);
+	_expMinusLambda = log(1-exp(-_lambda));
 	_posteriorProbModelWithF = 0;
-	_posteriorProbLargerThanZero = 0;
-
 }
 
 void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF){
@@ -83,8 +39,8 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int nu
 	newProposalWidth *=  ((double) numAcceptedFModelF / (double) numIterInModelF) * 3.0;
 
 	if(numIterInModelF == 0){
-		double newSigma = sigmaNewF.sigma() * 0.1;
-		sigmaNewF.update(randomGenerator, newSigma);
+		_lambda *= 10;
+		_logLambda = log(_lambda);
 	}
 
 	else if(newProposalWidth / _sdProposal < 0.1)
@@ -112,8 +68,8 @@ double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     double newF = _F + randomGenerator->getNormalRandom(0, _sdProposal);
     while(newF > 1 || newF < 0){
         //mirror
-        if(newF < -1)
-            newF = -2 - newF;
+        if(newF < 0)
+            newF = -newF;
         if(newF > 1)
             newF = 2 - newF;
     }
@@ -124,59 +80,35 @@ double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     return newF;
 }
 
-double TInbreedingF::proposeNewFromModel0(TRandomGenerator* randomGenerator){
-	double newF = sigmaNewF.randomNumber(randomGenerator);
-	return newF;
-}
-
 void TInbreedingF::updateAndAccept(const double & value, const bool & inModelWithF){
 	_F = value;
 	_inModelWithF = inModelWithF;
 	_posteriorProbModelWithF += inModelWithF;
-	if(value > 0)
-		++_posteriorProbLargerThanZero;
 }
 
 void TInbreedingF::updateAndReject(bool inModelWithF){
 	_posteriorProbModelWithF += inModelWithF;
-	if(_F > 0)
-		++_posteriorProbLargerThanZero;
 }
 
 void TInbreedingF::resetPosterior(){
 	_posteriorProbModelWithF = 0;
-	_posteriorProbLargerThanZero = 0;
 }
 
-//double TInbreedingF::logPDFExp(const double & thisF){
-//	return _logLambda - _lambda * thisF;
-//}
-//
-//double TInbreedingF::logPDFExp(){
-//	return logPDFExp(_F);
-//}
-
-double TInbreedingF::setAdjFactor(TRandomGenerator* randomGenerator, double & sigma){
-	//return adjustment factor for PDF of truncated normal N(0, sigma)[-1,1]
-	double oneTail = randomGenerator->normalCumulativeDistributionFunction(-1.0, 0.0, sigma);
-	return 1.0 + 1.0 - 2.0 * oneTail;
+double TInbreedingF::logPDFExp(const double & thisF){
+	return _logLambda - _lambda * thisF;
 }
 
-double TInbreedingF::logPDFNormalPrior(double curValue){
-	return sigmaPrior.logPDFNormal(curValue);
+double TInbreedingF::logPDFExp(){
+	return logPDFExp(_F);
 }
 
-double TInbreedingF::logPDFNormalPrior(){
-	return sigmaPrior.logPDFNormal(_F);
+double TInbreedingF::PDFExp(const double & thisF){
+	//truncated at 1 -> need to divide by cumulative prob at 1
+	return _lambda * exp(-_lambda* thisF) - _expMinusLambda;
 }
 
-
-double TInbreedingF::logPDFNormalNewF(double curValue){
-	return sigmaNewF.logPDFNormal(curValue);
-}
-
-double TInbreedingF::logPDFNormalNewF(){
-	return logPDFNormalNewF(_F);
+double TInbreedingF::PDFExp(){
+	return PDFExp(_F);
 }
 
 float TInbreedingF::probMovingToModelNoF(){
@@ -189,6 +121,10 @@ double TInbreedingF::F(){
 
 bool TInbreedingF::inModelWithF(){
 	return _inModelWithF;
+}
+
+double TInbreedingF::lambda(){
+	return _lambda;
 }
 
 int TInbreedingF::posteriorProbModelWithF(){
@@ -302,7 +238,7 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 //	numUpdates = 0;
 }
 
-void TAlleleFreq::update(long & index, const double & value, const bool ModelP){
+void TAlleleFreq::update(const long & index, const double & value, const bool ModelP){
 	//update numLociModelP
 	if(modelP[index] == false && ModelP == true){
 		++_numLociModelP;
@@ -337,7 +273,7 @@ void TAlleleFreq::update(long & index, const double & value, const bool ModelP){
 
 }
 
-double TAlleleFreq::proposeNew(long & locusNum, TRandomGenerator* randomGenerator){
+double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGenerator){
 //	newAlleleFreq[G][l] = fabs(alleleFreq[G][l] + (randomGenerator.getRand()-0.5) * proposalWidthFrequencies[G][l]);
 
 	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
@@ -414,8 +350,6 @@ void TGamma::update(const double & newLogValue, const double & newNaturalScaleVa
 
 void TGamma::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	//adjust proposal for alpha / beta
-//	if(numAccepted == 0)
-//		throw "numAccepted = 0";
 	double newProposalWidth = proposalWidth;
 	newProposalWidth *= (double) numAccepted / (double) numUpdates * 3.0;
 
@@ -557,9 +491,6 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 
 	//initialize parameters
-	numAcceptedP.reserve(numLoci);
-	numAcceptedPModelP.reserve(numLoci);
-	numIterInModelP.reserve(numLoci);
 	for(unsigned int i=0; i<numLoci; ++i){
 		numAcceptedP.push_back(0);
 		numAcceptedPModelP.push_back(0);
@@ -627,18 +558,25 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("probMovingToModelNoF", 0.1);
 	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF));
 
-	double sigmaPrior = parameters.getParameterDoubleWithDefault("sigmaPrior", 0.2);
-	logfile->list("Prior on F is set to N(0," + toString(sigmaPrior) + ")[-1;1]");
+	double lambdaF = parameters.getParameterDoubleWithDefault("lambdaF", 100.0);
+	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF));
 
-	double sigmaNewF = parameters.getParameterDoubleWithDefault("sigmaNewF", 0.02);
-	logfile->list("Move to new F will choose value from N(0," + toString(sigmaNewF) + "0.2)[-1;1]");
-
-//	TInbreedingF::TInbreedingF(TRandomGenerator* RandomGenerator, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double & SigmaPrior, double & SigmaNewF){
-
-	F = TInbreedingF(randomGenerator, probMovingToModelNoF, sdF, true, sigmaPrior, sigmaNewF);
+	bool startInModelWithF = true;
+	if(parameters.parameterExists("startInZeroModel"))
+		startInModelWithF = false;
+	if(startInModelWithF){
+		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
+		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
+//		F.updateAndAccept(0.2, true);
+		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+	} else {
+		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
+		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
+		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+	}
 
 	if(parameters.parameterExists("initialF")){
-		double initialF = parameters.getParameterDouble("initialF");
+		double initialF = parameters.getParameterDouble("fixedF");
 		if(initialF == 0.0)
 			F.updateAndAccept(initialF, false);
 		else if(initialF > 0.0)
@@ -646,10 +584,6 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 		else
 			throw "Initial F cannot be a negative number!";
 		logfile->list("Set F to fixed value " + toString(initialF));
-	} else {
-		//choose F from prior
-		F.updateAndAccept(F.proposeNewFromModel0(randomGenerator), true);
-		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
 	}
 
 	if(parameters.parameterExists("fixedF")){
@@ -741,12 +675,12 @@ bool TInbreedingEstimator::updateF(){
 	if(F.inModelWithF()){
 		//try move to model without F
 		if(randomGenerator->getRand() < F.probMovingToModelNoF()){
-			double logH = F.logPDFNormalNewF() - F.logPDFNormalPrior() - log(F.probMovingToModelNoF());
+			double logH = F.logPDFExp() - log(F.probMovingToModelNoF());
 
 			long l = 0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0)
-				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
+				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0, likelihoods.glfConverter)
+				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
 			}
 
 			//accept?
@@ -769,8 +703,8 @@ bool TInbreedingEstimator::updateF(){
 			long l = 0;
 			double logH = 0.0;
 			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
-				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
+				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
+				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
 			}
 
 			//accept?
@@ -788,13 +722,13 @@ bool TInbreedingEstimator::updateF(){
 
 	//try to move to model with F
 	else {
-		double newF = F.proposeNewFromModel0(randomGenerator);
-		double logH = F.logPDFNormalPrior(newF) + log(F.probMovingToModelNoF()) - F.logPDFNormalNewF(newF);
+		double newF = randomGenerator->getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
+		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp(newF);
 
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
-			- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0);
+			logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
+			- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0, likelihoods.glfConverter);
 		}
 
 		//accept?
@@ -810,7 +744,7 @@ bool TInbreedingEstimator::updateF(){
 	}
 }
 
-bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, long & locusNum, int curSampleSize, TGamma & Gamma){
+bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, TGamma Gamma){
 //	std::cout << "locusNum " << locusNum << std::endl;
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
@@ -826,8 +760,8 @@ bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, long & locusNum, in
 					- randomGenerator->gammaln(2.0*gammaNat)
 					- pi.getLogPi()
 					- p.logProbMovingToModel0 //if prob is zero we never get here
-					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
+					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F(), likelihoods.glfConverter)
+					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
 
 			//accept?
 			double tmp = log(randomGenerator->getRand());
@@ -867,8 +801,8 @@ bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, long & locusNum, in
 				throw "proposed negative newP in move from modelP to modelP': " + toString(newP);
 
 			double logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
-						+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F())
-						- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
+						+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
+						- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
 
 			//accept?
 			double tmp = log(randomGenerator->getRand());
@@ -903,8 +837,8 @@ bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, long & locusNum, in
 					+ (gammaNat-1.0) * log(1.0-newP)
 					+ randomGenerator->gammaln(2.0*gammaNat)
 					+ pi.getLogPi()
-					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F());
+					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F(), likelihoods.glfConverter)
+					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter);
 			if(p.probMovingToModel0 == 0.0){
 				logH += log(0.00000000000000000001);
 			} else {
@@ -1000,7 +934,7 @@ bool TInbreedingEstimator::updatePi(){
 	}
 }
 
-double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, int curSampleSize, double thisP, double thisF){
+double TInbreedingEstimator::logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF, TGlfConverter & glfConverter){
 	if(thisP < 0)
 		throw "allele freq is negative!";
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
@@ -1019,20 +953,20 @@ double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, int 
 
 	for(int s=0; s<curSampleSize; ++s){
 		if(!data[s].isMissing){
-			//calculate and add ratio for each genotype
 			double integrationOverGeno = 0;
 			if(data[s].isHaploid){
-				integrationOverGeno = qualMap.phredToError(data[s].glfLikelihood_0) * (1.0 - thisF)
-									+ qualMap.phredToError(data[s].glfLikelihood_1) * thisF;
+				integrationOverGeno += glfConverter[data[s].glfLikelihood_0] * (1.0 - thisP);
+				integrationOverGeno += glfConverter[data[s].glfLikelihood_2] * thisP;
 			} else {
-				integrationOverGeno = qualMap.phredToError(data[s].glfLikelihood_0) * PGeno[0]
-									+ qualMap.phredToError(data[s].glfLikelihood_1) * PGeno[1]
-									+ qualMap.phredToError(data[s].glfLikelihood_2) * PGeno[2];
-			}
+				//calculate and add ratio for each genotype
+				integrationOverGeno = glfConverter[data[s].glfLikelihood_0] * PGeno[0];
+				integrationOverGeno += glfConverter[data[s].glfLikelihood_1] * PGeno[1];
+				integrationOverGeno += glfConverter[data[s].glfLikelihood_2] * PGeno[2];
 
-			//check if likelihood of sample is a probability
-			if(integrationOverGeno < 0){
-				throw "Probability of genotype is negative: " + toString(integrationOverGeno);
+				//check if likelihood of sample is a probability
+				if(integrationOverGeno < 0){
+					throw "Probability of genotype is negative: " + toString(integrationOverGeno);
+				}
 			}
 
 			sumOverInds += log(integrationOverGeno);
@@ -1072,12 +1006,12 @@ double TInbreedingEstimator::logProbPGivenGamma(){
 	return posteriorProbability;
 };
 
-double TInbreedingEstimator::getLogLikelihoodCurrentParams(){
+double TInbreedingEstimator::getLogLikelihoodCurrentParams(const TGlfConverter & glfConverter){
 	double logLikelihood = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
 //		if(l == 736){
-			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
+			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
 //		}
 	}
 
@@ -1117,7 +1051,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 		std::cout << "thisF " << thisF << std::endl;
 		long l = 0;
 		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF);
+			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF, likelihoods.glfConverter);
 		}
 
 		//add P(p|alpha,beta)
@@ -1165,7 +1099,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 			p.update(index, newPValue, true);
 
 
-		double logLikelihood = getLogLikelihoodCurrentParams();
+		double logLikelihood = getLogLikelihoodCurrentParams(likelihoods.glfConverter);
 		outP << newPValue << "\t" << logLikelihood << "\n";
 	}
 	logfile->done();
@@ -1189,7 +1123,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 	double logLikelihood = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
+		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
 		if(logLikelihood > 0)
 			throw "likelihood is larger than 1!";
 	}
@@ -1250,7 +1184,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 //
 //}
 
-void TInbreedingEstimator::oneMCMCIteration(int iterationNum){
+void TInbreedingEstimator::oneMCMCIteration(){
 	//update params
 
 	if(shouldUpdateF){
@@ -1324,7 +1258,7 @@ void TInbreedingEstimator::adjustProposalWidths(){
 	pi.adjustProposalWidthAfterBurnin(numAcceptedPi, burninLength);
 }
 
-void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out){
+void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter){
 //	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
 //			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
 
@@ -1333,7 +1267,7 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 		out << "\t" << p[l];
 	}
 
-	out << "\t" << getLogLikelihoodCurrentParams();
+	out << "\t" << getLogLikelihoodCurrentParams(glfConverter);
 	out << "\t" << p.getNumLociInModelP();
 //	out << "\t" << numAcceptedPModelP[0] << "\t" << numIterInModelP[0];
 	out << "\n";
@@ -1465,7 +1399,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 
 	out << "\tlogLikelihood\tp.getNumLociInModelP()\n";
-	writeParameterEstimatesOfIteration(out);
+	writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
 
 
 	//---------------------------
@@ -1477,9 +1411,9 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		int oldProg=0;
 		for(long i=0; i<burninLength; ++i){
 
-			oneMCMCIteration(i);
+			oneMCMCIteration();
 			if(params.parameterExists("writeBurninToFile"))
-				writeParameterEstimatesOfIteration(out);
+				writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
@@ -1514,7 +1448,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	//---------------------------
 
 	//write initial parameter estimates
-	writeParameterEstimatesOfIteration(out);
+	writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
 
 	//run MCMC
 	int oldProg = 0;
@@ -1522,11 +1456,11 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	logfile->listFlush(progressString + "(0%)");
 	for(int i=0; i<numIterations; ++i){
 
-		oneMCMCIteration(i);
+		oneMCMCIteration();
 
 		//print to file
 		if(i % thinning == 0){
-			writeParameterEstimatesOfIteration(out);
+			writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
 		}
 
 		if(i % 1000 == 0){

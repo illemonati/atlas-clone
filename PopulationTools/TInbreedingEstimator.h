@@ -13,30 +13,6 @@
 #include "../TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
-
-//---------------------------
-// sigma stuff
-//---------------------------
-class TSigma{
-private:
-	double _sigma;
-	double _adjFactor;
-	double _normFrac;
-	double _normFracExp;
-	double pi;
-
-	void setAdjFactor(TRandomGenerator* randomGenerator, const double & sigma);
-
-public:
-	TSigma();
-	TSigma(TRandomGenerator* randomGenerator, double & Sigma);
-	void update(TRandomGenerator* randomGenerator, const double & newSigma);
-	double sigma(){ return _sigma; };
-	double logPDFNormal(double curValue);
-	double randomNumber(TRandomGenerator* randomGenerator);
-	double adjFactor(){ return _adjFactor; };
-};
-
 //---------------------------
 // F
 //---------------------------
@@ -46,29 +22,24 @@ private:
 	float _probMovingToModelNoF;
 	double _sdProposal;
 	bool _inModelWithF;
-	TSigma 	sigmaPrior, sigmaNewF;
+	double _lambda, _logLambda, _expMinusLambda;
 	int _posteriorProbModelWithF;
-	int _posteriorProbLargerThanZero;
-	TRandomGenerator* randomGenerator;
-
-	double setAdjFactor(TRandomGenerator* randomGenerator, double & sigma);
 
 public:
 	TInbreedingF();
-	TInbreedingF(TRandomGenerator* randomGenerator, float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double & SigmaPrior, double & SigmaNewF);
+	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
-	double proposeNewFromModel0(TRandomGenerator* randomGenerator);
 	void updateAndAccept(const double & value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
 	void resetPosterior();
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
-	double logPDFNormalPrior(double curValue);
-	double logPDFNormalPrior();
-	double logPDFNormalNewF(double curValue);
-	double logPDFNormalNewF();
+	double logPDFExp(const double & thisF);
+	double logPDFExp();
+	double PDFExp(const double & thisF);
+	double PDFExp();
 	double lambda();
 	int posteriorProbModelWithF();
 	double proposalWidth();
@@ -109,8 +80,8 @@ public:
 	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
-	double proposeNew(long & locusNum, TRandomGenerator* randomGenerator);
-	void update(long & index, const double & value, const bool modelP);
+	double proposeNew(const long & locusNum, TRandomGenerator* randomGenerator);
+	void update(const long & index, const double & value, const bool ModelP);
 	double getPosteriorMean(unsigned long & index, int numUpdates);
 	double getPosteriorVariance(unsigned long & index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
@@ -173,7 +144,7 @@ public:
 class TInbreedingEstimator{
 private:
 	TRandomGenerator* randomGenerator;
-	TQualityMap qualMap;
+//	TQualityMap qualMap;
 
 	//log
 	TLog* logfile;
@@ -218,17 +189,17 @@ private:
 	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
 	bool updateF();
-	bool updateP(TSampleLikelihoods* data, long & locusNum, int curSampleSize, TGamma & Gamma);
+	bool updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
 	bool updateGamma();
 	bool updatePi();
 	double logProbPGivenGamma();
-	double logLikelihoodAllInds(TSampleLikelihoods* data, int curSampleSize, double thisP, double thisF);
+	double logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF, TGlfConverter & glfConverter);
 	void wholeLogLikelihood();
-	void oneMCMCIteration(int iterationNum);
+	void oneMCMCIteration();
 	void printAcceptanceRates(int numIterations);
 	void resetAcceptanceRates();
 	void adjustProposalWidths();
-	void writeParameterEstimatesOfIteration(std::ofstream & out);
+	void writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter);
 	void writePosteriors(int i);
 
 public:
@@ -237,7 +208,7 @@ public:
 		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
-	double getLogLikelihoodCurrentParams();
+	double getLogLikelihoodCurrentParams(const TGlfConverter & glfConverter);
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);
