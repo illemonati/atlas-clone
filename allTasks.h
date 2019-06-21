@@ -111,7 +111,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
-		genome.mergePairedEndReadsNoOrder(parameters);
+		genome.mergePairedEndReads(parameters);
 	};
 };
 
