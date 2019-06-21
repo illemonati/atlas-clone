@@ -363,9 +363,6 @@ void TThetaEstimator::NROnlyTheta(){
 };
 
 void TThetaEstimator::runEMForTheta(){
-
-	theta.LL = -9e100;
-
 	//increase initialTheta if we fail to calculate inverse of Jacobian.
 	// this may be the case if initialTheta is smaller than true theta and likelihood is very flat
 	int failedAttempts = 0;
@@ -375,6 +372,7 @@ void TThetaEstimator::runEMForTheta(){
 		//solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		theta.setTheta(startingTheta);
+		theta.LL = -9e100;
 		if(startingTheta > 1.0)
 			throw "Failed to estimate Theta, issues calculating inverse of Jacobian!";
 	}
@@ -418,7 +416,8 @@ void TThetaEstimator::runEMForTheta(){
 			break;
 		}
 
-		if(extraVerbose) logfile->list(toString(iter) + ") current theta = " + toString(theta.theta));
+		if(extraVerbose)
+			logfile->list(toString(iter) + ") current theta = " + toString(theta.theta));
 		//For debugging
 		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
