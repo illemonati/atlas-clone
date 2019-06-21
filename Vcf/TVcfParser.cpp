@@ -534,7 +534,7 @@ void TVcfParser::fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, floa
 }
 
 void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
-	if ( phredString == "inf" )
+	if(phredString == "inf" )
 			phred = 255;
 	else {
 		int tmp = stringToInt(phredString);
@@ -546,11 +546,18 @@ void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
 	}
 };
 
+double TVcfParser::readGL(std::string & GLString){
+	double tmp = stringToDouble(GLString);
+	if(tmp > 0){
+		throw "Positive value in GL field!";
+	}
+
+	return tmp;
+};
+
 void TVcfParser::saveGLAsPhredScore(std::string & GLString, uint8_t & phred){
 	//assume GL is log10(likelihood)
-	double tmp = stringToDouble(GLString);
-	if(tmp > 0)
-			throw "Positive value in GL field!";
+	double tmp = readGL(GLString);
 
 	//turn log10(lik) into phred(lik)
 	tmp *= -10.0;
@@ -604,6 +611,62 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl
 				savePhredScore(phreddie[0], gtl_0);
 				savePhredScore(phreddie[1], gtl_1);
 				savePhredScore(phreddie[2], gtl_2);
+			}
+		}
+	}
+};
+
+void TVcfParser::fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s, double & gtl_0, double & gtl_1, double & gtl_2){
+	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
+	if(line.samples[s].missing){
+		gtl_0 = 0.0; gtl_1 = 0.0; gtl_2 = 0.0;
+	} else {
+		int col = getFormatCol(line, "GL");
+		if(col < 0){
+			col = getFormatCol(line, "PL");
+			if(col < 0){
+				//neither PL nor GL tag: set missing
+				gtl_0 = 0.0; gtl_1 = 0.0; gtl_2 = 0.0;
+			} else {
+				//PL field exists
+				std::vector<std::string> phreddie;
+				fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+
+				//diploid or haploid?
+				uint8_t tmp;
+				if(line.samples[s].isHaploid){
+					//haploid: only two are given
+					savePhredScore(phreddie[0], tmp);
+					gtl_0 = tmp / -10.0;
+					savePhredScore(phreddie[1], tmp);
+					gtl_1 = tmp / -10.0;
+					gtl_2 = -99999.9; //set heterozygous to a a very small value
+				} else {
+					//diploid
+					savePhredScore(phreddie[0], tmp);
+					gtl_0 = tmp / -10.0;
+					savePhredScore(phreddie[1], tmp);
+					gtl_1 = tmp / -10.0;
+					savePhredScore(phreddie[2], tmp);
+					gtl_2 = tmp / -10.0;
+				}
+			}
+		} else {
+			//GL field exists: just convert to double
+			std::vector<std::string> phreddie;
+			fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+
+			//diploid or haploid?
+			if(line.samples[s].isHaploid){
+				//haploid: only two are given
+				gtl_0 = readGL(phreddie[0]);
+				gtl_1 = readGL(phreddie[1]);
+				gtl_2 = -99999.9; //set heterozygous to a a very small value
+			} else {
+				//diploid
+				gtl_0 = readGL(phreddie[0]);
+				gtl_1 = readGL(phreddie[1]);
+				gtl_2 = readGL(phreddie[2]);
 			}
 		}
 	}

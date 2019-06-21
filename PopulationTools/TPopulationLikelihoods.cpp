@@ -450,12 +450,31 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 }
 */
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodStorage & data, TPopulationSamples & samples, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
 	data.resize(samples.numSamples());
-	return readDataFromVCF(data.samples, samples, logfile);
+	return readDataFromVCF(data.samples, samples, glfConverter, logfile);
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TLog* logfile){
+int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
+	int numIndividualsWithData = 0;
+	for(int s = 0; s < samples.numSamples(); ++s){
+		int vcfIndex = samples.VCF_order(s);
+
+		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
+		if (vcfFile.sampleDepth(vcfIndex) < minDepth)
+			vcfFile.setSampleMissing(vcfIndex);
+		else
+			numIndividualsWithData++;
+
+		//store if missing and haploid
+		data[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
+		data[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
+	}
+
+	return numIndividualsWithData;
+};
+
+bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -510,27 +529,31 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
         	continue;
         }
 
-		//check if PL is given
-		if(!vcfFile.formatColExists("PL") && !vcfFile.formatColExists("GL")){
+		//check if GL or PL is given
+        int numIndividualsWithData = 0;
+		if(vcfFile.formatColExists("GL")){
+			numIndividualsWithData = filterOnDepth(data, samples);
+			double tmp[3];
+			for(int s = 0; s < samples.numSamples(); ++s){
+				int vcfIndex = samples.VCF_order(s);
+				vcfFile.fillLog10GenotypeLikelihoods(vcfIndex, tmp[0], tmp[1], tmp[2]);
+				data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
+				data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
+				data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
+			}
+		} else if(vcfFile.formatColExists("PL")){
+			numIndividualsWithData = filterOnDepth(data, samples);
+			uint8_t tmp[3];
+			for(int s = 0; s < samples.numSamples(); ++s){
+				int vcfIndex = samples.VCF_order(s);
+				vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[2], tmp[3]);
+				data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
+				data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
+				data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
+			}
+		} else {
 			++_noPLCounter;
 			continue;
-		}
-
-		// create an array containing the genotype likelihoods of all considered individuals of current locus
-        long numIndividualsWithData = 0;
-		for(int s = 0; s < samples.numSamples(); ++s){
-			int vcfIndex = samples.VCF_order(s);
-
-			// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-			if (vcfFile.sampleDepth(vcfIndex) < minDepth)
-				vcfFile.setSampleMissing(vcfIndex);
-			else
-				numIndividualsWithData++;
-
-			//store phred scaled likelihoods
-			data[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
-			data[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
-			vcfFile.fillPhredScore(vcfIndex, data[s].phredLikelihood_0, data[s].phredLikelihood_1, data[s].phredLikelihood_2);
 		}
 
 		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -541,7 +564,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 
 		//filter in MAF
 		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-			genoFrequencies.estimate(data, samples.numSamples(), phredToGTLMap, epsilonF);
+			genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
 
 			if(genoFrequencies.MAF < freqFilter){
 				_lowFreqSNPCounter++;
@@ -731,7 +754,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     std::string curChr = "";
-    while(reader.readDataFromVCF(data.back(), samples, logfile)){
+    while(reader.readDataFromVCF(data.back(), samples, glfConverter, logfile)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
@@ -866,7 +889,7 @@ void TPopulationLikelihoods::print(){
 		//print data
 		TSampleLikelihoods* data = curData();
 		for(int s=0; s<curSampleSize(); ++s){
-			std::cout << "\t" << toString(data[s].phredLikelihood_0) << "," << toString(data[s].phredLikelihood_1) << "," << toString(data[s].phredLikelihood_2);
+			std::cout << "\t" << toString(data[s].glfLikelihood_0) << "," << toString(data[s].glfLikelihood_1) << "," << toString(data[s].glfLikelihood_2);
 		}
 
 		std::cout << std::endl;

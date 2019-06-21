@@ -8,10 +8,10 @@
 #ifndef POPULATIONTOOLS_TGENOTYPEFREQUENCIES_H_
 #define POPULATIONTOOLS_TGENOTYPEFREQUENCIES_H_
 
-#include "TPopulationLikelihoodStorage.h"
-#include "../TQualityMap.h"
+#include <TPopulationLikelihoodLocus.h>
 #include <iostream>
 #include "../TFile.h"
+#include "TGLF.h"
 
 //------------------------------------------------
 // TGenotypeFreqencies
@@ -37,12 +37,12 @@ public:
 	void set(const TGenotypeFrequencies & other);
 	void flip(); //flip major / minor
 	bool isMonomorphic();
-	void guess(TPopulationLikehoodStorage & samples);
+	void guess(TPopulationLikehoodLocus & samples);
 	void guess(TSampleLikelihoods* samples, int numSamples);
-	void estimate(TPopulationLikehoodStorage & samples, TQualityMap & phredToGTLMap, double epsilonF);
-	void estimate(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap, double epsilonF);
-	double calculateLog10Likelihood(TPopulationLikehoodStorage & samples, TQualityMap & phredToGTLMap);
-	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TQualityMap & phredToGTLMap);
+	void estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF);
+	void estimate(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter, double epsilonF);
+	double calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter);
+	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter);
 	void writeDiploidFrequencies(TOutputFile & out);
 	void writeHaploidFrequencies(TOutputFile & out);
 	int numHaploid(){ return numHaploidSamples; };

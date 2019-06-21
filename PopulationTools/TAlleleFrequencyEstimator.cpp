@@ -14,7 +14,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodStorage & storage, double epsilonF){
+double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & storage, double epsilonF, TGlfConverter & glfConverter){
 	pGenotype.set(0.5);
 	double weights[3];
 
@@ -30,8 +30,8 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodStorage & 
 		for(int i=0; i<storage.numSamples; i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
-					weights[0] = phredToGTLMap[ storage[i][0] ] * pGenotype.oneMinusf;
-					weights[1] = phredToGTLMap[ storage[i][1] ] * pGenotype.f;
+					weights[0] = glfConverter[ storage[i][0] ] * pGenotype.oneMinusf;
+					weights[1] = glfConverter[ storage[i][1] ] * pGenotype.f;
 					double sum = weights[0] + weights[1];
 
 					//add to sums
@@ -39,9 +39,9 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodStorage & 
 					n += 1;
 				} else {
 					//calculate weights
-					weights[0] = phredToGTLMap[ storage[i][0] ] * pGenotype[0];
-					weights[1] = phredToGTLMap[ storage[i][1] ] * pGenotype[1];
-					weights[2] = phredToGTLMap[ storage[i][2] ] * pGenotype[2];
+					weights[0] = glfConverter[ storage[i][0] ] * pGenotype[0];
+					weights[1] = glfConverter[ storage[i][1] ] * pGenotype[1];
+					weights[2] = glfConverter[ storage[i][2] ] * pGenotype[2];
 					double sum = weights[0] + weights[1] + weights[2];
 
 					//add to sums
@@ -91,24 +91,24 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	f_upper = 1.0;
 };
 
-double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodStorage & storage){
+double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
 	for(int i=0; i<storage.numSamples; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				double sum = phredToGTLMap[ storage[i][0] ] + phredToGTLMap[ storage[i][1] ];
+				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ];
 
 				//add to sums
-				sum_1 += phredToGTLMap[ storage[i][1] ] / sum;
+				sum_1 += glfConverter[ storage[i][1] ] / sum;
 				n += 1;
 			} else {
-				double sum = phredToGTLMap[ storage[i][0] ] + phredToGTLMap[ storage[i][1] ] + phredToGTLMap[ storage[i][2] ];
+				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ] + glfConverter[ storage[i][2] ];
 
 				//add to sums
-				sum_1 += phredToGTLMap[ storage[i][1] ] / sum;
-				sum_2 += phredToGTLMap[ storage[i][2] ] / sum;
+				sum_1 += glfConverter[ storage[i][1] ] / sum;
+				sum_2 += glfConverter[ storage[i][2] ] / sum;
 				n += 2;
 			}
 		}
@@ -117,22 +117,22 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 	return (sum_1 + 2.0 * sum_2) / (double) n;
 };
 
-double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodStorage & storage, THardyWeinbergGenotypeProbabilities & pGenotype){
+double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
 	double LL = 0.0;
 
 	for(int i=0; i<storage.numSamples; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				LL += log(phredToGTLMap[ storage[i][0] ] * pGenotype.oneMinusf + phredToGTLMap[ storage[i][1] ] * pGenotype.f);
+				LL += log(glfConverter[ storage[i][0] ] * pGenotype.oneMinusf + glfConverter[ storage[i][1] ] * pGenotype.f);
 			} else {
-				LL += log(phredToGTLMap[ storage[i][0] ] * pGenotype[0] + phredToGTLMap[ storage[i][1] ] * pGenotype[1] + phredToGTLMap[ storage[i][2] ] * pGenotype[2]);
+				LL += log(glfConverter[ storage[i][0] ] * pGenotype[0] + glfConverter[ storage[i][1] ] * pGenotype[1] + glfConverter[ storage[i][2] ] * pGenotype[2]);
 			}
 		}
 	}
 	return LL;
 };
 
-int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodStorage & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old){
+int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodLocus & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old, TGlfConverter & glfConverter){
 	int cur = 1-old;
 
 	//propose new f
@@ -141,7 +141,7 @@ int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodStorage & stora
 	pGenotype[cur].set(new_f);
 
 	//calc hastings
-	double LL = calcLL(storage, pGenotype[cur]);
+	double LL = calcLL(storage, pGenotype[cur], glfConverter);
 	double priorRatio = oneMinusAlpha * (log(pGenotype[cur].f) - log(pGenotype[old].f)) + oneMinusBeta * (log(pGenotype[old].oneMinusf) - log(pGenotype[old].oneMinusf));
 	double hastings = LL - oldLL + priorRatio;
 
@@ -154,21 +154,21 @@ int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodStorage & stora
 	return false;
 };
 
-double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodStorage & storage){
+double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
 	//initialize
 	THardyWeinbergGenotypeProbabilities pGenotype[2];
 	int old = 0;
-	pGenotype[old].set(guessInitialAlleleFrequency(storage));
+	pGenotype[old].set(guessInitialAlleleFrequency(storage, glfConverter));
 	double prop = pGenotype[old][1] * 0.1;
 
 	//calc initial LL
-	double oldLL = calcLL(storage, pGenotype[old]);
+	double oldLL = calcLL(storage, pGenotype[old], glfConverter);
 
 	//run burnins
 	for(int b=0; b<numBurnins; b++){
 		int acceptance = 0;
 		for(int i=0; i<burninLength; i++){
-			acceptance += makeMCMCUpdate(storage, oldLL, prop, pGenotype, old);
+			acceptance += makeMCMCUpdate(storage, oldLL, prop, pGenotype, old, glfConverter);
 		}
 
 		//adjust proposal range
@@ -177,7 +177,7 @@ double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodStorage & storage)
 
 	//run MCMC
 	for(size_t i=0; i<mcmc.size(); i++){
-		makeMCMCUpdate(storage, oldLL, prop, pGenotype, old);
+		makeMCMCUpdate(storage, oldLL, prop, pGenotype, old, glfConverter);
 
 		//store current f
 		mcmc[i] = pGenotype[1-old].f;
@@ -235,7 +235,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodStorage storage(samples.numSamples());
+	TPopulationLikehoodLocus storage(samples.numSamples());
 
 	//create allele frequency estimators
 	//1) Maximum likelihood HW estimator
@@ -270,7 +270,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, logfile)){
+    while(reader.readDataFromVCF(storage, samples, glfConverter, logfile)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -279,7 +279,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		out << reader.genotypeFrequencies()->numHaploid();
 
  		//write HW estimates
- 		out << MLHWEstimator.estimate(storage, epsF);
+ 		out << MLHWEstimator.estimate(storage, epsF, glfConverter);
 
  		//write genotype frequency estimates
  		reader.genotypeFrequencies()->writeDiploidFrequencies(out);
@@ -290,7 +290,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
  		//Bayesian estimation
  		if(doBayesian){
- 			out << BHWEstimator->estimate(storage);
+ 			out << BHWEstimator->estimate(storage, glfConverter);
  			out << BHWEstimator->lowerCredibleInterval();
  			out << BHWEstimator->upperCredibleInterval();
  		};

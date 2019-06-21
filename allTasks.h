@@ -111,7 +111,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
-		genome.mergePairedEndReadsNoOrder(parameters);
+		genome.mergePairedEndReads(parameters);
 	};
 };
 
@@ -452,7 +452,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleCountEstimator alleleCountEst(parameters, logfile);
-		alleleCountEst.estimateAlleleCounts(parameters);
+		alleleCountEst.estimateAlleleCounts(parameters, randomGenerator);
 	};
 };
 

@@ -472,7 +472,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurChrLength(), alignmentParser.getCurChrPloidy());
+			writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
@@ -1501,7 +1501,7 @@ void TGenome::filterBAM(TParameters & params){
 	logfile->done();
 }
 
-void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
+void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
@@ -1516,7 +1516,8 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for read merging.");
+	if(alignmentParser.hasPMD)
+		logfile->warning("PMD is given but not relevant for read merging.");
 
 	//which read groups are paired-end?
 	std::vector<bool> mergeThisReadGroup(alignmentParser.numReadGroups(), false);
