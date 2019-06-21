@@ -179,7 +179,7 @@ void TAlignment::setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
-		int fragmentLen = insertSize + numInsertions - numDeletions;
+		int fragmentLen = abs(insertSize) + numInsertions - numDeletions;
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
@@ -478,7 +478,9 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
 				read = genoMap.baseToFlippedBase[bases[d].base];
 				pmdTables.addForward(readGroupId, bases[d].distFrom3Prime, ref, read);
+//				std::cout << "added forward" << std::endl;
 				pmdTables.addReverse(readGroupId, bases[d].distFrom5Prime, ref, read);
+//				std::cout << "added reverse" << std::endl;
 			}
 		}
 	} else {
@@ -486,7 +488,11 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
 				pmdTables.addForward(readGroupId, bases[d].distFrom5Prime, ref, bases[d].base);
+//				std::cout << "added forward" << std::endl;
+
 				pmdTables.addReverse(readGroupId, bases[d].distFrom3Prime, ref, bases[d].base);
+//				std::cout << "added reverse" << std::endl;
+
 			}
 		}
 	}
