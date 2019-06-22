@@ -422,7 +422,7 @@ void TGenome::callGenotypes(TParameters & params){
 				//read data for current window
 				if(window.passedFilters || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(&window, logfile);
+					prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
@@ -437,7 +437,7 @@ void TGenome::callGenotypes(TParameters & params){
 			//read data for current window
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
-				prior->update(&window, logfile);
+				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call
 				logfile->listFlush("Calling genotypes ...");
