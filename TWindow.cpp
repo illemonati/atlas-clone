@@ -24,6 +24,7 @@ TWindow::TWindow(){
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
+	emissionProbsCalculated = false;
 	chrName = "";
 	refId = -1;
 };
@@ -222,6 +223,8 @@ void TWindow::calculateEmissionProbabilities(TRecalibration* recalObject){
 		if(sites[i].hasData)
 			recalObject->calcEmissionProbabilities(sites[i]);
 	}
+
+	emissionProbsCalculated = true;
 };
 
 void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
@@ -230,7 +233,8 @@ void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fas
 
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
-		if(sites[i].hasData) recalObject.calcEmissionProbabilities(sites[i]);
+		if(sites[i].hasData && !emissionProbsCalculated)
+			recalObject.calcEmissionProbabilities(sites[i]);
 		caller.call(chrName, start + i + 1, sites[i]); //i + 1 to make vcf 1-based!
 	}
 };
@@ -246,7 +250,8 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, B
 		for(std::map<long,std::pair<char,char> >::iterator it = thesePos.begin(); it!=thesePos.end(); ++it){
 			int pos = it->first - start;
 			if(sites[pos].hasData){
-				recalObject.calcEmissionProbabilities(sites[pos]);
+				if(!emissionProbsCalculated)
+					recalObject.calcEmissionProbabilities(sites[pos]);
 
 				//call
 				caller.call(chrName, start + pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
@@ -478,8 +483,10 @@ void TWindowDiploid::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataCont
 }
 
 void TWindowDiploid::addSitesToThetaEstimator(TRecalibration* recalObject, TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+	//first calculate emission probabilities
 	calculateEmissionProbabilities(recalObject);
 
+	//now add sites
 	addSitesToThetaEstimator(thetaDataContainer, region);
 }
 

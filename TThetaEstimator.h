@@ -36,21 +36,21 @@ struct Theta{
 		theta = val;
 		expTheta = exp(-theta);
 		logTheta = log(theta);
-		LL = -9e100;
+//		LL = -9e100;
 	};
 
 	void setExpTheta(double val){
 		expTheta = val;
 		theta = -log(val);
 		logTheta = log(theta);
-		LL = -9e100;
+//		LL = -9e100;
 	};
 
 	void setLogTheta(double val){
 		logTheta = val;
 		theta = exp(val);
 		expTheta = exp(-theta);
-		LL = -9e100;
+//		LL = -9e100;
 	};
 
 	void setLogTheta(double & val, double & newLL){

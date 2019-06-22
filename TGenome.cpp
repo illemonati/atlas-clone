@@ -891,8 +891,9 @@ TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 				double defaultTheta = params.getParameterDouble("defaultTheta");
 				logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
 				prior = new TGenotypePriorTheta(params, thetaOuputName, defaultTheta, logfile);
-			} else
+			} else {
 				prior = new TGenotypePriorTheta(params, thetaOuputName, logfile);
+			}
 		}
 	} else throw "Unknown prior type '" + priorMethod + "'!";
 	logfile->endIndent();
@@ -971,7 +972,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 				//read data for current window
 				if(readData(windows) || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(windows.cur, logfile);
+					prior->update(windows.cur, recalObject, logfile);
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
@@ -987,7 +988,7 @@ void TGenome::callGenotypesNew(TParameters & params){
 				//read data for current window
 				if(readData(windows) || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(windows.cur, logfile);
+					prior->update(windows.cur, recalObject, logfile);
 
 					//now call
 					logfile->listFlush("Calling genotypes ...");
@@ -1261,7 +1262,8 @@ void TGenome::callBayesianGenotypes(TParameters & params){
 
 	//iterate through windows
 	while(iterateChromosome(windows)){
-		if(limitToSitesWithKnownAlleles) subset->setChr(chrIterator->Name);
+		if(limitToSitesWithKnownAlleles)
+			subset->setChr(chrIterator->Name);
 		while(iterateWindow(windows)){
 			//read data for current window
 			if(!limitToSitesWithKnownAlleles || subset->hasPositionsInWindow(windows.cur->start)){

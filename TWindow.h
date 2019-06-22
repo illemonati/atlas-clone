@@ -38,6 +38,7 @@ public:
 	TBaseFrequencies baseFreq;
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
+	bool emissionProbsCalculated;
 	std::string chrName;
 	int refId;
 

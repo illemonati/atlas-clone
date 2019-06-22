@@ -27,7 +27,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(TWindowDiploid* window, TLog* logfile){};
+	virtual void update(TWindowDiploid* window, TRecalibration* recalObject, TLog* logfile){};
 	double* getPointerToPrior(){ return genotypePrior; };
 };
 
@@ -62,12 +62,13 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(TWindowDiploid* window, TLog* logfile){
+	void update(TWindowDiploid* window, TRecalibration* recalObject, TLog* logfile){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			window->estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(window->baseFreq);
 			logfile->done();
+			logfile->conclude("Estimated base frequencies: " + toString(window->baseFreq.freq[0])+ ", " + toString(window->baseFreq.freq[1]) + ", " + toString(window->baseFreq.freq[2]) + ", " + toString(window->baseFreq.freq[3]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};
@@ -106,16 +107,12 @@ public:
 		delete thetaEstimator;
 	};
 
-
-
-	void update(TWindowDiploid* window, TLog* logfile){
+	void update(TWindowDiploid* window, TRecalibration* recalObject, TLog* logfile){
 		logfile->startIndent("Estimating theta and base frequencies:");
 		//clear theta estimator
 		(*thetaEstimator).clear();
-
 		//adding sites to estimator
-		window->addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
-
+		window->addSitesToThetaEstimator(recalObject, thetaEstimator->pointerToDataContainer());
 		//estimate Theta
 		if(!thetaEstimator->estimateTheta()){
 			if(hasDefaultTheta){

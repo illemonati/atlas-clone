@@ -202,24 +202,7 @@ void TThetaEstimator::add(TSite & site){
 };
 
 void TThetaEstimator::fillP_G(){
-	//assumes that pGenotype is set!
-	for(int g=0; g<numGenotypes; ++g)
-		P_G[g] = 0.0;
-
-	//calculate P_g for each site
-	double* d;
-	data->begin();
-	do{
-		double sum = 0.0;
-		d = data->curGenotypeLikelihoods();
-		for(int g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  d[g] * pGenotype[g];
-			sum += P_g_oneSite[g];
-		}
-		for(int g=0; g<numGenotypes; ++g)
-			P_G[g] += P_g_oneSite[g] / sum;
-
-	} while(data->next());
+	data->fillP_G(P_G, pGenotype);
 };
 
 double TThetaEstimator::calcFisherInfo(double* _pGenotype, double* deriv_pGenotype){
