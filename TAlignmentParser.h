@@ -101,6 +101,11 @@ private:
 	bool applyQualityFilter;
 	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
+
+	bool applyMQFilter;
+	int minMQ, maxMQ;
+
+
 	bool applyFragmentLengthFilter;
 	//bool keepOnlyFwd, keepOnlyRev;
 	bool useStrand[2];
@@ -207,6 +212,7 @@ public:
 
 	//setters
 	void setQualityFilters(int minQual, int maxQual);
+	void setMappingQualityFilters(int MinMQ, int MaxMQ);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 	void setApplyFragmentLengthFilter(bool filterYesNo);

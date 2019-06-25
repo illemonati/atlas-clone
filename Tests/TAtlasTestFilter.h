@@ -28,6 +28,8 @@ private:
 	bool keepSupplementary;
 	bool keepDuplicates;
 	bool filterSoftClips;
+	int minMQ;
+
 	TQualityMap qualMap;
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;

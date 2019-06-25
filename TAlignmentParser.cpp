@@ -88,6 +88,9 @@ TAlignmentParser::TAlignmentParser(){
 	minDepth = 0;
 	maxDepth = 10000;
 	applyQualityFilter = false;
+	applyMQFilter = false;
+	minMQ = 0;
+	maxMQ = 10000;
 	minQual = 33;
 	maxQual = 126;
 	minPhredInt = 0;
@@ -233,7 +236,8 @@ void TAlignmentParser::setFilters(TParameters & params){
 		applyDepthFilter = true;
 		unsigned int tmpInt;
 		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
-		if(tmpInt < 0) throw "minDepth must be >= 0!";
+		if(tmpInt < 0)
+			throw "minDepth must be >= 0!";
 		minDepth = tmpInt;
 		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
@@ -246,6 +250,19 @@ void TAlignmentParser::setFilters(TParameters & params){
 		maxDepth = 1000000;
 	}
 	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases.");
+
+	//Mapping quality filters
+	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
+		applyMQFilter = true;
+		minMQ = params.getParameterIntWithDefault("minMQ", 0);
+		if(minMQ < 0)
+			throw "minMQ must be >= 0!";
+		maxMQ = params.getParameterIntWithDefault("maxMQ", 1000000);
+		if(maxMQ < minMQ)
+			throw "maxMQ must be larger than minMQ";
+		setMappingQualityFilters(minMQ, maxMQ);
+		logfile->list("Will filter out reads with a mapping quality < " + toString(minMQ) + " or mapping quality > " + toString(maxMQ));
+	}
 
 	//quality filters
 	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
@@ -346,6 +363,12 @@ void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 	maxPhredInt = MaxPhredInt;
 	minQual = qualMap.phredIntToQuality(minPhredInt);
 	maxQual = qualMap.phredIntToQuality(maxPhredInt);
+};
+
+void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
+	applyMQFilter = true;
+	minMQ = MinMQ;
+	maxMQ = MaxMQ;
 };
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
@@ -452,7 +475,7 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
 	if(limitWindows <= skipWindows)
-		throw "limitWwindows has to be larger than skipWindows!";
+		throw "limitWindows has to be larger than skipWindows!";
 };
 
 void TAlignmentParser::setChrPloidy(TParameters & params){
@@ -804,7 +827,8 @@ bool TAlignmentParser::applyFilters(){
 					&& (_keepDuplicates || !bamAlignment.IsDuplicate())
 					&& (!_filterSoftClips || !bamAlignment.GetSoftClips(clipSizes, readPositions, genomePositions))
 					&& useStrand[bamAlignment.IsReverseStrand()]
-					&& useMate[bamAlignment.IsSecondMate()];
+					&& useMate[bamAlignment.IsSecondMate()]
+					&& (!applyMQFilter || (bamAlignment.MapQuality >= minMQ && bamAlignment.MapQuality <= maxMQ));
 
 	return filtersPassed;
 };
