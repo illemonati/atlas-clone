@@ -1432,7 +1432,7 @@ void TGenome::filterBAM(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
 	//measure progress and runtime
@@ -1529,7 +1529,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
 	if(params.parameterExists("keepOriginalQuality")){

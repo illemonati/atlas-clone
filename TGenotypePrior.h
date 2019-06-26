@@ -27,7 +27,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(TWindow* window, const std::string chrName, TLog* logfile){throw "in base class";};
+	virtual void update(TWindow* window, const std::string chrName, TLog* logfile){};
 	double* getPointerToPrior(){ return genotypePrior; };
 };
 

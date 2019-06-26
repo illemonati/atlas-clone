@@ -261,7 +261,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 		if(maxMQ < minMQ)
 			throw "maxMQ must be larger than minMQ";
 		setMappingQualityFilters(minMQ, maxMQ);
-		logfile->list("Will filter out reads with a mapping quality < " + toString(minMQ) + " or mapping quality > " + toString(maxMQ));
+		logfile->list("Will filter out reads with a mapping quality < " + toString(minMQ) + " or mapping quality > " + toString(maxMQ) + " (parameters 'minMQ', 'maxMQ')");
 	}
 
 	//quality filters
@@ -278,15 +278,17 @@ void TAlignmentParser::setFilters(TParameters & params){
 	int maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
 	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
 	setQualityRangeForPrinting(minOutQual, maxOutQual);
-	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
+	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual'");
 
 	//filter for missing reference
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
+	logfile->list("Will filter out windows with a missing data fraction > " + toString(maxMissing) + ". (parameter 'maxMissing')");
 
 	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
+	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxMissing')");
 
 	//duplicates
 	if(params.parameterExists("keepDuplicates")){
@@ -479,7 +481,7 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 };
 
 void TAlignmentParser::setChrPloidy(TParameters & params){
-	logfile->list("Chromosomes with no further specifications are assumed to be diploid. Use ploidy or haploid to change ploidy.");
+	logfile->list("Chromosomes with no further specifications are assumed to be diploid (parameters 'ploidy' or 'haploid' to change ploidy).");
 	if(params.parameterExists("ploidy")){
 		std::string ploidyFileName = params.getParameterString("ploidy");
 		logfile->list("Reading ploidy specification per chromosome from file '" + ploidyFileName + "'");
@@ -796,10 +798,12 @@ bool TAlignmentParser::readAlignment(){
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
-			logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-			filtersPassed = false;
 			if(_updateBlacklist)
 				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
+			else {
+				logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
+				filtersPassed = false;
+			}
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = applyFilters();
