@@ -892,9 +892,16 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 		else {
 			//find second highest quality
 			int secondLowestQual = converter.maxValue();
-			if(data[ind][refHomIndex] > minQual) secondLowestQual = data[ind][refHomIndex];
-			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
-			if(data[ind][altHomIndex] == minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][refHomIndex] > minQual){
+				secondLowestQual = data[ind][refHomIndex];
+			}
+			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual){
+				secondLowestQual = data[ind][hetIndex];
+			}
+			if(data[ind][altHomIndex] > minQual && data[ind][altHomIndex] < secondLowestQual){
+				secondLowestQual = data[ind][altHomIndex];
+			}
+
 			vcf << round(secondLowestQual - minQual) << ":";
 		}
 
