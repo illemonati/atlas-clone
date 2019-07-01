@@ -428,7 +428,9 @@ public:
 
 class TTask_majorMinor:public TTask_atlas{
 public:
-	TTask_majorMinor(){ _explanation = "Estimating major and minor alles"; };
+	TTask_majorMinor(){
+		_citations.push_back("Skotte et al. (2012) Genetic Epidemiology");
+		_explanation = "Estimating major and minor alles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		TMajorMinor majorMinor(parameters, logfile);

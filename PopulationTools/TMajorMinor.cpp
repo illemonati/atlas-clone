@@ -55,17 +55,17 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, 
 
 	//calculate variant quality
 	int refHomIndex = genoMap.genotypeMap[major][major];
-	double LL_fixed_phred = 0.0;
+	double LL_fixed_glfPhred = 0.0;
 	for(int i=0; i<glfReader.numActiveSamples(); ++i){
 		if(glfReader.hasData[i]){
 			if(glfReader.isHaploid[i])
-				LL_fixed_phred += glfReader.data[i][major];
+				LL_fixed_glfPhred += glfReader.data[i][major];
 			else
-				LL_fixed_phred += glfReader.data[i][refHomIndex];
+				LL_fixed_glfPhred += glfReader.data[i][refHomIndex];
 		}
 	}
 
-	variantQuality = LL_fixed_phred - round(-10.0 * L10L);
+	variantQuality = LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L);
 };
 
 //---------------------------------------------------
@@ -104,10 +104,14 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TGlfMultiReader & glfR
 	//pick combination with highest likelihood
 	chooseBestAllelicCombinationAmongThoseWithEqualScores();
 
-	//now guess genotype frequencies at MLE
+	//now estimate genotype frequencies at MLE allelic combination
 	glfReader.fill(genotypeLikelihoods, bestAllelicCombination);
 
 	genotypeFrequencies.estimate(genotypeLikelihoods, glfConverter, epsilonF);
+
+	//calculate likelihood again with better genotype frequencies
+	L10L_perCombination[bestAllelicCombination] = genotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
+	L10L = L10L_perCombination[bestAllelicCombination];
 };
 
 //---------------------------------------------------
@@ -197,7 +201,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	TMajorMinorEstimatorBase* MMEstimator;
 	double maxF = params.getParameterDoubleWithDefault("maxF", 0.0000001);
 	if(method == "Skotte"){
-		logfile->list("Will estimate major / minor alleles using the method of Skotte et al. (2012) with maxF " + toString(maxF) + ".");
+		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF " + toString(maxF) + ".");
 		MMEstimator = new TMajorMinorEstimatorSkotte(randomGenerator, maxF);
 	} else if(method == "MLE"){
 		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
@@ -218,13 +222,13 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//limit input
 	long limitSites = params.getParameterDoubleWithDefault("limitSites", 0);
 	if(limitSites > 0)
-		logfile->list("Will stop at input position " + toString(limitSites) + ".");
+		logfile->list("Will stop at input position " + toString(limitSites) + ". (parameter 'limitSites')");
 	if(limitSites < 0)
 		throw "maxPos cannot be negative!";
 
 	//filename tag
 	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_majorMinor");
-	logfile->list("Will write output files with tag '" + outname + "'.");
+	logfile->list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
 	//open vcf file
 	openVCF(outname, glfReader, usePhredLikelihoods);
