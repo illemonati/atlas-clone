@@ -8,7 +8,7 @@
 #include "BamAlignmentBamTools.h"
 
 
-#include "../bamtools/api/BamWriter.h"
+#include "bamtools/api/BamWriter.h"
 
 
 class BamWriterBamTools : public BamWriter

@@ -11,8 +11,8 @@
 #include <math.h>
 #include <vector>
 #include "TParameters.h"
-#include "../TGenotypeMap.h"
-#include "../TBase.h"
+#include "TGenotypeMap.h"
+#include "TBase.h"
 #include "gzstream.h"
 #include <algorithm>
 #include "TRandomGenerator.h"

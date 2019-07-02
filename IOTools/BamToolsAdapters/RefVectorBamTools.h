@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../bamtools/api/BamAux.h"
+#include "bamtools/api/BamAux.h"
 
 #include "IOAbstractClasses/RefVector.h"
 

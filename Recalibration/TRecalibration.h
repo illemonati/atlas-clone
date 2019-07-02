@@ -8,11 +8,11 @@
 #ifndef TRecalIBRATION_H_
 #define TRecalIBRATION_H_
 
-#include "../bamtools/api/BamReader.h"
+#include "bamtools/api/BamReader.h"
 #include "TSite.h"
 #include <omp.h>
-#include "../bamtools/api/SamHeader.h"
-#include "../TQualityMap.h"
+#include "bamtools/api/SamHeader.h"
+#include "TQualityMap.h"
 #include "TRecalibrationEMModel.h"
 
 //---------------------------------------------------------------

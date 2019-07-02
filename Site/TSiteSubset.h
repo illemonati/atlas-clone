@@ -12,8 +12,8 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include "../IOTools/IOAbstractClasses/Fasta.h"
-#include "../IOTools/IOAbstractClasses/SamHeader.h"
+#include "IOTools/IOAbstractClasses/Fasta.h"
+#include "IOTools/IOAbstractClasses/SamHeader.h"
 #include "TLog.h"
 #include "stringFunctions.h"
 

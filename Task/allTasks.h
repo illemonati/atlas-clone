@@ -13,9 +13,9 @@
 //---------------------------------------------------------------------------
 // all includes necessary for the application
 //---------------------------------------------------------------------------
-#include "../TGenome.h"
+#include "TGenome.h"
 #include "TDistanceEstimator.h"
-#include "TSimulator.h"
+#include "Simulations/TSimulator.h"
 #include "TVcfDiagnostics.h"
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"

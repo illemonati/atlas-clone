@@ -15,7 +15,7 @@
 #include "stringFunctions.h"
 #include "gzstream.h"
 #include "TLog.h"
-#include "../IOTools/IOAbstractClasses/SamHeader.h"
+#include "IOTools/IOAbstractClasses/SamHeader.h"
 
 //read sorted bed files window by window
 //store all data in chr / window combinations using vectors

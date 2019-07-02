@@ -11,8 +11,8 @@
 #include <math.h>
 #include <TPopulationLikelihoodLocus.h>
 #include "TGLF.h"
-#include "../TGenotypeMap.h"
-#include "../TQualityMap.h"
+#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "TGenotypeFrequencies.h"
 

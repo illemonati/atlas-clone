@@ -5,7 +5,7 @@
 
 #include "../IOAbstractClasses/Fasta.h"
 
-#include "../bamtools/utils/bamtools_fasta.h"
+#include "bamtools/utils/bamtools_fasta.h"
 
 class FastaBamTools : public Fasta
 {

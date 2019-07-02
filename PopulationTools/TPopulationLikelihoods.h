@@ -11,11 +11,11 @@
 #include <iostream>
 #include <math.h>
 #include <TPopulationLikelihoodLocus.h>
-#include "../Utils/stringFunctions.h"
+#include "Utils/stringFunctions.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TVcfFile.h"
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 #include "TGenotypeFrequencies.h"
 #include "TGLF.h"
 

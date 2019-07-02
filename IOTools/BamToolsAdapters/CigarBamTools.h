@@ -5,7 +5,7 @@
 
 #include "../IOAbstractClasses/Cigar.h"
 
-#include "../bamtools/api/BamAux.h"
+#include "bamtools/api/BamAux.h"
 
 class CigarOpBamTools : public CigarOp
 {

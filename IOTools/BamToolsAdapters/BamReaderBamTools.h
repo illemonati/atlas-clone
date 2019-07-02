@@ -11,7 +11,7 @@
 #include "RefVectorBamTools.h"
 #include "IOAbstractClasses/BamReader.h"
 
-#include "../bamtools/api/BamReader.h"
+#include "bamtools/api/BamReader.h"
 
 class BamReaderBamTools : public BamReader
 {

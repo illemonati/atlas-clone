@@ -11,8 +11,8 @@
 #include "TParameters.h"
 #include "TGLF.h"
 #include <math.h>
-#include "../TGenotypeMap.h"
-#include "../TQualityMap.h"
+#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 
 //--------------------------------------------
 //TPhiToGenoMap

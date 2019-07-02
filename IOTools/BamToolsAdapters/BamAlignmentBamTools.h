@@ -7,7 +7,7 @@
 #include "CigarBamTools.h"
 #include "../IOAbstractClasses/BamAlignment.h"
 
-#include "../bamtools/api/BamAlignment.h"
+#include "bamtools/api/BamAlignment.h"
 
 class BamWriterBamTools;
 

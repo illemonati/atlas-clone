@@ -8,19 +8,19 @@
 #ifndef TALIGNMENTPARSER_H_
 #define TALIGNMENTPARSER_H_
 
-#include "../IOTools/IOAbstractClasses/Fasta.h"
-#include "../IOTools/IOAbstractClasses/BamReader.h"
+#include "IOTools/IOAbstractClasses/Fasta.h"
+#include "IOTools/IOAbstractClasses/BamReader.h"
 #include "TLog.h"
 #include "TBed.h"
 #include "TBedReader.h"
-#include "../TChromosomes.h"
+#include "TChromosomes.h"
 #include "TSiteSubset.h"
-#include "../TQualityMap.h"
-#include "../QualityTables.h"
-#include "../TPostMortemDamage.h"
+#include "TQualityMap.h"
+#include "QualityTables.h"
+#include "TPostMortemDamage.h"
 
 #include "TAlignment.h"
-#include "../TWindow.h"
+#include "TWindow.h"
 
 #include "TRecalibrationBQSR.h"
 #include "TRecalibration.h"

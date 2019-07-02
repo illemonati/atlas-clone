@@ -8,8 +8,8 @@
 #ifndef TALIGNMENTMERGER_H_
 #define TALIGNMENTMERGER_H_
 
-#include "../IOTools/IOAbstractClasses/BamWriter.h"
-#include "../TReadList.h"
+#include "IOTools/IOAbstractClasses/BamWriter.h"
+#include "TReadList.h"
 #include "TAlignmentParser.h"
 
 

@@ -8,7 +8,7 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
-#include "../Utils/mathFunctions.h"
+#include "Utils/mathFunctions.h"
 #include "TPopulationLikelihoods.h"
 #include "TFile.h"
 

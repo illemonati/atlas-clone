@@ -9,16 +9,16 @@
 #define TALIGNMENT_H_
 
 #include "stringFunctions.h"
-#include "../TBase.h"
-#include "../TPostMortemDamage.h"
+#include "TBase.h"
+#include "TPostMortemDamage.h"
 #include "TRecalibration.h"
-#include "../IOTools/IOAbstractClasses/BamAlignment.h"
-#include "../IOTools/IOAbstractClasses/Fasta.h"
-#include "../IOTools/IOAbstractClasses/BamWriter.h"
-#include "../IOTools/IOAbstractClasses/Cigar.h"
-#include "../IOTools/IOTool.h"
-#include "../TQualityMap.h"
-#include "../QualityTables.h"
+#include "IOTools/IOAbstractClasses/BamAlignment.h"
+#include "IOTools/IOAbstractClasses/Fasta.h"
+#include "IOTools/IOAbstractClasses/BamWriter.h"
+#include "IOTools/IOAbstractClasses/Cigar.h"
+#include "IOTools/IOTool.h"
+#include "TQualityMap.h"
+#include "QualityTables.h"
 
 class TAlignmentParser;
 class TWindow;

@@ -8,13 +8,13 @@
 #ifndef TSIMULATORAUXILIARYTOOLS_H_
 #define TSIMULATORAUXILIARYTOOLS_H_
 
-#include "../bamtools/api/BamReader.h"
-#include "../bamtools/api/BamWriter.h"
-#include "../bamtools/api/SamHeader.h"
-#include "../bamtools/api/BamAlignment.h"
+#include "bamtools/api/BamReader.h"
+#include "bamtools/api/BamWriter.h"
+#include "bamtools/api/SamHeader.h"
+#include "bamtools/api/BamAlignment.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "../TGenotypeMap.h"
+#include "TGenotypeMap.h"
 #include "stringFunctions.h"
 #include "gzstream.h"
 

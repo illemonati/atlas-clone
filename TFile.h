@@ -19,10 +19,7 @@ protected:
 	int _lineNum;
 
 public:
-	TFile(){
-		_isOpen = false;
-		_lineNum = 0;
-	};
+    TFile();
 };
 
 class TInputFile:public TFile{
@@ -43,11 +40,7 @@ protected:
 	unsigned int _numCols;
 	unsigned int _colsWritten;
 
-	void _setName(const std::string & Name){
-		_name = Name;
-		if(_name.empty())
-			throw "Please provide a valid file name!";
-	};
+    void _setName(const std::string & Name);
 
 	template<class T>
 	void _write(const std::vector<T> & data){
@@ -67,60 +60,25 @@ protected:
 		}
 
 		_colsWritten += data.size();
-	};
+    }
 
-	virtual void _openFile(){
-		throw "void _openFile() not implemented for base class TOutputFile!";
-	};
-
-	virtual void _closeFile(){
-		throw "void _closeFile() not implemented for base class TOutputFile!";
-	};
+    virtual void _openFile();
+    virtual void _closeFile();
 
 public:
-	TOutputFile():TFile(){
-		_headerWritten = false;
-		_filePointer = NULL;
-		_numCols = 0;
-		_colsWritten = 0;
-	};
+    TOutputFile();
+    virtual ~TOutputFile();
 
-	void open(const std::string Name){
-		_setName(Name);
-		_openFile();
-		_isOpen = true;
-		_headerWritten = false;
-		_numCols = 0;
-		_colsWritten = 0;
-		_lineNum = 1;
-	};
-
-	void close(){
-		_closeFile();
-	};
-
-	virtual ~TOutputFile(){};
+    void open(const std::string Name);
+    void close();
 
 	//writing header
-	void writeHeader(std::vector<std::string> header){
-		if(_headerWritten)
-			throw "Header already written to file '" + _name + "'!";
+    void writeHeader(std::vector<std::string> header);
 
-		_numCols = header.size();
-		_write(header);
-		endLine();
-		_headerWritten = true;
-	};
-
-	void noHeader(int NumCols){
-		_headerWritten = true;
-		_numCols = NumCols;
-	};
+    void noHeader(int NumCols);
 
 	//writing data
-	void setPrecision(int precision){
-		*_filePointer << std::setprecision(precision);
-	};
+    void setPrecision(int precision);
 
 	template<typename T>
 	void writeLine(std::vector<T> & data){
@@ -130,7 +88,7 @@ public:
 			throw "Can not write line: wrong number of columns (" + toString(data.size()) + " instead of " + toString(_numCols) + ")!";
 		_write(data);
 		endLine();
-	};
+    }
 
 	template<typename T>
 	void write(T data){
@@ -140,7 +98,7 @@ public:
 		if(_colsWritten > 0) *_filePointer << "\t";
 		*_filePointer << data;
 		++_colsWritten;
-	};
+    }
 
 	template<typename T>
 	void write(const std::vector<T> & data){
@@ -148,35 +106,24 @@ public:
 			throw "Extra values on line " + toString(_lineNum) + " in file '" + _name + "'!";
 
 		_write(data);
-	};
+    }
 
 	template<typename T>
 	TOutputFile& operator<<(const T data){
 		write(data);
 		return *this;
-	};
+    }
 
 	//new line
-	void endLine(){
-		if(_colsWritten != _numCols)
-			throw "Can not end line in file '" + _name + "': missing values on line " + toString(_lineNum) + "!";
-		*_filePointer << "\n";
-		_colsWritten = 0;
-		++_lineNum;
-	};
+    void endLine();
 
 	//overloading std::endl
 	typedef TOutputFile& (*TOutputFileManipulator)(TOutputFile&);
 
 	// take in a function with the custom signature
-	TOutputFile& operator<<(TOutputFile::TOutputFileManipulator manip){
-		return manip(*this);
-	};
+    TOutputFile& operator<<(TOutputFile::TOutputFileManipulator manip);
 
-	static TOutputFile& endl(TOutputFile& of){
-		of.endLine();
-		return of;
-	};
+    static TOutputFile& endl(TOutputFile& of);
 
 	// this is the type of std::cout
 	typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
@@ -185,10 +132,7 @@ public:
 	typedef CoutType& (*StandardEndLine)(CoutType&);
 
 	// define an operator<< to take in std::endl
-	TOutputFile& operator<<(StandardEndLine manip){
-	    this->endLine();
-	    return *this;
-	};
+    TOutputFile& operator<<(StandardEndLine manip);
 };
 
 
@@ -199,28 +143,13 @@ class TOutputFilePlain:public TOutputFile{
 private:
 	std::ofstream file;
 
-	void _openFile(){
-		file.open(_name);
-		if(!file)
-			throw "Failed to open file '" + _name + "' for writing!";
-	};
-
-	void _closeFile(){
-		if(_isOpen){
-			file.close();
-			_isOpen = false;
-		}
-	};
+    void _openFile();
+    void _closeFile();
 
 public:
-	TOutputFilePlain():TOutputFile(){
-		_filePointer = &file;
-	};
+    TOutputFilePlain();
+    TOutputFilePlain(const std::string Name);
 
-	TOutputFilePlain(const std::string Name):TOutputFile(){
-		_filePointer = &file;
-		open(Name);
-	};
 };
 
 //-------------------------------------------------------
@@ -230,28 +159,13 @@ class TOutputFileZipped:public TOutputFile{
 private:
 	gz::ogzstream zippedFile;
 
-	void _openFile(){
-		zippedFile.open(_name.c_str());
-		if(!zippedFile)
-			throw "Failed to open file '" + _name + "' for writing!";
-	};
-
-	void _closeFile(){
-		if(_isOpen){
-			zippedFile.close();
-			_isOpen = false;
-		}
-	};
+    void _openFile();
+    void _closeFile();
 
 public:
-	TOutputFileZipped():TOutputFile(){
-		_filePointer = &zippedFile;
-	};
+    TOutputFileZipped();
+    TOutputFileZipped(const std::string Name);
 
-	TOutputFileZipped(const std::string Name):TOutputFile(){
-		_filePointer = &zippedFile;
-		open(Name);
-	};
 };
 
 

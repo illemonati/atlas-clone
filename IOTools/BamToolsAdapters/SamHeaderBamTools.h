@@ -4,11 +4,11 @@
 
 #include "../IOAbstractClasses/SamHeader.h"
 
-#include "../bamtools/api/SamHeader.h"
-#include "../bamtools/api/SamSequence.h"
-#include "../bamtools/api/SamSequenceDictionary.h"
-#include "../bamtools/api/SamReadGroup.h"
-#include "../bamtools/api/SamReadGroupDictionary.h"
+#include "bamtools/api/SamHeader.h"
+#include "bamtools/api/SamSequence.h"
+#include "bamtools/api/SamSequenceDictionary.h"
+#include "bamtools/api/SamReadGroup.h"
+#include "bamtools/api/SamReadGroupDictionary.h"
 
 class SamSequenceBamTools : public SamSequence{
 private:
