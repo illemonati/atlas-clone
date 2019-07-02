@@ -10,15 +10,15 @@
 
 #include <stdio.h>
 #include <zlib.h>
-#include "../gzstream.h"
+#include "../IOTools/gzstream.h"
 #include <algorithm>
 #include <string.h>
 #include <TPopulationLikelihoodLocus.h>
 #include <vector>
-#include "../TParameters.h"
-#include "../stringFunctions.h"
+#include "TParameters.h"
+#include "../Utils/stringFunctions.h"
 #include "../TGenotypeMap.h"
-#include "../TRandomGenerator.h"
+#include "TRandomGenerator.h"
 
 //----------------------------------------------------
 // TGlfConverter

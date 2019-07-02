@@ -837,13 +837,7 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with Tcaller
 	//write position
-	vcf << _curChrName << '\t' << _position <<"\t.\t";
-
-	//write major and minor
-	vcf << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t';
-
-	//write quality of variant
-	vcf << varianTQuality;
+    vcf << _curChrName << '\t' << _position <<"\t.\t" << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t' << varianTQuality;
 
 	//write filter, info and format
 	if(usePhredLikelihoods)
@@ -892,16 +886,9 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 		else {
 			//find second highest quality
 			int secondLowestQual = converter.maxValue();
-			if(data[ind][refHomIndex] > minQual){
-				secondLowestQual = data[ind][refHomIndex];
-			}
-			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual){
-				secondLowestQual = data[ind][hetIndex];
-			}
-			if(data[ind][altHomIndex] > minQual && data[ind][altHomIndex] < secondLowestQual){
-				secondLowestQual = data[ind][altHomIndex];
-			}
-
+			if(data[ind][refHomIndex] > minQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][altHomIndex] == minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
 			vcf << round(secondLowestQual - minQual) << ":";
 		}
 

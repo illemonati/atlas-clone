@@ -9,7 +9,7 @@
 #define TRecalIBRATION_H_
 
 #include "../bamtools/api/BamReader.h"
-#include "../TSite.h"
+#include "TSite.h"
 #include <omp.h>
 #include "../bamtools/api/SamHeader.h"
 #include "../TQualityMap.h"

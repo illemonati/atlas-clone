@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <typeinfo>
 #include <sstream>
-#include "../gzstream.h"
+#include "gzstream.h"
 #include "TVcfDiagnostics.h"
 
 //---------------------------------------------------

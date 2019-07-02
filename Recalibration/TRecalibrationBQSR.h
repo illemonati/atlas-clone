@@ -1,5 +1,8 @@
-#include "TRecalibration.h"
+#ifndef TRECALIBRATIONBQSR_H_
+#define TRECALIBRATIONBQSR_H_
 
+#include "TRecalibration.h"
+#include <string>
 
 //---------------------------------------------------------------
 //TQualityIndex
@@ -346,3 +349,4 @@ public:
 };
 
 
+#endif /*TRECALIBRATIONBQSR_H_*/

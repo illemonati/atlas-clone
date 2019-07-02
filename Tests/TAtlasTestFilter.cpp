@@ -26,10 +26,6 @@ TAtlasTest_filter::TAtlasTest_filter(TParameters & params, TLog* logfile):TAtlas
 	keepDuplicates = params.parameterExists("filter_keepDuplicates");
 	filterSoftClips = params.parameterExists("filter_filterSoftClips");
 	keepOrphanedReads = params.parameterExists("filter_keepOrphans");
-	minMQ = 0;
-	if(params.parameterExists("filter_minMQ")){
-		minMQ = params.getParameterInt("filter_minMQ");
-	}
 
 //	readGroups.readGroupInUse(curReadGroupID)
 //					&& useStrand[bamAlignment.IsReverseStrand()]
@@ -73,11 +69,8 @@ bool TAtlasTest_filter::run(){
 		_testParams.addParameter("keepOrphans", "");
 	}
 
-	_testParams.addParameter("minMQ", toString(minMQ));
-
 	if(!runTGenomeFromInputfile("filter"))
 		return false;
-
 
 	//3) check if results are OK
 	//--------------------------
@@ -237,13 +230,10 @@ void TAtlasTest_filter::writeBAM(){
 	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
 	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
 	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
-	header.Sequences.Add(BamTools::SamSequence("Chr3", chrLength));
-
 
 	BamTools::RefVector references;
 	references.push_back(BamTools::RefData("Chr1", chrLength));
 	references.push_back(BamTools::RefData("Chr2", chrLength));
-	references.push_back(BamTools::RefData("Chr3", chrLength));
 
 	//now open file
 	BamTools::BamWriter bamWriter;
@@ -710,51 +700,6 @@ void TAtlasTest_filter::writeBAM(){
 	} else {
 		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_second, rev : mate on different chromosome");
 	}
-
-	//--------------------------------------------------------
-
-	//nothing, just on new chr
-	setToSingleEnd(bamAlignment);
-	bamAlignment.RefID = 2;
-	bamAlignment.Position = 20;
-	bamAlignment.InsertSize = 100;
-	bamAlignment.MatePosition = 20;
-	bamAlignment.Length = 20;
-	bamAlignment.Name = "normal_mapping_qual";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-
-	bamWriter.SaveAlignment(bamAlignment);
-	if(minMQ <= bamAlignment.MapQuality){
-		shouldKeep.push_back("normal_mapping_qual");
-	} else {
-		trueIgnoredReadMessages.push_back("Read normal_mapping_qual, fwd : did not pass parser filters");
-	}
-
-
-	//small mapping quality
-	setToSingleEnd(bamAlignment);
-	bamAlignment.RefID = 2;
-	bamAlignment.Position = 20;
-	bamAlignment.InsertSize = 100;
-	bamAlignment.MatePosition = 20;
-	bamAlignment.Length = 20;
-	bamAlignment.MapQuality = 10;
-	bamAlignment.Name = "low_mapping_qual";
-	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
-	bamAlignment.CigarData.clear();
-	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-
-	bamWriter.SaveAlignment(bamAlignment);
-	if(minMQ <= bamAlignment.MapQuality){
-		shouldKeep.push_back("low_mapping_qual");
-	} else {
-		trueIgnoredReadMessages.push_back("Read low_mapping_qual, rev : did not pass parser filters");
-	}
-
 
 	//--------------------------------------------------------
 

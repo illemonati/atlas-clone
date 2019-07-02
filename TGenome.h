@@ -11,7 +11,12 @@
 #include "TWindow.h"
 #include "TRecalibration.h"
 #include "gzstream.h"
-#include "bamtools/api/BamWriter.h"
+#include "IOTools/IOTool.h"
+#include "IOTools/IOAbstractClasses/Fasta.h"
+#include "IOTools/IOAbstractClasses/BamWriter.h"
+#include "IOTools/IOAbstractClasses/BamReader.h"
+#include "IOTools/IOAbstractClasses/RefVector.h"
+#include "IOTools/IOAbstractClasses/SamHeader.h"
 #include "TLog.h"
 #include "TBed.h"
 #include "TAlignmentParser.h"
@@ -30,7 +35,7 @@
 class TGenome{
 private:
  	TAlignmentParser alignmentParser;
-	BamTools::Fasta reference;
+    Fasta* reference = nullptr;
  	TRandomGenerator* randomGenerator;
 
 	TLog* logfile;
@@ -48,7 +53,7 @@ private:
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TGenome(){};
+    ~TGenome();
 
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
@@ -85,7 +90,7 @@ public:
 	void estimatePMD(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
-	void mergePairedEndReads(TParameters & params);
+	void mergePairedEndReadsNoOrder(TParameters & params);
 	void filterBAM(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);

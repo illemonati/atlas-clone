@@ -54,11 +54,11 @@ TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const 
 
 	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
-		TAlignment* alignment = *(emptyAlignments.rbegin());
-		emptyAlignments.pop_back();
+        TAlignment* alignment = *(emptyAlignments.rbegin());
+        emptyAlignments.pop_back();
 		return alignment;
 	} else {
-		TAlignment* alignment = new TAlignment(maxReadLength);
+        TAlignment* alignment = new TAlignment(maxReadLength);
 		return alignment;
 	}
 };
@@ -250,7 +250,7 @@ void TWindow::fillSites(const int & readUpToDepth){
 	}
 };
 
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
+void TWindow::addReferenceBaseToSites(Fasta & reference){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
@@ -340,9 +340,9 @@ void TWindow::calculateEmissionProbabilities(){
 	}
 };
 
-void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
+void TWindow::call(TCaller & caller, TRecalibration & recalObject, Fasta & reference){
 	//add reference to sites
-	addReferenceBaseToSites(reference);
+    addReferenceBaseToSites(reference);
 
 	//loop over sites and call
 	for(int i=0; i<length; ++i){
@@ -579,17 +579,19 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, 
 
 void TWindow::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
+	double* phredGLs = new double[10];
 	if(printAll){
 		for(int i=0; i<length; ++i){
-			writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
+            writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
+                writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
 			}
 		}
 	}
+	delete[] phredGLs;
 };
 
 void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){

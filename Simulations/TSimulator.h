@@ -9,7 +9,7 @@
 #define TSIMULATOR_H_
 
 #include "SFS.h"
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include <math.h>
 #include <numeric>
 #include <algorithm>

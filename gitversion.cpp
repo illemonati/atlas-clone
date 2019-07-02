@@ -1,4 +1,4 @@
 #include "gitversion.h"
 std::string getGitVersion(){
-return "0c10911689b39ef9915afbd7299a0c0644627a28";
+return "312bbe54037068eb89acb87b43072d080b4220e5";
 }

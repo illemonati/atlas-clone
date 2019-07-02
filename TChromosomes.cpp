@@ -14,20 +14,23 @@ TChromosomes::TChromosomes(){
 	curChrNumber = -1;
 };
 
-TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
+TChromosomes::TChromosomes(SamHeader* BamHeader){
 	bamHeader = BamHeader;
-	numChromosomes = bamHeader->Sequences.Size();
+    numChromosomes = bamHeader->GetSequences().Size();
 	int num = 0;
-	for(BamTools::SamSequenceIterator chrIt=bamHeader->Sequences.Begin(); chrIt!=bamHeader->Sequences.End(); ++chrIt, ++num){
-		names.push_back(chrIt->Name);
-		lengths.push_back(stringToLong(chrIt->Length));
-		isInUse.push_back(true);
-		ploidies.push_back(2);
-		nameMap.emplace(chrIt->Name, num);
-	}
+    SamSequenceIter* iterator = bamHeader->GetSequences().CreateIterator();
+    while(iterator->HasNext()){
+        SamSequence& sequence = iterator->Next();
+        names.push_back(sequence.GetName());
+        lengths.push_back(sequence.GetLength());
+        isInUse.push_back(true);
+        ploidies.push_back(2);
+        nameMap.emplace(sequence.GetName(), num);
+        ++num;
+    }
 
 	curChrNumber = -1;
-	curChrIterator = bamHeader->Sequences.End();
+    curChrIterator = bamHeader->GetSequences().CreateIterator();
 };
 
 void TChromosomes::limitChr(std::string & limitName){
@@ -92,26 +95,26 @@ void TChromosomes::setToHaploid(std::vector<std::string> chrNames, TLog* logfile
 
 void TChromosomes::begin(){
 	curChrNumber = 0;
-	curChrIterator = bamHeader->Sequences.Begin();
+    curChrIterator = bamHeader->GetSequences().CreateIterator();
 };
 
 void TChromosomes::next(){
 	++curChrNumber;
-	++curChrIterator;
+    curChrIterator->Next();
 };
 
 bool TChromosomes::end(){
-	return curChrIterator == bamHeader->Sequences.End();
+    return !curChrIterator->HasNext();
 };
 
 void TChromosomes::jumpToEnd(){
-	curChrIterator = bamHeader->Sequences.End();
+    curChrIterator = bamHeader->GetSequences().CreateIteratorEnd();
 	curChrNumber = -1;
 };
 
 void TChromosomes::jumpToBeginningOfLastChr(){
-	if(bamHeader->Sequences.Size() > 0){
-		curChrIterator = bamHeader->Sequences.End() - 1;
+    if(bamHeader->GetSequences().Size() > 0){
+        curChrIterator = bamHeader->GetSequences().CreateIteratorEnd(1);
 		curChrNumber = numChromosomes - 1;
 	} else
 		throw "Found no chromosomes in BAM header!";
@@ -120,8 +123,11 @@ void TChromosomes::jumpToBeginningOfLastChr(){
 long TChromosomes::referenceLength(){
 	int chrNum = 0;
 	long totLength = 0;
-	for(BamTools::SamSequenceIterator chrIterator = bamHeader->Sequences.Begin(); chrIterator!=bamHeader->Sequences.End(); ++chrIterator, ++chrNum)
-	    if(isInUse[chrNum]) totLength += stringToLong(chrIterator->Length);
+    SamSequenceIter* iterator = bamHeader->GetSequences().CreateIterator();
+    while(iterator->HasNext()){
+        SamSequence& sequence = iterator->Next();
+        if(isInUse[chrNum]) totLength += sequence.GetLength();
+    }
 	return totLength;
 };
 

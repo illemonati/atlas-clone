@@ -9,7 +9,7 @@
 #define TATLASTESTMERGEPAIRS_H_
 
 #include "TAtlasTest.h"
-#include "../TAlignmentParser.h"
+#include "TAlignmentParser.h"
 
 class TAtlasTest_mergePairs:public TAtlasTest{
 private:

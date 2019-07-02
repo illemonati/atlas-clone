@@ -10,14 +10,15 @@
 
 #include <string>
 #include <vector>
-#include "bamtools/api/BamReader.h"
+#include <map>
+#include "IOTools/IOAbstractClasses/SamHeader.h"
 #include "stringFunctions.h"
 #include "TLog.h"
 
 
 class TChromosomes{
 private:
-	BamTools::SamHeader* bamHeader;
+    SamHeader* bamHeader;
 	int numChromosomes;
 	std::vector<std::string> names;
 	std::vector<long> lengths;
@@ -26,11 +27,11 @@ private:
 	std::map<std::string, int> nameMap;
 
 	int curChrNumber;
-	BamTools::SamSequenceIterator curChrIterator;
+    SamSequenceIter* curChrIterator;
 
 public:
 	TChromosomes();
-	TChromosomes(BamTools::SamHeader* BamHeader);
+    TChromosomes(SamHeader* BamHeader);
 	void limitChr(std::string & limitName);
 	void useSpecifiedChr(std::vector<std::string> & chrNames, TLog* logfile);
 	void specifyPloidy(std::ifstream & ploidyFile, TLog* logfile);

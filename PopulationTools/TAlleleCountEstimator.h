@@ -8,9 +8,9 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
-#include "../mathFunctions.h"
+#include "../Utils/mathFunctions.h"
 #include "TPopulationLikelihoods.h"
-#include "../TFile.h"
+#include "TFile.h"
 
 //-------------------------------------------------
 // TSAFChooseStorage

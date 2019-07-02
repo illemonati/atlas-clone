@@ -9,7 +9,7 @@
 #define TESTS_TATLASTESTFILTER_H_
 
 #include "TAtlasTest.h"
-#include "../TAlignmentParser.h"
+#include "TAlignmentParser.h"
 
 class TAtlasTest_filter:public TAtlasTest{
 private:
@@ -28,8 +28,6 @@ private:
 	bool keepSupplementary;
 	bool keepDuplicates;
 	bool filterSoftClips;
-	int minMQ;
-
 	TQualityMap qualMap;
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;

@@ -614,7 +614,7 @@ bool TAtlasTest_theta::run(){
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "50000000");
-	_testParams.addParameter("simulation_ploidy", "2");
+	_testParams.addParameter("ploidy", "2");
 	_testParams.addParameter("depth", "2");
 	_testParams.addParameter("theta", toString(simTheta));
 
@@ -686,8 +686,8 @@ bool TAtlasTest_theta::checkThetaFile(){
 		sum += stringToDouble(line[10]);
 
 	}
-	mean = sum / (double) numLines;
-	if(fabs(mean - simTheta) > (simTheta / 100.0)){
+	mean = sum / numLines;
+	if(abs(mean - simTheta) > (simTheta / 100.0)){
 		logfile->newLine();
 		logfile->conclude("Theta was NOT estimated within range! mean estimated theta = " + toString(mean) + " with simulated theta = " + toString(simTheta));
 		return false;

@@ -12,11 +12,11 @@
 #include "../bamtools/api/BamWriter.h"
 #include "../bamtools/api/SamHeader.h"
 #include "../bamtools/api/BamAlignment.h"
-#include "../TLog.h"
-#include "../TRandomGenerator.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 #include "../TGenotypeMap.h"
-#include "../stringFunctions.h"
-#include "../gzstream.h"
+#include "stringFunctions.h"
+#include "gzstream.h"
 
 //---------------------------------------------------------
 //TSimulatorChromosome

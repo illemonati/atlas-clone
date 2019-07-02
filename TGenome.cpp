@@ -31,11 +31,12 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
+        reference = IOTool::getInstance()->createFasta();
 		std::string fastaFile = params.getParameterString("fasta");
 		std::string fastaIndex = fastaFile + ".fai";
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
-		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
-		alignmentParser.addReference(&reference);
+        if(!reference->Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+        alignmentParser.addReference(reference);
 	}
 
 	//trimming ends
@@ -49,19 +50,24 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
 		}
 	}
-};
+}
+
+TGenome::~TGenome(){
+    delete reference;
+}
 
 void TGenome::indexBamFile(std::string & filename){
 	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(alignmentParser.filename))
+    BamReader* reader = IOTool::getInstance()->createBamReader();
+    if(!reader->Open(alignmentParser.filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+    reader->CreateIndex();
 
 	//close BAM file
-	reader.Close();
+    reader->Close();
+    delete reader;
 	logfile->done();
 };
 
@@ -279,13 +285,13 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	//region 1
 	std::string regionsFile1 = params.getParameterString("regions1");
 	logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
-	TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader.Sequences, logfile);
+    TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader->GetSequences(), logfile);
 	logfile->done();
 
 	//region 2
 	std::string regionsFile2 = params.getParameterString("regions2");
 	logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
-	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, logfile);
+    TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader->GetSequences(), logfile);
 	logfile->done();
 	logfile->endIndent();
 
@@ -413,7 +419,7 @@ void TGenome::callGenotypes(TParameters & params){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
+        TSiteSubset subset(params.getParameterString("sites"), *reference, *alignmentParser.bamHeader, windowSize, logfile, false);
 		logfile->endIndent();
 
 		while(alignmentParser.readDataInNextWindow(window)){
@@ -422,7 +428,7 @@ void TGenome::callGenotypes(TParameters & params){
 				//read data for current window
 				if(window.passedFilters || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(&window, alignmentParser.getCurChrName(), logfile);
+					prior->update(&window, logfile);
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
@@ -437,11 +443,11 @@ void TGenome::callGenotypes(TParameters & params){
 			//read data for current window
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
-				prior->update(&window, alignmentParser.getCurChrName(), logfile);
+				prior->update(&window, logfile);
 
 				//now call
 				logfile->listFlush("Calling genotypes ...");
-				window.call(*caller, *alignmentParser.recalObject, reference);
+                window.call(*caller, *alignmentParser.recalObject, *reference);
 				logfile->done();
 			}
 		}
@@ -472,7 +478,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
+            writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
@@ -624,12 +630,13 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	logfile->startIndent("Reading data from windows:");
 	while(alignmentParser.readDataInNextWindow(window)){
 		//read data for current window
-		if(window.passedFilters)
+        if(window.passedFilters){
 			window.addToRecalibrationEM(recalObjectEM, qualityMap);
+        }
 		else logfile->list("No positions in this window.");
 	}
 	//clean up memory
-	window.clear();
+    window.clear();
 	logfile->endIndent();
 
 	//run EM iterations
@@ -865,11 +872,11 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_recalibrated.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//do we also account for PMD?
@@ -898,20 +905,21 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
 			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+            alignment.save(*bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 			reportProgressParsingBamFile(counter, start);
         }
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
 			alignmentParser.recalibrate(alignment);
-			alignment.save(bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+            alignment.save(*bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			reportProgressParsingBamFile(counter, start);
 		}
 	}
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 	logfile->done();
 
 	//report
@@ -921,25 +929,26 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 	//create index of new bam file
 	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
+    BamReader* reader = IOTool::getInstance()->createBamReader();
+    if(!reader->Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+    reader->CreateIndex();
 
 	//close BAM file
-	reader.Close();
+    reader->Close();
+    delete reader;
 	logfile->done();
 }
 
 void TGenome::binQualityScores(TParameters & params){
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_binnedQualityScores.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//initialize alignment reading
@@ -962,15 +971,15 @@ void TGenome::binQualityScores(TParameters & params){
 
 		//update and write (only if alignment qualities could be calculated)
 		alignment.binQualityScores(qualMap);
-		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+        alignment.save(*bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 		//report
 		reportProgressParsingBamFile(counter, start);
 	}
 
 	//close bam writer
-	bamWriter.Close();
-
+    bamWriter->Close();
+    delete bamWriter;
 	//report
 	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
@@ -1012,7 +1021,6 @@ void TGenome::assessSoftClipping(TParameters & params){
 		out << "Read\tposition\tnClippedLeft\tnNotClipped\tnClippedRight\n";
 
 	//other temp variables
-	std::vector<BamTools::CigarOp>::iterator it;
 	int S_left, S_right, middle;
 	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
 	TGenotypeMap genoMap;
@@ -1056,16 +1064,15 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_softClippedBasesRemoved.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
 	TAlignment alignment;
-	std::vector<BamTools::CigarOp>::iterator it;
 	int S_left, S_right, middle;
 	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
 	TGenotypeMap genoMap;
@@ -1083,7 +1090,7 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 		alignment.removeSoftClippedBases(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
 
 		//write
-		bamWriter.SaveAlignment(alignment.bamAlignment);
+        bamWriter->SaveAlignment(*alignment.bamAlignment);
 //		alignment.bamAlignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
@@ -1092,8 +1099,8 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	}
 
 	//close bam writer
-	bamWriter.Close();
-
+    bamWriter->Close();
+    delete bamWriter;
 	//now generate bam index
 	indexBamFile(filename);
 
@@ -1166,7 +1173,8 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	int len;
 	int readGroupId;
 	int truncatedReadGroupId;
-	BamTools::SamReadGroupIterator trunc, orig;
+    SamReadGroup* trunc=nullptr;
+    SamReadGroup* orig=nullptr;
 	std::string readGroup;
 
 	//parse read groups
@@ -1181,21 +1189,21 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 			//add a new readgroup for the truncated reads to the header
 			readGroup = vec[0] + "_truncated";
-			alignmentParser.bamHeader.ReadGroups.Add(readGroup);
-			alignmentParser.readGroups.fill(alignmentParser.bamHeader);
+            alignmentParser.bamHeader->GetReadGroups().Add(readGroup);
+            alignmentParser.readGroups.fill(*alignmentParser.bamHeader);
 			truncatedReadGroupId = alignmentParser.readGroups.find(readGroup);
 
 			//copy original tags to truncated read groups
-			trunc = alignmentParser.bamHeader.ReadGroups.Begin()+truncatedReadGroupId;
-			orig = alignmentParser.bamHeader.ReadGroups.Begin()+readGroupId;
-			trunc->Library = orig->Library;
-			trunc->PlatformUnit = orig->PlatformUnit;
-			trunc->PredictedInsertSize = orig->PredictedInsertSize;
-			trunc->ProductionDate = orig->ProductionDate;
-			trunc->Program = orig->Program;
-			trunc->Sample = orig->Sample;
-			trunc->SequencingCenter = orig->SequencingCenter;
-			trunc->SequencingTechnology = orig->SequencingTechnology;
+            *trunc = alignmentParser.bamHeader->GetReadGroups().CreateIterator().Get(truncatedReadGroupId);
+            *orig = alignmentParser.bamHeader->GetReadGroups().CreateIterator().Get(readGroupId);
+            trunc->SetLibrary(orig->GetLibrary());
+            trunc->SetPlatformUnit(orig->GetPlatformUnit());
+            trunc->SetPredictedInsertSize(orig->GetPredictedInsertSize());
+            trunc->SetProductionDate(orig->GetProductionDate());
+            trunc->SetProgram(orig->GetProgram());
+            trunc->SetSample(orig->GetSample());
+            trunc->SetSequencingCenter(orig->GetSequencingCenter());
+            trunc->SetSequencingTechnology(orig->GetSequencingTechnology());
 
 			//add to map
 			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
@@ -1205,11 +1213,11 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	logfile->conclude("read " + toString(singleEndRG.size()) + " read groups to be split.");
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	filename = outputName + "_splitRG.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
@@ -1244,7 +1252,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		}
 
 		//write
-		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+        alignment.save(*bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
 		++counter;
@@ -1252,7 +1260,8 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	}
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 
 	//now generate bam index
 	indexBamFile(filename);
@@ -1276,9 +1285,9 @@ void TGenome::mergeReadGroups(TParameters & params){
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "!";
 
-	//construct new read groups in new header object
-	BamTools::SamHeader newHeader(alignmentParser.bamHeader);
-	newHeader.ReadGroups.Clear();
+    //construct new read groups in new header object
+    SamHeader* newHeader = IOTool::getInstance()->createSamHeader(*alignmentParser.bamHeader);
+    newHeader->GetReadGroups().Clear();
 
 	//parse file and construct new read groups in new header object
 	int lineNum = 0;
@@ -1290,7 +1299,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 		if(!vec.empty()){
 			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
 			//add to new header
-			newHeader.ReadGroups.Add(vec[0]);
+            newHeader->GetReadGroups().Add(vec[0]);
 			//others are those to be merged: find read group in header and store int
 			readGroupsToMerge.push_back(std::vector<std::string>());
 			rIt = readGroupsToMerge.rbegin();
@@ -1301,7 +1310,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	}
 
 	TReadGroups newReadGroupObject;
-	newReadGroupObject.fill(newHeader);
+    newReadGroupObject.fill(*newHeader);
 	logfile->done();
 
 	//report and construct map
@@ -1334,8 +1343,8 @@ void TGenome::mergeReadGroups(TParameters & params){
 			}
 			name = alignmentParser.readGroups.getName(i);
 			logfile->list(name);
-			newHeader.ReadGroups.Add(name);
-			newReadGroupObject.fill(newHeader);
+            newHeader->GetReadGroups().Add(name);
+            newReadGroupObject.fill(*newHeader);
 			readGroupMap[i] = newReadGroupObject.find(name);
 		}
 	}
@@ -1343,11 +1352,11 @@ void TGenome::mergeReadGroups(TParameters & params){
 	else logfile->list("All existing read groups will be merged into a new read group.");
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	filename = outputName + "_mergedRG.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, newHeader, references))
+    if (!bamWriter->Open(filename, *newHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
@@ -1362,13 +1371,14 @@ void TGenome::mergeReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//get read group info
-		alignment.bamAlignment.GetTag("RG", readGroup);
+        std::string tag = "RG";
+        alignment.bamAlignment->GetZTag(tag, readGroup);
 		oldId = alignmentParser.readGroups.find(readGroup);
 
 		//save as new RG
 		alignment.updateOptionalSamField("RG", newReadGroupObject.getName(readGroupMap[oldId]));
 //		alignment.bamAlignment.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
-		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+        alignment.save(*bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
 		++counter;
@@ -1376,7 +1386,8 @@ void TGenome::mergeReadGroups(TParameters & params){
 	}
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 
 	//report
 	reportProgressParsingBamFile(counter, start);
@@ -1416,23 +1427,23 @@ void TGenome::filterBAM(TParameters & params){
 	alignmentParser.setWriteBlacklistToFileToTrue();
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_filtered.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	if(alignmentParser.hasPMD)
 		logfile->warning("PMD is given but not relevant for filtering!");
 
 	//create alignment storage
-	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
+    TAlignmentMerger merger(&*bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
 	if(params.parameterExists("keepOrphans")){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
 	}
 
 	//measure progress and runtime
@@ -1484,24 +1495,26 @@ void TGenome::filterBAM(TParameters & params){
 	//report end
 	reporter.printEnd();
 
-	//close bam writer
-	bamWriter.Close();
+	//close bam writer    
+    bamWriter->Close();
+    delete bamWriter;
 
 	//create index of new bam file
 	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
+    BamReader* reader = IOTool::getInstance()->createBamReader();
+    if(!reader->Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+    reader->CreateIndex();
 
 	//close BAM file
-	reader.Close();
+    reader->Close();
+    delete reader;
 	logfile->done();
 }
 
-void TGenome::mergePairedEndReads(TParameters & params){
+void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
@@ -1509,27 +1522,26 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	alignmentParser.setWriteBlacklistToFileToTrue();
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_mergedReads.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD)
-		logfile->warning("PMD is given but not relevant for read merging.");
+	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for read merging.");
 
 	//which read groups are paired-end?
 	std::vector<bool> mergeThisReadGroup(alignmentParser.numReadGroups(), false);
 	findPairedReadGroupsToMergeReads(params, mergeThisReadGroup);
 
 	//create alignment storage
-	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
+    TAlignmentMerger merger(bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
 	if(params.parameterExists("keepOrphans")){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
 	}
 
 	if(params.parameterExists("keepOriginalQuality")){
@@ -1589,19 +1601,21 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	reporter.printEnd();
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 
 	//create index of new bam file
 	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
+    BamReader* reader=IOTool::getInstance()->createBamReader();
+    if(!reader->Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+    reader->CreateIndex();
 
 	//close BAM file
-	reader.Close();
+    reader->Close();
+    delete reader;
 	logfile->done();
 }
 
@@ -1648,8 +1662,12 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->newLine();
 
 	//open bam files for writing
-	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    BamWriter** bamWriter = new BamWriter*[numProbs];
+    for (int i=0;i<numProbs;i++) {
+        bamWriter[i]= IOTool::getInstance()->createBamWriter();
+    }
+
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->startIndent("Writing results to the following files:");
 	if(times > 1){
 		for(i=0; i<numProbs; ++i){
@@ -1657,7 +1675,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 			std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
 			logfile->list(filename);
 			//open file
-			if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+            if(!bamWriter[i]->Open(filename, *alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
 		}
 	} else {
 		for(i=0; i<numProbs; ++i){
@@ -1665,7 +1683,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 			std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
 			logfile->list(filename);
 			//open file
-			if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+            if(!bamWriter[i]->Open(filename, *alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
 		}
 	}
 	logfile->endIndent();
@@ -1689,11 +1707,11 @@ void TGenome::downSampleBamFile(TParameters & params){
 				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
 				continue;
 			} if(keep.isInReadList(alignment.name())){
-				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+                alignment.save(*bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProb[i]){
-					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+                    alignment.save(*bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 					keep.addToReadList(alignment, "passed downsampling");
 				} else {
 					if(alignment.isProperPair){
@@ -1709,7 +1727,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	//close bam writer and clean up memory
 	for(i=0; i<numProbs; ++i){
-		bamWriter[i].Close();
+        bamWriter[i]->Close();
 	}
 	delete[] downSampleProb;
 	delete[] bamWriter;
@@ -1728,11 +1746,11 @@ void TGenome::downSampleReads(TParameters & params){
 	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked.");
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter=IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_downsampledReads" + toString(fraction) + ".bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
@@ -1745,14 +1763,15 @@ void TGenome::downSampleReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		alignment.downsampleAlignment(fraction, *randomGenerator, qualMap);
-		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+        alignment.save(*bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 		//report
 		reporter.printProgress();
 	}
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 
 	//report end
 	reporter.printEnd();
@@ -2206,11 +2225,11 @@ void TGenome::runPMDS(TParameters & params){
 	TGenotypeMap genoMap;
 
 	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
+    BamWriter* bamWriter = IOTool::getInstance()->createBamWriter();
 	std::string filename = outputName + "_PMDS.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+    RefVector& references = alignmentParser.bamReader->GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+    if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//now parse through bam file and write alignments
@@ -2224,10 +2243,10 @@ void TGenome::runPMDS(TParameters & params){
 		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS){
 			alignment.updateOptionalSamField("DS", PMDS);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+            alignment.save(*bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 		} else ++counterF;
 
-		alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+        alignment.save(*bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 
 		//report progress
 		if(counter % 1000000 == 0){
@@ -2237,7 +2256,8 @@ void TGenome::runPMDS(TParameters & params){
 	}
 
 	//close bam writer
-	bamWriter.Close();
+    bamWriter->Close();
+    delete bamWriter;
 
 	//report
 	gettimeofday(&end, NULL);

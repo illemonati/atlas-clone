@@ -10,6 +10,7 @@
 
 #include "TLog.h"
 #include "TParameters.h"
+#include "TAlignment.h"
 #include "TReadGroups.h"
 #include "TRecalibration.h"
 #include "TRecalibrationBQSR.h"
@@ -18,12 +19,12 @@
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
 #include "TGLF.h"
-#include "TAlignment.h"
 #include "TQualityMap.h"
 #include "TCaller.h"
 #include "TDistributionOfCounts.h"
 #include "TRecalibrationEMEstimator.h"
 #include "TGLF.h"
+#include "IOTools/IOAbstractClasses/Fasta.h"
 
 //---------------------------------------------------------------
 //TWindow
@@ -34,8 +35,8 @@ private:
 	bool referenceBaseAdded;
 
 	//alignment stacks
-	std::vector<TAlignment*> usedAlignments;
-	std::vector<TAlignment*> emptyAlignments;
+    std::vector<TAlignment*> usedAlignments;
+    std::vector<TAlignment*> emptyAlignments;
 
 	void fillPGenotype(double* pGenotype);
 	void setCoordinates(long Start, long End, int ChrNumber);
@@ -63,9 +64,9 @@ public:
 	~TWindow();
 
 	//getters
-	TBaseFrequencies getBaseFreq(){return baseFreq;};
+    TBaseFrequencies getBaseFreq(){return baseFreq;}
 
-	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
+    TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
 	void move(long Start, long End, int chrNumber);
@@ -74,7 +75,7 @@ public:
 	void printStacks();
 	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
 	void fillSites(const int & readUpToDepth);
-	void addReferenceBaseToSites(BamTools::Fasta & reference);
+    void addReferenceBaseToSites(Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG();
@@ -106,7 +107,7 @@ public:
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 	//callers
-	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
+    void call(TCaller & caller, TRecalibration & recalObject, Fasta & reference);
 	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset);
 
 	//other

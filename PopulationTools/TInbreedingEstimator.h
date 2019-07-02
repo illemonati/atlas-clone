@@ -8,8 +8,8 @@
 #ifndef TINBREEDINGESTIMATOR_H_
 #define TINBREEDINGESTIMATOR_H_
 
-#include "../TParameters.h"
-#include "../TLog.h"
+#include "TParameters.h"
+#include "TLog.h"
 #include "../TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
