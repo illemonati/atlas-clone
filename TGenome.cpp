@@ -428,7 +428,7 @@ void TGenome::callGenotypes(TParameters & params){
 				//read data for current window
 				if(window.passedFilters || caller->printSitesWithNoData()){
 					//update genotype prior
-					prior->update(&window, logfile);
+					prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 					//now call using known alleles
 					logfile->listFlush("Calling genotypes ...");
@@ -443,7 +443,7 @@ void TGenome::callGenotypes(TParameters & params){
 			//read data for current window
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
-				prior->update(&window, logfile);
+				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call
 				logfile->listFlush("Calling genotypes ...");
@@ -1443,7 +1443,7 @@ void TGenome::filterBAM(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
 	//measure progress and runtime
@@ -1514,7 +1514,7 @@ void TGenome::filterBAM(TParameters & params){
 	logfile->done();
 }
 
-void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
+void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setParsingToTrue();
@@ -1529,7 +1529,8 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
     if (!bamWriter->Open(filename, *alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD) logfile->warning("PMD is given but not relevant for read merging.");
+	if(alignmentParser.hasPMD)
+		logfile->warning("PMD is given but not relevant for read merging.");
 
 	//which read groups are paired-end?
 	std::vector<bool> mergeThisReadGroup(alignmentParser.numReadGroups(), false);
@@ -1541,7 +1542,7 @@ void TGenome::mergePairedEndReadsNoOrder(TParameters & params){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
 	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use keepOrphans to keep them).");
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
 	if(params.parameterExists("keepOriginalQuality")){

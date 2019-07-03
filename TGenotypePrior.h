@@ -20,17 +20,17 @@ protected:
 	double genotypePrior[10];
 
 public:
-    TGenotypePrior();
-    virtual ~TGenotypePrior();
+	TGenotypePrior();
+	virtual ~TGenotypePrior();
 
-    virtual void update(TWindow* window, TLog* logfile);;
-    double* getPointerToPrior();
+	virtual void update(TWindow* window, const std::string chrName, TLog* logfile);
+	double* getPointerToPrior();
 };
 
 
 class TGenotypePriorUniform:public TGenotypePrior{
 public:
-    TGenotypePriorUniform();
+	TGenotypePriorUniform();
 };
 
 class TGenotypePriorFixedTheta:public TGenotypePrior{
@@ -39,10 +39,11 @@ private:
 	bool equalBaseFreq;
 
 public:
-    TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog* logfile);
-    ~TGenotypePriorFixedTheta();
+	TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog* logfile);
 
-    void update(TWindow* window, TLog* logfile);
+	~TGenotypePriorFixedTheta();
+
+	void update(TWindow* window, const std::string chrName, TLog* logfile);
 };
 
 class TGenotypePriorTheta:public TGenotypePrior{
@@ -53,14 +54,14 @@ private:
 	double defaultTheta;
 	bool hasDefaultTheta;
 
-    void init(TParameters & parameters, std::string & thetaOutputName, TLog* Logfile);
+	void init(TParameters & parameters, std::string & thetaOutputName, TLog* Logfile);
 
 public:
-    TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, TLog* logfile);
-    TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, double DefaultTheta, TLog* logfile);
-    ~TGenotypePriorTheta();
+	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, TLog* logfile);
+	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, double DefaultTheta, TLog* logfile);
+	~TGenotypePriorTheta();
 
-    void update(TWindow* window, TLog* logfile, std::string & chrName);
+	void update(TWindow* window, const std::string chrName, TLog* logfile);
 };
 
 

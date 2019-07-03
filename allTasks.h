@@ -111,7 +111,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
-		genome.mergePairedEndReadsNoOrder(parameters);
+		genome.mergePairedEndReads(parameters);
 	};
 };
 
@@ -428,7 +428,9 @@ public:
 
 class TTask_majorMinor:public TTask_atlas{
 public:
-	TTask_majorMinor(){ _explanation = "Estimating major and minor alles"; };
+	TTask_majorMinor(){
+		_citations.push_back("Skotte et al. (2012) Genetic Epidemiology");
+		_explanation = "Estimating major and minor alles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		TMajorMinor majorMinor(parameters, logfile);
@@ -452,7 +454,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleCountEstimator alleleCountEst(parameters, logfile);
-        alleleCountEst.estimateAlleleCounts(parameters, randomGenerator);
+		alleleCountEst.estimateAlleleCounts(parameters, randomGenerator);
 	};
 };
 

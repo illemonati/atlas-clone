@@ -16,7 +16,7 @@
 #include <TPopulationLikelihoodLocus.h>
 #include <vector>
 #include "TParameters.h"
-#include "Utils/stringFunctions.h"
+#include "stringFunctions.h"
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
 
