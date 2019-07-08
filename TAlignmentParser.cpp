@@ -798,12 +798,12 @@ bool TAlignmentParser::readAlignment(){
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
-			if(_updateBlacklist)
-				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
-			else {
+			if(_updateBlacklist){
+				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");				filtersPassed = false;
+			} else {
 				logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
-				filtersPassed = false;
 			}
+			filtersPassed = false;
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = applyFilters();
