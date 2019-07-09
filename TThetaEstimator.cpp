@@ -367,12 +367,12 @@ void TThetaEstimator::runEMForTheta(){
 	// this may be the case if initialTheta is smaller than true theta and likelihood is very flat
 	int failedAttempts = 0;
 	double startingTheta = initialTheta;
+	theta.LL = -9e100;
 	while(!NRAllParams()){
 		++failedAttempts;
 		//solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		theta.setTheta(startingTheta);
-		theta.LL = -9e100;
 		if(startingTheta > 1.0)
 			throw "Failed to estimate Theta, issues calculating inverse of Jacobian!";
 	}
@@ -382,17 +382,17 @@ void TThetaEstimator::runEMForTheta(){
 		//update only theta: most difficult parameter and it is much faster to update only this one alone.
 		int i=0;
 		double oldTheta = 0.0;
+		double oldLL = theta.LL;
 		do{
 			oldTheta = theta.theta;
 			NROnlyTheta();
 			++i;
-		}while(i<numThetaOnlyUpdates && theta.theta != oldTheta);
+		} while(i<numThetaOnlyUpdates && theta.theta != oldTheta);
 
 		//update all params
 		NRAllParams();
 
 		//e) do we break EM? Check LL
-		double oldLL = theta.LL;
 		theta.LL = data->calcLogLikelihood(pGenotype);
 		if((theta.LL - oldLL) < maxEpsilon)
 			break;
@@ -400,7 +400,6 @@ void TThetaEstimator::runEMForTheta(){
 		//maybe theta = 0?
 		if(theta.theta < 0.1/(double) data->size()){
 			//(theta is somewhere between 1/numLoci and 0,
-			oldLL = theta.LL;
 			oldTheta = theta.theta;
 
 			//test with theta = 0.0

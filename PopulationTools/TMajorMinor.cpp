@@ -65,7 +65,7 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, 
 		}
 	}
 
-	variantQuality = LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L);
+	variantQuality = glfConverter.toPhred(LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L));
 };
 
 //---------------------------------------------------
