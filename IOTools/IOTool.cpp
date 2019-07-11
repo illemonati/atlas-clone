@@ -6,8 +6,13 @@ std::string IOTool::tool = "";
 IOTool* IOTool::getInstance(){
     if(!instance){
         if(tool=="seqlib"){
+#ifndef SEQLIB
+            std::cout << "Unable to SeqLib because the program has been compiled without it.\n";
+            exit(0);
+#else
             std::cout << "Using SeqLib as Writing/Reading Tool." << std::endl;
             instance=new SeqLibFactory();
+#endif
         }else{
             std::cout << "Using BamTools as Writing/Reading Tool." << std::endl;
             instance=new BamToolsFactory();
@@ -56,7 +61,7 @@ SamHeader* BamToolsFactory::createSamHeader(SamHeader& samheader){
     return new SamHeaderBamTools(child);
 }
 
-
+#ifdef SEQLIB
 //SeqLibFactory
 BamAlignment* SeqLibFactory::createBamAlignment(){
     return new BamAlignmentSeqLib;
@@ -90,3 +95,4 @@ SamHeader* SeqLibFactory::createSamHeader(SamHeader& samheader){
     SamHeaderSeqLib child = dynamic_cast<SamHeaderSeqLib&>(samheader);
     return new SamHeaderSeqLib(child);
 }
+#endif

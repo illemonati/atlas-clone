@@ -16,6 +16,9 @@
 #include "TRandomGenerator.h"
 #include "TGenotypeFrequencies.h"
 
+#include "CompressionTool.h"
+
+
 //-----------------------------------------------
 //TMajorMinorEstimator
 //-----------------------------------------------
@@ -77,13 +80,14 @@ class TMajorMinor{
 private:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
-	TGenotypeMap genoMap;
-	gz::ogzstream vcf;
+    TGenotypeMap genoMap;
+    CompressionTool* file;
+
 	bool vcfOpened;
 	TGlfConverter glfConverter;
 
-	void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods);
-	void closeVCF();
+    void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods);
+    void closeVCF();
 
 public:
 	TMajorMinor(TParameters & params, TLog* Logfile);

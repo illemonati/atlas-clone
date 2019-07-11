@@ -88,9 +88,6 @@ TAlignmentParser::TAlignmentParser(){
     minDepth = 0;
     maxDepth = 10000;
     applyQualityFilter = false;
-    applyMQFilter = false;
-    minMQ = 0;
-    maxMQ = 10000;
     minQual = 33;
     maxQual = 126;
     minPhredInt = 0;
@@ -242,8 +239,7 @@ void TAlignmentParser::setFilters(TParameters & params){
         applyDepthFilter = true;
         unsigned int tmpInt;
         tmpInt = params.getParameterIntWithDefault("minDepth", 0);
-        if(tmpInt < 0)
-        	throw "minDepth must be >= 0!";
+        if(tmpInt < 0) throw "minDepth must be >= 0!";
         minDepth = tmpInt;
         tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
         if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
@@ -256,20 +252,6 @@ void TAlignmentParser::setFilters(TParameters & params){
         maxDepth = 1000000;
     }
     logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases.");
-
-    //Mapping quality filters
-    if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-    	applyMQFilter = true;
-    	minMQ = params.getParameterIntWithDefault("minMQ", 0);
-    	if(minMQ < 0)
-    		throw "minMQ must be >= 0!";
-    	maxMQ = params.getParameterIntWithDefault("maxMQ", 1000000);
-    	if(maxMQ < minMQ)
-    		throw "maxMQ must be larger than minMQ";
-    	setMappingQualityFilters(minMQ, maxMQ);
-    	logfile->list("Will filter out reads with a mapping quality < " + toString(minMQ) + " or mapping quality > " + toString(maxMQ) + " (parameters 'minMQ', 'maxMQ')");
-    }
-
 
     //quality filters
     minPhredInt = params.getParameterIntWithDefault("minQual", 1);
@@ -285,20 +267,15 @@ void TAlignmentParser::setFilters(TParameters & params){
     int maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
     if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
     setQualityRangeForPrinting(minOutQual, maxOutQual);
-    logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual'");
+    logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "]");
 
     //filter for missing reference
     maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
-    if(maxMissing > 1.0)
-    	throw "maxMissing must be smaller or equal to 1.0!";
-    logfile->list("Will filter out windows with a missing data fraction > " + toString(maxMissing) + ". (parameter 'maxMissing')");
+    if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
 
     maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
-    if(maxRefN > 1.0)
-    	throw "maxRefN must be smaller or equal to 1.0!";
-    if(maxRefN < 1.0 && hasReference == false)
-    	throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
-    logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxMissing')");
+    if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
+    if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
 
     //duplicates
     if(params.parameterExists("keepDuplicates")){
@@ -376,12 +353,6 @@ void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
     minQual = qualMap.phredIntToQuality(minPhredInt);
     maxQual = qualMap.phredIntToQuality(maxPhredInt);
 };
-
-void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
-	applyMQFilter = true;
-	minMQ = MinMQ;
-	maxMQ = MaxMQ;
-}
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
     minQualForPrinting = minQual;
@@ -487,11 +458,11 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
     limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
     if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
     if(limitWindows <= skipWindows)
-        throw "limitWindows has to be larger than skipWindows!";
+        throw "limitWwindows has to be larger than skipWindows!";
 };
 
 void TAlignmentParser::setChrPloidy(TParameters & params){
-	logfile->list("Chromosomes with no further specifications are assumed to be diploid (parameters 'ploidy' or 'haploid' to change ploidy).");
+    logfile->list("Chromosomes with no further specifications are assumed to be diploid. Use ploidy or haploid to change ploidy.");
     if(params.parameterExists("ploidy")){
         std::string ploidyFileName = params.getParameterString("ploidy");
         logfile->list("Reading ploidy specification per chromosome from file '" + ploidyFileName + "'");
@@ -761,6 +732,9 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 bool TAlignmentParser::readAlignment(){
     bool filtersPassed = false;
     do {
+        static int count=0;
+        std::cout << "Number alignment="<<std::to_string(count)<<"\n";
+        count++;
         if(!bamReader->GetNextAlignment(bamAlignment)){
             return false;
         }
@@ -816,12 +790,10 @@ bool TAlignmentParser::readAlignment(){
         Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
         (deletions in aligned bases are represented as dashes) */
         if(bamAlignment->IsPaired() && applyFragmentLengthFilter && abs(bamAlignment->GetInsertSize()) < bamAlignment->GetAlignedBases().length()){
+            logfile->warning("The following alignment is longer than its insert size: " + bamAlignment->GetName());
+            filtersPassed = false;
             if(_updateBlacklist)
                 addToBlacklist(*bamAlignment, "longer than insert size (TLEN)");
-            else{
-            	logfile->warning("The following alignment is longer than its insert size: " + bamAlignment->GetName());
-            	filtersPassed = false;
-            }
         } else {
             //apply filters: read group in use and basic QC
             filtersPassed = applyFilters();
@@ -846,8 +818,7 @@ bool TAlignmentParser::applyFilters(){
                     && (_keepDuplicates || !bamAlignment->IsDuplicate())
                     && (!_filterSoftClips || !bamAlignment->HasSoftClips())
                     && useStrand[bamAlignment->IsReverseStrand()]
-                    && useMate[bamAlignment->IsSecondMate()]
-					&& (!applyMQFilter || (bamAlignment->GetMapQuality() >= minMQ && bamAlignment->GetMapQuality() <= maxMQ));
+                    && useMate[bamAlignment->IsSecondMate()];
 
     return filtersPassed;
 };

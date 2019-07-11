@@ -12,12 +12,15 @@ bool BamWriterSeqLib::Open(std::string &filepath, SamHeader &header, RefVector &
     samHeader.SetSamHeader(bamHeader);
 
     bamWriter.SetHeader(bamHeader);
+    bamWriter.WriteHeader();
     return success;
 }
 
 bool BamWriterSeqLib::Close()
 {
-    return bamWriter.Close();
+    bool res= bamWriter.Close();
+    bamWriter.BuildIndex();
+    return res;
 }
 
 bool BamWriterSeqLib::SaveAlignment(BamAlignment &alignment)

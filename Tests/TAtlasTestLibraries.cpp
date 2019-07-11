@@ -101,10 +101,6 @@ bool TAtlasTestLibrarieCompareFunctions::compareBamReading()
     //Close Test
     checkResultMatchInt("BamReader.Close",lib1BamReader->Close(),lib2BamReader->Close());
 
-    delete lib1Header;
-    delete lib2Header;
-    delete lib1BamReader;
-    delete lib2BamReader;
     return true;
 }
 

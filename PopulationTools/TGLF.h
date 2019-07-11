@@ -10,15 +10,17 @@
 
 #include <stdio.h>
 #include <zlib.h>
-#include "IOTools/gzstream.h"
+#include "gzstream.h"
 #include <algorithm>
 #include <string.h>
 #include <TPopulationLikelihoodLocus.h>
 #include <vector>
 #include "TParameters.h"
-#include "stringFunctions.h"
+#include "Utils/stringFunctions.h"
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
+#include "CompressionTool.h"
+
 
 //----------------------------------------------------
 // TGlfConverter
@@ -326,8 +328,8 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+    void writeDiploidIndividualToVCF(const int ind, std::stringstream  & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+    void writeHaploidIndividualToVCF(const int ind, std::stringstream  & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	uint16_t** data;
@@ -368,9 +370,9 @@ public:
 	bool readNext();
 	void print();
 	void fill(TPopulationLikehoodLocus & data, const int alleleicCombination);
-	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
-	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
-	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+    void writeSampleNamesOfActiveFiles(std::string & out, std::string sep);
+    void writeVCFHeader(CompressionTool * vcf, bool usePhredLikelihoods);
+    void writeSiteToVCF(CompressionTool * vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 };
 
 #endif /* TGLF_H_ */

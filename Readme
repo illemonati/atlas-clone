@@ -1,0 +1,35 @@
+Install with SeqLib
+----------------------
+To install Atlas with SeqLib:
+- cd SeqLib
+- ./configure --> it will check if the requires librairies are installed on the system
+- make
+- make install
+- cd ..
+- make
+
+If configure fail:
+- check that the librairies zlib, pthread, lzma and bz2
+-- To install lzma, run: apt-get install liblzma-dev
+-- To install bz2, run: apt-get install libbz2-dev
+-- zlib and pthread should be by default installed
+
+
+Compilation options
+----------------------
+- make DEBUG=true will allow you to debug ATLAS. Add -g and -lprofiler (google-prof) flags.
+- make SEQLIB=false will compile without SeqLib library.
+- make LZ4=false will compile without LZ4 library.
+
+If you just call "make", it will compile with : DEBUG=false, SEQLIB=true, LZ4=true
+
+Run options
+----------------------
+To choose in/out library for SAM/BAM/FASTA files, add the parameter:
+- tool=bamtools (default)
+- tool=seqlib
+
+To choose compression library, add the parameter:
+- compression=zlib (default)
+- compression=lz4
+- compression=none 

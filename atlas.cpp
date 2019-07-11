@@ -6,16 +6,23 @@
  */
 
 #include "TMain.h"
+#ifdef DEBUG
 #include <gperftools/profiler.h>
-
+#endif
 //---------------------------------------------------------------------------
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-  //  ProfilerStart("majorminor_2_big_sample.prof");
+#ifdef DEBUG
+    ProfilerStart("majorminor_2_big_sample.prof");
+#endif
+
 	TMain main("Atlas", "0.9", "https://bitbucket.org/wegmannlab/atlas");
     bool r = main.run(argc, argv);
- //   ProfilerStop();
+
+#ifdef DEBUG
+    ProfilerStop();
+#endif
+
     return r;
 };
-

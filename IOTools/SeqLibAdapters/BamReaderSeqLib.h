@@ -1,9 +1,6 @@
 #ifndef BAMREADERSEQLIB_H
 #define BAMREADERSEQLIB_H
 
-#include <string>
-#include <chrono>
-
 #include "IOAbstractClasses/SamHeader.h"
 #include "SamHeaderSeqLib.h"
 #include "IOAbstractClasses/BamAlignment.h"
@@ -22,9 +19,6 @@ private:
     RefVectorSeqLib refVectors;
     BamAlignmentSeqLib nextAlignment;
     SamHeaderSeqLib samHeader;
-
-    int nb_call=0;
-    long duration;
 public:
     BamReaderSeqLib();
 

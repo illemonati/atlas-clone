@@ -806,64 +806,68 @@ void TGlfMultiReader::fill(TPopulationLikehoodLocus & storage, const int allelei
 	}
 };
 
-void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep){
+void TGlfMultiReader::writeSampleNamesOfActiveFiles(std::string & header, std::string sep){
 	//sample names are file names without glf ending
 	if(numActiveFiles > 0){
 		for(TGlfReader* it : pointerToActiveGLFs){
 			std::string name = it->name();
-			out << sep << readBeforeLast(name, ".glf");
+            header += sep + readBeforeLast(name, ".glf");
 		}
 	}
 };
 
-void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods){
+void TGlfMultiReader::writeVCFHeader(CompressionTool * vcf, bool usePhredLikelihoods){
 	//make sure the header matches the format used in writeSiteToVCF
-	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
-	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+    std::string header = "##fileformat=VCFv4.2\n##source=ATLAS_GLF_Caller\n";
+    header += "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+    header += "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
+    header += "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 	if(usePhredLikelihoods)
-		vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+        header += "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
 	else
-		vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
+        header += "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
 
 	//also write header with sample names
-	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	writeSampleNamesOfActiveFiles(vcf, "\t");
-	vcf << '\n';
-
+    header += "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+    writeSampleNamesOfActiveFiles(header, "\t");
+    header += '\n';
+    *vcf << header;
 };
 
-void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeSiteToVCF(CompressionTool * vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with Tcaller
-	//write position
-	vcf << _curChrName << '\t' << _position <<"\t.\t";
+    //write position
 
-	//write major and minor
-	vcf << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t';
+    //vcf << _curChrName << '\t' << _position <<"\t.\t" << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t' << varianTQuality;
 
-	//write quality of variant
-	vcf << varianTQuality;
+    std::stringstream buffer;
+
+    buffer << _curChrName << '\t' << _position <<"\t.\t" << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t' << varianTQuality;
 
 	//write filter, info and format
 	if(usePhredLikelihoods)
-		vcf << "\t.\t.\tGT:GQ:DP:PL";
+        //vcf << "\t.\t.\tGT:GQ:DP:PL";
+        buffer << "\t.\t.\tGT:GQ:DP:PL";
 	else
-		vcf << "\t.\t.\tGT:GQ:DP:GL";
+        //vcf << "\t.\t.\tGT:GQ:DP:GL";
+        buffer << "\t.\t.\tGT:GQ:DP:GL";
 
 	//now write active samples
 	for(int i=0; i<numActiveFiles; ++i){
 		if(isHaploid[i])
-			writeHaploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
+            writeHaploidIndividualToVCF(i, buffer, major, minor, randomGenerator, usePhredLikelihoods);
 		else
-			writeDiploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
+            writeDiploidIndividualToVCF(i, buffer, major, minor, randomGenerator, usePhredLikelihoods);
 	}
 
 	//end of line
-	vcf << '\n';
+    //vcf << '\n';
+    buffer << '\n';
+    *vcf << buffer;
 };
 
-void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, std::stringstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
 		//get genotype indeces
 		int refHomIndex = genoMap.genotypeMap[major][major];
@@ -883,54 +887,47 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-		if(mleGeno == 0) vcf << "\t0/0:";
-		else if(mleGeno == 1) vcf << "\t0/1:";
-		else vcf << "\t1/1:";
+        if(mleGeno == 0) vcf << "\t0/0:";
+        else if(mleGeno == 1) vcf << "\t0/1:";
+        else vcf << "\t1/1:";
 
 		//write genotype quality
-		if(mleGenotypes.size() > 1) vcf << "0:";
+        if(mleGenotypes.size() > 1) vcf << "0:";
 		else {
 			//find second highest quality
 			int secondLowestQual = converter.maxValue();
-			if(data[ind][refHomIndex] > minQual){
-				secondLowestQual = data[ind][refHomIndex];
-			}
-			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual){
-				secondLowestQual = data[ind][hetIndex];
-			}
-			if(data[ind][altHomIndex] > minQual && data[ind][altHomIndex] < secondLowestQual){
-				secondLowestQual = data[ind][altHomIndex];
-			}
-
-			vcf << round(secondLowestQual - minQual) << ":";
+			if(data[ind][refHomIndex] > minQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][hetIndex] > minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+			if(data[ind][altHomIndex] == minQual && data[ind][hetIndex] < secondLowestQual) secondLowestQual = data[ind][refHomIndex];
+            vcf << round(secondLowestQual - minQual) << ":";
 		}
 
 		//write depth
-		vcf << GLFs[ind].depth << ':';
+        vcf << GLFs[ind].depth << ':';
 
 		//write likelihoods
-		if(usePhredLikelihoods){
-			vcf << converter.toPhred(data[ind][refHomIndex] - minQual)
-				<< "," << converter.toPhred(data[ind][hetIndex] - minQual)
-				<< "," << converter.toPhred(data[ind][altHomIndex] - minQual);
+        if(usePhredLikelihoods){
+            vcf << converter.toPhred(data[ind][refHomIndex] - minQual)
+                << "," << converter.toPhred(data[ind][hetIndex] - minQual)
+                << "," << converter.toPhred(data[ind][altHomIndex] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
-			if(data[ind][refHomIndex] == minQual) vcf << "0";
-			else vcf << converter.toLog10(data[ind][refHomIndex] - minQual);
+            if(data[ind][refHomIndex] == minQual) vcf << "0";
+            else vcf << converter.toLog10(data[ind][refHomIndex] - minQual);
 
-			if(data[ind][hetIndex] == minQual) vcf << ",0";
-			else vcf << "," << converter.toLog10(data[ind][hetIndex] - minQual);
+            if(data[ind][hetIndex] == minQual) vcf << ",0";
+            else vcf << "," << converter.toLog10(data[ind][hetIndex] - minQual);
 
-			if(data[ind][altHomIndex] == minQual) vcf << ",0";
-			else vcf << "," << converter.toLog10(data[ind][altHomIndex] - minQual);
+            if(data[ind][altHomIndex] == minQual) vcf << ",0";
+            else vcf << "," << converter.toLog10(data[ind][altHomIndex] - minQual);
 		}
 
 	} else {
-		vcf << "\t./.:.:.:.";
+        vcf << "\t./.:.:.:.";
 	}
 };
 
-void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, Base major, Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, std::stringstream  & vcf, Base major, Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
 		//find min qual
 		int minQual = data[ind][major];
@@ -943,29 +940,29 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-		if(mleGeno == major) vcf << "\t0:";
-		else vcf << "\t1:";
+        if(mleGeno == major) vcf << "\t0:";
+        else vcf << "\t1:";
 
 		//write genotype quality
-		if(mleGeno == major) vcf << round(data[ind][minor] - minQual) << ":";
-		else  vcf << round(data[ind][major] - minQual) << ":";
+        if(mleGeno == major) vcf << round(data[ind][minor] - minQual) << ":";
+        else  vcf << round(data[ind][major] - minQual) << ":";
 
 		//write depth
-		vcf << GLFs[ind].depth << ':';
+        vcf << GLFs[ind].depth << ':';
 
 		//write likelihoods
 		if(usePhredLikelihoods){
-			vcf << converter.toPhred(data[ind][major] - minQual) << "," << converter.toPhred(data[ind][minor] - minQual);
+            vcf << converter.toPhred(data[ind][major] - minQual) << "," << converter.toPhred(data[ind][minor] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
-			if(data[ind][major] == minQual) vcf << "0";
-			else vcf << converter.toLog10(data[ind][major] - minQual);
+            if(data[ind][major] == minQual) vcf << "0";
+            else vcf << converter.toLog10(data[ind][major] - minQual);
 
-			if(data[ind][minor] == minQual) vcf << ",0";
-			else vcf << "," << converter.toLog10(data[ind][minor] - minQual);
+            if(data[ind][minor] == minQual) vcf << ",0";
+            else vcf << "," << converter.toLog10(data[ind][minor] - minQual);
 		}
 	} else {
-		vcf << "\t.:.:.:.";
+        vcf << "\t.:.:.:.";
 	}
 };
 

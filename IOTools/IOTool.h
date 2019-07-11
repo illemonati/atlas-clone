@@ -20,6 +20,7 @@
 #include "BamToolsAdapters/RefVectorBamTools.h"
 #include "BamToolsAdapters/SamHeaderBamTools.h"
 
+#ifdef SEQLIB
 
 #include "SeqLibAdapters/BamAlignmentSeqLib.h"
 #include "SeqLibAdapters/BamReaderSeqLib.h"
@@ -28,6 +29,8 @@
 #include "SeqLibAdapters/FastaSeqLib.h"
 #include "SeqLibAdapters/RefVectorSeqLib.h"
 #include "SeqLibAdapters/SamHeaderSeqLib.h"
+
+#endif
 
 /**
  * Abstract Factory - Singelton
@@ -112,6 +115,7 @@ public:
     ~BamToolsFactory(){}
 };
 
+#ifdef SEQLIB
 class SeqLibFactory : public IOTool{
 public:
     BamAlignment* createBamAlignment();
@@ -125,5 +129,6 @@ public:
 
     ~SeqLibFactory(){}
 };
+#endif
 
 #endif // IOTOOL_H

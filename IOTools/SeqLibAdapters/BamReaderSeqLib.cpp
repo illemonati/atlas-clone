@@ -4,7 +4,9 @@ BamReaderSeqLib::BamReaderSeqLib(){}
 
 bool BamReaderSeqLib::Open(std::string &filepath)
 {
-    return bamReader.Open(filepath);;
+    bool res = bamReader.Open(filepath);
+    std::cout << "RESULT=" << bamReader.Header().AsString() << "\n";
+    return res;
 }
 
 bool BamReaderSeqLib::Close()
@@ -31,14 +33,13 @@ bool BamReaderSeqLib::Jump(int refid, int pos)
 
 bool BamReaderSeqLib::GetNextAlignment(BamAlignment*& alignment)
 {
-    nb_call++;
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    static int count=0;
+    std::cout << "Number alignment="<<std::to_string(count)<<"\n";
+    count++;
     SeqLib::BamRecord record;
     bool success = bamReader.GetNextRecord(record);
     nextAlignment = BamAlignmentSeqLib(record);
     alignment = &nextAlignment;
-    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
-    duration += std::chrono::duration_cast<std::chrono::microseconds>( t2 - t1 ).count();
     return success;
 }
 

@@ -15,11 +15,9 @@ TAlignment::TAlignment(){
 	chrNumber = -1;
 	readGroupId = -1;
 	position = 0;
-	matePosition = 0;
 	lastAlignedPos = 0;
 	lastPositionPlusOne = 0;
 	lastAlignedPositionWithRespectToRef = 0;
-	insertSize = 0;
 	isReverseStrand = false;
 	isPaired = false;
 	isProperPair = false;
@@ -179,12 +177,12 @@ void TAlignment::setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
-		int fragmentLen = abs(insertSize + numInsertions - numDeletions);
+		int fragmentLen = insertSize + numInsertions - numDeletions;
 		if(isReverseStrand){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			int k = abs(fragmentLen) - (length - softClippedLength[1]);
+			int k = fragmentLen - (length - softClippedLength[1]);
 			int l = length - 1 - softClippedLength[1];
 			for(int pos=0; pos<length; ++pos){
 				bases[pos].distFrom5Prime = l - pos; //dist from 5'

@@ -4,11 +4,11 @@
 TGenotypePrior::TGenotypePrior(){
     for(int g=0; g<10; ++g)
         genotypePrior[g] = 1.0;
-};
+}
 
-TGenotypePrior::~TGenotypePrior(){};
+TGenotypePrior::~TGenotypePrior(){}
 
-void TGenotypePrior::update(TWindow* window, const std::string chrName, TLog* logfile){};
+void TGenotypePrior::update(TWindow *window, TLog *logfile){}
 
 double *TGenotypePrior::getPointerToPrior(){ return genotypePrior; }
 
@@ -17,7 +17,8 @@ double *TGenotypePrior::getPointerToPrior(){ return genotypePrior; }
 TGenotypePriorUniform::TGenotypePriorUniform(){
     for(int g=0; g<10; ++g)
         genotypePrior[g] = 1.0 / 10.0;
-};
+}
+
 
 //TGenotypePriorFixedTheta
 TGenotypePriorFixedTheta::TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog *logfile){
@@ -30,50 +31,49 @@ TGenotypePriorFixedTheta::TGenotypePriorFixedTheta(double theta, bool EqualBaseF
         thetaEstimator->setBaseFreq(freq);
     }
     thetaEstimator->fillPGenotype(genotypePrior);
-};
+}
 
 TGenotypePriorFixedTheta::~TGenotypePriorFixedTheta(){
     delete thetaEstimator;
-};
+}
 
-void TGenotypePriorFixedTheta::update(TWindow* window, const std::string chrName, TLog* logfile){
+void TGenotypePriorFixedTheta::update(TWindow *window, TLog *logfile){
     if(!equalBaseFreq){
-		logfile->listFlush("Estimating base frequencies for prior ...");
-		window->estimateBaseFrequencies();
-		thetaEstimator->setBaseFreq(window->baseFreq);
-		logfile->done();
-		logfile->conclude("Estimated base frequencies: " + toString(window->baseFreq.freq[0])+ ", " + toString(window->baseFreq.freq[1]) + ", " + toString(window->baseFreq.freq[2]) + ", " + toString(window->baseFreq.freq[3]));
-		thetaEstimator->fillPGenotype(genotypePrior);
+        logfile->listFlush("Estimating base frequencies for prior ...");
+        window->estimateBaseFrequencies();
+        thetaEstimator->setBaseFreq(window->baseFreq);
+        logfile->done();
+        thetaEstimator->fillPGenotype(genotypePrior);
     }
-};
+}
+
 
 //TGenotypePriorTheta
 void TGenotypePriorTheta::init(TParameters &parameters, std::string &thetaOutputName, TLog *Logfile){
     logfile = Logfile;
     thetaEstimator = new TThetaEstimator(parameters, logfile);
     out.open(thetaOutputName, thetaEstimator, logfile);
-};
+}
 
 TGenotypePriorTheta::TGenotypePriorTheta(TParameters &parameters, std::string thetaOutputName, TLog *logfile){
     hasDefaultTheta = false;
     defaultTheta = -1.0;
 
     init(parameters, thetaOutputName, logfile);
-};
+}
 
 TGenotypePriorTheta::TGenotypePriorTheta(TParameters &parameters, std::string thetaOutputName, double DefaultTheta, TLog *logfile){
     hasDefaultTheta = true;
     defaultTheta = DefaultTheta;
     if(defaultTheta < 0.0) throw "Theta must be >= 0.0!";
-    init(parameters, thetaOutputName, logfile);
-};
+    init(parameters, thetaOutputName, logfile);	}
 
 TGenotypePriorTheta::~TGenotypePriorTheta(){
     out.close();
     delete thetaEstimator;
-};
+}
 
-void TGenotypePriorTheta::update(TWindow* window, const std::string chrName, TLog* logfile){
+void TGenotypePriorTheta::update(TWindow *window, TLog *logfile, std::string &chrName){
     logfile->startIndent("Estimating theta and base frequencies:");
     //clear theta estimator
     (*thetaEstimator).clear();
@@ -96,4 +96,4 @@ void TGenotypePriorTheta::update(TWindow* window, const std::string chrName, TLo
     //write results to file
     out.writeWindow(window->chrName, window->start, window->end, thetaEstimator);
     logfile->endIndent();
-};
+}
