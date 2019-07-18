@@ -19,25 +19,18 @@ TGenoToPhiMap::TGenoToPhiMap(){
 		genoToPhiMap[i] = new int[10];
 
 	//case aa/aa
-	genoToPhiMap[AA][AA] = 0;
-	genoToPhiMap[CC][CC] = 0;
-	genoToPhiMap[GG][GG] = 0;
-	genoToPhiMap[TT][TT] = 0;
-
-	Genotype G1, G2;
-	int b1, b2;
-	for(b1=0; b1<4; ++b1){
-		G1 = genoMap.getGenotype(b1, b1);
-		genoToPhiMap[G1][G1] = 0;
+	for(int b=0; b<4; ++b){
+		Genotype G = genoMap.getGenotype(b, b);
+		genoToPhiMap[G][G] = 0;
 	}
 
 	//case aa/ab and ab/aa AND aa/bb
-	for(b1=0; b1<4; ++b1){
-		for(b2=0; b2<4; ++b2){
+	for(int b1=0; b1<4; ++b1){
+		for(int b2=0; b2<4; ++b2){
 			if(b2 != b1){
 				//aa/ab and ab/aa
-				G1 = genoMap.getGenotype(b1, b1);
-				G2 = genoMap.getGenotype(b1, b2);
+				Genotype G1 = genoMap.getGenotype(b1, b1);
+				Genotype G2 = genoMap.getGenotype(b1, b2);
 				genoToPhiMap[G1][G2] = 1;
 				genoToPhiMap[G2][G1] = 2;
 
@@ -50,22 +43,21 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	}
 
 	//case ab/ab
-	for(b1=0; b1<3; ++b1){
-		for(b2=b1+1; b2<4; ++b2){
-			G1 = genoMap.getGenotype(b1, b2);
-			genoToPhiMap[G1][G1] = 4;
+	for(int b1=0; b1<3; ++b1){
+		for(int b2=b1+1; b2<4; ++b2){
+			Genotype G = genoMap.getGenotype(b1, b2);
+			genoToPhiMap[G][G] = 4;
 		}
 	}
 
 	//case ab/ac
-	int b3;
-	for(b1=0; b1<4; ++b1){
-		for(b2=0; b2<4; ++b2){
+	for(int b1=0; b1<4; ++b1){
+		for(int b2=0; b2<4; ++b2){
 			if(b2 != b1){
-				for(b3=0; b3<4; ++b3){
+				for(int b3=0; b3<4; ++b3){
 					if(b3 != b1 && b3 != b2){
-						G1 = genoMap.getGenotype(b1, b2);
-						G2 = genoMap.getGenotype(b1, b3);
+						Genotype G1 = genoMap.getGenotype(b1, b2);
+						Genotype G2 = genoMap.getGenotype(b1, b3);
 						genoToPhiMap[G1][G2] = 5;
 					}
 				}
@@ -74,12 +66,12 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	}
 
 	//case aa/bc and ab/cc
-	for(b1=0; b1<4; ++b1){
-		for(b2=0; b2<3; ++b2){
-			for(b3=b2+1; b3<4; ++b3){
+	for(int b1=0; b1<4; ++b1){
+		for(int b2=0; b2<3; ++b2){
+			for(int b3=b2+1; b3<4; ++b3){
 				if(b2 != b1 && b3 != b1){
-					G1 = genoMap.getGenotype(b1, b1);
-					G2 = genoMap.getGenotype(b2, b3);
+					Genotype G1 = genoMap.getGenotype(b1, b1);
+					Genotype G2 = genoMap.getGenotype(b2, b3);
 					genoToPhiMap[G1][G2] = 6;
 					genoToPhiMap[G2][G1] = 7;
 				}
@@ -278,11 +270,10 @@ void TEMforDistanceEstimation::guessPhi(std::vector<uint16_t*> & genoQual1, std:
 		phi[i] = 0.0;
 
 	//now loop over sites and add posterior probs
-	double sum1, sum2;
 	std::vector<uint16_t*>::iterator it1 = genoQual1.begin();
 	std::vector<uint16_t*>::iterator it2 = genoQual2.begin();
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
-		sum1 = 0.0; sum2 = 0.0;
+		double sum1 = 0.0; double sum2 = 0.0;
 		for(int i=0; i<10; ++i){
 			sum1 += glfConverter[(*it1)[i]];
 			sum2 += glfConverter[(*it2)[i]];
@@ -296,11 +287,11 @@ void TEMforDistanceEstimation::guessPhi(std::vector<uint16_t*> & genoQual1, std:
 	}
 
 	//normalize
-	sum1 = 0.0;
+	double sum = 0.0;
 	for(int i=0; i<9; ++i)
-		sum1 += phi[i];
+		sum += phi[i];
 	for(int i=0; i<9; ++i)
-		phi[i] /= sum1;
+		phi[i] /= sum;
 }
 
 void TEMforDistanceEstimation::fill_K(TBaseFrequencies  & thesePi){
@@ -311,7 +302,7 @@ void TEMforDistanceEstimation::fill_K(TBaseFrequencies  & thesePi){
 	//cases of two bases
 	K[4] = 0.0;
 	for(int i=0; i<3; ++i){
-		for(int j=i; j<4; ++j)
+		for(int j=i+1; j<4; ++j)
 			K[4] += thesePi[i] * thesePi[j];
 	}
 	K[1] = 2.0 * K[4]; //account for AC vs CA
@@ -329,17 +320,18 @@ void TEMforDistanceEstimation::fill_K(TBaseFrequencies  & thesePi){
 	K[5] = 2.0 * K[6]; //twice as many cases than other cases with three bases!
 
 	//case of four bases: each of the 6 cases is equally likely
+	//Note: product of pi's cancles out when calculating P_g_given_phi_pi
 	K[8] = 6.0;
-}
+};
 
 void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFrequencies & thesePi){
-	//case aa/aa
+	//0: case aa/aa (K[0]=1)
 	probGeno[AA][AA] = thesePhi[0] * thesePi[A];
 	probGeno[CC][CC] = thesePhi[0] * thesePi[C];
 	probGeno[GG][GG] = thesePhi[0] * thesePi[G];
 	probGeno[TT][TT] = thesePhi[0] * thesePi[T];
 
-	//cases aa/ab
+	//1: cases aa/ab
 	double tmp = thesePhi[1] / K[1];
 	double tmp2 = tmp * thesePi[A];
 	probGeno[AA][AC] = tmp2 * thesePi[C];
@@ -358,7 +350,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[TT][CT] = tmp2 * thesePi[C];
 	probGeno[TT][GT] = tmp2 * thesePi[G];
 
-	//case ab/aa
+	//2: case ab/aa
 	tmp = thesePhi[2] / K[2];
 	tmp2 = tmp * thesePi[A];
 	probGeno[AC][AA] = tmp2 * thesePi[C];
@@ -377,7 +369,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[CT][TT] = tmp2 * thesePi[C];
 	probGeno[GT][TT] = tmp2 * thesePi[G];
 
-	//case aa/bb
+	//3: case aa/bb
 	tmp = thesePhi[3] / K[3];
 	tmp2 = tmp * thesePi[A];
 	probGeno[AA][CC] = tmp2 * thesePi[C];
@@ -396,7 +388,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[TT][CC] = tmp2 * thesePi[C];
 	probGeno[TT][GG] = tmp2 * thesePi[G];
 
-	//case ab/ab
+	//4: case ab/ab
 	tmp = thesePhi[4] / K[4];
 	tmp2 = tmp * thesePi[A];
 	probGeno[AC][AC] = tmp2 * thesePi[C];
@@ -407,7 +399,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[CT][CT] = tmp2 * thesePi[T];
 	probGeno[GT][GT] = tmp * thesePi[G] * thesePi[T];
 
-	//case ab/ac
+	//5: case ab/ac
 	tmp = thesePhi[5] / K[5];
 	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
 	probGeno[AC][AG] = tmp2;
@@ -438,7 +430,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[GT][CG] = tmp2;
 	probGeno[GT][CT] = tmp2;
 
-	//case aa/bc
+	//6: case aa/bc
 	tmp = thesePhi[6] / K[6];
 	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
 	probGeno[AA][CG] = tmp2;
@@ -457,7 +449,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[GG][CT] = tmp2;
 	probGeno[TT][CG] = tmp2;
 
-	//case ab/cc
+	//7: case ab/cc
 	tmp = thesePhi[7] / K[7];
 	tmp2 = tmp * thesePi[A] * thesePi[C] * thesePi[G];
 	probGeno[AC][GG] = tmp2;
@@ -476,7 +468,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[CT][GG] = tmp2;
 	probGeno[GT][CC] = tmp2;
 
-	//case ab/cd
+	//8: case ab/cd
 	tmp = thesePhi[8] / K[8];
 	probGeno[AC][GT] = tmp;
 	probGeno[AG][CT] = tmp;
@@ -484,7 +476,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFreq
 	probGeno[CG][AT] = tmp;
 	probGeno[CT][AG] = tmp;
 	probGeno[GT][AC] = tmp;
-}
+};
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2){
 	//prepare estimates
