@@ -39,7 +39,7 @@ public:
 	Base minor, major;
 	int bestAllelicCombination;
 	double L10L;
-	int variantQuality;
+	int variantQuality; // in phred format for VCF
 
 	TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorBase();

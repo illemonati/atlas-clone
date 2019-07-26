@@ -419,7 +419,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_first, fwd : mate on different chromosome");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : mate on different chromosome");
 	}
 
 
@@ -442,7 +442,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 		trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 		trueIsProper.push_back(false);
 	} else {
-		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_second, rev : mate on different chromosome");
+		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : not a proper pair (orphan)");
 	}
 
 
@@ -555,7 +555,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	if(trueIgnoredReadMessages.size() > 0){
 		//check ignored reads file
 		std::string ignoredReadsFile = filenameTag + "_ignoredReads.txt.gz";
-		logfile->listFlush("Reading ignored reads from '" + ignoredReadsFile + "...");
+		logfile->listFlush("Reading ignored reads from '" + ignoredReadsFile + "'...");
 		gz::igzstream file(ignoredReadsFile.c_str());
 		if(!file) throw "Failed to open file '" + ignoredReadsFile + "!";
 
@@ -579,7 +579,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 				++lineNum;
 			}
 		}
-		logfile->write("done! Read " + toString(lineNum) + " read names");
+		logfile->write("done!");
 
 		if((unsigned) lineNum != trueIgnoredReadMessages.size()){
 			logfile->newLine();
