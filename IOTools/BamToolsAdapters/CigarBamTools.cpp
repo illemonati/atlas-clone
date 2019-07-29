@@ -22,7 +22,10 @@ int CigarOpBamTools::GetLength()
     return field.Length;
 }
 
-
+void CigarOpBamTools::setType(char newType)
+{
+    field.Type = newType;
+}
 
 CigarIterBamTools::CigarIterBamTools(){}
 

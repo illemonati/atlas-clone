@@ -22,9 +22,11 @@ class TAtlasTest_removeSoftClips:public TAtlasTest{
 private:
 	std::string filenameTag;
 	std::string bamFileName;
+	std::vector<std::string> trueQueryBases;
 
 	void writeBAM();
 	bool checkNewBAM();
+	bool basicChecks(BamTools::BamAlignment bamAlignment, const int pairNumber);
 
 public:
 	TAtlasTest_removeSoftClips(TParameters & params, TLog* logfile);

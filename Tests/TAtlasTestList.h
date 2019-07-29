@@ -17,6 +17,7 @@
 #include "TAtlasTestFilter.h"
 #include "TAtlasTestLibraries.h"
 #include "TAtlasTestLibrariesSpeed.h"
+#include "TAtlasTestRemoveSoftClips.h"
 
 
 //------------------------------------------

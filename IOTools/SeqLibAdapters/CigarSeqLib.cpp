@@ -72,3 +72,8 @@ int CigarOpSeqLib::GetLength()
 {
     return (int) field.Length();
 }
+
+void CigarOpSeqLib::setType(char newType)
+{
+    field = SeqLib::CigarField(newType, field.Length());
+}

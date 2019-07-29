@@ -671,63 +671,61 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 	}
 };
 
+void TAlignment::addToAlignment(BamAlignment* bamAlignment, int counter, std::string & queryBases, std::string & qualities, CigarOp& op){
+	std::cout << "counter " << counter << " op.GetLength() " << op.GetLength() << " bamAlignment->GetQueryBases().substr(counter, op.GetLength()) " << bamAlignment->GetQueryBases().substr(counter, op.GetLength()) << std::endl;
+    queryBases += bamAlignment->GetQueryBases().substr(counter, op.GetLength());
+    qualities += bamAlignment->GetQualities().substr(counter, op.GetLength());
+    counter += op.GetLength();
+};
+
 void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+	CigarIter& cigarIter = bamAlignment->GetCigarData().createIterator();
+	std::string queryBases = "";
+	std::string qualities = "";
+	int counter = 0;
 
-	if(S_left + S_right > 0){
+	while(cigarIter.HasNext()){
+		CigarOp* new_cigar;
+		CigarOp& op = cigarIter.Next();
 
+		switch ( op.GetType() ) {
 
-		//adapt CIGAR string
-        CigarIter& cigarIter = bamAlignment->GetCigarData().createIterator();
-
-        bamAlignment->GetCigarData().clear();
-
-        while(cigarIter.HasNext()){
-            CigarOp* new_cigar;
-            CigarOp& op = cigarIter.Next();
-            switch ( op.GetType() ) {
-
-				// for 'M', '=' or 'X': just copy
-                case ('M'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('M',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('='):
-                        new_cigar = IOTool::getInstance()->createCigarOp('=',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('X'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('X',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('I'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('I',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('D'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('D',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('N'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('N',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;
-                case ('S'):
-						break;
-				// for 'H' - hard clip: do nothing as these bases are not present in SEQ
-                case ('H'):
-                        new_cigar = IOTool::getInstance()->createCigarOp('H',op.GetLength());
-                        bamAlignment->GetCigarData().push_back(*new_cigar);
-						break;;
-				// invalid CIGAR op-code
-				default:
-                    throw (std::string) "CIGAR operation type '" + op.GetType() + "' not supported!";
-			}
+			// for 'M', '=' or 'X': just copy
+			case ('M'):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('='):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('X'):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('I'):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('D'):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('N'):
+					addToAlignment(bamAlignment, counter, queryBases, qualities, op);
+					break;
+			case ('S'):
+					op.setType('H');
+		    		counter += op.GetLength();
+					break;
+			// for 'H' - hard clip: do nothing as these bases are not present in SEQ
+			case ('H'):
+					new_cigar = IOTool::getInstance()->createCigarOp('H',op.GetLength());
+					bamAlignment->GetCigarData().push_back(*new_cigar);
+					break;;
+			// invalid CIGAR op-code
+			default:
+				throw (std::string) "CIGAR operation type '" + op.GetType() + "' not supported!";
 		}
-
-        bamAlignment->SetQueryBases(S_string_middle);
-        bamAlignment->SetQualities(S_qualities_middle);
 	}
+
+	bamAlignment->SetQueryBases(queryBases);
+	bamAlignment->SetQualities(qualities);
 
 	changed = true;
 };

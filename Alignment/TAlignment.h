@@ -132,6 +132,7 @@ public:
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
 	void assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
+	void addToAlignment(BamAlignment* bamAlignment, int counter, std::string & queryBases, std::string & qualities, CigarOp& op);
 	void removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
 	int measureOverlap();
 	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);

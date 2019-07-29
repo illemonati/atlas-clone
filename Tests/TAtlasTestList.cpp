@@ -15,6 +15,7 @@ TAtlasTestList::TAtlasTestList(){
     testMap.emplace_back("invariantBed", &createInstance<TAtlasTest_invariantBed>);
     testMap.emplace_back("mergePairs", &createInstance<TAtlasTest_mergePairs>);
     testMap.emplace_back("filter", &createInstance<TAtlasTest_filter>);
+    testMap.emplace_back("removeSoftClips", &createInstance<TAtlasTest_removeSoftClips>);
     testMap.emplace_back("librarieCompareFunctions", &createInstance<TAtlasTestLibrarieCompareFunctions>);
     testMap.emplace_back("librarieCompareSpeed", &createInstance<TAtlasTestLibrarieSpeed>);
 

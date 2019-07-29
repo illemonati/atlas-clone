@@ -733,7 +733,6 @@ bool TAlignmentParser::readAlignment(){
     bool filtersPassed = false;
     do {
         static int count=0;
-        std::cout << "Number alignment="<<std::to_string(count)<<"\n";
         count++;
         if(!bamReader->GetNextAlignment(bamAlignment)){
             return false;

@@ -12,6 +12,7 @@ public:
      * @return a char (one of MIDNSHPX)
      */
     virtual char GetType()=0;
+    virtual void setType(char newType)=0;
     /**
      * Return the length of the cigar op
      * @return a int representing the length

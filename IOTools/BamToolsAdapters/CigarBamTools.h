@@ -19,6 +19,8 @@ public:
     char GetType();
     int GetLength();
 
+    void setType(char newType);
+
     ~CigarOpBamTools(){}
 };
 
