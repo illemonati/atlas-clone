@@ -24,7 +24,6 @@ TAlignment::TAlignment(){
 	isPaired = false;
 	isProperPair = false;
 	mappingQuality = 0;
-	passedFilters = false;
 	isSecondMate = false;
 	parsed = false;
 	changed = false;
@@ -71,7 +70,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	isPaired = Alignment.isPaired;
 	isProperPair = Alignment.isProperPair;
 	mappingQuality = Alignment.mappingQuality;
-	passedFilters = Alignment.passedFilters;
 	parsed = Alignment.parsed;
 	changed = Alignment.changed;
 	recalibrated = Alignment.recalibrated;
@@ -112,7 +110,6 @@ void TAlignment::clear(){
 	parsed = false;
 	recalibrated = false;
 	changed = false;
-	passedFilters = false;
 };
 
 void TAlignment::initStorage(){
@@ -346,7 +343,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	lastAlignedPositionWithRespectToRef = position + p - 1;
 	lastPositionPlusOne = position + length;
 	lastAlignedPos = p - 1; //why -1? -> same reason as above
-	if(passedFilters && length != bamAlignment.Length)
+	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
 };
 
@@ -736,7 +733,7 @@ int TAlignment::measureOverlap(){
 	//make sure read is parsed
 	if(!parsed) throw "Read was not parsed!";
 
-	if(isProperPair && passedFilters){
+	if(isProperPair){
 		if(!isReverseStrand){
 			int k = length - softClippedLength[1] - 1;
 			while(bases[k].alignedPos < 0)

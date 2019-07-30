@@ -874,7 +874,6 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
-		alignment.passedFilters = true;
 		fillAlignment(alignment);
 		return true;
 	}
@@ -884,7 +883,6 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
-		alignment.passedFilters = true;
 		fillAlignment(alignment);
 		return true;
 	} else if(!readAlignment()){
