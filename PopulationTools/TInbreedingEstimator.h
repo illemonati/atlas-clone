@@ -188,6 +188,8 @@ private:
 	void initF(TParameters & parameters);
 	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
+	void resetToInitialValues();
+	void checkHastingsRatios();
 	bool updateF();
 	bool updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
 	bool updateGamma();

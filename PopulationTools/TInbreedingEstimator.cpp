@@ -181,7 +181,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 		sumOfSquaresIterations.push_back(0.0);
 
 		//set models
-		if(alleleFreq[l] == 0.0 || alleleFreq[l] < 0.1*minAlleleFreq){
+		if(probMovingToModel0 > 0.0 && (alleleFreq[l] == 0.0 || alleleFreq[l] < 0.1*minAlleleFreq)){
 			modelP.push_back(false);
 		} else {
 			modelP.push_back(true);
@@ -201,6 +201,18 @@ void TAlleleFreq::setSumsForPosteriorToZero(){
 void TAlleleFreq::setToValue(double fixedValue){
 	for(int l=0; l<numLoci; ++l){
 		alleleFreq[l] = fixedValue;
+	}
+
+	if(fixedValue > 0){
+		_numLociModelP = numLoci;
+		for(int l=0; l<numLoci; ++l){
+			modelP[l] = true;
+		}
+	} else {
+		_numLociModelP = 0;
+		for(int l=0; l<numLoci; ++l){
+			modelP[l] = false;
+		}
 	}
 }
 
@@ -669,6 +681,75 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	} else {
 		shouldUpdatePi = true;
 	}
+}
+
+void TInbreedingEstimator::resetToInitialValues(){
+	p.setToValue(0.2);
+	Gamma.update(log(0.7), 0.7);
+	F.updateAndAccept(0.1, true);
+
+	std::cout << "\nF " << F.F() << std::endl;
+	std::cout << "p[99] " << p[99] << std::endl;
+	std::cout << "gamma " << Gamma.getNaturalScaleValue() << std::endl;
+}
+
+void TInbreedingEstimator::checkHastingsRatios(){
+	//F hastings
+	resetToInitialValues();
+
+	double newF = 0.15;
+	double logH = 0.0;
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		std::cout << "newLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter) << std::endl;
+//		std::cout << "oldLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter) << std::endl;
+		logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
+		- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
+	}
+
+	std::cout << "\nF hastings log: " << logH << " natural: " << exp(logH) << std::endl;
+
+	//p hastings
+	resetToInitialValues();
+
+	double newP = 0.3;
+	int locusNum = 9;
+	std::cout << "(Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) " << (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) << std::endl;
+	logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
+				+ logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
+				- logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
+
+//	std::cout << "newLL no gamma stuff " << logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter) << std::endl;
+//	std::cout << "oldLL no gamma stuff " << logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter) << std::endl;
+	std::cout << "\np[" << locusNum << "] hastings log: " << logH << " natural: " << exp(logH) << std::endl;
+
+	//gamma hastings
+	resetToInitialValues();
+
+	double newGamma = 0.4;
+	double sumLogFreq = 0.0;
+	double sumLogOneMinusFreq = 0.0;
+
+	for(unsigned long l=0; l<numLoci; ++l){
+		if(p.modelP[l]){
+			sumLogFreq += log(p[l]);
+			sumLogOneMinusFreq += log(1.0 - p[l]);
+		}
+	}
+
+	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
+	logH = (double) p.getNumLociInModelP() *
+			(randomGenerator->gammaln(2.0*newGamma)
+			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
+			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
+			- 2.0*randomGenerator->gammaln(newGamma)
+			)
+			+ diffGammas * sumLogFreq
+			+ diffGammas * sumLogOneMinusFreq;
+
+	std::cout << "\ngamma hastings log: " << logH << " natural: " << exp(logH) << std::endl;
+
+
 }
 
 bool TInbreedingEstimator::updateF(){
@@ -1186,6 +1267,9 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params
 
 void TInbreedingEstimator::oneMCMCIteration(){
 	//update params
+
+//	checkHastingsRatios();
+//	throw "checking ahstings ratios";
 
 	if(shouldUpdateF){
 		numAcceptedF += updateF();
