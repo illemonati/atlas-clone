@@ -114,7 +114,7 @@ void TRecalibrationEMDataTable::assembleCountsPerReadGroup(){
 void TRecalibrationEMDataTable::fillVectorWithUsedQualities(int readGroupId, bool isSecondMate, std::vector<int> & Q){
 	Q.clear();
 	for(int i=0; i<maxQual; ++i){
-		if(qualities[readGroupId][isSecondMate] > 0){
+		if(qualities[readGroupId][isSecondMate][i] > 0){
 			Q.push_back(i);
 		}
 	};
