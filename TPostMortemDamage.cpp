@@ -428,11 +428,11 @@ TPMDTables::~TPMDTables(){
 	delete[] reverse;
 };
 
-void TPMDTables::addForward(const int readGroup, const int pos, const Base & ref, const Base & read){
+void TPMDTables::addFromFivePrime(const int readGroup, const int pos, const Base & ref, const Base & read){
 	forward[readGroupMapObject[readGroup]]->add(pos, ref, read);
 };
 
-void TPMDTables::addReverse(const int readGroup, const int pos, const Base & ref, const Base & read){
+void TPMDTables::addFromThreePrime(const int readGroup, const int pos, const Base & ref, const Base & read){
 	reverse[readGroupMapObject[readGroup]]->add(pos, ref, read);
 };
 

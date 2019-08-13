@@ -362,15 +362,17 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 };
 
 void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
+	//probabilities of observing changes in BAM file
+	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	if(!isReverseStrand){ //is forward
 		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbFivePrime(bases[d].distFrom5Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbThreePrime(bases[d].distFrom3Prime);
 		}
 	} else { //is reverse
 		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbGA(bases[d].distFrom3Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbCT(bases[d].distFrom5Prime);
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbThreePrime(bases[d].distFrom3Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbFivePrime(bases[d].distFrom5Prime);
 		}
 	}
 };
@@ -469,31 +471,24 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	Base ref, read;
 
 	//check if it is forward or reverse strand!
-	if(isReverseStrand){
+	if(!isReverseStrand){ //forward
+		for(int d=0; d<length; ++d){
+			if(bases[d].aligned && bases[d].base != N){
+				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
+				pmdTables.addFromFivePrime(readGroupId, bases[d].distFrom5Prime, ref, bases[d].base);
+				pmdTables.addFromThreePrime(readGroupId, bases[d].distFrom3Prime, ref, bases[d].base);
+			}
+		}
+	} else { //reverse
 		for(int d=0; d<length; ++d){
 			if(bases[d].aligned && bases[d].base != N){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
 				read = genoMap.baseToFlippedBase[bases[d].base];
-				pmdTables.addForward(readGroupId, bases[d].distFrom3Prime, ref, read);
-//				std::cout << "added forward" << std::endl;
-				pmdTables.addReverse(readGroupId, bases[d].distFrom5Prime, ref, read);
-//				std::cout << "added reverse" << std::endl;
+				pmdTables.addFromFivePrime(readGroupId, bases[d].distFrom5Prime, ref, read);
+				pmdTables.addFromThreePrime(readGroupId, bases[d].distFrom3Prime, ref, read);
 			}
 		}
-	} else {
-		for(int d=0; d<length; ++d){
-			if(bases[d].aligned && bases[d].base != N){
-				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
-				pmdTables.addForward(readGroupId, bases[d].distFrom5Prime, ref, bases[d].base);
-//				std::cout << "added forward" << std::endl;
-
-				pmdTables.addReverse(readGroupId, bases[d].distFrom3Prime, ref, bases[d].base);
-//				std::cout << "added reverse" << std::endl;
-
-			}
-		}
-	}
-};
+	}};
 
 void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap){
 	//make sure read is parsed and has reference

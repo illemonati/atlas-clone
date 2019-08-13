@@ -2022,7 +2022,7 @@ void TGenome::estimateDepthPerSite(TParameters & params){
 	}
 
 	//write
-	std::string filename = outputName + "_depthPerSite.txt";
+	std::string filename = outputName + "_distDepthPerSite.txt";
 	logfile->listFlush("Writing depth distribution to '" + filename + "' ...");
 	counts.writeCounts(filename);
 	logfile->done();

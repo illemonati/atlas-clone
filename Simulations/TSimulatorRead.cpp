@@ -158,20 +158,20 @@ void TSimulatorSingleEndRead::applyPMD(Base* _bases, BamTools::BamAlignment & al
 		if(alignment.IsReverseStrand()){
 			for(int p=0; p<alignment.Length; ++p){
 				if(_bases[p] == C ){
-					if(randomGenerator->getRand() < pmdObject.getProbGA(fragmentLength - alignment.Length + p))
+					if(randomGenerator->getRand() < pmdObject.getProbThreePrime(fragmentLength - alignment.Length + p))
 						_bases[p] = T;
 				} else if(_bases[p] == G){
-					if(randomGenerator->getRand() < pmdObject.getProbGA(alignment.Length - p))
+					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(alignment.Length - p))
 						_bases[p] = A;
 				}
 			}
 		} else {
 			for(int p=0; p<alignment.Length; ++p){
 				if(_bases[p] == C ){
-					if(randomGenerator->getRand() < pmdObject.getProbCT(p))
+					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(p))
 						_bases[p] = T;
 				} else if(_bases[p] == G){
-					if(randomGenerator->getRand() < pmdObject.getProbGA(fragmentLength - p - 1))
+					if(randomGenerator->getRand() < pmdObject.getProbThreePrime(fragmentLength - p - 1))
 						_bases[p] = A;
 				}
 			}

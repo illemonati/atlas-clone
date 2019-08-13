@@ -63,8 +63,8 @@ public:
 	TPMDTables(TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap & ReadGroupMapObject);
 	~TPMDTables();
 //	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
-	void addForward(const int readGroup, const int pos, const Base & ref, const Base & read);
-	void addReverse(const int readGroup, const int pos, const Base & ref, const Base & read);
+	void addFromFivePrime(const int readGroup, const int pos, const Base & ref, const Base & read);
+	void addFromThreePrime(const int readGroup, const int pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);
@@ -197,8 +197,8 @@ public:
 	void initializeFunction(std::string pmdString, PMDType type);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
-	double getProbCT(int pos){ return myFunctions[pmdCT]->getProb(pos); };
-	double getProbGA(int pos){ return myFunctions[pmdGA]->getProb(pos); };
+	double getProbFivePrime(int pos){ return myFunctions[pmdCT]->getProb(pos); };
+	double getProbThreePrime(int pos){ return myFunctions[pmdGA]->getProb(pos); };
 	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];
