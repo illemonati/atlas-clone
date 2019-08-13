@@ -371,13 +371,13 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 			std::string pmdCTString;
 			std::string pmdGAString;
 
-			if(params.parameterExists("pmdCT"))
+			if(params.parameterExists("pmdCT")){
 				pmdCTString = params.getParameterString("pmdCT");
-			else pmdCTString = "none";
+			} else pmdCTString = "none";
 
-			if(params.parameterExists("pmdGA"))
+			if(params.parameterExists("pmdGA")){
 				pmdGAString = params.getParameterString("pmdGA");
-			else pmdGAString = "none";
+			} else pmdGAString = "none";
 
 			//add to map
 			pmdMap["-"] = std::pair<std::string, std::string>(pmdCTString, pmdGAString);

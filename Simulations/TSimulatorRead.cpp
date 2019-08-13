@@ -161,7 +161,7 @@ void TSimulatorSingleEndRead::applyPMD(Base* _bases, BamTools::BamAlignment & al
 					if(randomGenerator->getRand() < pmdObject.getProbThreePrime(fragmentLength - alignment.Length + p))
 						_bases[p] = T;
 				} else if(_bases[p] == G){
-					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(alignment.Length - p))
+					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(alignment.Length - p - 1))
 						_bases[p] = A;
 				}
 			}

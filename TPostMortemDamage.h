@@ -203,7 +203,7 @@ public:
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];
 	};
-	bool hasDamage(){ return myFunctions[pmdCT]->hasDamage() & myFunctions[pmdGA]->hasDamage(); };
+	bool hasDamage(){ return myFunctions[pmdCT]->hasDamage() || myFunctions[pmdGA]->hasDamage(); };
 	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
 	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
 
