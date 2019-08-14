@@ -172,8 +172,8 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	//init proposal widths and check range of p
 
 	for(int l=0; l<numLoci; ++l){
-		if(alleleFreq[l] < 1.0 / numSamples)
-			alleleFreq[l] = 1.0 / numSamples;
+		if(alleleFreq[l] < 1.0 / (2*numSamples))
+			alleleFreq[l] = 1.0 / (2*numSamples);
 	}
 
 	for(int l=0; l<numLoci; ++l){
@@ -250,7 +250,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 				if(proposalWidths[l] <= 0)
 					throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
 			}
-
 
 			//make sure proposal width does not get too small
 			if(proposalWidths[l] < 0.1) proposalWidths[l] = 0.1;
