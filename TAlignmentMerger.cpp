@@ -13,6 +13,7 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 	_maxDistanceBetweenMates = MaxDistanceBetweenMates;
 	_adaptQuality = true;
 	_filterOrphans = true;
+	_keepRandomBase = false;
 };
 
 void TAlignmentMerger::_writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it){
@@ -47,14 +48,17 @@ std::vector< TAlignmentMergerEntry >::iterator TAlignmentMerger::_findMate(TAlig
 	return alignmentStorage.end();
 };
 
-void TAlignmentMerger::addToBeMerged(TAlignment & alignment){
+void TAlignmentMerger::addToBeMerged(TAlignment & alignment, TRandomGenerator* randomGenerator){
 	std::vector< TAlignmentMergerEntry >::iterator it = _findMate(alignment);
 	if(it == alignmentStorage.end()){
 		//no mate found: add to storage
 		alignmentStorage.emplace_back(alignment, false);
 	} else {
 		//mate found, merge!
-		parser->mergeAlignedBasesBamReads(it->alignment, &alignment, _adaptQuality);
+		if(_keepRandomBase)
+			parser->mergeAlignedBasesBamReadsRandom(it->alignment, &alignment, _adaptQuality, randomGenerator);
+		else
+			parser->mergeAlignedBasesBamReads(it->alignment, &alignment, _adaptQuality);
 		it->ready = true;
 		alignmentStorage.emplace_back(alignment, true);
 	}

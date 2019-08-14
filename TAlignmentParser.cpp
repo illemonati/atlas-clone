@@ -1187,6 +1187,37 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 	worstBase.base = N;
 }
 
+void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
+	//deletions and insertions are kept as is. these positions are not compared
+	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
+		fwdAlignment->setAlignmentHasChanged();
+		revAlignment->setAlignmentHasChanged();
+
+		//reads overlap -> check if there are bases overlapping same position in ref
+		//alignedPos is with respect to read
+		int fwdP = 0;
+		int revP = 0;
+		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
+			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+				//bases overlap same position in ref -> choose at random which to keep
+				if(randomGenerator->getRand() < 0.5){
+					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
+				} else {
+					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
+				}
+				//increment both counters
+				++fwdP;
+				++revP;
+			} else if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < revAlignment->position + revAlignment->bases[revP].alignedPos){
+				++fwdP;
+			} else {
+				++revP;
+			}
+		}
+	}
+}
+
+
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	//deletions and insertions are kept as is. these positions are not compared
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
@@ -1199,7 +1230,7 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		int revP = 0;
 		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
 			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
-				//bases overlap same position in ref -> decide which one to keep
+				//bases overlap same position in ref -> keep the one with higher quality
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
 					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
