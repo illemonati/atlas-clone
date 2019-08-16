@@ -687,29 +687,11 @@ TRecalibrationBQSR::TRecalibrationBQSR(TLog* Logfile, TReadGroups* ReadGroups){
 	_initialize(Logfile, ReadGroups);
 };
 
-TRecalibrationBQSR::TRecalibrationBQSR(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups):TRecalibration(){
+TRecalibrationBQSR::TRecalibrationBQSR(std::string qualityFile, TLog* Logfile, TReadGroups* ReadGroups):TRecalibration(){
 	_initialize(Logfile, ReadGroups);
 
 	//initialize quality effect
-	std::string filename = params.getParameterString("BQSRQuality");
-	_initializeBQSRReadGroupQualityTableFromFile(filename);
-
-	//Do we consider the effect of the position in read (cycle)?
-	if(params.parameterExists("BQSRPosition")){
-		filename = params.getParameterString("BQSRPosition");
-		_initializeBQSRReadGroupPositionTableFromFile(filename);
-	}
-
-	if(params.parameterExists("BQSRPositionReverse")){
-		filename = params.getParameterString("BQSRPositionReverse");
-		_initializeBQSRReadGroupPositionReverseTableFromFile(filename);
-	}
-
-	//Do we consider the context (dinucleotide)?
-	if(params.parameterExists("BQSRContext")){
-		filename = params.getParameterString("BQSRContext");
-		_initializeBQSRReadGroupContextTableFromFile(filename);
-	}
+	_initializeBQSRReadGroupQualityTableFromFile(qualityFile);
 };
 
 void TRecalibrationBQSR::_initialize(TLog* Logfile, TReadGroups* ReadGroups){
@@ -761,7 +743,11 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupQualityTableFromFile(std::strin
 	//done!
 	_logfile->done();
 	_logfile->conclude("Considering qualities up to " + toString(maxQ));
-}
+};
+
+void TRecalibrationBQSR::addPositionEffect(std::string filename){
+	_initializeBQSRReadGroupPositionTableFromFile(filename);
+};
 
 void TRecalibrationBQSR::_initializeBQSRReadGroupPositionTableFromFile(std::string filename){
 	_logfile->listFlush("Constructing BQSR readGroup x position table from file '" + filename + "' ...");
@@ -798,7 +784,11 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionTableFromFile(std::stri
 	//done!
 	_logfile->done();
 	_logfile->conclude("Considering positions up to " + toString(storage.maxPos));
-}
+};
+
+void TRecalibrationBQSR::addPositionReverseEffect(std::string filename){
+	_initializeBQSRReadGroupPositionReverseTableFromFile(filename);
+};
 
 void TRecalibrationBQSR::_initializeBQSRReadGroupPositionReverseTableFromFile(std::string filename){
 	_logfile->listFlush("Constructing BQSR readGroup x position reverse table from file '" + filename + "' ...");
@@ -840,7 +830,11 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionReverseTableFromFile(st
 	//done!
 	_logfile->done();
 	_logfile->conclude("Considering positions reverse up to " + toString(storage.maxPos));
-}
+};
+
+void TRecalibrationBQSR::addContextEffect(std::string filename){
+	_initializeBQSRReadGroupContextTableFromFile(filename);
+};
 
 void TRecalibrationBQSR::_initializeBQSRReadGroupContextTableFromFile(std::string filename){
 	_logfile->listFlush("Constructing BQSR readGroup x context table from file '" + filename + "' ...");

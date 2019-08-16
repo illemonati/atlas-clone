@@ -261,11 +261,15 @@ private:
 
 public:
 	TRecalibrationBQSR(TLog* Logfile, TReadGroups* ReadGroups);
-	TRecalibrationBQSR(TParameters & params, TLog* Logfile, TReadGroups* ReadGroups);
+	TRecalibrationBQSR(std::string qualityFile, TLog* Logfile, TReadGroups* ReadGroups);
 	~TRecalibrationBQSR(){
 		if(storage.considerQuality)
 			delete qualityIndex;
 	};
+
+	void addPositionEffect(std::string filename);
+	void addPositionReverseEffect(std::string filename);
+	void addContextEffect(std::string filename);
 
 	bool recalibrationChangesQualities(){ return true; };
 	double getErrorRate(TBase & base);
