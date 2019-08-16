@@ -57,8 +57,8 @@ bool TAtlasTest_PMDEmpiric::run(){
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("depth", "2");
-	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength));
+	_testParams.addParameter("depth", "10");
+	_testParams.addParameter("readLength", "single:gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength)+"]");
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
 
 	if(!runTGenomeFromInputfile("simulate"))
@@ -88,7 +88,7 @@ bool TAtlasTest_PMDEmpiric::run(){
 	else return false;
 };
 
-void fillPatternsToVector(std::string tmp, std::vector<double> &CTestimated, std::vector<double> &GAestimated){
+void fillPatternsToVector(std::string tmp, std::vector<double> &CTestimated){
 	//CT string
 	std::string::size_type pos1 = tmp.find_first_of('[');
 	if(pos1 == std::string::npos) throw "Can not find '[' in '" + tmp + "'!";
@@ -96,14 +96,6 @@ void fillPatternsToVector(std::string tmp, std::vector<double> &CTestimated, std
 	if(pos2 == std::string::npos) throw "Can not find ']' in '" + tmp + "'!";
 	std::string CTString = tmp.substr((pos1+1),pos2-(pos1+1));
 	fillVectorFromStringAny(CTString, CTestimated, ",");
-
-	//GA string
-	pos1 = tmp.find_last_of('[');
-	if(pos1 == std::string::npos) throw "Can not find second '[' in '" + tmp + "'!";
-	pos2 = tmp.find_last_of(']');
-	if(pos2 == std::string::npos) throw "Can not find second ']' in '" + tmp + "'!";
-	std::string GAString = tmp.substr((pos1+1),pos2-(pos1+1));
-	fillVectorFromStringAny(GAString, GAestimated, ",");
 }
 
 
@@ -127,19 +119,30 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 	//RG1
 	logfile->list("Reading line for RG1");
 	getline(in, tmp);
-	fillPatternsToVector(tmp, CTestimated, GAestimated);
+	fillPatternsToVector(tmp, CTestimated);
+	getline(in, tmp);
+	fillPatternsToVector(tmp, GAestimated);
+	//read CA and GT patterns of RG1, ignore
+	getline(in, tmp);
+	getline(in, tmp);
+
 	//RG2
 	logfile->list("Reading line for RG2");
 	getline(in, tmp);
-	fillPatternsToVector(tmp, CTestimated2, GAestimated2);
+	fillPatternsToVector(tmp, CTestimated2);
+	getline(in, tmp);
+	fillPatternsToVector(tmp, GAestimated2);
 
+	logfile->startIndent("Checking RG1 and RG2");
+
+	//check that pooled read groups have identical estimates
 	if(CTestimated.size() != GAestimated.size() || CTestimated2.size() != GAestimated2.size() || CTestimated.size() != GAestimated2.size())
 		throw "Damage patterns are not the same length!";
 
 	for(unsigned int i=0; i<CTestimated.size(); ++i){
 		if(CTestimated[i] != CTestimated2[i]){
 			logfile->newLine();
-			logfile->conclude("The CT patterns of pooled RG1 and RG2 do not match at pos " + toString(i));
+			logfile->conclude("The CT patterns of pooled RG1 and RG2 do not match at pos " + toString(i) + ". RG1 = " + toString(CTestimated[i]) + ", RG2 = " + toString(CTestimated2[i]));
 			return false;
 		}
 		if(GAestimated[i] != GAestimated2[i]){
@@ -149,20 +152,39 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 		}
 	}
 
+	//read CA and GT patterns of RG2, ignore
+	getline(in, tmp);
+	getline(in, tmp);
+
+	logfile->endIndent("done!");
+
 	//compare estimated RG3 to simulated RG3
 	//read estimated params
 	logfile->list("Reading line for RG3");
 	getline(in, tmp);
-	fillPatternsToVector(tmp, CTestimated, GAestimated);
+	fillPatternsToVector(tmp, CTestimated);
+	getline(in, tmp);
+	fillPatternsToVector(tmp, GAestimated);
+
 
 	//parse true params
 	fillVectorFromStringAny(CTpatterns[2], CTtrue, ",");
 	fillVectorFromStringAny(GApatterns[2], GAtrue, ",");
 
 	//compare
+	logfile->startIndent("Checking RG3 CT pattern");
 	for(unsigned int i=0; i<CTtrue.size(); ++i){
-		logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]));
+		double error = fabs(CTtrue[i] - CTestimated[i]) / CTtrue[i];
+		logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]) + " (error of " + toString(error) + ")");
 	}
+	logfile->endIndent("done!");
+
+	logfile->startIndent("Checking RG3 GA pattern");
+	for(unsigned int i=0; i<GAtrue.size(); ++i){
+		double error = fabs(GAtrue[i] - GAestimated[i]) / GAtrue[i];
+		logfile->conclude("At pos " + toString(i) + " the true G to A damage proportion is = " + toString(GAtrue[i]) + " and it was estimated to be = " + toString(GAestimated[i]) + " (error of " + toString(error) + ")");
+	}
+	logfile->endIndent("done!");
 
 	return false;
 }

@@ -1539,6 +1539,13 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		logfile->list("Will adapt qualities over overlapping bases to reflect additional information (use keepOriginalQuality to turn off).");
 	}
 
+	if(params.parameterExists("keepRandomBase")){
+		logfile->list("Will keep random base at overlapping positions.");
+		merger.keepRandomBase();
+	} else {
+		logfile->list("Will keep base with higher quality score at overlapping positions.");
+	}
+
 	//measure progress and runtime
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
@@ -1564,7 +1571,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 				merger.addAsImproperPair(alignment);
 			} else {
 				//is a proper pair: attempt merging
-				merger.addToBeMerged(alignment);
+				merger.addToBeMerged(alignment, randomGenerator);
 			}
 		}
 

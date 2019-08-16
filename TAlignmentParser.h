@@ -312,6 +312,7 @@ public:
 	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
+	void mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
 };
 
 //-----------------------------------------------------

@@ -70,6 +70,7 @@ private:
 	int _maxDistanceBetweenMates;
 	bool _filterOrphans;
 	bool _adaptQuality;
+	bool _keepRandomBase;
 
 	void _writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it);
 	void _addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error);
@@ -81,8 +82,9 @@ public:
 
 	void keepOrphans(){ _filterOrphans = false; };
 	void keepOriginalQuality(){ _adaptQuality = false; };
+	void keepRandomBase(){ _keepRandomBase = true; };
 
-	void addToBeMerged(TAlignment & alignment);
+	void addToBeMerged(TAlignment & alignment, TRandomGenerator* randomGenerator);
 	void checkForMateAndWriteUnmerged(TAlignment & alignment);
 	void addAsImproperPair(TAlignment & alignment);
 	void addReadyToBeWritten(TAlignment & alignment);
