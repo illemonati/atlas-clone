@@ -66,6 +66,7 @@ private:
 	bool _keepSecondary;
 	bool _keepSupplementary;
 	bool _parse;
+
 	int previousAlignmentPos;
 	int previousAlignmentChr;
 	TAlignment* oldAlignment;
@@ -101,10 +102,8 @@ private:
 	bool applyQualityFilter;
 	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
-
 	bool applyMQFilter;
 	int minMQ, maxMQ;
-
 
 	bool applyFragmentLengthFilter;
 	//bool keepOnlyFwd, keepOnlyRev;

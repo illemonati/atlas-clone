@@ -63,7 +63,6 @@ public:
 	void callGenotypes(TParameters & params);
 
 	//recalibration
-	void estimateErrorCalibration(TParameters & params);
 	void estimateErrorCalibrationEM(TParameters & params);
 	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
 	void BQSR(TParameters & params);

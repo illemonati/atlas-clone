@@ -1106,8 +1106,25 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 void TAlignmentParser::initializeRecalibration(TParameters & params){
 	std::string task = params.getParameterString("task");
 	if(params.parameterExists("BQSRQuality")){
-		recalObject = new TRecalibrationBQSR(params, logfile, &readGroups);
+		//initialize quality effect
+		TRecalibrationBQSR* bqsr = new TRecalibrationBQSR(params.getParameterString("BQSRQuality"), logfile, &readGroups);
+
+		//Do we consider the effect of the position in read (cycle)?
+		if(params.parameterExists("BQSRPosition")){
+			bqsr->addPositionEffect(params.getParameterString("BQSRPosition"));
+		}
+
+		if(params.parameterExists("BQSRPositionReverse")){
+			bqsr->addPositionReverseEffect(params.getParameterString("BQSRPositionReverse"));
+		}
+
+		//Do we consider the context (dinucleotide)?
+		if(params.parameterExists("BQSRContext")){
+			bqsr->addContextEffect(params.getParameterString("BQSRContext"));
+		}
+
 		doRecalibration = true;
+
 	} else if(params.parameterExists("recal")){
 		recalObject = new TRecalibrationEM(params.getParameterString("recal"), &readGroups, logfile);
 		doRecalibration = true;
