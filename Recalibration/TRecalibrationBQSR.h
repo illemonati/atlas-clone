@@ -230,8 +230,8 @@ public:
 
 	void initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
 	void initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
-	void initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex);
-	void initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex);
+	void initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
 
 	int numQualityCells(){ if(considerQuality){ return numReadGroups * numQuality; } else { return 0; } };
 	int numPositionCells(){ if(considerPosition){ return numReadGroups * maxPos; } else { return 0; } };
