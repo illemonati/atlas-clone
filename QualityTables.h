@@ -22,7 +22,6 @@ private:
 	bool initialized;
 
 	//tmp
-	int i;
 	long sum;
 
 public:
@@ -32,7 +31,6 @@ public:
 		maxQPlusOne = -1;
 		counts = NULL;
 		freqs = NULL;
-		i = 0;
 		sum = 0;
 	};
 
@@ -40,11 +38,54 @@ public:
 		init(MaxQ);
 	};
 
+	TQualityTable(TQualityTable && other):maxQ(0),maxQPlusOne(0),counts(nullptr),freqs(nullptr),initialized(false),sum(0){
+		//copy from other
+		maxQ = other.maxQ;
+		maxQPlusOne = other.maxQPlusOne;
+		counts = other.counts;
+		freqs = other.freqs;
+		initialized = other.initialized;
+		sum = other.sum;
+
+		//set other to default
+		other.maxQ = 0;
+		other.maxQPlusOne = 0;
+		other.counts = nullptr;
+		other.freqs = nullptr;
+		other.initialized = false;
+		other.sum = 0;
+	};
+
+
+	TQualityTable& operator=(TQualityTable && other){
+		std::cout << "in equal cstr" << std::endl;
+
+		if(this != &other){
+			//copy from other
+			maxQ = other.maxQ;
+			maxQPlusOne = other.maxQPlusOne;
+			counts = other.counts;
+			freqs = other.freqs;
+			initialized = other.initialized;
+			sum = other.sum;
+
+			//set other to default
+			other.maxQ = 0;
+			other.maxQPlusOne = 0;
+			other.counts = nullptr;
+			other.freqs = nullptr;
+			other.initialized = false;
+			other.sum = 0;
+		}
+
+		return *this;
+	};
+
 	void init(int MaxQ){
 		maxQ = MaxQ; //Note: quality is phred(error) + 33!
 		maxQPlusOne = maxQ + 1;
 		counts = new long[maxQPlusOne];
-		for(i=33; i<maxQPlusOne; ++i)
+		for(int i=33; i<maxQPlusOne; ++i)
 			counts[i] = 0;
 		freqs = new double[maxQPlusOne];
 		sum = 0;
@@ -68,7 +109,7 @@ public:
 	};
 
 	void add(int* qual, int & len){
-		for(i=0; i<len; ++i){
+		for(int i=0; i<len; ++i){
 			if(qual[i] < maxQPlusOne)
 				++counts[qual[i]];
 		}
@@ -77,7 +118,7 @@ public:
 	void add(TQualityTable & other){
 		int otherMaxQ = other.getMaxQ();
 		int m = std::min(maxQ, otherMaxQ) + 1;
-		for(i=33; i<m; ++i)
+		for(int i=33; i<m; ++i)
 			counts[i] += other.at(i);
 	};
 
@@ -88,10 +129,10 @@ public:
 	void calcFrequencies(){
 		sum = 0;
 
-		for(i=33; i<maxQPlusOne; ++i)
+		for(int i=33; i<maxQPlusOne; ++i)
 			sum += counts[i];
 
-		for(i=33; i<maxQPlusOne; ++i)
+		for(int i=33; i<maxQPlusOne; ++i)
 			freqs[i] = (double) counts[i] / (double) sum;
 	};
 
@@ -107,7 +148,7 @@ public:
 		calcFrequencies();
 
 		double cumulFreq = 0.0;
-		for(i=33; i<maxQPlusOne; ++i){
+		for(int i=33; i<maxQPlusOne; ++i){
 			cumulFreq += freqs[i];
 			out << i-33 << "\t" << (char) i << "\t" << counts[i] << "\t" << freqs[i] << "\t" << cumulFreq << "\n";
 		}

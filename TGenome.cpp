@@ -746,8 +746,9 @@ void TGenome::printQualityDistribution(TParameters & params){
 
 	//initialize tables: one overall, one per read group
 	std::vector<TQualityTable> qualDist;
-	for(int i=0; i<alignmentParser.readGroups.size(); ++i)
+	for(int i=0; i<alignmentParser.numReadGroups(); ++i){
 		qualDist.emplace_back(maxQinPrintQualityDistribution);
+	}
 
 	//other tmp variables
 	TQualityMap qualMap;
