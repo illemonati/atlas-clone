@@ -902,7 +902,7 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 				secondLowestQual = data[ind][altHomIndex];
 			}
 
-			vcf << round(secondLowestQual - minQual) << ":";
+			vcf << (int) converter.toPhred(secondLowestQual - minQual) << ":";
 		}
 
 		//write depth
@@ -947,8 +947,8 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 		else vcf << "\t1:";
 
 		//write genotype quality
-		if(mleGeno == major) vcf << round(data[ind][minor] - minQual) << ":";
-		else  vcf << round(data[ind][major] - minQual) << ":";
+		if(mleGeno == major) vcf << (int) converter.toPhred(data[ind][minor] - minQual) << ":";
+		else  vcf << (int) converter.toPhred(data[ind][major] - minQual) << ":";
 
 		//write depth
 		vcf << GLFs[ind].depth << ':';
