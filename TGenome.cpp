@@ -2222,20 +2222,17 @@ void TGenome::runPMDS(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//now parse through bam file and write alignments
-	double PMDS;
 	while(alignmentParser.readNextAlignment(alignment)){
 		++counter;
 
 		//calc PMD
-		PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
+		double PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
 
 		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS){
 			alignment.updateOptionalSamField("DS", PMDS);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 		} else ++counterF;
-
-		alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
 
 		//report progress
 		if(counter % 1000000 == 0){

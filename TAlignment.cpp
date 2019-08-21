@@ -441,6 +441,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 void TAlignment::updateOptionalSamField(std::string tag, float value){
 	if(bamAlignment.HasTag(tag) == false) bamAlignment.AddTag(tag, "f", value);
 	else bamAlignment.EditTag(tag, "f", value);
+	changed = true;
 };
 
 void TAlignment::updateOptionalSamField(std::string tag, std::string value){
@@ -785,13 +786,11 @@ void TAlignment::setIsProperPair(const bool & ok){
 void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap){
 	if(changed){
 		//means that read has been modified.
-		//Currently quality recalibration is the only possible change.
+		//Currently quality recalibration and PMDS flag is the only possible change.
 		//But will need to think how to deal with merging and such...
 
 		//assume that only bases and quality scores where changed
 		std::string tmpString, tmpString2;
-//		tmpString.clear();
-//		tmpString2.clear();
 		for(int d=0; d<length; ++d){
 			tmpString += genoMap.baseToChar[bases[d].base];
 			tmpString2 += (char) qualMap.errorToQuality(bases[d].errorRate);
