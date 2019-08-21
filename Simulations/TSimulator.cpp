@@ -672,7 +672,6 @@ void TSimulator::initializeReadGroupFrequencies(TParameters & params){
 	int i=0;
 
 	for(TSimulatorSingleEndRead* readSimsIt : readSimulators){
-		averageReadLength += readSimsIt->meanReadLength();
 		averageReadLength += simGroupFrequencies[i] * readSimsIt->meanReadLength();
 		if(readSimsIt->maxReadLength() > maxReadLength)
 			maxReadLength = readSimsIt->maxReadLength();
