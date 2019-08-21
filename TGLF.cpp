@@ -749,9 +749,12 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 			else {
 				//find second highest quality
 				int secondLowestQual = 999;
-				if(data[i][refHomIndex] > minQual) secondLowestQual = data[i][refHomIndex];
-				if(data[i][hetIndex] > minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
-				if(data[i][altHomIndex] == minQual && data[i][hetIndex] < secondLowestQual) secondLowestQual = data[i][refHomIndex];
+				if(data[i][refHomIndex] > minQual)
+					secondLowestQual = data[i][refHomIndex];
+				if(data[i][hetIndex] > minQual && data[i][hetIndex] < secondLowestQual)
+					secondLowestQual = data[i][hetIndex];
+				if(data[i][altHomIndex] == minQual && data[i][altHomIndex] < secondLowestQual)
+					secondLowestQual = data[i][altHomIndex];
 				vcf << round(secondLowestQual - minQual) << ":";
 			}
 
