@@ -8,7 +8,7 @@
 #include "allTasks.h"
 
 void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< std::string, TTask* > & taskMap_debug){
-	taskMap_regular["splitRGbyLength"] = new TTask_splitRGbyLength();
+	taskMap_regular["splitRGByLength"] = new TTask_splitRGbyLength();
 	taskMap_regular["mergeReadGroups"] = new TTask_mergeReadGroups();
 	taskMap_regular["pileup"] = new TTask_pileup();
 	taskMap_regular["BAMDiagnostics"] = new TTask_BAMDiagnostics();
@@ -25,7 +25,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["createDepthMask"] = new TTask_createDepthMask();
 	taskMap_regular["allelicDepth"] = new TTask_allelicDepth();
 	taskMap_regular["downsample"] = new TTask_downsample();
-	taskMap_regular["downSampleReads"] = new TTask_downSampleReads();
+	taskMap_regular["downsampleReads"] = new TTask_downSampleReads();
 	taskMap_regular["estimatePMD"] = new TTask_estimatePMD();
 	taskMap_regular["PMDS"] = new TTask_PMDS();
 	taskMap_regular["PSMC"] = new TTask_PSMC();

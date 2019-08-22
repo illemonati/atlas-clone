@@ -1635,7 +1635,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	//check if probs are between 0 and 1, save in array and print them
 	double* downSampleProb = new double[numProbs];
-	logfile->listFlush("Will accept reads with probabilities");
+	logfile->listFlush("Will accept reads with probabilities (parameter 'prob'):");
 	bool first = true;
 	int i=0;
 	if(times == 1){
@@ -1732,12 +1732,12 @@ void TGenome::downSampleReads(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//read parameters
-	double fraction = params.getParameterDoubleWithDefault("fraction", 0.1);
-	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked.");
+	double fraction = params.getParameterDoubleWithDefault("prob", 0.1);
+	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked. (parameter 'prob')");
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
-	std::string filename = outputName + "_downsampledReads" + toString(fraction) + ".bam";
+	std::string filename = outputName + "_downsampledReads_" + toString(fraction) + ".bam";
 	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))

@@ -260,7 +260,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	TOutputFileZipped out(outputName);
 
 	//write header
-	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "numDiploid", "numHaploid", "freqAltHW", "freqGenoRefRef", "freqGenoRefAlt", "freqGenoAltAlt", "freqGenoRef", "freqGenoAlt", "freqAltGeno"};
+	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "numDiploid", "numHaploid", "freqAltHW", "freqGenoRefRef", "freqGenoRefAlt", "freqGenoAltAlt", "freqGenoRef", "freqGenoAlt", "freqAltGF"};
 	if(doBayesian){
 		header.push_back("freqAltHWBayes");
 		header.push_back("freqAltHWBayes_CI0.05");
