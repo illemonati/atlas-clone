@@ -61,7 +61,7 @@ public:
 		}
 	};
 	void sample(int & readLength, int & fragmentLength);
-	virtual int max(){return _maxPlusOne;};
+	virtual int max(){return _maxPlusOne - 1;};
 	virtual double mean(){return meanLength;};
 	virtual void printDetails(TLog* logfile);
 };

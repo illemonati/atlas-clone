@@ -164,14 +164,16 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	for(int i=0; i < _maxPlusOne; ++i)
 		positionProbs[i] /= sum;
 
-	if(gammaCumulDensity[_min] > 0.5) logfile->warning("This readLength distribution results in "+ toString(gammaCumulDensity[_min]*100) + "% discarded fragments because they are smaller than the minimum read length! Choose different parameters to reduce run time.");
+	if(gammaCumulDensity[_min] > 0.5)
+		logfile->warning("This readLength distribution results in "+ toString(gammaCumulDensity[_min]*100) + "% discarded fragments because they are smaller than the minimum read length! Choose different parameters to reduce run time.");
 }
 
 void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
 	fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	while(fragmentLength < _min)
+	while(fragmentLength < _min){
 		fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
-	readLength = std::min(fragmentLength, _maxPlusOne);
+	}
+	readLength = std::min(fragmentLength, _maxPlusOne-1);
 }
 
 void TSimulatorReadLengthGamma::printDetails(TLog* logfile){

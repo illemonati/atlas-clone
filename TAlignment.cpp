@@ -390,13 +390,17 @@ void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 	changed = true;
 };
 
-void TAlignment::filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting){
+void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string & qual, int & minQualForPrinting, int & maxQualForPrinting){
 	//set base to N if outside quality filter
-	for(std::string::iterator stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt){
-		if((int) *stringIt < minQualForPrinting)
+	std::string::iterator stringItBase = bases.begin();
+	for(std::string::iterator stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt, ++stringItBase){
+		if((int) *stringIt < minQualForPrinting){
 			*stringIt = (char) minQualForPrinting;
-		else if((int) *stringIt > maxQualForPrinting)
+			*stringItBase = 'N';
+		} else if((int) *stringIt > maxQualForPrinting){
 			*stringIt = (char) maxQualForPrinting;
+			*stringItBase = 'N';
+		}
 	}
 };
 
@@ -800,7 +804,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 	}
 
 	//make sure quality are printed within range
-	filterForPrintingBaseQuality(bamAlignment.Qualities, minQualForPrinting, maxQualForPrinting);
+	filterForPrintingBaseQuality(bamAlignment.QueryBases, bamAlignment.Qualities, minQualForPrinting, maxQualForPrinting);
 
 	//now write alignment
 	if(!bamWriter.SaveAlignment(bamAlignment))

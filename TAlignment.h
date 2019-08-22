@@ -68,7 +68,7 @@ private:
 	void fillPmdProbabilities(TPMD* pmdObjects);
 
 	//functions to modify data
-	void filterForPrintingBaseQuality(std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
+	void filterForPrintingBaseQuality(std::string & bases, std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
