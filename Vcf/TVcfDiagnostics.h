@@ -17,7 +17,10 @@
 #include "../TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
-
+#include "../TQualityMap.h"
+#include "../TFile.h"
+#include "../PopulationTools/TGLF.h"
+#include "../PopulationTools/TGenotypeFrequencies.h"
 
 class TGenotype{
 	public:
@@ -100,6 +103,23 @@ public:
 	}
 };
 
+class TVcfFilters{
+public:
+	//settings
+	long limitLines;
+	int minDepth;
+	int minNumSamplesWithData;
+	double freqFilter;
+	double epsilonF; //F for EM algorithm to estimate allele frequencies
+	int minVariantQuality;
+	bool estimateGenotypeFrequencies;
+	long progressFrequency;
+	std::string trueAlleleFreqFile;
+
+	void initialize(TParameters & Parameters, TLog* logfile);
+	TVcfFilters(TParameters & Parameters, TLog* logfile);
+};
+
 class VcfDiagnostics{
 private:
 	TLog* logfile;
@@ -117,6 +137,24 @@ private:
 	void initializeRandomGenerator();
 	std::pair<char, char> getGenotypeFromIndex(int index);
 
+	// beagle
+	void writeBeagleHeader(TOutputFileZipped & beagleFile);
+	void printProgressFrequencyFiltering(const struct timeval & startTime, long lineCounter, long numAcceptedLoci);
+	void concludeFilters(TVcfFilters & vcfFilters, const struct timeval & startTime,
+			long lineCounter, long notBialleleicCounter,
+			long missingSNPCounter, long lowFreqSNPCounter,
+			long lowVariantQualityCounter,
+			long noPLCounter, long numAcceptedLoci);
+	int filterOnDepth(int numSamples, TPopulationLikehoodLocus & data, TVcfFilters & vcfFilters);
+	bool readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
+			TOutputFileZipped & beagleFile,
+			long & lineCounter, long & notBialleleicCounter,
+			long & missingSNPCounter, long & lowFreqSNPCounter,
+			long & lowVariantQualityCounter,
+			long & noPLCounter, long & numAcceptedLoci, bool outputPhred);
+	void writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
+			TPopulationLikehoodLocus & data, int numSamples, bool outputPhred);
+
 public:
 	VcfDiagnostics(TParameters & Params, TLog* Logfile);
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
@@ -126,6 +164,9 @@ public:
 	void assessAllelicImbalance(TParameters & Params);
 	//void filterAllelicImbalance();
 	void vcfToInvariantBed();
+
+	// beagle
+	void vcfToBeagle(TParameters & Params);
 
 	void fixIntAsFloat();
 };

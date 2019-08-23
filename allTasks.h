@@ -561,6 +561,16 @@ public:
 	};
 };
 
+class TTask_VCFToBeagle:public TTask_atlas{
+public:
+	TTask_VCFToBeagle(){ _explanation = "Converting a VCF file to Beagle format"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		VcfDiagnostics VcfDiagnoser(parameters, logfile);
+		VcfDiagnoser.vcfToBeagle(parameters);
+	};
+};
+
 class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
