@@ -546,7 +546,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			uint8_t tmp[3];
 			for(int s = 0; s < samples.numSamples(); ++s){
 				int vcfIndex = samples.VCF_order(s);
-				vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[2], tmp[3]);
+				vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[1], tmp[2]);
 				data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
 				data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
 				data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);

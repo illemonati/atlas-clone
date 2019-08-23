@@ -145,8 +145,9 @@ public:
 		}
 
 		//write >max for remaining
-		for(int p=nextQuantile; p<numQuantiles; ++p)
+		for(int p=nextQuantile; p<numQuantiles; ++p){
 			out << quantiles[p] << ">" + toString(maxValue) << std::endl;
+		}
 	};
 };
 

@@ -256,7 +256,6 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		EmpiricalQuality = stringToDouble(line[3]);
 		Log10Observations = stringToDouble(line[4]);
 		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
-			std::cout << QualityScoreAsPhredInt << " "<<EmpiricalQuality << " " << trueQual(phi1, phi2, QualityScoreAsPhredInt) << std::endl;
 			++unacceptablesCount;
 		}
 		if(Log10Observations >= 4.5 && (EmpiricalQuality > maxEmpiricQual)){
@@ -271,7 +270,6 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	if(fabs(maxEmpiricQual - phi1) > acceptedDelta){
 		logfile->newLine();
 		logfile->conclude("There is at least one empirical quality scores that was estimated to be larger than phi1.");
-		std::cout << maxEmpiricQual << std::endl;
 		return false;
 	}
 	logfile->done();
@@ -353,19 +351,13 @@ TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationReca
 	_name = "qualityTransformation";
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "1,0{23}");
+	std::string onlyRecalParams = "1,0;0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+	recalParamString = params.getParameterStringWithDefault("recal_recalParams","qualFuncPosFuncContext[" + onlyRecalParams +"]");
 	maxReadLength = 70;
 	randomGenerator = new TRandomGenerator();
 	qualDistString = "10";
 	qualityDist =  new TSimulatorQualityDist(qualDistString);
-	recalObject = new TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
-
-	//parse true params
-	std::vector<std::string> tmpVec;
-	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
-	repeatIndexes(tmpVec, trueParams);
-	fillVectorFromStringAnySkipEmpty(qualDistString, qualDistVec, ",");
-
+	recalObject = new TSimulatorQualityTransformationRecal("qualFuncPosFuncContext[" + onlyRecalParams + "]", maxReadLength, qualityDist, randomGenerator);
 }
 
 bool TAtlasTest_qualityTransformationRecalPlain::run(){
@@ -374,9 +366,8 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "4");
-	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
-	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
+	_testParams.addParameter("recal", recalParamString);
+	_testParams.addParameter("readLength", "single:fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "fixed(" + qualDistString + ")");
 
 
@@ -388,7 +379,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	//1) Run qualityTransformation
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
+	_testParams.addParameter("recal", recalParamString);
 
 
 	if(!runTGenomeFromInputfile("qualityTransformation"))
@@ -428,14 +419,14 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 	int numQualScores = trueQualScores.size();
 	for(int i=0; i<numQualScores; ++i){
 		transformedQualScores.push_back(recalObject->getTransformedQuality(trueQualScores[i],0,0));
-		std::cout << recalObject->getTransformedQuality(trueQualScores[i],0,0) << " " << trueQualScores[i]<< std::endl;
+		std::cout << "trans quals " << transformedQualScores[i] << std::endl;
 	}
+
 
 	//is the rest = 0?
 	double s = 0.0;
 	for(unsigned int i=1; i<qualTransTable.size(); ++i){
 		for(unsigned int j=1; j<qualTransTable[i].size(); ++j){
-			if( qualTransTable[i][j] > 0) std::cout << i << " " << j << " " << qualTransTable[i][j] << std::endl;
 			s += qualTransTable[i][j];
 		}
 	}
@@ -461,7 +452,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 
 //---------------------------------------
 TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRecalBinned(TParameters & params, TLog* logfile):TAtlasTest_qualityTransformationRecalPlain(params, logfile){
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0{23}");
+	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "qualFuncPosFuncContext[2,0;0,0;0{20}]");
 	qualDistString = "(10,15,20,30)";
 	qualityDist =  new TSimulatorQualityDistBinned(qualDistString, randomGenerator);
 	recalObject = new TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
@@ -474,9 +465,8 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "2");
-	_testParams.addParameter("ploidy", "2");
-	_testParams.addParameter("recalTransformation", "recal[" + recalParamString + "]");
-	_testParams.addParameter("readLength", "fixed("+toString(maxReadLength) + ")");
+	_testParams.addParameter("recalTransformation", recalParamString);
+	_testParams.addParameter("readLength", "single:fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
 
 	if(!runTGenomeFromInputfile("simulate"))
@@ -487,7 +477,7 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	//1) Run qualityTransformation
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
+	_testParams.addParameter("recal", recalParamString);
 
 	if(!runTGenomeFromInputfile("qualityTransformation"))
 		return false;
@@ -495,7 +485,8 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	//3) check if results are OK
 	//--------------------------
 	if(readTransformationFile() == true){
-		if(checkTransformation(qualDistVec) == true) return true;
+		if(checkTransformation(qualDistVec) == true)
+			return true;
 	}
 	return false;
 }
