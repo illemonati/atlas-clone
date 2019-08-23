@@ -47,7 +47,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["estimateAlleleFreq"] = new TTask_estimateAlleleFreq();
 	taskMap_regular["estimateInbreeding"] = new TTask_estimateInbreeding();
 	taskMap_regular["simulate"] = new TTask_simulate();
-	taskMap_regular["VCFDiagnostics"] = new TTask_VCFDiagnostics();
+	taskMap_regular["VCFAssessAllelicBalance"] = new TTask_VCFDiagnostics();
 	taskMap_regular["VCFToInvariantBed"] = new TTask_VCFToInvariantBed();
 	taskMap_regular["VCFFixInt"] = new TTask_VCFFixInt();
 	taskMap_regular["VCFCompare"] = new TTask_VCFCompare();

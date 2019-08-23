@@ -51,8 +51,6 @@ public:
 		outname = Outname;
 		initialize();
 		openOut(Outname, Logfile);
-		std::cout << "nrows " << nrows << std::endl;
-		std::cout << "ncols " << ncols << std::endl;
 	}
 
 	void initialize(){
