@@ -145,16 +145,16 @@ private:
 			long missingSNPCounter, long lowFreqSNPCounter,
 			long lowVariantQualityCounter,
 			long noPLCounter, long numAcceptedLoci);
-	int filterOnDepth(int numSamples, TPopulationLikehoodLocus & data, TVcfFilters & vcfFilters);
+	int filterOnDepth(int numSamples, double * data, TVcfFilters & vcfFilters);
 	bool readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 			TOutputFileZipped & beagleFile,
 			long & lineCounter, long & notBialleleicCounter,
 			long & missingSNPCounter, long & lowFreqSNPCounter,
 			long & lowVariantQualityCounter,
-			long & noPLCounter, long & numAcceptedLoci, bool outputPhred);
+			long & noPLCounter, long & numAcceptedLoci);
 	void writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
-			TPopulationLikehoodLocus & data, int numSamples, bool outputPhred);
-
+			double * data, int numSamples);
+	inline double phredToError(double phred);
 public:
 	VcfDiagnostics(TParameters & Params, TLog* Logfile);
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
