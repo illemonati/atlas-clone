@@ -547,9 +547,7 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
 				}
 				if(_betas[1] == 0.0){
-					transQual = -constant;// / _betas[0];
-					if(q == 10)
-						std::cout << "##### eta in beta[1] is " << transQual << std::endl;
+					transQual = -constant / _betas[0];
 				} else {
 					tmp = sqrt(_betas[0] * _betas[0] - 4.0 * _betas[1] * constant);
 					transQual = (tmp - _betas[0]) / 2.0 / _betas[1];
@@ -561,8 +559,6 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 			}
 		}
 	}
-
-	std::cout << "##### " << _betas[0] << " "<< transformedQuality[10][0][0] << std::endl;
 
 	//clean up
 	delete[] qualTermForTransformation;

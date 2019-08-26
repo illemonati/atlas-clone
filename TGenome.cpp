@@ -1532,18 +1532,20 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
-	if(params.parameterExists("keepOriginalQuality")){
-		logfile->list("Will keep original qualities of preferred base.");
-		merger.keepOriginalQuality();
-	} else {
-		logfile->list("Will adapt qualities over overlapping bases to reflect additional information (use keepOriginalQuality to turn off).");
-	}
-
+	//keep which base?
 	if(params.parameterExists("keepRandomBase")){
 		logfile->list("Will keep random base at overlapping positions.");
 		merger.keepRandomBase();
 	} else {
 		logfile->list("Will keep base with higher quality score at overlapping positions.");
+	}
+
+	//write which quality score?
+	if(params.parameterExists("updateQuality")){
+		logfile->list("Will update quality scores of prefered bases to reflect information from overlapping bases.");
+	} else {
+		merger.keepOriginalQuality();
+		logfile->list("Will keep original quality scores of the prefered bases (use updateQuality to update quality scores).");
 	}
 
 	//measure progress and runtime

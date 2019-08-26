@@ -799,7 +799,8 @@ bool TAlignmentParser::readAlignment(){
 		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 			if(_updateBlacklist){
-				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");				filtersPassed = false;
+				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
+				filtersPassed = false;
 			} else {
 				logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			}
@@ -876,17 +877,6 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	if(readAlignment()){
 		fillAlignment(alignment);
 		return true;
-	}
-	return false;
-};
-
-bool TAlignmentParser::readNextAlignmentWithBlacklist(TAlignment & alignment){
-	//use this in TGenome for functionalities that don't need windows
-	if(readAlignment()){
-		fillAlignment(alignment);
-		return true;
-	} else if(!readAlignment()){
-		blacklist.emplace(bamAlignment.Name, 1);
 	}
 	return false;
 };
