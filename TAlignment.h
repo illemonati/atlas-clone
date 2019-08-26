@@ -68,7 +68,7 @@ private:
 	void fillPmdProbabilities(TPMD* pmdObjects);
 
 	//functions to modify data
-	void filterForPrintingBaseQuality(std::string & bases, std::string & qual, int & minQualForPrinting, int & maxQualForPrinting);
+	void filterForPrintingBaseQuality(std::string & bases, std::string & qual, int minQualForPrinting, int maxQualForPrinting);
 	void trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 
@@ -95,7 +95,7 @@ public:
 	//functions to write / print alignment
 	void setToSingleEnd();
 	void setIsProperPair(const bool & ok);
-	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap);
+	void save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int minQualForPrinting, int maxQualForPrinting, TQualityMap & qualMap);
 	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
 	void setAlignmentHasChanged(){ changed = true; };
 

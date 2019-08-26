@@ -278,7 +278,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	int maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
 	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
 	setQualityRangeForPrinting(minOutQual, maxOutQual);
-	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual'");
+	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual')");
 
 	//filter for missing reference
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
@@ -860,9 +860,9 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 			alignment.trimRead(trimmingLength3Prime, trimmingLength5Prime);
 		if(applyQualityFilter)
 			alignment.filterForBaseQuality(minQual, maxQual);
-		if(doRecalibration)
+		if(doRecalibration){
 			recalibrate(alignment);
-		if(hasReference)
+		}if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 	}
 };

@@ -390,7 +390,7 @@ void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 	changed = true;
 };
 
-void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string & qual, int & minQualForPrinting, int & maxQualForPrinting){
+void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string & qual, int minQualForPrinting, int maxQualForPrinting){
 	//set base to N if outside quality filter
 	std::string::iterator stringItBase = bases.begin();
 	for(std::string::iterator stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt, ++stringItBase){
@@ -787,7 +787,7 @@ void TAlignment::setIsProperPair(const bool & ok){
 	isProperPair = false;
 }
 
-void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int & minQualForPrinting, int & maxQualForPrinting, TQualityMap & qualMap){
+void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int minQualForPrinting, int maxQualForPrinting, TQualityMap & qualMap){
 	if(changed){
 		//means that read has been modified.
 		//Currently quality recalibration and PMDS flag is the only possible change.

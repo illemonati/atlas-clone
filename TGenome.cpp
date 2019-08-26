@@ -905,8 +905,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
-			alignmentParser.recalibrate(alignment);
-			alignment.save(bamWriter, genoMap, alignmentParser.maxQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			reportProgressParsingBamFile(counter, start);
 		}
 	}

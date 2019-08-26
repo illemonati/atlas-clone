@@ -635,12 +635,12 @@ bool TAtlasTest_theta::run(){
 	//only simulate BAM if it does not already exist
 	std::string filenameTheta = filenameTag + "_theta_estimates.txt.gz";
 	gz::igzstream in(filenameTheta.c_str());
-	if(!in){
+//	if(!in){
 		_testParams.addParameter("bam", bamFileName);
 		if(!runTGenomeFromInputfile("estimateTheta"))
 			return false;
-	} else
-		logfile->conclude("theta estimates already exists");
+//	} else
+//		logfile->conclude("theta estimates already exists");
 	logfile->newLine();
 
 	//3) check if results are OK
