@@ -86,11 +86,9 @@ void TRecalibrationEMModel_Base::_freeBetaMemory(){
 
 double TRecalibrationEMModel_Base::_calcEpsilon(double & eta){
 	if(eta > 23.03){
-		throw "eta is too large";
 		return 0.9999999999;
 	}
 	if(eta < -23.03){
-		throw "eta is too small";
 		return 0.0000000001;
 	}
 
