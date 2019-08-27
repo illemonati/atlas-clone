@@ -160,12 +160,6 @@ int VcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> & f
 }
 
 void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
-	//enable parsers
-	vcfFile.enablePositionParsing();
-	vcfFile.enableFormatParsing();
-	vcfFile.enableSampleParsing();
-	vcfFile.enableVariantParsing();
-
 	//output
 	logfile->list("Writing files to '" + outname + "_allelicDepth.txt'");
 
@@ -290,47 +284,43 @@ void VcfDiagnostics::concludeFilters(TVcfFilters & vcfFilters, const struct time
 		logfile->conclude(toString(noPLCounter) + " loci had no PL or GL field.");
 	if(missingSNPCounter > 0)
 		logfile->conclude(toString(missingSNPCounter) + " loci had < " + toString(vcfFilters.minNumSamplesWithData) + " samples with data.");
-	if(lowFreqSNPCounter > 0)
-		logfile->conclude(toString(lowFreqSNPCounter) + " loci had MAF < " + toString(vcfFilters.freqFilter) + ".");
+	/*if(lowFreqSNPCounter > 0)
+		logfile->conclude(toString(lowFreqSNPCounter) + " loci had MAF < " + toString(vcfFilters.freqFilter) + ".");*/
 }
 
-int VcfDiagnostics::filterOnDepth(int numSamples, TPopulationLikehoodLocus & data, TVcfFilters & vcfFilters){
+int VcfDiagnostics::filterOnDepth(int numSamples, double * data, TVcfFilters & vcfFilters){
 	int numIndividualsWithData = 0;
-	for(int s = 0; s < numSamples; ++s){
-
-		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
+	unsigned int index = 0;
+	for(int s = 0; s < numSamples; ++s, index+=3){
+		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 0.333)
 		if (vcfFile.sampleDepth(s) < vcfFilters.minDepth)
 			vcfFile.setSampleMissing(s);
 		else
 			numIndividualsWithData++;
-
-		//store if missing and haploid
-		data[s].isMissing = vcfFile.sampleIsMissing(s);
-		data[s].isHaploid = vcfFile.sampleIsHaploid(s);
 	}
 
 	return numIndividualsWithData;
 }
+
+inline double VcfDiagnostics::phredToError(double phred){
+	return pow(10.0, -phred/10.0);
+};
 
 bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 		TOutputFileZipped & beagleFile,
 		long & lineCounter, long & notBialleleicCounter,
 		long & missingSNPCounter, long & lowFreqSNPCounter,
 		long & lowVariantQualityCounter,
-		long & noPLCounter, long & numAcceptedLoci, bool outputPhred){
+		long & noPLCounter, long & numAcceptedLoci){
 
 	//set time at beginning
 	struct timeval startTime;
 	gettimeofday(&startTime, nullptr);
 
-	// initialize converter
-    TGlfConverter glfConverter;
-	TGenotypeFrequencies genoFrequencies;
-
     // initialize storage (store locus, then write, then overwrite)
     int numSamples = vcfFile.numSamples();
 
-    TPopulationLikehoodLocus data(numSamples);
+    double data[3*numSamples];
 
 	//read next
 	while(vcfFile.next()){ // new line in vcf-file (= new locus)
@@ -362,34 +352,41 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
         int numIndividualsWithData = 0;
 		if(vcfFile.formatColExists("GL")){
 			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
-			double tmp[3];
-			for(int s = 0; s < numSamples; ++s){
-				vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]);
-				data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
-				data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
-				data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
+			unsigned int index = 0;
+			for(int s = 0; s < numSamples; ++s, index+=3){
+				if (vcfFile.sampleIsMissing(s)){
+					data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
+				}
+				else
+					vcfFile.fillLog10GenotypeLikelihoods(s, data[index], data[index + 1], data[index + 2]);
 			}
 		} else if(vcfFile.formatColExists("PL")){
 			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
 			uint8_t tmp[3];
-			for(int s = 0; s < numSamples; ++s){
-				vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
-				data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]); // todo: change to normal genotype likelihoods!
-				data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
-				data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
+			unsigned int index = 0;
+			for(int s = 0; s < numSamples; ++s, index+=3){
+				if (vcfFile.sampleIsMissing(s)){
+					data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
+				}
+				else{
+					vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
+					data[index] = phredToError(tmp[0]);
+					data[index + 1] = phredToError(tmp[1]);
+					data[index + 2] = phredToError(tmp[2]);
+				}
 			}
 		} else {
 			++noPLCounter;
 			continue;
 		}
 
-		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
+		// missingness filter: if less than <minNumSamplesWithData> individuals per locus have are missing, remove locus
 		if (numIndividualsWithData < vcfFilters.minNumSamplesWithData){
 			missingSNPCounter++;
-			continue; // skip rest of loop (don't store)
+			continue;
 		}
 
-		//filter in MAF
+		/*//filter in MAF --> TODO: check with Dan if this is necessary
 		if(vcfFilters.freqFilter > 0.0 || vcfFilters.estimateGenotypeFrequencies){
 			genoFrequencies.estimate(data, glfConverter, vcfFilters.epsilonF);
 
@@ -397,11 +394,11 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 				lowFreqSNPCounter++;
 				continue;
 			}
-		}
+		}*/
 
 		//SNP is accepted!
 		++numAcceptedLoci;
-		writeLocusToBeagleFile(beagleFile, data, numSamples, outputPhred);
+		writeLocusToBeagleFile(beagleFile, data, numSamples);
 		return true;
     }
 
@@ -416,27 +413,14 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 }
 
 void VcfDiagnostics::writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
-		TPopulationLikehoodLocus & data, int numSamples, bool outputPhred){
+		double * data, int numSamples){
 	//write line
 	std::string marker = vcfFile.chr() + ":" + toString(vcfFile.position());
 	beagleFile << marker; // marker
 	beagleFile << baseToNumber(vcfFile.getRefAllele(), marker) << baseToNumber(vcfFile.getFirstAltAllele(), marker); // ref and alt allele
 
-	if (outputPhred) { // todo: change to phred!!!
-		for (int s = 0; s < numSamples; s++){
-			if (data[s].isMissing)
-				beagleFile << "0.333" << "0.333" << "0.333";
-			else
-				beagleFile << data[s].glfLikelihood_0 << data[s].glfLikelihood_1 << data[s].glfLikelihood_2;
-		}
-	}
-	else {
-		for (int s = 0; s < numSamples; s++){
-			if (data[s].isMissing)
-				beagleFile << "0.333" << "0.333" << "0.333";
-			else
-				beagleFile << data[s].glfLikelihood_0 << data[s].glfLikelihood_1 << data[s].glfLikelihood_2;
-		}
+	for (int s = 0; s < numSamples * 3; s+=3){
+		beagleFile << data[s] << data[s + 1] << data[s + 2];
 	}
 
 	beagleFile.endLine();
@@ -445,15 +429,6 @@ void VcfDiagnostics::writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
 void VcfDiagnostics::vcfToBeagle(TParameters & Params){
 	// read vcf filters
 	TVcfFilters vcfFilters(Params, logfile);
-
-	// output phred genotype likelihoods?
-	bool gtlPhred = false;
-	if (Params.getParameterString("phred", false) == "true"){
-		gtlPhred = true;
-		logfile->list("Will write phred genotype likelihoods to beagle file.");
-	}
-	else
-		logfile->list("Will write non-phred genotype likelihoods to beagle file.");
 
 	//open output files
 	TOutputFileZipped beagleFile(outname + ".beagle.gz");
@@ -472,7 +447,7 @@ void VcfDiagnostics::vcfToBeagle(TParameters & Params){
 	while(readVcfAndWriteBeagle(vcfFilters, beagleFile,
 			lineCounter, notBialleleicCounter,
 			missingSNPCounter, lowFreqSNPCounter,
-			lowVariantQualityCounter, noPLCounter, numAcceptedLoci, gtlPhred))
+			lowVariantQualityCounter, noPLCounter, numAcceptedLoci))
 	{ continue; }
 
 
@@ -622,10 +597,10 @@ TVcfFilters::TVcfFilters(TParameters & Params, TLog * logfile){
 	limitLines = 0;
 	minDepth = 1;
 	minNumSamplesWithData = 0;
-	freqFilter = 0.0;
-	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
+	//freqFilter = 0.0;
+	//epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
 	minVariantQuality = 0;
-	estimateGenotypeFrequencies = false;
+	//estimateGenotypeFrequencies = false;
 
 	initialize(Params, logfile);
 }
@@ -652,7 +627,7 @@ void TVcfFilters::initialize(TParameters & Parameters, TLog * logfile){
 		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data.");
 
 	// parameters to set a filter on the allele frequency?
-	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
+	/*freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
 	if(freqFilter < 0.0 || freqFilter >= 0.5)
 		throw "MAF filter must be within (0.0,0.5)!";
 	if(freqFilter > 0.0){
@@ -661,7 +636,7 @@ void TVcfFilters::initialize(TParameters & Parameters, TLog * logfile){
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
 	} else {
 		estimateGenotypeFrequencies = false;
-	}
+	}*/
 
 	//filter on variant quality?
 	minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
