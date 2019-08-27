@@ -332,7 +332,7 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilt
 		}
 
 		// keep chromosomes
-		if (vcfFilters.chromosomesToKeep.empty() || // don't keep this chromosome
+		if (!vcfFilters.chromosomesToKeep.empty() && // don't keep this chromosome
 				std::find(vcfFilters.chromosomesToKeep.begin(), vcfFilters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.chromosomesToKeep.end()){
 			notOnChrCounter ++;
 			continue;
