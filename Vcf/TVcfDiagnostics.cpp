@@ -405,7 +405,7 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilt
     }
 
 	//return false at end of file
-	logfile->list("Reached end of VCF file.");
+	logfile->endIndent("Reached end of VCF file.");
 	concludeFilters(vcfFilters, startTime,
 			lineCounter, notBialleleicCounter,
 			missingSNPCounter, lowFreqSNPCounter,
@@ -447,7 +447,7 @@ void VcfDiagnostics::vcfToBeagle(TParameters & Params){
 	long numAcceptedLoci = 0;
 
 	//set time at beginning
-	logfile->list("Start parsing VCF-file...");
+	logfile->startIndent("Start parsing VCF-file...");
 	struct timeval startTime;
 	gettimeofday(&startTime, nullptr);
 
