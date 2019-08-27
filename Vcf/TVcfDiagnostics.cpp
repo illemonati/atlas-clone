@@ -274,7 +274,7 @@ void VcfDiagnostics::concludeFilters(TVcfFilters & vcfFilters, const struct time
 		long lineCounter, long notBialleleicCounter,
 		long missingSNPCounter, long lowFreqSNPCounter,
 		long lowVariantQualityCounter,
-		long noPLCounter, long numAcceptedLoci){
+		long noPLCounter, long notOnChrCounter, long numAcceptedLoci){
 	printProgressFrequencyFiltering(startTime, lineCounter, numAcceptedLoci);
 	if(notBialleleicCounter > 0)
 		logfile->conclude(toString(notBialleleicCounter) + " loci were not bi-allelic.");
@@ -284,6 +284,8 @@ void VcfDiagnostics::concludeFilters(TVcfFilters & vcfFilters, const struct time
 		logfile->conclude(toString(noPLCounter) + " loci had no PL or GL field.");
 	if(missingSNPCounter > 0)
 		logfile->conclude(toString(missingSNPCounter) + " loci had < " + toString(vcfFilters.minNumSamplesWithData) + " samples with data.");
+	if(notOnChrCounter > 0)
+		logfile->conclude(toString(notOnChrCounter) + " loci were on other chromosomes than specified.");
 	/*if(lowFreqSNPCounter > 0)
 		logfile->conclude(toString(lowFreqSNPCounter) + " loci had MAF < " + toString(vcfFilters.freqFilter) + ".");*/
 }
@@ -306,19 +308,12 @@ inline double VcfDiagnostics::phredToError(double phred){
 	return pow(10.0, -phred/10.0);
 };
 
-bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
+bool VcfDiagnostics::readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilters,
 		TOutputFileZipped & beagleFile,
 		long & lineCounter, long & notBialleleicCounter,
 		long & missingSNPCounter, long & lowFreqSNPCounter,
 		long & lowVariantQualityCounter,
-		long & noPLCounter, long & numAcceptedLoci){
-
-	//set time at beginning
-	struct timeval startTime;
-	gettimeofday(&startTime, nullptr);
-
-    // initialize storage (store locus, then write, then overwrite)
-    int numSamples = vcfFile.numSamples();
+		long & noPLCounter, long & notOnChrCounter, long & numAcceptedLoci, struct timeval & startTime){
 
     double data[3*numSamples];
 
@@ -334,6 +329,13 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 		if(vcfFilters.limitLines > 0 && lineCounter > vcfFilters.limitLines){
 			logfile->list("Reached limit of " + toString(vcfFilters.limitLines) + " lines.");
 			return false;
+		}
+
+		// keep chromosomes
+		if (vcfFilters.chromosomesToKeep.empty() || // don't keep this chromosome
+				std::find(vcfFilters.chromosomesToKeep.begin(), vcfFilters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.chromosomesToKeep.end()){
+			notOnChrCounter ++;
+			continue;
 		}
 
         //skip sites with != 2 alleles
@@ -407,7 +409,7 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
 	concludeFilters(vcfFilters, startTime,
 			lineCounter, notBialleleicCounter,
 			missingSNPCounter, lowFreqSNPCounter,
-			lowVariantQualityCounter, noPLCounter, numAcceptedLoci);
+			lowVariantQualityCounter, noPLCounter, notOnChrCounter, numAcceptedLoci);
 
 	return false;
 }
@@ -441,13 +443,22 @@ void VcfDiagnostics::vcfToBeagle(TParameters & Params){
 	long lowFreqSNPCounter = 0;
 	long lowVariantQualityCounter = 0;
 	long noPLCounter = 0;
+	long notOnChrCounter = 0;
 	long numAcceptedLoci = 0;
 
+	//set time at beginning
+	logfile->list("Start parsing VCF-file...");
+	struct timeval startTime;
+	gettimeofday(&startTime, nullptr);
+
+    // initialize storage (store locus, then write, then overwrite)
+    int numSamples = vcfFile.numSamples();
+
 	// parse vcf-file and write to beagle
-	while(readVcfAndWriteBeagle(vcfFilters, beagleFile,
+	while(readVcfAndWriteBeagle(numSamples, vcfFilters, beagleFile,
 			lineCounter, notBialleleicCounter,
 			missingSNPCounter, lowFreqSNPCounter,
-			lowVariantQualityCounter, noPLCounter, numAcceptedLoci))
+			lowVariantQualityCounter, noPLCounter, notOnChrCounter, numAcceptedLoci, startTime))
 	{ continue; }
 
 
@@ -645,7 +656,44 @@ void TVcfFilters::initialize(TParameters & Parameters, TLog * logfile){
 		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
 	}
 
+	// filter for specific chromosomes?
+	if(Parameters.parameterExists("keepChromosomes"))
+		specifyChromosomesToKeep(logfile, Parameters);
+
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
+}
+
+
+void TVcfFilters::specifyChromosomesToKeep(TLog* logfile, TParameters & Parameters){
+	std::string argument = Parameters.getParameterString("keepChromosomes");
+	if(stringContains(argument, ".txt")){ // specified as a file name
+		logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
+		std::ifstream keepChromosomesFile(argument.c_str());
+		if(!keepChromosomesFile)
+			throw "Failed to open file '" + argument + "'!";
+		while(keepChromosomesFile.good() && !keepChromosomesFile.eof()){
+			std::string line;
+			std::getline(keepChromosomesFile, line);
+			std::vector<std::string> vec;
+			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			//skip empty lines
+			if(vec.size() > 0)
+				chromosomesToKeep.push_back(vec[0]);
+		}
+		keepChromosomesFile.close();
+	}
+	else { // specified as a vector on command line
+		logfile->startIndent("Reading chromosomes from command line.");
+		fillVectorFromString(Parameters.getParameterString("keepChromosomes"), chromosomesToKeep, ',');
+	}
+
+	// write to logfile
+	logfile->startIndent("Will keep the following chromosomes in the beagle file:");
+	for (std::vector<std::string>::iterator it = chromosomesToKeep.begin(); it < chromosomesToKeep.end(); it ++)
+		logfile->list(*it);
+
+	logfile->endIndent();
+	logfile->endIndent();
 }
 

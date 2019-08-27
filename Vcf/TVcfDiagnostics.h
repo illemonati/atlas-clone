@@ -17,6 +17,7 @@
 #include "../TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
+#include <algorithm>
 #include "../TQualityMap.h"
 #include "../TFile.h"
 #include "../PopulationTools/TGLF.h"
@@ -104,19 +105,23 @@ public:
 };
 
 class TVcfFilters{
+private:
+	void specifyChromosomesToKeep(TLog* logfile, TParameters & Parameters);
+	void initialize(TParameters & Parameters, TLog* logfile);
+
 public:
 	//settings
 	long limitLines;
 	int minDepth;
 	int minNumSamplesWithData;
-	double freqFilter;
-	double epsilonF; //F for EM algorithm to estimate allele frequencies
+	//double freqFilter;
+	//double epsilonF; //F for EM algorithm to estimate allele frequencies
 	int minVariantQuality;
-	bool estimateGenotypeFrequencies;
+	//bool estimateGenotypeFrequencies;
 	long progressFrequency;
 	std::string trueAlleleFreqFile;
+	std::vector<std::string> chromosomesToKeep;
 
-	void initialize(TParameters & Parameters, TLog* logfile);
 	TVcfFilters(TParameters & Parameters, TLog* logfile);
 };
 
@@ -144,14 +149,14 @@ private:
 			long lineCounter, long notBialleleicCounter,
 			long missingSNPCounter, long lowFreqSNPCounter,
 			long lowVariantQualityCounter,
-			long noPLCounter, long numAcceptedLoci);
+			long noPLCounter, long notOnChrCounter, long numAcceptedLoci);
 	int filterOnDepth(int numSamples, double * data, TVcfFilters & vcfFilters);
-	bool readVcfAndWriteBeagle(TVcfFilters & vcfFilters,
+	bool readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilters,
 			TOutputFileZipped & beagleFile,
 			long & lineCounter, long & notBialleleicCounter,
 			long & missingSNPCounter, long & lowFreqSNPCounter,
 			long & lowVariantQualityCounter,
-			long & noPLCounter, long & numAcceptedLoci);
+			long & noPLCounter, long & notOnChrCounter, long & numAcceptedLoci, struct timeval & startTime);
 	void writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
 			double * data, int numSamples);
 	inline double phredToError(double phred);
