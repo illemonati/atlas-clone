@@ -354,13 +354,18 @@ bool VcfDiagnostics::readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilt
         int numIndividualsWithData = 0;
 		if(vcfFile.formatColExists("GL")){
 			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
+			double tmp[3];
 			unsigned int index = 0;
 			for(int s = 0; s < numSamples; ++s, index+=3){
 				if (vcfFile.sampleIsMissing(s)){
 					data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
 				}
-				else
-					vcfFile.fillLog10GenotypeLikelihoods(s, data[index], data[index + 1], data[index + 2]);
+				else{
+					vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]); // log10 -> take 10^
+					data[index] = pow(10, tmp[0]);
+					data[index + 1] = pow(10, tmp[1]);
+					data[index + 2] = pow(10, tmp[2]);
+				}
 			}
 		} else if(vcfFile.formatColExists("PL")){
 			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
