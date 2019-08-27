@@ -1194,6 +1194,41 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 	worstBase.base = N;
 }
 
+void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
+	//deletions and insertions are kept as is. these positions are not compared
+	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
+		fwdAlignment->setAlignmentHasChanged();
+		revAlignment->setAlignmentHasChanged();
+
+		//which read to keep
+		bool keepFwd = true;
+		if(randomGenerator->getRand() < 0.5)
+			keepFwd = false;
+
+		//reads overlap -> check if there are bases overlapping same position in ref
+		//alignedPos is with respect to read
+		int fwdP = 0;
+		int revP = 0;
+		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
+			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+				//bases overlap same position in ref -> choose at random which to keep
+				if(keepFwd){
+					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
+				} else {
+					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
+				}
+				//increment both counters
+				++fwdP;
+				++revP;
+			} else if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < revAlignment->position + revAlignment->bases[revP].alignedPos){
+				++fwdP;
+			} else {
+				++revP;
+			}
+		}
+	}
+}
+
 void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
 	//deletions and insertions are kept as is. these positions are not compared
 	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){

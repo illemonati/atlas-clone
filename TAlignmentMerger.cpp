@@ -14,6 +14,7 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 	_adaptQuality = true;
 	_filterOrphans = true;
 	_keepRandomBase = false;
+	_keepRandomRead = false;
 };
 
 void TAlignmentMerger::_writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it){
@@ -55,6 +56,8 @@ void TAlignmentMerger::addToBeMerged(TAlignment & alignment, TRandomGenerator* r
 		alignmentStorage.emplace_back(alignment, false);
 	} else {
 		//mate found, merge!
+		if(_keepRandomRead)
+			parser->mergeAlignedBasesOneRead(it->alignment, &alignment, _adaptQuality, randomGenerator);
 		if(_keepRandomBase)
 			parser->mergeAlignedBasesBamReadsRandom(it->alignment, &alignment, _adaptQuality, randomGenerator);
 		else

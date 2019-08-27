@@ -71,6 +71,7 @@ private:
 	bool _filterOrphans;
 	bool _adaptQuality;
 	bool _keepRandomBase;
+	bool _keepRandomRead;
 
 	void _writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it);
 	void _addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error);
@@ -83,6 +84,7 @@ public:
 	void keepOrphans(){ _filterOrphans = false; };
 	void keepOriginalQuality(){ _adaptQuality = false; };
 	void keepRandomBase(){ _keepRandomBase = true; };
+	void keepRandomRead(){ _keepRandomRead = true; };
 
 	void addToBeMerged(TAlignment & alignment, TRandomGenerator* randomGenerator);
 	void checkForMateAndWriteUnmerged(TAlignment & alignment);
