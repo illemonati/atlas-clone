@@ -164,7 +164,6 @@ public:
 	VcfDiagnostics(TParameters & Params, TLog* Logfile);
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 	int baseToNumber(char base, std::string & marker);
-	void vcfToBeagle();
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
 	void assessAllelicImbalance(TParameters & Params);
 	//void filterAllelicImbalance();
