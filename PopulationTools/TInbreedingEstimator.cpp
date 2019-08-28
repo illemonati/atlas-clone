@@ -257,7 +257,6 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 //		}
 	}
 
-//	numUpdates = 0;
 }
 
 void TAlleleFreq::update(const long & index, const double & value, const bool ModelP){
@@ -269,7 +268,6 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 	}
 	//update current model
 	modelP[index] = ModelP;
-//	std::cout << "value " << value << std::endl;
 
 	//update posteriors
 	posteriorProbModelP[index] += ModelP;
@@ -281,30 +279,17 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 	//freq value
 	if(value < 0 || value > 1)
 		throw "updating allele freq at locus " + toString(index) + " to value out of range!";
-//	if(value < minAlleleFreq)
-//		alleleFreq[index] = minAlleleFreq;
-//	else if(value > 1.0 - minAlleleFreq)
-//		alleleFreq[index] = 1.0 - minAlleleFreq;
-//	else
 	alleleFreq[index] = value;
 
 	if(modelP[index] == true && alleleFreq[index] == 0.0)
 		throw "allele freq at locus " + toString(index) + " is " + toString(alleleFreq[index]) + " but locus is in modelP=" + toString(modelP[index]);
-//	if(modelP[index] == false && alleleFreq[index] > 0.0)
-//		throw "allele freq at locus " + toString(index) + " is " + toString(alleleFreq[index]) + " but locus is in modelP=" + toString(modelP[index]);
-
 }
 
 double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGenerator){
-//	newAlleleFreq[G][l] = fabs(alleleFreq[G][l] + (randomGenerator.getRand()-0.5) * proposalWidthFrequencies[G][l]);
-
 	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
-	//is proposed p outside range [0,1]
 	if(newP < 0.0){
-//		std::cout << "mirroring p at 0: " << newP << " to " << -newP << std::endl;
 		newP = - newP;
 	} else if(newP > 1.0){
-//		std::cout << "mirroring p at 1: " << newP << " to " << 2 - newP << std::endl;
 		newP = 2.0 - newP;
 	}
 	if(newP == 0.0){
@@ -1356,8 +1341,15 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	else
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
 
+	long numLociWithAcceptanceZero = 0;
+	for(long l=0; l<numLoci; ++l){
+		if(numAcceptedP[l] == 0){
+			++numLociWithAcceptanceZero;
+		}
+	}
+
 	if(p.numLociWithAcceptanceZero() > 0){
-		logfile->conclude(toString(p.numLociWithAcceptanceZero()) + " out of " + toString(numLoci) + " loci have an acceptance rate equal to zero");
+		logfile->conclude(toString(numLociWithAcceptanceZero) + " out of " + toString(numLoci) + " loci have an acceptance rate equal to zero");
 	}
 }
 
