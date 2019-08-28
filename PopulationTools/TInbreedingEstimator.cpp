@@ -161,7 +161,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	lambda = Lambda;
 	logLambda = log(Lambda);
 	expMinusLambda = log(1-exp(-lambda));
-	minAlleleFreq = 1.0 / ((double) 2.0 * numSamples) / 100.0;
+	minAlleleFreq = 1.0 / (2.0 * (double) numSamples) / 100.0;
 	probMovingToModel0 = ProbMovingToModel0;
 	probMovingToModelP = ProbMovingToModelP;
 	logProbMovingToModel0 = log(probMovingToModel0);
@@ -172,8 +172,11 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	//init proposal widths and check range of p
 
 	for(int l=0; l<numLoci; ++l){
-		if(alleleFreq[l] < 1.0 / (2*numSamples))
-			alleleFreq[l] = 1.0 / (2*numSamples);
+		double min = 1.0 / (2.0 * (double) numSamples);
+		if(alleleFreq[l] < min)
+			alleleFreq[l] = min;
+		else if(alleleFreq[l] > 1.0 - min)
+			alleleFreq[l] = 1.0 - min;
 	}
 
 	for(int l=0; l<numLoci; ++l){
@@ -1377,11 +1380,8 @@ void TInbreedingEstimator::adjustProposalWidths(){
 }
 
 void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter){
-//	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t"
-//			<< p[0] << "\t" <<  p[1] << "\t" <<  p[2] << "\t" <<  p[3] << "\t" <<  p[117] << std::endl;;
-
 	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getPi();
-	for(unsigned int l=0; l<numLoci; ++l){
+	for(unsigned int l=0; l<1000; ++l){
 		out << "\t" << p[l];
 	}
 
@@ -1508,7 +1508,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 	//write header of trace file
 	out << "F\tgamma\tgammaLog\tpi";
-	for(int l=0; l<numLoci; ++l){
+	for(int l=0; l<1000; ++l){
 		out << "\tp[" << l << "]";
 	}
 
