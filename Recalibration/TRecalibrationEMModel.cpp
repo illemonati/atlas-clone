@@ -713,6 +713,7 @@ double TRecalibrationEMModel_qualFuncPosSpecific::getErrorRate(TBase & base){
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
+	//transform correct quality to transformed quality
 	if(MaxPosPlusOne > _maxPosPlusOne)
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 

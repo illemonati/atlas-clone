@@ -170,6 +170,11 @@ private:
 	bool shouldUpdateGamma;
 	bool shouldUpdatePi;
 
+	bool adjustFAfterBurnin;
+	bool adjustPAfterBurnin;
+	bool adjustGammaAfterBurnin;
+	bool adjustPiAfterBurnin;
+
 	//data
 	TPopulationLikelihoods likelihoods;
 	unsigned int numLoci;

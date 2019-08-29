@@ -463,11 +463,36 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	//algorithm params
 	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
-	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations");
+	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations. (parameter 'numIter')");
 
 	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 1);
 	burninLength = Parameters.getParameterIntWithDefault("burninLength", 1000);
-	logfile->list("Will run " + toString(numBurnins) + " burnin(s) of length " + toString(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC");
+	logfile->list("Will run " + toString(numBurnins) + " burnin(s) of length " + toString(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
+
+	if(Parameters.parameterExists("noAdjustmentF")){
+		adjustFAfterBurnin = false;
+		logfile->list("Will not adjust proposal range of F after burnin. (parameter 'noAdjustmentF'");
+	} else
+		adjustFAfterBurnin = true;
+
+	if(Parameters.parameterExists("noAdjustmentP")){
+		adjustPAfterBurnin = false;
+		logfile->list("Will not adjust proposal range of any p's after burnin. (parameter 'noAdjustmentP'");
+	} else
+		adjustPAfterBurnin = true;
+
+	if(Parameters.parameterExists("noAdjustmentGamma")){
+		adjustGammaAfterBurnin = false;
+		logfile->list("Will not adjust proposal range of Gamma after burnin. (parameter 'noAdjustmentGamma'");
+	} else
+		adjustGammaAfterBurnin = true;
+
+	if(Parameters.parameterExists("noAdjustmentPi")){
+		adjustPiAfterBurnin = false;
+		logfile->list("Will not adjust proposal range of Pi after burnin. (parameter 'noAdjustmentPi'");
+	} else
+		adjustPiAfterBurnin = true;
+
 
 	thinning = Parameters.getParameterIntWithDefault("thinning", 1);
 	if(thinning < 1 || thinning > numIterations)
@@ -509,7 +534,6 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	initParams(randomGenerator, Parameters);
 	resetAcceptanceRates();
-
 
 	//output name
 	std::string vcfFileName = likelihoods.getVCFName();
@@ -685,10 +709,6 @@ void TInbreedingEstimator::resetToInitialValues(){
 	p.setToValue(0.2);
 	Gamma.update(log(0.7), 0.7);
 	F.updateAndAccept(0.1, true);
-
-	std::cout << "\nF " << F.F() << std::endl;
-	std::cout << "p[99] " << p[99] << std::endl;
-	std::cout << "gamma " << Gamma.getNaturalScaleValue() << std::endl;
 }
 
 void TInbreedingEstimator::checkHastingsRatios(){
@@ -717,8 +737,6 @@ void TInbreedingEstimator::checkHastingsRatios(){
 				+ logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
 				- logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
 
-//	std::cout << "newLL no gamma stuff " << logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter) << std::endl;
-//	std::cout << "oldLL no gamma stuff " << logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter) << std::endl;
 	std::cout << "\np[" << locusNum << "] hastings log: " << logH << " natural: " << exp(logH) << std::endl;
 
 	//gamma hastings
@@ -744,11 +762,6 @@ void TInbreedingEstimator::checkHastingsRatios(){
 			)
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;
-
-//	std::cout<< "numLoci " << numLoci << std::endl;
-//	std::cout << "\ngamma hastings log: " << logH << " natural: " << exp(logH) << std::endl;
-
-
 }
 
 bool TInbreedingEstimator::updateF(){
@@ -841,10 +854,8 @@ bool TInbreedingEstimator::updateF(){
 }
 
 bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, TGamma Gamma){
-//	std::cout << "locusNum " << locusNum << std::endl;
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
-//			std::cout << "proposing move from p to zero ";
 			//propose model0
 			double gammaNat = Gamma.getNaturalScaleValue();
 			double logH = 2.0 * randomGenerator->gammaln(gammaNat)
@@ -861,36 +872,18 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 
 			//accept?
 			double tmp = log(randomGenerator->getRand());
-//			if(locusNum == 26){
-//				for(int s=0; s<curSampleSize; ++s){
-//					int index = 3*s;
-//					//calculate and add ratio for each genotype
-//					std::cout << (int) data[index] << "," << (int) data[index + 1] << "," << (int) data[index+2] << " " <<std::endl;
-//				}
-//
-//				std::cout << "curP " << p[26] << " proposed " << "model0" << " hastings " << exp(logH) << " random " << exp(tmp) << std::endl;;
-//				std::cout << "ll ratio " << logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-//							- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F())
-//							<< " pdfExp " <<p.logPDFExp(locusNum) << std::endl;
-//			}
 			if(tmp < logH){
-//				if(locusNum == 26)
-//					std::cout << " accepted" << std::endl;
 				//move to model0
 				p.update(locusNum, 0.0, false);
 				return true;
 			} else {
 				//stay in modelP
-//				if(locusNum == 26)
-//					std::cout << " rejected" << std::endl;
 				++numIterInModelP[locusNum];
 				p.update(locusNum, p[locusNum], true);
 				return false;
 			}
 		} else {
 			//propose new p
-//			std::cout << "proposing move from p to p ";
-
 			++numIterInModelP[locusNum];
 			double newP = p.proposeNew(locusNum, randomGenerator);
 			if(newP < 0)
@@ -900,16 +893,9 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 						+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
 						- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
 
-//			if(locusNum == 998)
-//				std::cout << "locusNum <- " << locusNum+1 << "; old_p <- rep(" << p[locusNum] << ", nLoci); new_p <- rep(" << newP << ", nLoci); thisF <- " << F.F() << "; gamma <- " << Gamma.getNaturalScaleValue() << "; atlas_log_h <- " << logH << ";" << " atlas_h <- " << exp(logH) << ";" << std::endl;
-
 			//accept?
 			double tmp = log(randomGenerator->getRand());
-//			if(locusNum == 2)
-//				std::cout << "curP " << p[2] << " proposed " << newP << " hastings " << logH << " random " << tmp << std::flush;
 			if(tmp < logH){
-//				if(locusNum == 2 && newP < p[2])
-//					std::cout << "curP " << p[2] << " proposed " << newP << " hastings " << exp(logH) << " random " << exp(tmp) << std::endl;
 				//update p
 				p.update(locusNum, newP, true);
 				++numAcceptedPModelP[locusNum];
@@ -946,16 +932,10 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 
 			//accept?
 			double tmp = log(randomGenerator->getRand());
-	//		if(locusNum==0){
-	//			std::cout << "model zero to P: logH " << logH << " oldP " << p[locusNum] << " newP " << newP << " log random " << tmp <<" proposalWidth " << p.getProposalWidth(locusNum)<< std::endl;
-	//		}
-
 			if(tmp < logH){
-	//			std::cout << "accepted" << std::endl;
 				p.update(locusNum, newP, true);
 				return true;
 			} else {
-	//			std::cout << "rejected" << std::endl;
 				p.update(locusNum, p[locusNum], false);
 				return false;
 			}
@@ -1009,7 +989,6 @@ bool TInbreedingEstimator::updateGamma(){
 	std::cout << "pAtlas <- read.table(\"" << filename << "\", header=FALSE); pAtlas <- pAtlas[,1]; gamma_old <- " << Gamma.getNaturalScaleValue() << "; gamma_new <- " << newGamma << "; atlas_log_h <- " << logH << "; sumLogOneMinusFreq <- " << sumLogOneMinusFreq << ";" << std::endl;
 */
 
-	std::cout << "Gamma = " << Gamma.getNaturalScaleValue() << std::endl;
 
 	// accept or reject
 	double tmp = log(randomGenerator->getRand());
@@ -1373,10 +1352,14 @@ void TInbreedingEstimator::resetAcceptanceRates(){
 }
 
 void TInbreedingEstimator::adjustProposalWidths(){
-	F.adjustProposalWidthAfterBurnin(numAcceptedFModelF, numIterInModelF);
-	p.adjustProposalWidthAfterBurnin(numAcceptedPModelP, numIterInModelP);
-	Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
-	pi.adjustProposalWidthAfterBurnin(numAcceptedPi, burninLength);
+	if(adjustFAfterBurnin)
+		F.adjustProposalWidthAfterBurnin(numAcceptedFModelF, numIterInModelF);
+	if(adjustPAfterBurnin)
+		p.adjustProposalWidthAfterBurnin(numAcceptedPModelP, numIterInModelP);
+	if(adjustGammaAfterBurnin)
+		Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
+	if(adjustPiAfterBurnin)
+		pi.adjustProposalWidthAfterBurnin(numAcceptedPi, burninLength);
 }
 
 void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter){

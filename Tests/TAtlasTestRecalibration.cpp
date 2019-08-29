@@ -417,11 +417,11 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 	//find true quality scores
 	std::vector<int> transformedQualScores;
 	int numQualScores = trueQualScores.size();
-	for(int i=0; i<numQualScores; ++i){
-		transformedQualScores.push_back(recalObject->getTransformedQuality(trueQualScores[i],0,0));
-		std::cout << "trans quals " << transformedQualScores[i] << std::endl;
-	}
 
+	transformedQualScores.push_back(19);
+	transformedQualScores.push_back(30);
+	transformedQualScores.push_back(40);
+	transformedQualScores.push_back(60);
 
 	//is the rest = 0?
 	double s = 0.0;
@@ -440,10 +440,10 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 	double fracObservationsFound;
 	double fracObservationsExpected = (double) (1.0 / (double) numQualScores);
 	for(int qI=0; qI<(int) numQualScores; ++qI){
-		fracObservationsFound = qualTransTable[transformedQualScores[qI]+1][trueQualScores[qI]+1];
+		fracObservationsFound = qualTransTable[trueQualScores[qI]+1][transformedQualScores[qI]+1];
 		if( fracObservationsFound < (fracObservationsExpected - 0.0009) || fracObservationsFound > (fracObservationsExpected + 0.0009)){ //+1 for header and line names
 			logfile->newLine();
-			logfile->conclude("Wrong transformation of " + toString(trueQualScores[qI]) + "! Found " + toString(fracObservationsFound) + " observations in [" + toString(transformedQualScores[qI]+1) + "][" + toString(trueQualScores[qI]+1) + "] instead of " + toString(fracObservationsExpected) + "!");
+			logfile->conclude("Wrong transformation of " + toString(trueQualScores[qI]+1) + "! Found " + toString(fracObservationsFound) + " observations in [" + toString(transformedQualScores[qI]+1) + "][" + toString(trueQualScores[qI]) + "] instead of " + toString(fracObservationsExpected) + "!");
 			return false;
 		}
 	}
