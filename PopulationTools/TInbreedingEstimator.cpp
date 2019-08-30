@@ -35,32 +35,27 @@ TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bo
 void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF){
 //	if(numAcceptedF == 0)
 //		throw "numAccepted = 0";
-	double newProposalWidth = _sdProposal;
-	newProposalWidth *=  ((double) numAcceptedFModelF / (double) numIterInModelF) * 3.0;
 
 	if(numIterInModelF == 0){
-		_lambda *= 10;
-		_logLambda = log(_lambda);
+//		_lambda *= 10;
+//		_logLambda = log(_lambda);
+	} else {
+		double newProposalWidth = _sdProposal;
+		newProposalWidth *=  ((double) numAcceptedFModelF / (double) numIterInModelF) * 3.0;
+
+		if(newProposalWidth / _sdProposal < 0.1)
+			newProposalWidth = 0.1 * _sdProposal;
+		else if(_sdProposal / newProposalWidth < 0.1)
+			newProposalWidth = 10 * _sdProposal;
+
+		if(newProposalWidth > 1.0)
+			newProposalWidth = 1.0;
+		else if(newProposalWidth < 0.00001){
+			newProposalWidth = 0.00001;
+		}
+		_sdProposal = newProposalWidth;
 	}
 
-	else if(newProposalWidth / _sdProposal < 0.1)
-		newProposalWidth = 0.1 * _sdProposal;
-	else if(_sdProposal / newProposalWidth < 0.1)
-		newProposalWidth = 10 * _sdProposal;
-
-	else if(newProposalWidth > 1.0)
-		newProposalWidth = 1.0;
-
-	else if(newProposalWidth < 0.00001 || numAcceptedFModelF == 0){
-		newProposalWidth = 0.00001;
-		std::cout << "numAcceptedFModelF is zero!";
-	}
-
-
-	_sdProposal = newProposalWidth;
-
-//	if(!(_sdProposal > 0))
-//		throw "standard deviation of F proposal kernel is not larger than 0! It is " + toString(_sdProposal);
 
 }
 
@@ -185,7 +180,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 			proposalWidths.push_back(initialProposalWidthFactor * minAlleleFreq);
 		else {
 //			proposalWidths.push_back(initialProposalWidthFactor * alleleFreq[l]);
-			proposalWidths.push_back(alleleFreq[l] / 0.5);
+			proposalWidths.push_back(0.5);
 		}
 		sumIterations.push_back(0.0);
 		sumOfSquaresIterations.push_back(0.0);
@@ -630,7 +625,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 
 void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelPFactor", 2.0);
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of p within ModelP");
+	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of p within ModelP. (parameter 'widthProposalKernelPFactor')");
 
 	std::vector<double> tmp2;
 	if(parameters.parameterExists("trueAlleleFreq")){
@@ -687,7 +682,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(beta)");
 
 	//pi
-	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 1.0 / (double) p.numLoci);
+	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 10.0 / (double) p.numLoci);
 	double initialValue;
 	if(parameters.parameterExists("initialPi")){
 		initialValue = parameters.getParameterDouble("initialPi");
@@ -1304,7 +1299,10 @@ void TInbreedingEstimator::oneMCMCIteration(){
 
 void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	numIterations = (double) numIterations;
-	logfile->conclude("total acceptance rate for F is " + toString((double) numAcceptedF / numIterations) + " and acceptance rate for moves within M_F " + toString((double) numAcceptedFModelF / (double) numIterInModelF));
+	if(numIterInModelF == 0)
+		logfile->conclude("total acceptance rate for F is 0 and the acceptance rate for moves within M_F is 0");
+	else
+		logfile->conclude("total acceptance rate for F is " + toString((double) numAcceptedF / numIterations) + " and acceptance rate for moves within M_F is " + toString((double) numAcceptedFModelF / (double) numIterInModelF));
 	logfile->conclude("total acceptance rate for gamma is " + toString((double) numAcceptedGamma / numIterations));
 	logfile->conclude("total acceptance rate for pi is " + toString((double) numAcceptedPi / numIterations));
 
