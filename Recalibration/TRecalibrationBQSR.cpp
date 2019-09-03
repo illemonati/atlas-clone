@@ -526,7 +526,7 @@ void TBQSR_cellContext::init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_c
 }
 
 float TBQSR_cellContext::getEpsilon(TBase* base, TQualityMap & qualMap){
-	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromQuality(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
+	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromQuality(qualMap.errorToQuality(base->errorRate))].curEstimate;
 	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
 	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->distFrom3Prime].curEstimate;
 	return  epsilonAlpha;
@@ -744,7 +744,7 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupQualityTableFromFile(std::strin
 			if(readGroup >= 0){ //returns -1 if read group does not exist
 				int q = stringToInt(vec[1]);
 				double phredEmpiric = stringToDouble(vec[3]);
-				storage.qualityCells[readGroup][qualityIndex->getIndexFromQuality(q+33)].set(_qualityMap.phredToError(phredEmpiric), vec[4]);
+				storage.qualityCells[readGroup][qualityIndex->getIndexFromPhredInt(q)].set(_qualityMap.phredToError(phredEmpiric), vec[4]);
 			} else throw "readGroup " + vec[0] + " does not exist in BAM file header!";
 		}
 	}

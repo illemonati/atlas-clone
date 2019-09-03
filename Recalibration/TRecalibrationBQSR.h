@@ -46,7 +46,7 @@ public:
 
 	int& getIndexFromPhredInt(const int & phredInt){
 		if(phredInt < 0){
-			throw "Quality is negative!";
+			throw "Phred int is negative!";
 		}
 		if(phredInt > maxPhredInt){
 			return last;
