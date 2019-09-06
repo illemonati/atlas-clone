@@ -1844,8 +1844,9 @@ void TGenome::diagnoseBamFile(TParameters & params){
         }
 
         //depth
-        totalDepth += alignment.getBamAlignmentLength();
-        depth[alignment.readGroupId] += alignment.getBamAlignmentLength();
+        int length = alignment.getUsableLength(alignmentParser.minQual, alignmentParser.maxQual);
+        totalDepth += length;
+        depth[alignment.readGroupId] += length;
 
         //mapping quality
         if(alignment.mappingQuality > maxMQ)

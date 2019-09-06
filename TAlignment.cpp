@@ -396,10 +396,10 @@ void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string &
 	for(std::string::iterator stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt, ++stringItBase){
 		if((int) *stringIt < minQualForPrinting){
 			*stringIt = (char) minQualForPrinting;
-			*stringItBase = 'N';
+//			*stringItBase = 'N';
 		} else if((int) *stringIt > maxQualForPrinting){
 			*stringIt = (char) maxQualForPrinting;
-			*stringItBase = 'N';
+//			*stringItBase = 'N';
 		}
 	}
 };
@@ -754,6 +754,17 @@ int TAlignment::measureOverlap(){
 		//not relevant
 		return -1;
 };
+
+int TAlignment::getUsableLength(int minQual, int maxQual){
+	int counter = bamAlignment.Length;
+	for(int d=0; d<bamAlignment.Length; ++d){
+		if(bamAlignment.QueryBases.at(d) == N || bamAlignment.Qualities.at(d) < minQual || bamAlignment.Qualities.at(d) > maxQual){
+			counter -= 1;
+		}
+	}
+
+	return counter;
+}
 
 void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap){
 	//make sure read is parsed

@@ -273,7 +273,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
 
 	//quality filters for printing
-	int minOutQual = params.getParameterIntWithDefault("minOutQual", 1) + 33;
+	int minOutQual = params.getParameterIntWithDefault("minOutQual", 0) + 33;
 	if(minOutQual < 0) throw "minOutQual must be >= 0!";
 	int maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
 	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
@@ -1188,10 +1188,10 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 
 		}
 		bestBase.errorRate = 1.0 - likelihood[bestBase.base] / sum;
+	} else {
+		worstBase.errorRate = 1.0;
+//		worstBase.base = N;
 	}
-
-	worstBase.errorRate = 1.0;
-	worstBase.base = N;
 }
 
 void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
