@@ -127,7 +127,7 @@ public:
 
 class TTask_mateInfo:public TTask_atlas{
 public:
-	TTask_mateInfo(){ _explanation = "Writing mate information per site"; };
+	TTask_mateInfo(){ _explanation = "Writing read information per site"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
@@ -180,7 +180,7 @@ public:
 
 class TTask_depthPerSiteDist:public TTask_atlas{
 public:
-	TTask_depthPerSiteDist(){ _explanation = "Estimating depth per site"; };
+	TTask_depthPerSiteDist(){ _explanation = "Estimating depth per site distribution"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
@@ -553,7 +553,7 @@ public:
 
 class TTask_VCFToInvariantBed:public TTask_atlas{
 public:
-	TTask_VCFToInvariantBed(){ _explanation = "Diagnosing a VCF file"; };
+	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
 		VcfDiagnostics VcfDiagnoser(parameters, logfile);
