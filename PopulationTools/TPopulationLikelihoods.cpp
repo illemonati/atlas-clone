@@ -264,21 +264,21 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	// do we limit the lines to read?
 	limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
 	if(limitLines > 0)
-		logfile->list("Will limit analysis to the first " + toString(limitLines) + " lines of the VCF file.");
+		logfile->list("Will limit analysis to the first " + toString(limitLines) + " lines of the VCF file. (parameter 'limitLines')");
 
 	// do we set a depth filter?
 	minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
 	if(minDepth < 1)
 		throw "minDepth must be >= 1!";
 	if(minDepth > 1)
-		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
+		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ". (parameter 'minDepth')");
 
 	// do we set a missingness filter?
 	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
 	if(minNumSamplesWithData < 1)
 		throw "minNumSamplesWithData must be >= 1!";
 	if(minNumSamplesWithData > 1)
-		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data.");
+		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data. (parameter 'minSamplesWithData')");
 
 	// parameters to set a filter on the allele frequency?
 	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
@@ -287,7 +287,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	if(freqFilter > 0.0 || saveAlleleFreq){
 		estimateGenotypeFrequencies = true;
 		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
-		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
+		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ". (parameter 'epsF')");
 	} else {
 		estimateGenotypeFrequencies = false;
 	}
@@ -296,7 +296,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 	minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
 	if(minVariantQuality < 0) throw "minVariantQuality must be >= 0!";
 	if(minVariantQuality > 0){
-		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
+		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ". (parameter 'minVariantQuality')");
 	}
 
 	//set store stuff to off

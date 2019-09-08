@@ -16,7 +16,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 
 	//initialize alignment parser
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
-	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp.");
+	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp. (parameter 'maxReadLength')");
 
 	alignmentParser.init(maxReadLength, params, logfile);
 
@@ -46,7 +46,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		if(trim5 < 0) throw "trimming distance trim5 must be >= 0!";
 		if(trim3>0 || trim5>0){
 			alignmentParser.setReadTrimming(trim3, trim5);
-			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively.");
+			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
 		}
 	}
 };
@@ -459,7 +459,7 @@ void TGenome::writeGLF(TParameters & params){
 	//print all?
 	bool printIfNoData = params.parameterExists("printAll");
 	if(printIfNoData)
-		logfile->list("Will print all sites, even those without data");
+		logfile->list("Will print all sites, even those without data. (parameter 'printAll')");
 
 	//open GLF file
 	std::string outputFileName = outputName + ".glf.gz";
@@ -495,7 +495,7 @@ void TGenome::printPileup(TParameters & params){
 	bool printOnlySitesWithData = false;
 	if(params.parameterExists("printOnlySitesWithData")){
 		printOnlySitesWithData = true;
-		logfile->list("Will print only sites with data");
+		logfile->list("Will print only sites with data. (parameter 'printOnlySitesWithData')");
 	}
 
 	//open output
@@ -528,7 +528,7 @@ void TGenome::generatePSMCInput(TParameters & params){
 	thetaEstimator.setTheta(theta);
 
 	double confidence = params.getParameterDoubleWithDefault("confidence", 0.99);
-	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence));
+	logfile->list("Calling heterozygosity state with confidence > " + toString(confidence) + ". (parameter 'confidence')");
 	int blockSize = params.getParameterIntWithDefault("block", 100);
 	//make sure window size is a multiple of block length!
 	if(alignmentParser.getWindowSize() % blockSize != 0) throw "Window size is not a multiple of block size!";
@@ -575,7 +575,8 @@ void TGenome::generatePSMCInput(TParameters & params){
 void TGenome::createDepthMask(TParameters & params){
 	int minDepthForMask = params.getParameterInt("minDepthForMask");
 	int maxDepthForMask = params.getParameterInt("maxDepthForMask");
-	if(params.parameterExists("maxDepth") || params.parameterExists("minDepth")) throw "Cannot mask sites for sequencing depth while creating the mask!";
+	if(params.parameterExists("maxDepth") || params.parameterExists("minDepth"))
+		throw "Cannot mask sites for sequencing depth while creating the mask!";
 
 	std::ofstream output;
 	std::string outputFileName = outputName + "_minDepth"+ toString(minDepthForMask) + "_maxDepth" + toString(maxDepthForMask) + "_depthMask.bed";

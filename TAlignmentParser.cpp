@@ -216,7 +216,7 @@ void TAlignmentParser::setWindowParameters(TParameters & params){
 	if(stringContainsOnly(tmp, "1234567890.Ee-+")){
 		windowsPredefined = false;
 		windowSize = stringToInt(tmp);
-		logfile->list("Setting window size to " + toString(windowSize));
+		logfile->list("Setting window size to " + toString(windowSize) + ". (parameter 'window')");
 		if(windowSize < maxReadLength)
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
 	} else {
@@ -243,13 +243,13 @@ void TAlignmentParser::setFilters(TParameters & params){
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
 		maxDepth = tmpInt;
 		readUpToDepth = maxDepth + 1;
-		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth));
+		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth) + ". (parameters 'minDepth', 'maxDepth')");
 	} else {
 		applyDepthFilter = false;
 		minDepth = 0;
 		maxDepth = 1000000;
 	}
-	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases.");
+	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
 
 	//Mapping quality filters
 	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
@@ -261,7 +261,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 		if(maxMQ < minMQ)
 			throw "maxMQ must be larger than minMQ";
 		setMappingQualityFilters(minMQ, maxMQ);
-		logfile->list("Will filter out reads with a mapping quality < " + toString(minMQ) + " or mapping quality > " + toString(maxMQ) + " (parameters 'minMQ', 'maxMQ')");
+		logfile->list("Will filter out reads with mapping quality outside the range [" + toString(minMQ) + ", " + toString(maxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
 	}
 
 	//quality filters
@@ -270,7 +270,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
 	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
 	setQualityFilters(minPhredInt, maxPhredInt);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "]");
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "] (parameters 'minQual', 'maxQual'");
 
 	//quality filters for printing
 	int minOutQual = params.getParameterIntWithDefault("minOutQual", 0) + 33;
@@ -288,74 +288,75 @@ void TAlignmentParser::setFilters(TParameters & params){
 	maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
-	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxMissing')");
+	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxRefN')");
 
 	//duplicates
 	if(params.parameterExists("keepDuplicates")){
 		keepDuplicates();
-		logfile->list("Will keep duplicate reads.");
+		logfile->list("Will keep duplicate reads. (parameter 'keepDuplicates')");
 	}
 
 	//soft clips
 	if(params.parameterExists("filterSoftClips")){
 		filterSoftClips();
-		logfile->list("Will filter out soft clipped reads");
+		logfile->list("Will filter out soft clipped reads. (parameter 'filterSoftClips')");
 	}
 
 	//improper pairs
 	if(params.parameterExists("keepImproperPairs")){
 		keepImproperPairs();
-		logfile->list("Will keep improper pairs");
+		logfile->list("Will keep improper pairs. (parameter 'keepImproperPairs')");
 	}
 
 	//unmapped reads
 	if(params.parameterExists("keepUnmappedReads")){
 		keepUnmappedReads();
-		logfile->list("Will keep unmapped pairs");
+		logfile->list("Will keep unmapped reads. (parameter 'keepUnmappedReads')");
 	}
 
 	//failed QC
 	if(params.parameterExists("keepFailedQC")){
 		keepFailedQC();
-		logfile->list("Will keep reads that failed QC");
+		logfile->list("Will keep reads that failed QC. (parameter 'keepFailedQC')");
 	}
 
 	//secondary reads
 	if(params.parameterExists("keepSecondaryReads")){
 		keepSecondaryReads();
-		logfile->list("Will keep secondary reads");
+		logfile->list("Will keep secondary reads. (parameter 'keepSecondaryReads')");
 	}
 
 	//supplementary reads
 	if(params.parameterExists("keepSupplementaryReads")){
 		keepSupplementaryReads();
-		logfile->list("Will keep supplementary reads");
+		logfile->list("Will keep supplementary reads. (parameter 'keepSupplementaryReads')");
 	}
 
 	//fragment length
-	if(params.parameterExists("dontFilterReadsLongerFragment") || params.parameterExists("keepReadsLongerThanFragment"))
+	if(params.parameterExists("keepReadsLongerThanFragment")){
 		setApplyFragmentLengthFilter(false);
-	else
+		logfile->list("Will keep reads that are longer than the fragment size. (parameter 'keepReadsLongerThanFragment')");
+	} else
 		setApplyFragmentLengthFilter(true);
 
 	//strand
 	if(params.parameterExists("keepOnlyFwd")){
 		useStrand[1] = false;
-		logfile->list("Will keep only forward mapping reads.");
+		logfile->list("Will keep only forward mapping reads. (parameter 'keepOnlyFwd')");
 	}
 	else if(params.parameterExists("keepOnlyRev")){
 		useStrand[0] = false;
-		logfile->list("Will keep only reverse mapping reads.");
+		logfile->list("Will keep only reverse mapping reads. (parameter 'keepOnlyRev')");
 	}
 
 	//mate
 	if(params.parameterExists("keepOnlyFirst")){
 		useMate[1] = false;
-		logfile->list("Will keep only the first mates.");
+		logfile->list("Will keep only the first mates. (parameter 'keepOnlyFirst')");
 	}
 	else if(params.parameterExists("keepOnlySecond")){
 		useMate[0] = false;
-		logfile->list("Will keep only the second mates.");
+		logfile->list("Will keep only the second mates. (parameter 'keepOnlySecond')");
 	}
 }
 
@@ -382,7 +383,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 	//normal mask
 	if(params.parameterExists("mask")){
 		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with \"sites\"";
+		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with 'sites'";
 		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
@@ -400,7 +401,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
 		considerRegions = true;
 		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "':");
+		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
 		logfile->listFlush("Reading file ...");
 		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
 		logfile->done();
@@ -412,7 +413,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(!hasReference) throw "Cannot mask CpG sites without reference!";
 		doCpGMasking = true;
 		std::string maskFile = params.getParameterString("maskCpG");
-		logfile->list("Will mask all CpG sites");
+		logfile->list("Will mask all CpG sites. (parameter 'maskCpG')");
 	} else doCpGMasking = false;
 }
 
@@ -466,16 +467,17 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 	} else {
 		if(params.parameterExists("limitChr")){
 			std::string limitName = params.getParameterString("limitChr");
-			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName);
+			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName + ". (parameter 'limitChr')");
 			chromosomes.limitChr(limitName);
 			indexOfLimitChr = chromosomes.getIndexFromName(limitName) + 1;
 		}
 	}
 
 	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
-	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome.");
+	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome. (parameter 'skipWindows')");
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
-	if(params.parameterExists("limitWindows")) logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome.");
+	if(params.parameterExists("limitWindows"))
+		logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome. (parameter 'limitWindows')");
 	if(limitWindows <= skipWindows)
 		throw "limitWindows has to be larger than skipWindows!";
 };

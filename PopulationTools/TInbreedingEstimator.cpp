@@ -588,7 +588,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF));
 
 	double lambdaF = parameters.getParameterDoubleWithDefault("lambdaF", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF));
+	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF) + ". (parameter 'lambdaF')");
 
 	bool startInModelWithF = true;
 	if(parameters.parameterExists("startInZeroModel"))
@@ -612,7 +612,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 			F.updateAndAccept(initialF, true);
 		else
 			throw "Initial F cannot be a negative number!";
-		logfile->list("Initialized F to " + toString(initialF));
+		logfile->list("Initialized F to " + toString(initialF) + ". (parameter 'initialF')");
 	}
 
 	if(parameters.parameterExists("fixedF")){
@@ -633,28 +633,28 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		trueAlleleFreq = tmp2;
 		trueAlleleFreqProvided = true;
 		logfile->list("Initializing allele frequencies to true values read from trueAlleleFreq file");
-	} else if(parameters.parameterExists("allP")){
+	} else if(parameters.parameterExists("initialP")){
 		p.setToValue(parameters.getParameterDouble("initialP"));
-		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameterDouble("allP")));
+		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameterDouble("initialP")) + ". (parameter 'initialP')");
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
 		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
 		trueAlleleFreqProvided = false;
 	}
 	double probMovingToModel0 = parameters.getParameterDoubleWithDefault("probMovingToModelP0", 0.1);
-	logfile->list("Will propose move to model with p = 0 with probability " + toString(probMovingToModel0));
+	logfile->list("Will propose move to model with p = 0 with probability " + toString(probMovingToModel0) + ". (parameter 'probMovingToModelP0')");
 
 	double probMovingToModelP = 1.0;
-	logfile->list("Will propose move to model with p > 0 with probability " + toString(probMovingToModelP));
+	logfile->list("Will propose move to model with p > 0 with probability " + toString(probMovingToModelP) + ".");
 
 	double lambdaP = parameters.getParameterDoubleWithDefault("lambdaP", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to " + toString(lambdaP));
+	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to " + toString(lambdaP) + ". (parameter 'lambdaP')");
 
 	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, probMovingToModelP, lambdaP);
 
 	if(parameters.parameterExists("fixedP")){
 		shouldUpdateP = false;
-		logfile->list("Will not update allele frequencies");
+		logfile->list("Will not update allele frequencies. (parameter 'fixedP')");
 	} else {
 		shouldUpdateP = true;
 	}
@@ -678,8 +678,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	initializeGamma(parameters);
 //	Gamma.update(log(0.5), 0.5);
 
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(alpha)");
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(beta)");
+	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
 
 	//pi
 	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 10.0 / (double) p.numLoci);
