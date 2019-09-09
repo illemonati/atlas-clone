@@ -519,13 +519,15 @@ void TCallerAllelePresence::callGenotypeKnownAlleles(TSite & site){
 	allelePostProbKnownAlleles[0] = allelePostProb[referenceBase];
 	allelePostProbKnownAlleles[1] = allelePostProb[altAlleles[0]];
 
-	MAP = pickIndexWithHighestMetric(allelePostProbKnownAlleles, 2);
+	int highest = pickIndexWithHighestMetric(allelePostProbKnownAlleles, 2);
 
 	//decide on genotype (index 0 is ref base)
-	if(MAP == 0){
+	if(highest == 0){
 		calledGenotype = "0";
+		MAP = referenceBase;
 	} else {
 		calledGenotype = "1";
+		MAP = altAlleles[0];
 	}
 };
 
