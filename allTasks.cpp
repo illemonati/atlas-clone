@@ -22,7 +22,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["writeDepthPerWindow"] = new TTask_writeDepthPerWindow();
 	taskMap_regular["depthPerSiteDist"] = new TTask_depthPerSiteDist();
 	taskMap_regular["writeDepthPerSite"] = new TTask_writeDepthPerSite();
-	taskMap_regular["depthMask"] = new TTask_createDepthMask();
+	taskMap_regular["createDepthMask"] = new TTask_createDepthMask();
 	taskMap_regular["allelicDepth"] = new TTask_allelicDepth();
 	taskMap_regular["downsample"] = new TTask_downsample();
 	taskMap_regular["downsampleReads"] = new TTask_downSampleReads();

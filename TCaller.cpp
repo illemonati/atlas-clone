@@ -475,9 +475,7 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	MAP = -1;
 };
 
-void TCallerAllelePresence::callGenotype(TSite & site){
-	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
-
+void TCallerAllelePresence::fillPosteriors(TSite & site){
 	//calculate posterior probabilities
 	site.calculateP_g(genotypePrior, posteriorProb);
 
@@ -486,8 +484,15 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 	allelePostProb[1] = posteriorProb[AC] + posteriorProb[CC] + posteriorProb[CG] + posteriorProb[CT];
 	allelePostProb[2] = posteriorProb[AG] + posteriorProb[CG] + posteriorProb[GG] + posteriorProb[GT];
 	allelePostProb[3] = posteriorProb[AT] + posteriorProb[CT] + posteriorProb[GT] + posteriorProb[TT];
+};
 
-	//find map
+void TCallerAllelePresence::callGenotype(TSite & site){
+	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
+
+	//fill posteriors for each allele
+	fillPosteriors(site);
+
+	//find MAP
 	MAP = pickIndexWithHighestMetric(allelePostProb, 4);
 
 	//decide on alt
@@ -499,6 +504,27 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 		altAlleles.push_back(second);
 	} else {
 		altAlleles.push_back(MAP);
+		calledGenotype = "1";
+	}
+};
+
+void TCallerAllelePresence::callGenotypeKnownAlleles(TSite & site){
+	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
+
+	//fill posteriors for each allele
+	fillPosteriors(site);
+
+	//find MAP
+	double allelePostProbKnownAlleles[2];
+	allelePostProbKnownAlleles[0] = allelePostProb[referenceBase];
+	allelePostProbKnownAlleles[1] = allelePostProb[altAlleles[0]];
+
+	MAP = pickIndexWithHighestMetric(allelePostProbKnownAlleles, 2);
+
+	//decide on genotype (index 0 is ref base)
+	if(MAP == 0){
+		calledGenotype = "0";
+	} else {
 		calledGenotype = "1";
 	}
 };

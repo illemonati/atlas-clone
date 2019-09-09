@@ -158,7 +158,9 @@ private:
 	double allelePostProb[4];
 	int MAP;
 
+	void fillPosteriors(TSite & site);
 	void callGenotype(TSite & site);
+	void callGenotypeKnownAlleles(TSite & site);
 	std::string getVCFGenotypeString_GQ(TSite & site);
 	std::string getVCFGenotypeString_AP(TSite & site);
 
