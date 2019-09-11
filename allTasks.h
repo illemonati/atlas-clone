@@ -28,7 +28,7 @@
 //---------------------------------------------------------------------------
 class TTask_atlas:public TTask{
 public:
-	TTask_atlas(){ _citations.push_back("Link et al. (2019) SOMEWHERE"); };
+	TTask_atlas(){ _citations.push_back("Link et al. (2017) bioRxiv"); };
 };
 
 //---------------------------------------------------------------------------
