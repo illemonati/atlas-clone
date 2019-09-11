@@ -58,8 +58,6 @@ public:
 
 
 	TQualityTable& operator=(TQualityTable && other){
-		std::cout << "in equal cstr" << std::endl;
-
 		if(this != &other){
 			//copy from other
 			maxQ = other.maxQ;

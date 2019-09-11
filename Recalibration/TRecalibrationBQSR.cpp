@@ -281,7 +281,6 @@ bool TBQSR_cellQuality::estimate(float & convergenceThreshold, float & minEpsilo
 			curEstimate = 1.0 / (double) (numObservations + 1.0);
 			estimationConverged = true;
 		} else if(numMatches < 1.0){ // tmpEpsilon = 1.0
-			std::cout << "numMatches < 1" << std::endl;
 			curEstimate = 1.0;
 			estimationConverged = true;
 		} else {
