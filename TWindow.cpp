@@ -498,6 +498,12 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	}
 };
 
+void TWindow::contextStats(int** contextCounts, TQualityMap & qualMap){
+	for(int i=0; i<length; ++i){
+		sites[i].contextStats(contextCounts, qualMap);
+	}
+}
+
 void TWindow::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){

@@ -2285,4 +2285,43 @@ void TGenome::printMateInformationPerSite(TParameters & params){
 	out.close();
 };
 
+void TGenome::contextStats(TParameters & params){
+	std::string outputFileName = outputName + "_contextInformation.txt.gz";
+	logfile->list("Writing context information to file '" + outputFileName + "'.");
+	TOutputFileZipped out(outputFileName);
+	out.writeHeader({"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT", "NA", "NC", "NG", "NT"});
+
+	//prepare windows
+	TWindow window;
+
+	//prepare table
+    int** contextCounts = new int*[alignmentParser.maxQual];
+    for(int i = 0; i < alignmentParser.maxQual; ++i){
+    	contextCounts[i] =  new int[14];
+    	for(int j=0; j<14; ++j)
+    		contextCounts[i][j]=0;
+    }
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(window.passedFilters){
+			window.contextStats(contextCounts, alignmentParser.qualMap);
+		}
+	}
+
+    //write to file
+    for(int i=0; i<alignmentParser.maxQual; ++i){
+    	out << i;
+    	for(int j=0; j<14; ++j){
+    		out << contextCounts[i][j];
+    	}
+//    	std::cout << std::endl;
+    }
+
+    for(int i = 0; i < alignmentParser.maxQual; ++i){
+    	delete[] contextCounts[i];
+    }
+    delete [] contextCounts;
+}
+
 

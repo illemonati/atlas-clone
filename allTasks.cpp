@@ -17,6 +17,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["duplication"] = new TTask_assessDuplication();
 	taskMap_regular["writeReadInfoPerSite"] = new TTask_mateInfo();
 	taskMap_regular["assessSoftClipping"] = new TTask_assessSoftClipping();
+	taskMap_regular["contextStats"] = new TTask_contextStats();
 	taskMap_regular["removeSoftClippedBases"] = new TTask_removeSoftClippedBasesFromReads();
 	taskMap_regular["filter"] = new TTask_filterBAM();
 	taskMap_regular["writeDepthPerWindow"] = new TTask_writeDepthPerWindow();
@@ -46,12 +47,12 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["alleleCounts"] = new TTask_estimateAlleleCounts();
 	taskMap_regular["alleleFreq"] = new TTask_estimateAlleleFreq();
 	taskMap_regular["inbreeding"] = new TTask_estimateInbreeding();
-	taskMap_regular["simulate"] = new TTask_simulate();
 	taskMap_regular["VCFAssessAllelicBalance"] = new TTask_VCFDiagnostics();
 	taskMap_regular["VCFToInvariantBed"] = new TTask_VCFToInvariantBed();
 	taskMap_regular["VCFToBeagle"] = new TTask_VCFToBeagle();
 	taskMap_regular["VCFFixInt"] = new TTask_VCFFixInt();
 	taskMap_regular["VCFCompare"] = new TTask_VCFCompare();
+	taskMap_regular["simulate"] = new TTask_simulate();
 	//taskMap_regular["filterVCF"] = new TTask_filterVCF();
 
 	//and debug tasks

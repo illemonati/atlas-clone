@@ -134,6 +134,8 @@ public:
 
 	template<typename T>
 	void write(T data){
+		std::cout << "numCols " << _numCols << std::endl;
+		std::cout << "_colsWritten " << _colsWritten << std::endl;
 		if(_colsWritten == _numCols)
 			throw "Extra value on line " + toString(_lineNum) + " in file '" + _name + "'!";
 

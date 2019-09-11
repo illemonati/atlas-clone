@@ -155,6 +155,16 @@ public:
 	};
 };
 
+class TTask_contextStats:public TTask_atlas{
+public:
+	TTask_contextStats(){ _explanation = "Writing context statistics to file"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.contextStats(parameters);
+	};
+};
+
 class TTask_filterBAM:public TTask_atlas{
 public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };

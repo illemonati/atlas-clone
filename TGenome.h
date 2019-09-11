@@ -98,6 +98,7 @@ public:
 	void createDepthMask(TParameters & params);
 	void simulateGWASData(TParameters & params);
 	void printMateInformationPerSite(TParameters & params);
+	void contextStats(TParameters & params);
 };
 
 
