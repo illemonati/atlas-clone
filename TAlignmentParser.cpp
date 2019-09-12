@@ -270,7 +270,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
 	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
 	setQualityFilters(minPhredInt, maxPhredInt);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "] (parameters 'minQual', 'maxQual'");
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
 
 	//quality filters for printing
 	int minOutQual = params.getParameterIntWithDefault("minOutQual", 0) + 33;

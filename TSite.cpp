@@ -196,7 +196,9 @@ void TSite::countFwdRev(int* frCounts){
 
 void TSite::contextStats(int** contextCounts, TQualityMap & qualMap){
 	for(TBase* it : bases){
-		++ contextCounts[qualMap.errorToPhredInt(it->errorRate)][it->context];
+		int q = qualMap.errorToPhredInt(it->errorRate);
+		int c = it->context;
+		++contextCounts[q][c];
 	}
 };
 

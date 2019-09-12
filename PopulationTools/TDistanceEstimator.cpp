@@ -601,7 +601,7 @@ TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "ATLAS");
-	logfile->list("Writing output files with prefix '" + outputName + "'.");
+	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 }
 
 void TDistanceEstimator::printGLF(TParameters & params){

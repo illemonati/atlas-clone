@@ -27,7 +27,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
-	logfile->list("Writing output files with prefix '" + outputName + "'.");
+	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
@@ -2289,7 +2289,8 @@ void TGenome::contextStats(TParameters & params){
 	std::string outputFileName = outputName + "_contextInformation.txt.gz";
 	logfile->list("Writing context information to file '" + outputFileName + "'.");
 	TOutputFileZipped out(outputFileName);
-	out.writeHeader({"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT", "NA", "NC", "NG", "NT"});
+	out.writeHeader({"quality","cAA", "cAC", "cAG", "cAT", "cCA", "cCC", "cCG", "cCT", "cGA", "cGC", "cGG", "cGT", "cTA", "cTC", "cTG", "cTT", "cNA", "cNC", "cNG", "cNT", "cAN", "cCN", "cGN", "cTN", "cNN"}); //N means unknwon base or "nothing", i.e. end of read or del
+	int numContext = 25;
 
 	//prepare windows
 	TWindow window;
@@ -2297,8 +2298,8 @@ void TGenome::contextStats(TParameters & params){
 	//prepare table
     int** contextCounts = new int*[alignmentParser.maxQual];
     for(int i = 0; i < alignmentParser.maxQual; ++i){
-    	contextCounts[i] =  new int[14];
-    	for(int j=0; j<14; ++j)
+    	contextCounts[i] =  new int[numContext];
+    	for(int j=0; j<numContext; ++j)
     		contextCounts[i][j]=0;
     }
 
@@ -2312,10 +2313,10 @@ void TGenome::contextStats(TParameters & params){
     //write to file
     for(int i=0; i<alignmentParser.maxQual; ++i){
     	out << i;
-    	for(int j=0; j<14; ++j){
+    	for(int j=0; j<numContext; ++j){
     		out << contextCounts[i][j];
     	}
-//    	std::cout << std::endl;
+		out << std::endl;
     }
 
     for(int i = 0; i < alignmentParser.maxQual; ++i){
