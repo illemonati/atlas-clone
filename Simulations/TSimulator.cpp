@@ -1522,14 +1522,16 @@ void TSimulatorHardyWeinberg::fillCumulGenoProb(const double & f){
 };
 
 void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref){
-	Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+//	Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+	Base ancestral = A;
 	for(int i=0; i<sampleSize; ++i){
 		haplotypes(i,0,locus) = ancestral;
 		haplotypes(i,1,locus) = ancestral;
 	}
 
 	//reference potentially with divergence
-	ref[locus] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
+//	ref[locus] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
+	ref[locus] = A;
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
@@ -1605,12 +1607,23 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 		//polymoprhic or not?
 		if(randomGenerator->getRand() < fracPoly){
 			//pick alleles
-			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
+//			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+//			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
 
 			//pick allele Frequency
 			double f = randomGenerator->getBetaRandom(alpha, beta);
 //			double f = 0.2;
+
+			Base ancestral;
+			Base derived;
+			if(f < 0.5){
+				ancestral = A;
+				derived = C;
+			} else {
+				ancestral = C;
+				derived = A;
+			}
+
 
 			//if simulations go through major minor, the allele freq will be flipped
 			if(writeTrueAlleleFreq && f < 0.5)

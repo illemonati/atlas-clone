@@ -145,7 +145,8 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfRead
 	}
 
 	//pick combination
-	chooseBestAllelicCombinationAmongThoseWithEqualScores();
+//	chooseBestAllelicCombinationAmongThoseWithEqualScores();
+	bestAllelicCombination = 0;
 	genotypeFrequencies.set(tmpGenotypeFrequencies[bestAllelicCombination]);
 };
 
