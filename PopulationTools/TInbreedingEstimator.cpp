@@ -19,7 +19,9 @@ TInbreedingF::TInbreedingF(){
 	_logLambda = -1.0;
 	_expMinusLambda = -1.0;
 	_posteriorProbModelWithF = -1;
-}
+	_sumIterations = -1.0;
+	_sumOfSquaresIterations = -1.0;
+};
 
 TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
 	_F = -1.0;
@@ -30,6 +32,8 @@ TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bo
 	_logLambda = log(Lambda);
 	_expMinusLambda = log(1-exp(-_lambda));
 	_posteriorProbModelWithF = 0;
+	_sumIterations = 0.0;
+	_sumOfSquaresIterations = 0.0;
 }
 
 void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF){
@@ -55,9 +59,7 @@ void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int nu
 		}
 		_sdProposal = newProposalWidth;
 	}
-
-
-}
+};
 
 double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     double newF = _F + randomGenerator->getNormalRandom(0, _sdProposal);
@@ -73,20 +75,36 @@ double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     if(newF > 1)
     	throw "proposing F larger than one!";
     return newF;
-}
+};
+
+void TInbreedingF::updatePosteriors(const double & value, const bool & inModelWithF){
+	_inModelWithF = inModelWithF;
+	_posteriorProbModelWithF += inModelWithF;
+	_sumIterations += value;
+	_sumOfSquaresIterations += (value * value);
+};
 
 void TInbreedingF::updateAndAccept(const double & value, const bool & inModelWithF){
 	_F = value;
-	_inModelWithF = inModelWithF;
-	_posteriorProbModelWithF += inModelWithF;
+	updatePosteriors(value, inModelWithF);
 }
 
 void TInbreedingF::updateAndReject(bool inModelWithF){
-	_posteriorProbModelWithF += inModelWithF;
+	updatePosteriors(_F, inModelWithF);
 }
 
 void TInbreedingF::resetPosterior(){
 	_posteriorProbModelWithF = 0;
+	_sumIterations = 0.0;
+	_sumOfSquaresIterations = 0.0;
+};
+
+double TInbreedingF::getPosteriorMean(int numUpdates){
+	return _sumIterations / (double) numUpdates;
+}
+
+double TInbreedingF::getPosteriorVariance(int numUpdates){
+	return _sumOfSquaresIterations / (double) numUpdates - getPosteriorMean(numUpdates)*getPosteriorMean(numUpdates);
 }
 
 double TInbreedingF::logPDFExp(const double & thisF){
@@ -162,9 +180,6 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 	logProbMovingToModel0 = log(probMovingToModel0);
 	logProbMovingToModelP = log(probMovingToModelP);
 	_numLociWithAcceptanceZero = -1;
-
-	//vectors
-	//init proposal widths and check range of p
 
 	for(int l=0; l<numLoci; ++l){
 		double min = 1.0 / (2.0 * (double) numSamples);
@@ -271,7 +286,7 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 	posteriorProbModelP[index] += ModelP;
 	if(ModelP){
 		sumIterations[index] += value;
-		sumOfSquaresIterations[index] += value*value;
+		sumOfSquaresIterations[index] += (value*value);
 	}
 
 	//freq value
@@ -296,11 +311,11 @@ double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGe
 	return newP;
 }
 
-double TAlleleFreq::getPosteriorMean(unsigned long & index, int numUpdates){
+double TAlleleFreq::getPosteriorMean(unsigned long index, int numUpdates){
 	return sumIterations[index] / (double) numUpdates;
 }
 
-double TAlleleFreq::getPosteriorVariance(unsigned long & index, int numUpdates){
+double TAlleleFreq::getPosteriorVariance(unsigned long index, int numUpdates){
 	return sumOfSquaresIterations[index] / (double) numUpdates - getPosteriorMean(index, numUpdates)*getPosteriorMean(index, numUpdates);
 }
 
@@ -351,7 +366,7 @@ void TGamma::update(const double & newLogValue, const double & newNaturalScaleVa
 		throw "updating gamma to negative value!";
 	_logGamma = newLogValue;
 	_gamma = newNaturalScaleValue;
-}
+};
 
 void TGamma::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	//adjust proposal for alpha / beta
@@ -369,19 +384,19 @@ void TGamma::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 
 	if(proposalWidth <= 0)
 		throw "Proposal width for gamma is not larger than 0!";
-}
+};
 
 double TGamma::getLogValue(){
 	return _logGamma;
-}
+};
 
 double TGamma::getNaturalScaleValue(){
 	return _gamma;
-}
+};
 
 double TGamma::getProposalWidth(){
 	return proposalWidth;
-}
+};
 
 //---------------------------
 // pi
@@ -393,7 +408,7 @@ TPi::TPi(){
 	_minPi = -1.0;
 	_logPi = -1.0;
 	_logOneMinusPi = -1.0;
-}
+};
 
 TPi::TPi(double & ProposalWidth, double & initialValue){
 	proposalWidth = ProposalWidth;
@@ -405,7 +420,7 @@ TPi::TPi(double & ProposalWidth, double & initialValue){
 		_pi = _minPi;
 	else if(_pi >= 1)
 		_pi = 1 - _minPi;
-}
+};
 
 void TPi::update(const double & newNaturalScaleValue){
 	if(newNaturalScaleValue < 0)
@@ -413,7 +428,7 @@ void TPi::update(const double & newNaturalScaleValue){
 	_pi = newNaturalScaleValue;
 	_logPi = log(_pi);
 	_logOneMinusPi = log(1.0 - _pi);
-}
+};
 
 void TPi::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 	double newProposalWidth = proposalWidth;
@@ -430,15 +445,7 @@ void TPi::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
 
 	if(proposalWidth <= 0)
 		throw "Proposal width for pi is not larger than 0!";
-}
-
-double TPi::getPi(){
-	return _pi;
-}
-
-double TPi::getProposalWidth(){
-	return proposalWidth;
-}
+};
 
 double TPi::proposeNew(TRandomGenerator* randomGenerator){
 	double newPi = _pi + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
@@ -448,7 +455,17 @@ double TPi::proposeNew(TRandomGenerator* randomGenerator){
 		newPi = 2 - newPi;
 	}
 	return newPi;
-}
+};
+
+double TPi::getPi(){
+	return _pi;
+};
+
+double TPi::getProposalWidth(){
+	return proposalWidth;
+};
+
+
 //---------------------------
 // TInbreedingEstimator
 //---------------------------
@@ -534,7 +551,7 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	std::string vcfFileName = likelihoods.getVCFName();
 	vcfFileName = extractBeforeLast(vcfFileName, ".vcf");
 	outname = Parameters.getParameterStringWithDefault("out", vcfFileName);
-}
+};
 
 void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 	// estimate alpha_f and beta_f by method of moments
@@ -577,8 +594,7 @@ void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 	} else{
 		shouldUpdateGamma = true;
 	}
-
-}
+};
 
 void TInbreedingEstimator::initF(TParameters & parameters){
 	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.2);
@@ -621,7 +637,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	} else {
 		shouldUpdateF = true;
 	}
-}
+};
 
 void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelPFactor", 2.0);
@@ -662,7 +678,7 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	if(p.numLoci != numLoci)
 		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.numLoci);
 	logfile->list("initialized allele frequencies for " + toString(p.numLoci) + " loci");
-}
+};
 
 void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParameters & parameters){
 	//F
@@ -673,12 +689,9 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 
 	//gamma
 	double widthProposalKernelGamma = parameters.getParameterDoubleWithDefault("widthProposalKernelGamma", 0.35);
-	Gamma = TGamma(widthProposalKernelGamma);
-
-	initializeGamma(parameters);
-//	Gamma.update(log(0.5), 0.5);
-
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
+	Gamma = TGamma(widthProposalKernelGamma);
+	initializeGamma(parameters);
 
 	//pi
 	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 10.0 / (double) p.numLoci);
@@ -689,74 +702,22 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 		initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
 	}
 	pi = TPi(widthProposalKernelPi, initialValue);
-	logfile->list("initialized pi to " + toString(pi.getPi()));
+	logfile->list("initialized pi to " + toString(pi.getPi()) + ". (parameter 'initialPi')");
 
 	if(parameters.parameterExists("fixedPi")){
 		shouldUpdatePi = false;
-		logfile->list("Will not update pi");
+		logfile->list("Will not update pi. (parameter 'fixedPi')");
 	} else {
 		shouldUpdatePi = true;
 	}
 }
 
-void TInbreedingEstimator::resetToInitialValues(){
+void TInbreedingEstimator::resetToInitialValuesDebugging(){
 	p.setToValue(0.2);
 	Gamma.update(log(0.7), 0.7);
 	F.updateAndAccept(0.1, true);
 }
 
-void TInbreedingEstimator::checkHastingsRatios(){
-	//F hastings
-	resetToInitialValues();
-
-	double newF = 0.15;
-	double logH = 0.0;
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		std::cout << "newLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter) << std::endl;
-//		std::cout << "oldLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter) << std::endl;
-		logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
-		- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
-	}
-
-	std::cout << "\nF hastings log: " << logH << " natural: " << exp(logH) << std::endl;
-
-	//p hastings
-	resetToInitialValues();
-
-	double newP = 0.3;
-	int locusNum = 9;
-	std::cout << "(Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) " << (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) << std::endl;
-	logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
-				+ logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
-				- logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
-
-	std::cout << "\np[" << locusNum << "] hastings log: " << logH << " natural: " << exp(logH) << std::endl;
-
-	//gamma hastings
-	resetToInitialValues();
-
-	double newGamma = 0.4;
-	double sumLogFreq = 0.0;
-	double sumLogOneMinusFreq = 0.0;
-
-	for(unsigned long l=0; l<numLoci; ++l){
-		if(p.modelP[l]){
-			sumLogFreq += log(p[l]);
-			sumLogOneMinusFreq += log(1.0 - p[l]);
-		}
-	}
-
-	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
-	logH = (double) p.getNumLociInModelP() *
-			(randomGenerator->gammaln(2.0*newGamma)
-			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
-			- 2.0*randomGenerator->gammaln(newGamma)
-			)
-			+ diffGammas * sumLogFreq
-			+ diffGammas * sumLogOneMinusFreq;
-}
 
 bool TInbreedingEstimator::updateF(){
 	if(F.inModelWithF()){
@@ -793,22 +754,6 @@ bool TInbreedingEstimator::updateF(){
 				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
 				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
 			}
-
-			/*
-			//Debug: print p's to debug h_F in R
-			int num = randomGenerator->getRand() * 1000000000;
-			std::string filename = "pAtlas_" + toString(num) + ".txt";
-			std::ofstream out(filename.c_str());
-			for(unsigned long l=0; l<numLoci; ++l){
-				if(p.modelP[l]){
-					out << std::setprecision(20) << p[l] << "\n";
-				} else throw "Should not happen!!!";
-			}
-			out.close();
-
-			std::cout << "pAtlas <- read.table(\"" << filename << "\", header=FALSE); pAtlas <- pAtlas[,1]; gamma <- " << Gamma.getNaturalScaleValue() << "; F_new <- " << newF << "; F_old <- " << F.F() << "; atlas_log_h <- " << logH << ";" << std::endl;
-*/
-
 
 			//accept?
 			if(log(randomGenerator->getRand()) < logH){
@@ -1005,15 +950,12 @@ bool TInbreedingEstimator::updatePi(){
 
 	// accept or reject
 	double tmp = log(randomGenerator->getRand());
-//	std::cout << " curPi " << pi.getPi() << " newPi " << newPi << " numLociInModelP " << numLociInModelP  << " numLociInModel0 " << numLociInModel0<< " H " << exp(logH) << " tmp " << exp(tmp)<< std::flush;
 
 	if(tmp < logH){
 		pi.update(newPi);
-//		std::cout << " accepted" << std::endl;
 		return true;
 	}
 	else{
-//		std::cout << " rejected" << std::endl;
 		return false;
 	}
 }
@@ -1085,8 +1027,6 @@ double TInbreedingEstimator::logProbPGivenGamma(){
 	posteriorProbability += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
 	posteriorProbability += (double) p.getNumLociInModelP() * (randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue()));
 
-//	std::cout << "gamma " << Gamma.getNaturalScaleValue() << " F " << F.F() << " p[26] " << p[26] << " modelP " << p.modelP[26] << " pi " << pi.getPi()<< "posteriorProbability " << posteriorProbability << std::endl;
-
 	return posteriorProbability;
 };
 
@@ -1101,172 +1041,22 @@ double TInbreedingEstimator::getLogLikelihoodCurrentParams(const TGlfConverter &
 
 	//add P(p|alpha,beta)
 	logLikelihood += logProbPGivenGamma();
-//	std::cout << "logLikelihood " << logLikelihood << std::endl;
 	return logLikelihood;
 };
 
-void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodF.txt.gz";
-	logfile->list("Will write likelihood chain for grid of F to file '" + tracefile + "'.");
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-	//initialize
-	double trueGamma = 0.2;
-	double trueLogGamma = log(trueGamma);
-	Gamma.update(trueLogGamma, trueGamma);
-
-	//make grid
-	int numProbs = 50;
-	float step = 1 / (float) numProbs;
-	std::cout << "step size "  << step << std::endl;
-
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double logLikelihood = 0.0;
-		double thisF = 0.0;
-		thisF = thisF + (double) i*step;
-		if(thisF > 1)
-			break;
-
-		std::cout << "thisF " << thisF << std::endl;
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF, likelihoods.glfConverter);
-		}
-
-		//add P(p|alpha,beta)
-		logLikelihood += logProbPGivenGamma();
-		outP << thisF << "\t" << logLikelihood << "\n";
-		std::cout << logLikelihood << std::endl;
-	}
-	logfile->done();
-}
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & params){
-	//which locus to update
-	long index = params.getParameterInt("locus");
-
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodP[" + toString(index) + "].txt.gz";
-	logfile->list("Will write likelihood chain for grid of p[" + toString(index) + "] to file '" + tracefile + "'.");
-	logfile->list("The true value for p[" + toString(index) + "] is: " + toString(p[index]));
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-	//initialize
-	double trueGamma = 0.5;
-	double trueLogGamma = log(trueGamma);
-	Gamma.update(trueLogGamma, trueGamma);
-
-	F.updateAndAccept(0.2, true);
-	pi.update(0.8);
-
-
-	//make grid
-	int numProbs = 1000;
-	float step = 1.0 / (float) numProbs;
-	double pValue = 0.0;
-
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double newPValue = pValue + (double) i*step;
-		std::cout << "calculating likelihood for p[" << index << "]=" << newPValue << std::endl;
-		if(newPValue == 0)
-			p.update(index, newPValue, false);
-		else
-			p.update(index, newPValue, true);
-
-
-		double logLikelihood = getLogLikelihoodCurrentParams(likelihoods.glfConverter);
-		outP << newPValue << "\t" << logLikelihood << "\n";
-	}
-	logfile->done();
-}
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params){
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodGamma.txt.gz";
-	logfile->list("Will write likelihoods for grid of gamma to '" + tracefile + "'.");
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-
-	//initialize
-	int numProbs = 100;
-	float step = 2.0 / (float) numProbs;
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-	F.updateAndAccept(0.2, true);
-
-	double logLikelihood = 0.0;
+double TInbreedingEstimator::compareLikelihoods(int numUpdates, const TGlfConverter & glfConverter){
+	double logLikelihoodMeanF = 0.0;
+	double logLikelihoodF0 = 0.0;
 	long l = 0;
 	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
-		if(logLikelihood > 0)
-			throw "likelihood is larger than 1!";
+		logLikelihoodMeanF += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p.getPosteriorMean(l, numUpdates), F.getPosteriorMean(numUpdates), likelihoods.glfConverter);
+		logLikelihoodF0 += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p.getPosteriorMean(l, numUpdates), 0, likelihoods.glfConverter);
 	}
+	std::cout << "logLikelihoodMeanF " << logLikelihoodMeanF << " logLikelihoodF0 " << logLikelihoodF0 << std::endl;
+	return logLikelihoodMeanF - logLikelihoodF0;
+};
 
-	double logLikelihoodAllInds = logLikelihood;
 
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double newValue = (double) i*step;
-		std::cout << "calculating likelihood for alpha and beta =" << newValue << std::endl;
-		if(newValue == 0.0)
-			//a small number
-			newValue = 0.000000001;
-		double newValueLog = log(newValue);
-
-		//only when alpha and beta are equal the beta distribution is symetric and the P(p) = P(1-p),
-		// ---->  true MAF should give the same result as the true allele freq
-		Gamma.update(newValueLog, newValue);
-
-		//add P(p|alpha,beta)
-		logLikelihood = logLikelihoodAllInds + logProbPGivenGamma();
-		outP << Gamma.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
-	}
-	logfile->done();
-
-}
-
-//void TInbreedingEstimator::writeLikelihoodForDebuggingPi(TParameters & params){
-//	//open output file
-//	std::string tracefile = outname + "_logLikelihoodPi.txt.gz";
-//	logfile->list("Will write likelihoods for grid of pi to '" + tracefile + "'.");
-//	gz::ogzstream outP(tracefile.c_str());
-//	if(!outP)
-//		throw "Failed to open file '" + tracefile + "' for writing!";
-//
-//	//initialize
-//	int numProbs = 100;
-//	float step = 2.0 / (float) numProbs;
-//	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-//
-//	F.updateAndAccept(0.2, true);
-//	Gamma.update(log(0.5), 0.5);
-//
-//	double logLikelihood = 0.0;
-//	long l = 0;
-//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		uint8_t* data = likelihoods.curData();
-//		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
-//		if(logLikelihood > 0)
-//			throw "likelihood is larger than 1!";
-//	}
-//
-//	double logLikelihoodAllInds = logLikelihood;
-//	for(int i=0; i<numProbs; ++i){
-//		double newValue = (double) i*step;
-//		pi.update(newValue);
-//	}
-//
-//}
 
 void TInbreedingEstimator::oneMCMCIteration(){
 	//update params
@@ -1359,96 +1149,15 @@ void TInbreedingEstimator::adjustProposalWidths(){
 		pi.adjustProposalWidthAfterBurnin(numAcceptedPi, burninLength);
 }
 
-void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter){
+void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out){
 	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getPi();
 	for(unsigned int l=0; l<1000; ++l){
 		out << "\t" << p[l];
 	}
 
-	out << "\t" << getLogLikelihoodCurrentParams(glfConverter);
+	out << "\t" << getLogLikelihoodCurrentParams(likelihoods.glfConverter);
 	out << "\t" << p.getNumLociInModelP();
-//	out << "\t" << numAcceptedPModelP[0] << "\t" << numIterInModelP[0];
 	out << "\n";
-
-/*
-	//-------------------------------------
-	// DEBUG F
-	//-------------------------------------
-
-
-
-	//M_F -> M_0
-	double logH = F.logPDFExp(0.05) - log(F.probMovingToModelNoF());
-
-	out << "\t" << logH;
-
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		uint8_t* data = likelihoods.curData();
-		logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0)
-		- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0.05);
-	}
-
-	out << "\t" << logH;
-
-
-	//M_0 -> M_F
-	double newF = 0.05;
-	logH = log(F.probMovingToModelNoF()) - F.logPDFExp(newF);
-
-	out << "\t" << logH;
-
-	l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		uint8_t* data = likelihoods.curData();
-		logH += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], newF)
-		- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], 0);
-	}
-
-	out << "\t" << logH;
-
-
-	out << "\n";
-*/
-	//-------------------------------------
-	// DEBUG p
-	//-------------------------------------
-
-//	//propose model0
-//	likelihoods.begin();
-//	uint8_t* data = likelihoods.curData();
-//	double gammaNat = Gamma.getNaturalScaleValue();
-//	double logH = 2.0 * randomGenerator->gammaln(gammaNat)
-//			+ log(1.0 - pi.getPi())
-//			+ p.logPDFExp(0.2)
-//			- (gammaNat-1.0) * log(0.2)
-//			- (gammaNat-1.0) * log(1.0-0.2)
-//			- randomGenerator->gammaln(2.0*gammaNat)
-//			- log(pi.getPi())
-//			- log(p.probMovingToModel0)
-//			+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-//			- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.2, F.F());
-//
-//	std::cout << "\n--------------" << std::endl;
-//
-//	std::cout << "p to 0: " << logH << std::endl;
-//
-//	double newP = 0.2;
-//	if(newP < 0)
-//		throw "proposed negative newP in move from model0 to modelP: " + toString(newP);
-//	logH = - 2.0 * randomGenerator->gammaln(gammaNat)
-//			- log(1.0 - pi.getPi())
-//			- p.logPDFExp(newP)
-//			+ (gammaNat-1.0) * log(newP)
-//			+ (gammaNat-1.0) * log(1.0-newP)
-//			+ randomGenerator->gammaln(2.0*gammaNat)
-//			+ log(pi.getPi())
-//			+ log(p.probMovingToModel0)
-//			- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-//			+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F());
-//
-//	std::cout << "0 to p: " << logH << std::endl;
-
 }
 
 void TInbreedingEstimator::writePosteriors(int i){
@@ -1457,8 +1166,13 @@ void TInbreedingEstimator::writePosteriors(int i){
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
-	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate_modelNonZero\tproposalWidth\tinitial_alleleFreq\n";
-	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\tNA\tNA\t" << numAcceptedFModelF<< "\t" << F.proposalWidth() << "\tNA\n";
+	//header
+	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate_modelNonZero\tproposalWidth\tinitial_alleleFreq\tllMeanF_minus_llF0\n";
+
+	//F param
+	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\t" << F.getPosteriorMean(numIterations) << "\t"  << F.getPosteriorVariance(numIterations) << "\t" << numAcceptedFModelF<< "\t" << F.proposalWidth() << "\tNA\tNA\n";
+
+	//loci
 	for(unsigned long l=0; l<numLoci; ++l){
 		outP << "p[" << l << "]\t" << p.posteriorProbModelP[l] << "\t"<< p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedPModelP[l] / (double) numIterInModelP[l] << "\t" << p.getProposalWidth(l);
 		if(trueAlleleFreqProvided)
@@ -1466,43 +1180,16 @@ void TInbreedingEstimator::writePosteriors(int i){
 		else
 //			outP << "\tNA";
 			outP << "\t" << p.initialAlleleFreq[l];
+
+		double diffLL = logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), p.getPosteriorMean(l, numIterations), F.getPosteriorMean(numIterations), likelihoods.glfConverter)
+				        - logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), p.getPosteriorMean(l, numIterations), 0, likelihoods.glfConverter);
+		outP << "\t" << diffLL;
 		outP << "\n";
 	}
 	outP.close();
-
 }
 
-void TInbreedingEstimator::runEstimation(TParameters & params){
-	logfile->startIndent("Running MCMC to estimate inbreeding coefficient F and the allele frequency distribution:");
-
-	//open MCMC output file
-	std::string tracefile = outname + "_inbreedingMCMC.txt";
-	logfile->list("Will write MCMC chain to file '" + tracefile + "'.");
-	std::ofstream out(tracefile.c_str());
-	if(!out)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-
-	//announce names of posterior files
-	tracefile = outname + "_*_inbreedingMCMC_posteriors.txt.gz";
-	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
-
-	//write header of trace file
-	out << "F\tgamma\tgammaLog\tpi";
-	for(int l=0; l<1000; ++l){
-		out << "\tp[" << l << "]";
-	}
-
-//	//DEBUG
-//	out << "\tq(FtoZero)/P(F')\tH_M0_to_MF\tq(P(F)/q(FtoZero)\tH_MF_to_M0";
-
-
-	out << "\tlogLikelihood\tp.getNumLociInModelP()\n";
-	writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
-
-
-	//---------------------------
-	//run Burnin(s)
-	//---------------------------
+void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params){
 	for(int b=0; b<numBurnins; ++b){
 		std::string reportString = "Running burnin (" + toString(b) + ") of " + toString(burninLength) + " iterations (";
 		logfile->listFlush(reportString + "0%) ...");
@@ -1510,8 +1197,10 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		for(long i=0; i<burninLength; ++i){
 
 			oneMCMCIteration();
+
+			//write?
 			if(params.parameterExists("writeBurninToFile"))
-				writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
+				writeParameterEstimatesOfIteration(out);
 
 			//report
 			int prog = floor((float) i / (float) burninLength * 100);
@@ -1533,34 +1222,32 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		//report new proposal widths
 		logfile->conclude("New proposal width for F is " + toString(F.proposalWidth()));
 		for(int l=0; l<5; ++l)
-			logfile->conclude("New proposal width for allele freq at locus one " + toString(p.getProposalWidth(l)));
+			logfile->conclude("New proposal width for allele freq at locus " + toString(l) + " is " + toString(p.getProposalWidth(l)));
 		logfile->conclude("New proposal width for Gamma is " + toString(Gamma.getProposalWidth()));
 		logfile->conclude("New proposal width for pi is " + toString(pi.getProposalWidth()));
 
 		resetAcceptanceRates();
-		p.setSumsForPosteriorToZero();
 	}
+}
 
-	//---------------------------
-	//run MCMC
-	//---------------------------
-
-	//write initial parameter estimates
-	writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
-
-	//run MCMC
+void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters & params){
+	//progress
 	int oldProg = 0;
 	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
 	logfile->listFlush(progressString + "(0%)");
+
+	//run MCMC
 	for(int i=0; i<numIterations; ++i){
 
+		//update
 		oneMCMCIteration();
 
-		//print to file
+		//write chain
 		if(i % thinning == 0){
-			writeParameterEstimatesOfIteration(out, likelihoods.glfConverter);
+			writeParameterEstimatesOfIteration(out);
 		}
 
+		//write posteriors
 		if(i % 1000 == 0){
 			writePosteriors(i);
 		}
@@ -1573,6 +1260,37 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 		}
 	}
 	logfile->overList(progressString + " done!   ");
+}
+
+void TInbreedingEstimator::runEstimation(TParameters & params){
+	logfile->startIndent("Running MCMC to estimate inbreeding coefficient F and the allele frequency distribution:");
+
+	//open MCMC trace file
+	std::string tracefile = outname + "_inbreedingMCMC.txt";
+	logfile->list("Will write MCMC chain to file '" + tracefile + "'.");
+	std::ofstream out(tracefile.c_str());
+	if(!out)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+
+	//write header of trace file
+	out << "F\tgamma\tgammaLog\tpi";
+	for(int l=0; l<1000; ++l)
+		out << "\tp[" << l << "]";
+	out << "\tlogLikelihood\tp.getNumLociInModelP()\n";
+
+	//write initial parameters
+	writeParameterEstimatesOfIteration(out);
+
+	//announce names of posterior files
+	tracefile = outname + "_*_inbreedingMCMC_posteriors.txt.gz";
+	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
+
+
+	//run burnins
+	runBurnins(out, params);
+
+	//run MCMC chain
+	runMCMC(out, params);
 
 	//results
 	printAcceptanceRates(numIterations);
@@ -1581,6 +1299,227 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 	//clean up
 	logfile->endIndent();
 	out.close();
+};
 
-//	writeLikelihoodForDebuggingGamma(params);
+
+//------------------------------
+// Debugging functions
+//------------------------------
+
+
+
+void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
+	//open output file
+	std::string tracefile = outname + "_logLikelihoodF.txt.gz";
+	logfile->list("Will write likelihood chain for grid of F to file '" + tracefile + "'.");
+	gz::ogzstream outP(tracefile.c_str());
+	if(!outP)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+
+	//initialize
+	double trueGamma = 0.2;
+	double trueLogGamma = log(trueGamma);
+	Gamma.update(trueLogGamma, trueGamma);
+
+	//make grid
+	int numProbs = 50;
+	float step = 1 / (float) numProbs;
+	std::cout << "step size "  << step << std::endl;
+
+	//calculate ll
+	for(int i=0; i<numProbs; ++i){
+		double logLikelihood = 0.0;
+		double thisF = 0.0;
+		thisF = thisF + (double) i*step;
+		if(thisF > 1)
+			break;
+
+		std::cout << "thisF " << thisF << std::endl;
+		long l = 0;
+		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF, likelihoods.glfConverter);
+		}
+
+		//add P(p|alpha,beta)
+		logLikelihood += logProbPGivenGamma();
+		outP << thisF << "\t" << logLikelihood << "\n";
+		std::cout << logLikelihood << std::endl;
+	}
+	logfile->done();
+};
+
+void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & params){
+	//which locus to update
+	long index = params.getParameterInt("locus");
+
+	//open output file
+	std::string tracefile = outname + "_logLikelihoodP[" + toString(index) + "].txt.gz";
+	logfile->list("Will write likelihood chain for grid of p[" + toString(index) + "] to file '" + tracefile + "'.");
+	logfile->list("The true value for p[" + toString(index) + "] is: " + toString(p[index]));
+	gz::ogzstream outP(tracefile.c_str());
+	if(!outP)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+
+	//initialize
+	double trueGamma = 0.5;
+	double trueLogGamma = log(trueGamma);
+	Gamma.update(trueLogGamma, trueGamma);
+
+	F.updateAndAccept(0.2, true);
+	pi.update(0.8);
+
+
+	//make grid
+	int numProbs = 1000;
+	float step = 1.0 / (float) numProbs;
+	double pValue = 0.0;
+
+	//calculate ll
+	for(int i=0; i<numProbs; ++i){
+		double newPValue = pValue + (double) i*step;
+		std::cout << "calculating likelihood for p[" << index << "]=" << newPValue << std::endl;
+		if(newPValue == 0)
+			p.update(index, newPValue, false);
+		else
+			p.update(index, newPValue, true);
+
+
+		double logLikelihood = getLogLikelihoodCurrentParams(likelihoods.glfConverter);
+		outP << newPValue << "\t" << logLikelihood << "\n";
+	}
+	logfile->done();
+};
+
+void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params){
+	//open output file
+	std::string tracefile = outname + "_logLikelihoodGamma.txt.gz";
+	logfile->list("Will write likelihoods for grid of gamma to '" + tracefile + "'.");
+	gz::ogzstream outP(tracefile.c_str());
+	if(!outP)
+		throw "Failed to open file '" + tracefile + "' for writing!";
+
+	//initialize
+	int numProbs = 100;
+	float step = 2.0 / (float) numProbs;
+	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+
+	F.updateAndAccept(0.2, true);
+
+	double logLikelihood = 0.0;
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
+		if(logLikelihood > 0)
+			throw "likelihood is larger than 1!";
+	}
+
+	double logLikelihoodAllInds = logLikelihood;
+
+	//calculate ll
+	for(int i=0; i<numProbs; ++i){
+		double newValue = (double) i*step;
+		std::cout << "calculating likelihood for alpha and beta =" << newValue << std::endl;
+		if(newValue == 0.0)
+			//a small number
+			newValue = 0.000000001;
+		double newValueLog = log(newValue);
+
+		//only when alpha and beta are equal the beta distribution is symetric and the P(p) = P(1-p),
+		// ---->  true MAF should give the same result as the true allele freq
+		Gamma.update(newValueLog, newValue);
+
+		//add P(p|alpha,beta)
+		logLikelihood = logLikelihoodAllInds + logProbPGivenGamma();
+		outP << Gamma.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
+	}
+	logfile->done();
+};
+
+//void TInbreedingEstimator::writeLikelihoodForDebuggingPi(TParameters & params){
+//	//open output file
+//	std::string tracefile = outname + "_logLikelihoodPi.txt.gz";
+//	logfile->list("Will write likelihoods for grid of pi to '" + tracefile + "'.");
+//	gz::ogzstream outP(tracefile.c_str());
+//	if(!outP)
+//		throw "Failed to open file '" + tracefile + "' for writing!";
+//
+//	//initialize
+//	int numProbs = 100;
+//	float step = 2.0 / (float) numProbs;
+//	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
+//
+//	F.updateAndAccept(0.2, true);
+//	Gamma.update(log(0.5), 0.5);
+//
+//	double logLikelihood = 0.0;
+//	long l = 0;
+//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		uint8_t* data = likelihoods.curData();
+//		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
+//		if(logLikelihood > 0)
+//			throw "likelihood is larger than 1!";
+//	}
+//
+//	double logLikelihoodAllInds = logLikelihood;
+//	for(int i=0; i<numProbs; ++i){
+//		double newValue = (double) i*step;
+//		pi.update(newValue);
+//	}
+//
+//}
+
+void TInbreedingEstimator::checkHastingsRatios(){
+	//F hastings
+	resetToInitialValuesDebugging();
+
+	double newF = 0.15;
+	double logH = 0.0;
+	long l = 0;
+	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
+//		std::cout << "newLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter) << std::endl;
+//		std::cout << "oldLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter) << std::endl;
+		logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter)
+		- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter);
+	}
+
+	std::cout << "\nF hastings log: " << logH << " natural: " << exp(logH) << std::endl;
+
+	//p hastings
+	resetToInitialValuesDebugging();
+
+	double newP = 0.3;
+	int locusNum = 9;
+	std::cout << "(Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) " << (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) << std::endl;
+	logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
+				+ logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter)
+				- logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F(), likelihoods.glfConverter);
+
+	std::cout << "\np[" << locusNum << "] hastings log: " << logH << " natural: " << exp(logH) << std::endl;
+
+	//gamma hastings
+	resetToInitialValuesDebugging();
+
+	double newGamma = 0.4;
+	double sumLogFreq = 0.0;
+	double sumLogOneMinusFreq = 0.0;
+
+	for(unsigned long l=0; l<numLoci; ++l){
+		if(p.modelP[l]){
+			sumLogFreq += log(p[l]);
+			sumLogOneMinusFreq += log(1.0 - p[l]);
+		}
+	}
+
+	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
+	logH = (double) p.getNumLociInModelP() *
+			(randomGenerator->gammaln(2.0*newGamma)
+			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
+			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
+			- 2.0*randomGenerator->gammaln(newGamma)
+			)
+			+ diffGammas * sumLogFreq
+			+ diffGammas * sumLogOneMinusFreq;
 }
+
