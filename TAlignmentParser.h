@@ -54,9 +54,6 @@ public:
 //-----------------------------------------------------
 class TAlignmentParser{
 private:
-
-	//TReadGroups* readGroupTable;
-
 	TLog* logfile;
 	bool _keepDuplicates;
 	bool _filterSoftClips;
@@ -82,10 +79,6 @@ private:
 	int trimmingLength3Prime;
 	int trimmingLength5Prime;
 
-	//iterators
-// 	int chrNumber;
-// 	long chrLength;
-
 	//window params
 	int windowSize;
 	int numWindowsOnChr;
@@ -100,6 +93,8 @@ private:
 
 	//filters
 	bool applyQualityFilter;
+	bool applyContextFilter;
+	std::map<BaseContext,int> ignoreTheseContexts;
 	size_t readUpToDepth, minDepth, maxDepth;
 	int minPhredInt, maxPhredInt;
 	bool applyMQFilter;
@@ -147,7 +142,7 @@ private:
 	bool applyFilters();
 	void fillAlignment(TAlignment & alignment);
 	void readAlignmentsIntoWindow(TWindow & window);
-	void applyFilters(TWindow & window);
+	void applyWindowFilters(TWindow & window);
 	void adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
 
 public:
@@ -156,7 +151,6 @@ public:
 	int minQualForPrinting, maxQualForPrinting;
 	int minQual, maxQual;
 	bool doMasking, considerRegions;
-	bool doCpGMasking;
 	bool applyDepthFilter;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
@@ -213,6 +207,7 @@ public:
 	void setQualityFilters(int minQual, int maxQual);
 	void setMappingQualityFilters(int MinMQ, int MaxMQ);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
+	void setContextFilter(std::vector<std::string> contexts);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
 	void setApplyFragmentLengthFilter(bool filterYesNo);
 
