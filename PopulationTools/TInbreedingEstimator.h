@@ -74,7 +74,7 @@ public:
 	double minAlleleFreq;
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda);
+	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided);
 
 	double operator[](long index){
 		//Note: no check on range!
@@ -168,6 +168,8 @@ private:
 	int numBurnins;
 	int burninLength;
 	int thinning;
+
+	long numLociToTrace;
 
 	bool shouldUpdateF;
 	bool shouldUpdateP;
