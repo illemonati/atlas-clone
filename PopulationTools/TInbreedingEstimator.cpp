@@ -194,8 +194,10 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 
 	for(int l=0; l<numLoci; ++l){
 		posteriorProbModelP.push_back(0.0);
-		if(alleleFreq[l] == 0)
-			proposalWidths.push_back(initialProposalWidthFactor * minAlleleFreq);
+		if(alleleFreq[l] < 1.0 / (1.5 * (double) numSamples))
+			proposalWidths.push_back(0.5 * alleleFreq[l]); //the 0.5 is because the proposal goes 0.5 * width below p
+//		if(alleleFreq[l] == 0)
+//			proposalWidths.push_back(initialProposalWidthFactor * minAlleleFreq);
 		else {
 //			proposalWidths.push_back(initialProposalWidthFactor * alleleFreq[l]);
 			proposalWidths.push_back(0.5);
@@ -211,6 +213,8 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 		}
 		_numLociModelP = _numLociModelP + modelP[l];
 	}
+
+	std::cout << "############# proposalWidths[1833] " << proposalWidths[1833] << " alleleFreq[1833] " << alleleFreq[1833] << std::endl;
 }
 
 void TAlleleFreq::setSumsForPosteriorToZero(){
@@ -605,7 +609,7 @@ void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 };
 
 void TInbreedingEstimator::initF(TParameters & parameters){
-	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.2);
+	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.02);
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
 	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("probMovingToModelNoF", 0.1);
@@ -696,7 +700,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	initAlleleFreq(parameters);
 
 	//gamma
-	double widthProposalKernelGamma = parameters.getParameterDoubleWithDefault("widthProposalKernelGamma", 0.35);
+	double widthProposalKernelGamma = parameters.getParameterDoubleWithDefault("widthProposalKernelGamma", 0.1);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
 	Gamma = TGamma(widthProposalKernelGamma);
 	initializeGamma(parameters);
@@ -844,9 +848,9 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 			//accept?
 			double tmp = log(randomGenerator->getRand());
 
-//			if(locusNum == 11 && p[11] < newP){
-//				std::cout << "##### curP " << p[11] << " newP " << newP << " logH " << exp(logH) << " tmp " << exp(tmp) << " accepted " << (tmp < logH) <<  std::endl;
-//			}
+			if(locusNum == 1833){
+				std::cout << "#####\t" << p[1833] << "\t" << newP << "\t" << (p[1833] < newP) << "\t" << exp(logH) << "\t" << exp(tmp) << "\t" << (tmp < logH) <<  "\t" << p.getProposalWidth(1833) << std::endl;
+			}
 			if(tmp < logH){
 				//update p
 				p.update(locusNum, newP, true);
