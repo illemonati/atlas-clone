@@ -102,8 +102,11 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 			if(samples.find(vec[0]) != samples.end())
 				throw "Duplicate sample name '" + vec[0] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
 			samples.emplace(vec[0], it->second);
+			logfile->list(vec[0] + " in population " + toString(it->second));
 		}
 	}
+
+	logfile->endIndent();
 
 	//close file
 	file.close();

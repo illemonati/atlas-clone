@@ -50,16 +50,16 @@ public:
 //	void add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup);
 	void add(TBase* base);
 	void setRefBase(char & Base){
-		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T')
+		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T' || Base == 'a' || Base == 'c' || Base == 'g' || Base == 't')
 			referenceBase = Base;
 		else referenceBase = 'N';
 	};
 	char getRefBase(){return referenceBase;};
 	Base getRefBaseAsEnum(){
-		if(referenceBase == 'A') return A;
-		if(referenceBase == 'C') return C;
-		if(referenceBase == 'G') return G;
-		if(referenceBase == 'T') return T;
+		if(referenceBase == 'A' || referenceBase == 'a') return A;
+		if(referenceBase == 'C' || referenceBase == 'c') return C;
+		if(referenceBase == 'G' || referenceBase == 'g') return G;
+		if(referenceBase == 'T' || referenceBase == 't') return T;
 		return N;
 	};
 	char getBaseAsChar(Base base){
