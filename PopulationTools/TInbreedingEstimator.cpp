@@ -194,14 +194,14 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 
 	for(int l=0; l<numLoci; ++l){
 		posteriorProbModelP.push_back(0.0);
-		if(alleleFreq[l] < 1.0 / (1.5 * (double) numSamples))
-			proposalWidths.push_back(0.5 * alleleFreq[l]); //the 0.5 is because the proposal goes 0.5 * width below p
-//		if(alleleFreq[l] == 0)
+//		if(alleleFreq[l] < 1.0 / (1.5 * (double) numSamples))
+//			proposalWidths.push_back(0.5 * alleleFreq[l]); //the 0.5 is because the proposal goes 0.5 * width below p
+////		if(alleleFreq[l] == 0)
 //			proposalWidths.push_back(initialProposalWidthFactor * minAlleleFreq);
-		else {
+//		else {
 //			proposalWidths.push_back(initialProposalWidthFactor * alleleFreq[l]);
 			proposalWidths.push_back(0.5);
-		}
+//		}
 		sumIterations.push_back(0.0);
 		sumOfSquaresIterations.push_back(0.0);
 
@@ -262,8 +262,8 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 				else if(proposalWidths[l] / newProposalWidth < 0.1)
 					newProposalWidth = 10.0 * proposalWidths[l];
 
-				if(newProposalWidth > 0.25)
-					newProposalWidth = 0.25;
+				if(newProposalWidth > 1.25)
+					newProposalWidth = 1.25;
 
 				proposalWidths[l] = newProposalWidth;
 
@@ -306,7 +306,7 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 }
 
 double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGenerator){
-	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
+	double newP = exp(log(alleleFreq[locusNum]) + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
 	if(newP < 0.0){
 		newP = - newP;
 	} else if(newP > 1.0){
@@ -848,9 +848,9 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 			//accept?
 			double tmp = log(randomGenerator->getRand());
 
-			if(locusNum == 1833){
-				std::cout << "#####\t" << p[1833] << "\t" << newP << "\t" << (p[1833] < newP) << "\t" << exp(logH) << "\t" << exp(tmp) << "\t" << (tmp < logH) <<  "\t" << p.getProposalWidth(1833) << std::endl;
-			}
+//			if(locusNum == 1833){
+//				std::cout << "#####\t" << p[1833] << "\t" << newP << "\t" << (p[1833] < newP) << "\t" << exp(logH) << "\t" << exp(tmp) << "\t" << (tmp < logH) <<  "\t" << p.getProposalWidth(1833) << std::endl;
+//			}
 			if(tmp < logH){
 				//update p
 				p.update(locusNum, newP, true);
