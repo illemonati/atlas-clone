@@ -415,7 +415,8 @@ void TWindow::calcDepth(){
 
 void TWindow::calcFracN(){
 	double numN = 0.0;
-	for(int i=0; i<length; ++i)	if(sites[i].referenceBase == 'N') ++numN;
+	for(int i=0; i<length; ++i)	if(sites[i].referenceBase == 'N' || sites[i].referenceBase == 'n')
+		++numN;
 	fractionRefIsN = numN / (double) length;
 };
 
