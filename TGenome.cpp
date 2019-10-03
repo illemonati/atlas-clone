@@ -27,7 +27,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
-	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
+	logfile->list("Writing output files with prefix '" + outputName + "'.");
 
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
@@ -1545,8 +1545,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 			logfile->list("Will keep base with higher quality score at overlapping positions.");
 		}
 	}
-
-
 
 	//write which quality score?
 	if(params.parameterExists("updateQuality")){
