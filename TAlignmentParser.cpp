@@ -78,7 +78,6 @@ TAlignmentParser::TAlignmentParser(){
 
 	//masks
 	doMasking = false;
-	doCpGMasking = false;
 	considerRegions = false;
 	mask = NULL;
 
@@ -89,6 +88,7 @@ TAlignmentParser::TAlignmentParser(){
 	maxDepth = 10000;
 	applyQualityFilter = false;
 	applyMQFilter = false;
+	applyContextFilter = false;
 	minMQ = 0;
 	maxMQ = 10000;
 	minQual = 33;
@@ -280,6 +280,13 @@ void TAlignmentParser::setFilters(TParameters & params){
 	setQualityRangeForPrinting(minOutQual, maxOutQual);
 	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual')");
 
+	//context filter
+	if(params.parameterExists("ignoreContexts")){
+		std::vector<std::string> contexts;
+		fillVectorFromString(params.getParameterString("ignoreContexts"), contexts, ',');
+		setContextFilter(contexts);
+	}
+
 	//filter for missing reference
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
@@ -379,6 +386,22 @@ void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
 	maxQualForPrinting = maxQual;
 };
 
+void TAlignmentParser::setContextFilter(std::vector<std::string> contexts){
+	applyContextFilter = true;
+	for(unsigned int i=0; i < contexts.size(); i++){
+		if(contexts[i].size() != 2)
+			throw "Context " + contexts[i] + " does not have a length of 2! (parameter 'maskContext')";
+		BaseContext co = genoMap.getContext(contexts[i][0], contexts[i][1]);
+		ignoreTheseContexts.emplace(co, 1);
+	}
+	logfile->startIndent("Will mask the following contexts (parameter 'maskContext'):");
+	std::map<BaseContext, int>::iterator it;
+	for(it = ignoreTheseContexts.begin(); it != ignoreTheseContexts.end(); ++it){
+		logfile->list(genoMap.getContextString(it->first));
+	}
+	logfile->endIndent();
+}
+
 void TAlignmentParser::setMasks(TParameters & params){
 	//normal mask
 	if(params.parameterExists("mask")){
@@ -407,14 +430,6 @@ void TAlignmentParser::setMasks(TParameters & params){
 		logfile->done();
 		logfile->endIndent();
 	} else considerRegions = false;
-
-	//CpG mask
-	if(params.parameterExists("maskCpG")){
-		if(!hasReference) throw "Cannot mask CpG sites without reference!";
-		doCpGMasking = true;
-		std::string maskFile = params.getParameterString("maskCpG");
-		logfile->list("Will mask all CpG sites. (parameter 'maskCpG')");
-	} else doCpGMasking = false;
 }
 
 void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
@@ -863,6 +878,8 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 			alignment.trimRead(trimmingLength3Prime, trimmingLength5Prime);
 		if(applyQualityFilter)
 			alignment.filterForBaseQuality(minQual, maxQual);
+		if(applyContextFilter)
+			alignment.filterForContext(ignoreTheseContexts);
 		if(doRecalibration){
 			recalibrate(alignment);
 		}if(hasReference)
@@ -953,11 +970,11 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
 	//apply filters
-	applyFilters(window);
+	applyWindowFilters(window);
 };
 
 
-void TAlignmentParser::applyFilters(TWindow & window){
+void TAlignmentParser::applyWindowFilters(TWindow & window){
 	window.passedFilters = false;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
@@ -968,10 +985,6 @@ void TAlignmentParser::applyFilters(TWindow & window){
 		} else if(considerRegions){
 			logfile->listFlush("Masking sites outside regions ...");
 			window.applyMask(mask, considerRegions);
-			logfile->done();
-		} else if(doCpGMasking){
-			logfile->listFlush("Masking CpG sites ...");
-			window.maskCpG();
 			logfile->done();
 		} if(applyDepthFilter){
 			window.applyDepthFilter(minDepth, maxDepth);

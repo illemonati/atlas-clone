@@ -390,6 +390,17 @@ void TAlignment::filterForBaseQuality(int & minQual, int & maxQual){
 	changed = true;
 };
 
+void TAlignment::filterForContext(std::map<BaseContext,int> ignoreTheseContexts){
+	//set base to N if outside quality filter
+	for(int d=0; d<length; ++d){
+		if(ignoreTheseContexts.find(bases[d].context) != ignoreTheseContexts.end()){
+			bases[d].base = N;
+			bases[d].errorRate = 1.0;
+		}
+	}
+	changed = true;
+};
+
 void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string & qual, int minQualForPrinting, int maxQualForPrinting){
 	//set base to N if outside quality filter
 	std::string::iterator stringItBase = bases.begin();

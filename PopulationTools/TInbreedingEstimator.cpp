@@ -490,25 +490,25 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	if(Parameters.parameterExists("noAdjustmentF")){
 		adjustFAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of F after burnin. (parameter 'noAdjustmentF'");
+		logfile->list("Will not adjust proposal range of F after burnin. (parameter 'noAdjustmentF')");
 	} else
 		adjustFAfterBurnin = true;
 
 	if(Parameters.parameterExists("noAdjustmentP")){
 		adjustPAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of any p's after burnin. (parameter 'noAdjustmentP'");
+		logfile->list("Will not adjust proposal range of any p's after burnin. (parameter 'noAdjustmentP')");
 	} else
 		adjustPAfterBurnin = true;
 
 	if(Parameters.parameterExists("noAdjustmentGamma")){
 		adjustGammaAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of Gamma after burnin. (parameter 'noAdjustmentGamma'");
+		logfile->list("Will not adjust proposal range of Gamma after burnin. (parameter 'noAdjustmentGamma')");
 	} else
 		adjustGammaAfterBurnin = true;
 
 	if(Parameters.parameterExists("noAdjustmentPi")){
 		adjustPiAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of Pi after burnin. (parameter 'noAdjustmentPi'");
+		logfile->list("Will not adjust proposal range of Pi after burnin. (parameter 'noAdjustmentPi')");
 	} else
 		adjustPiAfterBurnin = true;
 
@@ -613,7 +613,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
 	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("probMovingToModelNoF", 0.1);
-	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF));
+	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF) + ". (parameter 'probMovingToModelNoF')");
 
 	double lambdaF = parameters.getParameterDoubleWithDefault("lambdaF", 100.0);
 	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF) + ". (parameter 'lambdaF')");
@@ -645,7 +645,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 
 	if(parameters.parameterExists("fixedF")){
 		shouldUpdateF = false;
-		logfile->list("Will not update F");
+		logfile->list("Will not update F. (parameter 'fixedF')");
 	} else {
 		shouldUpdateF = true;
 	}
@@ -706,7 +706,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	initializeGamma(parameters);
 
 	//pi
-	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 10.0 / (double) p.numLoci);
+	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 100.0 / (double) p.numLoci);
 	double initialValue;
 	if(parameters.parameterExists("initialPi")){
 		initialValue = parameters.getParameterDouble("initialPi");
