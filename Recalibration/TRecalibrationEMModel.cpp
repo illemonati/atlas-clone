@@ -10,7 +10,7 @@
 //---------------------------------------------------------------
 //TRecalibrationEMModel_Base
 //---------------------------------------------------------------
-TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(TLog* Logfile){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -18,6 +18,7 @@ TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(){
 	// - square of position
 	// - 20 context indicators (either 0.0 or 1.0)
 	// -> in total, 24 variables to estimate
+	logfile = Logfile;
 	_initialized = false;
 	_numSitesAdded = 0;
 	_betas = NULL;
@@ -225,7 +226,7 @@ std::string TRecalibrationEMModel_Base::getContextString(){
 //---------------------------------------------------------------
 //TRecalibrationEMModel_noRecal
 //---------------------------------------------------------------
-TRecalibrationEMModel_noRecal::TRecalibrationEMModel_noRecal():TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_noRecal::TRecalibrationEMModel_noRecal(TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	_numParameters = 0;
 	_name = noRecal_name;
 };
@@ -252,7 +253,7 @@ void TRecalibrationEMModel_noRecal::fillTransformationTableForSimulation(int*** 
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosFunc
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc():TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -265,7 +266,7 @@ TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc():T
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec):TRecalibrationEMModel_qualFuncPosFunc(){
+TRecalibrationEMModel_qualFuncPosFunc::TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_qualFuncPosFunc(Logfile){
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -410,7 +411,7 @@ void TRecalibrationEMModel_qualFuncPosFunc::fillTransformationTableForSimulation
 //---------------------------------------------------------------
 //TRecalibrationEMModel
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext():TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	//we will work with the following q_ikl (per read group):
 	// - transformed quality
 	// - square of transformed quality
@@ -423,7 +424,7 @@ TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosF
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec):TRecalibrationEMModel_qualFuncPosFuncContext(){
+TRecalibrationEMModel_qualFuncPosFuncContext::TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_qualFuncPosFuncContext(Logfile){
 	std::vector<double> values[3];
 	_parseParameterString(vec, values);
 
@@ -566,7 +567,7 @@ void TRecalibrationEMModel_qualFuncPosFuncContext::fillTransformationTableForSim
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecific
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 0 to maxPos
@@ -576,11 +577,12 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
 	_name = qualFuncPosSpecific_name;
+	lengthWarningPrinted = false;
 
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	_numParamsWithoutPositions = 2;
 	_name = qualFuncPosSpecific_name;
 	std::vector<double> values[2];
@@ -620,6 +622,9 @@ TRecalibrationEMModel_qualFuncPosSpecific::TRecalibrationEMModel_qualFuncPosSpec
 	//copy position (starts at 3!)
 	for(int i=0; i<_maxPosPlusOne; i++)
 		_betas[_numParamsWithoutPositions + i] = values[1][i];
+
+	//other settings
+	lengthWarningPrinted = false;
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecific::checkParameterRange(std::vector<int> & Qualities, int maxPos){
@@ -702,11 +707,16 @@ double TRecalibrationEMModel_qualFuncPosSpecific::getErrorRate(TBase & base){
 	//no context intercept
 
 	//As of q[2]: position specific effect
-	if(base.distFrom5Prime >= _maxPosPlusOne)
-		//TODO: give better error. But need read group info for that!
-		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")!";
-
-	eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
+	if(base.distFrom5Prime >= _maxPosPlusOne){
+		if(!lengthWarningPrinted){
+			//TODO: give better error. But need read group info for that!
+			logfile->warning("Position " + toString(base.distFrom5Prime + 1) + " is beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")! Will use largest position with recal parameters instead. (future warnings suppressed)");
+			lengthWarningPrinted = true;
+		}
+		eta += _betas[_numParamsWithoutPositions + _maxPosPlusOne - 1];
+	} else {
+		eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
+	}
 
 	//now calculate epsilon from eta
 	return _calcEpsilon(eta);
@@ -761,7 +771,7 @@ void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimula
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecificContext
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 0 to maxPos
@@ -771,11 +781,12 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosPlusOne;
 	_name = qualFuncPosSpecificContext_name;
+	lengthWarningPrinted = false;
 
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	_numParamsWithoutPositions = 22;
 	_name = qualFuncPosSpecificContext_name;
 	std::vector<double> values[3];
@@ -804,6 +815,9 @@ TRecalibrationEMModel_qualFuncPosSpecificContext::TRecalibrationEMModel_qualFunc
 	//copy position (starts at 22!)
 	for(int i=0; i<_maxPosPlusOne; i++)
 		_betas[22 + i] = values[1][i];
+
+	//other settings
+	lengthWarningPrinted = false;
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContext::checkParameterRange(std::vector<int> & Qualities, int maxPos){
@@ -919,11 +933,16 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 	eta += _betas[2 + base.context];
 
 	//As of q[22]: position specific effect
-	if(base.distFrom5Prime >= _maxPosPlusOne)
-		//TODO: give better error. But need read group info for that!
-		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")!";
-
-	eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
+	if(base.distFrom5Prime >= _maxPosPlusOne){
+		if(!lengthWarningPrinted){
+			//TODO: give better error. But need read group info for that!
+			logfile->warning("Position " + toString(base.distFrom5Prime + 1) + " is beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")! Will use largest position with recal parameters instead. (future warnings suppressed)");
+			lengthWarningPrinted = true;
+		}
+		eta += _betas[_numParamsWithoutPositions + _maxPosPlusOne - 1];
+	} else {
+		eta += _betas[_numParamsWithoutPositions + base.distFrom5Prime];
+	}
 
 	//now calculate epsilon from eta
 	return _calcEpsilon(eta);
@@ -977,7 +996,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualFuncPosSpecificContextNew
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	// - transformed quality
 	// - square of transformed quality
 	// - one parameter per position from 2 to maxPos (excluding position 0 and 1 as these are taken care of by context)
@@ -988,11 +1007,12 @@ TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualF
 	_maxPosPlusOne = MaxPos + 1;
 	_numParameters = _numParamsWithoutPositions + _maxPosMinusOne;
 	_name = qualFuncPosSpecificContextNew_name;
+	lengthWarningPrinted = false;
 
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	_numParamsWithoutPositions = 22;
 	_name = qualFuncPosSpecificContextNew_name;
 	std::vector<double> values[3];
@@ -1022,6 +1042,9 @@ TRecalibrationEMModel_qualFuncPosSpecificContextNew::TRecalibrationEMModel_qualF
 	//copy position (starts at 22!)
 	for(int i=0; i<_maxPosMinusOne; i++)
 		_betas[22 + i] = values[1][i];
+
+	//other settings
+	lengthWarningPrinted = false;
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContextNew::checkParameterRange(std::vector<int> & Qualities, int maxPos){
@@ -1206,7 +1229,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContextNew::fillTransformationTabl
 //---------------------------------------------------------------
 // TRecalibrationEMModel_qualSpecficPosSpecific
 //---------------------------------------------------------------
-TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 	// - one parameter per qualty
 	// - one parameter per position from 0 to maxPos
 	// -> in total numQual + maxPos + 1 variables to estimate (maxPos is included)
@@ -1215,6 +1238,8 @@ TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficP
 	_maxQualPlusOne = MaxQual + 1;
 	_numParameters = _numQualities + _maxPosPlusOne;
 	_name = qualSpecificPosSpecific_name;
+	lengthWarningPrinted = false;
+	qualityWarningPrinted = false;
 
 	//set which qualities are used
 	_qualityIndex = new int[_maxQualPlusOne];
@@ -1231,7 +1256,7 @@ TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficP
 	_allocateBetaMemory();
 };
 
-TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec):TRecalibrationEMModel_Base(){
+TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec, TLog* Logfile):TRecalibrationEMModel_Base(Logfile){
 
 	//DOES NOT WORK!!!
 
@@ -1263,6 +1288,10 @@ TRecalibrationEMModel_qualSpecficPosSpecific::TRecalibrationEMModel_qualSpecficP
 	//copy position (starts at 22!)
 	for(int i=0; i<_maxPosPlusOne; i++)
 		_betas[22 + i] = values[1][i];
+
+	//other settings
+	lengthWarningPrinted = false;
+	qualityWarningPrinted = false;
 };
 
 void TRecalibrationEMModel_qualSpecficPosSpecific::checkParameterRange(std::vector<int> & Qualities, int maxPos){
@@ -1335,11 +1364,16 @@ double TRecalibrationEMModel_qualSpecficPosSpecific::getErrorRate(TBase & base){
 	double eta = _betas[q];
 
 	//position specific effect
-	if(base.distFrom5Prime >= _maxPosPlusOne)
-		//TODO: give better error. But need read group info for that!
-		throw "Position " + toString(base.distFrom5Prime + 1) + " beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")!";
-
-	eta += _betas[_numQualities + base.distFrom5Prime];
+	if(base.distFrom5Prime >= _maxPosPlusOne){
+		if(!lengthWarningPrinted){
+			//TODO: give better error. But need read group info for that!
+			logfile->warning("Position " + toString(base.distFrom5Prime + 1) + " is beyond largest position for which recal parameters are available (" + toString(_maxPosPlusOne) + ")! Will use largest position with recal parameters instead. (future warnings suppressed)");
+			lengthWarningPrinted = true;
+		}
+		eta += _betas[_numQualities + _maxPosPlusOne - 1];
+	} else {
+		eta += _betas[_numQualities + base.distFrom5Prime];
+	}
 
 	//now calculate epsilon from eta
 	return _calcEpsilon(eta);
@@ -1399,22 +1433,22 @@ TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, st
 
 	if(modelTag == noRecal_name){
 		if(verbose) logfile->list("Will use a model that does not recalibrate.");
-		return new TRecalibrationEMModel_noRecal();
+		return new TRecalibrationEMModel_noRecal(logfile);
 	} else if(modelTag == qualFuncPosFunc_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, position, position squared and one intercept.");
-		return new TRecalibrationEMModel_qualFuncPosFunc(values);
+		return new TRecalibrationEMModel_qualFuncPosFunc(values, logfile);
 	} else if(modelTag == qualFuncPosFuncContext_name){
 		if(verbose) logfile->list("Will use full model with quality, quality squared, position, position squared and 20 context specific intercepts.");
-		return new TRecalibrationEMModel_qualFuncPosFuncContext(values);
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(values, logfile);
 	} else if(modelTag == qualFuncPosSpecific_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and one intercept.");
-		return new TRecalibrationEMModel_qualFuncPosSpecific(values);
+		return new TRecalibrationEMModel_qualFuncPosSpecific(values, logfile);
 	} else if(modelTag == qualFuncPosSpecificContext_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts.");
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(values, logfile);
 	} else if(modelTag == qualFuncPosSpecificContextNew_name){
 		if(verbose) logfile->list("Will use a model with quality, quality squared, each position and 20 context specific intercepts (NEW!).");
-		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(values);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(values, logfile);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
@@ -1422,17 +1456,17 @@ TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, in
 	trimString(modelTag);
 
 	if(modelTag == noRecal_name){
-		return new TRecalibrationEMModel_noRecal();
+		return new TRecalibrationEMModel_noRecal(logfile);
 	} else if(modelTag == qualFuncPosFunc_name){
-		return new TRecalibrationEMModel_qualFuncPosFunc();
+		return new TRecalibrationEMModel_qualFuncPosFunc(logfile);
 	} else if(modelTag == qualFuncPosFuncContext_name){
-		return new TRecalibrationEMModel_qualFuncPosFuncContext();
+		return new TRecalibrationEMModel_qualFuncPosFuncContext(logfile);
 	} else if(modelTag == qualFuncPosSpecific_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecific(maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecific(maxPos, logfile);
 	} else if(modelTag == qualFuncPosSpecificContext_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecificContext(maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContext(maxPos, logfile);
 	} else if(modelTag == qualFuncPosSpecificContextNew_name){
-		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(maxPos);
+		return new TRecalibrationEMModel_qualFuncPosSpecificContextNew(maxPos, logfile);
 	} else throw "Unknown recalibration model '" + modelTag + "'!";
 };
 
