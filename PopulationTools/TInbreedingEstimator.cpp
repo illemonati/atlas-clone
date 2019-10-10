@@ -1126,6 +1126,7 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(2) / numIterInModelP[2]));
 	else
 		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
+	logfile->conclude("total acceptance rate for 1833 locus is " + toString((double) numAcceptedP.at(1833) / numIterations) + ".");
 
 	long numLociWithAcceptanceZero = 0;
 	for(long l=0; l<numLoci; ++l){
@@ -1247,6 +1248,7 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 		logfile->conclude("New proposal width for F is " + toString(F.proposalWidth()));
 		for(int l=0; l<5; ++l)
 			logfile->conclude("New proposal width for allele freq at locus " + toString(l) + " is " + toString(p.getProposalWidth(l)));
+		logfile->conclude("New proposal width for allele freq at locus " + toString(1833) + " is " + toString(p.getProposalWidth(1833)));
 		logfile->conclude("New proposal width for Gamma is " + toString(Gamma.getProposalWidth()));
 		logfile->conclude("New proposal width for pi is " + toString(pi.getProposalWidth()));
 
