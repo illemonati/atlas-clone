@@ -94,7 +94,6 @@ void TRecalibrationEMDataTable::clear(){
 	//DEBUG
 	for(int i=0; i<100; ++i){
 		for(int j=0; j<25; ++j){
-			std::cout << "i " << i << " j " << j << std::endl;
 			qualContext[i][j] = 0;
 		}
 	}
@@ -121,9 +120,9 @@ void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
 	//DEBUG
 	if(data.quality > 99) throw "quality is larger than 100!";
 	if(data.position > 299) throw "position is larger than 300!";
-	++qualContext[(int) data.quality][(int) data.context];
+	++qualContext[((int) data.quality) - 33][(int) data.context];
 	++posContext[(int) data.position][(int) data.context];
-	++posQual[(int) data.position][(int) data.quality];
+	++posQual[(int) data.position][((int) data.quality) - 33];
 };
 
 void TRecalibrationEMDataTable::assembleCountsPerReadGroup(){

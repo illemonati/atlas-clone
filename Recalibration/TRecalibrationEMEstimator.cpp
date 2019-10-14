@@ -346,7 +346,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	logfile->conclude("Number of sites with data: " + toString(numSitesWithData));
 	logfile->conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
 	logfile->conclude("Number of observations: " + toString(dataTable.totalCounts));
-	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
+//	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
 	//DEBUG print context distributions
 	std::string outputFileName = outputName + "_qualContext.txt.gz";
@@ -365,7 +365,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	std::vector<std::string> header;
 	header.push_back("pos/qual");
 	for(int i=0; i<100; ++i){
-		header.push_back("i");
+		header.push_back(toString(i));
 	}
 	posQualFile.writeHeader(header);
 
