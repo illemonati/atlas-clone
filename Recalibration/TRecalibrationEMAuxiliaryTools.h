@@ -106,6 +106,11 @@ public:
 	unsigned int** countsPerReadGroup;
 	unsigned int totalCounts;
 
+	//DEBUG
+	int qualContext[100][25];
+	int posContext[300][25];
+	int posQual[300][100];
+
 	TRecalibrationEMDataTable(int NumReadGroups, int MaxQual);
 	~TRecalibrationEMDataTable();
 

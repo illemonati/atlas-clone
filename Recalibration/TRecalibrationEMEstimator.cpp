@@ -339,6 +339,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	logfile->listFlush("Counting data available for recal ...");
 	TRecalibrationEMDataTable dataTable(_readGroups->size(), 500);
 	addToDataTable(dataTable);
+
 	int numSitesWithData = numSites();
 	logfile->done();
 
@@ -347,6 +348,57 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	logfile->conclude("Number of observations: " + toString(dataTable.totalCounts));
 	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
+	//DEBUG print context distributions
+	std::string outputFileName = outputName + "_qualContext.txt.gz";
+	logfile->list("Writing quality x context information to file '" + outputFileName + "'.");
+	TOutputFileZipped qualContextFile(outputFileName);
+	qualContextFile.writeHeader({"qual/context","cAA", "cAC", "cAG", "cAT", "cCA", "cCC", "cCG", "cCT", "cGA", "cGC", "cGG", "cGT", "cTA", "cTC", "cTG", "cTT", "cNA", "cNC", "cNG", "cNT", "cAN", "cCN", "cGN", "cTN", "cNN"}); //N means unknwon base or "nothing", i.e. end of read or del
+
+	outputFileName = outputName + "_posContext.txt.gz";
+	logfile->list("Writing position x context information to file '" + outputFileName + "'.");
+	TOutputFileZipped posContextFile(outputFileName);
+	posContextFile.writeHeader({"pos/context","cAA", "cAC", "cAG", "cAT", "cCA", "cCC", "cCG", "cCT", "cGA", "cGC", "cGG", "cGT", "cTA", "cTC", "cTG", "cTT", "cNA", "cNC", "cNG", "cNT", "cAN", "cCN", "cGN", "cTN", "cNN"}); //N means unknwon base or "nothing", i.e. end of read or del
+
+	outputFileName = outputName + "_posQual.txt.gz";
+	logfile->list("Writing position x quality information to file '" + outputFileName + "'.");
+	TOutputFileZipped posQualFile(outputFileName);
+	std::vector<std::string> header;
+	header.push_back("pos/qual");
+	for(int i=0; i<100; ++i){
+		header.push_back("i");
+	}
+	posQualFile.writeHeader(header);
+
+	int numContext = 25;
+
+    //write qualContext
+    for(int i=0; i<100; ++i){
+    	qualContextFile << i;
+    	for(int j=0; j<numContext; ++j){
+    		qualContextFile << dataTable.qualContext[i][j];
+    	}
+    	qualContextFile << std::endl;
+    }
+
+    //write posContext
+    for(int i=0; i<300; ++i){
+    	posContextFile << i;
+    	for(int j=0; j<numContext; ++j){
+    		posContextFile << dataTable.posContext[i][j];
+    	}
+    	posContextFile << std::endl;
+    }
+
+    //write posQual
+    for(int i=0; i<300; ++i){
+    	posQualFile << i;
+    	for(int j=0; j<100; ++j){
+    		posQualFile << dataTable.posQual[i][j];
+    	}
+    	posQualFile << std::endl;
+    }
+
+    throw "done with writing counts to tables!";
 
 	//initialize models based on data tables?
 	/*
