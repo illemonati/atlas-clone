@@ -22,13 +22,13 @@
 struct TReadGroupMaxLength{
 public:
 	int maxLen;
-	uint16_t truncatedReadGroupID;
-	std::string truncatedReadGroup;
+	uint16_t truncatedOrMergedReadGroupID;
+	std::string truncatedOrMergedReadGroup;
 
-	TReadGroupMaxLength(int MaxLen, int TruncatedReadGroupID, std::string & TruncatedReadGroup){
+	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string & TruncatedOrMergedReadGroup){
 		maxLen = MaxLen;
-		truncatedReadGroupID = TruncatedReadGroupID;
-		truncatedReadGroup = TruncatedReadGroup;
+		truncatedOrMergedReadGroupID = TruncatedOrMergedReadGroupID;
+		truncatedOrMergedReadGroup = TruncatedOrMergedReadGroup;
 	};
 };
 
@@ -141,6 +141,28 @@ public:
 				logfile->list(groups[i].name);
 		}
 	};
+
+	void addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName){
+		//add a new readgroup for the truncated reads to the header
+		bamHeader.ReadGroups.Add(newReadGroupName);
+		fill(bamHeader);
+		int origReadGroupId = find(oldReadGroupName);
+		int truncatedReadGroupId = find(newReadGroupName);
+
+		//copy original tags to truncated read groups
+
+		BamTools::SamReadGroupIterator trunc = bamHeader.ReadGroups.Begin() + truncatedReadGroupId;
+		BamTools::SamReadGroupIterator orig = bamHeader.ReadGroups.Begin() + origReadGroupId;
+		trunc->Library = orig->Library;
+		trunc->PlatformUnit = orig->PlatformUnit;
+		trunc->PredictedInsertSize = orig->PredictedInsertSize;
+		trunc->ProductionDate = orig->ProductionDate;
+		trunc->Program = orig->Program;
+		trunc->Sample = orig->Sample;
+		trunc->SequencingCenter = orig->SequencingCenter;
+		trunc->SequencingTechnology = orig->SequencingTechnology;
+
+	}
 };
 
 
