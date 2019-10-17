@@ -47,36 +47,9 @@ bool TAtlasTest_mergePairs::run(){
 	//3) check if results are OK
 	//--------------------------
 	return checkMergedBAMFile();
-}
+};
 
-void TAtlasTest_mergePairs::writeBAM(){
-	//create a bam file with known merging results
-	logfile->startIndent("Writing a test BAM file:");
-	logfile->listFlush("Opening bam file '" + filenameTag + ".bam' for writing ...");
-
-	//prepare header
-	BamTools::SamHeader header("");
-	header.Version = "1.4";
-	header.GroupOrder = "none";
-	header.SortOrder = "coordinate";
-	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
-	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
-	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
-
-	BamTools::RefVector references;
-	references.push_back(BamTools::RefData("Chr1", chrLength));
-	references.push_back(BamTools::RefData("Chr2", chrLength));
-
-	//now open file
-	BamTools::BamWriter bamWriter;
-	if (!bamWriter.Open(filenameTag + ".bam", header, references))
-		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
-	logfile->done();
-
-	//--------------------------------------------------------
-	//create alignments
-	//--------------------------------------------------------
-
+void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter){
 	//1) basic overlap, rev read is completely set to zero
 	//1st mate
 	logfile->listFlush("Writing reads to BAM ...");
@@ -452,7 +425,34 @@ void TAtlasTest_mergePairs::writeBAM(){
 
 	//alignment that is not a proper pair
 	//deletions and insertions
+};
 
+void TAtlasTest_mergePairs::writeBAM(){
+	//create a bam file with known merging results
+	logfile->startIndent("Writing a test BAM file:");
+	logfile->listFlush("Opening bam file '" + filenameTag + ".bam' for writing ...");
+
+	//prepare header
+	BamTools::SamHeader header("");
+	header.Version = "1.4";
+	header.GroupOrder = "none";
+	header.SortOrder = "coordinate";
+	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
+	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
+
+	BamTools::RefVector references;
+	references.push_back(BamTools::RefData("Chr1", chrLength));
+	references.push_back(BamTools::RefData("Chr2", chrLength));
+
+	//now open file
+	BamTools::BamWriter bamWriter;
+	if (!bamWriter.Open(filenameTag + ".bam", header, references))
+		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
+	logfile->done();
+
+	//write paired end reads
+	writePairedEndReads(bamWriter);
 
 	//close BAM file
 	bamWriter.Close();
@@ -590,3 +590,56 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 
 	return true;
 }
+
+
+//----------------------------------
+// TAtlasTest_mergeSplitPairs
+//----------------------------------
+
+TAtlasTest_mergeSplitPairs::writeBAM(){
+	//create a bam file with known merging results
+	logfile->startIndent("Writing a test BAM file:");
+	logfile->listFlush("Opening bam file '" + filenameTag + ".bam' for writing ...");
+
+	//prepare header
+	BamTools::SamHeader header("");
+	header.Version = "1.4";
+	header.GroupOrder = "none";
+	header.SortOrder = "coordinate";
+	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
+	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
+
+	BamTools::RefVector references;
+	references.push_back(BamTools::RefData("Chr1", chrLength));
+	references.push_back(BamTools::RefData("Chr2", chrLength));
+
+	//now open file
+	BamTools::BamWriter bamWriter;
+	if (!bamWriter.Open(filenameTag + ".bam", header, references))
+		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
+	logfile->done();
+
+	//write paired end reads
+	writePairedEndReads(bamWriter);
+	writeSingleEndReads(bamWriter);
+
+	//close BAM file
+	bamWriter.Close();
+	logfile->done();
+
+	//index BAM file
+	logfile->listFlush("Creating index of BAM file '" + filenameTag + ".bam' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filenameTag + ".bam"))
+		throw "Failed to open BAM file '" + filenameTag + ".bam' for indexing!";
+
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+	reader.Close();
+	logfile->done();
+
+	//done!
+	logfile->endIndent();
+}
+
+

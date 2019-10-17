@@ -24,11 +24,13 @@ public:
 	int maxLen;
 	uint16_t truncatedOrMergedReadGroupID;
 	std::string truncatedOrMergedReadGroup;
+	int sequencingType; //0 = single, 1 = mixed, 2 = paired
 
-	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string & TruncatedOrMergedReadGroup){
+	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string & TruncatedOrMergedReadGroup, int Type){
 		maxLen = MaxLen;
 		truncatedOrMergedReadGroupID = TruncatedOrMergedReadGroupID;
 		truncatedOrMergedReadGroup = TruncatedOrMergedReadGroup;
+		sequencingType = Type;
 	};
 };
 
@@ -55,192 +57,29 @@ private:
 	bool* inUse;
 
 public:
-	TReadGroups(){
-		initialized = false;
-		numGroups = 0;
-		groups = NULL;
-		inUse = NULL;
-		limitReadGroups = false;
-	};
+	TReadGroups();
+	~TReadGroups();
 
-	~TReadGroups(){
-		if(initialized){
-			delete[] groups;
-			delete[] inUse;
-		}
-	};
+	void fill(BamTools::SamHeader & bamHeader);
+	int find(std::string & name);
 
-	void fill(BamTools::SamHeader & bamHeader){
-		//empty if filled before
-		if(initialized) delete[] groups;
-		//create and fill array
-		numGroups = bamHeader.ReadGroups.Size();
-		groups = new readGroup[numGroups];
-		inUse = new bool[numGroups];
-		int i = 0;
-		for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
-			groups[i].id = i;
-			groups[i].name = it->ID;
-			groups[i].object= &(*it);
-			inUse[i] = true;
-		}
-		initialized = true;
-	};
-
-	int find(std::string & name){
-		for(int i=0; i<numGroups; ++i){
-			if(groups[i].name == name) return i;
-		}
-		throw "Read Group '" + name + "' was not present in header of bam file!";
-	};
-
-	int find(BamTools::BamAlignment & alignment){
-		std::string tmp;
-		alignment.GetTag("RG", tmp);
-		return find(tmp);
-	};
-
-	bool readGroupExists(std::string & name){
-		for(int i=0; i<numGroups; ++i){
-			if(groups[i].name == name) return true;
-		}
-		return false;
-	};
-
-	bool readGroupInUse(int & readGroupId){
-		return inUse[readGroupId];
-	};
-
-	bool readGroupInUse(BamTools::BamAlignment & alignment){
-		return inUse[find(alignment)];
-	};
-
-	std::string getName(int readGroupId){
-		if(readGroupId < 0 || readGroupId >= numGroups) throw "No read group with number " + toString(readGroupId) + "!";
-		return groups[readGroupId].name;
-	};
-
-	int size(){
-		return numGroups;
-	};
-
-	void filterReadGroups(std::string readGroupList){
-		limitReadGroups = true;
-		std::vector<std::string> readGroupsInUse;
-		fillVectorFromString(readGroupList, readGroupsInUse, ',');
-		for(int i=0; i < numGroups; i++){
-			if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), getName(i)) != readGroupsInUse.end()){
-				inUse[i] = true;
-			} else inUse[i] = false;
-		}
-	};
-
-	void printReadgroupsInUse(TLog* logfile){
-		for(int i=0; i < numGroups; i++){
-			if(inUse[i])
-				logfile->list(groups[i].name);
-		}
-	};
-
-	void addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName){
-		//add a new readgroup for the truncated reads to the header
-		bamHeader.ReadGroups.Add(newReadGroupName);
-		fill(bamHeader);
-		int origReadGroupId = find(oldReadGroupName);
-		int truncatedReadGroupId = find(newReadGroupName);
-
-		//copy original tags to truncated read groups
-
-		BamTools::SamReadGroupIterator trunc = bamHeader.ReadGroups.Begin() + truncatedReadGroupId;
-		BamTools::SamReadGroupIterator orig = bamHeader.ReadGroups.Begin() + origReadGroupId;
-		trunc->Library = orig->Library;
-		trunc->PlatformUnit = orig->PlatformUnit;
-		trunc->PredictedInsertSize = orig->PredictedInsertSize;
-		trunc->ProductionDate = orig->ProductionDate;
-		trunc->Program = orig->Program;
-		trunc->Sample = orig->Sample;
-		trunc->SequencingCenter = orig->SequencingCenter;
-		trunc->SequencingTechnology = orig->SequencingTechnology;
-
-	}
+	int find(BamTools::BamAlignment & alignment);
+	bool readGroupExists(std::string & name);
+	bool readGroupInUse(int & readGroupId);
+	bool readGroupInUse(BamTools::BamAlignment & alignment);
+	std::string getName(int readGroupId);
+	unsigned int size();
+	void filterReadGroups(std::string readGroupList);
+	void printReadgroupsInUse(TLog* logfile);
+	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);
 };
-
 
 //---------------------------------------------------------------
 //TReadGroupMap
 //---------------------------------------------------------------
 class TReadGroupMap{
 private:
-	void initializeFromFile(TReadGroups &readGroups, std::string filename, TLog* logfile){
-		//initialize to -1
-		for(int i = 0; i < origNumReadGroups; ++i){
-			readGroupMap[i] = -1;
-		}
-
-		//read read groups and their expected lengths
-		if(filename=="") throw "No file specifying read groups to merge provided!";
-		logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
-		std::vector< std::vector<std::string> > readGroupsToMerge;
-		std::vector< std::vector<std::string> >::reverse_iterator rIt;
-		std::ifstream file(filename.c_str());
-		if(!file) throw "Failed to open file '" + filename + "!";
-
-		//parse file and fill vectors
-		int lineNum = 0;
-		std::vector<std::string> vec;
-		std::string readGroup;
-		while(file.good() && !file.eof()){
-			++lineNum;
-			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-			if(!vec.empty()){
-				if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
-				//add to new header
-				//others are those to be merged: find read group in header and store int
-				readGroupsToMerge.push_back(std::vector<std::string>());
-				rIt = readGroupsToMerge.rbegin();
-				for(unsigned int i=0; i<vec.size(); ++i){
-					rIt->push_back(vec[i]);
-				}
-			}
-		}
-		logfile->done();
-
-		std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
-		int oldId;
-
-		for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
-			logfile->startIndent("The following read groups will be combined into one group for parameter estimation:");
-			for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
-				logfile->list(*it);
-				oldId = readGroups.find(*it);
-				if(readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
-				readGroupMap[oldId] = rg;
-			}
-			logfile->endIndent();
-		}
-
-		numReadGroups = readGroupsToMerge.size();
-
-		//now add read groups that will not be merged
-		bool printed = false;
-		std::string name;
-		for(int i = 0; i < readGroups.size(); ++i){
-			//check if it is mapped, otherwise add
-			if(readGroupMap[i] < 0){
-				if(!printed){
-					logfile->startIndent("The following read groups will be kept as is:");
-					printed = true;
-				}
-				name = readGroups.getName(i);
-				logfile->list(name);
-				readGroupMap[i] = numReadGroups;
-				++numReadGroups;
-			}
-		}
-
-		if(printed) logfile->endIndent();
-		else logfile->list("All existing read groups will be merged into a new read group.");
-	};
+	void initializeFromFile(TReadGroups &readGroups, std::string filename, TLog* logfile);
 
 public:
 	int origNumReadGroups;
@@ -248,40 +87,16 @@ public:
 	bool mergedInd;
 	int* readGroupMap;
 
-	TReadGroupMap(TReadGroups & readGroups){
-		origNumReadGroups = readGroups.size();
-		readGroupMap = new int[origNumReadGroups];
-		mergedInd = false;
-		numReadGroups = origNumReadGroups;
-		for(int i = 0; i < numReadGroups; ++i){
-			readGroupMap[i] = i;
-		}
-	};
+	TReadGroupMap(TReadGroups & readGroups);
+	TReadGroupMap(TReadGroups & readGroups, const std::string filename, TLog* logfile);
 
-	TReadGroupMap(TReadGroups & readGroups, const std::string filename, TLog* logfile){
-		origNumReadGroups = readGroups.size();
-		readGroupMap = new int[origNumReadGroups];
-		mergedInd = false;
+	~TReadGroupMap();
 
-		if(filename.empty()){
-			numReadGroups = origNumReadGroups;
-			for(int i = 0; i < numReadGroups; ++i){
-				readGroupMap[i] = i;
-			}
-		} else {
-			initializeFromFile(readGroups, filename, logfile);
-		}
-	};
+	int getOrigNumReadGroups();
+	int getNumReadGroups();
 
-	~TReadGroupMap(){
-		delete[] readGroupMap;
-	};
-
-	int getOrigNumReadGroups(){ return origNumReadGroups; };
-	int getNumReadGroups(){ return numReadGroups; };
-
-	int operator[](int rg){ return readGroupMap[rg]; };
-	int getIndex(int rg){ return readGroupMap[rg]; };
+	int operator[](int rg);
+	int getIndex(int rg);
 };
 
 #endif /* TREADGROUPS_H_ */

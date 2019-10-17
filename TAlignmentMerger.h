@@ -72,6 +72,7 @@ private:
 	bool _adaptQuality;
 	bool _keepRandomBase;
 	bool _keepRandomRead;
+	bool _allowForLarger;
 
 	void _writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it);
 	void _addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error);
@@ -85,8 +86,10 @@ public:
 	void keepOriginalQuality(){ _adaptQuality = false; };
 	void keepRandomBase(){ _keepRandomBase = true; };
 	void keepRandomRead(){ _keepRandomRead = true; };
+	void allowForLarger(){ _allowForLarger = true; };
 
 	void addToBeMerged(TAlignment & alignment, TRandomGenerator* randomGenerator);
+	void addToBeSplit(TAlignment & alignment, std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT);
 	void checkForMateAndWriteUnmerged(TAlignment & alignment);
 	void addAsImproperPair(TAlignment & alignment);
 	void addReadyToBeWritten(TAlignment & alignment);

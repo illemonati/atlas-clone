@@ -32,15 +32,20 @@ private:
 	void setToRevMate(BamTools::BamAlignment & bamAlignment);
 	bool basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber);
 	bool checkMergedBAMFile();
+	void writePairedEndReads(BamTools::BamWriter & bamWriter);
 	void writeBAM();
 
 public:
 	TAtlasTest_mergePairs(TParameters & params, TLog* logfile);
-	bool run();
+	virtual bool run();
 };
 
 class TAtlasTest_mergePairsAdaptQual:public TAtlasTest_mergePairs{
 
+};
+
+class TAtlasTest_mergeSplitPairs:public TAtlasTest_mergePairs{
+	bool run();
 };
 
 #endif /* TATLASTESTMERGEPAIRS_H_ */
