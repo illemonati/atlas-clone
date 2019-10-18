@@ -12,7 +12,7 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	_name = "testMerging";
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + "_mergedReads.bam";
-	readGroupName = "TestReadGroup";
+	readGroupName = "ReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
@@ -27,7 +27,7 @@ bool TAtlasTest_mergePairs::run(){
 	//----------------------------------------------
 	writeBAM();
 
-	//2) Run ATLAS to create pileup
+	//2) Run ATLAS to create BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
 	_testParams.addParameter("maxReadLength", toString(readLength));
@@ -343,8 +343,40 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(50)));
 	trueIsProper.push_back(true);
 
+	//single end read in between, short
+	setToSingleEndEtc(bamAlignment);
+	bamAlignment.EditTag("RG", "Z", readGroupName + "_single");
+	bamAlignment.Position = 3762;
+	bamAlignment.Length = 60;
+	bamAlignment.Name = "Single_end_short";
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(bamAlignment.QueryBases);
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+	trueIsProper.push_back(false);
+
+	//single end read in between, long
+	setToSingleEndEtc(bamAlignment);
+	bamAlignment.Position = 3763;
+	bamAlignment.Length = 102;
+	bamAlignment.Name = "Single_end_long";
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+
+	bamWriter.SaveAlignment(bamAlignment);
+	trueQueryBases.push_back(bamAlignment.QueryBases);
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+	trueIsProper.push_back(false);
+
 	//2nd mate
 	setToRevMate(bamAlignment);
+	bamAlignment.EditTag("RG", "Z", readGroupName);
 	bamAlignment.Position = 3772;
 	bamAlignment.InsertSize = -100;
 	bamAlignment.MatePosition = 3752;
@@ -427,6 +459,10 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	//deletions and insertions
 };
 
+void TAtlasTest_mergePairs::writeAlignments(BamTools::BamWriter & bamWriter){
+	writePairedEndReads(bamWriter);
+}
+
 void TAtlasTest_mergePairs::writeBAM(){
 	//create a bam file with known merging results
 	logfile->startIndent("Writing a test BAM file:");
@@ -451,8 +487,8 @@ void TAtlasTest_mergePairs::writeBAM(){
 		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
 	logfile->done();
 
-	//write paired end reads
-	writePairedEndReads(bamWriter);
+	//write reads
+	writeAlignments(bamWriter);
 
 	//close BAM file
 	bamWriter.Close();
@@ -480,6 +516,17 @@ void TAtlasTest_mergePairs::setToProperPairEtc(BamTools::BamAlignment & bamAlign
 	bamAlignment.SetIsDuplicate(false);
 	bamAlignment.SetIsFailedQC(false);
 	bamAlignment.SetIsMateMapped(true);
+}
+
+void TAtlasTest_mergePairs::setToSingleEndEtc(BamTools::BamAlignment & bamAlignment){
+	bamAlignment.SetIsProperPair(false);
+	bamAlignment.SetIsPaired(false);
+	bamAlignment.SetIsMapped(true);
+	bamAlignment.SetIsPrimaryAlignment(true);
+	bamAlignment.SetIsDuplicate(false);
+	bamAlignment.SetIsFailedQC(false);
+	bamAlignment.SetIsMateMapped(false);
+	bamAlignment.InsertSize = 0;
 }
 
 void TAtlasTest_mergePairs::setToFwdMate(BamTools::BamAlignment & bamAlignment){
@@ -589,57 +636,63 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	}
 
 	return true;
-}
+};
 
 
 //----------------------------------
 // TAtlasTest_mergeSplitPairs
 //----------------------------------
 
-TAtlasTest_mergeSplitPairs::writeBAM(){
-	//create a bam file with known merging results
-	logfile->startIndent("Writing a test BAM file:");
-	logfile->listFlush("Opening bam file '" + filenameTag + ".bam' for writing ...");
+TAtlasTest_mergeSplitPairs::TAtlasTest_mergeSplitPairs(TParameters & params, TLog* logfile):TAtlasTest_mergePairs(params, logfile){
+	_name = "testSplitMerging";
+	filenameTag = _testingPrefix + _name;
+	bamFileName = filenameTag + "_mergedReads.bam";
+	readGroupName = "ReadGroup";
+	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
+	chrLength = readLength * 5;
+	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
+	filterOrphanedReads = !params.parameterExists("keepOrphans");
 
-	//prepare header
-	BamTools::SamHeader header("");
-	header.Version = "1.4";
-	header.GroupOrder = "none";
-	header.SortOrder = "coordinate";
-	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
-	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
-	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
+};
 
-	BamTools::RefVector references;
-	references.push_back(BamTools::RefData("Chr1", chrLength));
-	references.push_back(BamTools::RefData("Chr2", chrLength));
+void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
+	std::ofstream out;
+	std::string outName = _name + "_RGSpecs.txt";
+	out.open(outName.c_str());
+	if(!out) throw "Failed to open file '" + outName + "'!";
+	out << readGroupName << "\t" << 500 << "\t" << "paired" << std::endl;
+	out << readGroupName + "_single" << "\t" << 102 << "\t" << "single" << std::endl;
+	out.close();
+};
 
-	//now open file
-	BamTools::BamWriter bamWriter;
-	if (!bamWriter.Open(filenameTag + ".bam", header, references))
-		throw "Failed to open BAM file '" + filenameTag + ".bam" + "'!";
-	logfile->done();
+bool TAtlasTest_mergeSplitPairs::run(){
+	//1) create a bam and fasta file with known pileup results
+	//----------------------------------------------
+	writeBAM();
+	writeRGSpecsFile();
 
-	//write paired end reads
-	writePairedEndReads(bamWriter);
-	writeSingleEndReads(bamWriter);
+	//2) Run ATLAS to create BAM
+	//-----------------------------
+	_testParams.addParameter("bam", filenameTag + ".bam");
+	_testParams.addParameter("maxReadLength", toString(readLength));
+	_testParams.addParameter("window", toString(2*readLength));
+	_testParams.addParameter("readGroupSettings", _name + "_RGSpecs.txt");
 
-	//close BAM file
-	bamWriter.Close();
-	logfile->done();
+//	if(filterPairsDiffChr){
+//		_testParams.addParameter("filterPairsDiffChr", "");
+//	}
+	if(!filterOrphanedReads){
+		_testParams.addParameter("keepOrphans", "");
+	}
 
-	//index BAM file
-	logfile->listFlush("Creating index of BAM file '" + filenameTag + ".bam' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filenameTag + ".bam"))
-		throw "Failed to open BAM file '" + filenameTag + ".bam' for indexing!";
+	_testParams.addParameter("keepOriginalQuality", "");
 
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-	reader.Close();
-	logfile->done();
+	if(!runTGenomeFromInputfile("splitMerge"))
+		return false;
 
-	//done!
-	logfile->endIndent();
+	//3) check if results are OK
+	//--------------------------
+	return checkMergedBAMFile();
 }
 
 

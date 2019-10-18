@@ -1405,7 +1405,7 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 			if(vec.size() != 3) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
 
 			//get RG info
-			int len = stringToInt(vec[2]);
+			int len = stringToInt(vec[1]);
 			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 			int readGroupId = alignmentParser.readGroups.find(vec[0]);
 
