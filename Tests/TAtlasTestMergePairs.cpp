@@ -30,8 +30,6 @@ bool TAtlasTest_mergePairs::run(){
 	//2) Run ATLAS to create BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
-	_testParams.addParameter("maxReadLength", toString(readLength));
-	_testParams.addParameter("window", toString(2*readLength));
 //	if(filterPairsDiffChr){
 //		_testParams.addParameter("filterPairsDiffChr", "");
 //	}
@@ -86,8 +84,8 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	trueQueryBases.push_back(std::string(bamAlignment.Length, 'N'));
-	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(1)));
+	trueQueryBases.push_back(bamAlignment.QueryBases);
+	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(0)));
 	trueIsProper.push_back(true);
 
 	//--------------------------------------------------------
@@ -348,6 +346,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.EditTag("RG", "Z", readGroupName + "_single");
 	bamAlignment.Position = 3762;
 	bamAlignment.Length = 60;
+	bamAlignment.InsertSize = bamAlignment.Length;
 	bamAlignment.Name = "Single_end_short";
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
@@ -356,6 +355,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
+	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 	trueIsProper.push_back(false);
 
@@ -363,6 +363,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	setToSingleEndEtc(bamAlignment);
 	bamAlignment.Position = 3763;
 	bamAlignment.Length = 102;
+	bamAlignment.InsertSize = bamAlignment.Length;
 	bamAlignment.Name = "Single_end_long";
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
@@ -372,6 +373,8 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
+	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
+
 	trueIsProper.push_back(false);
 
 	//2nd mate
@@ -393,16 +396,19 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamWriter.SaveAlignment(bamAlignment);
 	//overlap with deletion + overlap, lower qual + insertion + overlap, lower Qual + end not overlapping
 	trueQueryBases.push_back(std::string(5, 'A')
-						+ std::string(5, 'N')
+						+ std::string(5, 'A')
 						+ std::string(5, 'C')
-						+ std::string(40, 'N')
+						+ std::string(40, 'A')
 						+ std::string(30, 'A'));
 	trueQualities.push_back(std::string(5, qualMap.phredIntToQuality(30))
-						+ std::string(5, qualMap.phredIntToQuality(1))
+						+ std::string(5, qualMap.phredIntToQuality(0))
 						+ std::string(5, qualMap.phredIntToQuality(30))
-						+ std::string(40, qualMap.phredIntToQuality(1))
+						+ std::string(40, qualMap.phredIntToQuality(0))
 						+ std::string(30, qualMap.phredIntToQuality(30)));
 	trueIsProper.push_back(true);
+
+	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
+
 
 	//--------------------------------------------------------
 	//9) mate on different chr
@@ -474,6 +480,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	header.GroupOrder = "none";
 	header.SortOrder = "coordinate";
 	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+	header.ReadGroups.Add(readGroupName + "_single" + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
 	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
 	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
 
@@ -582,7 +589,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 			return false;
 		} if(bamAlignment.Qualities != trueQualities.at(counter)){
 			logfile->newLine();
-			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": qualities not same as true qualities!");
+			logfile->conclude("Read " + bamAlignment.Name + ", isRev = " + toString(bamAlignment.IsReverseStrand()) + ": qualities not same as true qualities! Read " + bamAlignment.Qualities + " but was expecting " + trueQualities[counter]);
 //			std::cout << "true qualities " << trueQualities.at(counter) << std::endl;
 			return false;
 		} if(bamAlignment.IsProperPair() != trueIsProper.at(counter)){
@@ -674,8 +681,6 @@ bool TAtlasTest_mergeSplitPairs::run(){
 	//2) Run ATLAS to create BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
-	_testParams.addParameter("maxReadLength", toString(readLength));
-	_testParams.addParameter("window", toString(2*readLength));
 	_testParams.addParameter("readGroupSettings", _name + "_RGSpecs.txt");
 
 //	if(filterPairsDiffChr){
