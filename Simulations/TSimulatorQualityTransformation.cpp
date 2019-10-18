@@ -288,7 +288,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 	Base previousBase = N;
 	if(isReverseStrand){
 		for(p=len - 1; p>=0; --p){
-			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
+			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMapFlipped[previousBase][bases[p]]];
 			previousBase = bases[p];
 		}
 	} else {

@@ -350,9 +350,10 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 void TAlignment::fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){
 		//reverse
-		for(int d=0; d<(length-1); ++d)
-			bases[d].context = genoMap.contextMap[bases[d+1].base][bases[d].base];
-		bases[length-1].context = genoMap.contextMap[N][bases[length-1].base];
+		for(int d=0; d<(length-1); ++d){
+			bases[d].context = genoMap.contextMapFlipped[bases[d+1].base][bases[d].base];
+		}
+		bases[length-1].context = genoMap.contextMapFlipped[N][bases[length-1].base];
 	} else {
 		//forward
 		bases[0].context = genoMap.contextMap[N][bases[0].base];
