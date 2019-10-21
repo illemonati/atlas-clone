@@ -23,6 +23,8 @@ class TGenotypeMap{
 public:
 	Genotype** genotypeMap; //mapping base numbering to genotype enum
 	BaseContext** contextMap; //mapping dinucleotide context to context enum
+	BaseContext** contextMapFlipped; //mapping dinucleotide context to context enum
+	BaseContext flippedContext[25] = {cTT, cTG, cTC, cTA, cGT, cGG, cGC, cGA, cCT, cCG, cCC, cCA, cAT, cAG, cAC, cAA, cNT, cNG, cNC, cNA, cTN, cGN, cCN, cAN, cNN}; //N means unknwon base or "nothing", i.e. end of read or del
 	Base** genotypeToBase; //mapping genotypes to bases
 	Base** alleleicCombinationToBase; //mapping the allelic combination to the two bases
 	Genotype** alleleicCombinationToGenotypes; //mapping the alleleic combinations to the homozygous, heterozygosu and other homozygous genotype
@@ -89,6 +91,23 @@ public:
 		contextMap[2][4] = cGN;
 		contextMap[3][4] = cTN;
 		contextMap[4][4] = cNN;
+
+		//Same for FLIPPED context
+		contextMapFlipped = new BaseContext*[5];
+		context = 0;
+		for(int i=0; i<5; ++i){
+			contextMapFlipped[i] = new BaseContext[5];
+			for(int j=0; j<4; ++j){
+				contextMapFlipped[i][j] = flippedContext[context];
+				++context;
+			}
+		}
+		contextMapFlipped[0][4] = cTN;
+		contextMapFlipped[1][4] = cGN;
+		contextMapFlipped[2][4] = cCN;
+		contextMapFlipped[3][4] = cAN;
+		contextMapFlipped[4][4] = cNN;
+
 
 		//fill base to char map
 		baseToChar = new char[5];
