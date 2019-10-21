@@ -355,12 +355,25 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
-	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
 	trueIsProper.push_back(false);
 
+	//single end read in between, should be ignored
+	setToSingleEndEtc(bamAlignment);
+	bamAlignment.EditTag("RG", "Z", readGroupName + "_ignored");
+	bamAlignment.Position = 3763;
+	bamAlignment.Length = 200;
+	bamAlignment.InsertSize = bamAlignment.Length;
+	bamAlignment.Name = "Single_end_ignored";
+	bamAlignment.CigarData.clear();
+	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
+	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
+	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
+
+
 	//single end read in between, long
 	setToSingleEndEtc(bamAlignment);
+	bamAlignment.EditTag("RG", "Z", readGroupName + "_single");
 	bamAlignment.Position = 3763;
 	bamAlignment.Length = 102;
 	bamAlignment.InsertSize = bamAlignment.Length;
@@ -373,11 +386,11 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
 	trueQualities.push_back(std::string(bamAlignment.Length, qualMap.phredIntToQuality(30)));
-	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
 
 	trueIsProper.push_back(false);
 
 	//2nd mate
+	setToProperPairEtc(bamAlignment);
 	setToRevMate(bamAlignment);
 	bamAlignment.EditTag("RG", "Z", readGroupName);
 	bamAlignment.Position = 3772;
@@ -406,9 +419,6 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 						+ std::string(40, qualMap.phredIntToQuality(0))
 						+ std::string(30, qualMap.phredIntToQuality(30)));
 	trueIsProper.push_back(true);
-
-	std::cout << "query bases: " << bamAlignment.QueryBases << " ,last in true query bases: " << trueQueryBases[trueQueryBases.size()-1] << std::endl;
-
 
 	//--------------------------------------------------------
 	//9) mate on different chr
@@ -481,6 +491,7 @@ void TAtlasTest_mergePairs::writeBAM(){
 	header.SortOrder = "coordinate";
 	header.ReadGroups.Add(readGroupName + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
 	header.ReadGroups.Add(readGroupName + "_single" + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
+	header.ReadGroups.Add(readGroupName + "_ignored" + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
 	header.Sequences.Add(BamTools::SamSequence("Chr1", chrLength));
 	header.Sequences.Add(BamTools::SamSequence("Chr2", chrLength));
 
@@ -670,6 +681,12 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 	out << readGroupName << "\t" << 500 << "\t" << "paired" << std::endl;
 	out << readGroupName + "_single" << "\t" << 102 << "\t" << "single" << std::endl;
 	out.close();
+
+	outName = _name + "_ignoreThese.txt";
+	out.open(outName.c_str());
+	if(!out) throw "Failed to open file '" + outName + "'!";
+	out << readGroupName + "_ignored" << std::endl;
+	out.close();
 };
 
 bool TAtlasTest_mergeSplitPairs::run(){
@@ -691,6 +708,7 @@ bool TAtlasTest_mergeSplitPairs::run(){
 	}
 
 	_testParams.addParameter("keepOriginalQuality", "");
+	_testParams.addParameter("ignoreReadGroups", _name + "_ignoreThese.txt");
 
 	if(!runTGenomeFromInputfile("splitMerge"))
 		return false;

@@ -1384,6 +1384,29 @@ void TGenome::mergeReadGroups(TParameters & params){
 };
 
 void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings){
+	//do we have to ignore read groups?
+	std::map<std::string,int> readGroupsToIgnore;
+	if(params.parameterExists("ignoreReadGroups")){
+		std::string ignoredReadGroupsFile = params.getParameterString("ignoreReadGroups");
+		logfile->listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
+		std::ifstream file(ignoredReadGroupsFile.c_str());
+		if(!file) throw "Failed to open file '" + ignoredReadGroupsFile + "!";
+		int lineNum = 0;
+
+		while(file.good() && !file.eof()){
+			std::vector<std::string> vec;
+			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			++lineNum;
+			if(!vec.empty() && vec.size() != 1)
+				throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + ignoredReadGroupsFile + "'!";
+			else if(vec.size() == 1){
+				readGroupsToIgnore.emplace(vec[0],1);
+			}
+		}
+	}
+
+	logfile->done();
+
 	std::string readGroupSettingsFile = params.getParameterString("readGroupSettings");
 	logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
 	std::ifstream file(readGroupSettingsFile.c_str());
@@ -1394,7 +1417,7 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 	std::vector<std::string> mixed;
 	std::vector<std::string> single;
 
-	//read file
+	//read settings file
 	while(file.good() && !file.eof()){
 		std::vector<std::string> vec;
 		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
@@ -1404,44 +1427,48 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 		if(!vec.empty()){
 			if(vec.size() != 3) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
 
-			//get RG info
-			int len = stringToInt(vec[1]);
-			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
-			int readGroupId = alignmentParser.readGroups.find(vec[0]);
+			if(readGroupsToIgnore.size() == 0 || readGroupsToIgnore.find(vec[0]) == readGroupsToIgnore.end()){
+				//get RG info
+				int len = stringToInt(vec[1]);
+				if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
+				int readGroupId = alignmentParser.readGroups.find(vec[0]);
 
-			//add needed new RG
-			if(vec[2] == "paired"){
-				paired.push_back(vec[0]);
-				RGSettings.emplace(readGroupId, TReadGroupMaxLength(-1, readGroupId, vec[0], 2));
+				//add needed new RG
+				if(vec[2] == "paired"){
+					paired.push_back(vec[0]);
+					RGSettings.emplace(readGroupId, TReadGroupMaxLength(-1, readGroupId, vec[0], 2));
 
-			} else if(vec[2] == "mixed"){
-				mixed.push_back(vec[0]);
-				std::string readGroupTruncated = vec[0] + "_truncated";
-				alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
-				int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
-				RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 1)));
+				} else if(vec[2] == "mixed"){
+					std::string readGroupTruncated = vec[0] + "_truncated";
+					mixed.push_back(vec[0]);
+					mixed.push_back(readGroupTruncated);
+					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
+					int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
+					RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 1)));
 
-			} else if(vec[2] == "single"){
-				single.push_back(vec[0]);
-				std::string readGroupTruncated = vec[0] + "_truncated";
-				int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
-				RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 0)));
+				} else if(vec[2] == "single"){
+					std::string readGroupTruncated = vec[0] + "_truncated";
+					single.push_back(vec[0]);
+					single.push_back(readGroupTruncated);
+					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
+					RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 0)));
 
-			} else {
-				throw "Unknown sequencing type '" + vec[2] + "' on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'! Expected 'single', 'mixed' or 'paired'.";
+				} else {
+					throw "Unknown sequencing type '" + vec[2] + "' on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'! Expected 'single', 'mixed' or 'paired'.";
+				}
 			}
 		}
 	}
 	logfile->done();
-	logfile->conclude("read " + toString(single.size()) + " single-end read groups to be split.");
-	logfile->conclude("read " + toString(mixed.size()) + " mixed read groups to be split and merged.");
+	logfile->conclude("read " + toString(single.size() / 2) + " single-end read groups to be split.");
+	logfile->conclude("read " + toString(mixed.size() / 2) + " mixed read groups to be split and merged.");
 	logfile->conclude("read " + toString(paired.size()) + " paired read groups to be merged.");
 
-	unsigned int predictedSize = single.size()*2 + mixed.size()*2 + paired.size();
+	unsigned int predictedSize = single.size() + mixed.size() + paired.size();
 	if(predictedSize > alignmentParser.readGroups.size())
 		throw "Number of read groups in header incorrect!";
 	else if(predictedSize < alignmentParser.readGroups.size()){
-		logfile->warning("No sequencing specification found for " + toString(alignmentParser.readGroups.size() - (single.size() + mixed.size() + paired.size())) + " read groups!");
+		logfile->conclude("Will write " + toString(alignmentParser.readGroups.size() - (single.size() + mixed.size() + paired.size())) + " read group(s) to BAM unchanged (due their presence in ignoreReadGroups or their absence from readGroupSettingsFile).");
 	}
 };
 
@@ -1651,7 +1678,6 @@ void TGenome::splitMerge(TParameters & params){
 		std::map<int, TReadGroupMaxLength>::iterator RGSettingsIt;
 		RGSettingsIt = RGSettings.find(alignment.readGroupId);
 
-
 		if(RGSettingsIt != RGSettings.end()){
 
 			if(alignment.isPaired && (RGSettingsIt->second.sequencingType == 1 || RGSettingsIt->second.sequencingType == 2)){
@@ -1671,7 +1697,7 @@ void TGenome::splitMerge(TParameters & params){
 				} else {
 					merger.addToBeSplit(alignment, RGSettingsIt);
 				}
-			}
+			} else throw "nonsensical settings found for read " + alignment.name();
 
 		//read is in read group without a specified type -> should not be split or merged
 		} else {
