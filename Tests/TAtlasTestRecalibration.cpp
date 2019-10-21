@@ -60,7 +60,7 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("ploidy", "1");
-	_testParams.addParameter("depth", "1");
+	_testParams.addParameter("depth", "4");
 	_testParams.addParameter("qualityDist", qualityDist);
 	_testParams.addParameter("recal", recalParamsFileName);
 //	_testParams.addParameter("recal", "recal[" + recalParamString + "]");
@@ -83,6 +83,8 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
+	_testParams.addParameter("equalBaseFreq", poolRGFileName);
+
 
 	if(!runTGenomeFromInputfile("recal"))
 		return false;
