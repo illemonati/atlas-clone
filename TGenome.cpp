@@ -1600,20 +1600,21 @@ void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger)
 		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
 	}
 
-	if(params.parameterExists("keepRandomRead")){
+	//set merging method
+	std::string method = params.getParameterStringWithDefault("mergingMethod", "keepRandomRead");
+	if(method == "keepRandomRead"){
 		logfile->list("Will keep random read for all of overlapping positions");
 		merger.keepRandomRead();
-	} else {
-		//keep which base?
-		if(params.parameterExists("keepRandomBase")){
-			logfile->list("Will keep random base at overlapping positions.");
-			merger.keepRandomBase();
-		} else {
-			logfile->list("Will keep base with higher quality score at overlapping positions.");
-		}
-	}
+	} else if(method == "keepRandomBase"){
+		logfile->list("Will keep random base at overlapping positions.");
+		merger.keepRandomBase();
+	} else if(method == "keepHighestQualBase"){
+		logfile->list("Will keep base with higher quality score at overlapping positions.");
+	} else
+		throw "Unknown merging method " + method + "! Use 'keepRandomRead', 'keepRandomBase' or 'keepHighestQualBase'.";
 
-	//which quality score to use
+
+	//decide if we update quality score
 	if(params.parameterExists("updateQuality")){
 		logfile->list("Will update quality scores of prefered bases to reflect information from overlapping bases.");
 	} else {

@@ -75,6 +75,8 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.clear();
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
+	_testParams.addParameter("equalBaseFreq", poolRGFileName);
+
 
 	if(!runTGenomeFromInputfile("recal"))
 		return false;

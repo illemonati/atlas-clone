@@ -36,6 +36,7 @@ bool TAtlasTest_mergePairs::run(){
 	if(!filterOrphanedReads){
 		_testParams.addParameter("keepOrphans", "");
 	}
+	_testParams.addParameter("mergingMethod", "keepHighestQualBase");
 
 	_testParams.addParameter("keepOriginalQuality", "");
 
@@ -706,7 +707,7 @@ bool TAtlasTest_mergeSplitPairs::run(){
 	if(!filterOrphanedReads){
 		_testParams.addParameter("keepOrphans", "");
 	}
-
+	_testParams.addParameter("mergingMethod", "keepHighestQualBase");
 	_testParams.addParameter("keepOriginalQuality", "");
 	_testParams.addParameter("ignoreReadGroups", _name + "_ignoreThese.txt");
 

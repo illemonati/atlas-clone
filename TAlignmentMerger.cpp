@@ -11,7 +11,8 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 	writer = Writer;
 	parser = Parser;
 	_maxDistanceBetweenMates = MaxDistanceBetweenMates;
-	_adaptQuality = true;
+	_keepHigherQuality = false;
+	_adaptQuality = false;
 	_filterOrphans = true;
 	_keepRandomBase = false;
 	_keepRandomRead = false;
