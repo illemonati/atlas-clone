@@ -54,7 +54,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 void TGenome::indexBamFile(std::string & filename){
 	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
 	BamTools::BamReader reader;
-	if(!reader.Open(alignmentParser.filename))
+	if(!reader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
