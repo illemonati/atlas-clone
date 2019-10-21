@@ -115,6 +115,16 @@ public:
 	};
 };
 
+class TTask_splitMerge:public TTask_atlas{
+public:
+	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.splitMerge(parameters);
+	};
+};
+
 class TTask_assessDuplication:public TTask_atlas{
 public:
 	TTask_assessDuplication(){ _explanation = "Quantifying read duplication"; };
