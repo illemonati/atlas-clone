@@ -325,8 +325,12 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	logfile->list("Will conduct at max " + toString(NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
 	NewtonRaphsonMaxF = args.getParameterDoubleWithDefault("maxF", 0.0001);
 	logfile->list("Will stop Newton-Raphson when F < " + toString(NewtonRaphsonMaxF));
-	equalBaseFrequencies = args.parameterExists("equalBaseFreq");
-	if(equalBaseFrequencies) logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}");
+	equalBaseFrequencies = true;
+	if(args.parameterExists("estimateBaseFrequencies");){
+		equalBaseFrequencies = false;
+		logfile->list("Will estimate the base frequencies.");
+	} else if(equalBaseFrequencies)
+		logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. Use parameter 'estimateBaseFrequencies' to estimate them.");
 	logfile->endIndent();
 };
 
