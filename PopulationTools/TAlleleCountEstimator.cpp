@@ -348,27 +348,16 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
 	}
 
-	//open output file
+	//create output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname = params.getParameterStringWithDefault("out", tmp);
-	std::string filename = outname + "_alleleCounts.txt.gz";
+	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
 	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
-	gz::ogzstream aleleCountFile(filename.c_str());
-	if(!aleleCountFile)
-		throw "Failed to open file '" + filename + "' for writing!";
+
+	TAlleleCountFile* aleleCountFile = new TAlleleCountFile(filename);
 
 	//write header
-	bool useLocusName = params.parameterExists("useLocusName");
-	char sep = '\t';
-	if(useLocusName){
-		logfile->list("Will print locus names (rather than chromosome and position).");
-		aleleCountFile << "Locus";
-		sep = '_';
-	}
-	aleleCountFile << "chr" << sep << "pos";
-	for(int p=0; p<samples.numPopulations(); p++)
-		aleleCountFile << "\t" << samples.getPopulationName(p);
-	aleleCountFile << "\n";
+	aleleCountFile->writeHeader(samples, params, logfile);
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
@@ -378,7 +367,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
 	while(reader.readDataFromVCF(data, samples, glfConverter, logfile)){
 		//write chromosome and position
-		aleleCountFile << reader.chr() << sep << reader.position();
+		aleleCountFile->writePosition(reader.chr(), reader.position());
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
@@ -386,9 +375,9 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
 
 			//and print MLE counts
-			aleleCountFile << "\t" << saf[p]->getMLAlleleCount(*randomGenerator) << "/" << saf[p]->getNumAlleles();
+			aleleCountFile->writeCounts(saf[p]->getMLAlleleCount(*randomGenerator), saf[p]->getNumAlleles());
 		}
-		aleleCountFile << std::endl;
+		aleleCountFile->endl();
 	}
 
 	//clean up
