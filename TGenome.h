@@ -43,8 +43,9 @@ private:
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
-	void dealWithLastReadsInStorage(std::vector< std::pair<TAlignment*, bool> > & alignmentStorage, const bool & filterOrphanedReads);
 	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
+	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
+	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -84,8 +85,9 @@ public:
 	void estimatePMD(TParameters & params);
 	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
-	void mergePairedEndReads(TParameters & params);
 	void filterBAM(TParameters & params);
+	void splitMerge(TParameters & params);
+	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
 	void downSampleReads(TParameters & params);

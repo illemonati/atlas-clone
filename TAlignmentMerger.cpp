@@ -11,10 +11,12 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 	writer = Writer;
 	parser = Parser;
 	_maxDistanceBetweenMates = MaxDistanceBetweenMates;
-	_adaptQuality = true;
+	_keepHigherQuality = false;
+	_adaptQuality = false;
 	_filterOrphans = true;
 	_keepRandomBase = false;
 	_keepRandomRead = false;
+	_allowForLarger = false;
 };
 
 void TAlignmentMerger::_writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it){
@@ -66,6 +68,22 @@ void TAlignmentMerger::addToBeMerged(TAlignment & alignment, TRandomGenerator* r
 		alignmentStorage.emplace_back(alignment, true);
 	}
 };
+
+void TAlignmentMerger::addToBeSplit(TAlignment & alignment, std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT){
+	//check length
+	if(alignment.getBamAlignmentLength() == singleEndRGIT->second.maxLen){
+		alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedOrMergedReadGroup);
+	} else if(alignment.getBamAlignmentLength() > singleEndRGIT->second.maxLen){
+		if(_allowForLarger)
+			alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedOrMergedReadGroup);
+		else {
+			throw("Length of read " + alignment.name() + " is > max length provided for its read group (" + toString(singleEndRGIT->second.maxLen) + ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
+		}
+	}
+
+	//add to storage
+	alignmentStorage.emplace_back(alignment, true);
+}
 
 void TAlignmentMerger::checkForMateAndWriteUnmerged(TAlignment & alignment){
 	std::vector< TAlignmentMergerEntry >::iterator it = _findMate(alignment);

@@ -54,7 +54,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 void TGenome::indexBamFile(std::string & filename){
 	logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
 	BamTools::BamReader reader;
-	if(!reader.Open(alignmentParser.filename))
+	if(!reader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "' for indexing!";
 
 	// create index for BAM file
@@ -1199,7 +1199,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 			trunc->SequencingTechnology = orig->SequencingTechnology;
 
 			//add to map
-			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup)));
+			singleEndRG.insert(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroup, 0)));
 		}
 	}
 	logfile->done();
@@ -1223,7 +1223,6 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     gettimeofday(&start, NULL);
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
-
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//check if this RG needs to be parsed
@@ -1233,11 +1232,11 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		if(singleEndRGIT != singleEndRG.end()){
 			//check length
 			if(alignment.getBamAlignmentLength() == singleEndRGIT->second.maxLen){
-				alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
+				alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedOrMergedReadGroup);
 //				bamAlignment.EditTag("RG", "Z", singleEndRGIT->second.truncatedReadGroup);
 			} else if(alignment.getBamAlignmentLength() > singleEndRGIT->second.maxLen){
 				if(allowForLarger)
-					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedReadGroup);
+					alignment.updateOptionalSamField("RG", singleEndRGIT->second.truncatedOrMergedReadGroup);
 				else {
 					logfile->warning("Length of read " + alignment.name() + " in read group '" + readGroup + "' is > max length provided! Ignoring read.");
 				}
@@ -1358,7 +1357,6 @@ void TGenome::mergeReadGroups(TParameters & params){
 	logfile->startIndent("Parsing through BAM file:");
 	struct timeval start;
     gettimeofday(&start, NULL);
-	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1383,7 +1381,96 @@ void TGenome::mergeReadGroups(TParameters & params){
 	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
-}
+};
+
+void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings){
+	//do we have to ignore read groups?
+	std::map<std::string,int> readGroupsToIgnore;
+	if(params.parameterExists("ignoreReadGroups")){
+		std::string ignoredReadGroupsFile = params.getParameterString("ignoreReadGroups");
+		logfile->listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
+		std::ifstream file(ignoredReadGroupsFile.c_str());
+		if(!file) throw "Failed to open file '" + ignoredReadGroupsFile + "!";
+		int lineNum = 0;
+
+		while(file.good() && !file.eof()){
+			std::vector<std::string> vec;
+			fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+			++lineNum;
+			if(!vec.empty() && vec.size() != 1)
+				throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + ignoredReadGroupsFile + "'!";
+			else if(vec.size() == 1){
+				readGroupsToIgnore.emplace(vec[0],1);
+			}
+		}
+	}
+
+	logfile->done();
+
+	std::string readGroupSettingsFile = params.getParameterString("readGroupSettings");
+	logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
+	std::ifstream file(readGroupSettingsFile.c_str());
+	if(!file) throw "Failed to open file '" + readGroupSettingsFile + "!";
+	int lineNum = 0;
+
+	std::vector<std::string> paired;
+	std::vector<std::string> mixed;
+	std::vector<std::string> single;
+
+	//read settings file
+	while(file.good() && !file.eof()){
+		std::vector<std::string> vec;
+		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		++lineNum;
+
+		//parse line
+		if(!vec.empty()){
+			if(vec.size() != 3) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
+
+			if(readGroupsToIgnore.size() == 0 || readGroupsToIgnore.find(vec[0]) == readGroupsToIgnore.end()){
+				//get RG info
+				int len = stringToInt(vec[1]);
+				if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
+				int readGroupId = alignmentParser.readGroups.find(vec[0]);
+
+				//add needed new RG
+				if(vec[2] == "paired"){
+					paired.push_back(vec[0]);
+					RGSettings.emplace(readGroupId, TReadGroupMaxLength(-1, readGroupId, vec[0], 2));
+
+				} else if(vec[2] == "mixed"){
+					std::string readGroupTruncated = vec[0] + "_truncated";
+					mixed.push_back(vec[0]);
+					mixed.push_back(readGroupTruncated);
+					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
+					int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
+					RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 1)));
+
+				} else if(vec[2] == "single"){
+					std::string readGroupTruncated = vec[0] + "_truncated";
+					single.push_back(vec[0]);
+					single.push_back(readGroupTruncated);
+					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
+					RGSettings.emplace(std::pair<int, TReadGroupMaxLength>(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 0)));
+
+				} else {
+					throw "Unknown sequencing type '" + vec[2] + "' on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'! Expected 'single', 'mixed' or 'paired'.";
+				}
+			}
+		}
+	}
+	logfile->done();
+	logfile->conclude("read " + toString(single.size() / 2) + " single-end read groups to be split.");
+	logfile->conclude("read " + toString(mixed.size() / 2) + " mixed read groups to be split and merged.");
+	logfile->conclude("read " + toString(paired.size()) + " paired read groups to be merged.");
+
+	unsigned int predictedSize = single.size() + mixed.size() + paired.size();
+	if(predictedSize > alignmentParser.readGroups.size())
+		throw "Number of read groups in header incorrect!";
+	else if(predictedSize < alignmentParser.readGroups.size()){
+		logfile->conclude("Will write " + toString(alignmentParser.readGroups.size() - (single.size() + mixed.size() + paired.size())) + " read group(s) to BAM unchanged (due their presence in ignoreReadGroups or their absence from readGroupSettingsFile).");
+	}
+};
 
 void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups){
 	std::string pairedRG = params.getParameterStringWithDefault("pairedReadGroups", "all");
@@ -1428,7 +1515,9 @@ void TGenome::filterBAM(TParameters & params){
 		logfile->warning("PMD is given but not relevant for filtering!");
 
 	//create alignment storage
-	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
+	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
+	TAlignmentMerger merger(&bamWriter, &alignmentParser, maxDist);
+	logfile->list("Mates that are farther than " + toString(maxDist) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 	if(params.parameterExists("keepOrphans")){
 		logfile->list("Will keep keep orphaned reads.");
 		merger.keepOrphans();
@@ -1500,6 +1589,152 @@ void TGenome::filterBAM(TParameters & params){
 	//close BAM file
 	reader.Close();
 	logfile->done();
+};
+
+void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger){
+	//which data to keep
+	if(params.parameterExists("keepOrphans")){
+		logfile->list("Will keep keep orphaned reads.");
+		merger.keepOrphans();
+	} else {
+		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
+	}
+
+	//set merging method
+	std::string method = params.getParameterStringWithDefault("mergingMethod", "keepRandomRead");
+	if(method == "keepRandomRead"){
+		logfile->list("Will keep random read for all of overlapping positions");
+		merger.keepRandomRead();
+	} else if(method == "keepRandomBase"){
+		logfile->list("Will keep random base at overlapping positions.");
+		merger.keepRandomBase();
+	} else if(method == "keepHighestQualBase"){
+		logfile->list("Will keep base with higher quality score at overlapping positions.");
+	} else
+		throw "Unknown merging method " + method + "! Use 'keepRandomRead', 'keepRandomBase' or 'keepHighestQualBase'.";
+
+
+	//decide if we update quality score
+	if(params.parameterExists("updateQuality")){
+		logfile->list("Will update quality scores of prefered bases to reflect information from overlapping bases.");
+	} else {
+		merger.keepOriginalQuality();
+		logfile->list("Will keep original quality scores of the prefered bases (use updateQuality to update quality scores).");
+	}
+}
+
+void TGenome::splitMerge(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
+
+	//open a bam file for writing
+	BamTools::BamWriter bamWriter;
+	std::string filename = outputName + "_mergedReads.bam";
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	logfile->list("Writing results to '" + filename + "'.");
+	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
+		throw "Failed to open BAM file '" + filename + "'!";
+
+	if(alignmentParser.hasPMD)
+		logfile->warning("PMD is given but not relevant for read merging.");
+
+	//which read groups are paired-end?
+	std::map<int, TReadGroupMaxLength> RGSettings;
+	parseSplitMergeReadGroupSettings(params, RGSettings);
+
+	//create alignment storage
+	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
+	logfile->list("Mates that are farther than " + toString(maxDist) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+
+	TAlignmentMerger merger(&bamWriter, &alignmentParser, maxDist);
+	setMergerSettings(params, merger);
+
+	//for splitter: allow for reads longer than max provided?
+	if(params.parameterExists("allowForLarger")){
+		merger.allowForLarger();
+		logfile->list("Adding single end reads that are longer than maxLength to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
+	}
+
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
+
+    //now parse through bam file and write alignments
+	int curChr = 0;
+	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
+		//if on new chromosome, empty storage
+		if(curChr != alignment.chrNumber){
+			//write all ready currently in storage
+			merger.clear();
+			curChr = alignment.chrNumber;
+		}
+
+		//check if first alignment in storage is too far away from current read (after checking for chr change)
+		//if yes, first alignment in storage is considered an orphan
+		merger.writeUpTo(alignment.getPosition());
+
+		//attempt merging of paired reads
+		std::map<int, TReadGroupMaxLength>::iterator RGSettingsIt;
+		RGSettingsIt = RGSettings.find(alignment.readGroupId);
+
+		if(RGSettingsIt != RGSettings.end()){
+
+			if(alignment.isPaired && (RGSettingsIt->second.sequencingType == 1 || RGSettingsIt->second.sequencingType == 2)){
+				//Ignore reads in black list
+				if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
+					merger.addAsImproperPair(alignment);
+				} else {
+					//is a proper pair: attempt merging
+					merger.addToBeMerged(alignment, randomGenerator);
+				}
+
+			//attempt splitting of single end reads
+			} else if(!alignment.isPaired && (RGSettingsIt->second.sequencingType == 1 || RGSettingsIt->second.sequencingType == 0)){
+				//Ignore reads in black list
+				if(alignmentParser.isInBlacklist(alignment.name())){
+					alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
+				} else {
+					merger.addToBeSplit(alignment, RGSettingsIt);
+				}
+			} else throw "nonsensical settings found for read " + alignment.name();
+
+		//read is in read group without a specified type -> should not be split or merged
+		} else {
+			//Ignore reads in black list
+			if(alignmentParser.isInBlacklist(alignment.name())){
+				alignmentParser.removeFromBlacklist(alignment, "read was in the blacklist");
+			} else {
+				merger.addReadyToBeWritten(alignment);
+			}
+		}
+
+		//report
+		reporter.printProgress();
+	}
+
+	//write unwritten reads
+	merger.clear();
+
+	//report end
+	reporter.printEnd();
+
+	//close bam writer
+	bamWriter.Close();
+
+	//create index of new bam file
+	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+	BamTools::BamReader reader;
+	if(!reader.Open(filename))
+		throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+	// create index for BAM file
+	reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+	//close BAM file
+	reader.Close();
+	logfile->done();
 }
 
 void TGenome::mergePairedEndReads(TParameters & params){
@@ -1525,36 +1760,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	findPairedReadGroupsToMergeReads(params, mergeThisReadGroup);
 
 	//create alignment storage
-	TAlignmentMerger merger(&bamWriter, &alignmentParser, params.getParameterIntWithDefault("acceptedDistance", 2000));
-	if(params.parameterExists("keepOrphans")){
-		logfile->list("Will keep keep orphaned reads.");
-		merger.keepOrphans();
-	} else {
-		logfile->list("Will ignore orphaned reads and not write them to BAM (use 'keepOrphans' to keep them).");
-	}
-
-	if(params.parameterExists("keepRandomRead")){
-		logfile->list("Will keep random read for all of overlapping positions");
-		merger.keepRandomRead();
-	} else {
-		//keep which base?
-		if(params.parameterExists("keepRandomBase")){
-			logfile->list("Will keep random base at overlapping positions.");
-			merger.keepRandomBase();
-		} else {
-			logfile->list("Will keep base with higher quality score at overlapping positions.");
-		}
-	}
-
-
-
-	//write which quality score?
-	if(params.parameterExists("updateQuality")){
-		logfile->list("Will update quality scores of prefered bases to reflect information from overlapping bases.");
-	} else {
-		merger.keepOriginalQuality();
-		logfile->list("Will keep original quality scores of the prefered bases (use updateQuality to update quality scores).");
-	}
+	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
+	logfile->list("Mates that are farther than " + toString(maxDist) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+	TAlignmentMerger merger(&bamWriter, &alignmentParser, maxDist);
+	setMergerSettings(params, merger);
 
 	//measure progress and runtime
 	TBamProgressReporter reporter(&alignmentParser, logfile);

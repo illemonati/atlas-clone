@@ -801,7 +801,7 @@ bool TAlignmentParser::readAlignment(){
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.AlignedBases.size() > maxReadLength)
-			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length " + toString(maxReadLength) + "! Please change max read length to parse this data.";
 
 		//store read group ID
 		std::string readGroup;
