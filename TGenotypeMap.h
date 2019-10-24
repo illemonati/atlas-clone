@@ -159,12 +159,14 @@ public:
 		}
 		for(int i=0; i<5; ++i){
 			delete[] contextMap[i];
+			delete[] contextMapFlipped[i];
 		}
 		delete[] genotypeMap;
 		for(int i=0; i<10; ++i)
 			delete[] genotypeToBase[i];
 		delete[] genotypeToBase;
 		delete[] contextMap;
+		delete[] contextMapFlipped;
 		delete[] baseToChar;
 		delete[] baseToFlippedBase;
 
