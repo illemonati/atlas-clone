@@ -14,6 +14,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["BAMDiagnostics"] = new TTask_BAMDiagnostics();
 	taskMap_regular["readOverlap"] = new TTask_assessReadOverlap();
 	taskMap_regular["mergeReads"] = new TTask_mergeReads();
+	taskMap_regular["splitMerge"] = new TTask_splitMerge();
 	taskMap_regular["duplication"] = new TTask_assessDuplication();
 	taskMap_regular["writeReadInfoPerSite"] = new TTask_mateInfo();
 	taskMap_regular["assessSoftClipping"] = new TTask_assessSoftClipping();
