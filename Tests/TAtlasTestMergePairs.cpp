@@ -679,8 +679,8 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 	std::string outName = _name + "_RGSpecs.txt";
 	out.open(outName.c_str());
 	if(!out) throw "Failed to open file '" + outName + "'!";
-	out << readGroupName << "\t" << 500 << "\t" << "paired" << std::endl;
-	out << readGroupName + "_single" << "\t" << 102 << "\t" << "single" << std::endl;
+	out << readGroupName << "\tpaired" << "\t" << 500 << std::endl;
+	out << readGroupName + "_single" << "\tsingle" << "\t" << 102 << std::endl;
 	out.close();
 
 	outName = _name + "_ignoreThese.txt";
