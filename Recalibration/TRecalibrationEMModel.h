@@ -32,6 +32,7 @@ protected:
 	std::string _name;
 	unsigned int _numParameters;
 	TRecalibrationEMQualityPositionMap _qualPosMap;
+	TLog* logfile;
 
 	double* _betas; //betas of the model
 	double* _oldBetas; //use during estimation
@@ -55,7 +56,7 @@ protected:
 
 public:
 
-	TRecalibrationEMModel_Base();
+	TRecalibrationEMModel_Base(TLog* Logfile);
 	virtual ~TRecalibrationEMModel_Base(){ _freeBetaMemory(); };
 
 	std::string name(){ return _name; };
@@ -89,7 +90,7 @@ public:
 
 class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_noRecal();
+	TRecalibrationEMModel_noRecal(TLog* Logfile);
 	~TRecalibrationEMModel_noRecal(){};
 	double getErrorRate(TBase & base);
 	std::string getQualityString(){return "-";};
@@ -100,8 +101,8 @@ public:
 
 class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFunc();
-	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosFunc(TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosFunc(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
@@ -113,8 +114,8 @@ public:
 
 class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
 public:
-	TRecalibrationEMModel_qualFuncPosFuncContext();
-	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosFuncContext(TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
 
 	double calcEpsilon(const TRecalibrationEMReadData & data);
@@ -127,10 +128,11 @@ class TRecalibrationEMModel_qualFuncPosSpecific:public TRecalibrationEMModel_Bas
 private:
 	int _maxPosPlusOne;
 	int _numParamsWithoutPositions;
+	bool lengthWarningPrinted;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos, TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosSpecific(){};
 
 	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
@@ -146,10 +148,11 @@ class TRecalibrationEMModel_qualFuncPosSpecificContext:public TRecalibrationEMMo
 private:
 	int _maxPosPlusOne;
 	int _numParamsWithoutPositions;
+	bool lengthWarningPrinted;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos, TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
 
 	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
@@ -167,10 +170,11 @@ private:
 	int _maxPosMinusOne;
 	int _maxPosPlusOne;
 	int _numParamsWithoutPositions;
+	bool lengthWarningPrinted;
 
 public:
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos);
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos, TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
 	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
@@ -190,10 +194,12 @@ private:
 	int _maxQualPlusOne;
 	int* _qualityIndex;
 	TQualityMap qualMap;
+	bool lengthWarningPrinted;
+	bool qualityWarningPrinted;
 
 public:
-	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos);
-	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec);
+	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos, TLog* Logfile);
+	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualSpecficPosSpecific(){};
 
 	void checkParameterRange(std::vector<int> & Qualities, int maxPos);

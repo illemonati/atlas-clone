@@ -12,6 +12,7 @@
 #include <vector>
 #include "TParameters.h"
 #include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TBase.h"
 #include "gzstream.h"
 #include <algorithm>
@@ -90,6 +91,7 @@ public:
 	void countAllelesForImbalance(long**** siteImbalance);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
+	void contextStats(int** contextCounts, TQualityMap & qualMap);
 	void printPileup(gz::ogzstream & out);
 	void printPileupToScreen();
 

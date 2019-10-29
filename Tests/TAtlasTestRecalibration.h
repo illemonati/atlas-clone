@@ -25,6 +25,8 @@ private:
 	int maxPhredInt;
 	std::string qualityDist;
 	std::string recalParamString;
+	std::vector<std::string> tmpVec;
+	std::vector<double> trueParams;
 	std::string recalParamsFileName;
 	std::string poolRGFileName;
 	std::ofstream outRecalParams;

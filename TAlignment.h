@@ -101,6 +101,7 @@ public:
 
 	//accessed by alignmentParser
 	void filterForBaseQuality(int & minQual, int & maxQual);
+	void filterForContext(std::map<BaseContext,int> ignoreTheseContexts);
 	void clear();
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 
