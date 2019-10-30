@@ -825,7 +825,10 @@ void TGenome::printQualityTransformation(TParameters & params){
 		}
 	}
 	//add alignments to tables
-	logfile->startIndent("Adding sites to quality transformation tables ...");
+//	logfile->startIndent();
+	logfile->listFlush("Adding sites to quality transformation tables ...");
+	logfile->done();
+
 	if(compareToOtherRecalibration){
 		while(alignmentParser.readNextAlignment(alignment)){
 			alignmentParser.addSitesToQualityTransformTable(alignment, otherRecalObject, QTtables);
@@ -840,10 +843,10 @@ void TGenome::printQualityTransformation(TParameters & params){
 		}
 	}
 
-	logfile->done();
+	logfile->endIndent();
 
 	//print tables
-	QTtables.writeTables(outputName);
+	QTtables.writeTables(outputName, logfile);
 
 	//report end
 	reporter.printEnd();

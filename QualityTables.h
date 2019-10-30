@@ -102,7 +102,7 @@ public:
 	};
 
 	void add(const int readGroup, const int oldQuality, const int newQuality);
-	void writeTables(std::string outputName);
+	void writeTables(std::string outputName, TLog* logfile);
 };
 
 #endif /* QUALITYTABLES_H_ */

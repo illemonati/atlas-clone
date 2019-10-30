@@ -245,12 +245,16 @@ void TQualityTransformTables::add(const int readGroup, const int oldQuality, con
 	combinedTable.add(oldQuality, newQuality);
 };
 
-void TQualityTransformTables::writeTables(std::string outputName){
+void TQualityTransformTables::writeTables(std::string outputName, TLog* logfile){
 	//print tables for read groups
-	for(unsigned int i=0; i<readGroups->size(); ++i)
-		perReadGroupTables[i].printTableReturnRSquared(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
+	for(unsigned int i=0; i<readGroups->size(); ++i){
+		double RSquared = perReadGroupTables[i].printTableReturnRSquared(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
+		logfile->conclude("R squared for read group " + readGroups->getName(i) + " is " + toString(RSquared));
+	}
 
-	combinedTable.printTableReturnRSquared(outputName + "_total_qualityTransformation.txt");
+	double RSquared = combinedTable.printTableReturnRSquared(outputName + "_total_qualityTransformation.txt");
+	logfile->conclude("R squared for total data is " + toString(RSquared));
+
 };
 
 
