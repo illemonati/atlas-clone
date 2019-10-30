@@ -910,9 +910,9 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 
 		//write likelihoods
 		if(usePhredLikelihoods){
-			vcf << converter.toPhred(data[ind][refHomIndex] - minQual)
-				<< "," << converter.toPhred(data[ind][hetIndex] - minQual)
-				<< "," << converter.toPhred(data[ind][altHomIndex] - minQual);
+			vcf << (int) converter.toPhred(data[ind][refHomIndex] - minQual)
+				<< "," << (int) converter.toPhred(data[ind][hetIndex] - minQual)
+				<< "," << (int) converter.toPhred(data[ind][altHomIndex] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
 			if(data[ind][refHomIndex] == minQual) vcf << "0";
@@ -955,7 +955,7 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 
 		//write likelihoods
 		if(usePhredLikelihoods){
-			vcf << converter.toPhred(data[ind][major] - minQual) << "," << converter.toPhred(data[ind][minor] - minQual);
+			vcf << (int) converter.toPhred(data[ind][major] - minQual) << "," << (int) converter.toPhred(data[ind][minor] - minQual);
 		} else {
 			//if is to get rid of -0 in output (and having 0 instead). Maybe there is a better way?
 			if(data[ind][major] == minQual) vcf << "0";
