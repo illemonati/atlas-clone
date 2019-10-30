@@ -9,6 +9,7 @@
 #define QUALITYTABLES_H_
 
 #include <fstream>
+#include "TReadGroups.h"
 
 //---------------------------------------------------------------
 //TQualityTable
@@ -25,37 +26,9 @@ private:
 	long sum;
 
 public:
-	TQualityTable(){
-		initialized = false;
-		maxQ = -1;
-		maxQPlusOne = -1;
-		counts = NULL;
-		freqs = NULL;
-		sum = 0;
-	};
-
-	TQualityTable(int MaxQ){
-		init(MaxQ);
-	};
-
-	TQualityTable(TQualityTable && other):maxQ(0),maxQPlusOne(0),counts(nullptr),freqs(nullptr),initialized(false),sum(0){
-		//copy from other
-		maxQ = other.maxQ;
-		maxQPlusOne = other.maxQPlusOne;
-		counts = other.counts;
-		freqs = other.freqs;
-		initialized = other.initialized;
-		sum = other.sum;
-
-		//set other to default
-		other.maxQ = 0;
-		other.maxQPlusOne = 0;
-		other.counts = nullptr;
-		other.freqs = nullptr;
-		other.initialized = false;
-		other.sum = 0;
-	};
-
+	TQualityTable();
+	TQualityTable(int MaxQ);
+	TQualityTable(TQualityTable && other);
 
 	TQualityTable& operator=(TQualityTable && other){
 		if(this != &other){
@@ -79,78 +52,16 @@ public:
 		return *this;
 	};
 
-	void init(int MaxQ){
-		maxQ = MaxQ; //Note: quality is phred(error) + 33!
-		maxQPlusOne = maxQ + 1;
-		counts = new long[maxQPlusOne];
-		for(int i=33; i<maxQPlusOne; ++i)
-			counts[i] = 0;
-		freqs = new double[maxQPlusOne];
-		sum = 0;
-		initialized = true;
-	};
+	~TQualityTable();
 
-	~TQualityTable(){
-		if(initialized){
-			delete[] counts;
-			delete[] freqs;
-		}
-	};
-
-	int getMaxQ(){
-		return maxQ;
-	};
-
-	void add(const int & qual){
-		if(qual < maxQPlusOne)
-			++counts[qual];
-	};
-
-	void add(int* qual, int & len){
-		for(int i=0; i<len; ++i){
-			if(qual[i] < maxQPlusOne)
-				++counts[qual[i]];
-		}
-	};
-
-	void add(TQualityTable & other){
-		int otherMaxQ = other.getMaxQ();
-		int m = std::min(maxQ, otherMaxQ) + 1;
-		for(int i=33; i<m; ++i)
-			counts[i] += other.at(i);
-	};
-
-	long at(int qual){
-		return counts[qual];
-	};
-
-	void calcFrequencies(){
-		sum = 0;
-
-		for(int i=33; i<maxQPlusOne; ++i)
-			sum += counts[i];
-
-		for(int i=33; i<maxQPlusOne; ++i)
-			freqs[i] = (double) counts[i] / (double) sum;
-	};
-
-	void write(const std::string & filename){
-		//open output file
-		std::ofstream out(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
-
-		//write header
-		out << "Quality\tQuality(char)\tCounts\tFrequencies\tCumulativeFrequencies\n";
-
-		//calc frequencies
-		calcFrequencies();
-
-		double cumulFreq = 0.0;
-		for(int i=33; i<maxQPlusOne; ++i){
-			cumulFreq += freqs[i];
-			out << i-33 << "\t" << (char) i << "\t" << counts[i] << "\t" << freqs[i] << "\t" << cumulFreq << "\n";
-		}
-	};
+	void init(int MaxQ);
+	int getMaxQ();
+	void add(const int & qual);
+	void add(int* qual, int & len);
+	void add(TQualityTable & other);
+	long at(int qual);
+	void calcFrequencies();
+	void write(const std::string & filename);
 };
 
 //---------------------------------------------------------------
@@ -163,83 +74,15 @@ public:
 	double** table; //old qual / new qual
 	bool initialized;
 
-	TQualityTransformTable(int maxPhredIntInTable){
-		initialized = false;
-		initialize(maxPhredIntInTable);
-	};
+	TQualityTransformTable(int maxPhredIntInTable);
+	TQualityTransformTable();
 
-	TQualityTransformTable(){
-		initialized = false;
-		maxQInTable = 0;
-		maxQInTablePlusOne = 0;
-		table = NULL;
-	};
+	~TQualityTransformTable();
 
-	~TQualityTransformTable(){
-		for(int i=0; i<maxQInTablePlusOne; ++i){
-			delete[] table[i];
-		}
-		delete[] table;
-	};
-
-	void initialize(int maxPhredIntInTable){
-		if(initialized == true)
-			throw "Quality table already initialized!";
-
-		maxQInTable = maxPhredIntInTable + 33;
-		maxQInTablePlusOne = maxQInTable + 1;
-		table = new double*[maxQInTablePlusOne];
-		for(int i=0; i<maxQInTablePlusOne; ++i){
-			table[i] = new double[maxQInTablePlusOne];
-			for(int j=0; j<maxQInTablePlusOne; ++j){
-				table[i][j] = 0;
-			}
-		}
-		initialized = true;
-	};
-
-	void add(const int oldQuality, const int newQuality){
-		if(oldQuality < maxQInTable && newQuality < maxQInTable){
-			table[oldQuality][newQuality] += 1.0;
-		}
-	};
-
-	double size(){
-		double size = 0;
-		for(int i=33; i<maxQInTablePlusOne; ++i){
-			for(int j=33; j<maxQInTablePlusOne; ++j){
-				size += table[i][j];
-			}
-		}
-		return size;
-	};
-
-	void printTable(const std::string filename){
-		//open file
-		std::ofstream out(filename.c_str());
-		if(!out) throw "Failed to open output file '" + filename + "'!";
-
-		//print header
-		out << "oldQ/newQ";
-		for(int i=33; i<maxQInTablePlusOne; ++i)
-			out << "\t" << i-33;
-		out << "\n";
-
-		//get total
-		double sum = size();
-
-		//print rows
-		for(int i=33; i<maxQInTablePlusOne; ++i){
-			out << i-33;
-			for(int j=33; j<maxQInTablePlusOne; ++j){
-				out << "\t" << table[i][j] / sum;
-			}
-			out << "\n";
-		}
-
-		//close file
-		out.close();
-	};
+	void initialize(int maxPhredIntInTable);
+	void add(const int oldQuality, const int newQuality);
+	double size();
+	double printTableReturnRSquared(const std::string filename);
 };
 
 //---------------------------------------------------------------
@@ -252,31 +95,14 @@ private:
 	TQualityTransformTable combinedTable;
 
 public:
-	TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ){
-		readGroups = &ReadGroups;
-
-		combinedTable.initialize(MaxQ);
-		perReadGroupTables = new TQualityTransformTable[readGroups->size()];
-		for(int i=0; i<readGroups->size(); i++)
-			perReadGroupTables[i].initialize(MaxQ);
-	};
+	TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ);
 
 	~TQualityTransformTables(){
 		delete[] perReadGroupTables;
 	};
 
-	void add(const int readGroup, const int oldQuality, const int newQuality){
-		perReadGroupTables[readGroup].add(oldQuality, newQuality);
-		combinedTable.add(oldQuality, newQuality);
-	};
-
-	void writeTables(std::string outputName){
-		//print tables for read groups
-		for(int i=0; i<readGroups->size(); ++i)
-			perReadGroupTables[i].printTable(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
-
-		combinedTable.printTable(outputName + "_total_qualityTransformation.txt");
-	};
+	void add(const int readGroup, const int oldQuality, const int newQuality);
+	void writeTables(std::string outputName, TLog* logfile);
 };
 
 #endif /* QUALITYTABLES_H_ */
