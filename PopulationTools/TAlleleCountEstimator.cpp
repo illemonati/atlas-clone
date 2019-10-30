@@ -351,13 +351,13 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	//create output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname = params.getParameterStringWithDefault("out", tmp);
-	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
+	std::string filename = outname + "_alleleCounts.txt.gz";
 	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
 
-	TAlleleCountFile* aleleCountFile = new TAlleleCountFile(filename);
+	TAlleleCountFile* alleleCountFile = new TAlleleCountFile(filename);
 
 	//write header
-	aleleCountFile->writeHeader(samples, params, logfile);
+	alleleCountFile->writeHeader(samples, params, logfile);
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
@@ -367,7 +367,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
 	while(reader.readDataFromVCF(data, samples, glfConverter, logfile)){
 		//write chromosome and position
-		aleleCountFile->writePosition(reader.chr(), reader.position());
+		alleleCountFile->writePosition(reader.chr(), reader.position());
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
@@ -375,15 +375,16 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
 
 			//and print MLE counts
-			aleleCountFile->writeCounts(saf[p]->getMLAlleleCount(*randomGenerator), saf[p]->getNumAlleles());
+			alleleCountFile->writeCounts(saf[p]->getMLAlleleCount(*randomGenerator), saf[p]->getNumAlleles(), p);
 		}
-		aleleCountFile->endl();
+		alleleCountFile->endl();
 	}
 
 	//clean up
 	for(int p=0; p<samples.numPopulations(); p++)
 		delete saf[p];
 	delete[] saf;
+	delete alleleCountFile;
 
 	//report final status
 	logfile->endIndent();
