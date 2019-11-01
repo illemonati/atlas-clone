@@ -23,7 +23,7 @@ public:
 	bool isHaploid;
 	bool isMissing;
 
-	uint8_t operator[](int genotype){
+	uint16_t operator[](int genotype){
 		if(genotype == 0) return glfLikelihood_0;
 		if(genotype == 1) return glfLikelihood_1;
 		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";

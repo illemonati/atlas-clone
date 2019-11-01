@@ -63,10 +63,11 @@ private:
 	std::vector<double> mcmc;
 
 	double alpha, beta;
-	double oneMinusAlpha, oneMinusBeta;
+	double alphaMinusOne, betaMinusOne;
 
 	double f, f_lower, f_upper;
 	int lowerIndex, upperIndex;
+	double acceptanceRate;
 
 	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 	double calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
@@ -79,6 +80,7 @@ public:
 	double posteriorMean(){ return f; };
 	double lowerCredibleInterval(){ return f_lower; };
 	double upperCredibleInterval(){ return f_upper; };
+	double mcmcAcceptance(){ return acceptanceRate; };
 };
 
 //------------------------------------------------

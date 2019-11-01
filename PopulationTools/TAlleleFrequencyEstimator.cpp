@@ -69,16 +69,16 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
-	double mcmcLength = Parameters.getParameterIntWithDefault("mcmcLength", 100000);
+	double mcmcLength = Parameters.getParameterIntWithDefault("mcmcLength", 50000);
 	logfile->list("Will run MCMC chains of length " + toString(mcmcLength) + ".");
-	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 3);
-	burninLength = Parameters.getParameterIntWithDefault("burninLength", 1000);
+	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 5);
+	burninLength = Parameters.getParameterIntWithDefault("burninLength", 2000);
 	logfile->list("Will run " + toString(numBurnins) + " burnins of length " + toString(burninLength) + " each.");
 
 	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.5);
 	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
-	oneMinusAlpha = 1.0 - alpha;
-	oneMinusBeta = 1.0 - beta;
+	alphaMinusOne = alpha - 1.0;
+	betaMinusOne = beta - 1.0;
 	logfile->list("Will use a beta(" + toString(alpha) + "," + toString(beta) + ") prior.");
 	logfile->endIndent();
 
@@ -89,9 +89,11 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	f = 0.5;
 	f_lower = 0.0;
 	f_upper = 1.0;
+	acceptanceRate = 0.0;
 };
 
 double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+	//calculate average posterior probs using a non-informative prior.
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
@@ -142,7 +144,7 @@ int TAlleleFreqEstimatorBayes::makeMCMCUpdate(TPopulationLikehoodLocus & storage
 
 	//calc hastings
 	double LL = calcLL(storage, pGenotype[cur], glfConverter);
-	double priorRatio = oneMinusAlpha * (log(pGenotype[cur].f) - log(pGenotype[old].f)) + oneMinusBeta * (log(pGenotype[old].oneMinusf) - log(pGenotype[old].oneMinusf));
+	double priorRatio = alphaMinusOne * log(pGenotype[cur].f / pGenotype[old].f) + betaMinusOne * log(pGenotype[old].oneMinusf / pGenotype[old].oneMinusf);
 	double hastings = LL - oldLL + priorRatio;
 
 	//accept or reject
@@ -159,7 +161,8 @@ double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodLocus & storage, T
 	THardyWeinbergGenotypeProbabilities pGenotype[2];
 	int old = 0;
 	pGenotype[old].set(guessInitialAlleleFrequency(storage, glfConverter));
-	double prop = pGenotype[old][1] * 0.1;
+	double prop = pGenotype[old][1];
+	if(prop > 0.5) prop = 0.5;
 
 	//calc initial LL
 	double oldLL = calcLL(storage, pGenotype[old], glfConverter);
@@ -172,16 +175,22 @@ double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodLocus & storage, T
 		}
 
 		//adjust proposal range
-		prop = prop * 3.0 * (double) acceptance / (double) burninLength;
+
+		prop = prop * 3.0 * (double) (acceptance+1) / (double) (burninLength+1);
+		if(prop > 0.5) prop = 0.5;
 	}
 
 	//run MCMC
+	int acceptance = 0;
 	for(size_t i=0; i<mcmc.size(); i++){
-		makeMCMCUpdate(storage, oldLL, prop, pGenotype, old, glfConverter);
+		acceptance += makeMCMCUpdate(storage, oldLL, prop, pGenotype, old, glfConverter);
 
 		//store current f
 		mcmc[i] = pGenotype[1-old].f;
 	}
+	acceptanceRate = (double) acceptance / (double) mcmc.size();
+
+	//std::cout << "Acceptance = " << (double) acceptance / (double) mcmc.size() << ", prop = " << prop << std::endl;
 
 	//estimate posterior mean
 	double f = 0.0;
@@ -265,6 +274,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 		header.push_back("freqAltHWBayes");
 		header.push_back("freqAltHWBayes_CI0.05");
 		header.push_back("freqAltHWBayes_CI0.95");
+		header.push_back("MCMCAcceptance");
 	}
 	out.writeHeader(header);
 
@@ -290,9 +300,12 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
  		//Bayesian estimation
  		if(doBayesian){
+ 			//std::cout << reader.position() << "\t";
+
  			out << BHWEstimator->estimate(storage, glfConverter);
  			out << BHWEstimator->lowerCredibleInterval();
  			out << BHWEstimator->upperCredibleInterval();
+ 			out << BHWEstimator->mcmcAcceptance();
  		};
 
  		//end line
