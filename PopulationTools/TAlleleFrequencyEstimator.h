@@ -28,6 +28,8 @@ public:
 
 	void set(double F){
 		f = F;
+		if(f < 0.0)      f = 0.0;
+		else if(f > 1.0) f = 1.0;
 		oneMinusf = 1.0 - f;
 		genotypeProbabilities[0] = oneMinusf * oneMinusf;
 		genotypeProbabilities[1] = 2.0 * f * oneMinusf;
@@ -58,27 +60,43 @@ public:
 class TAlleleFreqEstimatorBayes{
 private:
 	TRandomGenerator* randomGenerator;
-	int burninLength;
-	int numBurnins;
-	std::vector<double> mcmc;
 
 	double alpha, beta;
-	double oneMinusAlpha, oneMinusBeta;
+	double alphaMinusOne, betaMinusOne;
 
-	double f, f_lower, f_upper;
-	int lowerIndex, upperIndex;
+	//MAP and CI search
+	int numMAPSIterations;
+	int initialGridSize;
+	int initialGridLast;
+	double logGridThreshold;
+	int gridSize;
+	int gridLast;
+	double credibleInterval;
+	THardyWeinbergGenotypeProbabilities pGenotype;
+	double f_MAP;
+	double LL_atMAP;
+	double f_CI_lower, f_CI_upper;
+	double* f_initialGrid;
+	double* f_grid;
+	double* LL_initialGrid;
+	double* Likelihood_grid;
+
 
 	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 	double calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
-	int makeMCMCUpdate(TPopulationLikehoodLocus & storage, double & oldLL, const double & prop, THardyWeinbergGenotypeProbabilities* pGenotype, int & old, TGlfConverter & glfConverter);
+	void fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	void estimateMAP(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	void estimateCredibleIntervals(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 
 public:
 	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator);
+	~TAlleleFreqEstimatorBayes();
 	double estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 
-	double posteriorMean(){ return f; };
-	double lowerCredibleInterval(){ return f_lower; };
-	double upperCredibleInterval(){ return f_upper; };
+	double credibleIntervalUsed(){ return credibleInterval; };
+	double MAP(){ return f_MAP; };
+	double lowerCredibleInterval(){ return f_CI_lower; };
+	double upperCredibleInterval(){ return f_CI_upper; };
 };
 
 //------------------------------------------------

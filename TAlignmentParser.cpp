@@ -1348,7 +1348,7 @@ void TBamProgressReporter::printEnd(){
 	logfile->list("Reached end of BAM file.");
 	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
 	logfile->conclude("Parsed a total of " + millionReads + " million reads in " + _getRunTime() + " min.");
-	logfile->endIndent("Reached end of BAM file.");
+	logfile->endIndent();
 };
 
 
