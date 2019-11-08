@@ -1941,6 +1941,21 @@ void TGenome::downSampleBamFile(TParameters & params){
 	//close bam writer and clean up memory
 	for(i=0; i<numProbs; ++i){
 		bamWriter[i].Close();
+
+		std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
+
+		//create index of new bam file
+		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+		BamTools::BamReader reader;
+		if(!reader.Open(filename))
+			throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+		// create index for BAM file
+		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+		//close BAM file
+		reader.Close();
+		logfile->done();
 	}
 	delete[] downSampleProb;
 	delete[] bamWriter;
