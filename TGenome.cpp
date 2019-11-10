@@ -1925,7 +1925,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProb[i]){
 					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-					keep.addToReadList(alignment, "passed downsampling");
+					if(alignment.isProperPair)
+						keep.addToReadList(alignment, "passed downsampling");
 				} else {
 					if(alignment.isProperPair){
 						alignmentParser.addToBlacklist(alignment, "did not pass downsampling");
