@@ -27,6 +27,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
+	alignmentParser.setOutName(outputName);
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
