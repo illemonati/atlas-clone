@@ -209,6 +209,10 @@ void TAlignmentParser::openBamFile(std::string filename){
 	chromosomes.jumpToEnd();
 };
 
+void TAlignmentParser::setOutName(std::string outputName){
+	outname = outputName;
+}
+
 void TAlignmentParser::setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");

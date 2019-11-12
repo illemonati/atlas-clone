@@ -724,7 +724,7 @@ double TRecalibrationEMModel_qualFuncPosSpecific::getErrorRate(TBase & base){
 
 void TRecalibrationEMModel_qualFuncPosSpecific::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
 	//transform correct quality to transformed quality
-	if(MaxPosPlusOne > _maxPosPlusOne)
+	if(MaxPosPlusOne > _maxPosPlusOne + 1) //_maxPlosOne starts at zero but MaxPosPlusOne at 1
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
 	//quality term
@@ -949,7 +949,7 @@ double TRecalibrationEMModel_qualFuncPosSpecificContext::getErrorRate(TBase & ba
 };
 
 void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableForSimulation(int*** transformedQuality, int MaxPosPlusOne, int MaxQualPlusOne){
-	if(MaxPosPlusOne > _maxPosPlusOne)
+	if(MaxPosPlusOne > _maxPosPlusOne + 1) //_maxPlosOne starts at zero but MaxPosPlusOne at 1
 		throw "Can not fill transformation table for simulations up to position " + toString(MaxPosPlusOne) + ": position specific effects only available up to position " + toString(_maxPosPlusOne) + "!";
 
 	//quality term
@@ -973,6 +973,7 @@ void TRecalibrationEMModel_qualFuncPosSpecificContext::fillTransformationTableFo
 				double transQual;
 
 				if(4.0 * _betas[1] * constant > _betas[0] * _betas[0]){
+					std::cout << 4.0 * _betas[1] * constant << ">" << _betas[0] * _betas[0] << std::endl;
 					throw "beta[0]^2 cannot be smaller than 4*beta[1](position + context constants)";
 				}
 				if(_betas[1] == 0.0){

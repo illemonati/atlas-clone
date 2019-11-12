@@ -27,6 +27,7 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
+	alignmentParser.setOutName(outputName);
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
@@ -1925,7 +1926,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProb[i]){
 					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-					keep.addToReadList(alignment, "passed downsampling");
+					if(alignment.isProperPair)
+						keep.addToReadList(alignment, "passed downsampling");
 				} else {
 					if(alignment.isProperPair){
 						alignmentParser.addToBlacklist(alignment, "did not pass downsampling");
@@ -1941,6 +1943,21 @@ void TGenome::downSampleBamFile(TParameters & params){
 	//close bam writer and clean up memory
 	for(i=0; i<numProbs; ++i){
 		bamWriter[i].Close();
+
+		std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
+
+		//create index of new bam file
+		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+		BamTools::BamReader reader;
+		if(!reader.Open(filename))
+			throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+		// create index for BAM file
+		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+		//close BAM file
+		reader.Close();
+		logfile->done();
 	}
 	delete[] downSampleProb;
 	delete[] bamWriter;
