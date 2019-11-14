@@ -290,6 +290,27 @@ long TRandomGenerator::getRand(long min, long maxPlusOne){
 	return min+floor(r*(maxPlusOne-min));
 }
 
+char TRandomGenerator::getRandomAlphaNumerichCharacter(){
+	//choose a random letter or number
+	//numbers are 48 - 57 (10)
+	//uppercase letters are 65 - 90 (26)
+	//lowercase letters are 97 - 122 (26)
+	//in total: 62
+	int index = getRand(48, 110);
+	if(index > 57) index += 8;
+	if(index > 90) index += 7;
+
+	return (char) index;
+};
+
+std::string TRandomGenerator::getRandomAlphaNumericString(const int length){
+	std::string s = getRandomAlphaNumerichCharacter();
+	for(int i=1; i<length; ++i){
+		s+= getRandomAlphaNumerichCharacter();
+	}
+	return s;
+};
+
 void TRandomGenerator::shuffle(std::vector<int> & vec){
 	int j;
 
@@ -297,7 +318,7 @@ void TRandomGenerator::shuffle(std::vector<int> & vec){
 		j = pickOne(i+1);
 		std::swap(vec[i], vec[j]);
 	}
-}
+};
 
 //--------------------------------------------------------
 //Normal Random and associated functions

@@ -41,6 +41,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["call"] = new TTask_call();
 	taskMap_regular["theta"] = new TTask_estimateTheta();
 	taskMap_regular["thetaRatio"] = new TTask_estimateThetaRatio();
+	taskMap_regular["thetaQC"] = new TTask_downsamplingThetaQC();
 	taskMap_regular["GLF"] = new TTask_GLF();
 	taskMap_regular["printGLF"] = new TTask_printGLF();
 	taskMap_regular["majorMinor"] = new TTask_majorMinor();

@@ -46,6 +46,7 @@ private:
 	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
 	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
 	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
+	void fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -59,6 +60,7 @@ public:
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcThetaLikelihoodSurfaces(TParameters & params);
 	void estimateThetaRatio(TParameters & params);
+	void performDownsamplingThetaQC(TParameters & params);
 
 	//callers
 	void callGenotypes(TParameters & params);

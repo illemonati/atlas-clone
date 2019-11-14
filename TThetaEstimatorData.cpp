@@ -199,16 +199,22 @@ double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
 	return LL;
 };
 
-void TThetaEstimatorData::writeHeader(gz::ogzstream & out){
-	out << "\tdepth\tfracMissing\tfracTwoOrMore";
+void TThetaEstimatorData::addToHeader(std::vector<std::string> & header, const std::string prefix){
+	header.push_back(prefix + "depth");
+	header.push_back(prefix + "fracMissing");
+	header.push_back(prefix + "fracTwoOrMore");
 };
 
-void TThetaEstimatorData::writeSize(gz::ogzstream & out){
+void TThetaEstimatorData::writeSite(TOutputFile* out){
 	if(isBootstrapped){
-		out << "\tNA\t" << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded << "\tNA";	//estimated params
-			out << "\t" << "NA";
+		out << "NA";
+		out << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded;
+		out << "NA";
+		//out << "NA"; //TODO: check if this NA is needed.
 	} else {
-		out << "\t" << cumulativeDepth / (double) totNumSitesAdded << "\t" << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded << "\t" << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;	//estimated params
+		out << cumulativeDepth / (double) totNumSitesAdded;
+		out << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded;
+		out << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;
 	}
 };
 

@@ -70,7 +70,7 @@ void TGenome::indexBamFile(std::string & filename){
 //-----------------------------------------------------
 void TGenome::estimateTheta(TParameters & params){
 	//Theta estimator
-	TThetaEstimator thetaEstimator(params, logfile);
+	TThetaEstimator thetaEstimator(params, logfile, randomGenerator);
 
 	//open output
 	std::string filename = outputName + "_theta_estimates.txt.gz";
@@ -123,7 +123,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 
 			//estimate Theta
 			if(thetaEstimator.estimateTheta()){
-				out.writeWindow(alignmentParser.getCurChrName(), window.start, window.end, &thetaEstimator);
+				out.write(alignmentParser.getCurChrName(), window.start, window.end, &thetaEstimator);
 				//out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
 			}
 
@@ -170,12 +170,12 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOu
 	}
 
 	if(alignmentParser.considerRegions)
-		out.writeWindow("regions", "-", "-", &thetaEstimator);
+		out.write("regions", "-", "-", &thetaEstimator);
 	else
-		out.writeWindow("genome-wide", "-", "-", &thetaEstimator);
+		out.write("genome-wide", "-", "-", &thetaEstimator);
 	if(numBootstraps == 0)
 		thetaEstimator.clear();
-}
+};
 
 void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator){
 	if(numBootstraps < 1) throw "Number of bootstraps must be > 1!";
@@ -186,16 +186,17 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	gettimeofday(&startTime, NULL);
 
 	//open output file
-	gz::ogzstream bootstrapOut;
+	TOutputFileZipped bootstrapOut;
 	std::string bootstrapFilename = outputName + "_theta_bootstraps.txt.gz";
 	logfile->list("Writing theta bootstraps to '" + bootstrapFilename + "'");
 	bootstrapOut.open(bootstrapFilename.c_str());
 	if(!bootstrapOut) throw "Failed to open output file '" + bootstrapFilename + "'!";
 
 	//write header
-	bootstrapOut << std::setprecision(9) << "Bootstrap";
-	thetaEstimator.writeHeader(bootstrapOut);
-	bootstrapOut << "\n";
+	bootstrapOut.setPrecision(9);
+	std::vector<std::string> header = {"Bootstrap"};
+	thetaEstimator.addToHeader(header);
+	bootstrapOut.writeHeader(header);
 
 	//loop over bootstraps
 	for(int s=0; s<numBootstraps; ++s){
@@ -203,7 +204,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 
 		//run bootstrap
 		bootstrapOut << s+1;
-		thetaEstimator.bootstrapTheta(*randomGenerator, bootstrapOut);
+		thetaEstimator.bootstrapTheta(&bootstrapOut);
 
 		logfile->endIndent();
 	}
@@ -212,7 +213,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	gettimeofday(&endTime, NULL);
 	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, " min");
 	logfile->endIndent();
-}
+};
 
 void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 	//read params
@@ -248,7 +249,6 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 			out.open(filename.c_str());
 			if(!out) throw "Failed to open output file '" + outputName + "'!";
 
-
 			//estimate Theta
 			logfile->listFlush("Calculating likelihood surface ...");
 			estimator.calcLikelihoodSurface(out, steps);
@@ -262,14 +262,13 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 			gettimeofday(&endTime, NULL);
 			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
 			logfile->endIndent();
-
 		}
 	}
 };
 
 void TGenome::estimateThetaRatio(TParameters & params){
 	//Theta estimator
-	TThetaEstimatorRatio thetaEstimatorRatio(params, logfile);
+	TThetaEstimatorRatio thetaEstimatorRatio(params, logfile, randomGenerator);
 
 	//read the two regions to be used
 	logfile->startIndent("Reading regions:");
@@ -313,7 +312,67 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->endIndent();
 
 	//estimate Theta ratio
-	thetaEstimatorRatio.estimateRatio(*randomGenerator, outputName);
+	thetaEstimatorRatio.estimateRatio(outputName);
+};
+
+void TGenome::performDownsamplingThetaQC(TParameters & params){
+	//parse downsampling parameters
+	std::vector<double> downSampleProbVector;
+	fillVectorOfDownsamplingProbabilities(params.getParameterStringWithDefault("prob", "1.0,0.5,0.2,0.1,0.05,0.02,0.01"), downSampleProbVector);
+
+	//report probabilities
+	logfile->listFlush("Will estimate theta after downsampling reads with probabilities (parameter 'prob'):" + concatenateString(downSampleProbVector, ", "));
+
+	//create theta estimators, one per downsampling prob
+	std::vector<TThetaEstimator*> estimators;
+	estimators.push_back(new TThetaEstimator(params, logfile));
+	if(downSampleProbVector.size() > 1){
+		for(int i=1; i<downSampleProbVector.size(); ++i){
+			estimators.push_back(new TThetaEstimator(*estimators.begin()));
+		}
+	}
+
+	//open output
+	std::string filename = outputName + "_theta_estimates.txt.gz";
+	TThetaOutputFile thetaOut(filename, &thetaEstimator, logfile);
+
+	//prepare windows
+	TWindow window;
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(window.passedFilters){
+
+			logfile->startIndent("Estimating Theta:");
+
+			//measure runtime
+			struct timeval startTime, endTime;
+			gettimeofday(&startTime, NULL);
+
+			//adding sites to estimator
+			logfile->listFlush("Calculating emission probabilities ...");
+			thetaEstimator.clear();
+			window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer());
+			logfile->done();
+
+			//estimate Theta
+			if(thetaEstimator.estimateTheta()){
+				thetaOut.writeWindow(alignmentParser.getCurChrName(), window.start, window.end, &thetaEstimator);
+				//out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
+			}
+
+			//clear theta estimator
+			thetaEstimator.clear();
+
+			//finish
+			gettimeofday(&endTime, NULL);
+			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->endIndent();
+		} else logfile->list("No relevant positions -> skipping this window.");
+	}
+
+	//clean up
+	thetaOut.close();
 };
 
 //------------------------------------------
@@ -1834,7 +1893,25 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	//close BAM file
 	reader.Close();
 	logfile->done();
-}
+};
+
+void TGenome::fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector){
+	if(!stringContainsOnly(prob, "-0123456789.,")){
+		throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
+	}
+
+	fillVectorFromString(prob, downSampleProbVector, ',');
+
+	//make sure it is sorted
+	std::sort(downSampleProbVector.begin(), downSampleProbVector.end());
+
+	//check if all numbers are within (0,1]
+	for(double it: downSampleProbVector){
+		if(it <= 0.0 || it > 1.0){
+			throw "All downsampling probabilities must be within (0,1.0], which is not the case for " + toString(it) + "!";
+		}
+	}
+};
 
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
@@ -1844,11 +1921,8 @@ void TGenome::downSampleBamFile(TParameters & params){
 	TReadList keep;
 
 	//read downsampling rate
-	std::string prob = params.getParameterString("prob");
-	//check if prob is a vector of multiple probabilities
 	std::vector<double> downSampleProbVector;
-	if(!stringContainsOnly(prob, "-0123456789.,")) throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
-	fillVectorFromString(prob, downSampleProbVector, ',');
+	fillVectorOfDownsamplingProbabilities(params.getParameterString("prob"), downSampleProbVector);
 
 	//read how many replicates
 	int numProbs = downSampleProbVector.size();

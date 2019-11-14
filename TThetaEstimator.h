@@ -13,6 +13,7 @@
 #include <stdio.h>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
+#include "TFile.h"
 
 //---------------------------------------------------------------
 //Theta
@@ -73,6 +74,7 @@ struct Theta{
 class TThetaEstimator_base{
 protected:
 	TLog* logfile;
+	TRandomGenerator* randomGenerator;
 
 	//data
 	TThetaEstimatorData* data;
@@ -94,6 +96,7 @@ protected:
 	bool extraVerbose;
 
 	void initTmpStorage();
+	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
 	void fillPGenotype(double* & pGeno, const double & expTheta, const double* baseFrequencies);
 	void fillPGenotype(double* & pGeno, const Theta & thisTheta);
@@ -101,8 +104,9 @@ protected:
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
 public:
-	TThetaEstimator_base(TLog* Logfile);
-	TThetaEstimator_base(TParameters & params, TLog* Logfile);
+	TThetaEstimator_base(TLog* Logfile, TRandomGenerator* randomGenerator);
+	TThetaEstimator_base(TParameters & params, TLog* Logfile, TRandomGenerator* randomGenerator);
+	TThetaEstimator_base(const TThetaEstimator_base & other);
 
 	virtual ~TThetaEstimator_base(){
 		if(dataInitialized)
@@ -141,8 +145,9 @@ private:
 	void estimateConfidenceInterval();
 
 public:
-	TThetaEstimator(TParameters & params, TLog* Logfile);
-	TThetaEstimator(TLog* Logfile);
+	TThetaEstimator(TParameters & params, TLog* Logfile, TRandomGenerator* randomGenerator);
+	TThetaEstimator(TLog* Logfile, TRandomGenerator* randomGenerator);
+	TThetaEstimator(const TThetaEstimator & other);
 
 	virtual ~TThetaEstimator(){
 		delete[] P_G;
@@ -155,13 +160,12 @@ public:
 	bool estimateTheta();
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
-	void writeHeader(gz::ogzstream & out);
-	void writeThetas(gz::ogzstream & out);
-	void writeResultsToFile(gz::ogzstream & out);
+	void addToHeader(std::vector<std::string> & header, std::string prefix="");
+	void writeThetas(TOutputFile* out);
+	void writeResultsToFile(TOutputFile* out);
 	void calcLikelihoodSurface(gz::ogzstream & out, int & steps);
-	void bootstrapTheta(TRandomGenerator & randomGenerator, gz::ogzstream & out);
+	void bootstrapTheta(TOutputFile* out);
 };
-
 
 //---------------------------------------------------------------
 //TThetaEstimatorRatio
@@ -196,12 +200,12 @@ private:
 	void concludeAcceptanceRateUpdateProposal(const int & numAccepted, const int & length, double & sd, std::string name);
 	void concludeAcceptanceRates(const int & length);
 	void concludeAcceptanceRatesUpdateProposal(const int & length);
-	bool updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, const double & thisSdProposalKernel, TRandomGenerator & randomGenerator);
-	bool updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel, TRandomGenerator & randomGenerator);
-	void oneMCMCIteration(TRandomGenerator & randomGenerator);
+	bool updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, const double & thisSdProposalKernel);
+	bool updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel);
+	void oneMCMCIteration();
 
 public:
-	TThetaEstimatorRatio(TParameters & params, TLog* Logfile);
+	TThetaEstimatorRatio(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	~TThetaEstimatorRatio(){
 		if(data2Initialized)
 			delete data2;
@@ -210,25 +214,73 @@ public:
 
 	TThetaEstimatorData* pointerToDataContainer2(){ return data2; };
 
-	void estimateRatio(TRandomGenerator & randomGenerator, std::string ouputName);
+	void estimateRatio(std::string ouputName);
 };
 
 //---------------------------------------------------------------
 //TThetaOutputFile
 //---------------------------------------------------------------
-class TThetaOutputFile{
-private:
-	std::string filename;
-	gz::ogzstream out;
-	bool fileOpen;
+class TThetaOutputFile_base{
 
-public:
-	TThetaOutputFile(){
-		fileOpen = false;
+};
+
+class TThetaOutputFile:public TThetaOutputFile_base{
+protected:
+	TOutputFileZipped out;
+	std::vector<std::string> header;
+
+	void open(std::string Filename, TLog* logfile){
+		logfile->list("Will write theta estimates to file '" + Filename + "'.");
+		out.open(Filename);
+		header = {"Chr", "start", "end"};
 	};
 
-	TThetaOutputFile(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
-		open(Filename, estimator, logfile);
+public:
+	TThetaOutputFile(){};
+
+	~TThetaOutputFile(){
+		close();
+	};
+
+	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
+		open(Filename, logfile);
+
+		//write header
+		writeHeader(estimator);
+	};
+
+	void writeHeader(TThetaEstimator* estimator){
+		estimator->addToHeader(header);
+		out.writeHeader(header);
+	};
+
+	void close(){
+		out.close();
+	};
+
+	void writeWindow(const std::string & chr, const long & start, const long & end){
+		out << chr << start << end;
+	};
+
+	void write(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
+		writeWindow(chr, start, end);
+		estimator->writeResultsToFile(&out);
+	};
+
+	void write(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
+		out << chr << start << end;
+		estimator->writeResultsToFile(&out);
+	};
+};
+
+class TMultiThetaOutputFile:public TThetaOutputFile{
+private:
+
+public:
+	TMultiThetaOutputFile(){};
+
+	TMultiThetaOutputFile(std::string Filename, TLog* logfile){
+
 	};
 
 	~TThetaOutputFile(){
@@ -236,31 +288,33 @@ public:
 	};
 
 	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
-		filename = Filename;
-		logfile->list("Will write theta estimates to file '" + filename + "'.");
-		out.open(filename.c_str());
-		if(!out) throw "Failed to open file '" + filename + "' for writing!";
+		open(Filename, logfile);
 
 		//write header
-		out << "Chr\t";
-		out << "start\tend";
-		estimator->writeHeader(out);
-		out << "\n";
+		writeHeader(estimator);
+	};
+
+	void writeHeader(TThetaEstimator* estimator){
+		estimator->addToHeader(header);
+		out.writeHeader(header);
 	};
 
 	void close(){
-		if(fileOpen)
-			out.close();
+		out.close();
 	};
 
-	void writeWindow(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
-		out << chr << '\t' << start << '\t' << end;
-		estimator->writeResultsToFile(out);
+	void writeWindow(const std::string & chr, const long & start, const long & end){
+		out << chr << start << end;
 	};
 
-	void writeWindow(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
-		out << chr << '\t' << start << '\t' << end;
-		estimator->writeResultsToFile(out);
+	void write(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
+		writeWindow(chr, start, end);
+		estimator->writeResultsToFile(&out);
+	};
+
+	void write(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
+		out << chr << start << end;
+		estimator->writeResultsToFile(&out);
 	};
 };
 

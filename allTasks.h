@@ -422,6 +422,16 @@ public:
 	};
 };
 
+class TTask_downsamplingThetaQC:public TTask_atlas{
+public:
+	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.performDownsamplingThetaQC(parameters);
+	};
+};
+
 //---------------------------------------------------------------------------
 // Population tools
 //---------------------------------------------------------------------------
