@@ -85,7 +85,7 @@ public:
 	virtual std::string getPositionString(); //default function assuming quadratic model
 	virtual std::string getContextString(); //default function assuming context specific intercepts
 	virtual double getErrorRate(TBase & base){ throw "double getErrorRate(TBase & base) not defined for TRecalibrationEMModel_Base!"; };
-	virtual void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual){ throw "void fillTransformationTableForSimulation(...) not defined for TRecalibrationEMModel_Base!"; };
+	virtual void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQualPlusOne, int MinQual){ throw "void fillTransformationTableForSimulation(...) not defined for TRecalibrationEMModel_Base!"; };
 };
 
 class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
@@ -96,7 +96,7 @@ public:
 	std::string getQualityString(){return "-";};
 	std::string getPositionString(){return "-";};
 	std::string getContextString(){return "-";};
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
@@ -109,7 +109,7 @@ public:
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	std::string getContextString();
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
@@ -121,7 +121,7 @@ public:
 	double calcEpsilon(const TRecalibrationEMReadData & data);
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosSpecific:public TRecalibrationEMModel_Base{
@@ -141,7 +141,7 @@ public:
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosSpecificContext:public TRecalibrationEMModel_Base{
@@ -162,7 +162,7 @@ public:
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualFuncPosSpecificContextNew:public TRecalibrationEMModel_Base{
@@ -184,7 +184,7 @@ public:
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 class TRecalibrationEMModel_qualSpecficPosSpecific:public TRecalibrationEMModel_Base{
@@ -209,7 +209,7 @@ public:
 	std::string getPositionString();
 	std::string getContextString();
 	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 //--------------------------------------------------------------------

@@ -279,14 +279,29 @@ void TGenome::estimateThetaRatio(TParameters & params){
 
 	//region 1
 	std::string regionsFile1 = params.getParameterString("regions1");
-	logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
-	TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader.Sequences, logfile);
+	int siteLimit;
+	if(params.parameterExists("siteLimit1")){
+		siteLimit = params.getParameterInt("siteLimit1");
+		if(siteLimit < 0)
+			throw "site limit cannot be smaller than 0!";
+		logfile->startIndent("Reading first " + toString(siteLimit) + " sites from regions 1 BED file '" + regionsFile1 + "':");
+	} else {
+		logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
+	}
+	TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader.Sequences, siteLimit,logfile);
 	logfile->done();
 
 	//region 2
 	std::string regionsFile2 = params.getParameterString("regions2");
-	logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
-	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, logfile);
+	if(params.parameterExists("siteLimit2")){
+		siteLimit = params.getParameterInt("siteLimit2");
+		if(siteLimit < 0)
+			throw "site limit cannot be smaller than 0!";
+		logfile->startIndent("Reading first " + toString(siteLimit) + " sites from regions 1 BED file '" + regionsFile1 + "':");
+	} else {
+		logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
+	}
+	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, siteLimit, logfile);
 	logfile->done();
 	logfile->endIndent();
 
