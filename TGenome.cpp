@@ -74,7 +74,7 @@ void TGenome::estimateTheta(TParameters & params){
 
 	//open output
 	std::string filename = outputName + "_theta_estimates.txt.gz";
-	TThetaOutputFile thetaOut(filename, &thetaEstimator, logfile);
+	TThetaOutputFile thetaOut(&thetaEstimator, filename, logfile);
 
 	//check for which segements theta is to be estimated
 	if(params.parameterExists("thetaGenomeWide") || alignmentParser.considerRegions){
@@ -123,7 +123,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 
 			//estimate Theta
 			if(thetaEstimator.estimateTheta()){
-				out.write(alignmentParser.getCurChrName(), window.start, window.end, &thetaEstimator);
+				out.write(alignmentParser.getCurChrName(), window.start, window.end);
 				//out << alignmentParser.chrIterator->Name << "\t" << window.start << "\t" << window.end;
 			}
 
@@ -170,9 +170,9 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOu
 	}
 
 	if(alignmentParser.considerRegions)
-		out.write("regions", "-", "-", &thetaEstimator);
+		out.write("regions", "-", "-");
 	else
-		out.write("genome-wide", "-", "-", &thetaEstimator);
+		out.write("genome-wide", "-", "-");
 	if(numBootstraps == 0)
 		thetaEstimator.clear();
 };
@@ -328,13 +328,17 @@ void TGenome::performDownsamplingThetaQC(TParameters & params){
 	estimators.push_back(new TThetaEstimator(params, logfile));
 	if(downSampleProbVector.size() > 1){
 		for(int i=1; i<downSampleProbVector.size(); ++i){
-			estimators.push_back(new TThetaEstimator(*estimators.begin()));
-		}
+			estimators.push_back(new TThetaEstimator(*estimators.begin()));		}
 	}
 
 	//open output
 	std::string filename = outputName + "_theta_estimates.txt.gz";
-	TThetaOutputFile thetaOut(filename, &thetaEstimator, logfile);
+	TThetaOutputFile thetaOut;
+	for(int i=0; i<downSampleProbVector.size(); ++i){
+		std::string prefix = "p" + toString(downSampleProbVector[i]);
+		thetaOut.addEstimator(estimators[i], prefix);
+	}
+	thetaOut.open(filename, logfile);
 
 	//prepare windows
 	TWindow window;

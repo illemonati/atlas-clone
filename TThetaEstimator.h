@@ -220,102 +220,71 @@ public:
 //---------------------------------------------------------------
 //TThetaOutputFile
 //---------------------------------------------------------------
-class TThetaOutputFile_base{
-
-};
-
-class TThetaOutputFile:public TThetaOutputFile_base{
+class TThetaOutputFile{
 protected:
 	TOutputFileZipped out;
-	std::vector<std::string> header;
+	std::vector<TThetaEstimator*> thetaEstimators;
+	std::vector<std::string> prefixes;
 
-	void open(std::string Filename, TLog* logfile){
+	void writeHeader(){
+		std::vector<std::string> header = {"Chr", "start", "end"};
+
+		//add headers of all estimators
+		for(size_t i = 0; i < thetaEstimators.size(); ++i){
+			thetaEstimators[i]->addToHeader(header, prefixes[i]);
+		}
+		out.writeHeader(header);
+	};
+
+	void writeEstimates(){
+		for(TThetaEstimator* est: thetaEstimators){
+			est->writeResultsToFile(&out);
+		}
+		out << std::endl;
+	};
+
+public:
+	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Prefix){
+		addEstimator(Estimator, Prefix);
+	};
+
+	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Filename, TLog* logfile){
+		addEstimator(Estimator, "");
+		open(Filename, logfile);
+	};
+
+	~TThetaOutputFile(){
+		close();
+	};
+
+	void addEstimator(TThetaEstimator* Estimator, const std::string Prefix){
+		if(out.isOpen()){
+			throw "Can not add estimators to an open TThetaOutputFile!";
+		}
+		thetaEstimators.push_back(Estimator);
+		prefixes.push_back(Prefix);
+	};
+
+	void open(const std::string Filename, TLog* logfile){
 		logfile->list("Will write theta estimates to file '" + Filename + "'.");
 		out.open(Filename);
-		header = {"Chr", "start", "end"};
-	};
-
-public:
-	TThetaOutputFile(){};
-
-	~TThetaOutputFile(){
-		close();
-	};
-
-	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
-		open(Filename, logfile);
-
-		//write header
-		writeHeader(estimator);
-	};
-
-	void writeHeader(TThetaEstimator* estimator){
-		estimator->addToHeader(header);
-		out.writeHeader(header);
+		writeHeader();
 	};
 
 	void close(){
 		out.close();
 	};
 
-	void writeWindow(const std::string & chr, const long & start, const long & end){
+	void write(const std::string & chr, const long & start, const long & end){
 		out << chr << start << end;
+		writeEstimates();
 	};
 
-	void write(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
-		writeWindow(chr, start, end);
-		estimator->writeResultsToFile(&out);
-	};
-
-	void write(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
+	void write(const std::string & chr, const std::string & start, const std::string & end){
 		out << chr << start << end;
-		estimator->writeResultsToFile(&out);
+		writeEstimates();
 	};
 };
 
-class TMultiThetaOutputFile:public TThetaOutputFile{
-private:
-
-public:
-	TMultiThetaOutputFile(){};
-
-	TMultiThetaOutputFile(std::string Filename, TLog* logfile){
-
-	};
-
-	~TThetaOutputFile(){
-		close();
-	};
-
-	void open(std::string Filename, TThetaEstimator* estimator, TLog* logfile){
-		open(Filename, logfile);
-
-		//write header
-		writeHeader(estimator);
-	};
-
-	void writeHeader(TThetaEstimator* estimator){
-		estimator->addToHeader(header);
-		out.writeHeader(header);
-	};
-
-	void close(){
-		out.close();
-	};
-
-	void writeWindow(const std::string & chr, const long & start, const long & end){
-		out << chr << start << end;
-	};
-
-	void write(const std::string & chr, const long & start, const long & end, TThetaEstimator* estimator){
-		writeWindow(chr, start, end);
-		estimator->writeResultsToFile(&out);
-	};
-
-	void write(const std::string chr, const std::string start, const std::string end, TThetaEstimator* estimator){
-		out << chr << start << end;
-		estimator->writeResultsToFile(&out);
-	};
-};
 
 #endif /* TTHETAESTIMATOR_H_ */
