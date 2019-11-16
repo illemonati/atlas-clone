@@ -1458,7 +1458,7 @@ void TInbreedingEstimator::writePosteriors(int i){
 		throw "Failed to open file '" + tracefile + "' for writing!";
 
 	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate_modelNonZero\tproposalWidth\tinitial_alleleFreq\n";
-	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\tNA\tNA\t" << numAcceptedFModelF<< "\t" << F.proposalWidth() << "\tNA\n";
+	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\tNA\tNA\t" << (double) numAcceptedFModelF / (double) F.posteriorProbModelWithF()<< "\t" << F.proposalWidth() << "\tNA\n";
 	for(unsigned long l=0; l<numLoci; ++l){
 		outP << "p[" << l << "]\t" << p.posteriorProbModelP[l] << "\t"<< p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedPModelP[l] / (double) numIterInModelP[l] << "\t" << p.getProposalWidth(l);
 		if(trueAlleleFreqProvided)
