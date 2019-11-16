@@ -348,16 +348,15 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
 	}
 
-	//create output file
+	//create out file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname = params.getParameterStringWithDefault("out", tmp);
-	std::string filename = outname + "_alleleCounts.txt.gz";
-	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
-
-	TAlleleCountFile* alleleCountFile = new TAlleleCountFile(filename);
+	std::string type = params.getParameterStringWithDefault("outFormat", "default");
+	TAlleleCountFile* alleleCountFile = prepareOutputFile(type, outname, params);
 
 	//write header
 	alleleCountFile->writeHeader(samples, params, logfile);
+
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
@@ -474,3 +473,92 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 	reader.concludeFilters(logfile);
 	logfile->endIndent();
 };
+
+TAlleleCountFile* TAlleleCountEstimator::prepareOutputFile(std::string type, std::string filePrefix, TParameters& params){
+	//create output file
+	TAlleleCountFile* alleleCountFile;
+	if(type == "default"){
+		filePrefix = filePrefix + "_alleleCounts.txt.gz";
+		alleleCountFile = new TAlleleCountFile(filePrefix);
+	} else if(type == "treemix"){
+		filePrefix = filePrefix + "_treemix_alleleCounts.txt.gz";
+		alleleCountFile = new TTreeMixFile(filePrefix);
+	} else if(type == "flink"){
+		filePrefix = filePrefix + "_flink_alleleCounts.txt.gz";
+		alleleCountFile = new TFlinkFile(filePrefix);
+	} else
+		throw "Unknown output file type '" + type + "'!";
+
+	logfile->list("Will write estimated allele counts to file '" + filePrefix + "'.");
+	alleleCountFile->openFileToWrite(filePrefix);
+
+	return(alleleCountFile);
+}
+
+void TAlleleCountEstimator::transformFormat(TParameters & params){
+	// initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+
+	//get parameters for in and output
+	std::string countsFileName = params.getParameterString("alleleCounts");
+	std::string tmp = extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
+	std::string outname = params.getParameterStringWithDefault("out", tmp);
+	std::string type = params.getParameterStringWithDefault("outFormat", "default");
+	if(type == "default"){
+		throw "Cannot transform alleleCounts file to original format!";
+	}
+
+	//open input file
+	std::string origFileName = tmp + "_alleleCounts.txt.gz";
+	gz::igzstream file(origFileName.c_str());
+	if(!file) throw "Failed to open file '" + origFileName + " for reading!";
+
+	//read header
+	std::string line;
+	std::getline(file, line);
+	std::vector<std::string> tmp_vec;
+	std::vector<std::string> populationNames;
+	fillVectorFromStringWhiteSpaceSkipEmpty(line, tmp_vec);
+	for(unsigned int i=2; i<tmp_vec.size(); ++i){
+		populationNames.push_back(tmp_vec[i]);
+	}
+
+	//create output file
+	TAlleleCountFile* alleleCountFile = prepareOutputFile(type, outname, params);
+
+
+	//write header
+	alleleCountFile->writeHeader(populationNames, params, logfile);
+
+
+	//run through VCF file
+	logfile->startIndent("Converting allele counts file:");
+	while(file.good() && !file.eof()){
+		std::vector<std::string> vec;
+		std::getline(file, line);
+		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		//write chromosome and position
+		if(vec.size() > 0){
+			alleleCountFile->writePosition(vec[0], vec[1]);
+
+			//print MLE count for each population
+			for(unsigned int p=2; p<vec.size(); p++){
+				//print MLE counts
+				std::vector<std::string> counts;
+				fillVectorFromStringAny(vec[p], counts, "/");
+				alleleCountFile->writeCounts(counts[0], counts[1], p-2);
+			}
+			alleleCountFile->endl();
+		}
+	}
+
+	//close file
+	file.close();
+
+	//clean up
+	delete alleleCountFile;
+
+	//report final status
+	logfile->endIndent();
+};
+

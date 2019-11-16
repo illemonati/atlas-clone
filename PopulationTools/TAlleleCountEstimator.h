@@ -72,6 +72,8 @@ public:
 
 	void estimateAlleleCounts(TParameters & params, TRandomGenerator* randomGenerator);
 	void writeAlleleFrequencyLikelihoods(TParameters & params);
+	TAlleleCountFile* prepareOutputFile(std::string type, std::string filePrefix, TParameters& params);
+	void transformFormat(TParameters & params);
 };
 
 
