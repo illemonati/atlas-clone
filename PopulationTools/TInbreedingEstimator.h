@@ -24,15 +24,19 @@ private:
 	bool _inModelWithF;
 	double _lambda, _logLambda, _expMinusLambda;
 	int _posteriorProbModelWithF;
+	double _sumIterations, _sumOfSquaresIterations;
 
 public:
 	TInbreedingF();
 	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
+	void updatePosteriors(const double & value, const bool & inModelWithF);
 	void updateAndAccept(const double & value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
 	void resetPosterior();
+	double getPosteriorMean(int numUpdates);
+	double getPosteriorVariance(int numUpdates);
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
@@ -70,7 +74,7 @@ public:
 	double minAlleleFreq;
 
 	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda);
+	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided);
 
 	double operator[](long index){
 		//Note: no check on range!
@@ -82,8 +86,8 @@ public:
 	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
 	double proposeNew(const long & locusNum, TRandomGenerator* randomGenerator);
 	void update(const long & index, const double & value, const bool ModelP);
-	double getPosteriorMean(unsigned long & index, int numUpdates);
-	double getPosteriorVariance(unsigned long & index, int numUpdates);
+	double getPosteriorMean(unsigned long index, int numUpdates);
+	double getPosteriorVariance(unsigned long index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
 	long getNumLociInModelP();
 	long getNumLociInModel0();
@@ -165,6 +169,8 @@ private:
 	int burninLength;
 	int thinning;
 
+	long numLociToTrace;
+
 	bool shouldUpdateF;
 	bool shouldUpdateP;
 	bool shouldUpdateGamma;
@@ -193,7 +199,7 @@ private:
 	void initF(TParameters & parameters);
 	void initAlleleFreq(TParameters & parameters);
 	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
-	void resetToInitialValues();
+	void resetToInitialValuesDebugging();
 	void checkHastingsRatios();
 	bool updateF();
 	bool updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
@@ -202,12 +208,16 @@ private:
 	double logProbPGivenGamma();
 	double logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF, TGlfConverter & glfConverter);
 	void wholeLogLikelihood();
+	double getLogLikelihoodCurrentParams(const TGlfConverter & glfConverter);
+	double compareLikelihoods(int numUpdates, const TGlfConverter & glfConverter);
 	void oneMCMCIteration();
 	void printAcceptanceRates(int numIterations);
 	void resetAcceptanceRates();
 	void adjustProposalWidths();
-	void writeParameterEstimatesOfIteration(std::ofstream & out, const TGlfConverter & glfConverter);
+	void writeParameterEstimatesOfIteration(std::ofstream & out);
 	void writePosteriors(int i);
+	void runBurnins(std::ofstream & out, TParameters & params);
+	void runMCMC(std::ofstream & out, TParameters & params);
 
 public:
 	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
@@ -215,7 +225,6 @@ public:
 		delete randomGenerator;
 	}
 	void runEstimation(TParameters & params);
-	double getLogLikelihoodCurrentParams(const TGlfConverter & glfConverter);
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
 	void writeLikelihoodForDebuggingF(TParameters & params);

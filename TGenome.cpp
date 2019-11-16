@@ -27,7 +27,6 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
 	}
-	alignmentParser.setOutName(outputName);
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
@@ -1781,6 +1780,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	findPairedReadGroupsToMergeReads(params, mergeThisReadGroup);
 
 	//create alignment storage
+
 	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
 	logfile->list("Mates that are farther than " + toString(maxDist) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 	TAlignmentMerger merger(&bamWriter, &alignmentParser, maxDist);
