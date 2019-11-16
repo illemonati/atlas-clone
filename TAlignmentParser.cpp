@@ -209,6 +209,10 @@ void TAlignmentParser::openBamFile(std::string filename){
 	chromosomes.jumpToEnd();
 };
 
+void TAlignmentParser::setOutName(std::string outputName){
+	outname = outputName;
+}
+
 void TAlignmentParser::setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
@@ -410,9 +414,19 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
-		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+
+		//limit sites?
+		int siteLimit;
+		if(params.parameterExists("siteLimit")){
+			siteLimit = params.getParameterInt("siteLimit");
+			if(siteLimit < 0)
+				throw "site limit cannot be smaller than 0!";
+			logfile->startIndent("Will mask the first " + toString(siteLimit) + " sites listed in BED file '" + maskFile + "':");
+		} else {
+			logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+		}
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 		//mask->print();
@@ -424,9 +438,19 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
 		considerRegions = true;
 		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
+
+		//limitSites
+		int siteLimit;
+		if(params.parameterExists("siteLimit")){
+			siteLimit = params.getParameterInt("siteLimit");
+			if(siteLimit < 0)
+				throw "site limit cannot be smaller than 0!";
+			logfile->startIndent("Will limit analysis to the first " + toString(siteLimit) + " sites listed in BED file '" + regionsFile + "':");
+		} else {
+			logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
+		}
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 	} else considerRegions = false;
@@ -801,7 +825,7 @@ bool TAlignmentParser::readAlignment(){
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
 		if(bamAlignment.AlignedBases.size() > maxReadLength)
-			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length! Please change max read length to parse this data.";
+			throw "Alignment '" +  bamAlignment.Name + "' is longer than the max read length " + toString(maxReadLength) + "! Please change max read length to parse this data.";
 
 		//store read group ID
 		std::string readGroup;
@@ -1348,7 +1372,7 @@ void TBamProgressReporter::printEnd(){
 	logfile->list("Reached end of BAM file.");
 	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
 	logfile->conclude("Parsed a total of " + millionReads + " million reads in " + _getRunTime() + " min.");
-	logfile->endIndent("Reached end of BAM file.");
+	logfile->endIndent();
 };
 
 

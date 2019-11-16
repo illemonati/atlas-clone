@@ -1188,7 +1188,7 @@ void TInbreedingEstimator::writePosteriors(int i){
 	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate_modelNonZero\tproposalWidth\tinitial_alleleFreq\tllMeanFMeanP\tllF0MeanP\tllMeanFP0\tllF0P0\n";
 
 	//F param
-	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\t" << F.getPosteriorMean(numIterations) << "\t"  << F.getPosteriorVariance(numIterations) << "\t" << numAcceptedFModelF<< "\t" << F.proposalWidth() << "\tNA\tNA\tNA\n";
+	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\t" << F.getPosteriorMean(numIterations) << "\t"  << F.getPosteriorVariance(numIterations) << "\t" << (double) numAcceptedFModelF / (double) F.posteriorProbModelWithF() << "\t" << F.proposalWidth() << "\tNA\tNA\tNA\n";
 
 	//loci
 	for(unsigned long l=0; l<numLoci; ++l){

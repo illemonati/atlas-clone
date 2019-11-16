@@ -263,7 +263,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::st
 
 	//fill table using a recal model
 	model = createTRecalibrationEMModel(modelTag, values, false, NULL);
-	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne);
+	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne, qualityDist->min());
 };
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){
@@ -288,7 +288,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 	Base previousBase = N;
 	if(isReverseStrand){
 		for(p=len - 1; p>=0; --p){
-			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMap[previousBase][bases[p]]];
+			qualities[p] = transformedQuality[qualities[p]][len - p - 1][genoMap.contextMapFlipped[previousBase][bases[p]]];
 			previousBase = bases[p];
 		}
 	} else {

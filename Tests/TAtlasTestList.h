@@ -57,6 +57,7 @@ public:
 		testMap.emplace_back("theta", &createInstance<TAtlasTest_theta>);
 		testMap.emplace_back("invariantBed", &createInstance<TAtlasTest_invariantBed>);
 		testMap.emplace_back("mergePairs", &createInstance<TAtlasTest_mergePairs>);
+		testMap.emplace_back("splitMerge", &createInstance<TAtlasTest_mergeSplitPairs>);
 		testMap.emplace_back("filter", &createInstance<TAtlasTest_filter>);
 
 		//fill map of test suites
