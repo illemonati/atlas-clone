@@ -8,9 +8,7 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
-#include "../mathFunctions.h"
-#include "TPopulationLikelihoods.h"
-#include "../TFile.h"
+#include "TAlleleCountFileFormat.h"
 
 //-------------------------------------------------
 // TSAFChooseStorage
@@ -74,6 +72,8 @@ public:
 
 	void estimateAlleleCounts(TParameters & params, TRandomGenerator* randomGenerator);
 	void writeAlleleFrequencyLikelihoods(TParameters & params);
+	TAlleleCountFile* prepareOutputFile(std::string type, std::string filePrefix, TParameters& params);
+	void transformFormat(TParameters & params);
 };
 
 
