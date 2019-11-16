@@ -214,7 +214,7 @@ TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthF
 		_numLociModelP = _numLociModelP + modelP[l];
 	}
 
-	std::cout << "############# proposalWidths[1833] " << proposalWidths[1833] << " alleleFreq[1833] " << alleleFreq[1833] << std::endl;
+	//std::cout << "############# proposalWidths[1833] " << proposalWidths[1833] << " alleleFreq[1833] " << alleleFreq[1833] << std::endl;
 }
 
 void TAlleleFreq::setSumsForPosteriorToZero(){
@@ -262,8 +262,8 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 				else if(proposalWidths[l] / newProposalWidth < 0.1)
 					newProposalWidth = 10.0 * proposalWidths[l];
 
-				if(newProposalWidth > 1.25)
-					newProposalWidth = 1.25;
+				if(newProposalWidth > 0.25)
+					newProposalWidth = 0.25;
 
 				proposalWidths[l] = newProposalWidth;
 
@@ -306,7 +306,7 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 }
 
 double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGenerator){
-	double newP = exp(log(alleleFreq[locusNum]) + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
+	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
 	if(newP < 0.0){
 		newP = - newP;
 	} else if(newP > 1.0){
@@ -1248,7 +1248,7 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 		logfile->conclude("New proposal width for F is " + toString(F.proposalWidth()));
 		for(int l=0; l<5; ++l)
 			logfile->conclude("New proposal width for allele freq at locus " + toString(l) + " is " + toString(p.getProposalWidth(l)));
-		logfile->conclude("New proposal width for allele freq at locus " + toString(1833) + " is " + toString(p.getProposalWidth(1833)));
+//		logfile->conclude("New proposal width for allele freq at locus " + toString(1833) + " is " + toString(p.getProposalWidth(1833)));
 		logfile->conclude("New proposal width for Gamma is " + toString(Gamma.getProposalWidth()));
 		logfile->conclude("New proposal width for pi is " + toString(pi.getProposalWidth()));
 
