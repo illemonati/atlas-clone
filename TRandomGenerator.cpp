@@ -304,8 +304,8 @@ char TRandomGenerator::getRandomAlphaNumerichCharacter(){
 };
 
 std::string TRandomGenerator::getRandomAlphaNumericString(const int length){
-	std::string s = getRandomAlphaNumerichCharacter();
-	for(int i=1; i<length; ++i){
+	std::string s;
+	for(int i=0; i<length; ++i){
 		s+= getRandomAlphaNumerichCharacter();
 	}
 	return s;

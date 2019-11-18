@@ -29,6 +29,8 @@ TThetaEstimator_base::TThetaEstimator_base(TParameters & params, TLog* Logfile, 
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
 	numGenotypes = 10;
+	data = NULL;
+	dataInitialized = false;
 	initTmpStorage();
 
 	//data
@@ -46,6 +48,8 @@ TThetaEstimator_base::TThetaEstimator_base(const TThetaEstimator_base & other){
 	logfile = other.logfile;
 	randomGenerator = other.randomGenerator;
 	numGenotypes = other.numGenotypes;
+	data = NULL;
+	dataInitialized = false;
 	initTmpStorage();
 
 	//data
@@ -184,6 +188,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 //-------------------------------------------------------
 TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator):TThetaEstimator_base(params, Logfile, RandomGenerator){
 	initAdditionalTmpStorage();
+	estimationSuccessful = false;
 
 	//parse
 	logfile->startIndent("Parameters of EM algorithm to infer theta:");
@@ -240,6 +245,7 @@ void TThetaEstimator::initAdditionalTmpStorage(){
 
 void TThetaEstimator::clear(){
 	data->clear();
+	estimationSuccessful = false;
 };
 
 void TThetaEstimator::add(TSite & site){
@@ -496,8 +502,9 @@ void TThetaEstimator::estimateConfidenceInterval(){
 //Functions to run estimation-
 //------------------------------------------------------------
 bool TThetaEstimator::estimateTheta(){
+	estimationSuccessful = false;
 	if(data->sizeWithData() < minSitesWithData){
-		logfile->warning("Can not estimate theta, less than minSitesWithData = " + toString(minSitesWithData) + " sites with data in this region!");
+		logfile->warning("Can not estimate theta: only " + toString(data->sizeWithData()) + " sites with data in this region (minSitesWithData = " + toString(minSitesWithData) + ")!");
 		return false;
 	}
 
@@ -521,6 +528,7 @@ bool TThetaEstimator::estimateTheta(){
 	estimateConfidenceInterval();
 	logfile->done();
 	logfile->conclude("95% confidence intervals are theta +- " + toString(theta.thetaConfidence));
+	estimationSuccessful = true;
 	return true;
 }
 
@@ -535,21 +543,25 @@ void TThetaEstimator::setBaseFreq(TBaseFrequencies & BaseFreq){
 
 void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string prefix){
 	data->addToHeader(header, prefix);
-	header.push_back(prefix << "pi(A)");
-	header.push_back(prefix << "pi(C)");
-	header.push_back(prefix << "pi(G)");
-	header.push_back(prefix << "pi(T)");
-	header.push_back(prefix << "theta_MLE");
-	header.push_back(prefix << "theta_C95_l");
-	header.push_back(prefix << "theta_C95_u");
-	header.push_back(prefix << "LL");
+	header.push_back(prefix + "pi(A)");
+	header.push_back(prefix + "pi(C)");
+	header.push_back(prefix + "pi(G)");
+	header.push_back(prefix + "pi(T)");
+	header.push_back(prefix + "theta_MLE");
+	header.push_back(prefix + "theta_C95_l");
+	header.push_back(prefix + "theta_C95_u");
+	header.push_back(prefix + "LL");
 }
 
 void TThetaEstimator::writeThetas(TOutputFile* out){
-	out << theta.theta;
-	out	<< theta.theta - theta.thetaConfidence;
-	out	<< theta.theta + theta.thetaConfidence;
-	out	<< theta.LL;
+	if(estimationSuccessful){
+		*out << theta.theta;
+		*out	<< theta.theta - theta.thetaConfidence;
+		*out	<< theta.theta + theta.thetaConfidence;
+		*out	<< theta.LL;
+	} else {
+		*out << "-" << "-" << "-" << "-";
+	}
 }
 void TThetaEstimator::writeResultsToFile(TOutputFile* out){
 	//number of sites
@@ -557,7 +569,7 @@ void TThetaEstimator::writeResultsToFile(TOutputFile* out){
 
 	//estimated params
 	for(int i=0; i<4; ++i)
-		out << theta.baseFreq[i];
+		*out << theta.baseFreq[i];
 	writeThetas(out);
 }
 

@@ -207,14 +207,14 @@ void TThetaEstimatorData::addToHeader(std::vector<std::string> & header, const s
 
 void TThetaEstimatorData::writeSite(TOutputFile* out){
 	if(isBootstrapped){
-		out << "NA";
-		out << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded;
-		out << "NA";
+		*out << "NA";
+		*out << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded;
+		*out << "NA";
 		//out << "NA"; //TODO: check if this NA is needed.
 	} else {
-		out << cumulativeDepth / (double) totNumSitesAdded;
-		out << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded;
-		out << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;
+		*out << cumulativeDepth / (double) totNumSitesAdded;
+		*out << (double) (totNumSitesAdded - numSitesWithData) / (double) totNumSitesAdded;
+		*out << (double) numSitesCoveredTwiceOrMore / (double) totNumSitesAdded;
 	}
 };
 

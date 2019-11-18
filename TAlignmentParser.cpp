@@ -154,10 +154,9 @@ TAlignmentParser::~TAlignmentParser(){
 
 	if(_writeBlackList)
 		ignoredReads.close();
-}
+};
 
 void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
-
 	logfile = Logfile;
 
 	//BAM file
@@ -644,7 +643,6 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 	if(window.end > 0) logfile->endIndent();
 
-
 	//if sites defined
 	int counter = 0;
 	do{
@@ -746,8 +744,6 @@ bool TAlignmentParser::moveWindow(TWindow & window){
 			}
 		}
 	}
-
-
 
 	//report
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
@@ -917,7 +913,6 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 	return true;
 };
 
-
 void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	//measure runtime
 	struct timeval start, end;
@@ -973,6 +968,12 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	applyWindowFilters(window);
 };
 
+void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	if(sitesProvided)
+		destination.downsampleFromOther(source, subset, readUpToDepth, downsamplingProb, randomGenerator);
+	else
+		destination.downsampleFromOther(source, readUpToDepth, downsamplingProb, randomGenerator);
+};
 
 void TAlignmentParser::applyWindowFilters(TWindow & window){
 	window.passedFilters = false;
@@ -998,7 +999,7 @@ void TAlignmentParser::applyWindowFilters(TWindow & window){
 		//report
 		logfile->conclude("read data from " + toString(window.numReadsInWindow) + " reads.");
 		logfile->conclude("sequencing depth is " + toString(window.depth));
-		logfile->conclude(toString(window.fractionsitesDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(window.fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
 		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
 		if(window.fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
@@ -1015,12 +1016,11 @@ void TAlignmentParser::applyWindowFilters(TWindow & window){
 	} else {
 		logfile->conclude("No data in this window.");
 	}
-}
+};
 
 //------------------------------
 //initialize PMD and recalibration
 //------------------------------
-
 PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
 	if(pmdType == "CT")
 		return pmdCT;
@@ -1033,7 +1033,7 @@ PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
 	else {
 		throw "unknown pmdType: " + pmdType + "!";
 	}
-}
+};
 
 void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
@@ -1106,7 +1106,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 		}
 	}
 	logfile->endIndent();
-}
+};
 
 void TAlignmentParser::initializeRecalibration(TParameters & params){
 	std::string task = params.getParameterString("task");
@@ -1207,7 +1207,7 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 		worstBase.errorRate = 1.0;
 //		worstBase.base = N;
 	}
-}
+};
 
 void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
 	//deletions and insertions are kept as is. these positions are not compared

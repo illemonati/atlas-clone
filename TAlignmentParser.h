@@ -297,6 +297,7 @@ public:
 
 	//reading data requires windows
 	bool readDataInNextWindow(TWindow & window);
+	void downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	//reading data only requires alignments
 	bool readNextAlignment(TAlignment & alignment); //to be used to go through bam file alignment by alignment

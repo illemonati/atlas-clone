@@ -131,6 +131,7 @@ private:
 	double maxEpsilon;
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
+	bool estimationSuccessful;
 
 	//tmp vectors
 	double* P_G; // see paper
@@ -244,6 +245,8 @@ protected:
 	};
 
 public:
+	TThetaOutputFile(){};
+
 	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Prefix){
 		addEstimator(Estimator, Prefix);
 	};
@@ -269,6 +272,11 @@ public:
 		logfile->list("Will write theta estimates to file '" + Filename + "'.");
 		out.open(Filename);
 		writeHeader();
+	};
+
+	void open(TThetaEstimator* Estimator, const std::string Filename, TLog* logfile){
+		addEstimator(Estimator, "");
+		open(Filename, logfile);
 	};
 
 	void close(){
