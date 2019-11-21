@@ -640,14 +640,13 @@ void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, do
 		} else ++nCharOnLine;
 	}
 	delete[] pGenotype;
-}
-
+};
 
 void TWindow::fillPGenotype(double* pGenotype){
 	for(int i=0; i<4; ++i){
 		pGenotype[i] = baseFreq[i];
 	}
-}
+};
 
 double TWindow::calcLogLikelihood(){
 	double pGenotype[4];
@@ -660,7 +659,7 @@ double TWindow::calcLogLikelihood(){
 		}
 	}
 	return LL;
-}
+};
 
 void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
 	estimateBaseFrequencies();
@@ -670,7 +669,7 @@ void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQua
 			recalObject.addSite(sites[i], qualMap);
 		}
 	}
-}
+};
 
 void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
 	estimateBaseFrequencies();
@@ -680,11 +679,11 @@ void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSit
 	int pos;
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
-		if(sites[pos].hasData){
-			recalObject.addSite(sites[pos], qualMap);
+		if(sites[pos].hasData && it->second.first == it->second.second){
+			recalObject.addSite(sites[pos], qualMap, it->second.first);
 		}
 	}
-}
+};
 
 
 

@@ -637,13 +637,30 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TWindow window;
 
 	//add sites to EM object
-	logfile->startIndent("Reading data from windows:");
-	while(alignmentParser.readDataInNextWindow(window)){
-		//read data for current window
-		if(window.passedFilters)
-			window.addToRecalibrationEM(recalObjectEM, qualityMap);
-		else logfile->list("No positions in this window.");
+	if(params.parameterExists("sites")){
+		//Limit to sites with known alleles
+		logfile->startIndent("Will limit analysis to sites with known alleles:");
+		int windowSize = alignmentParser.getWindowSize();
+		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
+		logfile->endIndent();
+
+		//now parse through windows
+		while(alignmentParser.readDataInNextWindow(window)){
+			//read data for current window
+			if(window.passedFilters)
+				window.addToRecalibrationEM(recalObjectEM, subset, qualityMap);
+			else logfile->list("No positions in this window.");
+		}
+	} else {
+		logfile->startIndent("Reading data from windows:");
+		while(alignmentParser.readDataInNextWindow(window)){
+			//read data for current window
+			if(window.passedFilters)
+				window.addToRecalibrationEM(recalObjectEM, qualityMap);
+			else logfile->list("No positions in this window.");
+		}
 	}
+
 	//clean up memory
 	window.clear();
 	logfile->endIndent();

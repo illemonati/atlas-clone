@@ -19,12 +19,14 @@
 class TRecalibrationEMSite{
 public:
 	TRecalibrationEMReadData* data;
+	Base trueBase;
 	double P_g_given_d_oldBeta[4];
 	unsigned int numReads;
 
 	TRecalibrationEMSite();
 	~TRecalibrationEMSite();
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
+	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	inline void calcEpsilon(TRecalibrationEMModels & models, double* & epsilon){
@@ -56,7 +58,8 @@ public:
 		sites.clear();
 	};
 	unsigned int getMaxDepth();
-	virtual void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
@@ -113,6 +116,7 @@ public:
 	//functions to add data
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap, Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);

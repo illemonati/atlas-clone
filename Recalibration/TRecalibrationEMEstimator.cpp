@@ -13,6 +13,7 @@
 TRecalibrationEMSite::TRecalibrationEMSite(){
 	numReads = 0;
 	data = NULL;
+	trueBase = N;
 };
 
 TRecalibrationEMSite::~TRecalibrationEMSite(){
@@ -23,6 +24,7 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
 	numReads = site.bases.size();
 	data = new TRecalibrationEMReadData[numReads];
+	trueBase = N;
 	int k = 0;
 	for(TBase* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
@@ -45,6 +47,10 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGro
 
 		++k;
 	}
+};
+
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase):TRecalibrationEMSite(site, ReadGroupMap, qualiMap){
+	trueBase = TrueBase;
 };
 
 void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTable & dataTable){
@@ -224,11 +230,16 @@ unsigned int TRecalibrationEMWindow::getMaxDepth(){
 void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
 	if(site.hasData)
 		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap));
-}
+};
+
+void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase){
+	if(site.hasData)
+		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap, TrueBase));
+};
 
 long TRecalibrationEMWindow::numSites(){
 	return sites.size();
-}
+};
 
 long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
 	long _numSites = 0;
@@ -237,7 +248,7 @@ long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
 		++_numSites;
 	}
 	return _numSites;
-}
+};
 
 void TRecalibrationEMWindow::addToDataTable(TRecalibrationEMDataTable & dataTable){
 	for(TRecalibrationEMSite* site : sites)
@@ -570,25 +581,29 @@ void TRecalibrationEMEstimator::addNewWindow(TBaseFrequencies* freqs){
 	//set iterator
 	curWindow = windows.end(); --curWindow;
 	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
-}
+};
 
 void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap){
 	(*curWindow)->addSite(site, qualiMap);
-}
+};
+
+void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap, const char TrueBase){
+	(*curWindow)->addSite(site, qualiMap, TrueBase);
+};
 
 long TRecalibrationEMEstimator::numSites(){
 	long _numSites = 0;
 	for(TRecalibrationEMWindow* curWindow : windows)
 		_numSites += curWindow->numSites();
 	return _numSites;
-}
+};
 
 long TRecalibrationEMEstimator::numSitesDepthTwoOrMore(){
 	long _numSites = 0;
 	for(TRecalibrationEMWindow* curWindow : windows)
 		_numSites += curWindow->numSitesDepthTwoOrMore();
 	return _numSites;
-}
+};
 
 void TRecalibrationEMEstimator::addToDataTable(TRecalibrationEMDataTable & dataTable){
 	for(TRecalibrationEMWindow* curWindow : windows)
