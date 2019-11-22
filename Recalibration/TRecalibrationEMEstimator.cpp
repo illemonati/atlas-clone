@@ -22,9 +22,18 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 };
 
 TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
+	trueBase = N;
+	_save(site, ReadGroupMap, qualiMap);
+};
+
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase){
+	trueBase = TrueBase;
+	_save(site, ReadGroupMap, qualiMap);
+};
+
+void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
 	numReads = site.bases.size();
 	data = new TRecalibrationEMReadData[numReads];
-	trueBase = N;
 	int k = 0;
 	for(TBase* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
@@ -49,10 +58,6 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGro
 	}
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase):TRecalibrationEMSite(site, ReadGroupMap, qualiMap){
-	trueBase = TrueBase;
-};
-
 void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTable & dataTable){
 	for(unsigned int k=0; k<numReads; ++k)
 		dataTable.add(data[k]);
@@ -67,8 +72,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 		double tmp = 1.0;
 		//loop over all reads
 		for(unsigned int k=0; k<numReads; ++k){
-			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-			tmp *= B * epsilon[k] - data[k].D[g] + 1.0;
+			tmp *= calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0;
 		}
 		P_g_given_d_oldBeta[g] = tmp * freqs[g];
 		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
@@ -83,8 +87,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 			double tmp = 0.0;
 			//loop over all reads
 			for(unsigned int k=0; k<numReads; ++k){
-				double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
+				tmp += log( calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0 );
 			}
 			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
 			if(g==0) max = P_g_given_d_oldBeta[g];
@@ -117,8 +120,7 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & f
 		double tmp = 1.0;
 		//loop over all reads
 		for(unsigned int k=0; k<numReads; ++k){
-			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-			tmp *= B * epsilon[k] - data[k].D[g] + 1.0;
+			tmp *= calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0;
 		}
 		LL += tmp * freqs[g];
 	}
@@ -131,8 +133,7 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & f
 			double tmp = 0.0;
 			//loop over all reads
 			for(unsigned int k=0; k<numReads; ++k){
-				double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-				tmp += log(B * epsilon[k] - data[k].D[g] + 1.0);
+				tmp += log( calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0 );
 			}
 			tmp_log[g] = tmp + log(freqs[g]);
 			if(g==0) max = tmp_log[g];
@@ -151,37 +152,19 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & f
 	}
 };
 
-double TRecalibrationEMSite::calcQ(TRecalibrationEMModels & models, double* & epsilon){
-	calcEpsilon(models, epsilon);
-
-	//now calculate P(d, g, new params)
-	double Q = 0.0;
-
-	for(int g=0; g<4; ++g){
-		double P_d_given_g_beta = 1.0;
-		//loop over all reads
-		for(unsigned int k=0; k<numReads; ++k){
-			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-			P_d_given_g_beta *= B * epsilon[k] - data[k].D[g] + 1;
-		}
-
-		if(P_d_given_g_beta < 1.0E-50) P_d_given_g_beta = 1.0E-50;
-		Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
-	}
-
-	return Q;
-};
-
 void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
-	for(unsigned int k=0; k<numReads; ++k){
-		models.addToQ(data[k], P_g_given_d_oldBeta);
+	if(trueBase == N){
+		for(unsigned int k=0; k<numReads; ++k){
+			models.addToQ(data[k], P_g_given_d_oldBeta);
+		}
+	} else {
+		for(unsigned int k=0; k<numReads; ++k){
+			models.addToQ(data[k], trueBase);
+		}
 	}
 };
 
-void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
-	//calculate tmpEpsilon with current parameters
-	calcEpsilon(models, epsilon);
-
+void TRecalibrationEMSite::_addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
 	//tmp variables
 	double* eps1MinusEps = new double[numReads];
 	double* oneMinus2Eps = new double[numReads];
@@ -195,9 +178,11 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, do
 	for(int g=0; g<4; ++g){
 		for(unsigned int k=0; k<numReads; ++k){
 			//calc weights
-			double B = 4.0 / 3.0 * data[k].D[g] - 1.0;
-			double weightF = B / (1.0 - data[k].D[g] + B * epsilon[k]) * eps1MinusEps[k] * P_g_given_d_oldBeta[g];
-			double weightJacobian = P_g_given_d_oldBeta[g] * weightF * (oneMinus2Eps[k] - weightF);
+			double B = calcB(data[k].D[g]);
+			double weightF = B / (1.0 - data[k].D[g] + B * epsilon[k]) * eps1MinusEps[k];
+			double weightJacobian = weightF * (oneMinus2Eps[k] - weightF);
+			weightF *=  P_g_given_d_oldBeta[g];
+			weightJacobian *=  P_g_given_d_oldBeta[g];
 
 			//add to model
 			models.addToFandJacobian(data[k], weightF, weightJacobian);
@@ -207,7 +192,35 @@ void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, do
 	//delete tmp variables
 	delete[] eps1MinusEps;
 	delete[] oneMinus2Eps;
-}
+};
+
+void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TRecalibrationEMModels & models, double* & epsilon){
+	//fill F and Jacobian
+	for(unsigned int k=0; k<numReads; ++k){
+		//tmp variables
+		double eps1MinusEps = epsilon[k] * (1.0 - epsilon[k]);
+		double oneMinus2Eps = 1.0 - 2.0 * epsilon[k];
+
+		//calc weights
+		double B = calcB(data[k].D[trueBase]);
+		double weightF = B / (1.0 - data[k].D[trueBase] + B * epsilon[k]) * eps1MinusEps;
+		double weightJacobian = weightF * (oneMinus2Eps - weightF);
+
+		//add to model
+		models.addToFandJacobian(data[k], weightF, weightJacobian);
+	}
+};
+
+void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
+	//calculate tmpEpsilon with current parameters
+	calcEpsilon(models, epsilon);
+
+	if(trueBase == N){
+		_addToJacobianAndF(models, epsilon);
+	} else {
+		_addToJacobianAndFKnownGenotype(models, epsilon);
+	}
+};
 
 //---------------------------------------------------------------
 //TRecalibrationEMWindow
@@ -278,12 +291,14 @@ double TRecalibrationEMWindow::calcLL(TRecalibrationEMModels & models, double* &
 	return LL;
 };
 
+/*
 double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon){
 	double Q = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		Q += site->calcQ(models, tmpEpsilon);
 	return Q;
 };
+*/
 
 void TRecalibrationEMWindow::addToQ(TRecalibrationEMModels & models){
 	for(TRecalibrationEMSite* site : sites)
@@ -347,9 +362,9 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 
 void TRecalibrationEMEstimator::initializeFromString(const std::string string){
 	models->createModels(string, *_readGroups, *_readGroupMap);
-}
+};
 
-void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool & writeTmpTables){
+void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
 	TRecalibrationEMDataTable dataTable(_readGroups->size(), 500);
@@ -361,7 +376,6 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 	logfile->conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
 	logfile->conclude("Number of observations: " + toString(dataTable.totalCounts));
 	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
-
 
 	//initialize models based on data tables?
 	/*
@@ -401,7 +415,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 		logfile->warning("Some read groups have very little data!");
 		logfile->startIndent("Consider merging these read groups:");
 
-		for(int rg = 0; rg < _readGroups->size(); ++rg){
+		for(size_t rg = 0; rg < _readGroups->size(); ++rg){
 			int index = _readGroupMap->getIndex(rg);
 			if(dataTable.countsPerReadGroup[index][0] > 0 && dataTable.countsPerReadGroup[index][0] < minRequiredObservations)
 				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(dataTable.countsPerReadGroup[index][0]) + " observations.");
@@ -417,20 +431,40 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool &
 		models->reportReadGroupsNotUsed(*_readGroups, *_readGroupMap);
 		logfile->endIndent();
 	}
+};
+
+void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool & writeTmpTables){
+	//initialize models
+	_initializeModels();
 
 	//run EM
-	//-------------------
-	_runEM(numSitesWithData, outputName, writeTmpTables);
+	_runEM(outputName, writeTmpTables);
 
 	//writing final estimates
-	//-------------------
 	std::string filename = outputName + "_recalibrationEM.txt";
 	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
 	writeCurrentEstimates(filename);
 	logfile->done();
 };
 
-void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables){
+void TRecalibrationEMEstimator::performEstimationKnownGenotypes(std::string outputName, bool & writeTmpTables){
+	//initialize models
+	_initializeModels();
+
+	//initialize tmp variables in windows and model
+	_initializeTmpEpsilon();
+
+	//run Newton-Raphson optimization
+	_runNewtonRaphson();
+
+	//writing final estimates
+	std::string filename = outputName + "_recalibrationKnownGenotypes.txt";
+	logfile->listFlush("Writing final estimates to file '" + filename + "' ...");
+	writeCurrentEstimates(filename);
+	logfile->done();
+};
+
+void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTables){
 	//run EM
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 
@@ -474,7 +508,7 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 		} else oldLL = LL;
 
 		//run NewtonRaphson until convergence
-		_runNewtonRaphson(numSitesWithData);
+		_runNewtonRaphson();
 
 		//write current estimates to file
 		if(writeTmpTables){
@@ -493,7 +527,7 @@ void TRecalibrationEMEstimator::_runEM(int numSitesWithData, std::string outputN
 	logfile->endNumbering();
 };
 
-void TRecalibrationEMEstimator::_runNewtonRaphson(int numSitesWithData){
+void TRecalibrationEMEstimator::_runNewtonRaphson(){
 	//calculate Q at current location
 	models->setQToZero();
 	for(TRecalibrationEMWindow* curWindow : windows)
@@ -587,7 +621,7 @@ void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap){
 	(*curWindow)->addSite(site, qualiMap);
 };
 
-void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap, const char TrueBase){
+void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase){
 	(*curWindow)->addSite(site, qualiMap, TrueBase);
 };
 
@@ -764,7 +798,5 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 }
 
 */
-
-
 
 

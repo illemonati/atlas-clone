@@ -1403,8 +1403,8 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 
 	//make grid
 	int numProbs = 100;
-	float step = (float) numProbs;
-	double pValue = 1.0;
+	//float step = (float) numProbs;
+	//double pValue = 1.0;
 
 	//calculate ll
 	for(int i=0; i<numProbs; ++i){

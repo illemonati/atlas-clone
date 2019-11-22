@@ -66,7 +66,11 @@ bool TReadGroups::readGroupExists(std::string & name){
 	return false;
 };
 
-bool TReadGroups::readGroupInUse(int & readGroupId){
+bool TReadGroups::readGroupInUse(const int & readGroupId){
+	return inUse[readGroupId];
+};
+
+bool TReadGroups::readGroupInUse(const size_t & readGroupId){
 	return inUse[readGroupId];
 };
 
@@ -181,7 +185,7 @@ void TReadGroupMap::initializeFromFile(TReadGroups &readGroups, std::string file
 	//now add read groups that will not be merged
 	bool printed = false;
 	std::string name;
-	for(int i = 0; i < readGroups.size(); ++i){
+	for(size_t i = 0; i < readGroups.size(); ++i){
 		//check if it is mapped, otherwise add
 		if(readGroupMap[i] < 0){
 			if(!printed){

@@ -65,7 +65,8 @@ public:
 
 	int find(BamTools::BamAlignment & alignment);
 	bool readGroupExists(std::string & name);
-	bool readGroupInUse(int & readGroupId);
+	bool readGroupInUse(const int & readGroupId);
+	bool readGroupInUse(const size_t & readGroupId);
 	bool readGroupInUse(BamTools::BamAlignment & alignment);
 	std::string getName(int readGroupId);
 	unsigned int size();

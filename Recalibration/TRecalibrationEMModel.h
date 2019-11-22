@@ -53,6 +53,7 @@ protected:
 	void _allocateBetaMemory();
 	void _freeBetaMemory();
 	double _calcEpsilon(double & eta);
+	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 
 public:
 
@@ -65,6 +66,7 @@ public:
 	virtual void checkParameterRange(std::vector<int> & Qualities, int maxPos){}; //check if parameters are in correct range
 
 	void setQToZero();
+	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
 	bool solveJxF();
@@ -266,6 +268,7 @@ public:
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
+	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	double curQ();
 	bool solveJxF();
 	void proposeNewParameters(double lambda);

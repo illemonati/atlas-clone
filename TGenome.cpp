@@ -639,18 +639,28 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	//add sites to EM object
 	if(params.parameterExists("sites")){
 		//Limit to sites with known alleles
-		logfile->startIndent("Will limit analysis to sites with known alleles:");
+		logfile->startIndent("Will limit analysis to homozygous sites with known genotypes:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
-		logfile->endIndent();
+		TSiteSubset subset(params.getParameterString("sites"), windowSize, logfile, true);
 
 		//now parse through windows
 		while(alignmentParser.readDataInNextWindow(window)){
+			//make sure subset is on the correct chromosome
+			subset.setChr(alignmentParser.getCurChrName());
+
 			//read data for current window
 			if(window.passedFilters)
-				window.addToRecalibrationEM(recalObjectEM, subset, qualityMap);
+				window.addToRecalibrationEM(recalObjectEM, &subset, qualityMap);
 			else logfile->list("No positions in this window.");
 		}
+		logfile->endIndent();
+
+		//clean up memory
+		window.clear();
+
+		//now estimate
+		recalObjectEM.performEstimationKnownGenotypes(outputName, writeTmpTables);
+
 	} else {
 		logfile->startIndent("Reading data from windows:");
 		while(alignmentParser.readDataInNextWindow(window)){
@@ -659,15 +669,16 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 				window.addToRecalibrationEM(recalObjectEM, qualityMap);
 			else logfile->list("No positions in this window.");
 		}
+		logfile->endIndent();
+		logfile->endIndent();
+
+		//clean up memory
+		window.clear();
+
+		//now estimate
+		recalObjectEM.performEstimation(outputName, writeTmpTables);
 	}
-
-	//clean up memory
-	window.clear();
-	logfile->endIndent();
-
-	//run EM iterations
-	recalObjectEM.performEstimation(outputName, writeTmpTables);
-}
+};
 
 //TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
@@ -810,7 +821,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 	//print per read group table
 	logfile->startIndent("Writing distributions:");
 	std::string outFileName;
-	for(int i=0; i<alignmentParser.readGroups.size(); ++i){
+	for(size_t i=0; i<alignmentParser.readGroups.size(); ++i){
 		//open output file
 		outFileName = outputName + "_" + alignmentParser.readGroups.getName(i) + "_qualityDistribution.txt";
 		logfile->listFlush("Writing distribution for read group '" + alignmentParser.readGroups.getName(i) + "' to '" + outFileName + "' ...");
@@ -1341,11 +1352,11 @@ void TGenome::mergeReadGroups(TParameters & params){
 
 	//report and construct map
 	int* readGroupMap = new int[alignmentParser.readGroups.size()];
-	for(int i=0; i<alignmentParser.readGroups.size(); ++i) readGroupMap[i] = -1;
+	for(size_t i=0; i<alignmentParser.readGroups.size(); ++i) readGroupMap[i] = -1;
 	logfile->startIndent("The following read groups will be merged:");
 	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 	int oldId;
-	for(int rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
+	for(size_t rg = 0; rg < newReadGroupObject.size(); ++rg, ++mergeIt){
 		logfile->startIndent("New read group '" + newReadGroupObject.getName(rg) + "' will contain read groups:");
 		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 			logfile->list(*it);
@@ -1360,7 +1371,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 	//now add read groups that will not be merged
 	bool printed = false;
 	std::string name;
-	for(int i = 0; i < alignmentParser.readGroups.size(); ++i){
+	for(size_t i = 0; i < alignmentParser.readGroups.size(); ++i){
 		//check if it is mapped, otherwise add
 		if(readGroupMap[i] < 0){
 			if(!printed){

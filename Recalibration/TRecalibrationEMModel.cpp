@@ -26,7 +26,6 @@ TRecalibrationEMModel_Base::TRecalibrationEMModel_Base(TLog* Logfile){
 	_numParameters = 0;
 	_name = "base";
 	_NRStepAccepted = false;
-	_numSitesAdded = 0;
 	_NRconverged = false;
 	_Q = 0.0;
 	_oldQ = 0.0;
@@ -117,14 +116,24 @@ void TRecalibrationEMModel_Base::setQToZero(){
 	}
 };
 
+double TRecalibrationEMModel_Base::_calcQ(const int & genotype, TRecalibrationEMReadData & data){
+	double eps = calcEpsilon(data);
+	double B = 1.33333333333333333333 * data.D[genotype] - 1.0;
+	double P_d_given_g_beta = B * eps - data.D[genotype] + 1.0;
+	return log(P_d_given_g_beta);
+};
+
+void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
+	if(!_NRconverged){
+		_Q += _calcQ(knownGenotype, data);
+	}
+};
+
 void TRecalibrationEMModel_Base::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
 	if(!_NRconverged){
 		//add this data for all genotypes
 		for(int g=0; g<4; ++g){
-			double eps = calcEpsilon(data);
-			double B = 4.0 / 3.0 * data.D[g] - 1.0;
-			double P_d_given_g_beta = B * eps - data.D[g] + 1.0;
-			_Q += P_g_given_d_oldBeta[g] * log(P_d_given_g_beta);
+			_Q += P_g_given_d_oldBeta[g] * _calcQ(g, data);
 		}
 	}
 };
@@ -1754,6 +1763,10 @@ void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData & data, double* P_g
 	models[ readGroupIndex.index(data) ]->addToQ(data, P_g_given_d_oldBeta);
 };
 
+void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
+	models[ readGroupIndex.index(data) ]->addToQ(data, knownGenotype);
+};
+
 double TRecalibrationEMModels::curQ(){
 	double Q = 0.0;
 	for(TRecalibrationEMModel_Base* model : models){
@@ -1807,7 +1820,7 @@ void TRecalibrationEMModels::writeHeader(TOutputFilePlain & out){
 };
 
 void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
-	for(int r=0; r<readGroups.size(); ++r){
+	for(size_t r=0; r<readGroups.size(); ++r){
 		int index = ReadGroupMap[r];
 		if(readGroupIndex.inUse(index, false)){
 			_writeParameters(out, readGroups.getName(r), index, false);

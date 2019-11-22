@@ -220,7 +220,6 @@ void TSite::printPileupToScreen(){
 //-----------------------------------------------------------------------
 void TSite::calculateDiploidPhredScaledGenotypeLikelihoods(double* phredGLs){
 	if(hasData){
-		int tmp;
 		//calculate phred-scaled likelihoods and find max
 		for(int i=0; i<numGenotypes; ++i){
 			phredGLs[i] = makePhredByRef(emissionProbabilities[i]);

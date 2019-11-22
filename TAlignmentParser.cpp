@@ -660,7 +660,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	if(sitesProvided) subset->setChr(chromosomes.curName());
 
 	//write progress
-	logfile->endIndent();
+	if(chromosomes.curIndex() > 0) logfile->endIndent();
 	logfile->startNumbering("Parsing chromosome '" + chromosomes.curName() + "':");
 };
 
@@ -1069,7 +1069,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 		//all read groups have the same pmd
 		logfile->list("Initializing one PMD function for all read groups.");
 		pmdObjects[0].initialize(params, logfile);
-		for(int i=1; i<readGroups.size(); ++i)
+		for(size_t i=1; i<readGroups.size(); ++i)
 			pmdObjects[i].initialize(pmdObjects[0]);
 		hasPMD = true;
 	} else if(params.parameterExists("pmdFile")){
@@ -1115,7 +1115,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 		file.close();
 
 		//test if we have a function for all read groups
-		for(int i=0; i<readGroups.size(); ++i){
+		for(size_t i=0; i<readGroups.size(); ++i){
 			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
 			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
 		}
@@ -1124,7 +1124,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 		//no post mortem damage
 		logfile->list("Assuming there is no PMD in the data.");
 		std::string pmdString = "none";
-		for(int i=0; i<readGroups.size(); ++i){
+		for(size_t i=0; i<readGroups.size(); ++i){
 			pmdObjects[i].initializeFunction(pmdString, pmdGA);
 			pmdObjects[i].initializeFunction(pmdString, pmdCT);
 		}
