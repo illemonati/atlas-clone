@@ -424,7 +424,7 @@ void TGenome::callGenotypes(TParameters & params){
 	//---------------------------------------------------------------------
 	// Now call, either all sites or limiting to sites with known alleles.
 	//---------------------------------------------------------------------
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
 		int windowSize = alignmentParser.getWindowSize();
@@ -433,20 +433,19 @@ void TGenome::callGenotypes(TParameters & params){
 
 		while(alignmentParser.readDataInNextWindow(window)){
 			subset.setChr(alignmentParser.getCurChrName());
-			if(window.passedFilters){
-				//read data for current window
-				if(window.passedFilters || caller->printSitesWithNoData()){
-					//update genotype prior
-					prior->update(&window, alignmentParser.getCurChrName(), logfile);
+			//read data for current window
+			if(window.passedFilters || caller->printSitesWithNoData()){
+				//update genotype prior
+				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
-					//now call using known alleles
-					logfile->listFlush("Calling genotypes ...");
-					window.callKnwonAlleles(*caller, *alignmentParser.recalObject, subset);
-					logfile->done();
-				}
+				//now call using known alleles
+				logfile->listFlush("Calling genotypes ...");
+				window.callKnwonAlleles(*caller, *alignmentParser.recalObject, subset);
+				logfile->done();
 			}
 		}
-	} else { //not limiting to sites with known alleles
+	} else {
+		//not limiting to sites with known alleles
 		//Use all sites and identify alleles
 		while(alignmentParser.readDataInNextWindow(window)){
 			//read data for current window
@@ -2431,12 +2430,16 @@ void TGenome::estimatePMD(TParameters & params){
 	logfile->done();
 
 	//estimate exponential model
-	filename = outputName + "_PMD_input_Exponential.txt";
-	logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
-	int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
-	double eps = params.getParameterDoubleWithDefault("eps", 0.001);
-	pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
-	logfile->done();
+	if(!params.parameterExists("onlyEmpiric")){
+		filename = outputName + "_PMD_input_Exponential.txt";
+		logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
+		int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
+		double eps = params.getParameterDoubleWithDefault("eps", 0.001);
+		pmdTables.fitExponentialModel(numNRIterations, eps, filename, logfile);
+		logfile->done();
+	} else {
+		logfile->list("Not fitting exponential model due to user specification (parameter 'onlyEmpiric')");
+	}
 }
 
 
