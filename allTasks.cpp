@@ -46,6 +46,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["majorMinor"] = new TTask_majorMinor();
 	taskMap_regular["geneticDist"] = new TTask_estimateDist();
 	taskMap_regular["alleleCounts"] = new TTask_estimateAlleleCounts();
+	taskMap_regular["transformCountFormat"] = new TTask_transformAlleleCountFormat();
 	taskMap_regular["alleleFreq"] = new TTask_estimateAlleleFreq();
 	taskMap_regular["inbreeding"] = new TTask_estimateInbreeding();
 	taskMap_regular["VCFAssessAllelicBalance"] = new TTask_VCFDiagnostics();

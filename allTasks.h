@@ -488,6 +488,16 @@ public:
 	};
 };
 
+class TTask_transformAlleleCountFormat:public TTask_atlas{
+public:
+	TTask_transformAlleleCountFormat(){ _explanation = "Transforming allele counts file format"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TAlleleCountEstimator alleleCountEst(parameters, logfile);
+		alleleCountEst.transformFormat(parameters);
+	};
+};
+
 class TTask_estimateAlleleFreq:public TTask_atlas{
 public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
