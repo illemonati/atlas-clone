@@ -416,7 +416,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 		std::string maskFile = params.getParameterString("mask");
 
 		//limit sites?
-		int siteLimit;
+		int siteLimit = -1;
 		if(params.parameterExists("siteLimit")){
 			siteLimit = params.getParameterInt("siteLimit");
 			if(siteLimit < 0)
@@ -440,7 +440,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 		std::string regionsFile = params.getParameterString("regions");
 
 		//limitSites
-		int siteLimit;
+		int siteLimit = -1;
 		if(params.parameterExists("siteLimit")){
 			siteLimit = params.getParameterInt("siteLimit");
 			if(siteLimit < 0)
