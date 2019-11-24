@@ -637,11 +637,11 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TWindow window;
 
 	//add sites to EM object
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit analysis to homozygous sites with known genotypes:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), windowSize, logfile, true);
+		TSiteSubset subset(params.getParameterString("alleles"), windowSize, logfile, true);
 
 		//now parse through windows
 		while(alignmentParser.readDataInNextWindow(window)){
