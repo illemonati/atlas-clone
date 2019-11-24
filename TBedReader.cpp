@@ -121,7 +121,7 @@ void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, int siteL
 	curChr = "";
 
 	//read file
-	while((*myStream).good() && !(*myStream).eof() && numPositionsAdded < siteLimit){
+	while((*myStream).good() && !(*myStream).eof() && (numPositionsAdded < siteLimit || siteLimit == -1)){
 		++lineNum;
 		std::string line;
 		std::getline(*myStream, line);

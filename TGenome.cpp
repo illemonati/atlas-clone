@@ -278,7 +278,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 
 	//region 1
 	std::string regionsFile1 = params.getParameterString("regions1");
-	int siteLimit;
+	int siteLimit = -1;
 	if(params.parameterExists("siteLimit1")){
 		siteLimit = params.getParameterInt("siteLimit1");
 		if(siteLimit < 0)
@@ -291,6 +291,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->done();
 
 	//region 2
+	siteLimit = -1;
 	std::string regionsFile2 = params.getParameterString("regions2");
 	if(params.parameterExists("siteLimit2")){
 		siteLimit = params.getParameterInt("siteLimit2");
