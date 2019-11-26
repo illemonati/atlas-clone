@@ -278,7 +278,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 
 	//region 1
 	std::string regionsFile1 = params.getParameterString("regions1");
-	int siteLimit;
+	int siteLimit = -1;
 	if(params.parameterExists("siteLimit1")){
 		siteLimit = params.getParameterInt("siteLimit1");
 		if(siteLimit < 0)
@@ -291,6 +291,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->done();
 
 	//region 2
+	siteLimit = -1;
 	std::string regionsFile2 = params.getParameterString("regions2");
 	if(params.parameterExists("siteLimit2")){
 		siteLimit = params.getParameterInt("siteLimit2");
@@ -424,11 +425,11 @@ void TGenome::callGenotypes(TParameters & params){
 	//---------------------------------------------------------------------
 	// Now call, either all sites or limiting to sites with known alleles.
 	//---------------------------------------------------------------------
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
+		TSiteSubset subset(params.getParameterString("alleles"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
 		logfile->endIndent();
 
 		while(alignmentParser.readDataInNextWindow(window)){
@@ -637,11 +638,11 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	TWindow window;
 
 	//add sites to EM object
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit analysis to homozygous sites with known genotypes:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), windowSize, logfile, true);
+		TSiteSubset subset(params.getParameterString("alleles"), windowSize, logfile, true);
 
 		//now parse through windows
 		while(alignmentParser.readDataInNextWindow(window)){

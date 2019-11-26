@@ -121,7 +121,7 @@ private:
 	void setWindowParameters(TParameters & params);
 	void setFilters(TParameters & params);
 	void setMasks(TParameters & params);
-	void initializeSiteSubset(TParameters & params);
+//	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
 	void setChrAndWindowLimits(TParameters & params);
 	void setChrPloidy(TParameters & params);
