@@ -170,7 +170,6 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	oldAlignmentInitialized = true;
 
 	//initialize
-	initializeSiteSubset(params);
 	initializeReadGroups(params);
 	initializePostMortemDamage(params);
 	initializeRecalibration(params);
@@ -410,7 +409,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 	//normal mask
 	if(params.parameterExists("mask")){
 		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Masking is currently not implemented if variant positions are also specified with 'sites'";
+		if(params.parameterExists("alleles")) throw "Masking is currently not implemented if variant positions are also specified with 'sites'";
 		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
@@ -435,7 +434,7 @@ void TAlignmentParser::setMasks(TParameters & params){
 	//reverse masking
 	if(params.parameterExists("regions")){
 		if(windowsPredefined) throw "Regions is currently not implemented if windows are predefined from a BED file.";
-		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
+		if(params.parameterExists("alleles")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
 		considerRegions = true;
 		std::string regionsFile = params.getParameterString("regions");
 
@@ -465,25 +464,6 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
 	applyFragmentLengthFilter = filterYesNo;
 }
-
-void TAlignmentParser::initializeSiteSubset(TParameters & params){
-	//only call at specific sites?
-	if(params.parameterExists("invariantSites") && params.parameterExists("variantSites"))
-		throw "Can only use variant OR invariant sites!";
-	if(params.parameterExists("invariantSites")){
-		bool variantSites = false;
-		if(hasReference)
-			subset = new TSiteSubset(params.getParameterString("invariantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
-		else subset = new TSiteSubset(params.getParameterString("invariantSites"), windowSize, logfile, variantSites);
-		sitesProvided = true;
-	} else if(params.parameterExists("variantSites")){
-		bool variantSites = true;
-		if(hasReference)
-			subset = new TSiteSubset(params.getParameterString("variantSites"), *fastaReference, bamHeader, windowSize, logfile, variantSites);
-		else subset = new TSiteSubset(params.getParameterString("variantSites"), windowSize, logfile, variantSites);
-		sitesProvided = true;
-	}
-};
 
 void TAlignmentParser::initializeReadGroups(TParameters & params){
 	readGroups.fill(bamHeader);

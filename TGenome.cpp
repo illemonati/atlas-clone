@@ -425,11 +425,11 @@ void TGenome::callGenotypes(TParameters & params){
 	//---------------------------------------------------------------------
 	// Now call, either all sites or limiting to sites with known alleles.
 	//---------------------------------------------------------------------
-	if(params.parameterExists("sites")){
+	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
 		int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("sites"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
+		TSiteSubset subset(params.getParameterString("alleles"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
 		logfile->endIndent();
 
 		while(alignmentParser.readDataInNextWindow(window)){
