@@ -145,7 +145,7 @@ void TAlignment::freeStorage(){
 		delete[] softClippedQuality;
 	}
 	storageInitialized = false;
-}
+};
 
 void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	//clear
@@ -166,7 +166,7 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
 	matePosition = bamAlignment.MatePosition;
 
 	empty = false;
-}
+};
 
 void TAlignment::setReferenceAdded(){
 	hasReference = true;
@@ -235,10 +235,12 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 		//fill context for each base
 		fillContext(genoMap);
 
-		//set whether read is first or second
+		//set maping quality and whether read is first or second
 		for(int d=0; d<length; ++d){
+			bases[d].mappingQuality = mappingQuality;
 			bases[d].isSecondMate = isSecondMate;
 			bases[d].isReverseStrand = isReverseStrand;
+			bases[d].fragmentLength = fragmentLength;
 		}
 
 		parsed = true;
@@ -345,6 +347,13 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	lastAlignedPos = p - 1; //why -1? -> same reason as above
 	if(length != bamAlignment.Length)
 		throw "The lengths of the alignment and the quality scores of read '" + bamAlignment.Name + "' do not match!";
+
+	//calculate relevant fragment length
+	if(isProperPair){
+		fragmentLength = abs(insertSize) + numInsertions - numDeletions;
+	} else {
+		fragmentLength = length - softClippedLength[0] - softClippedLength[1];
+	}
 };
 
 void TAlignment::fillContext(TGenotypeMap & genoMap){

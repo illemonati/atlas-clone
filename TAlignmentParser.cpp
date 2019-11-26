@@ -100,7 +100,7 @@ TAlignmentParser::TAlignmentParser(){
 	trimReads = false;
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
-	applyFragmentLengthFilter = false;
+	applyFragmentLengthLongerThanInsertSizeFilter = false;
 	useStrand[0] = true; useStrand[1] = true;
 	useMate[0] = true; useMate[1] = true;
 
@@ -345,10 +345,10 @@ void TAlignmentParser::setFilters(TParameters & params){
 
 	//fragment length
 	if(params.parameterExists("keepReadsLongerThanFragment")){
-		setApplyFragmentLengthFilter(false);
+		setApplyFragmentLengthLongerThanInsertSizeFilter(false);
 		logfile->list("Will keep reads that are longer than the fragment size. (parameter 'keepReadsLongerThanFragment')");
 	} else
-		setApplyFragmentLengthFilter(true);
+		setApplyFragmentLengthLongerThanInsertSizeFilter(true);
 
 	//strand
 	if(params.parameterExists("keepOnlyFwd")){
@@ -404,7 +404,7 @@ void TAlignmentParser::setContextFilter(std::vector<std::string> contexts){
 		logfile->list(genoMap.getContextString(it->first));
 	}
 	logfile->endIndent();
-}
+};
 
 void TAlignmentParser::setMasks(TParameters & params){
 	//normal mask
@@ -457,14 +457,30 @@ void TAlignmentParser::setMasks(TParameters & params){
 }
 
 void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
+	if(trim3Prime < 0) throw "Trimming at 3 prime end must be >= 0!";
+	if(trim5Prime < 0) throw "Trimming at 3 prime end must be >= 0!";
 	trimmingLength3Prime = trim3Prime;
 	trimmingLength5Prime = trim5Prime;
 	trimReads = true;
 };
 
-void TAlignmentParser::setApplyFragmentLengthFilter(bool filterYesNo){
-	applyFragmentLengthFilter = filterYesNo;
-}
+void TAlignmentParser::setApplyFragmentLengthLongerThanInsertSizeFilter(bool filterYesNo){
+	applyFragmentLengthLongerThanInsertSizeFilter = filterYesNo;
+};
+
+void TAlignmentParser::setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength){
+	if(MinFragmentLength < 0)
+		throw "Min fragment length must be >= 0!";
+	if(maxFragmentLength < 0)
+		throw "Max fragment length must be >= 0!";
+	if(MinFragmentLength > MaxFragmentLength)
+		throw "Min fragment length must be <= max fragment length!";
+
+	minFragmentLength = MinFragmentLength;
+	maxFragmentLength = MaxFragmentLength;
+	applyFragmentLengthFilter = true;
+	setParsingToTrue(); //filter requires parsing!
+};
 
 void TAlignmentParser::initializeSiteSubset(TParameters & params){
 	//only call at specific sites?
@@ -644,7 +660,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 		int curStart = skipWindows * windowSize;
 		bamReader.Jump(chromosomes.curIndex(), curStart);
 		int nextEnd = curStart + windowSize;
-		//TODO:!!! removed +1 because we are zero-based. Check if true!
+
 		if(nextEnd > chromosomes.curLength()){
 			nextEnd = chromosomes.curLength();
 		}
@@ -667,7 +683,6 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 
 	if(window.end > 0) logfile->endIndent();
-
 
 	//if sites defined
 	int counter = 0;
@@ -803,23 +818,6 @@ bool TAlignmentParser::readAlignment(){
 			throw "BAM file must be sorted by position! Alignment '" + bamAlignment.Name + "' is at position " + toString(bamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(previousAlignmentPos) + ")";
 		previousAlignmentPos = bamAlignment.Position;
 
-//		//jump to next chromosome if not in use
-//		if(previousAlignmentChr != -1 && !useChromosome[chrNumber]){
-//			std::cout << "entered correct if statement" << std::endl;
-//			while(chrNumber < bamHeader.Sequences.Size() && !useChromosome[chrNumber]){
-//				++chrIterator;
-//				++chrNumber;
-//
-//				std::cout << "chrNumber is now " << chrNumber << std::endl;
-//				std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
-//
-//			}
-//			if(!bamReader.Jump(chrNumber, 0))
-//				throw "jump didnt work!";
-//			std::cout << "jumping to chrNumber " << chrNumber << std::endl;
-//			std::cout << "getReferenceCount " << bamReader.GetReferenceCount() << std::endl;
-//		}
-
 		//check read length
 		/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
@@ -838,7 +836,7 @@ bool TAlignmentParser::readAlignment(){
 		/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
-		if(bamAlignment.IsPaired() && applyFragmentLengthFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
+		if(bamAlignment.IsPaired() && applyFragmentLengthLongerThanInsertSizeFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 			if(_updateBlacklist){
 				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
 				filtersPassed = false;
@@ -879,7 +877,7 @@ bool TAlignmentParser::applyFilters(){
 	return filtersPassed;
 };
 
-void TAlignmentParser::fillAlignment(TAlignment & alignment){
+bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 	//make sure container is empty
 	alignment.clear();
 
@@ -894,6 +892,10 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 		//add all info from bamAlignment to bases
 		alignment.parse(genoMap, qualMap);
 
+		//check for fragment length filter
+		if(applyFragmentLengthFilter && (alignment.fragmentLength < minFragmentLength || alignment.fragmentLength > maxFragmentLength))
+			return false;
+
 		//add missing information to bases
 		alignment.fillReadGroupInfo(readGroupId);
 		alignment.fillPmdProbabilities(pmdObjects);
@@ -904,11 +906,13 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 			alignment.filterForBaseQuality(minQual, maxQual);
 		if(applyContextFilter)
 			alignment.filterForContext(ignoreTheseContexts);
-		if(doRecalibration){
+		if(doRecalibration)
 			recalibrate(alignment);
-		}if(hasReference)
+		if(hasReference)
 			fillReferenceSequence(fastaBuffer, alignment);
 	}
+
+	return true;
 };
 
 //------------------------
@@ -918,8 +922,7 @@ void TAlignmentParser::fillAlignment(TAlignment & alignment){
 bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
 	if(readAlignment()){
-		fillAlignment(alignment);
-		return true;
+		return fillAlignment(alignment);
 	}
 	return false;
 };
@@ -963,7 +966,10 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	int counter = 0;
 	while(readAlignment()){
 		//fill alignment
-		fillAlignment(*oldAlignment);
+		//return false if a post-parsing filer is not passed
+		if(!fillAlignment(*oldAlignment)){
+			continue;
+		}
 
 		++counter;
 

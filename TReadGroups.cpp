@@ -47,7 +47,7 @@ void TReadGroups::fill(BamTools::SamHeader & bamHeader){
 };
 
 int TReadGroups::find(std::string & name){
-	for(int i=0; i<numGroups; ++i){
+	for(size_t i=0; i<numGroups; ++i){
 		if(groups[i].name == name) return i;
 	}
 	throw "Read Group '" + name + "' was not present in header of bam file!";
@@ -60,7 +60,7 @@ int TReadGroups::find(BamTools::BamAlignment & alignment){
 };
 
 bool TReadGroups::readGroupExists(std::string & name){
-	for(int i=0; i<numGroups; ++i){
+	for(size_t i=0; i<numGroups; ++i){
 		if(groups[i].name == name) return true;
 	}
 	return false;
@@ -79,11 +79,11 @@ bool TReadGroups::readGroupInUse(BamTools::BamAlignment & alignment){
 };
 
 std::string TReadGroups::getName(int readGroupId){
-	if(readGroupId < 0 || readGroupId >= numGroups) throw "No read group with number " + toString(readGroupId) + "!";
+	if(readGroupId < 0 || (size_t) readGroupId >= numGroups) throw "No read group with number " + toString(readGroupId) + "!";
 	return groups[readGroupId].name;
 };
 
-unsigned int TReadGroups::size(){
+size_t TReadGroups::size(){
 	return numGroups;
 };
 
@@ -91,7 +91,7 @@ void TReadGroups::filterReadGroups(std::string readGroupList){
 	limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
 	fillVectorFromString(readGroupList, readGroupsInUse, ',');
-	for(int i=0; i < numGroups; i++){
+	for(size_t i=0; i < numGroups; i++){
 		if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), getName(i)) != readGroupsInUse.end()){
 			inUse[i] = true;
 		} else inUse[i] = false;
@@ -99,7 +99,7 @@ void TReadGroups::filterReadGroups(std::string readGroupList){
 };
 
 void TReadGroups::printReadgroupsInUse(TLog* logfile){
-	for(int i=0; i < numGroups; i++){
+	for(size_t i=0; i < numGroups; i++){
 		if(inUse[i])
 			logfile->list(groups[i].name);
 	}

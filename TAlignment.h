@@ -32,7 +32,8 @@ private:
 
 	//data
 	unsigned int maxSize;
-	int length;
+	uint16_t length;
+	uint16_t fragmentLength; //is insert size - deletions + insertions for paired-end; read length - deletions + insertions for single end
 
 	//BamAlignment data
 	std::string alignmentName;
@@ -110,7 +111,7 @@ public:
 	bool isReverseStrand;
 	bool isPaired;
 	bool isProperPair;
-	int mappingQuality;
+	uint16_t mappingQuality;
 	bool isSecondMate;
 	int32_t matePosition;
 	int chrNumber;
