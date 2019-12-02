@@ -41,15 +41,6 @@ void TSite::add(TBase* base){
 	hasData = true;
 };
 
-
-/*void TSite::add(Base & base, int & quality, int PosInRead, int PosInReadRev, double thisPMD_CT, double thisPMD_GA, BaseContext & Context, int & ReadGroup){
-	if(base == A) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == C) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else if(base == G) bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	else bases.push_back(new TBase(base, quality, PosInRead, PosInReadRev, thisPMD_CT, thisPMD_GA, Context, ReadGroup));
-	hasData = true;
-};*/
-
 void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	if(hasData){
 		static double weight = 1.0 / bases.size();

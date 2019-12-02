@@ -1597,7 +1597,7 @@ void TRecalibrationBQSREstimator::writeQualityToFile(std::string & filenameTag){
 	out << "ReadGroup\tQualityScore\tEventType\tEmpiricalQuality\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(int i=0; i<_readGroups->size(); ++i){
+	for(size_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
 		for(int q=0; q<qualityIndex->numQ; ++q){
 			out << _readGroups->getName(i) << "\t" << qualityIndex->getPhredIntFromIndex(q)
@@ -1621,7 +1621,7 @@ void TRecalibrationBQSREstimator::writePositionToFile(std::string & filenameTag)
 	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(int i=0; i<_readGroups->size(); ++i){
+	for(size_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
 		for(int p=0; p<storage.maxPos; ++p){
 			out << _readGroups->getName(i) << "\t" << p+1 << "\tM\t" << storage.positionCells[rg_index][p].curEstimate
@@ -1645,7 +1645,7 @@ void TRecalibrationBQSREstimator::writePositionReverseToFile(std::string & filen
 	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(int i=0; i<_readGroups->size(); ++i){
+	for(size_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
 		for(int p=0; p<storage.maxPosReverse; ++p){
 			out << _readGroups->getName(i) << "\t" << p+1 << "\tM\t" << storage.positionReverseCells[rg_index][p].curEstimate
@@ -1668,7 +1668,7 @@ void TRecalibrationBQSREstimator::writeContextToFile(std::string & filenameTag){
 	out << "ReadGroup\tContext\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(int r=0; r<_readGroups->size(); ++r){
+	for(size_t r=0; r<_readGroups->size(); ++r){
 		int rg_index = _readGroupMap->getIndex(r);
 		for(int c=0; c<storage.numContexts; ++c){
 			out << _readGroups->getName(r) << "\t" << storage._genoMap.getContextString(c) << "\tM\t" << storage.contextCells[rg_index][c].curEstimate
@@ -1692,7 +1692,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceQuality(std::string 
 
 	//write header
 	out << "ReadGroup\tQuality\terrorRate\tLL\tFirstDerivative\tSecondDerivative\n";
-	for(int r=0; r<_readGroups->size(); ++r){
+	for(size_t r=0; r<_readGroups->size(); ++r){
 		for(int q=0; q<qualityIndex->numQ; ++q){
 			storage.qualityCells[_readGroupMap->getIndex(r)][q].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(qualityIndex->getPhredIntFromIndex(q)), out);
 		}
@@ -1709,7 +1709,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfacePosition(std::string
 
 	//write header
 	out << "ReadGroup\tPosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
-	for(int r=0; r<_readGroups->size(); ++r){
+	for(size_t r=0; r<_readGroups->size(); ++r){
 		for(int p=0; p<storage.maxPos; ++p){
 			storage.positionCells[_readGroupMap->getIndex(r)][p].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(p+1), out);
 		}
@@ -1726,7 +1726,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceReversePosition(std:
 
 	//write header
 	out << "ReadGroup\tReversePosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
-	for(int r=0; r<_readGroups->size(); ++r){
+	for(size_t r=0; r<_readGroups->size(); ++r){
 		for(int p=0; p<storage.maxPosReverse; ++p){
 			storage.positionReverseCells[_readGroupMap->getIndex(r)][p].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(p+1), out);
 		}
@@ -1743,7 +1743,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceContext(std::string 
 
 	//write header
 	out << "ReadGroup\tContext\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
-	for(int r=0; r<_readGroups->size(); ++r){
+	for(size_t r=0; r<_readGroups->size(); ++r){
 		for(int c=0; c<storage.numContexts; ++c){
 			storage.contextCells[_readGroupMap->getIndex(r)][c].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + storage._genoMap.getContextString(c), out);
 		}

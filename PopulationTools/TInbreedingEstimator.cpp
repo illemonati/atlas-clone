@@ -540,7 +540,6 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	logfile->list("Will write trace for first " + toString(numLociToTrace) + " loci to file. (parameter 'numLociToTrace')");
 
 	//initialize random generator
-	//TODO: do the random generator initialization in the task switcher?
 	logfile->listFlush("Initializing random generator ...");
 	if(Parameters.parameterExists("fixedSeed")){
 		randomGenerator = new TRandomGenerator(Parameters.getParameterLong("fixedSeed"), true);
