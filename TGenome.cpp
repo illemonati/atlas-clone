@@ -299,7 +299,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 			throw "site limit cannot be smaller than 0!";
 		logfile->startIndent("Reading first " + toString(siteLimit) + " sites from regions 1 BED file '" + regionsFile1 + "':");
 	} else {
-		logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
+		logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
 	}
 	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, siteLimit, logfile);
 	logfile->done();
