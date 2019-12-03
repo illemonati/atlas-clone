@@ -166,6 +166,7 @@ public:
 
 	//BAM file
 	std::string filename;
+	std::string outname;
 	BamTools::BamReader bamReader;
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
@@ -204,6 +205,7 @@ public:
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
 
 	//setters
+	void setOutName(std::string outputName);
 	void setQualityFilters(int minQual, int maxQual);
 	void setMappingQualityFilters(int MinMQ, int MaxMQ);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
@@ -235,7 +237,7 @@ public:
 
 	void setWriteBlacklistToFileToTrue(){
 		_writeBlackList = true;
-		std::string ignoredReadsFile = extractBeforeLast(filename, ".bam") + "_ignoredReads.txt.gz";
+		std::string ignoredReadsFile = outname + "_ignoredReads.txt.gz";
 		logfile->list("Writing ignored reads to '" + ignoredReadsFile + "'");
 		ignoredReads.open(ignoredReadsFile.c_str());
 		if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";

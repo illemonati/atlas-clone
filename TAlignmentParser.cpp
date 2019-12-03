@@ -208,6 +208,10 @@ void TAlignmentParser::openBamFile(std::string filename){
 	chromosomes.jumpToEnd();
 };
 
+void TAlignmentParser::setOutName(std::string outputName){
+	outname = outputName;
+}
+
 void TAlignmentParser::setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
@@ -409,9 +413,19 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time";
 		doMasking = true;
 		std::string maskFile = params.getParameterString("mask");
-		logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+
+		//limit sites?
+		int siteLimit = -1;
+		if(params.parameterExists("siteLimit")){
+			siteLimit = params.getParameterInt("siteLimit");
+			if(siteLimit < 0)
+				throw "site limit cannot be smaller than 0!";
+			logfile->startIndent("Will mask the first " + toString(siteLimit) + " sites listed in BED file '" + maskFile + "':");
+		} else {
+			logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
+		}
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, logfile);
+		mask = new TBedReader(maskFile, windowSize, bamHeader.Sequences, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 		//mask->print();
@@ -423,9 +437,19 @@ void TAlignmentParser::setMasks(TParameters & params){
 		if(params.parameterExists("sites")) throw "Regions is currently not implemented if variant positions are also specified with \"sites\"";
 		considerRegions = true;
 		std::string regionsFile = params.getParameterString("regions");
-		logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
+
+		//limitSites
+		int siteLimit = -1;
+		if(params.parameterExists("siteLimit")){
+			siteLimit = params.getParameterInt("siteLimit");
+			if(siteLimit < 0)
+				throw "site limit cannot be smaller than 0!";
+			logfile->startIndent("Will limit analysis to the first " + toString(siteLimit) + " sites listed in BED file '" + regionsFile + "':");
+		} else {
+			logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
+		}
 		logfile->listFlush("Reading file ...");
-		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, logfile);
+		mask = new TBedReader(regionsFile, windowSize, bamHeader.Sequences, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 	} else considerRegions = false;
