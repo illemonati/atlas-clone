@@ -24,25 +24,20 @@
 #include "TDistributionOfCounts.h"
 #include "TRecalibrationEMEstimator.h"
 #include "TGLF.h"
+#include "TRandomGenerator.h"
+
+//forward declaration to enable copy constructor
+class TWindow;
 
 //---------------------------------------------------------------
-//TWindow
+//TWindow_base
 //---------------------------------------------------------------
-class TWindow{
-private:
+class TWindow_base{
+protected:
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
 
-	//alignment stacks
-	std::vector<TAlignment*> usedAlignments;
-	std::vector<TAlignment*> emptyAlignments;
-
-	void fillPGenotype(double* pGenotype);
 	void setCoordinates(long Start, long End, int ChrNumber);
-	void cleanUpUsedAlignments();
-	void clearAllUsedAlignments();
-	//std::vector<TAlignment*>::iterator lastAlignmentwithEndInWindow;
-	//std::vector<TAlignment*>::iterator firstAlignmentwithPosOutsideWindow;
 
 public:
 	long start;
@@ -53,14 +48,20 @@ public:
 	TSite* sites;
 	bool sitesInitialized;
 	int numReadsInWindow;
-	double depth, fractionSitesNoData, fractionsitesDepthAtLeastTwo;
+	double depth, fractionSitesNoData, fractionDepthAtLeastTwo;
 	double fractionRefIsN;
 	long numSitesWithData;
 	bool passedFilters;
 	TBaseFrequencies baseFreq;
 
-	TWindow();
-	~TWindow();
+	TWindow_base();
+	TWindow_base(TWindow_base & other);
+	void stealFromOther(TWindow_base & other);
+	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset* subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+
+	virtual ~TWindow_base();
 
 	//getters
 	TBaseFrequencies getBaseFreq(){return baseFreq;};
@@ -68,12 +69,7 @@ public:
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
-	void move(long Start, long End, int chrNumber);
-	void jump(long Start, long End, int ChrNumber);
-	void review();
-	void printStacks();
-	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
-	void fillSites(const int & readUpToDepth);
+	virtual void move(long Start, long End, int chrNumber);
 	void addReferenceBaseToSites(BamTools::Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
@@ -112,7 +108,45 @@ public:
 
 	//other
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
-	double calcLogLikelihood();
 };
+
+//---------------------------------------------------------------
+//TWindow
+//---------------------------------------------------------------
+class TWindow:public TWindow_base{
+private:
+	//alignment stacks
+	std::vector<TAlignment*> usedAlignments;
+	std::vector<TAlignment*> emptyAlignments;
+
+	void cleanUpUsedAlignments();
+	void clearAllUsedAlignments();
+
+	//functions to fill sites from alignments
+	void checkAlignmentForFillingSites(TAlignment* alignmentIt);
+	void setFirstPositionWithinWindow(TAlignment* alignmentIt, int & firstPos, int & p);
+	void fillSites(TAlignment* alignmentIt, TSite* theseSites, const int & readUpToDepth);
+	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::map<long,std::pair<char,char> > & thesePos, const int & readUpToDepth);
+
+public:
+	TWindow();
+	~TWindow();
+
+	void move(long Start, long End, int chrNumber);
+	void review();
+	void printStacks();
+
+	void fillSites(const int & readUpToDepth);
+	int fillSites(TSite* theseSites, const int & readUpToDepth);
+	int fillSitesDownsampling(TSite* theseSites, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
+
+	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
+	int fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth);
+	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
+
+	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
+};
+
+
 
 #endif /* TWINDOW_H_ */

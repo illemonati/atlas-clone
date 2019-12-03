@@ -42,10 +42,12 @@ private:
 	TGenotypePrior* initializeGenotypePrior(TParameters & params);
 	void openSiteSubset(TBedReader* subset, std::string filename);
 	void indexBamFile(std::string & filename);
+	bool estimateTheta(TThetaEstimator & thetaEstimator, TWindow_base & window);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
 	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
 	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
+	void fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -54,11 +56,12 @@ public:
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
-	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out);
+	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool printAll);
 	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool onlyReadData, int numBootstraps);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcThetaLikelihoodSurfaces(TParameters & params);
 	void estimateThetaRatio(TParameters & params);
+	void performDownsamplingThetaQC(TParameters & params);
 
 	//callers
 	void callGenotypes(TParameters & params);

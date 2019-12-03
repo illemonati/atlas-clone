@@ -7,63 +7,89 @@
 
 #include "TWindow.h"
 
-
 //-------------------------------------------------------
-//Twindow
+//TWindow_base
 //-------------------------------------------------------
-TWindow::TWindow(){
+TWindow_base::TWindow_base(){
 	start = -1;
 	end = -1;
 	length = -1;
-//	chrIterator = NULL;
 	chrNumber = -1;
 	sites = NULL;
 	sitesInitialized = false;
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
-	fractionsitesDepthAtLeastTwo = -1.0;
+	fractionDepthAtLeastTwo = -1.0;
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
-	//lastAlignmentwithEndInWindow = usedAlignments.end();
-	//firstAlignmentwithPosOutsideWindow = usedAlignments.end();
 	passedFilters = false;
 };
 
-TWindow::~TWindow(){
+TWindow_base::TWindow_base(TWindow_base & other){
+	//initialize coordinates and sites
+	sites = NULL;
+	sitesInitialized = false;
+	stealFromOther(other);
+};
+
+void TWindow_base::stealFromOther(TWindow_base & other){
+	//initialize coordinates and sites
+	setCoordinates(other.start, other.end, other.chrNumber);
+
+	//copy data
+	for(int i=0; i<length; ++i){
+		sites[i].stealFromOther(&other.sites[i]);
+	}
+
+	depth = other.depth;
+	fractionSitesNoData = other.fractionSitesNoData;
+	fractionRefIsN = other.fractionRefIsN;
+	fractionDepthAtLeastTwo = other.fractionDepthAtLeastTwo;
+	numSitesWithData = other.numSitesWithData;
+	numReadsInWindow = other.numReadsInWindow;
+	referenceBaseAdded = other.referenceBaseAdded;
+	passedFilters = other.passedFilters;
+};
+
+TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	//initialize coordinates and sites
+	sites = NULL;
+	sitesInitialized = false;
+	downsampleFromOther(other, readUpToDepth, downsamplingProb, randomGenerator);
+};
+
+void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	//set coordinates
+	setCoordinates(other.start, other.end, other.chrNumber);
+
+	//fill sites by downsampling
+	numReadsInWindow = other.fillSitesDownsampling(sites, readUpToDepth, downsamplingProb, randomGenerator);
+
+	//calc depth
+	calcDepth();
+};
+
+void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset* subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	//set coordinates
+	setCoordinates(other.start, other.end, other.chrNumber);
+
+	//fill sites by downsampling
+	numReadsInWindow = other.fillSitesSubsetDownsampling(sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
+
+	//calc depth
+	calcDepth();
+};
+
+TWindow_base::~TWindow_base(){
 	//delete sites
 	clear();
 	if(sitesInitialized)
 		delete[] sites;
-
-	//delete alignments
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
-		delete *alignmentIt;
-	usedAlignments.clear();
-
-	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
-		delete *alignmentIt;
-	emptyAlignments.clear();
-
 };
 
-TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
-	//save used alignment on proper stack
-	usedAlignments.push_back(usedAlignment);
-
-	//return empty alignment, either from stack or create new
-	if(emptyAlignments.size() > 0){
-		TAlignment* alignment = *(emptyAlignments.rbegin());
-		emptyAlignments.pop_back();
-		return alignment;
-	} else {
-		TAlignment* alignment = new TAlignment(maxReadLength);
-		return alignment;
-	}
-};
-
-void TWindow::initSites(long newLength){
+void TWindow_base::initSites(long newLength){
 	if(sitesInitialized){
 		clear();
 		delete[] sites;
@@ -80,11 +106,11 @@ void TWindow::initSites(long newLength){
 	sitesInitialized = true;
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
-	fractionsitesDepthAtLeastTwo = -1.0;
+	fractionDepthAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
 }
 
-void TWindow::clear(){
+void TWindow_base::clear(){
 	if(sitesInitialized){
 		for(int i=0; i<length; ++i)
 			sites[i].clear();
@@ -92,14 +118,14 @@ void TWindow::clear(){
 	depth = -1.0;
 	fractionSitesNoData = -1.0;
 	fractionRefIsN = -1.0;
-	fractionsitesDepthAtLeastTwo = -1.0;
+	fractionDepthAtLeastTwo = -1.0;
 	numSitesWithData = 0;
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
 	passedFilters = false;
 };
 
-void TWindow::setCoordinates(long Start, long End, int ChrNumber){
+void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
 	start = Start;
 	end = End;
 	chrNumber = ChrNumber;
@@ -111,146 +137,12 @@ void TWindow::setCoordinates(long Start, long End, int ChrNumber){
 	} else initSites(end - start);
 }
 
-void TWindow::move(long Start, long End, int ChrNumber){
+//TODO: what is difference???
+void TWindow_base::move(long Start, long End, int ChrNumber){
 	setCoordinates(Start, End, ChrNumber);
-	cleanUpUsedAlignments();
 };
 
-void TWindow::jump(long Start, long End, int ChrNumber){
-	setCoordinates(Start, End, ChrNumber);
-	clearAllUsedAlignments();
-}
-
-void TWindow::review(){
-	//update pointers
-	/*
-	firstAlignmentwithPosOutsideWindow = usedAlignments.end()-1;
-	while((*firstAlignmentwithPosOutsideWindow)->position > end && firstAlignmentwithPosOutsideWindow != usedAlignments.begin())
-		--firstAlignmentwithPosOutsideWindow;
-		*/
-
-	//fillSites();
-	//calcDepth();
-}
-
-void TWindow::cleanUpUsedAlignments(){
-	//now check and move the rest
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
-			++alignmentIt;
-		} else{
-			(*alignmentIt)->clear();
-			emptyAlignments.push_back(*alignmentIt);
-			alignmentIt = usedAlignments.erase(alignmentIt);
-		}
-	}
-}
-
-void TWindow::clearAllUsedAlignments(){
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		(*alignmentIt)->clear();
-		emptyAlignments.push_back(*alignmentIt);
-		alignmentIt = usedAlignments.erase(alignmentIt);
-	}
-}
-
-void TWindow::printStacks(){
-	std::cout << "USED ALIGMENTS:";
-	for(TAlignment* alignmentIt : usedAlignments)
-		std::cout << " " << alignmentIt << " : " << alignmentIt->alignmentName << " pos " << alignmentIt->position;
-	std::cout << std::endl;
-
-	std::cout << "EMPTY ALIGMENTS:";
-	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
-		std::cout << " " << *alignmentIt;
-	std::cout << std::endl;
-
-}
-
-void TWindow::fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth){
-	//add reads in usedAlignments to sites in window
-	for(TAlignment* alignmentIt : usedAlignments){
-		//check if alignment start is inside window
-		if(alignmentIt->position >= end)
-			throw "alignment should be assigned to next window!";
-
-		//genomic position of alignment as seen from window perspective
-		int firstPos = alignmentIt->position - start;
-
-		//set position in read
-		int p = 0;
-
-		//is the beginning of the read part of previous window? increase starting p for adding bases!
-		if(firstPos < 0){
-			while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
-				++p;
-			if(p == alignmentIt->length){
-				throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
-			}
-		}
-
-		//get positions that are used
-		std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-
-		//position in window where first one = 0
-		int internalPos;
-		//p is at first position of read in window
-		for(; p < alignmentIt->length; ++p){
-			if(alignmentIt->bases[p].alignedPos && alignmentIt->bases[p].base != N){
-				internalPos = firstPos + alignmentIt->bases[p].alignedPos;
-				//if read extends past window length
-				if(internalPos >= length)
-					break; //since part of the read maps to next window
-				if(thesePos.find(internalPos) != thesePos.end() && sites[internalPos].depth() < readUpToDepth)
-					sites[internalPos].add(&alignmentIt->bases[p]);
-			}
-		}
-		++numReadsInWindow;
-	}
-};
-
-void TWindow::fillSites(const int & readUpToDepth){
-	//add reads in usedAlignments to sites in window
-	for(TAlignment* alignmentIt : usedAlignments){
-		//check if alignment start is inside window
-		if(alignmentIt->position >= end){
-			throw "alignment should be assigned to next window!";
-		}
-
-		//genomic position of alignment as seen from window perspective
-		int firstPos = alignmentIt->position - start;
-
-		//set position in read
-		int p = 0;
-
-		//is the beginning of the read part of previous window? increase starting p for adding bases!
-		if(firstPos < 0){
-			while(firstPos + alignmentIt->bases[p].alignedPos < 0){
-				++p;
-				if(p == alignmentIt->length){
-					throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
-				}
-			}
-		}
-
-		//position in window where first one = 0
-		int internalPos;
-		//p is at first position of read in window
-		for(; p < alignmentIt->length; ++p){
-				if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
-					internalPos = firstPos + alignmentIt->bases[p].alignedPos;
-					//if read extends past window length
-					if(internalPos >= length)
-						break; //since part of the read maps to next window
-					if(sites[internalPos].depth() < readUpToDepth)
-						sites[internalPos].add(&alignmentIt->bases[p]);
-				}
-		}
-		++numReadsInWindow;
-	}
-};
-
-void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
+void TWindow_base::addReferenceBaseToSites(BamTools::Fasta & reference){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
@@ -262,7 +154,7 @@ void TWindow::addReferenceBaseToSites(BamTools::Fasta & reference){
 	}
 };
 
-void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
+void TWindow_base::addReferenceBaseToSites(TSiteSubset* subset){
 	if(!referenceBaseAdded){
 		if(subset->hasPositionsInWindow(start)){
 			//now only run over sites listed in that window
@@ -277,7 +169,7 @@ void TWindow::addReferenceBaseToSites(TSiteSubset* subset){
 	}
 };
 
-void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
+void TWindow_base::applyMask(TBedReader* mask, bool doInverseMasking){
 	int pos;
 	long first = 0;
 	if(doInverseMasking){
@@ -312,7 +204,7 @@ void TWindow::applyMask(TBedReader* mask, bool doInverseMasking){
 	}
 };
 
-void TWindow::maskCpG(){
+void TWindow_base::maskCpG(){
 	throw "maskCpG is not functional!";
 	std::string ref; //fasta object fills string
 	//note that end is last position + 1
@@ -324,7 +216,7 @@ void TWindow::maskCpG(){
 	}
 };
 
-void TWindow::estimateBaseFrequencies(){
+void TWindow_base::estimateBaseFrequencies(){
 	//estimate initial base frequencies
 	baseFreq.clear();
 	for(int i=0; i<length; ++i){
@@ -333,14 +225,15 @@ void TWindow::estimateBaseFrequencies(){
 	baseFreq.normalize();
 };
 
-void TWindow::calculateEmissionProbabilities(){
+
+void TWindow_base::calculateEmissionProbabilities(){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
 	}
 };
 
-void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
+void TWindow_base::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
 	//add reference to sites
 	addReferenceBaseToSites(reference);
 
@@ -352,7 +245,7 @@ void TWindow::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fas
 	}
 };
 
-void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset){
+void TWindow_base::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset){
 	//check if we need to process this window
 	if(subset.hasPositionsInWindow(start)){
 		//add reference to sites
@@ -372,7 +265,7 @@ void TWindow::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, T
 	}
 };
 
-void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
+void TWindow_base::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
@@ -384,7 +277,7 @@ void TWindow::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool
 	}
 };
 
-void TWindow::printPileupToScreen(TRecalibration* recalObject){
+void TWindow_base::printPileupToScreen(TRecalibration* recalObject){
 	//print pileup
 	for(int i=0; i<length; ++i){
 		sites[i].calcEmissionProbabilities();
@@ -394,7 +287,7 @@ void TWindow::printPileupToScreen(TRecalibration* recalObject){
 	}
 };
 
-void TWindow::calcDepth(){
+void TWindow_base::calcDepth(){
 	//calculate and return coverage
 	depth = 0.0;
 	long noData = 0;
@@ -410,17 +303,17 @@ void TWindow::calcDepth(){
 	depth = depth / (double) length;
 	numSitesWithData = length - noData;
 	fractionSitesNoData = (double) noData / (double) length;
-	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
-}
+	fractionDepthAtLeastTwo = (double) plentyData / (double) length;
+};
 
-void TWindow::calcFracN(){
+void TWindow_base::calcFracN(){
 	double numN = 0.0;
 	for(int i=0; i<length; ++i)	if(sites[i].referenceBase == 'N' || sites[i].referenceBase == 'n')
 		++numN;
 	fractionRefIsN = numN / (double) length;
 };
 
-void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
+void TWindow_base::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 	//calculate and return coverage
 	depth = 0.0;
 	long noData = 0;
@@ -438,22 +331,22 @@ void TWindow::calcDepthPerSite(long* siteDepth, size_t maxDepth){
 
 	depth = depth / (double) length;
 	fractionSitesNoData = (double) noData / (double) length;
-	fractionsitesDepthAtLeastTwo = (double) plentyData / (double) length;
+	fractionDepthAtLeastTwo = (double) plentyData / (double) length;
 };
 
-void TWindow::countDepthPerSite(TDistributionOfCounts & counts){
+void TWindow_base::countDepthPerSite(TDistributionOfCounts & counts){
 	for(int i=0; i<length; ++i)
 		counts.add(sites[i].depth());
 };
 
-void TWindow::printDepthPerSite(gz::ogzstream & out, const std::string & chr){
+void TWindow_base::printDepthPerSite(gz::ogzstream & out, const std::string & chr){
 	//print depth for each site to file
 	for(int i=0; i<length; ++i){
 		out << chr << "\t" << start + i + 1 << "\t" << sites[i].depth() << "\n";
 	}
 };
 
-void TWindow::printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr){
+void TWindow_base::printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr){
 	int* alleleCounts = new int[4];
 	int* mateCounts = new int[2];
 	int* frCounts = new int[2];
@@ -487,7 +380,7 @@ void TWindow::printMateInformationPerSite(TOutputFileZipped & out, const std::st
 	delete[] frCounts;
 };
 
-void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
+void TWindow_base::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	//calculate and return imbalance
 	for(int i=0; i<length; ++i){
 		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
@@ -499,13 +392,13 @@ void TWindow::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
 	}
 };
 
-void TWindow::contextStats(int** contextCounts, TQualityMap & qualMap){
+void TWindow_base::contextStats(int** contextCounts, TQualityMap & qualMap){
 	for(int i=0; i<length; ++i){
 		sites[i].contextStats(contextCounts, qualMap);
 	}
-}
+};
 
-void TWindow::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
+void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			if(sites[i].bases.size() < minDepth || sites[i].bases.size() > maxDepth)
@@ -514,7 +407,7 @@ void TWindow::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	}
 };
 
-void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, std::ofstream & outputMaskFile, const std::string & chr){
+void TWindow_base::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, std::ofstream & outputMaskFile, const std::string & chr){
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
 			if(sites[i].bases.size() < minDepthForMask || sites[i].bases.size() > maxDepthForMask){
@@ -524,7 +417,7 @@ void TWindow::createDepthMask(size_t minDepthForMask, size_t maxDepthForMask, st
 	}
 };
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap){
+void TWindow_base::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
@@ -534,7 +427,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, 
 	logfile->done();
 };
 
-void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
+void TWindow_base::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
 	logfile->listFlush("Adding sites to BQSR ...");
 	//now only run over sites listed in that window
 	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
@@ -550,8 +443,7 @@ void TWindow::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* su
 
 };
 
-
-void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
+void TWindow_base::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData){
@@ -561,7 +453,7 @@ void TWindow::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
 	logfile->done();
 };
 
-void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
+void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	//assumes that emission probabilities were calculated
 	for(int i=0; i<length; ++i){
 		sites[i].calcEmissionProbabilities();
@@ -569,7 +461,7 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
 	}
 };
 
-void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
 	//assumes that emission probabilities were calculated
 	//only add sites from regions
 	if(region.hasPositionsInWindow(start)){
@@ -584,7 +476,7 @@ void TWindow::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, 
 	}
 };
 
-void TWindow::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
+void TWindow_base::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	if(printAll){
 		for(int i=0; i<length; ++i){
@@ -599,7 +491,7 @@ void TWindow::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
 	}
 };
 
-void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
+void TWindow_base::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes
 	double* pGenotype = new double[10];
 	estimator.fillPGenotype(pGenotype);
@@ -642,26 +534,7 @@ void TWindow::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, do
 	delete[] pGenotype;
 };
 
-void TWindow::fillPGenotype(double* pGenotype){
-	for(int i=0; i<4; ++i){
-		pGenotype[i] = baseFreq[i];
-	}
-};
-
-double TWindow::calcLogLikelihood(){
-	double pGenotype[4];
-	fillPGenotype(pGenotype);
-
-	double LL = 0.0;
-	for(int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			LL += sites[i].calculateLogLikelihood(pGenotype);
-		}
-	}
-	return LL;
-};
-
-void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
+void TWindow_base::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	for(int i=0; i<length; ++i){
@@ -671,7 +544,7 @@ void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQua
 	}
 };
 
-void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
+void TWindow_base::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	//now only run over sites listed in that window
@@ -685,5 +558,223 @@ void TWindow::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSit
 	}
 };
 
+//-------------------------------------------------------
+//Twindow
+//-------------------------------------------------------
+TWindow::TWindow():TWindow_base(){};
 
+TWindow::~TWindow(){
+	//delete alignments
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
+		delete *alignmentIt;
+	usedAlignments.clear();
 
+	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+		delete *alignmentIt;
+	emptyAlignments.clear();
+
+};
+
+TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
+	//save used alignment on proper stack
+	usedAlignments.push_back(usedAlignment);
+
+	//return empty alignment, either from stack or create new
+	if(emptyAlignments.size() > 0){
+		TAlignment* alignment = *(emptyAlignments.rbegin());
+		emptyAlignments.pop_back();
+		return alignment;
+	} else {
+		TAlignment* alignment = new TAlignment(maxReadLength);
+		return alignment;
+	}
+};
+
+void TWindow::review(){
+	//update pointers
+	/*
+	firstAlignmentwithPosOutsideWindow = usedAlignments.end()-1;
+	while((*firstAlignmentwithPosOutsideWindow)->position > end && firstAlignmentwithPosOutsideWindow != usedAlignments.begin())
+		--firstAlignmentwithPosOutsideWindow;
+		*/
+
+	//fillSites();
+	//calcDepth();
+};
+
+void TWindow::cleanUpUsedAlignments(){
+	//now check and move the rest
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
+			++alignmentIt;
+		} else{
+			(*alignmentIt)->clear();
+			emptyAlignments.push_back(*alignmentIt);
+			alignmentIt = usedAlignments.erase(alignmentIt);
+		}
+	}
+};
+
+void TWindow::clearAllUsedAlignments(){
+	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+		(*alignmentIt)->clear();
+		emptyAlignments.push_back(*alignmentIt);
+		alignmentIt = usedAlignments.erase(alignmentIt);
+	}
+};
+
+void TWindow::move(long Start, long End, int ChrNumber){
+	setCoordinates(Start, End, ChrNumber);
+	cleanUpUsedAlignments();
+};
+
+void TWindow::printStacks(){
+	std::cout << "USED ALIGMENTS:";
+	for(TAlignment* alignmentIt : usedAlignments)
+		std::cout << " " << alignmentIt << " : " << alignmentIt->alignmentName << " pos " << alignmentIt->position;
+	std::cout << std::endl;
+
+	std::cout << "EMPTY ALIGMENTS:";
+	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+		std::cout << " " << *alignmentIt;
+	std::cout << std::endl;
+};
+
+void TWindow::checkAlignmentForFillingSites(TAlignment* alignmentIt){
+	//check if alignment start is inside window
+	if(alignmentIt->position >= end){
+		throw "alignment should be assigned to next window!";
+	}
+};
+
+void TWindow::setFirstPositionWithinWindow(TAlignment* alignmentIt, int & firstPos, int & p){
+	//genomic position of alignment as seen from window perspective
+	firstPos = alignmentIt->position - start;
+
+	//set position in read
+	p = 0;
+
+	//is the beginning of the read part of previous window? increase starting p for adding bases!
+	if(firstPos < 0){
+		while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
+			++p;
+		if(p == alignmentIt->length){
+			throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
+		}
+	}
+};
+
+//------------------------------------------------------
+//fill sites
+//------------------------------------------------------
+void TWindow::fillSites(TAlignment* alignmentIt, TSite* theseSites, const int & readUpToDepth){
+	//genomic position of alignment as seen from window perspective
+	int firstPos, p;
+	setFirstPositionWithinWindow(alignmentIt, firstPos, p);
+
+	//position in window where first one = 0
+	//p is at first position of read in window
+	for(; p < alignmentIt->length; ++p){
+		if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
+			int internalPos = firstPos + alignmentIt->bases[p].alignedPos;
+			//if read extends past window length
+			if(internalPos >= length){
+				break; //since part of the read maps to next window
+			}
+			if(theseSites[internalPos].depth() < readUpToDepth){
+				theseSites[internalPos].add(&alignmentIt->bases[p]);
+			}
+		}
+	}
+};
+
+int TWindow::fillSites(TSite* theseSites, const int & readUpToDepth){
+	//add reads in usedAlignments to sites in window
+	int firstPos, p, internalPos;
+	int counter = 0;
+	for(TAlignment* alignmentIt : usedAlignments){
+		//now fill
+		fillSites(alignmentIt, theseSites, readUpToDepth);
+		++counter;
+	}
+	return counter;
+};
+
+int TWindow::fillSitesDownsampling(TSite* theseSites, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
+	//add reads in usedAlignments to sites in window
+	int firstPos, p, internalPos;
+	int counter = 0;
+	for(TAlignment* alignmentIt : usedAlignments){
+		//fill if alignment is to be used
+		if(randomGenerator->getRand() < downsamplingProb){
+			fillSites(alignmentIt, theseSites, readUpToDepth);
+			++counter;
+		}
+	}
+	return counter;
+};
+
+void TWindow::fillSites(const int & readUpToDepth){
+	numReadsInWindow = fillSites(sites, readUpToDepth);
+};
+
+//------------------------------------------------------
+//fill sites according to subset
+//------------------------------------------------------
+void TWindow::fillSitesSubset(TAlignment* alignmentIt, TSite* theseSite, std::map<long,std::pair<char,char> > & thesePos, const int & readUpToDepth){
+	//genomic position of alignment as seen from window perspective
+	int firstPos, p;
+	setFirstPositionWithinWindow(alignmentIt, firstPos, p);
+
+	//position in window where first one = 0
+	//p is at first position of read in window
+	for(; p < alignmentIt->length; ++p){
+		if(alignmentIt->bases[p].alignedPos && alignmentIt->bases[p].base != N){
+			int internalPos = firstPos + alignmentIt->bases[p].alignedPos;
+			//if read extends past window length
+			if(internalPos >= length)
+				break; //since part of the read maps to next window
+			if(thesePos.find(internalPos) != thesePos.end() && sites[internalPos].depth() < readUpToDepth)
+				sites[internalPos].add(&alignmentIt->bases[p]);
+		}
+	}
+};
+
+int TWindow::fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth){
+	//get positions that are used
+	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+
+	//add reads in usedAlignments to sites in window
+	int firstPos, p, internalPos;
+	int counter = 0;
+	for(TAlignment* alignmentIt : usedAlignments){
+		//genomic position of alignment as seen from window perspective
+		setFirstPositionWithinWindow(alignmentIt, firstPos, p);
+
+		//now fill
+		fillSitesSubset(alignmentIt, theseSites, thesePos, readUpToDepth);
+		++counter;
+	}
+	return counter;
+};
+
+int TWindow::fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
+	//get positions that are used
+	std::map<long,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
+
+	//add reads in usedAlignments to sites in window
+	int counter = 0;
+	for(TAlignment* alignmentIt : usedAlignments){
+		//check if alignment is to be used
+		if(randomGenerator->getRand() < downsamplingProb){
+			//now fill
+			fillSitesSubset(alignmentIt, theseSites, thesePos, readUpToDepth);
+			++counter;
+		}
+	}
+	return counter;
+};
+
+void TWindow::fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth){
+	numReadsInWindow = fillSitesSubset(sites, subset, readUpToDepth);
+};

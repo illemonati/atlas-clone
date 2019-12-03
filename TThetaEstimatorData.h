@@ -9,6 +9,7 @@
 #define TTHETAESTIMATORDATA_H_
 
 #include "TSite.h"
+#include "TFile.h"
 
 //---------------------------------------------------------------
 //TThetaEstimatorTemporaryFile
@@ -108,8 +109,8 @@ public:
 		return numSitesWithData;
 	};
 
-	void writeHeader(gz::ogzstream & out);
-	void writeSize(gz::ogzstream & out);
+	void addToHeader(std::vector<std::string> & header, const std::string prefix);
+	void writeSite(TOutputFile* out);
 	void fillBaseFreq(double* baseFreq);
 	virtual void fillP_G(double* & P_G, double* & pGenotype);
 	virtual double calcLogLikelihood(double* & pGenotype);
