@@ -594,13 +594,13 @@ void TAlignmentParser::jumpToEnd(){
 	chromosomes.jumpToEnd();
 };
 
-void TAlignmentParser::restartChromosomes(TWindow & window){
+void TAlignmentParser::restartChromosomes(TWindow_base & window){
 	chromosomes.begin();
 
 	moveChromosome(window);
 };
 
-void TAlignmentParser::moveChromosome(TWindow & window){
+void TAlignmentParser::moveChromosome(TWindow_base & window){
 	//jump reader
 	oldAlignmentMustBeConsidered = false;
 
@@ -663,7 +663,7 @@ void TAlignmentParser::moveChromosome(TWindow & window){
 	logfile->startNumbering("Parsing chromosome '" + chromosomes.curName() + "':");
 };
 
-bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
+bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 
 	if(window.end > 0) logfile->endIndent();
 
@@ -687,7 +687,7 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow & window){
 	return true;
 };
 
-bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
+bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
 
 	if(window.end > 0) logfile->endIndent();
 
@@ -710,7 +710,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow & window){
 		return false;
 };
 
-bool TAlignmentParser::moveWindow(TWindow & window){
+bool TAlignmentParser::moveWindow(TWindow_base & window){
 	//returns false when end of genome is reached
 	if(windowsPredefined){
 		//if at beginning of BAM file
@@ -997,9 +997,12 @@ void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & so
 		destination.downsampleFromOther(source, subset, readUpToDepth, downsamplingProb, randomGenerator);
 	else
 		destination.downsampleFromOther(source, readUpToDepth, downsamplingProb, randomGenerator);
+
+	//apply filters
+	applyWindowFilters(destination);
 };
 
-void TAlignmentParser::applyWindowFilters(TWindow & window){
+void TAlignmentParser::applyWindowFilters(TWindow_base & window){
 	window.passedFilters = false;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
