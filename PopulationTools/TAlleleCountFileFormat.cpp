@@ -44,7 +44,7 @@ void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames, TPa
 		sep = '_';
 	}
 	outFile << "chr" << sep << "pos";
-	for(int p=0; p<populationNames.size(); p++)
+	for(size_t p=0; p<populationNames.size(); p++)
 		outFile << "\t" << populationNames[p];
 	outFile << "\n";
 };
@@ -86,7 +86,7 @@ void TTreeMixFile::writeHeader(TPopulationSamples & samples, TParameters & param
 
 void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, TParameters & params, TLog* logfile){
 	outFile << populationNames[0];
-		for(int p=1; p<populationNames.size(); p++)
+		for(size_t p=1; p<populationNames.size(); p++)
 			outFile << " " << populationNames[p];
 	outFile << "\n";
 }

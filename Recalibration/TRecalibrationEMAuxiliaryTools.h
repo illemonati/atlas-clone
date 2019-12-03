@@ -89,6 +89,7 @@ struct TRecalibrationEMReadData{
 	uint8_t context;
 	uint16_t readGroup;
 	bool isSecond;
+	uint16_t fragmentLength;
 
 	void setD(Base base, double PMD_CT, double PMD_GA);
 };

@@ -17,23 +17,35 @@
 // Object to store all data at one site
 //--------------------------------------------------------------------
 class TRecalibrationEMSite{
-public:
+private:
 	TRecalibrationEMReadData* data;
+	Base trueBase;
 	double P_g_given_d_oldBeta[4];
+
+	inline void calcEpsilon(TRecalibrationEMModels & models, double* & epsilon){
+		for(unsigned int k=0; k<numReads; ++k)
+			epsilon[k] = models.calcEpsilon(data[k]);
+	};
+
+	inline double calcB(const double & D){
+		return 1.33333333333333333333 * D - 1.0;
+	};
+
+	void _save(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
+	void _addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon);
+	void _addToJacobianAndFKnownGenotype(TRecalibrationEMModels & models, double* & epsilon);
+
+public:
 	unsigned int numReads;
 
 	TRecalibrationEMSite();
 	~TRecalibrationEMSite();
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
+	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
-	inline void calcEpsilon(TRecalibrationEMModels & models, double* & epsilon){
-		for(unsigned int k=0; k<numReads; ++k)
-			epsilon[k] = models.calcEpsilon(data[k]);
-	};
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
 	double calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
-	double calcQ(TRecalibrationEMModels & models, double* & epsilon);
 	void addToQ(TRecalibrationEMModels & models);
 	void addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon);
 };
@@ -56,14 +68,15 @@ public:
 		sites.clear();
 	};
 	unsigned int getMaxDepth();
-	virtual void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
 	long cumulativeDepth();
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	double calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
-	double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
+	//double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void addToQ(TRecalibrationEMModels & models);
 	void addToJacobianAndF(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
@@ -73,7 +86,7 @@ public:
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
 class TRecalibrationEMEstimator{
-private:
+protected:
 	TLog* logfile;
 	TReadGroups* _readGroups;
 	TReadGroupMap* _readGroupMap;
@@ -93,10 +106,10 @@ private:
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
 
-	void _runEM(int numSitesWithData, std::string outputName, bool & writeTmpTables);
-	void _runNewtonRaphson(int numSitesWithData);
+	void _initializeModels();
+	void _runEM(std::string outputName, bool & writeTmpTables);
+	void _runNewtonRaphson();
 	void _initializeTmpEpsilon();
-
 
 public:
 	TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap);
@@ -113,6 +126,7 @@ public:
 	//functions to add data
 	void addNewWindow(TBaseFrequencies* freqs);
 	void addSite(TSite & site, TQualityMap & qualiMap);
+	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTable & dataTable);
@@ -121,13 +135,12 @@ public:
 	//function to estimate
 	void initializeFromString(const std::string string);
 	void performEstimation(std::string outputName, bool & writeTmpTables);
+	void performEstimationKnownGenotypes(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();
 	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
-
-
 
 
 #endif /* TRECALIBRATIONEMESTIMATOR_H_ */

@@ -260,6 +260,7 @@ public:
 		close();
 	};
 
+
 	void addEstimator(TThetaEstimator* Estimator, const std::string Prefix){
 		if(out.isOpen()){
 			throw "Can not add estimators to an open TThetaOutputFile!";

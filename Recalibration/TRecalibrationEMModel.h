@@ -17,6 +17,7 @@
 #define noRecal_name "none"
 #define qualFuncPosFunc_name "qualFuncPosFunc"
 #define qualFuncPosFuncContext_name "qualFuncPosFuncContext"
+#define qualFuncPosFuncLengthFuncContext_name "qualFuncPosFuncLengthFuncContext"
 #define qualFuncPosSpecific_name "qualFuncPosSpecific"
 #define qualFuncPosSpecificContext_name "qualFuncPosSpecificContext"
 #define qualFuncPosSpecificContextNew_name "qualFuncPosSpecificContextNew"
@@ -47,12 +48,13 @@ protected:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	void _parseParameterString(std::vector<std::string> & vec, std::vector<double>* values);
+	void _parseParameterString(std::vector<std::string> & vec, std::vector< std::vector<double> > & values);
 	void parseQualityParameters(double* betaPointer, std::vector<double> & values); //default function assuming quadratic model
 	void parsePositionParameters(double* betaPointer, std::vector<double> & values); //default function assuming quadratic model
 	void _allocateBetaMemory();
 	void _freeBetaMemory();
 	double _calcEpsilon(double & eta);
+	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 
 public:
 
@@ -65,6 +67,7 @@ public:
 	virtual void checkParameterRange(std::vector<int> & Qualities, int maxPos){}; //check if parameters are in correct range
 
 	void setQToZero();
+	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
 	bool solveJxF();
@@ -124,6 +127,18 @@ public:
 	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
+class TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext:public TRecalibrationEMModel_Base{
+public:
+	TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(TLog* Logfile);
+	TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(std::vector<std::string> & vec, TLog* Logfile);
+	~TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(){};
+
+	double calcEpsilon(const TRecalibrationEMReadData & data);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	double getErrorRate(TBase & base);
+	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
+};
+
 class TRecalibrationEMModel_qualFuncPosSpecific:public TRecalibrationEMModel_Base{
 private:
 	int _maxPosPlusOne;
@@ -154,28 +169,6 @@ public:
 	TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos, TLog* Logfile);
 	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, TLog* Logfile);
 	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
-
-	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
-	void proposeNewParameters(double & lambda);
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	std::string getPositionString();
-	std::string getContextString();
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosSpecificContextNew:public TRecalibrationEMModel_Base{
-private:
-	int _maxPosMinusOne;
-	int _maxPosPlusOne;
-	int _numParamsWithoutPositions;
-	bool lengthWarningPrinted;
-
-public:
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(int MaxPos, TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosSpecificContextNew(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosSpecificContextNew(){};
 
 	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
 	void proposeNewParameters(double & lambda);
@@ -266,6 +259,7 @@ public:
 	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
+	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	double curQ();
 	bool solveJxF();
 	void proposeNewParameters(double lambda);

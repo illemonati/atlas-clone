@@ -484,7 +484,7 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 	if(!out) throw "Failed to open file '" + filename + "'!";
 
 	//loop over all read groups, fit and write exponential model
-	for(int i=0; i<readGroups.size(); ++i){
+	for(size_t i=0; i<readGroups.size(); ++i){
 		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\t" << forward[readGroupMapObject[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups.getName(i), maxReadLength, logfile)
 			<< "\t" << reverse[readGroupMapObject[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups.getName(i), maxReadLength, logfile) << "\n";
 	}

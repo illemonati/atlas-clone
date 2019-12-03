@@ -552,8 +552,8 @@ void TWindow_base::addToRecalibrationEM(TRecalibrationEMEstimator & recalObject,
 	int pos;
 	for(std::map<long,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 		pos = it->first - start;
-		if(sites[pos].hasData){
-			recalObject.addSite(sites[pos], qualMap);
+		if(sites[pos].hasData && it->second.first == it->second.second){
+			recalObject.addSite(sites[pos], qualMap, genoMap.getBase(it->second.first));
 		}
 	}
 };

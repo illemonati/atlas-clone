@@ -99,9 +99,9 @@ private:
 	int minPhredInt, maxPhredInt;
 	bool applyMQFilter;
 	int minMQ, maxMQ;
-
 	bool applyFragmentLengthFilter;
-	//bool keepOnlyFwd, keepOnlyRev;
+	int minFragmentLength, maxFragmentLength;
+	bool applyFragmentLengthLongerThanInsertSizeFilter;
 	bool useStrand[2];
 	bool useMate[2];
 
@@ -121,7 +121,7 @@ private:
 	void setWindowParameters(TParameters & params);
 	void setFilters(TParameters & params);
 	void setMasks(TParameters & params);
-	void initializeSiteSubset(TParameters & params);
+//	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
 	void setChrAndWindowLimits(TParameters & params);
 	void setChrPloidy(TParameters & params);
@@ -140,7 +140,7 @@ private:
 
 	bool readAlignment();
 	bool applyFilters();
-	void fillAlignment(TAlignment & alignment);
+	bool fillAlignment(TAlignment & alignment);
 	void readAlignmentsIntoWindow(TWindow & window);
 	void applyWindowFilters(TWindow_base & window);
 	void adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
@@ -211,7 +211,8 @@ public:
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setContextFilter(std::vector<std::string> contexts);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
-	void setApplyFragmentLengthFilter(bool filterYesNo);
+	void setApplyFragmentLengthLongerThanInsertSizeFilter(bool filterYesNo);
+	void setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
 
 	void keepDuplicates(){_keepDuplicates = true;};
 	void filterSoftClips(){_filterSoftClips = true;};
