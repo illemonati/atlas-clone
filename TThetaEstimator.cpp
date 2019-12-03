@@ -553,25 +553,33 @@ void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string
 	header.push_back(prefix + "LL");
 }
 
-void TThetaEstimator::writeThetas(TOutputFile* out){
+void TThetaEstimator::writeestimateFrequenciesAndTheta(TOutputFile* out){
 	if(estimationSuccessful){
+		//base frequencies
+		for(int i=0; i<4; ++i)
+			*out << theta.baseFreq[i];
+
+		//theta estimates
 		*out << theta.theta;
 		*out	<< theta.theta - theta.thetaConfidence;
 		*out	<< theta.theta + theta.thetaConfidence;
 		*out	<< theta.LL;
 	} else {
+		//frequencies
+		*out << "-" << "-" << "-" << "-";
+
+		//theta estimates
 		*out << "-" << "-" << "-" << "-";
 	}
-}
+};
+
 void TThetaEstimator::writeResultsToFile(TOutputFile* out){
 	//number of sites
 	data->writeSite(out);
 
 	//estimated params
-	for(int i=0; i<4; ++i)
-		*out << theta.baseFreq[i];
-	writeThetas(out);
-}
+	writeestimateFrequenciesAndTheta(out);
+};
 
 void TThetaEstimator::calcLikelihoodSurface(gz::ogzstream & out, int & steps){
 	//write header

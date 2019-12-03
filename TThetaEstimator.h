@@ -162,7 +162,7 @@ public:
 	void setTheta(double Theta);
 	void setBaseFreq(TBaseFrequencies & BaseFreq);
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
-	void writeThetas(TOutputFile* out);
+	void writeestimateFrequenciesAndTheta(TOutputFile* out);
 	void writeResultsToFile(TOutputFile* out);
 	void calcLikelihoodSurface(gz::ogzstream & out, int & steps);
 	void bootstrapTheta(TOutputFile* out);

@@ -105,14 +105,15 @@ void TGenome::estimateTheta(TParameters & params){
 			estimateThetaGenomeWide(thetaEstimator, thetaOut, onlyBootstrap, numBootstraps);
 
 		logfile->endIndent();
-	} else
-		estimateThetaWindows(thetaEstimator, thetaOut);
+	} else {
+		estimateThetaWindows(thetaEstimator, thetaOut, params.parameterExists("printAll"));
+	}
 
 	//clean up
 	thetaOut.close();
 };
 
-void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out){
+void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool printAll){
 	//prepare windows
 	TWindow window;
 
@@ -124,7 +125,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 			gettimeofday(&startTime, NULL);
 
 			logfile->startIndent("Estimating Theta:");
-			if(estimateTheta(thetaEstimator, window)){
+			if(estimateTheta(thetaEstimator, window) || printAll){
 				out.write(alignmentParser.getCurChrName(), window.start, window.end);
 			}
 			logfile->endIndent();
@@ -390,13 +391,12 @@ void TGenome::performDownsamplingThetaQC(TParameters & params){
 				logfile->endIndent();
 			}
 
-			if(windows.size() > 1){
+			if(windows.size() > 0){
 				for(size_t i = 0; i<downSampleProbVector.size(); ++i){
 					logfile->startIndent("Estimating Theta on downsampled data (p = " + toString(downSampleProbVector[i]) + "):");
+
 					//downsample
-					logfile->listFlush("Downsampling with p = " + toString(downSampleProbVector[i]) + " ...");
 					alignmentParser.downsampleWindow(*windows[i], window_full, downSampleProbVector[i], randomGenerator);
-					logfile->done();
 
 					//and estimate
 					estimateTheta(estimators[i], *windows[i]);
@@ -1967,55 +1967,27 @@ void TGenome::downSampleBamFile(TParameters & params){
 	//read downsampling rate
 	std::vector<double> downSampleProbVector;
 	fillVectorOfDownsamplingProbabilities(params.getParameterString("prob"), downSampleProbVector);
+	if(downSampleProbVector.size() < 1)
+		throw "No downsampling probabilities provided!";
 
 	//read how many replicates
 	int numProbs = downSampleProbVector.size();
-	int times = params.getParameterIntWithDefault("times", 1);
-	if(times > 1 && numProbs > 1) throw "Replicated downsampling is not implemented for more than one prob";
-	if(times > 1) numProbs = times;
 
 	//check if probs are between 0 and 1, save in array and print them
-	double* downSampleProb = new double[numProbs];
-	logfile->listFlush("Will accept reads with probabilities (parameter 'prob'):");
-	bool first = true;
-	int i=0;
-	if(times == 1){
-		for(std::vector<double>::iterator it=downSampleProbVector.begin(); it!=downSampleProbVector.end(); ++it, ++i){
-			if(first) first = false;
-			else logfile->flush(",");
-			logfile->flush(" " + toString(*it));
-			if(*it <= 0.0 || *it > 1.0) throw "All probabilities have to be between  0 and 1!";
-			if(*it == 1.0) logfile->warning("Probability of 1 will result in identical file");
-			if(*it == 0.0) logfile->warning("Probability of 0 will result in empty file");
-			downSampleProb[i] = *it;
-		}
-	} else {
-		for(int i=0; i<times; ++i){
-			downSampleProb[i] = *(downSampleProbVector.begin());
-		}
-	}
-	logfile->newLine();
+	logfile->list("Will accept reads with probabilities (parameter 'prob'): " + concatenateString(downSampleProbVector, ", "));
+	if(*downSampleProbVector.begin() == 1.0) logfile->warning("Probability of 1 will result in identical file!");
 
 	//open bam files for writing
 	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
 	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->startIndent("Writing results to the following files:");
-	if(times > 1){
-		for(i=0; i<numProbs; ++i){
-			//construct and print filename
-			std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + "_" + toString(i) + ".bam";
-			logfile->list(filename);
-			//open file
-			if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
-		}
-	} else {
-		for(i=0; i<numProbs; ++i){
-			//construct and print filename
-			std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
-			logfile->list(filename);
-			//open file
-			if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
-		}
+
+	for(int i=0; i<numProbs; ++i){
+		//construct and print filename
+		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
+		logfile->list(filename);
+		//open file
+		if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
 	}
 	logfile->endIndent();
 
@@ -2033,7 +2005,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 		++counter;
 
 		//accept read or not?
-		for(i=0; i<numProbs; ++i){
+		for(int i=0; i<numProbs; ++i){
 			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
 				continue;
@@ -2041,7 +2013,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
-				if(r < downSampleProb[i]){
+				if(r < downSampleProbVector[i]){
 					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 					if(alignment.isProperPair)
 						keep.addToReadList(alignment, "passed downsampling");
@@ -2058,10 +2030,10 @@ void TGenome::downSampleBamFile(TParameters & params){
 	}
 
 	//close bam writer and clean up memory
-	for(i=0; i<numProbs; ++i){
+	for(int i=0; i<numProbs; ++i){
 		bamWriter[i].Close();
 
-		std::string filename = outputName + "_downsampled_" + toString(downSampleProb[i]) + ".bam";
+		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
 
 		//create index of new bam file
 		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
@@ -2076,7 +2048,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 		reader.Close();
 		logfile->done();
 	}
-	delete[] downSampleProb;
+
 	delete[] bamWriter;
 
 	//report end

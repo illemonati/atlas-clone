@@ -56,7 +56,7 @@ public:
 	//theta estimation
 	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
 	void estimateTheta(TParameters & params);
-	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out);
+	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool printAll);
 	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool onlyReadData, int numBootstraps);
 	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
 	void calcThetaLikelihoodSurfaces(TParameters & params);

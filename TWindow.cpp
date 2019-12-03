@@ -65,7 +65,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth,
 	setCoordinates(other.start, other.end, other.chrNumber);
 
 	//fill sites by downsampling
-	other.fillSitesDownsampling(sites, readUpToDepth, downsamplingProb, randomGenerator);
+	numReadsInWindow = other.fillSitesDownsampling(sites, readUpToDepth, downsamplingProb, randomGenerator);
 
 	//calc depth
 	calcDepth();
@@ -76,7 +76,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset* subset, con
 	setCoordinates(other.start, other.end, other.chrNumber);
 
 	//fill sites by downsampling
-	other.fillSitesSubsetDownsampling(sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
+	numReadsInWindow = other.fillSitesSubsetDownsampling(sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
 
 	//calc depth
 	calcDepth();
@@ -693,8 +693,6 @@ int TWindow::fillSites(TSite* theseSites, const int & readUpToDepth){
 	int firstPos, p, internalPos;
 	int counter = 0;
 	for(TAlignment* alignmentIt : usedAlignments){
-		checkAlignmentForFillingSites(alignmentIt);
-
 		//now fill
 		fillSites(alignmentIt, theseSites, readUpToDepth);
 		++counter;
@@ -707,8 +705,6 @@ int TWindow::fillSitesDownsampling(TSite* theseSites, const int & readUpToDepth,
 	int firstPos, p, internalPos;
 	int counter = 0;
 	for(TAlignment* alignmentIt : usedAlignments){
-		checkAlignmentForFillingSites(alignmentIt);
-
 		//fill if alignment is to be used
 		if(randomGenerator->getRand() < downsamplingProb){
 			fillSites(alignmentIt, theseSites, readUpToDepth);
@@ -752,8 +748,6 @@ int TWindow::fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const int &
 	int firstPos, p, internalPos;
 	int counter = 0;
 	for(TAlignment* alignmentIt : usedAlignments){
-		checkAlignmentForFillingSites(alignmentIt);
-
 		//genomic position of alignment as seen from window perspective
 		setFirstPositionWithinWindow(alignmentIt, firstPos, p);
 
@@ -771,8 +765,6 @@ int TWindow::fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset,
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
 	for(TAlignment* alignmentIt : usedAlignments){
-		checkAlignmentForFillingSites(alignmentIt);
-
 		//check if alignment is to be used
 		if(randomGenerator->getRand() < downsamplingProb){
 			//now fill

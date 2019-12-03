@@ -993,10 +993,13 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 };
 
 void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	//downsample
+	logfile->listFlush("Downsampling reads with p = " + toString(downsamplingProb) + " ...");
 	if(sitesProvided)
 		destination.downsampleFromOther(source, subset, readUpToDepth, downsamplingProb, randomGenerator);
 	else
 		destination.downsampleFromOther(source, readUpToDepth, downsamplingProb, randomGenerator);
+	logfile->done();
 
 	//apply filters
 	applyWindowFilters(destination);
