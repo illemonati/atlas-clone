@@ -53,6 +53,9 @@ TAlignmentParser::TAlignmentParser(){
 	_keepFailedQC = false;
 	_keepSecondary = false;
 	_keepSupplementary = false;
+	applyFragmentLengthFilter = false;
+	minFragmentLength = -1;
+	maxFragmentLength = -1;
 	_parse = false;
 	previousAlignmentPos = -1;
 	previousAlignmentChr = -1;

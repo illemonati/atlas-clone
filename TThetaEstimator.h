@@ -240,6 +240,7 @@ public:
 		logfile->list("Will write theta estimates to file '" + filename + "'.");
 		out.open(filename.c_str());
 		if(!out) throw "Failed to open file '" + filename + "' for writing!";
+		fileOpen = true;
 
 		//write header
 		out << "Chr\t";
