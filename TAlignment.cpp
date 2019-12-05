@@ -638,7 +638,7 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 };
 
-void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
+void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, int & S_combined, int & len, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
 	//count S, not S, S pattern from cigar string
 	S_left = 0;
 	S_right = 0;
@@ -646,6 +646,7 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 	S_string_left = "";
 	S_string_middle = "";
 	S_string_right = "";
+	S_combined = 0;
 	bool reachedMiddle = false;
 
 	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
@@ -666,6 +667,11 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
 					S_string_left += bamAlignment.QueryBases[p];
 			}
+			// count all SC bases of read
+			S_combined = S_left + S_right;
+			len = bamAlignment.QueryBases.size();
+
+
 		} else {
 			if(cigarIter->Type == 'D')
 				continue;
@@ -676,6 +682,8 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 				S_qualities_middle += bamAlignment.QueryBases[p];
 			}
 		}
+
+
 	}
 
 	//return "-" if string is empty
@@ -688,9 +696,8 @@ void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, s
 	}
 };
 
-void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
-
+void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, int & S_combined, int & len ,std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
+	assessSoftClipping(S_left, middle, S_right, S_combined, len, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
 	if(S_left + S_right > 0){
 
 

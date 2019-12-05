@@ -1030,10 +1030,31 @@ void TGenome::assessSoftClipping(TParameters & params){
 	else
 		out << "Read\tposition\tnClippedLeft\tnNotClipped\tnClippedRight\n";
 
+
+	//open table file
+	std::string tablename = outputName + "_clippingStats_matrix.txt";
+	TOutputFileZipped tab(tablename);
+
+	//create header for table file
+	std::vector<std::string> thisReadLength = {"SC-bases/fragment_length"};
+	for(int i=0; i < maxReadLength; ++i){
+		thisReadLength.push_back(toString(i));
+	}
+
+	//make matrix
+	int** matrixCount = new int*[maxReadLength]();
+	int rowNR = maxReadLength;
+	for(int i=0; i < maxReadLength; ++i){
+		matrixCount[i] =  new int[rowNR];
+    	for(int j=0; j<rowNR; ++j)
+    		matrixCount[i][j]=0;
+    }
+
+
 	//other temp variables
 	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
+	int S_left, S_right, middle, S_combined, len;
+	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right, S_string_combined;
 	TGenotypeMap genoMap;
 	long counter = 0;
 
@@ -1044,8 +1065,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
-
+		alignment.assessSoftClipping(S_left, middle, S_right, S_combined,len, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
 		//report
 		if(S_left + S_right > 0 || printAll){
 			out << alignment.name() << "\t";
@@ -1058,20 +1078,34 @@ void TGenome::assessSoftClipping(TParameters & params){
 			if(printSequences) out	<< S_string_right << "\n";
 			if(!printSequences) out << "\n";
 		}
+		//add count to matrix
+		++matrixCount[len][S_combined];
 
 		//report
 		++counter;
 		reportProgressParsingBamFile(counter, start);
+		out.close();
 	}
 
-	//close output file
+	//write counts to table
+//??
+	tab.writeHeader(thisReadLength);
+	tab << matrixCount;
+
+	//close output files
 	out.close();
+	tab.close();
 
 	//report
 	reportProgressParsingBamFile(counter, start);
 	logfile->list("Reached end of BAM file!");
 	logfile->removeIndent();
+
+
+	delete[] matrixCount;
 }
+
+
 
 void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	//open a bam file for writing
@@ -1085,7 +1119,7 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	//other temp variables
 	TAlignment alignment;
 	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
+	int S_left, S_right, middle, S_combined, len;
 	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
 	TGenotypeMap genoMap;
 	long counter = 0;
@@ -1099,7 +1133,7 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
-		alignment.removeSoftClippedBases(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+		alignment.removeSoftClippedBases(S_left, middle, S_right, S_combined, len, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
 
 		//write
 		bamWriter.SaveAlignment(alignment.bamAlignment);
