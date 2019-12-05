@@ -101,7 +101,9 @@ void TWindow_base::initSites(long newLength){
 		} catch(...){
 			throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size or selecting fewer sites.";
 		}
-	} else sites = NULL;
+	} else {
+		sites = nullptr;
+	}
 
 	sitesInitialized = true;
 	depth = -1.0;
@@ -656,9 +658,9 @@ void TWindow::setFirstPositionWithinWindow(TAlignment* alignmentIt, int & firstP
 
 	//is the beginning of the read part of previous window? increase starting p for adding bases!
 	if(firstPos < 0){
-		while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0)
+		while(p < alignmentIt->length && (firstPos + alignmentIt->bases[p].alignedPos) < 0){
 			++p;
-		if(p == alignmentIt->length){
+		} if(p == alignmentIt->length){
 			throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 		}
 	}
