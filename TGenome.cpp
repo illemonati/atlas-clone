@@ -119,7 +119,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		if(window.passedFilters){
+		if(window.passedFilters || printAll){
 			//measure runtime
 			struct timeval startTime, endTime;
 			gettimeofday(&startTime, NULL);
