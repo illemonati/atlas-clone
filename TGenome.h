@@ -23,6 +23,7 @@
 #include <algorithm>
 #include "TAlignmentMerger.h"
 #include "TGLF.h"
+#include "TSoftClipping.h"
 
 //---------------------------------------------------------------
 //TGenome

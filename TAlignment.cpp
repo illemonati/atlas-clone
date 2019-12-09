@@ -638,69 +638,9 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 };
 
-void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, int & S_combined, int & len, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	//count S, not S, S pattern from cigar string
-	S_left = 0;
-	S_right = 0;
-	middle = 0;
-	S_string_left = "";
-	S_string_middle = "";
-	S_string_right = "";
-	S_combined = 0;
-	bool reachedMiddle = false;
-
-	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
-	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
-
-	//position in read, i is position in cigar type
-	int p = 0;
-
-	for(; cigarIter != cigarEnd; ++cigarIter ){
-		if(cigarIter->Type == 'S'){
-			if(reachedMiddle){
-				S_right += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
-					S_string_right += bamAlignment.QueryBases[p];
-			}
-			else{
-				S_left += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
-					S_string_left += bamAlignment.QueryBases[p];
-			}
-			// count all SC bases of read
-			S_combined = S_left + S_right;
-			len = bamAlignment.QueryBases.size();
-
-
-		} else {
-			if(cigarIter->Type == 'D')
-				continue;
-			reachedMiddle = true;
-			middle += cigarIter->Length;
-			for(unsigned int i=0; i<cigarIter->Length; ++i, ++p){
-				S_string_middle += bamAlignment.QueryBases[p];
-				S_qualities_middle += bamAlignment.QueryBases[p];
-			}
-		}
-
-
-	}
-
-	//return "-" if string is empty
-	if(S_left == 0)
-		S_string_left = "-";
-	if(middle == 0)
-		S_string_middle = "-";
-	if(S_right == 0){
-		S_string_right = "-";
-	}
-};
-
-void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, int & S_combined, int & len ,std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	assessSoftClipping(S_left, middle, S_right, S_combined, len, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
-	if(S_left + S_right > 0){
-
-
+void TAlignment::removeSoftClippedBases(TSoftClippingData & softClippingData){
+	//check if there is softclipping
+	if(softClippingData.softClippingLength > 0){
 		//adapt CIGAR string
 		std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 		std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
@@ -729,6 +669,7 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 				case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR, op.Length));
 						break;
+				// for 'S': ignore
 				case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 						break;
 				// for 'H' - hard clip: do nothing as these bases are not present in SEQ
@@ -741,8 +682,8 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 			}
 		}
 
-		bamAlignment.QueryBases = S_string_middle;
-		bamAlignment.Qualities = S_qualities_middle;
+		bamAlignment.QueryBases = softClippingData.middleBases;
+		bamAlignment.Qualities = softClippingData.middleQualities;
 	}
 
 	changed = true;
