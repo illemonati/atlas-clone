@@ -114,6 +114,8 @@ private:
 	long limitWindows;
 	int skipWindows;
 	int indexOfLimitChr;
+	bool doLimitReads;
+	long limitReads;
 //	bool* useChromosome;
 
 	//contructor functions
@@ -123,7 +125,7 @@ private:
 	void setMasks(TParameters & params);
 	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
-	void setChrAndWindowLimits(TParameters & params);
+	void setParsingLimits(TParameters & params);
 	void setChrPloidy(TParameters & params);
 
 	//move genome

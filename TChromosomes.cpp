@@ -30,13 +30,16 @@ TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
 	curChrIterator = bamHeader->Sequences.End();
 };
 
-void TChromosomes::limitChr(std::string & limitName){
+int TChromosomes::limitChr(std::string & limitName){
 	if(nameMap.find(limitName) == nameMap.end())
 		throw "Chromosome limit not found in BAM header!";
 	int limitIndex = nameMap.find(limitName)->second;
 	for(int i = limitIndex + 1; i<numChromosomes; ++i){
 		isInUse[i] = false;
 	}
+
+	//return index of limiting chromosome
+	return limitIndex + 1;
 }
 
 void TChromosomes::useSpecifiedChr(std::vector<std::string> & chrNames, TLog* logfile){

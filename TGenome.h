@@ -74,8 +74,6 @@ public:
 	//other
 	void writeGLF(TParameters & params);
 	void printPileup(TParameters & params);
-	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
-	void reportProgressParsingBamFileNoCheck(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 	void assessSoftClipping(TParameters & params);

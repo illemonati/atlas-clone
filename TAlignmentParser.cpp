@@ -112,6 +112,8 @@ TAlignmentParser::TAlignmentParser(){
 	limitWindows = -1;
 	skipWindows = 0;
 	indexOfLimitChr = -1;
+	doLimitReads = false;
+	limitReads = -1;
 
 	//reference
 	hasReference = false;
@@ -177,7 +179,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	//settings
 	setWindowParameters(params);
-	setChrAndWindowLimits(params);
+	setParsingLimits(params);
 	setMasks(params);
 	setFilters(params);
 	setChrPloidy(params);
@@ -497,7 +499,8 @@ void TAlignmentParser::initializeReadGroups(TParameters & params){
 	}
 };
 
-void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
+void TAlignmentParser::setParsingLimits(TParameters & params){
+	//Limit chromosomes
 	if(params.parameterExists("chr")){
 		//parse chromosome names
 		std::vector<std::string> vec;
@@ -507,11 +510,11 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 		if(params.parameterExists("limitChr")){
 			std::string limitName = params.getParameterString("limitChr");
 			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName + ". (parameter 'limitChr')");
-			chromosomes.limitChr(limitName);
-			indexOfLimitChr = chromosomes.getIndexFromName(limitName) + 1;
+			indexOfLimitChr = chromosomes.limitChr(limitName);
 		}
 	}
 
+	//limit windows
 	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
 	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome. (parameter 'skipWindows')");
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
@@ -519,6 +522,13 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 		logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome. (parameter 'limitWindows')");
 	if(limitWindows <= skipWindows)
 		throw "limitWindows has to be larger than skipWindows!";
+
+	//limit reads
+	if(params.parameterExists("limitReads")){
+		doLimitReads = true;
+		limitReads = params.getParameterLong("limitReads");
+		logfile->list("Will limit analysis to " + toString(limitReads) + " reads.");
+	}
 };
 
 void TAlignmentParser::setChrPloidy(TParameters & params){
@@ -786,6 +796,9 @@ bool TAlignmentParser::readAlignment(){
 	bool filtersPassed = false;
 	do {
 		if(!bamReader.GetNextAlignment(bamAlignment)){
+			return false;
+		}
+		if(doLimitReads && totalNumberAlignmentsRead > limitReads){
 			return false;
 		}
 		++totalNumberAlignmentsRead;
@@ -1296,8 +1309,7 @@ void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment,
 			}
 		}
 	}
-}
-
+};
 
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	//deletions and insertions are kept as is. these positions are not compared
@@ -1327,7 +1339,7 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 			}
 		}
 	}
-}
+};
 
 //-----------------------------------------------------
 // TBamProgressReporter
