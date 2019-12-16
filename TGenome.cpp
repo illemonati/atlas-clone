@@ -1557,34 +1557,39 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 
 		//parse line
 		if(!vec.empty()){
-			if(vec.size() != 3 && vec.size() != 2)
-				throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
-
 			if(readGroupsToIgnore.size() == 0 || readGroupsToIgnore.find(vec[0]) == readGroupsToIgnore.end()){
 				//get RG info
 				std::string sequencingType = vec[1];
-				int len = stringToInt(vec[2]);
-				if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 				int readGroupId = alignmentParser.readGroups.find(vec[0]);
 
 				//add needed new RG
 				if(sequencingType == "paired"){
+					if(vec.size() != 2)
+						throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
 					paired.push_back(vec[0]);
 					RGSettings.emplace(readGroupId, TReadGroupMaxLength(-1, readGroupId, vec[0], 2));
 
 				} else if(sequencingType == "mixed"){
+					if(vec.size() != 3)
+						throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
 					std::string readGroupTruncated = vec[0] + "_truncated";
 					mixed.push_back(vec[0]);
 					mixed.push_back(readGroupTruncated);
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
 					int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
+					int len = stringToInt(vec[2]);
+					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 					RGSettings.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 1));
 
 				} else if(sequencingType == "single"){
+					if(vec.size() != 3)
+						throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + readGroupSettingsFile + "'!";
 					std::string readGroupTruncated = vec[0] + "_truncated";
 					single.push_back(vec[0]);
 					single.push_back(readGroupTruncated);
 					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
+					int len = stringToInt(vec[2]);
+					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 					RGSettings.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 0));
 
 				} else {

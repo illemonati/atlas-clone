@@ -819,7 +819,6 @@ bool TAlignmentParser::readAlignment(){
 		if(bamAlignment.IsPaired() && applyFragmentLengthLongerThanInsertSizeFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 			if(_updateBlacklist){
 				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
-				filtersPassed = false;
 			} else {
 				logfile->warning("The following alignment is longer than its insert size: " + bamAlignment.Name);
 			}
