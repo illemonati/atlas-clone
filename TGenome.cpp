@@ -1592,7 +1592,6 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					single.push_back(vec[0]);
 					single.push_back(readGroupTruncated);
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
-					std::cout << "!!!! added truncated rg " << readGroupTruncated << std::endl;
 
 					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
 					int len = stringToInt(vec[2]);
