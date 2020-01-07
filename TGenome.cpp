@@ -23,9 +23,10 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
 	if(outputName == ""){
-		//guess from filename
+		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
+		alignmentParser.setOutName(outputName);
 	}
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
@@ -993,6 +994,10 @@ void TGenome::reportProgressParsingBamFileNoCheck(const long & counter, const st
 	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
 }
 
+//---------------------------------------------------
+//BAM manipulation / statistics
+//---------------------------------------------------
+
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
@@ -1110,9 +1115,7 @@ void TGenome::binQualityScores(TParameters & params){
 	logfile->removeIndent();
 }
 
-//---------------------------------------------------
-//BAM manipulation / statistics
-//---------------------------------------------------
+
 void TGenome::assessSoftClipping(TParameters & params){
 	//build table ??
 
@@ -1576,6 +1579,8 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					mixed.push_back(vec[0]);
 					mixed.push_back(readGroupTruncated);
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
+					std::cout << "added truncated rg " << readGroupTruncated << std::endl;
+
 					int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
 					int len = stringToInt(vec[2]);
 					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
@@ -1587,6 +1592,7 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					std::string readGroupTruncated = vec[0] + "_truncated";
 					single.push_back(vec[0]);
 					single.push_back(readGroupTruncated);
+					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
 					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
 					int len = stringToInt(vec[2]);
 					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
