@@ -1592,6 +1592,8 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					single.push_back(vec[0]);
 					single.push_back(readGroupTruncated);
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
+					std::cout << "!!!! added truncated rg " << readGroupTruncated << std::endl;
+
 					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
 					int len = stringToInt(vec[2]);
 					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
@@ -1774,6 +1776,13 @@ void TGenome::splitMerge(TParameters & params){
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
 
+	if(alignmentParser.hasPMD)
+		logfile->warning("PMD is given but not relevant for read merging.");
+
+	//which read groups are paired-end?
+	std::map<int, TReadGroupMaxLength> RGSettings;
+	parseSplitMergeReadGroupSettings(params, RGSettings);
+
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_mergedReads.bam";
@@ -1782,12 +1791,6 @@ void TGenome::splitMerge(TParameters & params){
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	if(alignmentParser.hasPMD)
-		logfile->warning("PMD is given but not relevant for read merging.");
-
-	//which read groups are paired-end?
-	std::map<int, TReadGroupMaxLength> RGSettings;
-	parseSplitMergeReadGroupSettings(params, RGSettings);
 
 	//create alignment storage
 	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
