@@ -160,15 +160,15 @@ void TSoftClippingMatrixStorage::write(std::string filename){
 	TOutputFilePlain out(filename);
 
 	//write header
-	std::vector<std::string> header = {"readLength / softClippedLength"};
+	std::vector<std::string> header = {"readLength"};
 	for(int i=0; i <= maxLengthForWriting; ++i){
-		header.push_back(toString(i));
+		header.push_back("softClippedLength_" + toString(i));
 	}
 	out.writeHeader(header);
 
 	//write counts
-	for(int i=0; i < maxLengthForWriting; ++i){
-		out << i+1;
+	for(int i=1; i < maxLengthForWriting; ++i){
+		out << i;
 
 		for(int j=0; j<(i+1); ++j){
 			out << _counts[i][j];
