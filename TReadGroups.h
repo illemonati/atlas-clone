@@ -51,7 +51,7 @@ public:
 class TReadGroups{
 private:
 	readGroup* groups;
-	int numGroups;
+	size_t numGroups;
 	bool initialized;
 	bool limitReadGroups;
 	bool* inUse;
@@ -65,10 +65,11 @@ public:
 
 	int find(BamTools::BamAlignment & alignment);
 	bool readGroupExists(std::string & name);
-	bool readGroupInUse(int & readGroupId);
+	bool readGroupInUse(const int & readGroupId);
+	bool readGroupInUse(const size_t & readGroupId);
 	bool readGroupInUse(BamTools::BamAlignment & alignment);
 	std::string getName(int readGroupId);
-	unsigned int size();
+	size_t size();
 	void filterReadGroups(std::string readGroupList);
 	void printReadgroupsInUse(TLog* logfile);
 	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);

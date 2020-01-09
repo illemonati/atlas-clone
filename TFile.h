@@ -23,6 +23,8 @@ public:
 		_isOpen = false;
 		_lineNum = 0;
 	};
+
+	bool isOpen(){ return _isOpen; };
 };
 
 class TInputFile:public TFile{

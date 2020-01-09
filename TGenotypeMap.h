@@ -180,7 +180,6 @@ public:
 		delete[] alleleicCombinationToGenotypes;
 	};
 
-	//TODO: also make an array to speed up?
 	Base getBase(const char base){
 		if(base == 'A') return A;
 		if(base == 'C') return C;

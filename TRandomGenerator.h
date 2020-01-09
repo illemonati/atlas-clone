@@ -69,6 +69,8 @@ public:
 	int pickOne(int numElements, float* probsCumulative);
 	int pickOne(int numElements, double* probsCumulative);
 	long getRand(long min, long maxPlusOne);
+	char getRandomAlphaNumerichCharacter();
+	std::string getRandomAlphaNumericString(const int length);
 
 	void shuffle(std::vector<int> & vec);
 

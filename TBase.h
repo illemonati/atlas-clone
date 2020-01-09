@@ -40,21 +40,21 @@ class TBase{
 public:
 	Base base;
 	double errorRate;
-	//int posInRead;
 	int distFrom5Prime; //zero based!
 	int distFrom3Prime; //zero based!
 	double PMD_CT, PMD_GA;
 	uint16_t readGroup;
 	BaseContext context;
 	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
-	int alignedPos;
+	int alignedPos; //takes value -1 when base is not aligned
 	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
-	bool isReverseStrand;
+	bool isReverseStrand; //TODO: group three bool into one uint8_t to save two bytes.
+	uint16_t mappingQuality;
+	uint16_t fragmentLength;
 
 	TBase(){
 		base = N;
 		errorRate = -1.0;
-		//posInRead = -1;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
 		PMD_CT = -1.0;
@@ -62,15 +62,16 @@ public:
 		readGroup = -1;
 		context = cNN;
 		aligned = false;
-		alignedPos = -1;
+		alignedPos = 0;
 		isSecondMate = false;
 		isReverseStrand = false;
-	}
+		mappingQuality = 0;
+		fragmentLength = 0;
+	};
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, int & AlignedPos, bool & IsSecond, bool & IsReverseStrand){
+	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, uint16_t & AlignedPos, bool & IsSecond, bool & IsReverseStrand, uint8_t & MappingQuality, uint16_t & FragmentLength){
 		base = Base;
 		errorRate = ErrorRate;
-		//posInRead = PosInRead;
 		distFrom5Prime = DistFrom5Prime;
 		distFrom3Prime = DistFrom3Prime;
 		PMD_CT = thisPMD_CT;
@@ -81,6 +82,8 @@ public:
 		alignedPos = AlignedPos;
 		isSecondMate = IsSecond;
 		isReverseStrand = IsReverseStrand;
+		mappingQuality = MappingQuality;
+		fragmentLength = FragmentLength;
 	};
 
 	~TBase(){};

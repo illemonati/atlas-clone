@@ -679,7 +679,7 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 	std::string outName = _name + "_RGSpecs.txt";
 	out.open(outName.c_str());
 	if(!out) throw "Failed to open file '" + outName + "'!";
-	out << readGroupName << "\tpaired" << "\t" << 500 << std::endl;
+	out << readGroupName << "\tpaired"  << std::endl;
 	out << readGroupName + "_single" << "\tsingle" << "\t" << 102 << std::endl;
 	out.close();
 
@@ -691,6 +691,7 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 };
 
 bool TAtlasTest_mergeSplitPairs::run(){
+	//TODO: add function to test header
 	//1) create a bam and fasta file with known pileup results
 	//----------------------------------------------
 	writeBAM();

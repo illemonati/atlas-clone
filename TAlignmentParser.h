@@ -99,9 +99,9 @@ private:
 	int minPhredInt, maxPhredInt;
 	bool applyMQFilter;
 	int minMQ, maxMQ;
-
 	bool applyFragmentLengthFilter;
-	//bool keepOnlyFwd, keepOnlyRev;
+	int minFragmentLength, maxFragmentLength;
+	bool applyFragmentLengthLongerThanInsertSizeFilter;
 	bool useStrand[2];
 	bool useMate[2];
 
@@ -121,18 +121,18 @@ private:
 	void setWindowParameters(TParameters & params);
 	void setFilters(TParameters & params);
 	void setMasks(TParameters & params);
-	void initializeSiteSubset(TParameters & params);
+//	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
 	void setChrAndWindowLimits(TParameters & params);
 	void setChrPloidy(TParameters & params);
 
 	//move genome
 	void jumpToEnd();
-	void restartChromosomes(TWindow & window);
-	void moveChromosome(TWindow & window);
-	bool moveToNextWindowOnChr(TWindow & window);
-	bool moveToNextPredefinedWindow(TWindow & window);
-	bool moveWindow(TWindow & window);
+	void restartChromosomes(TWindow_base & window);
+	void moveChromosome(TWindow_base & window);
+	bool moveToNextWindowOnChr(TWindow_base & window);
+	bool moveToNextPredefinedWindow(TWindow_base & window);
+	bool moveWindow(TWindow_base & window);
 
 	PMDType getEnumPMDType(std::string pmdType);
 	void initializePostMortemDamage(TParameters & params);
@@ -140,9 +140,9 @@ private:
 
 	bool readAlignment();
 	bool applyFilters();
-	void fillAlignment(TAlignment & alignment);
+	bool fillAlignment(TAlignment & alignment);
 	void readAlignmentsIntoWindow(TWindow & window);
-	void applyWindowFilters(TWindow & window);
+	void applyWindowFilters(TWindow_base & window);
 	void adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
 
 public:
@@ -211,7 +211,8 @@ public:
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setContextFilter(std::vector<std::string> contexts);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
-	void setApplyFragmentLengthFilter(bool filterYesNo);
+	void setApplyFragmentLengthLongerThanInsertSizeFilter(bool filterYesNo);
+	void setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
 
 	void keepDuplicates(){_keepDuplicates = true;};
 	void filterSoftClips(){_filterSoftClips = true;};
@@ -299,6 +300,7 @@ public:
 
 	//reading data requires windows
 	bool readDataInNextWindow(TWindow & window);
+	void downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	//reading data only requires alignments
 	bool readNextAlignment(TAlignment & alignment); //to be used to go through bam file alignment by alignment

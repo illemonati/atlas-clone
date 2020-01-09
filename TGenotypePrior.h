@@ -46,8 +46,8 @@ private:
 	bool equalBaseFreq;
 
 public:
-	TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog* logfile){
-		thetaEstimator = new TThetaEstimator(logfile);
+	TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog* logfile, TRandomGenerator* randomGenerator){
+		thetaEstimator = new TThetaEstimator(logfile, randomGenerator);
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if(equalBaseFreq){
@@ -82,25 +82,25 @@ private:
 	double defaultTheta;
 	bool hasDefaultTheta;
 
-	void init(TParameters & parameters, std::string & thetaOutputName, TLog* Logfile){
+	void init(TParameters & parameters, std::string & thetaOutputName, TLog* Logfile, TRandomGenerator* randomGenerator){
 		logfile = Logfile;
-		thetaEstimator = new TThetaEstimator(parameters, logfile);
-		out.open(thetaOutputName, thetaEstimator, logfile);
+		thetaEstimator = new TThetaEstimator(parameters, logfile, randomGenerator);
+		out.open(thetaEstimator, thetaOutputName, logfile);
 	};
 
 public:
-	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, TLog* logfile){
+	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, TLog* logfile, TRandomGenerator* randomGenerator){
 		hasDefaultTheta = false;
 		defaultTheta = -1.0;
 
-		init(parameters, thetaOutputName, logfile);
+		init(parameters, thetaOutputName, logfile, randomGenerator);
 	};
 
-	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, double DefaultTheta, TLog* logfile){
+	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, double DefaultTheta, TLog* logfile, TRandomGenerator* randomGenerator){
 		hasDefaultTheta = true;
 		defaultTheta = DefaultTheta;
 		if(defaultTheta < 0.0) throw "Theta must be >= 0.0!";
-		init(parameters, thetaOutputName, logfile);	};
+		init(parameters, thetaOutputName, logfile, randomGenerator);	};
 
 	~TGenotypePriorTheta(){
 		out.close();
@@ -130,7 +130,7 @@ public:
 		}
 
 		//write results to file
-		out.writeWindow(window->chrName, window->start, window->end, thetaEstimator);
+		out.write(window->chrName, window->start, window->end);
 		logfile->endIndent();
 	};
 };
