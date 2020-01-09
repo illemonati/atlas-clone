@@ -156,7 +156,6 @@ bool TSiteSubsetChr::hasPositionsInWindow(const long & windowStart){
 };
 
 std::map<long,std::pair<char,char> >& TSiteSubsetChr::getPositionInWindow(const long & windowStart){
-	std::cout << "windowStart " << windowStart << std::endl;
 	findWindow(windowStart);
 	if(windowIt == windows.end()) throw "TSiteSubset Error: window '" + toString(windowStart) + "' does not exist!";
 	return windowIt->second->positions;
