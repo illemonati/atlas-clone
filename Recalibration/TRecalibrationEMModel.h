@@ -9,6 +9,7 @@
 #define TRECALIBRATIONEMMODEL_H_
 
 #include "TRecalibrationEMAuxiliaryTools.h"
+#include "TRecalibrationEMModule.h"
 #include "../TFile.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
@@ -23,6 +24,68 @@
 #define qualFuncPosSpecificContextNew_name "qualFuncPosSpecificContextNew"
 #define qualSpecificPosSpecific_name "qualSpecificPosSpecific"
 #define qualSpecificPosSpecificContext_name "qualSpecificPosSpecificContext"
+
+
+//--------------------------------------------------------------------
+// TRecalibrationEMModel
+//--------------------------------------------------------------------
+
+class TRecalibrationEMModelNEW{
+private:
+	unsigned int _numParameters;
+	TRecalibrationEMQualityPositionMap _qualPosMap;
+	TLog* logfile;
+	bool doRecal;
+
+	//intercept
+	TRecalibrationEMModule_intercept intercept;
+
+	//modules for quality, position and context
+	TRecalibrationEMModule* quality;
+	TRecalibrationEMModule* position;
+	TRecalibrationEMModule* context;
+
+
+	double* _betas; //betas of the model
+	double* _oldBetas; //use during estimation
+	bool _initialized;
+
+	//Newton Raphson Parameters
+	double _Q, _oldQ;
+	arma::mat Jacobian;
+	arma::vec F;
+	arma::mat JxF;
+	unsigned int _numSitesAdded;
+	bool _NRconverged;
+	bool _NRStepAccepted;
+
+	double _calcEpsilon(double & eta);
+	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
+
+public:
+	TRecalibrationEMModelNEW();
+	~TRecalibrationEMModelNEW();
+
+	int numParameters(){ return _numParameters; };
+	void setEMParamsToZero();
+
+	void setQToZero();
+	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
+	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
+	double curQ(){ return _Q; };
+	bool solveJxF();
+	void proposeNewParameters(double & lambda);
+	bool acceptProposedParametersBasedOnQ();
+	void rejectProposedParameters();
+
+	double getSteepestGradient();
+	void printJacobianToStdOut();
+	void printFToStdOut();
+	void printJxFToStdOut();
+
+
+};
+
 
 
 //--------------------------------------------------------------------

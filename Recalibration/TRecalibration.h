@@ -11,9 +11,9 @@
 #include "../bamtools/api/BamReader.h"
 #include "../TSite.h"
 #include <omp.h>
+#include <TRecalibrationEMModel.h>
 #include "../bamtools/api/SamHeader.h"
 #include "../TQualityMap.h"
-#include "TRecalibrationEMModel.h"
 
 //---------------------------------------------------------------
 //TRecalibration: default = no recalibration

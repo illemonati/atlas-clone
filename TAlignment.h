@@ -49,7 +49,6 @@ private:
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
-	int* qualityOriginal; //Note: quality is char as int: quality = (int) bam.quality
 	int numInsertions;
 	int numDeletions;
 	uint8_t softClippedEntry; //0 means start, 1 means end of read
@@ -64,6 +63,7 @@ private:
 
 	//functions to read and parse
 	void setDistancesFromEnds();
+	void copyDataToBase(TBase & base, const char baseAsChar, const char qualAsChar, TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void fillContext(TGenotypeMap & genoMap);
 	void fillPmdProbabilities(TPMD* pmdObjects);
@@ -101,7 +101,7 @@ public:
 	void setAlignmentHasChanged(){ changed = true; };
 
 	//accessed by alignmentParser
-	void filterForBaseQuality(int & minQual, int & maxQual);
+	void filterForBaseQualityAsPhredInt(int & minQual, int & maxQual);
 	void filterForContext(std::map<BaseContext,int> ignoreTheseContexts);
 	void clear();
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);

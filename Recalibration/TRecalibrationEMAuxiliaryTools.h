@@ -84,7 +84,7 @@ public:
 //--------------------------------------------------------------------
 struct TRecalibrationEMReadData{
 	uint8_t quality;
-	uint8_t position;
+	uint16_t position;
 	float D[4];
 	uint8_t context;
 	uint16_t readGroup;

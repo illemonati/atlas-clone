@@ -39,9 +39,10 @@ public:
 class TBase{
 public:
 	Base base;
+	uint8_t qualityAsPhredInt; //Note: original quality as in BAM file, but transformed to phredInt
 	double errorRate;
-	int distFrom5Prime; //zero based!
-	int distFrom3Prime; //zero based!
+	uint16_t distFrom5Prime; //zero based!
+	uint16_t distFrom3Prime; //zero based!
 	double PMD_CT, PMD_GA;
 	uint16_t readGroup;
 	BaseContext context;
@@ -49,12 +50,13 @@ public:
 	int alignedPos; //takes value -1 when base is not aligned
 	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
 	bool isReverseStrand; //TODO: group three bool into one uint8_t to save two bytes.
-	uint16_t mappingQuality;
+	uint8_t mappingQuality;
 	uint16_t fragmentLength;
 
 	TBase(){
 		base = N;
 		errorRate = -1.0;
+		qualityAsPhredInt = 0;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
 		PMD_CT = -1.0;
@@ -69,8 +71,10 @@ public:
 		fragmentLength = 0;
 	};
 
-	TBase(Base & Base, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, uint16_t & AlignedPos, bool & IsSecond, bool & IsReverseStrand, uint8_t & MappingQuality, uint16_t & FragmentLength){
+	/*
+	TBase(Base & Base, uint8_t & QualityAsPhredInt, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, uint16_t & AlignedPos, bool & IsSecond, bool & IsReverseStrand, uint8_t & MappingQuality, uint16_t & FragmentLength){
 		base = Base;
+		qualityAsPhredInt = QualityAsPhredInt;
 		errorRate = ErrorRate;
 		distFrom5Prime = DistFrom5Prime;
 		distFrom3Prime = DistFrom3Prime;
@@ -85,6 +89,7 @@ public:
 		mappingQuality = MappingQuality;
 		fragmentLength = FragmentLength;
 	};
+	*/
 
 	~TBase(){};
 	void addToEmissionProb(double genotypeLikelihoods[10]);

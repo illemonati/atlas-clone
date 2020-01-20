@@ -100,6 +100,10 @@ public:
 		return phredInt + 33;
 	};
 
+	int qualityToPhredInt(int quality){
+		return quality - 33;
+	};
+
 	inline int errorToPhredInt(const double & errorRate){
 		return round(errorToPhred(errorRate));
 	};

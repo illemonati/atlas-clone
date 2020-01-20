@@ -18,6 +18,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp. (parameter 'maxReadLength')");
 
+	if(maxReadLength > )
+
 	alignmentParser.init(maxReadLength, params, logfile);
 
 	//outputname

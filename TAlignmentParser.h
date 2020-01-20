@@ -96,7 +96,7 @@ private:
 	bool applyContextFilter;
 	std::map<BaseContext,int> ignoreTheseContexts;
 	size_t readUpToDepth, minDepth, maxDepth;
-	int minPhredInt, maxPhredInt;
+	int minQualityAsPhredInt, maxQualityAsPhredInt;
 	bool applyMQFilter;
 	int minMQ, maxMQ;
 	bool applyFragmentLengthFilter;
@@ -149,7 +149,7 @@ public:
 	//alignment: goal is to make this private!
 	int curReadGroupID;
 	int minQualForPrinting, maxQualForPrinting;
-	int minQual, maxQual;
+	//int minQual, maxQual;
 	bool doMasking, considerRegions;
 	bool applyDepthFilter;
 	bool windowsPredefined;
@@ -200,7 +200,7 @@ public:
 	int numReadGroups(){ return readGroups.size(); };
 	std::string recalibrationType(){ return recalObject->type(); };
 	int getWindowSize(){return windowSize;};
-	int getMaxPhredInt(){return maxPhredInt;};
+	int getMaxPhredInt(){return maxQualityAsPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
 

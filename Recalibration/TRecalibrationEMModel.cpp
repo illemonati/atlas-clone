@@ -5,7 +5,208 @@
  *      Author: phaentu
  */
 
-#include "TRecalibrationEMModel.h"
+#include <TRecalibrationEMModel.h>
+
+//--------------------------------------------------------------------
+// TRecalibrationEMModel
+//--------------------------------------------------------------------
+
+void TRecalibrationEMModelNEW::setEMParamsToZero(){
+	Jacobian.resize(_numParameters, _numParameters);
+	F.resize(_numParameters);
+	JxF.resize(_numParameters, 1);
+
+	Jacobian.zeros();
+	F.zeros();
+
+	_numSitesAdded = 0;
+	_NRconverged = false;
+	_NRStepAccepted = false;
+};
+
+double TRecalibrationEMModelNEW::_calcEpsilon(double & eta){
+	if(eta > 23.03){
+		return 0.9999999999;
+	}
+	if(eta < -23.03){
+		return 0.0000000001;
+	}
+
+	eta = exp(eta);
+	return eta / (1.0 + eta);
+};
+
+double TRecalibrationEMModelNEW::getErrorRate(TBase & base){
+	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as modules
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+
+
+	double eta = intercept.getEtaTerm();
+
+	eta += quality->getEtaTerm(base.qualityAsPhredInt);
+	eta += position->getEtaTerm(base.distFrom5Prime);
+
+	//q[1] is square of transformed quality
+	eta += _betas[1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += _betas[2] * (double) base.distFrom5Prime;
+
+	//q[3] is square of position
+	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
+
+	//q[4]: fragment length. TODO: think about model!
+	eta += _betas[4] * base.fragmentLength;
+
+	//q[5]: fragment length. TODO: think about model!
+	eta += _betas[5] * base.fragmentLength;
+
+	//q[6] until q[25] are indicators for the context. Just pick the matching one!
+	eta += _betas[base.context + 6];
+
+//	std::cout << "_calcEpsilon(eta) " << _calcEpsilon(eta) << std::endl;
+	return _calcEpsilon(eta);
+};
+
+
+double TRecalibrationEMModelNEW::getErrorRate(TBase & base){
+	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+
+
+
+
+	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
+
+
+
+	double eta = _betas[0] * originalErrorRate;
+
+	//q[1] is square of transformed quality
+	eta += _betas[1] * originalErrorRate * originalErrorRate;
+
+	//q[2] is position
+	eta += _betas[2] * (double) base.distFrom5Prime;
+
+	//q[3] is square of position
+	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
+
+	//q[4]: fragment length. TODO: think about model!
+	eta += _betas[4] * base.fragmentLength;
+
+	//q[5]: fragment length. TODO: think about model!
+	eta += _betas[5] * base.fragmentLength;
+
+	//q[6] until q[25] are indicators for the context. Just pick the matching one!
+	eta += _betas[base.context + 6];
+
+//	std::cout << "_calcEpsilon(eta) " << _calcEpsilon(eta) << std::endl;
+	return _calcEpsilon(eta);
+};
+
+
+//-------------------------------------------------
+//functions for estimation
+
+void TRecalibrationEMModelNEW::setQToZero(){
+	if(!_NRconverged){
+		_oldQ = _Q;
+		_Q = 0.0;
+	}
+};
+
+double TRecalibrationEMModelNEW::_calcQ(const int & genotype, TRecalibrationEMReadData & data){
+	double eps = calcEpsilon(data);
+	double B = 1.33333333333333333333 * data.D[genotype] - 1.0;
+	double P_d_given_g_beta = B * eps - data.D[genotype] + 1.0;
+	return log(P_d_given_g_beta);
+};
+
+void TRecalibrationEMModelNEW::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
+	if(!_NRconverged){
+		_Q += _calcQ(knownGenotype, data);
+	}
+};
+
+void TRecalibrationEMModelNEW::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
+	if(!_NRconverged){
+		//add this data for all genotypes
+		for(int g=0; g<4; ++g){
+			_Q += P_g_given_d_oldBeta[g] * _calcQ(g, data);
+		}
+	}
+};
+
+bool TRecalibrationEMModelNEW::solveJxF(){
+	if(_NRconverged){
+		return true;
+	} else {
+		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
+		for(unsigned int i=0; i<(_numParameters-1); ++i){
+			for(unsigned int j=i+1; j<_numParameters; ++j){
+				//copy from upper triangle to lower triangle
+				Jacobian(j,i) = Jacobian(i,j);
+			}
+		}
+
+		//scale F and J by 1/#sites
+		Jacobian = Jacobian / (double) _numSitesAdded;
+		F = F / (double) _numSitesAdded;
+
+		//now solve J^-1 x F
+		return solve(JxF, Jacobian, F);
+	}
+};
+
+void TRecalibrationEMModelNEW::proposeNewParameters(double & lambda){
+	if(!_NRStepAccepted){
+		//save old parameters
+		for(unsigned int i=0; i<_numParameters; ++i)
+			_oldBetas[i] = _betas[i];
+
+		//update new ones
+		for(unsigned int i=0; i<_numParameters; ++i)
+			_betas[i] = _oldBetas[i] - lambda * JxF(i);
+	}
+};
+
+bool TRecalibrationEMModelNEW::acceptProposedParametersBasedOnQ(){
+	if(_NRStepAccepted) return true;
+	if(_Q > _oldQ){
+		_NRStepAccepted = true;
+	} else {
+		_NRStepAccepted = false;
+		rejectProposedParameters();
+		_Q = _oldQ;
+	}
+	return _NRStepAccepted;
+};
+
+void TRecalibrationEMModelNEW::rejectProposedParameters(){
+	for(unsigned int i=0; i<_numParameters; ++i)
+		_betas[i] = _oldBetas[i];
+};
+
+double TRecalibrationEMModelNEW::getSteepestGradient(){
+	if(_NRStepAccepted) return 0.0;
+	double maxF = 0.0;
+	for(unsigned int i=0; i<_numParameters; ++i){
+		if(fabs(F(i)) > maxF) maxF = fabs(F(i));
+	}
+	return maxF;
+};
+
+void TRecalibrationEMModelNEW::printJacobianToStdOut(){
+	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << Jacobian << std::endl << std::endl;
+};
+
+void TRecalibrationEMModelNEW::printFToStdOut(){
+	std::cout << std::endl << std::endl << "F:" << std::endl << F << std::endl << std::endl;
+};
+
+void TRecalibrationEMModelNEW::printJxFToStdOut(){
+	std::cout << std::endl << std::endl << "JxF:" << std::endl << JxF << std::endl << std::endl;
+};
+
 
 //---------------------------------------------------------------
 //TRecalibrationEMModel_Base

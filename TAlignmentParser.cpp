@@ -94,10 +94,8 @@ TAlignmentParser::TAlignmentParser(){
 	applyContextFilter = false;
 	minMQ = 0;
 	maxMQ = 10000;
-	minQual = 33;
-	maxQual = 126;
-	minPhredInt = 0;
-	maxPhredInt = 93;
+	minQualityAsPhredInt = 0;
+	maxQualityAsPhredInt = 93;
 	minQualForPrinting = 33;
 	maxQualForPrinting = 126;
 	trimReads = false;
@@ -270,12 +268,12 @@ void TAlignmentParser::setFilters(TParameters & params){
 	}
 
 	//quality filters
-	minPhredInt = params.getParameterIntWithDefault("minQual", 1);
-	if(minPhredInt < 0) throw "minQual must be >= 0!";
-	maxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
-	if(maxPhredInt < minPhredInt) throw "maxQual must be >= minQual!";
-	setQualityFilters(minPhredInt, maxPhredInt);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minPhredInt) + ", " + toString(maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
+	minQualityAsPhredInt = params.getParameterIntWithDefault("minQual", 1);
+	if(minQualityAsPhredInt < 0) throw "minQual must be >= 0!";
+	maxQualityAsPhredInt = params.getParameterIntWithDefault("maxQual", 93);
+	if(maxQualityAsPhredInt < minQualityAsPhredInt) throw "maxQual must be >= minQual!";
+	setQualityFilters(minQualityAsPhredInt, maxQualityAsPhredInt);
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
 
 	//quality filters for printing
 	int minOutQual = params.getParameterIntWithDefault("minOutQual", 0) + 33;
@@ -374,10 +372,10 @@ void TAlignmentParser::setFilters(TParameters & params){
 
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 	applyQualityFilter = true;
-	minPhredInt = MinPhredInt;
-	maxPhredInt = MaxPhredInt;
-	minQual = qualMap.phredIntToQuality(minPhredInt);
-	maxQual = qualMap.phredIntToQuality(maxPhredInt);
+	minQualityAsPhredInt = MinPhredInt;
+	maxQualityAsPhredInt = MaxPhredInt;
+	//minQual = qualMap.phredIntToQuality(minPhredInt);
+	//maxQual = qualMap.phredIntToQuality(maxPhredInt);
 };
 
 void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
@@ -882,7 +880,7 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 		if(trimReads)
 			alignment.trimRead(trimmingLength3Prime, trimmingLength5Prime);
 		if(applyQualityFilter)
-			alignment.filterForBaseQuality(minQual, maxQual);
+			alignment.filterForBaseQualityAsPhredInt(minQualityAsPhredInt, maxQualityAsPhredInt);
 		if(applyContextFilter)
 			alignment.filterForContext(ignoreTheseContexts);
 		if(doRecalibration)
@@ -1184,7 +1182,7 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	for(int i=0; i<alignment.length; ++i){
 		if(alignment.bases[i].base != N){
 			int newQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
-			QTtables.add(alignment.readGroupId, alignment.qualityOriginal[i], newQual);
+			QTtables.add(alignment.readGroupId, qualMap.phredIntToQuality(alignment.bases[i].qualityAsPhredInt), newQual);
 		}
 	}
 };
@@ -1194,7 +1192,7 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 		if(alignment.bases[i].base != N){
 			int firstQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
 			double tmp = alignment.bases[i].errorRate;
-			alignment.bases[i].errorRate = qualMap.qualityToError(alignment.qualityOriginal[i]);
+			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].qualityAsPhredInt);
 			int secondQual = otherRecalObject->getQuality(alignment.bases[i]);
 			alignment.bases[i].errorRate = tmp;
 			QTtables.add(alignment.readGroupId, firstQual, secondQual);
