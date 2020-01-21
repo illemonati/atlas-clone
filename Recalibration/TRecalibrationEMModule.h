@@ -8,6 +8,8 @@
 #ifndef RECALIBRATION_TRECALIBRATIONEMMODULE_H_
 #define RECALIBRATION_TRECALIBRATIONEMMODULE_H_
 
+#include "../stringFunctions.h"
+
 //--------------------------------------------------------------
 // TRecalibrationEMModule
 // Base class for recal modules
@@ -20,6 +22,10 @@ protected:
 	double* _oldBetas; //use during estimation
 	bool _initialized;
 
+	//transform values?
+	bool doTransformation;
+	double* transformationMap;
+
 	void _freeBetas();
 	void _initializeBetas();
 
@@ -31,10 +37,18 @@ public:
 		_numParameters = 0;
 		_betas = nullptr;
 		_oldBetas = nullptr;
+
+		doTransformation = false;
+		transformationMap = nullptr;
 	};
 
 	virtual ~TRecalibrationEMModule(){
 		_freeBetas();
+	};
+
+	void addTransformation(double* pointerToTransformationMap){
+		doTransformation = true;
+		transformationMap = pointerToTransformationMap;
 	};
 
 	virtual double getEtaTerm(const uint8_t val){ return 0.0; }
@@ -81,7 +95,11 @@ public:
 	};
 
 	double getEtaTerm(const uint8_t val){
-		return _betas[0] * val;
+		if(doTransformation){
+			return _betas[0] * val;
+		} else {
+			return _betas[0] * val;
+		}
 	};
 	double getEtaTerm(const uint16_t val){
 		return _betas[0] * val;

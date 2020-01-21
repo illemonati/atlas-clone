@@ -18,7 +18,11 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp. (parameter 'maxReadLength')");
 
-	if(maxReadLength > )
+	//maxReadLength must be >=1 but smaller than 65536 as we use uint16_t in TBase.h to sore distances
+	if(maxReadLength < 1)
+		throw "Max read length must be at least 1 bp!";
+	if(maxReadLength > 65536)
+		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
 
 	alignmentParser.init(maxReadLength, params, logfile);
 

@@ -38,71 +38,27 @@ double TRecalibrationEMModelNEW::_calcEpsilon(double & eta){
 
 double TRecalibrationEMModelNEW::getErrorRate(TBase & base){
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as modules
-	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
-
-
 	double eta = intercept.getEtaTerm();
 
 	eta += quality->getEtaTerm(base.qualityAsPhredInt);
 	eta += position->getEtaTerm(base.distFrom5Prime);
+	eta += context->getEtaTerm(base.context);
+	eta += fragmentLength->getEtaTerm(base.fragmentLength);
 
-	//q[1] is square of transformed quality
-	eta += _betas[1] * originalErrorRate * originalErrorRate;
-
-	//q[2] is position
-	eta += _betas[2] * (double) base.distFrom5Prime;
-
-	//q[3] is square of position
-	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
-
-	//q[4]: fragment length. TODO: think about model!
-	eta += _betas[4] * base.fragmentLength;
-
-	//q[5]: fragment length. TODO: think about model!
-	eta += _betas[5] * base.fragmentLength;
-
-	//q[6] until q[25] are indicators for the context. Just pick the matching one!
-	eta += _betas[base.context + 6];
-
-//	std::cout << "_calcEpsilon(eta) " << _calcEpsilon(eta) << std::endl;
 	return _calcEpsilon(eta);
 };
 
+double TRecalibrationEMModelNEW::_calcEpsilon(TRecalibrationEMReadData & data){
+	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as modules
+	double eta = intercept.getEtaTerm();
 
-double TRecalibrationEMModelNEW::getErrorRate(TBase & base){
-	//eta = SUM_i beta[i] * q[i] + beta_c of right context c
+	eta += quality->getEtaTerm(data.quality);
+	eta += position->getEtaTerm(base.distFrom5Prime);
+	eta += context->getEtaTerm(base.context);
+	eta += fragmentLength->getEtaTerm(base.fragmentLength);
 
-
-
-
-	double originalErrorRate = log(base.errorRate / (1.0 - base.errorRate));
-
-
-
-	double eta = _betas[0] * originalErrorRate;
-
-	//q[1] is square of transformed quality
-	eta += _betas[1] * originalErrorRate * originalErrorRate;
-
-	//q[2] is position
-	eta += _betas[2] * (double) base.distFrom5Prime;
-
-	//q[3] is square of position
-	eta += _betas[3] * (double) (base.distFrom5Prime * base.distFrom5Prime);
-
-	//q[4]: fragment length. TODO: think about model!
-	eta += _betas[4] * base.fragmentLength;
-
-	//q[5]: fragment length. TODO: think about model!
-	eta += _betas[5] * base.fragmentLength;
-
-	//q[6] until q[25] are indicators for the context. Just pick the matching one!
-	eta += _betas[base.context + 6];
-
-//	std::cout << "_calcEpsilon(eta) " << _calcEpsilon(eta) << std::endl;
 	return _calcEpsilon(eta);
 };
-
 
 //-------------------------------------------------
 //functions for estimation

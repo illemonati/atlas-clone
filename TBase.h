@@ -47,7 +47,7 @@ public:
 	uint16_t readGroup;
 	BaseContext context;
 	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
-	int alignedPos; //takes value -1 when base is not aligned
+	uint16_t alignedPos; //takes value -1 when base is not aligned
 	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
 	bool isReverseStrand; //TODO: group three bool into one uint8_t to save two bytes.
 	uint8_t mappingQuality;

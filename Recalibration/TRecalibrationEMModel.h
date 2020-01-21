@@ -44,6 +44,7 @@ private:
 	TRecalibrationEMModule* quality;
 	TRecalibrationEMModule* position;
 	TRecalibrationEMModule* context;
+	TRecalibrationEMModule* fragmentLength;
 
 
 	double* _betas; //betas of the model
@@ -51,6 +52,7 @@ private:
 	bool _initialized;
 
 	//Newton Raphson Parameters
+	//TODO: maybe split into class that can and cannot estimate?
 	double _Q, _oldQ;
 	arma::mat Jacobian;
 	arma::vec F;
@@ -84,6 +86,7 @@ public:
 	void printJxFToStdOut();
 
 
+	double getErrorRate(TBase & base);
 };
 
 
