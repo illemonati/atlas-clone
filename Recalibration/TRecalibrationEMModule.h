@@ -9,6 +9,15 @@
 #define RECALIBRATION_TRECALIBRATIONEMMODULE_H_
 
 #include "../stringFunctions.h"
+#define ARMA_DONT_PRINT_ERRORS
+#include <armadillo>
+
+//define module names
+#define RecalModuleName_none "none"
+#define RecalModuleName_intercept "intercept"
+#define RecalModuleName_linear "linear"
+#define RecalModuleName_quadratic "quadratic"
+#define RecalModuleName_specific "specific"
 
 //--------------------------------------------------------------
 // TRecalibrationEMModule
@@ -17,7 +26,8 @@
 
 class TRecalibrationEMModule{
 protected:
-	int _numParameters;
+	size_t _numParameters;
+	std::string _moduleName;
 	double* _betas; //betas of the model
 	double* _oldBetas; //use during estimation
 	bool _initialized;
@@ -28,6 +38,19 @@ protected:
 
 	void _freeBetas();
 	void _initializeBetas();
+
+	void _addTransformation(double* pointerToTransformationMap){
+		doTransformation = true;
+		transformationMap = pointerToTransformationMap;
+	};
+
+	double _getAsDouble(const uint16_t val){
+		if(doTransformation){
+			return transformationMap[val];
+		} else {
+			return (double) val;
+		}
+	};
 
 	friend class TRecalibrationEMModelNEW;
 
@@ -46,15 +69,41 @@ public:
 		_freeBetas();
 	};
 
-	void addTransformation(double* pointerToTransformationMap){
-		doTransformation = true;
-		transformationMap = pointerToTransformationMap;
+	virtual double getEtaTerm(const uint16_t val){ return 0.0; }
+
+	void proposeNewParameters(const arma::mat & JxF, size_t & index, double & lambda){
+		//save old parameters
+		for(size_t i=0; i<_numParameters; ++i)
+			_oldBetas[i] = _betas[i];
+
+		//update new ones
+		for(size_t i=0; i<_numParameters; ++i){
+			_betas[i] = _oldBetas[i] - lambda * JxF(index);
+			++index;
+		}
 	};
 
-	virtual double getEtaTerm(const uint8_t val){ return 0.0; }
-	virtual double getEtaTerm(const uint16_t val){ return 0.0; }
-};
+	void rejectProposedParameters(){
+		for(unsigned int i=0; i<_numParameters; ++i)
+			_betas[i] = _oldBetas[i];
+	};
 
+	std::string getModelString(){
+		std::string s = _moduleName + "(";
+		for(size_t i=0; i<_numParameters; ++i){
+			if(i>0){
+				s += ",";
+			}
+			s += toString(_betas[i]);
+		}
+		s += ")";
+		return s;
+	};
+
+	virtual bool checkValueRange(uint16_t val){
+		return true;
+	};
+};
 
 //--------------------------------------------------------------
 // TRecalibrationEMModule_intercept
@@ -72,9 +121,7 @@ public:
 	double getEtaTerm(){
 		return _betas[0];
 	};
-	double getEtaTerm(const uint8_t val){
-		return _betas[0];
-	};
+
 	double getEtaTerm(const uint16_t val){
 		return _betas[0];
 	};
@@ -94,15 +141,14 @@ public:
 		_initializeBetas();
 	};
 
-	double getEtaTerm(const uint8_t val){
-		if(doTransformation){
-			return _betas[0] * val;
-		} else {
-			return _betas[0] * val;
-		}
+	TRecalibrationEMModule_linear(double* pointerToTransformationMap){
+		_numParameters = 1;
+		_initializeBetas();
+		_addTransformation(pointerToTransformationMap);
 	};
+
 	double getEtaTerm(const uint16_t val){
-		return _betas[0] * val;
+		return _betas[0] * _getAsDouble(val);
 	};
 };
 
@@ -120,11 +166,15 @@ public:
 		_initializeBetas();
 	};
 
-	double getEtaTerm(const uint8_t val){
-		return val * (_betas[0] + _betas[1] * val);
+	TRecalibrationEMModule_quadratic(double* pointerToTransformationMap){
+		_numParameters = 2;
+		_initializeBetas();
+		_addTransformation(pointerToTransformationMap);
 	};
+
 	double getEtaTerm(const uint16_t val){
-		return val * (_betas[0] + _betas[1] * val);
+		double tmp = _getAsDouble(val);
+		return tmp * (_betas[0] + _betas[1] * tmp);
 	};
 };
 
@@ -143,11 +193,14 @@ public:
 		_initializeBetas();
 	};
 
-	double getEtaTerm(const uint8_t val){
-		return _betas[val];
-	};
 	double getEtaTerm(const uint16_t val){
 		return _betas[val];
+	};
+
+	virtual bool checkValueRange(uint16_t val){
+		if(val < 0 || val > _maxValue)
+			return false;
+		return true;
 	};
 };
 

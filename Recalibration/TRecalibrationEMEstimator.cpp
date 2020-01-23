@@ -333,7 +333,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	//estimation parameters
 	logfile->startIndent("Settings regarding the EM algorithm:");
 	std::string recalFile = args.getParameterString("initialRecalValues", false);
-	modelTagForEstimation = args.getParameterStringWithDefault("model", "qualFuncPosFuncContext");
+	modelTagForEstimation = args.getParameterStringWithDefault("model", "qual=quadratic;pos=quadratic;contex=specific");
 	if(recalFile.empty()){
 		logfile->list("Will fit the model '" + modelTagForEstimation + "' for all read groups.");
 	} else {

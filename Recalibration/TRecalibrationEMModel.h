@@ -11,8 +11,6 @@
 #include "TRecalibrationEMAuxiliaryTools.h"
 #include "TRecalibrationEMModule.h"
 #include "../TFile.h"
-#define ARMA_DONT_PRINT_ERRORS
-#include <armadillo>
 
 
 #define noRecal_name "none"
@@ -32,10 +30,9 @@
 
 class TRecalibrationEMModelNEW{
 private:
-	unsigned int _numParameters;
+	size_t _numParameters;
 	TRecalibrationEMQualityPositionMap _qualPosMap;
 	TLog* logfile;
-	bool doRecal;
 
 	//intercept
 	TRecalibrationEMModule_intercept intercept;
@@ -46,10 +43,7 @@ private:
 	TRecalibrationEMModule* context;
 	TRecalibrationEMModule* fragmentLength;
 
-
-	double* _betas; //betas of the model
-	double* _oldBetas; //use during estimation
-	bool _initialized;
+	std::vector<TRecalibrationEMModule*> activeModules;
 
 	//Newton Raphson Parameters
 	//TODO: maybe split into class that can and cannot estimate?
@@ -61,14 +55,20 @@ private:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	double _calcEpsilon(double & eta);
+	double getErrorRate(const TRecalibrationEMReadData & data);
+	double _calcEpsilon(const double eta);
 	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 
 public:
-	TRecalibrationEMModelNEW();
+	TRecalibrationEMModelNEW(std::map<std::string, std::string> & modules, TLog* Logfile, bool verbose);
 	~TRecalibrationEMModelNEW();
 
 	int numParameters(){ return _numParameters; };
+
+	void checkParameterRange(std::vector<int> & Qualities, int maxPos){
+		throw "todo!";
+	}
+
 	void setEMParamsToZero();
 
 	void setQToZero();
@@ -78,15 +78,14 @@ public:
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();
-	void rejectProposedParameters();
 
 	double getSteepestGradient();
 	void printJacobianToStdOut();
 	void printFToStdOut();
 	void printJxFToStdOut();
 
+	double getErrorRate(const TBase & base);
 
-	double getErrorRate(TBase & base);
 };
 
 
@@ -283,7 +282,7 @@ TRecalibrationEMModel_Base* createTRecalibrationEMModel(std::string modelTag, in
 //--------------------------------------------------------------------
 class TRecalibrationEMModels{
 private:
-	std::vector<TRecalibrationEMModel_Base*> models;
+	std::vector<TRecalibrationEMModelNEW*> models;
 	unsigned int totNumParameters;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	TLog* logfile;
@@ -309,7 +308,7 @@ public:
 	int numModels(){ return models.size(); };
 	bool modelExists(int readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
-		return models[ readGroupIndex.index(data) ]->calcEpsilon(data);
+		return models[ readGroupIndex.index(data) ]->getErrorRate(data);
 	};
 
 	bool hasReadGroupsWithoutModel();
