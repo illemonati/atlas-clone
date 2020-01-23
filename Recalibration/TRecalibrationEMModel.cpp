@@ -28,44 +28,32 @@ TRecalibrationEMModelNEW::TRecalibrationEMModelNEW(std::map<std::string, std::st
 
 };
 
-void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, std::string str, bool verbose){
-	std::string orig = str;
-	std::string format = "Expected format is NAME(PARAMETERS)[VALUES], where (PARAMETERS) and [VALUES] are optional.";
+void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, const std::string str, bool verbose){
+	std::string format = "Expected format is NAME[VALUES], where [VALUES] are optional.";
 
 	//split string into parameters and values
-	size_t pos = str.find('(');
+	size_t pos = str.find('[');
 	std::string name;
-	std::vector<std::string> parameters;
 	std::vector<std::string> values;
 
 	if(pos != std::string::npos){
 		//extract name
 		name = str.substr(0, pos);
-		str.erase(0, pos + 1);
-		if(!stringContainsOnlyLetters(name)){
-			throw "Wrong format for recal module '" + orig + "'! " + format;
-		}
 
 		//extract parameters
-		size_t pos = str.find(')');
+		size_t pos2 = str.find(']');
 		if(pos == std::string::npos){
-			throw "Wrong format for recal module '" + orig + "': missing ')'! " + format;
+			throw "Wrong format for recal module '" + str + "': missing ']'! " + format;
 		}
-		fillVectorFromStringAnySkipEmpty(str.substr(0, pos), parameters, ",");
-		str.erase(0, pos + 1);
-	}
-
-
-
-		ret=s.substr(0,l);
-		s.erase(0, l);
+		fillVectorFromStringAnySkipEmpty(str.substr(pos, pos2), values, ",");
 	} else {
-		ret=s;
-		s.clear();
+		name = str;
 	}
-	return ret;
-	std::string tmp =
 
+	//create module
+	if(name == "linear"){
+		module = new TRecalibrationEMModule_linear();
+	}
 
 }
 

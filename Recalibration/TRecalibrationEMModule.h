@@ -38,11 +38,7 @@ protected:
 
 	void _freeBetas();
 	void _initializeBetas();
-
-	void _addTransformation(double* pointerToTransformationMap){
-		doTransformation = true;
-		transformationMap = pointerToTransformationMap;
-	};
+	void _initializValues(std::vector<std::string> & values);
 
 	double _getAsDouble(const uint16_t val){
 		if(doTransformation){
@@ -67,6 +63,11 @@ public:
 
 	virtual ~TRecalibrationEMModule(){
 		_freeBetas();
+	};
+
+	void addTransformation(double* pointerToTransformationMap){
+		doTransformation = true;
+		transformationMap = pointerToTransformationMap;
 	};
 
 	virtual double getEtaTerm(const uint16_t val){ return 0.0; }
@@ -118,6 +119,12 @@ public:
 		_initializeBetas();
 	};
 
+	TRecalibrationEMModule_intercept(std::vector<std::string> & values){
+		_numParameters = 1;
+		_initializeBetas();
+		_initializValues(values);
+	};
+
 	double getEtaTerm(){
 		return _betas[0];
 	};
@@ -141,10 +148,10 @@ public:
 		_initializeBetas();
 	};
 
-	TRecalibrationEMModule_linear(double* pointerToTransformationMap){
+	TRecalibrationEMModule_linear(std::vector<std::string> & values){
 		_numParameters = 1;
 		_initializeBetas();
-		_addTransformation(pointerToTransformationMap);
+		_initializValues(values);
 	};
 
 	double getEtaTerm(const uint16_t val){
@@ -166,10 +173,10 @@ public:
 		_initializeBetas();
 	};
 
-	TRecalibrationEMModule_quadratic(double* pointerToTransformationMap){
+	TRecalibrationEMModule_quadratic(std::vector<std::string> & values){
 		_numParameters = 2;
 		_initializeBetas();
-		_addTransformation(pointerToTransformationMap);
+		_initializValues(values);
 	};
 
 	double getEtaTerm(const uint16_t val){
@@ -180,7 +187,7 @@ public:
 
 //--------------------------------------------------------------
 // TRecalibrationEMModule_specific
-// A term per discrete value from o to maxValue
+// A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
 class TRecalibrationEMModule_specific:public TRecalibrationEMModule{
 protected:
@@ -193,6 +200,18 @@ public:
 		_initializeBetas();
 	};
 
+	TRecalibrationEMModule_specific(std::vector<std::string> & values){
+		//values indicate size
+		_numParameters = values.size();
+		_maxValue = _numParameters - 1;
+
+		//now initialize betas
+		_initializeBetas();
+
+		//now copy values
+		_initializValues(values);
+	};
+
 	double getEtaTerm(const uint16_t val){
 		return _betas[val];
 	};
@@ -203,5 +222,45 @@ public:
 		return true;
 	};
 };
+
+//--------------------------------------------------------------
+// TRecalibrationEMModule_specificMap
+// A term per discrete values as indicated with a map
+//--------------------------------------------------------------
+class TRecalibrationEMModule_specificMap:public TRecalibrationEMModule{
+protected:
+	int _maxValue;
+	MAP!
+
+public:
+	TRecalibrationEMModule_specificMap(int maxValue){
+		_maxValue = maxValue;
+		_numParameters = _maxValue + 1;
+		_initializeBetas();
+	};
+
+	TRecalibrationEMModule_specificMap(std::vector<std::string> & values){
+		//values indicate size
+		_numParameters = values.size();
+		_maxValue = _numParameters - 1;
+
+		//now initialize betas
+		_initializeBetas();
+
+		//now copy values
+		_initializValues(values);
+	};
+
+	double getEtaTerm(const uint16_t val){
+		return _betas[val];
+	};
+
+	virtual bool checkValueRange(uint16_t val){
+		if(val < 0 || val > _maxValue)
+			return false;
+		return true;
+	};
+};
+
 
 #endif /* RECALIBRATION_TRECALIBRATIONEMMODULE_H_ */
