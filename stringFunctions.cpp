@@ -112,13 +112,14 @@ bool stringContainsOnly(const std::string & haystack, std::string needle){
 	if(haystack.find_first_not_of(needle)==std::string::npos) return true;
 	else return false;
 };
-bool stringContainsOnlyNumbers(const std::string & haystack, std::string needle){
-	if(stringContainsOnly(haystack, "1234567890")) return true;
-	return false;
+bool stringContainsOnlyNumbers(const std::string & haystack){
+	return stringContainsOnly(haystack, "1234567890");
+};
+bool stringContainsOnlyLetters(const std::string & haystack){
+	return stringContainsOnly(haystack, "abcdefghijklmnopqrstuvxyzABCDEFGHIJKLMNOPQRSTUVWXYZäöüÄÖÜàéèÀÉÈ");
 };
 bool stringIsProbablyANumber(const std::string & haystack){
-	if(stringContainsOnly(haystack, "1234567890.Ee-+")) return true;
-	return false;
+	return stringContainsOnly(haystack, "1234567890.Ee-+");
 };
 bool stringContainsLetters(const std::string & haystack){
 	return stringContainsAny(haystack, "abcdefghijklmnopqrstuvxyzABCDEFGHIJKLMNOPQRSTUVWXYZäöüÄÖÜàéèÀÉÈ");

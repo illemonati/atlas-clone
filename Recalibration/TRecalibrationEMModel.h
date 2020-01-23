@@ -55,7 +55,7 @@ private:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	double getErrorRate(const TRecalibrationEMReadData & data);
+	void _createModule(TRecalibrationEMModule* module, std::string str, bool verbose);
 	double _calcEpsilon(const double eta);
 	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 
@@ -85,6 +85,7 @@ public:
 	void printJxFToStdOut();
 
 	double getErrorRate(const TBase & base);
+	double getErrorRate(const TRecalibrationEMReadData & data);
 
 };
 
