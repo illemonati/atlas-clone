@@ -44,81 +44,108 @@ void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
-TRecalibrationEMDataTable::TRecalibrationEMDataTable(int NumReadGroups, int MaxQual){
+
+TRecalibrationEMDataTable::TRecalibrationEMDataTable(const int MaxQual){
+	maxQual = MaxQual;
+	qualities = new unsigned int[maxQual];
+	clear();
+};
+
+TRecalibrationEMDataTable::~TRecalibrationEMDataTable(){
+	delete[] qualities;
+};
+
+void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
+	/*
+	if(data.quality > maxQual){
+		throw "Can not add data point to TRecalibrationEMDataTable: quality > maxQual!";
+	}
+	*/
+	++qualities[data.quality];
+	if(maxPos < data.position)
+		maxPos = data.position;
+};
+
+void TRecalibrationEMDataTable::assembleCounts(){
+	if(!countsAssembled){
+		counts = 0;
+		for(int i=0; i<maxQual; ++i){
+			counts += qualities[i];
+		}
+		countsAssembled = true;
+	}
+};
+
+void TRecalibrationEMDataTable::clear(){
+	maxPos = 0;
+	for(int q=0; q<maxQual; ++q)
+		qualities[q] = 0;
+	counts = 0;
+	countsAssembled = false;
+};
+
+int TRecalibrationEMDataTable::size(){
+	assembleCounts();
+	return counts;
+}
+
+void TRecalibrationEMDataTable::fillVectorWithUsedQualities(std::vector<int> & Q){
+	Q.clear();
+	for(int i=0; i<maxQual; ++i){
+		if(qualities[i] > 0){
+			Q.push_back(i);
+		}
+	};
+};
+
+//--------------------------------------------------------------------
+
+TRecalibrationEMDataTables::TRecalibrationEMDataTables(const  int NumReadGroups, const int MaxQual){
 	numReadGroups = NumReadGroups;
 	maxQual = MaxQual;
 
-	qualities = new int**[numReadGroups];
-	maxPos = new unsigned int*[numReadGroups];
-	countsPerReadGroup = new unsigned int*[numReadGroups];
+	tables = new TRecalibrationEMDataTable*[numReadGroups];
 	for(int rg = 0; rg<numReadGroups; ++rg){
-		qualities[rg] = new int*[2];
-		qualities[rg][0] = new int[maxQual];
-		qualities[rg][1] = new int[maxQual];
-
-		countsPerReadGroup[rg] = new unsigned int[2];
-		maxPos[rg] = new unsigned int[2];
+		tables[rg] = new TRecalibrationEMDataTable[2];
 	}
 
 	clear();
 };
 
-TRecalibrationEMDataTable::~TRecalibrationEMDataTable(){
+TRecalibrationEMDataTables::~TRecalibrationEMDataTables(){
 	for(int rg = 0; rg<numReadGroups; ++rg){
-		delete[] qualities[rg][0];
-		delete[] qualities[rg][1];
-		delete[] qualities[rg];
-
-		delete[] countsPerReadGroup[rg];
-		delete[] maxPos[rg];
+		delete[] tables[rg];
 	}
 
-	delete[] qualities;
-	delete[] maxPos;
-	delete[] countsPerReadGroup;
+	delete[] tables;
 };
 
-void TRecalibrationEMDataTable::clear(){
+void TRecalibrationEMDataTables::clear(){
 	for(int rg = 0; rg<numReadGroups; ++rg){
-		for(int i=0; i<maxQual; ++i){
-			qualities[rg][0][i] = 0;
-			qualities[rg][1][i] = 0;
-		}
-		maxPos[rg][0] = 0;
-		maxPos[rg][1] = 0;
-		countsPerReadGroup[rg][0] = 0;
-		countsPerReadGroup[rg][1] = 0;
+		tables[rg][0].clear();
+		tables[rg][1].clear();
 	}
 	totalCounts = 0;
 };
 
-void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
-	++qualities[data.readGroup][(int) data.isSecond][data.quality];
-	if(maxPos[data.readGroup][data.isSecond] < data.position)
-		maxPos[data.readGroup][data.isSecond] = data.position;
+void TRecalibrationEMDataTables::add(TRecalibrationEMReadData & data){
+	tables[data.readGroup][(int) data.isSecond].add(data);
 };
 
-void TRecalibrationEMDataTable::assembleCountsPerReadGroup(){
+void TRecalibrationEMDataTables::assembleCountsPerReadGroup(){
 	totalCounts = 0;
 	for(int rg = 0; rg<numReadGroups; ++rg){
-		countsPerReadGroup[rg][0] = 0;
-		countsPerReadGroup[rg][1] = 0;
-		for(int i=0; i<maxQual; ++i){
-			countsPerReadGroup[rg][0] += qualities[rg][0][i];
-			countsPerReadGroup[rg][1] += qualities[rg][1][i];
-		}
-		totalCounts += countsPerReadGroup[rg][0] + countsPerReadGroup[rg][1];
+		totalCounts = tables[rg][0].size() + tables[rg][1].size();
 	}
 };
 
-void TRecalibrationEMDataTable::fillVectorWithUsedQualities(int readGroupId, bool isSecondMate, std::vector<int> & Q){
-	Q.clear();
-	for(int i=0; i<maxQual; ++i){
-		if(qualities[readGroupId][isSecondMate][i] > 0){
-			Q.push_back(i);
-		}
-	};
+void TRecalibrationEMDataTables::fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<int> & Q){
+	tables[readGroupId][(int) isSecondMate].fillVectorWithUsedQualities(Q);
 };
+
+TRecalibrationEMDataTable* TRecalibrationEMDataTables::getTable(const int readGroupId, const bool isSecondMate){
+	return tables[readGroupId][(int) isSecondMate];
+}
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadGroupIndex

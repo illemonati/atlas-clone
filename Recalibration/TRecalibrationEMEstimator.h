@@ -44,7 +44,7 @@ public:
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
-	void addToDataTable(TRecalibrationEMDataTable & dataTable);
+	void addToDataTable(TRecalibrationEMDataTables & dataTable);
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
 	double calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
 	void addToQ(TRecalibrationEMModels & models);
@@ -73,7 +73,7 @@ public:
 	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
-	void addToDataTable(TRecalibrationEMDataTable & dataTable);
+	void addToDataTable(TRecalibrationEMDataTables & dataTable);
 	long cumulativeDepth();
 	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	double calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
@@ -130,7 +130,7 @@ public:
 	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
 	long numSitesDepthTwoOrMore();
-	void addToDataTable(TRecalibrationEMDataTable & dataTable);
+	void addToDataTable(TRecalibrationEMDataTables & dataTable);
 	long cumulativeDepth();
 
 	//function to estimate

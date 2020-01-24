@@ -55,7 +55,8 @@ private:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	void _createModule(TRecalibrationEMModule* module, std::string str, bool verbose);
+	void _parseModuleString(const std::string str, std::string & type, std::vector<std::string> & values);
+	void _createModule(TRecalibrationEMModule* module, std::string & type, std::vector<std::string> & values);
 	double _calcEpsilon(const double eta);
 	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 

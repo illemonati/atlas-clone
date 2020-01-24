@@ -99,21 +99,40 @@ struct TRecalibrationEMReadData{
 // Object to store for which qualities and positions data is available.
 //--------------------------------------------------------------------
 class TRecalibrationEMDataTable{
+private:
+	unsigned int counts;
+	bool countsAssembled;
+
+	void assembleCounts();
+
+public:
+	int maxQual;
+	uint16_t maxPos;
+	unsigned int qualities;
+
+	TRecalibrationEMDataTable(const int MaxQual);
+	~TRecalibrationEMDataTable();
+	void clear();
+	void add(TRecalibrationEMReadData & data);
+	int size();
+	void fillVectorWithUsedQualities(std::vector<int> & Q);
+};
+
+class TRecalibrationEMDataTables{
 public:
 	int numReadGroups;
 	int maxQual;
-	int	*** qualities; //qualities[readGroup][first/second][quality]
-	unsigned int** maxPos; //maxPos[readGroup][first/second]
-	unsigned int** countsPerReadGroup;
+	TRecalibrationEMDataTable** tables; //tables[readGroup][first/second]
 	unsigned int totalCounts;
 
-	TRecalibrationEMDataTable(int NumReadGroups, int MaxQual);
-	~TRecalibrationEMDataTable();
+	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual);
+	~TRecalibrationEMDataTables();
 
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	void assembleCountsPerReadGroup();
-	void fillVectorWithUsedQualities(int readGroupId, bool isSecondMate, std::vector<int> & Q);
+	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<int> & Q);
+	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);
 };
 
 

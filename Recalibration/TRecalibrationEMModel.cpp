@@ -28,17 +28,14 @@ TRecalibrationEMModelNEW::TRecalibrationEMModelNEW(std::map<std::string, std::st
 
 };
 
-void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, const std::string str, bool verbose){
-	std::string format = "Expected format is NAME[VALUES], where [VALUES] are optional.";
+void TRecalibrationEMModelNEW::_parseModuleString(const std::string str, std::string & type, std::vector<std::string> & values){
+	std::string format = "Expected format is TYPE[VALUES], where [VALUES] are optional.";
 
 	//split string into parameters and values
 	size_t pos = str.find('[');
-	std::string name;
-	std::vector<std::string> values;
-
 	if(pos != std::string::npos){
 		//extract name
-		name = str.substr(0, pos);
+		type = str.substr(0, pos);
 
 		//extract parameters
 		size_t pos2 = str.find(']');
@@ -47,22 +44,84 @@ void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, con
 		}
 		fillVectorFromStringAnySkipEmpty(str.substr(pos, pos2), values, ",");
 	} else {
-		name = str;
+		type = str;
 	}
+};
 
-	//create module
-	if(name == "linear"){
-		module = new TRecalibrationEMModule_linear();
-	}
-
-}
-
-double TRecalibrationEMModelNEW::createModules(std::map<std::string, std::string> & modules, bool verbose){
-	for(std::map<std::string, std::string>::iterator it = modules.begin(); it != modules.end(); ++it){
-		//which module?
-		if(it->first == "quality"){
-
+void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, std::string & type, std::vector<std::string> & values){
+	if(type == "intercept"){
+		module = new TRecalibrationEMModule_intercept(values);
+	} else if(type == "linear"){
+		module = new TRecalibrationEMModule_linear(values);
+	} else if(type == "quadratic"){
+		module = new TRecalibrationEMModule_quadratic(values);
+	} else if(type == "specific"){
+		//only accept specific if it has values
+		if(values.empty()){
+			throw "Can not initialize recalibration type 'specific' without values!";
 		}
+		//check if values indicate a map
+		if(stringContains(values[0], ":")){
+			module = new TRecalibrationEMModule_specificMap(values);
+		} else {
+			module = new TRecalibrationEMModule_specific(values);
+		}
+	} else {
+		throw "Unknown recalibration module type '" + type + "'!";
+	}
+};
+
+void TRecalibrationEMModelNEW::createModules(std::map<std::string, std::string> & modules, TRecalibrationEMDataTable* dataTable, bool verbose){
+	for(std::map<std::string, std::string>::iterator it = modules.begin(); it != modules.end(); ++it){
+		//parse
+		std::string type;
+		std::vector<std::string> values;
+		_parseModuleString(it->second, type, values);
+
+		//do not accept intercepts
+		if(type == "intercept"){
+			throw "Intercept is not an accepted recalibration module type for '" + it->first + "'!"
+		}
+
+		//check if it is a valid type
+		if(type != "linear" && type != "quadratic" && type != "specific"){
+			throw "Unknown recalibration module type '" + type + "'!";
+		}
+
+		//create module depending on covariate
+		if(it->first == "quality"){
+			if(type == "specific"){
+				if(values.empty()){
+					quality = new TRecalibrationEMModule_specificMap(values);
+
+				} else {
+
+				}
+			} else {
+				_createModule(quality, type, values);
+			}
+
+			}
+
+		} else if(it->first == "position"){
+
+		} else if(it->first == "context"){
+
+		} else if(it->first == "fragmentLength"){
+
+		} else {
+			throw "Unknow recalibration covariate '" + it->first + "'!";
+		}
+
+		//create module
+		TRecalibrationEMModule* m;
+		if(type == "linear"){
+			m = new T
+		}
+
+
+		//which module?
+
 	}
 
 

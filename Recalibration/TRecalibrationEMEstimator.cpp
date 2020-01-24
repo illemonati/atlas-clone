@@ -58,7 +58,7 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 	}
 };
 
-void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTable & dataTable){
+void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTables & dataTable){
 	for(unsigned int k=0; k<numReads; ++k)
 		dataTable.add(data[k]);
 };
@@ -263,7 +263,7 @@ long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
 	return _numSites;
 };
 
-void TRecalibrationEMWindow::addToDataTable(TRecalibrationEMDataTable & dataTable){
+void TRecalibrationEMWindow::addToDataTable(TRecalibrationEMDataTables & dataTable){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToDataTable(dataTable);
 }
@@ -367,7 +367,7 @@ void TRecalibrationEMEstimator::initializeFromString(const std::string string){
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
-	TRecalibrationEMDataTable dataTable(_readGroups->size(), 500);
+	TRecalibrationEMDataTables dataTable(_readGroups->size(), 500);
 	addToDataTable(dataTable);
 	int numSitesWithData = numSites();
 	logfile->done();
@@ -639,7 +639,7 @@ long TRecalibrationEMEstimator::numSitesDepthTwoOrMore(){
 	return _numSites;
 };
 
-void TRecalibrationEMEstimator::addToDataTable(TRecalibrationEMDataTable & dataTable){
+void TRecalibrationEMEstimator::addToDataTable(TRecalibrationEMDataTables & dataTable){
 	for(TRecalibrationEMWindow* curWindow : windows)
 		curWindow->addToDataTable(dataTable);
 	dataTable.assembleCountsPerReadGroup();
