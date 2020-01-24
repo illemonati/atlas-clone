@@ -11,12 +11,15 @@
 // TRecalibrationEMModelNEW
 //--------------------------------------------------------------------
 
-TRecalibrationEMModelNEW::TRecalibrationEMModelNEW(std::map<std::string, std::string> & modules, TLog* Logfile, bool verbose){
+TRecalibrationEMModelNEW::TRecalibrationEMModelNEW(std::map<std::string, std::string> & modules, TLog* Logfile){
 	//set parameters
 	logfile = Logfile;
 
-	//create modules
+	std::vector<TRecalibrationEMCovariateFunction*> activeModules;
 
+
+	//create modules
+	createModules(modules);
 
 
 
@@ -28,107 +31,52 @@ TRecalibrationEMModelNEW::TRecalibrationEMModelNEW(std::map<std::string, std::st
 
 };
 
-void TRecalibrationEMModelNEW::_parseModuleString(const std::string str, std::string & type, std::vector<std::string> & values){
-	std::string format = "Expected format is TYPE[VALUES], where [VALUES] are optional.";
-
-	//split string into parameters and values
-	size_t pos = str.find('[');
-	if(pos != std::string::npos){
-		//extract name
-		type = str.substr(0, pos);
-
-		//extract parameters
-		size_t pos2 = str.find(']');
-		if(pos == std::string::npos){
-			throw "Wrong format for recal module '" + str + "': missing ']'! " + format;
-		}
-		fillVectorFromStringAnySkipEmpty(str.substr(pos, pos2), values, ",");
-	} else {
-		type = str;
-	}
-};
-
-void TRecalibrationEMModelNEW::_createModule(TRecalibrationEMModule* module, std::string & type, std::vector<std::string> & values){
-	if(type == "intercept"){
-		module = new TRecalibrationEMModule_intercept(values);
-	} else if(type == "linear"){
-		module = new TRecalibrationEMModule_linear(values);
-	} else if(type == "quadratic"){
-		module = new TRecalibrationEMModule_quadratic(values);
-	} else if(type == "specific"){
-		//only accept specific if it has values
-		if(values.empty()){
-			throw "Can not initialize recalibration type 'specific' without values!";
-		}
-		//check if values indicate a map
-		if(stringContains(values[0], ":")){
-			module = new TRecalibrationEMModule_specificMap(values);
-		} else {
-			module = new TRecalibrationEMModule_specific(values);
-		}
-	} else {
-		throw "Unknown recalibration module type '" + type + "'!";
-	}
-};
-
-void TRecalibrationEMModelNEW::createModules(std::map<std::string, std::string> & modules, TRecalibrationEMDataTable* dataTable, bool verbose){
+void TRecalibrationEMModelNEW::createModules(std::map<std::string, std::string> & modules, TRecalibrationEMDataTable* dataTable){
 	for(std::map<std::string, std::string>::iterator it = modules.begin(); it != modules.end(); ++it){
-		//parse
-		std::string type;
-		std::vector<std::string> values;
-		_parseModuleString(it->second, type, values);
-
-		//do not accept intercepts
-		if(type == "intercept"){
-			throw "Intercept is not an accepted recalibration module type for '" + it->first + "'!"
-		}
-
-		//check if it is a valid type
-		if(type != "linear" && type != "quadratic" && type != "specific"){
-			throw "Unknown recalibration module type '" + type + "'!";
-		}
-
-		//create module depending on covariate
-		if(it->first == "quality"){
-			if(type == "specific"){
-				if(values.empty()){
-					quality = new TRecalibrationEMModule_specificMap(values);
-
-				} else {
-
-				}
-			} else {
-				_createModule(quality, type, values);
-			}
-
-			}
-
-		} else if(it->first == "position"){
-
-		} else if(it->first == "context"){
-
-		} else if(it->first == "fragmentLength"){
-
+		//create function for each covariate
+		if(it->first == RecalCovariateName_none){
+			continue;
+		} else if(it->first == RecalCovariateName_quality){
+			covariates.push_back(new TRecalibrationEMCovariate_quality(it->second, dataTable));
+		} else if(it->first == RecalCovariateName_position){
+			covariates.push_back(new TRecalibrationEMCovariate_position(it->second, dataTable));
+		} else if(it->first == RecalCovariateName_context){
+			covariates.push_back(new TRecalibrationEMCovariate_context(it->second, dataTable));
+		} else if(it->first == RecalCovariateName_fragmentLength){
+			throw "Covariate " + RecalCovariateName_fragmentLength + " is currently not implemented!";
 		} else {
-			throw "Unknow recalibration covariate '" + it->first + "'!";
+			throw "Unknown recalibration covariate '" + it->first + "'!";
 		}
-
-		//create module
-		TRecalibrationEMModule* m;
-		if(type == "linear"){
-			m = new T
-		}
-
-
-		//which module?
-
 	}
 
+	//check value range
+	checkParameterRange(dataTable);
 
+	//summarize
+	_numParameters = 0;
+	for(TRecalibrationEMCovariate* covariate : covariates){
+		_numParameters += covariate->numParameters();
+	}
+};
 
+void TRecalibrationEMModelNEW::createModules(std::map<std::string, std::string> & modules){
+	for(std::map<std::string, std::string>::iterator it = modules.begin(); it != modules.end(); ++it){
+		//TODO!
+	}
 
+};
 
-}
+void TRecalibrationEMModelNEW::checkParameterRange(TRecalibrationEMDataTable* dataTable){
+	for(TRecalibrationEMCovariate* covariate : covariates){
+		covariate->checkParameterRange(dataTable);
+	}
+};
+
+void TRecalibrationEMModelNEW::checkParameterRange(std::vector<uint16_t> & Qualities, uint16_t maxPos){
+	for(TRecalibrationEMCovariate* covariate : covariates){
+		covariate->checkParameterRange(Qualities, maxPos);
+	}
+};
 
 double TRecalibrationEMModelNEW::_calcEpsilon(const double eta){
 	if(eta > 23.03){
@@ -143,25 +91,23 @@ double TRecalibrationEMModelNEW::_calcEpsilon(const double eta){
 };
 
 double TRecalibrationEMModelNEW::getErrorRate(const TBase & base){
-	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as modules
+	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = intercept.getEtaTerm();
 
-	eta += quality->getEtaTerm(base.qualityAsPhredInt);
-	eta += position->getEtaTerm(base.distFrom5Prime);
-	eta += context->getEtaTerm(base.context);
-	eta += fragmentLength->getEtaTerm(base.fragmentLength);
+	for(TRecalibrationEMCovariate* covariate : covariates){
+		eta += covariate->getEtaTerm(base);
+	}
 
 	return _calcEpsilon(eta);
 };
 
 double TRecalibrationEMModelNEW::getErrorRate(const TRecalibrationEMReadData & data){
-	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as modules
+	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = intercept.getEtaTerm();
 
-	eta += quality->getEtaTerm(data.quality);
-	eta += position->getEtaTerm(data.position);
-	eta += context->getEtaTerm(data.context);
-	eta += fragmentLength->getEtaTerm(data.fragmentLength);
+	for(TRecalibrationEMCovariate* covariate : covariates){
+		eta += covariate->getEtaTerm(data);
+	}
 
 	return _calcEpsilon(eta);
 };
@@ -235,7 +181,7 @@ void TRecalibrationEMModelNEW::proposeNewParameters(double & lambda){
 	if(!_NRStepAccepted){
 		size_t index = 0;
 
-		for(TRecalibrationEMModule* it : activeModules){
+		for(TRecalibrationEMCovariateFunction* it : activeCovariateFunctions){
 			it->proposeNewParameters(JxF, index, lambda);
 		}
 	}
@@ -249,7 +195,7 @@ bool TRecalibrationEMModelNEW::acceptProposedParametersBasedOnQ(){
 		_NRStepAccepted = false;
 		_Q = _oldQ;
 
-		for(TRecalibrationEMModule* it : activeModules){
+		for(TRecalibrationEMCovariateFunction* it : activeCovariateFunctions){
 			it->rejectProposedParameters();
 		}
 	}

@@ -15,68 +15,95 @@
 #include "../TLog.h"
 #include "../TReadGroups.h"
 
-//--------------------------------------------------------------------
-// TRecalibrationEMQualityPositionMap
-// Look-up tables for position and quality. Only indexes will be stored.
-//--------------------------------------------------------------------
-class TRecalibrationEMQualityPositionMap{
-public:
-	int maxQual;
-	int maxPos;
-	double* eta;
-	double* etaSquared;
-	double* position;
-	double* positionSquared;
+
+
+//--------------------------------------------------------------
+// TRecalibrationEMTransformationMap
+//--------------------------------------------------------------
+class TRecalibrationEMTransformationMap{
+protected:
+	uint16_t size;
+	uint16_t max;
+	double* map;
 	bool initialized;
 
-	TRecalibrationEMQualityPositionMap(){
+public:
+	TRecalibrationEMTransformationMap(){
 		initialized = false;
-		initialize(500, 255); //TODO: think about default!
+		clear();
 	};
 
-	~TRecalibrationEMQualityPositionMap(){
+	TRecalibrationEMTransformationMap(const uint16_t Max){
+		initialized = false;
+		initialize(Max);
+	};
+
+	~TRecalibrationEMTransformationMap(){
 		clear();
 	};
 
 	void clear(){
 		if(initialized){
-			delete[] eta;
-			delete[] etaSquared;
-			delete[] position;
-			delete[] positionSquared;
+			delete[] map;
 			initialized = false;
+		}
+		max = 0;
+		size = 0;
+		map = nullptr;
+	};
+
+	void initialize(const uint16_t Max){
+		max = Max;
+		size = Max + 1;
+		map = new double[size];
+		for(int i=0; i<size; i++){
+			map[i] = 0.0;
 		}
 	};
 
-	void initialize(int MaxQual, int MaxPos){
-		clear();
-		maxQual = MaxQual;
-		maxPos = MaxPos;
-		eta = new double[maxQual+1];
-		etaSquared = new double[maxQual+1];
-		position = new double[maxPos+1];
-		positionSquared = new double[maxPos+1];
-		initialized = true;
+	void set(const uint16_t x, const double value){
+		map[x] = value;
+	};
 
-		//fill qualities. Use TQualityMap for conversion
-		TQualityMap qualiMap;
-		for(int q=0; q<=maxQual; q++){
-			double eps = qualiMap.qualityToError(q);
-			if(eps < 0.0000000001) eps = 0.0000000001;
-			else if(eps > 0.9999999999) eps = 0.9999999999;
+	bool checkRange(const uint16_t val){
+		if(val <= max) return true;
+		else return false;
+	};
 
-			eta[q] = log(eps / (1.0 - eps));
-			etaSquared[q] = eta[q] * eta[q];
-		}
+	double operator[](const int x){
+		return map[x];
+	};
 
-		//fill positions
-		for(int p = 0; p<=maxPos; p++){
-			position[p] = p;
-			positionSquared[p] = p * p;
-		}
+	double get(const int x){
+		return map[x];
 	};
 };
 
+//--------------------------------------------------------------------
+// TRecalibrationEMQualityPositionMap
+// Look-up tables for position and quality. Only indexes will be stored.
+//--------------------------------------------------------------------
+class TRecalibrationEMQualityErrorMap:public TRecalibrationEMTransformationMap{
+private:
+	void _fill(){
+		TQualityMap qualiMap;
+		for(int q=0; q<=max; q++){
+			double eps = qualiMap.qualityToError(q);
+
+			if(eps < 0.0000000001) eps = 0.0000000001;
+			else if(eps > 0.9999999999) eps = 0.9999999999;
+
+			map[q] = log(eps / (1.0 - eps));
+		}
+	};
+
+public:
+	TRecalibrationEMQualityErrorMap(){
+		initialized = false;
+		initialize(255);
+		_fill();
+	};
+};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -115,7 +142,7 @@ public:
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	int size();
-	void fillVectorWithUsedQualities(std::vector<int> & Q);
+	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
 };
 
 class TRecalibrationEMDataTables{
@@ -131,7 +158,7 @@ public:
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	void assembleCountsPerReadGroup();
-	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<int> & Q);
+	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
 	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);
 };
 

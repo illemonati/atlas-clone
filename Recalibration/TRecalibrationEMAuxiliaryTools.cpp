@@ -89,7 +89,7 @@ int TRecalibrationEMDataTable::size(){
 	return counts;
 }
 
-void TRecalibrationEMDataTable::fillVectorWithUsedQualities(std::vector<int> & Q){
+void TRecalibrationEMDataTable::fillVectorWithUsedQualities(std::vector<uint16_t> & Q){
 	Q.clear();
 	for(int i=0; i<maxQual; ++i){
 		if(qualities[i] > 0){
@@ -139,7 +139,7 @@ void TRecalibrationEMDataTables::assembleCountsPerReadGroup(){
 	}
 };
 
-void TRecalibrationEMDataTables::fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<int> & Q){
+void TRecalibrationEMDataTables::fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q){
 	tables[readGroupId][(int) isSecondMate].fillVectorWithUsedQualities(Q);
 };
 

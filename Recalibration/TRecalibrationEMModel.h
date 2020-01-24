@@ -8,21 +8,9 @@
 #ifndef TRECALIBRATIONEMMODEL_H_
 #define TRECALIBRATIONEMMODEL_H_
 
+#include <TRecalibrationEMCovariate.h>
 #include "TRecalibrationEMAuxiliaryTools.h"
-#include "TRecalibrationEMModule.h"
 #include "../TFile.h"
-
-
-#define noRecal_name "none"
-#define qualFuncPosFunc_name "qualFuncPosFunc"
-#define qualFuncPosFuncContext_name "qualFuncPosFuncContext"
-#define qualFuncPosFuncLengthFuncContext_name "qualFuncPosFuncLengthFuncContext"
-#define qualFuncPosSpecific_name "qualFuncPosSpecific"
-#define qualFuncPosSpecificContext_name "qualFuncPosSpecificContext"
-#define qualFuncPosSpecificContextNew_name "qualFuncPosSpecificContextNew"
-#define qualSpecificPosSpecific_name "qualSpecificPosSpecific"
-#define qualSpecificPosSpecificContext_name "qualSpecificPosSpecificContext"
-
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
@@ -31,19 +19,16 @@
 class TRecalibrationEMModelNEW{
 private:
 	size_t _numParameters;
-	TRecalibrationEMQualityPositionMap _qualPosMap;
+	TRecalibrationEMQualityErrorMap qualErrorMap;
+
 	TLog* logfile;
 
-	//intercept
-	TRecalibrationEMModule_intercept intercept;
+	//covariates
+	TRecalibrationEMCovariateFunction_intercept intercept;
+	std::vector<TRecalibrationEMCovariate*> covariates;
 
-	//modules for quality, position and context
-	TRecalibrationEMModule* quality;
-	TRecalibrationEMModule* position;
-	TRecalibrationEMModule* context;
-	TRecalibrationEMModule* fragmentLength;
 
-	std::vector<TRecalibrationEMModule*> activeModules;
+	std::vector<TRecalibrationEMCovariateFunction*> activeCovariateFunctions;
 
 	//Newton Raphson Parameters
 	//TODO: maybe split into class that can and cannot estimate?
@@ -55,8 +40,6 @@ private:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	void _parseModuleString(const std::string str, std::string & type, std::vector<std::string> & values);
-	void _createModule(TRecalibrationEMModule* module, std::string & type, std::vector<std::string> & values);
 	double _calcEpsilon(const double eta);
 	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
 
@@ -64,14 +47,13 @@ public:
 	TRecalibrationEMModelNEW(std::map<std::string, std::string> & modules, TLog* Logfile, bool verbose);
 	~TRecalibrationEMModelNEW();
 
+	void createModules(std::map<std::string, std::string> & modules, TRecalibrationEMDataTable* dataTable);
+	void createModules(std::map<std::string, std::string> & modules);
+	void checkParameterRange(TRecalibrationEMDataTable* dataTable);
+	void checkParameterRange(std::vector<uint16_t> & Qualities, uint16_t maxPos);
 	int numParameters(){ return _numParameters; };
 
-	void checkParameterRange(std::vector<int> & Qualities, int maxPos){
-		throw "todo!";
-	}
-
 	void setEMParamsToZero();
-
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
@@ -88,188 +70,6 @@ public:
 	double getErrorRate(const TBase & base);
 	double getErrorRate(const TRecalibrationEMReadData & data);
 
-};
-
-
-
-//--------------------------------------------------------------------
-// TRecalibrationEMModel
-//--------------------------------------------------------------------
-class TRecalibrationEMModel_Base{
-protected:
-	std::string _name;
-	unsigned int _numParameters;
-	TRecalibrationEMQualityPositionMap _qualPosMap;
-	TLog* logfile;
-
-	double* _betas; //betas of the model
-	double* _oldBetas; //use during estimation
-	bool _initialized;
-
-	//Newton Raphson Parameters
-	double _Q, _oldQ;
-	arma::mat Jacobian;
-	arma::vec F;
-	arma::mat JxF;
-	unsigned int _numSitesAdded;
-	bool _NRconverged;
-	bool _NRStepAccepted;
-
-	void _parseParameterString(std::vector<std::string> & vec, std::vector< std::vector<double> > & values);
-	void parseQualityParameters(double* betaPointer, std::vector<double> & values); //default function assuming quadratic model
-	void parsePositionParameters(double* betaPointer, std::vector<double> & values); //default function assuming quadratic model
-	void _allocateBetaMemory();
-	void _freeBetaMemory();
-	double _calcEpsilon(double & eta);
-	double _calcQ(const int & genotype, TRecalibrationEMReadData & data);
-
-public:
-
-	TRecalibrationEMModel_Base(TLog* Logfile);
-	virtual ~TRecalibrationEMModel_Base(){ _freeBetaMemory(); };
-
-	std::string name(){ return _name; };
-	int numParameters(){ return _numParameters; };
-	void setEMParamsToZero();
-	virtual void checkParameterRange(std::vector<int> & Qualities, int maxPos){}; //check if parameters are in correct range
-
-	void setQToZero();
-	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
-	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
-	double curQ(){ return _Q; };
-	bool solveJxF();
-	virtual void proposeNewParameters(double & lambda);
-	bool acceptProposedParametersBasedOnQ();
-	void rejectProposedParameters();
-
-	double getSteepestGradient();
-	void printJacobianToStdOut();
-	void printFToStdOut();
-	void printJxFToStdOut();
-
-	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
-	virtual void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
-	void writeParametersToFile(TOutputFilePlain & out);
-	std::string getModelString();
-	virtual std::string getQualityString(); //default function assuming quadratic model
-	virtual std::string getPositionString(); //default function assuming quadratic model
-	virtual std::string getContextString(); //default function assuming context specific intercepts
-	virtual double getErrorRate(TBase & base){ throw "double getErrorRate(TBase & base) not defined for TRecalibrationEMModel_Base!"; };
-	virtual void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQualPlusOne, int MinQual){ throw "void fillTransformationTableForSimulation(...) not defined for TRecalibrationEMModel_Base!"; };
-};
-
-class TRecalibrationEMModel_noRecal:public TRecalibrationEMModel_Base{
-public:
-	TRecalibrationEMModel_noRecal(TLog* Logfile);
-	~TRecalibrationEMModel_noRecal(){};
-	double getErrorRate(TBase & base);
-	std::string getQualityString(){return "-";};
-	std::string getPositionString(){return "-";};
-	std::string getContextString(){return "-";};
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosFunc:public TRecalibrationEMModel_Base{
-public:
-	TRecalibrationEMModel_qualFuncPosFunc(TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosFunc(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosFunc(){};
-
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	std::string getContextString();
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosFuncContext:public TRecalibrationEMModel_Base{
-public:
-	TRecalibrationEMModel_qualFuncPosFuncContext(TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosFuncContext(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosFuncContext(){};
-
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext:public TRecalibrationEMModel_Base{
-public:
-	TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosFuncLengthFuncContext(){};
-
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosSpecific:public TRecalibrationEMModel_Base{
-private:
-	int _maxPosPlusOne;
-	int _numParamsWithoutPositions;
-	bool lengthWarningPrinted;
-
-public:
-	TRecalibrationEMModel_qualFuncPosSpecific(int MaxPos, TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosSpecific(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosSpecific(){};
-
-	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	std::string getPositionString();
-	std::string getContextString();
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualFuncPosSpecificContext:public TRecalibrationEMModel_Base{
-private:
-	int _maxPosPlusOne;
-	int _numParamsWithoutPositions;
-	bool lengthWarningPrinted;
-
-public:
-	TRecalibrationEMModel_qualFuncPosSpecificContext(int MaxPos, TLog* Logfile);
-	TRecalibrationEMModel_qualFuncPosSpecificContext(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualFuncPosSpecificContext(){};
-
-	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
-	void proposeNewParameters(double & lambda);
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	std::string getPositionString();
-	std::string getContextString();
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
-};
-
-class TRecalibrationEMModel_qualSpecficPosSpecific:public TRecalibrationEMModel_Base{
-private:
-	int _maxPosPlusOne;
-	int _numQualities;
-	int _maxQualPlusOne;
-	int* _qualityIndex;
-	TQualityMap qualMap;
-	bool lengthWarningPrinted;
-	bool qualityWarningPrinted;
-
-public:
-	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<int> & Qualities, int MaxQual, int MaxPos, TLog* Logfile);
-	TRecalibrationEMModel_qualSpecficPosSpecific(std::vector<std::string> & vec, TLog* Logfile);
-	~TRecalibrationEMModel_qualSpecficPosSpecific(){};
-
-	void checkParameterRange(std::vector<int> & Qualities, int maxPos);
-	double calcEpsilon(const TRecalibrationEMReadData & data);
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	std::string getQualityString();
-	std::string getPositionString();
-	std::string getContextString();
-	double getErrorRate(TBase & base);
-	void fillTransformationTableForSimulation(int*** transformedQuality, int MaxPos, int MaxQual, int MinQual);
 };
 
 //--------------------------------------------------------------------
