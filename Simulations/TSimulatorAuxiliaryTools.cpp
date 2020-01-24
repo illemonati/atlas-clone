@@ -128,21 +128,21 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 	needsWriting = true;
 };
 
-void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){
-	logfile->listFlush("Simulating reference alleles ...");
-
-	if(!storageInitialized)
-		throw "Can not simulate reference sequence, no chromosome set!";
-
-	//simulate reference sequence
-	for(int l=0; l<chrLength; ++l){
-		ref[l] = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-	}
-
-	if(fastaOpen){
-		writeRefToFasta();
-	};
-};
+//void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){
+//	logfile->listFlush("Simulating reference alleles ...");
+//
+//	if(!storageInitialized)
+//		throw "Can not simulate reference sequence, no chromosome set!";
+//
+//	//simulate reference sequence
+//	for(int l=0; l<chrLength; ++l){
+//		ref[l] = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+//	}
+//
+//	if(fastaOpen){
+//		writeRefToFasta();
+//	};
+//};
 
 
 //---------------------------------------------------

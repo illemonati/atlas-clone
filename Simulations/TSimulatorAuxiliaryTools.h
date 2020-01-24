@@ -77,7 +77,7 @@ public:
 	void close();
 
 	void setChr(std::string ChrName, long ChrLength);
-	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
+//	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
 	Base* getPointerToRef(){ return ref; };
 };
 

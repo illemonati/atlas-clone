@@ -26,8 +26,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
-		alignmentParser.setOutName(outputName);
 	}
+	alignmentParser.setOutName(outputName);
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
@@ -1539,8 +1539,6 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 			}
 		}
 	}
-
-	logfile->done();
 
 	std::string readGroupSettingsFile = params.getParameterString("readGroupSettings");
 	logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
