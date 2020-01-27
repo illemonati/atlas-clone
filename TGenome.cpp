@@ -885,25 +885,19 @@ void TGenome::printQualityDistribution(TParameters & params){
 	TQualityMap qualMap;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
-    long counter = 0;
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		++counter;
 		//update and write (only if alignment qualities could be calculated)
 		alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
 
 		//report
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 
 	//print per read group table
 	logfile->startIndent("Writing distributions:");
@@ -1028,9 +1022,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	TQualityMap qualMap;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	if(withPMD){
@@ -1038,24 +1030,21 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			++counter;
 			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
-			reportProgressParsingBamFile(counter, start);
+			reporter.printProgress();
         }
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
 			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-			reportProgressParsingBamFile(counter, start);
+			reporter.printProgress();
 		}
 	}
 
 	//close bam writer
 	bamWriter.Close();
-	logfile->done();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 
 	//create index of new bam file
 	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
@@ -1090,9 +1079,7 @@ void TGenome::binQualityScores(TParameters & params){
 	long counter = 0;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
@@ -1103,16 +1090,14 @@ void TGenome::binQualityScores(TParameters & params){
 		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 		//report
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 
@@ -1138,57 +1123,39 @@ void TGenome::assessSoftClipping(TParameters & params){
 		logfile->list("Writing only counts of soft clipped bases to file.");
 
 	//open output file
-	std::string filename = outputName + "_clippingStats.txt.gz";
-	gz::ogzstream out(filename.c_str());
-	if(!out)
-		throw "Failed to open file '" + filename + "' for writing!";
-	if(printSequences)
-		out << "Read\tposition\tnClippedLeft\tsClippedLeft\tnNotClipped\tsNotClipped\tnClippedRight\tsClippedRight\n";
-	else
-		out << "Read\tposition\tnClippedLeft\tnNotClipped\tnClippedRight\n";
+	TSoftClippingStatsFile statFile(outputName, printSequences);
+
+	//create soft clipping matrix
+	TSoftClippingMatrix matrix(maxReadLength);
 
 	//other temp variables
-	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
-	TGenotypeMap genoMap;
-	long counter = 0;
+	TSoftClippingData softClippingData;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+		softClippingData.assessSoftClipping(alignment.bamAlignment);
 
 		//report
-		if(S_left + S_right > 0 || printAll){
-			out << alignment.name() << "\t";
-			out	<< alignment.getPosition() << "\t";
-			out	<< S_left << "\t";
-			if(printSequences) out	<< S_string_left << "\t";
-			out	<< middle  << "\t";
-			if(printSequences) out	<< S_string_middle << "\t";
-			out	<< S_right << "\t";
-			if(printSequences) out	<< S_string_right << "\n";
-			if(!printSequences) out << "\n";
+		if(softClippingData.hasSoftClipping || printAll){
+			statFile.write(alignment.name(), alignment.getPosition(), softClippingData);
 		}
 
+		//add count to matrix
+		matrix.add(softClippingData);
+
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
-	//close output file
-	out.close();
+	//write matrix
+	matrix.write(outputName + "_clippingStats_matrix.txt");
 
-	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
-}
+	//report end
+	reporter.printEnd();
+};
 
 void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	//open a bam file for writing
@@ -1201,30 +1168,23 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 
 	//other temp variables
 	TAlignment alignment;
-	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
-	TGenotypeMap genoMap;
-	long counter = 0;
-
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TSoftClippingData softClippingData;
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
+	//prepare reporting
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
-		alignment.removeSoftClippedBases(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+		softClippingData.assessSoftClipping(alignment.bamAlignment);
+		alignment.removeSoftClippedBases(softClippingData);
 
 		//write
 		bamWriter.SaveAlignment(alignment.bamAlignment);
 //		alignment.bamAlignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
@@ -1234,9 +1194,7 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	indexBamFile(filename);
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 void TGenome::assessOverlap(TParameters & params){
@@ -1249,7 +1207,6 @@ void TGenome::assessOverlap(TParameters & params){
 
 	//other variables
 	float numProperPairs = 0.0;
-	int counter = 0;
 
 	//open output file
 	std::string filename = outputName + "_overlapStats.txt";
@@ -1259,9 +1216,7 @@ void TGenome::assessOverlap(TParameters & params){
 	out << "overlap\tcount\tproportion\n";
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    	gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//now parse through bam file and write alignments
     while(alignmentParser.readNextAlignment(alignment)){
@@ -1272,9 +1227,9 @@ void TGenome::assessOverlap(TParameters & params){
 		}
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
+    reporter.printEnd();
 
 	//write counts to table
 	for(int i=0; i<maxReadLength; ++i){
@@ -1349,14 +1304,11 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
-	long counter = 0;
+	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 	TAlignment alignment;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
-	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1382,8 +1334,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
@@ -1393,9 +1344,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	indexBamFile(filename);
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 
@@ -1485,13 +1434,8 @@ void TGenome::mergeReadGroups(TParameters & params){
 	if (!bamWriter.Open(filename, newHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	//other temp variables
-	long counter = 0;
-
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1505,17 +1449,14 @@ void TGenome::mergeReadGroups(TParameters & params){
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 };
 
 void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings){
@@ -1674,7 +1615,7 @@ void TGenome::filterBAM(TParameters & params){
     //now parse through bam file and write alignments
 	int curChr = 0;
 
-	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
+	while(alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
 		if(curChr != alignment.chrNumber){
 			//write all ready currently in storage
@@ -1879,7 +1820,7 @@ void TGenome::splitMerge(TParameters & params){
 	//close BAM file
 	reader.Close();
 	logfile->done();
-}
+};
 
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading

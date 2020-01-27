@@ -371,7 +371,6 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
 	bamAlignment.Qualities = std::string(bamAlignment.Length, qualMap.phredIntToQuality(30));
 
-
 	//single end read in between, long
 	setToSingleEndEtc(bamAlignment);
 	bamAlignment.EditTag("RG", "Z", readGroupName + "_single");
