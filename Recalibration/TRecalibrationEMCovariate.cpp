@@ -260,10 +260,6 @@ double TRecalibrationEMCovariate_position::getEtaTerm(const TRecalibrationEMRead
 //-------------------------------------------
 // TRecalibrationEMCovariate_context
 //-------------------------------------------
-TRecalibrationEMCovariate_context::TRecalibrationEMCovariate_context(){
-	numContext = 20;
-};
-
 TRecalibrationEMCovariate_context::TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
 	numContext = 20;
 	addFunction(FirstParameterIndex, functionString, dataTable);
