@@ -8,6 +8,7 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
+#include <cstddef>
 #include "../TQualityMap.h"
 #include "../TGenotypeMap.h"
 #include "../stringFunctions.h"
@@ -15,95 +16,6 @@
 #include "../TLog.h"
 #include "../TReadGroups.h"
 
-
-
-//--------------------------------------------------------------
-// TRecalibrationEMTransformationMap
-//--------------------------------------------------------------
-class TRecalibrationEMTransformationMap{
-protected:
-	uint16_t size;
-	uint16_t max;
-	double* map;
-	bool initialized;
-
-public:
-	TRecalibrationEMTransformationMap(){
-		initialized = false;
-		clear();
-	};
-
-	TRecalibrationEMTransformationMap(const uint16_t Max){
-		initialized = false;
-		initialize(Max);
-	};
-
-	~TRecalibrationEMTransformationMap(){
-		clear();
-	};
-
-	void clear(){
-		if(initialized){
-			delete[] map;
-			initialized = false;
-		}
-		max = 0;
-		size = 0;
-		map = nullptr;
-	};
-
-	void initialize(const uint16_t Max){
-		max = Max;
-		size = Max + 1;
-		map = new double[size];
-		for(int i=0; i<size; i++){
-			map[i] = 0.0;
-		}
-	};
-
-	void set(const uint16_t x, const double value){
-		map[x] = value;
-	};
-
-	bool checkRange(const uint16_t val){
-		if(val <= max) return true;
-		else return false;
-	};
-
-	double operator[](const int x){
-		return map[x];
-	};
-
-	double get(const int x){
-		return map[x];
-	};
-};
-
-//--------------------------------------------------------------------
-// TRecalibrationEMQualityPositionMap
-// Look-up tables for position and quality. Only indexes will be stored.
-//--------------------------------------------------------------------
-class TRecalibrationEMQualityErrorMap:public TRecalibrationEMTransformationMap{
-private:
-	void _fill(){
-		TQualityMap qualiMap;
-		for(int q=0; q<=max; q++){
-			double eps = qualiMap.qualityToError(q);
-
-			if(eps < 0.0000000001) eps = 0.0000000001;
-			else if(eps > 0.9999999999) eps = 0.9999999999;
-
-			map[q] = log(eps / (1.0 - eps));
-		}
-	};
-
-public:
-	TRecalibrationEMQualityErrorMap(){
-		initialized = false;
-		initialize(255);
-		_fill();
-	};
-};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -135,7 +47,7 @@ private:
 public:
 	int maxQual;
 	uint16_t maxPos;
-	unsigned int qualities;
+	unsigned int* qualities;
 
 	TRecalibrationEMDataTable(const int MaxQual);
 	~TRecalibrationEMDataTable();
@@ -209,13 +121,170 @@ public:
 		return readGroupIndex[data.readGroup][data.isSecond];
 	};
 
-	std::string name(int readGroup, bool isSecondMate);
+	//std::string name(int readGroup, bool isSecondMate);
 	bool nextNotInUse(std::pair<int, bool> & pair);
 	bool hasCasesWithoutIndex();
 	bool hasCasesWithoutSecondMate();
 	void reportReadGroupsNotUsed(TLog* logfile);
 	void reportReadGroupsConsideredSingleEnd(TLog* logfile);
 	void warningForMissingReadGroups(TLog* logfile);
+};
+
+//--------------------------------------------------------------
+// TRecalibrationEMTransformationMap
+//--------------------------------------------------------------
+class TRecalibrationEMTransformationMap{
+protected:
+	uint16_t size;
+	uint16_t max;
+	double* map;
+	bool initialized;
+
+public:
+	TRecalibrationEMTransformationMap(){
+		initialized = false;
+		clear();
+	};
+
+	TRecalibrationEMTransformationMap(const uint16_t Max){
+		initialized = false;
+		initialize(Max);
+	};
+
+	~TRecalibrationEMTransformationMap(){
+		clear();
+	};
+
+	void clear(){
+		if(initialized){
+			delete[] map;
+			initialized = false;
+		}
+		max = 0;
+		size = 0;
+		map = nullptr;
+	};
+
+	void initialize(const uint16_t Max){
+		max = Max;
+		size = Max + 1;
+		map = new double[size];
+		for(int i=0; i<size; i++){
+			map[i] = 0.0;
+		}
+	};
+
+	void set(const uint16_t x, const double value){
+		map[x] = value;
+	};
+
+	bool checkRange(const uint16_t val){
+		if(val <= max) return true;
+		else return false;
+	};
+
+	double operator[](const int x){
+		return map[x];
+	};
+
+	double get(const int x){
+		return map[x];
+	};
+};
+
+//--------------------------------------------------------------------
+// Derivatives
+//--------------------------------------------------------------------
+struct TRecalibrationEMFirstDerivative{
+	size_t index;
+	double derivative;
+};
+
+struct TRecalibrationEMSecondDerivative{
+	size_t index1;
+	size_t index2;
+	double derivative;
+};
+
+class TRecalibrationEMDerivatives{
+protected:
+	size_t _next;
+public:
+
+	TRecalibrationEMDerivatives(){
+		_next = 0;
+	};
+
+	void restart(){
+		_next = 0;
+	};
+};
+
+typedef std::vector<TRecalibrationEMFirstDerivative>::iterator TRecalibrationEMFirstDerivativesIterator;
+
+class TRecalibrationEMFirstDerivatives:public TRecalibrationEMDerivatives{
+private:
+	std::vector<TRecalibrationEMFirstDerivative> _derivatives;
+
+public:
+	TRecalibrationEMFirstDerivatives(){};
+	TRecalibrationEMFirstDerivatives(size_t Size){
+		resize(Size);
+	};
+
+	void resize(size_t Size){
+		_derivatives.resize(Size);
+	};
+
+	size_t size(){ return _derivatives.size(); };
+
+	void add(const size_t parameterIndex, const double & derivative){
+		_derivatives[_next].index = parameterIndex;
+		_derivatives[_next].derivative = derivative;
+		++_next;
+	};
+
+	TRecalibrationEMFirstDerivativesIterator begin(){
+		return _derivatives.begin();
+	};
+
+	TRecalibrationEMFirstDerivativesIterator end(){
+		return _derivatives.end();
+	};
+};
+
+typedef std::vector<TRecalibrationEMSecondDerivative>::iterator TRecalibrationEMSecondDerivativesIterator;
+
+class TRecalibrationEMSecondDerivatives:public TRecalibrationEMDerivatives{
+private:
+	std::vector<TRecalibrationEMSecondDerivative> _derivatives;
+
+public:
+	TRecalibrationEMSecondDerivatives(){};
+	TRecalibrationEMSecondDerivatives(size_t Size){
+		resize(Size);
+	};
+
+	void resize(size_t Size){
+		_derivatives.resize(Size);
+	};
+
+	size_t size(){ return _derivatives.size(); };
+
+	void add(const size_t parameterIndex1, const size_t parameterIndex2, const double & derivative){
+		_derivatives[_next].index1 = parameterIndex1;
+		_derivatives[_next].index2 = parameterIndex2;
+		_derivatives[_next].derivative = derivative;
+		++_next;
+	};
+
+	TRecalibrationEMSecondDerivativesIterator begin(){
+		return _derivatives.begin();
+	};
+
+	TRecalibrationEMSecondDerivativesIterator end(){
+		return _derivatives.end();
+	};
 };
 
 

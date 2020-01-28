@@ -44,7 +44,6 @@ void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
-
 TRecalibrationEMDataTable::TRecalibrationEMDataTable(const int MaxQual){
 	maxQual = MaxQual;
 	qualities = new unsigned int[maxQual];
@@ -144,11 +143,11 @@ void TRecalibrationEMDataTables::fillVectorWithUsedQualities(const int readGroup
 };
 
 TRecalibrationEMDataTable* TRecalibrationEMDataTables::getTable(const int readGroupId, const bool isSecondMate){
-	return tables[readGroupId][(int) isSecondMate];
+	return &tables[readGroupId][(int) isSecondMate];
 };
 
 TRecalibrationEMDataTable* TRecalibrationEMDataTables::getTable(const int readGroupId, const int isSecondMate){
-	return tables[readGroupId][isSecondMate];
+	return &tables[readGroupId][isSecondMate];
 };
 //--------------------------------------------------------------------
 // TRecalibrationEMReadGroupIndex
@@ -178,7 +177,7 @@ TRecalibrationEMReadGroupIndex::~TRecalibrationEMReadGroupIndex(){
 };
 
 void TRecalibrationEMReadGroupIndex::_init(){
-	_numReadGroups = readGroupMap->_numReadGroups;
+	_numReadGroups = readGroupMap->getNumReadGroups();
 	_numCases = 2 * _numReadGroups;
 	_numCasesWithIndex = 0;
 	_numIndices = 0;
@@ -261,14 +260,6 @@ void TRecalibrationEMReadGroupIndex::setAsNotUsed(int readGroup, bool isSecondMa
 	readGroupIndex[readGroup][isSecondMate] = -1;
 };
 
-std::string TRecalibrationEMReadGroupIndex::name(int readGroup, bool isSecondMate){
-	if(isSecondMate){
-
-	} else {
-		return readGroupMap
-	}
-};
-
 bool TRecalibrationEMReadGroupIndex::nextNotInUse(std::pair<int, bool> & pair){
 	//check if there are read groups not in use. If so, return true and fill pair. Otherwise, return false
 	for(int rg = 0; rg<_numReadGroups; ++rg){
@@ -292,7 +283,7 @@ bool TRecalibrationEMReadGroupIndex::hasCasesWithoutIndex(){
 bool TRecalibrationEMReadGroupIndex::hasCasesWithoutSecondMate(){
 	//check if there are read groups without second mate
 	for(size_t r=0; r<readGroups->size(); ++r){
-		int index = readGroupMap[r];
+		int index = readGroupMap->getIndex(r);
 		if(!readGroupInUse[index][1])
 			return true;
 	}
@@ -301,7 +292,7 @@ bool TRecalibrationEMReadGroupIndex::hasCasesWithoutSecondMate(){
 
 void TRecalibrationEMReadGroupIndex::reportReadGroupsNotUsed(TLog* logfile){
 	for(size_t r=0; r<readGroups->size(); ++r){
-		int index = readGroupMap[r];
+		int index = readGroupMap->getIndex(r);
 		if(!readGroupInUse[index][0])
 			logfile->list(readGroups->getName(r) + " (first mate)");
 		if(!readGroupInUse[index][1])
@@ -311,7 +302,7 @@ void TRecalibrationEMReadGroupIndex::reportReadGroupsNotUsed(TLog* logfile){
 
 void TRecalibrationEMReadGroupIndex::reportReadGroupsConsideredSingleEnd(TLog* logfile){
 	for(size_t r=0; r<readGroups->size(); ++r){
-		int index = readGroupMap[r];
+		int index = readGroupMap->getIndex(r);
 		if(!readGroupInUse[index][1])
 			logfile->list(readGroups->getName(r));
 	}
@@ -319,7 +310,7 @@ void TRecalibrationEMReadGroupIndex::reportReadGroupsConsideredSingleEnd(TLog* l
 
 void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile){
 	for(size_t r=0; r<readGroups->size(); ++r){
-		int index = readGroupMap[r];
+		int index = readGroupMap->getIndex(r);
 		if(!readGroupInUse[index][0])
 			logfile->warning("No recal parameters provided for " + readGroups->getName(r) + " (first mate of paired or single-end). Are you using the correct recal file?");
 	}

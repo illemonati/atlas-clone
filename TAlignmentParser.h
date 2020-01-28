@@ -96,7 +96,6 @@ private:
 	bool applyContextFilter;
 	std::map<BaseContext,int> ignoreTheseContexts;
 	size_t readUpToDepth, minDepth, maxDepth;
-	int minQualityAsPhredInt, maxQualityAsPhredInt;
 	bool applyMQFilter;
 	int minMQ, maxMQ;
 	bool applyFragmentLengthFilter;
@@ -149,7 +148,7 @@ public:
 	//alignment: goal is to make this private!
 	int curReadGroupID;
 	int minQualForPrinting, maxQualForPrinting;
-	//int minQual, maxQual;
+	int minQualityAsPhredInt, maxQualityAsPhredInt;
 	bool doMasking, considerRegions;
 	bool applyDepthFilter;
 	bool windowsPredefined;
@@ -206,7 +205,7 @@ public:
 
 	//setters
 	void setOutName(std::string outputName);
-	void setQualityFilters(int minQual, int maxQual);
+	void setQualityFilters(int MinPhredInt, int MaxPhredInt);
 	void setMappingQualityFilters(int MinMQ, int MaxMQ);
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setContextFilter(std::vector<std::string> contexts);

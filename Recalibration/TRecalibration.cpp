@@ -30,15 +30,12 @@ TRecalibrationEM::TRecalibrationEM(std::string string, TReadGroups* ReadGroups, 
 	logfile = Logfile;
 	_type = "recal";
 
-	//read groups
-	readGroups = ReadGroups;
+	//create read group map
+	readGroupMap = new TReadGroupMap(ReadGroups);
 
 	//models
-	models = new TRecalibrationEMModels(readGroups->size(), logfile);
-
-	TReadGroupMap readGroupMap(*readGroups);
-
-	models->createModels(string, *readGroups, readGroupMap);
+	models = new TRecalibrationEMModels(ReadGroups, readGroupMap, logfile);
+	models->createModels(string);
 };
 
 

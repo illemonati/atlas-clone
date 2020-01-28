@@ -102,7 +102,6 @@ public:
 	int getOrigNumReadGroups();
 	int getNumReadGroups();
 
-	int operator[](int rg);
 	int getIndex(int rg);
 	int getIndex(const std::string readGroupName);
 	void fillNamesOfReadgroups(int rg, std::vector<std::string> & names);

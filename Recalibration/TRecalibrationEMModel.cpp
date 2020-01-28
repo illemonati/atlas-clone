@@ -213,18 +213,29 @@ void TRecalibrationEMModel::addToQ(TRecalibrationEMReadData & data, double* P_g_
 	}
 };
 
-void TRecalibrationEMModel::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TRecalibrationEMModel::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives){
 	//fill derivatives
-	size_t indexFirst = 0;
-	size_t indexSecond = 0;
+	firstDerivatives.restart();
+	secondDerivatives.restart();
 	for(auto cov : covariates){
-		cov->fillFirstDerivatives(data, firstDerivatives, indexFirst);
-		cov->fillSecondDerivatives(data, secondDerivatives, indexSecond);
+		cov->fillDerivatives(data, firstDerivatives, secondDerivatives);
 	}
 
-	//add to F and Jacobian
+	//add first derivatives to F and Jacobian
+	for(TRecalibrationEMFirstDerivativesIterator it = firstDerivatives.begin(); it != firstDerivatives.end(); ++it){
+		//add to F
+		F(it->index) += weightF * it->derivative;
 
+		//add to J
+		for(TRecalibrationEMFirstDerivativesIterator it2 = it; it2 != firstDerivatives.end(); ++it2){
+			Jacobian(it->index, it2->index) += weightJFirstDerivatives * it->derivative * it2->derivative;
+		}
+	}
 
+	//add second derivatives to Jacobian
+	for(auto& it : secondDerivatives){
+		Jacobian(it.index1, it.index2) += weightJSecondDerivatives * it.derivative;
+	}
 };
 
 bool TRecalibrationEMModel::solveJxF(){
@@ -292,9 +303,6 @@ void TRecalibrationEMModel::printFToStdOut(){
 void TRecalibrationEMModel::printJxFToStdOut(){
 	std::cout << std::endl << std::endl << "JxF:" << std::endl << JxF << std::endl << std::endl;
 };
-
-
-
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModels
@@ -571,8 +579,8 @@ void TRecalibrationEMModels::setEMParamsToZero(){
 	}
 };
 
-void TRecalibrationEMModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
-	models[ readGroupIndex.index(data) ].addToFandJacobian(data, weightF, weightJacobian);
+void TRecalibrationEMModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives){
+	models[ readGroupIndex.index(data) ].addToFandJacobian(data, weightF, weightJFirstDerivatives, weightJSecondDerivatives);
 };
 
 void TRecalibrationEMModels::setQToZero(){

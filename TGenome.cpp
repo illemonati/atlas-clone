@@ -1043,7 +1043,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
 			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			reportProgressParsingBamFile(counter, start);
         }
 	} else {
@@ -2199,6 +2199,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and sum number of aligned bases
+	int minQuality = alignmentParser.minQualityAsPhredInt + 33;
+	int maxQuality = alignmentParser.maxQualityAsPhredInt + 33;
 	while (alignmentParser.readNextAlignment(alignment)){
         //fragment length
         if(alignment.isProperPair){
@@ -2211,7 +2213,7 @@ void TGenome::diagnoseBamFile(TParameters & params){
         }
 
         //depth
-        int length = alignment.getUsableLength(alignmentParser.minQual, alignmentParser.maxQual);
+        int length = alignment.getUsableLength(minQuality, maxQuality);
         totalDepth += length;
         depth[alignment.readGroupId] += length;
 
@@ -2561,8 +2563,7 @@ void TGenome::estimatePMD(TParameters & params){
 	} else {
 		logfile->list("Not fitting exponential model due to user specification (parameter 'onlyEmpiric')");
 	}
-}
-
+};
 
 void TGenome::runPMDS(TParameters & params){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
@@ -2611,7 +2612,7 @@ void TGenome::runPMDS(TParameters & params){
 		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS){
 			alignment.updateOptionalSamField("DS", PMDS);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQual, alignmentParser.maxQual, qualMap);
+			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 		} else ++counterF;
 
 		//report progress
@@ -2656,43 +2657,23 @@ void TGenome::printMateInformationPerSite(TParameters & params){
 };
 
 void TGenome::contextStats(TParameters & params){
-	std::string outputFileName = outputName + "_contextInformation.txt.gz";
-	logfile->list("Writing context information to file '" + outputFileName + "'.");
-	TOutputFileZipped out(outputFileName);
-	out.writeHeader({"quality","cAA", "cAC", "cAG", "cAT", "cCA", "cCC", "cCG", "cCT", "cGA", "cGC", "cGG", "cGT", "cTA", "cTC", "cTG", "cTT", "cNA", "cNC", "cNG", "cNT", "cAN", "cCN", "cGN", "cTN", "cNN"}); //N means unknwon base or "nothing", i.e. end of read or del
-	int numContext = 25;
-
-	//prepare windows
-	TWindow window;
-
 	//prepare table
-    int** contextCounts = new int*[alignmentParser.maxQual];
-    for(int i = 0; i < alignmentParser.maxQual; ++i){
-    	contextCounts[i] =  new int[numContext];
-    	for(int j=0; j<numContext; ++j)
-    		contextCounts[i][j]=0;
-    }
+	TContextStats table(alignmentParser.maxQualityAsPhredInt);
 
-	//iterate through windows
-	while(alignmentParser.readDataInNextWindow(window)){
-		if(window.passedFilters){
-			window.contextStats(contextCounts, alignmentParser.qualMap);
-		}
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setParsingToTrue();
+
+	//now parse through bam file and write alignments
+	while(alignmentParser.readNextAlignment(alignment)){
+
+
 	}
 
-    //write to file
-    for(int i=0; i<alignmentParser.maxQual; ++i){
-    	out << i;
-    	for(int j=0; j<numContext; ++j){
-    		out << contextCounts[i][j];
-    	}
-		out << std::endl;
-    }
+	std::string outputFileName = outputName + "_contextInformation.txt.gz";
+		logfile->list("Writing context information to file '" + outputFileName + "'.");
 
-    for(int i = 0; i < alignmentParser.maxQual; ++i){
-    	delete[] contextCounts[i];
+
     }
-    delete [] contextCounts;
-}
 
 

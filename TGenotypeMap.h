@@ -32,20 +32,20 @@ public:
 
 	char* baseToChar;
 	Base* baseToFlippedBase;
-	int numGenotypes;
-	int numContexts;
-	int numContextsNotN;
+	size_t numGenotypes;
+	size_t numContexts;
+	size_t numContextsNotN;
 
 	TGenotypeMap(){
 		//create genotype map
 		genotypeMap = new Genotype*[4];
-		for(int i=0; i<4; ++i)
+		for(size_t i=0; i<4; ++i)
 			genotypeMap[i] = new Genotype[4];
 
 		//fill genotype map
 		int geno = 0;
-		for(int i=0; i<4; ++i){
-			for(int j=i; j<4; ++j){
+		for(size_t i=0; i<4; ++i){
+			for(size_t j=i; j<4; ++j){
 				genotypeMap[i][j] = static_cast<Genotype>(geno);
 				genotypeMap[j][i] = genotypeMap[i][j];
 				++geno;
@@ -55,7 +55,7 @@ public:
 		//create and fill genotypeToBase
 		numGenotypes = 10;
 		genotypeToBase = new Base*[numGenotypes];
-		for(int i=0; i<10; ++i){
+		for(size_t i=0; i<10; ++i){
 			genotypeToBase[i] = new Base[2];
 		}
 		genotypeToBase[0][0] = A; genotypeToBase[0][1] = A;
@@ -316,8 +316,12 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	}
 
-	int getNumContext(){
-		return 20;
+	size_t getNumContextsNotN(){
+		return numContextsNotN;
+	};
+
+	size_t getNumContexts(){
+		return numContexts;
 	};
 
 	BaseContext getContext(Base first, Base second){
@@ -338,28 +342,37 @@ public:
 		return getContext(flipBase(first), flipBase(second));
 	};
 
-	std::string getContextString(int num){
-		if(num==0) return "AA";
-		if(num==1) return "AC";
-		if(num==2) return "AG";
-		if(num==3) return "AT";
-		if(num==4) return "CA";
-		if(num==5) return "CC";
-		if(num==6) return "CG";
-		if(num==7) return "CT";
-		if(num==8) return "GA";
-		if(num==9) return "GC";
-		if(num==10) return "GG";
-		if(num==11) return "GT";
-		if(num==12) return "TA";
-		if(num==13) return "TC";
-		if(num==14) return "TG";
-		if(num==15) return "TT";
-		if(num==16) return "-A";
-		if(num==17) return "-C";
-		if(num==18) return "-G";
-		if(num==19) return "-T";
-		throw "GenotypeMap: Unknown text with number " + toString(num) + "!";
+	std::string getContextString(int context){
+		return getContextString(static_cast<BaseContext>(context));
+	};
+
+	std::string getContextString(BaseContext context){
+		if(context == cAA) return "AA";
+		if(context == cAC) return "AC";
+		if(context == cAG) return "AG";
+		if(context == cAT) return "AT";
+		if(context == cCA) return "CA";
+		if(context == cCC) return "CC";
+		if(context == cCG) return "CG";
+		if(context == cCT) return "CT";
+		if(context == cGA) return "GA";
+		if(context == cGC) return "GC";
+		if(context == cGG) return "GG";
+		if(context == cGT) return "GT";
+		if(context == cTA) return "TA";
+		if(context == cTC) return "TC";
+		if(context == cTG) return "TG";
+		if(context == cTT) return "TT";
+		if(context == cNA) return "NA";
+		if(context == cNC) return "NC";
+		if(context == cNG) return "NG";
+		if(context == cNT) return "NT";
+		if(context == cNA) return "NA";
+		if(context == cCN) return "NC";
+		if(context == cGN) return "NG";
+		if(context == cTN) return "NT";
+		if(context == cAN) return "NA";
+		else return "NN";
 	};
 };
 

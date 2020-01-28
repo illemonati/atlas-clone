@@ -62,9 +62,6 @@ public:
 //--------------------------------------------------------------------
 class TRecalibrationEMModel{
 private:
-	size_t _numParameters;
-	TRecalibrationEMQualityErrorMap qualErrorMap;
-
 	TLog* logfile;
 
 	//covariates
@@ -74,6 +71,7 @@ private:
 
 	//Newton Raphson Parameters
 	//TODO: maybe split into class that can and cannot estimate?
+	size_t _numParameters;
 	double _Q, _oldQ;
 	arma::mat Jacobian;
 	arma::vec F;
@@ -109,7 +107,7 @@ public:
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
-	void addToFandJacobian();
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();
@@ -162,7 +160,7 @@ public:
 	void addModel(const int readGroupId, const bool isSecondMate, const TRecalibrationEMModelCovariateDefinition & covariateFunctions);
 	void createModels(std::string string);
 
-	inline TRecalibrationEMModel* operator[](int index){ return models[index]; };
+	//inline TRecalibrationEMModel* operator[](int index){ return &models[index]; };
 	int numModels(){ return models.size(); };
 	bool modelExists(int readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
 
@@ -181,7 +179,7 @@ public:
 
 	//function to estimate
 	void setEMParamsToZero();
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weight, const double & weightJacobian);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives);
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);

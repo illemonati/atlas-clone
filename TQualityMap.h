@@ -104,6 +104,10 @@ public:
 		return quality - 33;
 	};
 
+	double phredIntToIlluminaError(int phredInt){
+		return phredIntToError(illuminaQualityBins[phredInt + 33]);
+	};
+
 	inline int errorToPhredInt(const double & errorRate){
 		return round(errorToPhred(errorRate));
 	};

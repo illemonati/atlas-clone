@@ -74,9 +74,8 @@ public:
 		return _function->getEtaTerm( _extractCovariate(data) );
 	};
 
-	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & indexFirst, TRecalibrationEMSecondDerivatives & second, size_t & indexSecond){
-		_function->fillFirstDerivatives(_extractCovariate(data), first, indexFirst);
-		_function->fillSecondDerivatives(_extractCovariate(data), second, indexSecond);
+	void fillDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+		_function->fillDerivatives(_extractCovariate(data), first, second);
 	};
 };
 
@@ -93,8 +92,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	double getEtaTerm(const TBase & base);
-	double getEtaTerm(const TRecalibrationEMReadData & data);
 	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
 	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
 };
@@ -112,8 +109,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	double getEtaTerm(const TBase & base);
-	double getEtaTerm(const TRecalibrationEMReadData & data);
 };
 
 //-------------------------------------------
@@ -131,8 +126,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	double getEtaTerm(const TBase & base);
-	double getEtaTerm(const TRecalibrationEMReadData & data);
 };
 
 #endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_ */

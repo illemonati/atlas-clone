@@ -263,7 +263,6 @@ void TReadGroupMap::_fillReverseMap(){
 int TReadGroupMap::getOrigNumReadGroups(){ return _origNumReadGroups; };
 int TReadGroupMap::getNumReadGroups(){ return _numReadGroups; };
 
-int TReadGroupMap::operator[](int rg){ return _readGroupMap[rg]; };
 int TReadGroupMap::getIndex(int rg){ return _readGroupMap[rg]; };
 int TReadGroupMap::getIndex(const std::string readGroupName){
 	int rg = _readGroups->find(readGroupName);

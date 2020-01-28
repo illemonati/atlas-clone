@@ -34,7 +34,6 @@ TAlignment::TAlignment(){
 	hasReference = false;
 
 	bases = NULL;
-	qualityOriginal = NULL;
 	numInsertions = -1;
 	numDeletions = -1;
 	softClippedEntry = 0;
@@ -452,7 +451,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
-		bases[d].errorRate = qualityMap.qualityToError(qualityMap.illuminaQualityBins[qualityOriginal[d]]);
+		bases[d].errorRate = qualityMap.phredIntToIlluminaError(bases[d].qualityAsPhredInt);
 	}
 	changed = true;
 };
@@ -529,7 +528,7 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 			else if(bases[d].base == A && referenceSequence[bases[d].alignedPos] == 'G')
 				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		} else {
-			bases[d].errorRate = qualMap.qualityToErrorMap[qualityOriginal[d]];
+			bases[d].errorRate = qualMap.phredIntToError(bases[d].qualityAsPhredInt);
 		}
 	}
 
@@ -770,7 +769,7 @@ int TAlignment::measureOverlap(){
 		return -1;
 };
 
-int TAlignment::getUsableLength(int minQual, int maxQual){
+int TAlignment::getUsableLength(const int minQual, const int maxQual){
 	int counter = bamAlignment.Length;
 	for(int d=0; d<bamAlignment.Length; ++d){
 		if(bamAlignment.QueryBases.at(d) == N || bamAlignment.Qualities.at(d) < minQual || bamAlignment.Qualities.at(d) > maxQual){
@@ -787,6 +786,12 @@ void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qual
 	for(int d=0; d<length; ++d){
 		const int qual = qualMap.errorToQuality(bases[d].errorRate);
 		qualTable.add(qual);
+	}
+};
+
+void TAlignment::addToContextStats(TContextStats & contextStats){
+	for(int d=0; d<length; ++d){
+		contextStats.add(bases[d]);
 	}
 };
 

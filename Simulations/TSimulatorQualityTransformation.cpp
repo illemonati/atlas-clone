@@ -262,8 +262,9 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::st
 	}
 
 	//fill table using a recal model
-	model = createTRecalibrationEMModel(modelTag, values, false, NULL);
-	model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne, qualityDist->min());
+	//TODO!!!!
+	//model = createTRecalibrationEMModel(modelTag, values, false, NULL);
+	//model->fillTransformationTableForSimulation(transformedQuality, maxReadLengthPlusOne, maxQualPlusOne, qualityDist->min());
 };
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){
@@ -273,11 +274,12 @@ void TSimulatorQualityTransformationRecal::clearTransformationTable(){
 		delete[] transformedQuality[q];
 	}
 	delete[] transformedQuality;
-	delete model;
+	//delete model;
 };
 
 void TSimulatorQualityTransformationRecal::printDetails(TLog* logfile){
-	logfile->list("Will transform qualities using the recal model " + model->getModelString());
+	//TODO!!!!
+	//logfile->list("Will transform qualities using the recal model " + model->getModelString());
 };
 
 void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand){

@@ -112,7 +112,7 @@ public:
 //-------------------------------------
 class TSimulatorQualityTransformationRecal:public TSimulatorQualityTransformation{
 private:
-	TRecalibrationEMModel_Base* model;
+	//TRecalibrationEMModel model;
 	int maxReadLengthPlusOne;
 	int maxQualPlusOne;
 	int numContext;

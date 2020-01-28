@@ -28,7 +28,7 @@ void TRecalibrationEMCovariateFunction::_initializeBetas(){
 void TRecalibrationEMCovariateFunction::_initializValues(std::vector<std::string> & values){
 	if(!values.empty()){
 		if(values.size() != _numParameters){
-			throw "Failed to initialize recalibration module: wrong number of values (" + toString(values.size()) + " instead of " + toString(_numParameters) + ")!"
+			throw "Failed to initialize recalibration module: wrong number of values (" + toString(values.size()) + " instead of " + toString(_numParameters) + ")!";
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
@@ -107,12 +107,8 @@ TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_i
 	_initializValues(values);
 };
 
-void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, size_t & indexFirst, TRecalibrationEMSecondDerivatives & second, size_t & indexsecond){
-	first[indexFirst].index = _firstParameterIndex;
-	first[indexFirst].derivative = 1.0;
-
-	//increase index
-	++indexFirst;
+void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	first.add(_firstParameterIndex, 1.0);
 };
 
 //--------------------------------------------------------------
@@ -136,16 +132,13 @@ TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_
 	_initializValues(values);
 };
 
-void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, size_t & indexFirst, TRecalibrationEMSecondDerivatives & second, size_t & indexsecond){
-	double tmp = 1.0;
-	for(size_t i=0; i<_numParameters; ++i){
+void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	double tmp = (double) val;
+	first.add(_firstParameterIndex, tmp);
+	for(size_t i=1; i<_numParameters; ++i){
 		tmp *= (double) val;
-		first[indexFirst + i].index = _firstParameterIndex + i;
-		first[indexFirst + i].derivative = tmp;
+		first.add(_firstParameterIndex + i, tmp);
 	}
-
-	//increase index
-	indexFirst += _numParameters;
 };
 
 //--------------------------------------------------------------
@@ -177,12 +170,8 @@ void TRecalibrationEMCovariateFunction_specific::_init(const size_t MaxValue){
 	_initializeBetas();
 };
 
-void TRecalibrationEMCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, size_t & indexFirst, TRecalibrationEMSecondDerivatives & second, size_t & indexsecond){
-	first[indexFirst].index = _firstParameterIndex + val;
-	first[indexFirst].derivative = 1.0;
-
-	//increase index
-	++indexFirst;
+void TRecalibrationEMCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	first.add(_firstParameterIndex + val, 1.0);
 };
 
 //--------------------------------------------------------------
@@ -267,10 +256,6 @@ TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction
 	}
 };
 
-void TRecalibrationEMCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, size_t & indexFirst, TRecalibrationEMSecondDerivatives & second, size_t & indexsecond){
-	first[indexFirst].index = _firstParameterIndex + _indexMap[val];
-	first[indexFirst].derivative = 1.0;
-
-	//increase index
-	++indexFirst;
+void TRecalibrationEMCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	first.add(_firstParameterIndex + _indexMap[val], 1.0);
 };
