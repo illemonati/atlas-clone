@@ -76,8 +76,11 @@ TSoftClippingStatsFile::TSoftClippingStatsFile(const std::string outputName, boo
 
 	//write header
 	std::vector<std::string> header = {"Read", "position", "nClippedLeft", "nNotClipped", "nClippedRight"};
-	if(printSoftClippedSequences)
-		header.push_back({"sNotClipped", "sClippedRight"});
+	if(printSoftClippedSequences){
+		header.push_back("sNotClipped");
+		header.push_back("sClippedRight");
+	}
+
 	out.writeHeader(header);
 };
 
