@@ -8,8 +8,8 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
-#include <TRecalibrationEMModel.h>
-
+#include "TRecalibrationEMModel.h"
+#include "TRecalibrationEMAuxiliaryTools.h"
 #include "../TSite.h"
 
 
@@ -102,7 +102,8 @@ protected:
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
 	unsigned int minRequiredObservations;
-	std::string modelTagForEstimation;
+	std::string recalFile; //file name in case a file with model is provided
+	TRecalibrationEMModelCovariateDefinition covariateDefitionForEstimation;
 	double* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
@@ -134,7 +135,7 @@ public:
 	long cumulativeDepth();
 
 	//function to estimate
-	void initializeFromString(const std::string string);
+	void initializeFromFile(const std::string string);
 	void performEstimation(std::string outputName, bool & writeTmpTables);
 	void performEstimationKnownGenotypes(std::string outputName, bool & writeTmpTables);
 	void writeCurrentEstimates(std::string filename);

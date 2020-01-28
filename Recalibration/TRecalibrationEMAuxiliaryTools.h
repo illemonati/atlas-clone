@@ -160,20 +160,23 @@ public:
 	void assembleCountsPerReadGroup();
 	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
 	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);
+	TRecalibrationEMDataTable* getTable(const int readGroupId, const int isSecondMate);
 };
 
 
-//--------------------------------------------------------------------
+//--------------------------------------------------------------------------------------
 // TRecalibrationEMReadGroupIndex
-// Object to map read group ID and mate to an internal index used to store recal parameters
-//--------------------------------------------------------------------
+// Object to map read group ID and mate to an internal index used to store recal models
+//--------------------------------------------------------------------------------------
 class TRecalibrationEMReadGroupIndex{
 private:
+	TReadGroups* readGroups;
+	TReadGroupMap* readGroupMap;
 	bool initialized;
 	int** readGroupIndex;
 	bool** readGroupInUse;
 
-	void _init(int NumReadGroups);
+	void _init();
 	void _free();
 
 	int _numReadGroups;
@@ -183,9 +186,10 @@ private:
 
 public:
 	TRecalibrationEMReadGroupIndex();
+	TRecalibrationEMReadGroupIndex(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
 	~TRecalibrationEMReadGroupIndex();
 
-	void initialize(int NumReadGroups);
+	void initialize(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
 	int numReadGroups(){ return _numReadGroups; };
 
 	void setAllAsUsed();
@@ -205,20 +209,13 @@ public:
 		return readGroupIndex[data.readGroup][data.isSecond];
 	};
 
+	std::string name(int readGroup, bool isSecondMate);
 	bool nextNotInUse(std::pair<int, bool> & pair);
-
-	bool hasCasesWithoutIndex(){
-		if(_numCasesWithIndex < _numCases)
-			return true;
-		return false;
-	};
-
-	void reportReadGroupsNotUsed(TLog* logfile, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
-	void reportReadGroupsNotUsed(TLog* logfile, TReadGroups & readGroups);
-	void reportReadGroupsConsideredSingleEnd(TLog* logfile, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
-	void reportReadGroupsConsideredSingleEnd(TLog* logfile, TReadGroups & readGroups);
-	void warningForMissingReadGroups(TLog* logfile, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
-	void warningForMissingReadGroups(TLog* logfile, TReadGroups & readGroups);
+	bool hasCasesWithoutIndex();
+	bool hasCasesWithoutSecondMate();
+	void reportReadGroupsNotUsed(TLog* logfile);
+	void reportReadGroupsConsideredSingleEnd(TLog* logfile);
+	void warningForMissingReadGroups(TLog* logfile);
 };
 
 

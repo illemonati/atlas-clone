@@ -328,20 +328,28 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	_readGroupMap = ReadGroupMap;
 
 	//models
-	models = new TRecalibrationEMModels(_readGroupMap->numReadGroups, logfile);
+	models = new TRecalibrationEMModels(_readGroups, _readGroupMap, logfile);
 
-	//estimation parameters
+	//recal models
 	logfile->startIndent("Settings regarding the EM algorithm:");
-	std::string recalFile = args.getParameterString("initialRecalValues", false);
-	modelTagForEstimation = args.getParameterStringWithDefault("model", "qual=quadratic;pos=quadratic;contex=specific");
+	std::string recalFile = args.getParameterString("recal", false);
+	std::string modelTagForEstimation = args.getParameterStringWithDefault("model", "quality=polynomial(2);position=polynomial(2);contex=specific");
+
+	//initialize from file?
 	if(recalFile.empty()){
 		logfile->list("Will fit the model '" + modelTagForEstimation + "' for all read groups.");
 	} else {
 		logfile->list("Will read models and initial values from file '" + recalFile + "'.");
 		logfile->list("Will fit the model '" + modelTagForEstimation + "' for read groups not in file '" + recalFile + "'.");
-		initializeFromString(recalFile);
 	}
 
+	//parse model string
+	std::string error;
+	if(!covariateDefitionForEstimation.parse(modelTagForEstimation, error)){
+		throw error + "!";
+	}
+
+	//estimation parameters
 	minRequiredObservations = 10000; //constant for reporting
 	numEMIterations = args.getParameterIntWithDefault("iterations", 200);
 	logfile->list("Will perform at max " + toString(numEMIterations) + " EM iterations.");
@@ -360,21 +368,21 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	logfile->endIndent();
 };
 
-void TRecalibrationEMEstimator::initializeFromString(const std::string string){
-	models->createModels(string, *_readGroups, *_readGroupMap);
+void TRecalibrationEMEstimator::initializeFromFile(const std::string string){
+	models->createModels(string);
 };
 
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
-	TRecalibrationEMDataTables dataTable(_readGroups->size(), 500);
-	addToDataTable(dataTable);
+	TRecalibrationEMDataTables dataTables(_readGroups->size(), 500);
+	addToDataTable(dataTables);
 	int numSitesWithData = numSites();
 	logfile->done();
 
 	logfile->conclude("Number of sites with data: " + toString(numSitesWithData));
 	logfile->conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
-	logfile->conclude("Number of observations: " + toString(dataTable.totalCounts));
+	logfile->conclude("Number of observations: " + toString(dataTables.totalCounts));
 	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
 	//initialize models based on data tables?
@@ -387,17 +395,23 @@ void TRecalibrationEMEstimator::_initializeModels(){
 
 	//initialize models
 	//-------------------
-	logfile->listFlush("Initializing recalibration models ...");
+	logfile->startIndent("Initializing recalibration models:");
+
+	//first initialize from file, if given
+	if(!recalFile.empty()){
+		models->addModelsFromFile(recalFile, &dataTables);
+	}
+
+	//now add default model for all others and check if existing (from file) match data range
+	logfile->listFlush("Initializing default models ...");
 	int numModelsWithLittleData = 0;
 	int numModelsWithoutData = 0;
-	std::vector<int> qualities;
-
-	for(int rg = 0; rg < _readGroupMap->numReadGroups; ++rg){
+	for(int rg = 0; rg < _readGroupMap->_numReadGroups; ++rg){
 		for(int mate = 0; mate < 2; ++mate){
-			if(dataTable.countsPerReadGroup[rg][mate] > 0){
-				dataTable.fillVectorWithUsedQualities(rg, mate, qualities);
-				models->addModelIfItDoesNotExist(rg, mate, modelTagForEstimation, qualities, dataTable.maxPos[rg][mate]);
-				if(dataTable.countsPerReadGroup[rg][mate] < minRequiredObservations)
+			TRecalibrationEMDataTable* table = dataTables.getTable(rg, mate);
+			if(table->size() > 0){
+				models->addModel(rg, mate, covariateDefitionForEstimation, table);
+				if(table->size() < minRequiredObservations)
 					++numModelsWithLittleData;
 			} else {
 				if(models->modelExists(rg, mate)){
@@ -417,10 +431,13 @@ void TRecalibrationEMEstimator::_initializeModels(){
 
 		for(size_t rg = 0; rg < _readGroups->size(); ++rg){
 			int index = _readGroupMap->getIndex(rg);
-			if(dataTable.countsPerReadGroup[index][0] > 0 && dataTable.countsPerReadGroup[index][0] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(dataTable.countsPerReadGroup[index][0]) + " observations.");
-			if(dataTable.countsPerReadGroup[index][1] > 0 && dataTable.countsPerReadGroup[index][1] < minRequiredObservations)
-				logfile->list(_readGroups->getName(rg) + " (second mate): only " + toString(dataTable.countsPerReadGroup[index][0]) + " observations.");
+			TRecalibrationEMDataTable* table = dataTables.getTable(index, false);
+			if(table->size() > 0 && table->size() < minRequiredObservations)
+				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(table->size()) + " observations.");
+
+			TRecalibrationEMDataTable* table = dataTables.getTable(index, true);
+			if(table->size() > 0 && table->size() < minRequiredObservations)
+				logfile->list(_readGroups->getName(rg)  + " (second mate): only " + toString(table->size()) + " observations.");
 		}
 		logfile->endIndent();
 	}
@@ -428,7 +445,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	//report read groups without data
 	if(numModelsWithoutData > 0){
 		logfile->startIndent("The following " + toString(numModelsWithoutData) + " read groups do not have data and will not be recalibrated:");
-		models->reportReadGroupsNotUsed(*_readGroups, *_readGroupMap);
+		models->reportReadGroupsNotUsed();
 		logfile->endIndent();
 	}
 };
@@ -654,8 +671,7 @@ long TRecalibrationEMEstimator::cumulativeDepth(){
 
 void TRecalibrationEMEstimator::writeCurrentEstimates(std::string filename){
 	TOutputFilePlain out(filename);
-	models->writeHeader(out);
-	models->writeParameters(out, *_readGroups, *_readGroupMap);
+	models->writeRecalFile(&out);
 };
 
 double TRecalibrationEMEstimator::calcLL(){

@@ -50,24 +50,25 @@ public:
 
 class TReadGroups{
 private:
-	readGroup* groups;
-	size_t numGroups;
-	bool initialized;
-	bool limitReadGroups;
-	bool* inUse;
+	readGroup* _groups;
+	size_t _numGroups;
+	bool _initialized;
+	bool _limitReadGroups;
+	bool* _inUse;
 
 public:
 	TReadGroups();
 	~TReadGroups();
 
 	void fill(BamTools::SamHeader & bamHeader);
-	int find(std::string & name);
-
+	int find(const std::string & name);
 	int find(BamTools::BamAlignment & alignment);
-	bool readGroupExists(std::string & name);
+	bool readGroupExists(const std::string & name);
 	bool readGroupInUse(const int & readGroupId);
 	bool readGroupInUse(const size_t & readGroupId);
+	bool readGroupInUse(const std::string name);
 	bool readGroupInUse(BamTools::BamAlignment & alignment);
+
 	std::string getName(int readGroupId);
 	size_t size();
 	void filterReadGroups(std::string readGroupList);
@@ -75,21 +76,26 @@ public:
 	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);
 };
 
-//---------------------------------------------------------------
+//--------------------------------------------------------------------------------------
 //TReadGroupMap
-//---------------------------------------------------------------
+//Maps bam file read group index to internal index, which may differ in case of pooling
+//--------------------------------------------------------------------------------------
 class TReadGroupMap{
 private:
-	void initializeFromFile(TReadGroups &readGroups, std::string filename, TLog* logfile);
 
+	TReadGroups* _readGroups;
+
+	int _origNumReadGroups;
+	int _numReadGroups;
+	int* _readGroupMap; //maps read group index to internal index
+	std::vector<int>* _reverseReadGroupMap;
+
+	void _fillWithoutPooling();
+	void _fillFromFile(std::string filename, TLog* logfile);
+	void _fillReverseMap();
 public:
-	int origNumReadGroups;
-	int numReadGroups;
-	bool mergedInd;
-	int* readGroupMap;
-
-	TReadGroupMap(TReadGroups & readGroups);
-	TReadGroupMap(TReadGroups & readGroups, const std::string filename, TLog* logfile);
+	TReadGroupMap(TReadGroups* ReadGroups);
+	TReadGroupMap(TReadGroups* ReadGroups, const std::string filename, TLog* logfile);
 
 	~TReadGroupMap();
 
@@ -98,6 +104,8 @@ public:
 
 	int operator[](int rg);
 	int getIndex(int rg);
+	int getIndex(const std::string readGroupName);
+	void fillNamesOfReadgroups(int rg, std::vector<std::string> & names);
 };
 
 #endif /* TREADGROUPS_H_ */
