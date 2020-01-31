@@ -8,11 +8,11 @@ class TQualityIndex{
 	//Note: quality as stored in bases ranges from 33 to max!
 	//error is error rate between 0 and 1
 	//phred is phred-scaled error as phred = -10 * log10(error)
-	//phredInt is (int) phred
+	//phredInt is (uint8_t) phred
 	//quality is phredInt + 33
 public:
-	int minPhredInt, maxPhredInt, numQ, last, first;
-	int* index;
+	uint16_t minPhredInt, maxPhredInt, numQ, last, first;
+	uint16_t* index;
 
 	TQualityIndex(int MinQ, int MaxQ){
 		//here minQ and maxQ are not in ascii. by default minQ = 0 and maxQ = 100
@@ -23,8 +23,8 @@ public:
 		first = 0;
 
 		//fill index
-		index = new int[numQ + 33];
-		for(int i=0; i < maxPhredInt + 1; ++i){
+		index = new uint16_t[numQ + 33];
+		for(uint16_t i=0; i < maxPhredInt + 1; ++i){
 			if(i < minPhredInt) index[i] = 0;
 			else index[i] = i - minPhredInt;
 		}
@@ -34,7 +34,7 @@ public:
 		delete[] index;
 	};
 
-	int& getIndexFromQuality(const int & quality){
+	uint16_t& getIndexFromQuality(const uint16_t & quality){
 		if(quality < 33){
 			throw "Quality is negative!";
 		}
@@ -44,7 +44,7 @@ public:
 		return index[quality - 33];
 	};
 
-	int& getIndexFromPhredInt(const int & phredInt){
+	uint16_t& getIndexFromPhredInt(const uint8_t & phredInt){
 		if(phredInt < 0){
 			throw "Phred int is negative!";
 		}
@@ -54,7 +54,7 @@ public:
 		return index[phredInt];
 	};
 
-	int getPhredIntFromIndex(const int & index){
+	uint8_t getPhredIntFromIndex(const uint16_t & index){
 		if(index < 0) throw "Quality index is negative!";
 		if(index > numQ) return maxPhredInt;
 		return minPhredInt + index;
@@ -90,7 +90,7 @@ public:
 	TBQSR_cell_base();
 	virtual ~TBQSR_cell_base(){};
 	virtual void empty();
-	virtual void init(int ReadGroup);
+	virtual void init(size_t ReadGroup);
 	void reopenEstimation();
 	void set(float error){curEstimate = error;};
 	void set(float error, std::string & NumObservations);
@@ -98,7 +98,7 @@ public:
 	virtual void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap){throw "TBQSR_cell_base::addBase(TBase* base, Base & RefBase) not defined for base class!";};
 	virtual void recalculateDerivativesFromDataInMemory(){throw "TBQSR_cell_base::recalculateDerivativesFromDataInMemory() not defined for base class!";};
 	virtual void recalculateLLFromDataInMemory(){throw "TBQSR_cell_base::recalculateLLFromDataInMemory() not defined for base class!";};
-	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
+	virtual bool estimate(float & convergenceThreshold, float & minEpsilon, size_t & minObservations){throw "TBQSR_cell_base::estimate(double & convergenceThreshold, double & minEpsilon, long & minObservations) not defined for base class!";};
 	void runNewtonRaphson(float & convergenceThreshold, bool & allowIncreaseInF);
 	std::string getNumObsForPrinting();
 	void calcLikelihoodSurfaceAt(int numPositions, double* positions, std::string & tag, std::ofstream & out);
@@ -122,7 +122,7 @@ public:
 	};
 	void empty();
 	void clearStorage();
-	void init(int ReadGroup, float initialError);
+	void init(size_t ReadGroup, float initialError);
 	virtual void doStoreData();
 	void addBase(TBase* base, Base & RefBase, TQualityMap & qualiMap);
 	void addToDerivatives(float & D);
@@ -130,7 +130,7 @@ public:
 	void recalculateDerivativesFromDataInMemory();
 	void recalculateLLFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon, bool & allowIncreaseInF);
-	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, size_t & minObservations, bool & allowIncreaseInF);
 	float makePhred(float & epsilon){
 		if(epsilon < 0.0000000001) return 100.0;
 		return -10.0 * log10(epsilon);
@@ -159,7 +159,7 @@ public:
 		clearStorage();
 	};
 
-	void init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cellQuality** gotBQSR_cells_quality_readGroup);
+	void init(size_t ReadGroup, TQualityIndex* QualityIndex, TBQSR_cellQuality** gotBQSR_cells_quality_readGroup);
 	virtual void doStoreData();
 	void clearStorage();
 	virtual float getEpsilon(TBase* base, TQualityMap & qualiMap);
@@ -169,7 +169,7 @@ public:
 	void recalculateDerivativesFromDataInMemory();
 	void recalculateLLFromDataInMemory();
 	void runNewtonRaphsonAndCheck(float & convergenceThreshold, float & minEpsilon, bool & allowIncreaseInF);
-	bool estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF);
+	bool estimate(float & convergenceThreshold, float & minEpsilon, size_t & minObservations, bool & allowIncreaseInF);
 	void calcLikelihoodSurface(int numPositions, std::string tag, std::ofstream & out);
 };
 
@@ -208,10 +208,10 @@ public:
 //-----------------------------------------------------------------
 class TRecalibrationBQSRStorage{
 public:
-	int numReadGroups;
-	int numQuality;
-	int maxPos, maxPosReverse;
-	int numContexts;
+	size_t numReadGroups;
+	size_t numQuality;
+	size_t maxPos, maxPosReverse;
+	size_t numContexts;
 
 	TGenotypeMap _genoMap;
 
@@ -228,10 +228,10 @@ public:
 	TRecalibrationBQSRStorage();
 	~TRecalibrationBQSRStorage();
 
-	void initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
-	void initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
-	void initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
-	void initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializeQualityCells(size_t NumReadGroups, size_t NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializePositionCells(size_t NumReadGroups, size_t MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializePositionReverseCells(size_t NumReadGroups, size_t MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
+	void initializeContextCells(size_t NumReadGroups, TQualityIndex* qualityIndex, const bool & _storeDataInMemory);
 
 	int numQualityCells(){ if(considerQuality){ return numReadGroups * numQuality; } else { return 0; } };
 	int numPositionCells(){ if(considerPosition){ return numReadGroups * maxPos; } else { return 0; } };
@@ -239,7 +239,7 @@ public:
 	int numContextCells(){ if(considerContext){ return numReadGroups * numContexts; } else { return 0; } };
 
 	//HACK! Just need this function in multiple places...
-	double getMaxValueFromFile(std::string filename, int col, int numCol);
+	double getMaxValueFromFile(std::string filename, size_t col, size_t numCol);
 };
 
 //-----------------------------------------------------------------
@@ -291,18 +291,18 @@ private:
 	bool _estimatetionRequired;
 	float _convergenceThreshold_F;
 	float _minEpsilonQuality, _minEpsilonFactors;
-	int _numLoopIncreaseFAllowed;
-	int _curNewtonRaphsonLoop;
+	unsigned int _numLoopIncreaseFAllowed;
+	unsigned int _curNewtonRaphsonLoop;
 	bool _estimationConverged;
 
-	long _minObservations;
+	size_t _minObservations;
 	bool _storeDataInMemory;
 	bool _dataStored;
 
 	//LL surfaces
 	bool _printLLSurface;
 	bool _LLSurfacePrinted;
-	int _numPosLLsurface;
+	size_t _numPosLLsurface;
 
 	//recal tables
 	bool _qualityConverged, _estimateQuality;

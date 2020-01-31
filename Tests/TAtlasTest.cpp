@@ -319,7 +319,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 			//calc emission probs
 			//set all to full error
-			for(int b=0; b<genoMap.numGenotypes; ++b)
+			for(size_t b=0; b<genoMap.numGenotypes; ++b)
 				emissionProbs[b] = pow(error/3.0, trueDepth);
 
 			//correct homozygous genotype
@@ -342,7 +342,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 			//calc emission probs
 			//set all to full error
-			for(int b=0; b<genoMap.numGenotypes; ++b)
+			for(size_t b=0; b<genoMap.numGenotypes; ++b)
 				emissionProbs[b] = pow(error/3.0, trueDepth);
 
 			//all heterozygous with one correct base
@@ -370,7 +370,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		}
 
 		//now check emission probabilities
-		for(int b=0; b<genoMap.numGenotypes; ++b){
+		for(size_t b=0; b<genoMap.numGenotypes; ++b){
 			emissionProbs[b] = stringToDouble(toString(emissionProbs[b]));
 			relDiff = (stringToDouble(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){

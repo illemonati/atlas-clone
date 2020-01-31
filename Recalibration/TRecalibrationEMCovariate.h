@@ -27,7 +27,7 @@ protected:
 	bool _initialized;
 
 	void _parseModuleString(const std::string & str, std::string & type, std::vector<std::string> & args, std::vector<std::string> & values);
-	void _addPolynomialFunction(const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
+	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
 
 	//extract
 	virtual uint16_t _extractCovariate(const TBase & base){
@@ -77,12 +77,24 @@ public:
 	void fillDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
 		_function->fillDerivatives(_extractCovariate(data), first, second);
 	};
+
+	double adjustParametersPostEstimation(){
+		return _function->adjustParametersPostEstimation();
+	};
 };
 
 //-------------------------------------------
 // TRecalibrationEMCovariate_quality
 //-------------------------------------------
 class TRecalibrationEMCovariate_quality:public TRecalibrationEMCovariate{
+private:
+	uint16_t _extractCovariate(const TBase & base){
+		return base.qualityAsPhredInt;
+	};
+	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
+		return data.quality;
+	};
+
 public:
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
@@ -100,6 +112,14 @@ public:
 // TRecalibrationEMCovariate_position
 //-------------------------------------------
 class TRecalibrationEMCovariate_position:public TRecalibrationEMCovariate{
+private:
+	uint16_t _extractCovariate(const TBase & base){
+		return base.distFrom5Prime;
+	};
+	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
+		return data.positionFrom5Prime;
+	};
+
 public:
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
@@ -117,6 +137,14 @@ public:
 class TRecalibrationEMCovariate_context:public TRecalibrationEMCovariate{
 private:
 	int numContext;
+
+	uint16_t _extractCovariate(const TBase & base){
+		return base.context;
+	};
+	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
+		return data.context;
+	};
+
 public:
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);

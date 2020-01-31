@@ -44,14 +44,31 @@ void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
+TRecalibrationEMDataTable::TRecalibrationEMDataTable(){
+	maxQual = 0;
+	maxPos = 0;
+	counts = 0;
+	initialized = false;
+	countsAssembled = false;
+	qualities = nullptr;
+};
+
 TRecalibrationEMDataTable::TRecalibrationEMDataTable(const int MaxQual){
-	maxQual = MaxQual;
-	qualities = new unsigned int[maxQual];
-	clear();
+	initialize(MaxQual);
 };
 
 TRecalibrationEMDataTable::~TRecalibrationEMDataTable(){
 	delete[] qualities;
+};
+
+void TRecalibrationEMDataTable::initialize(const int MaxQual){
+	if(initialized){
+		delete[] qualities;
+	}
+	maxQual = MaxQual;
+	qualities = new unsigned int[maxQual];
+	initialized = true;
+	clear();
 };
 
 void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
@@ -61,8 +78,8 @@ void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
 	}
 	*/
 	++qualities[data.quality];
-	if(maxPos < data.position)
-		maxPos = data.position;
+	if(maxPos < data.positionFrom5Prime)
+		maxPos = data.positionFrom5Prime;
 };
 
 void TRecalibrationEMDataTable::assembleCounts(){
@@ -83,7 +100,7 @@ void TRecalibrationEMDataTable::clear(){
 	countsAssembled = false;
 };
 
-int TRecalibrationEMDataTable::size(){
+size_t TRecalibrationEMDataTable::size(){
 	assembleCounts();
 	return counts;
 }
@@ -106,6 +123,8 @@ TRecalibrationEMDataTables::TRecalibrationEMDataTables(const  int NumReadGroups,
 	tables = new TRecalibrationEMDataTable*[numReadGroups];
 	for(int rg = 0; rg<numReadGroups; ++rg){
 		tables[rg] = new TRecalibrationEMDataTable[2];
+		tables[rg][0].initialize(maxQual);
+		tables[rg][1].initialize(maxQual);
 	}
 
 	clear();
@@ -283,7 +302,7 @@ bool TRecalibrationEMReadGroupIndex::hasCasesWithoutIndex(){
 bool TRecalibrationEMReadGroupIndex::hasCasesWithoutSecondMate(){
 	//check if there are read groups without second mate
 	for(size_t r=0; r<readGroups->size(); ++r){
-		int index = readGroupMap->getIndex(r);
+		size_t index = readGroupMap->getIndex(r);
 		if(!readGroupInUse[index][1])
 			return true;
 	}

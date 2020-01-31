@@ -32,7 +32,7 @@ private:
 	};
 
 	void _free(){
-		for(int i = 0; i < maxPhredInt; ++i){
+		for(size_t i = 0; i < maxPhredInt; ++i){
 		    	delete[] contextCounts[i];
 		    }
 		delete [] contextCounts;
@@ -64,9 +64,9 @@ public:
 		out.writeHeader(header);
 
 		//write data
-		for(int i=0; i<maxPhredInt; ++i){
+		for(size_t i=0; i<maxPhredInt; ++i){
 			out << i;
-			for(int j=0; j<genoMap.numContexts; ++j){
+			for(size_t j=0; j<genoMap.numContexts; ++j){
 				out << contextCounts[i][j];
 			}
 			out << std::endl;

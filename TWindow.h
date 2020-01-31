@@ -40,17 +40,17 @@ protected:
 	void setCoordinates(long Start, long End, int ChrNumber);
 
 public:
-	long start;
-	long end; //end NOT included in window!
-	long length;
-	int chrNumber;
+	unsigned int start;
+	unsigned int end; //end NOT included in window!
+	unsigned int length;
+	unsigned int chrNumber;
 	std::string chrName;
 	TSite* sites;
 	bool sitesInitialized;
-	int numReadsInWindow;
+	unsigned int numReadsInWindow;
 	double depth, fractionSitesNoData, fractionDepthAtLeastTwo;
 	double fractionRefIsN;
-	long numSitesWithData;
+	unsigned int numSitesWithData;
 	bool passedFilters;
 	TBaseFrequencies baseFreq;
 
@@ -124,25 +124,25 @@ private:
 
 	//functions to fill sites from alignments
 	void checkAlignmentForFillingSites(TAlignment* alignmentIt);
-	void setFirstPositionWithinWindow(TAlignment* alignmentIt, int & firstPos, int & p);
-	void fillSites(TAlignment* alignmentIt, TSite* theseSites, const int & readUpToDepth);
-	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::map<long,std::pair<char,char> > & thesePos, const int & readUpToDepth);
+	void setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p);
+	void fillSites(TAlignment* alignmentIt, TSite* theseSites, const unsigned int & readUpToDepth);
+	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::map<unsigned int,std::pair<char,char> > & thesePos, const unsigned int & readUpToDepth);
 
 public:
 	TWindow();
 	~TWindow();
 
-	void move(long Start, long End, int chrNumber);
+	void move(unsigned int Start, unsigned int End, int chrNumber);
 	void review();
 	void printStacks();
 
-	void fillSites(const int & readUpToDepth);
-	int fillSites(TSite* theseSites, const int & readUpToDepth);
-	int fillSitesDownsampling(TSite* theseSites, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
+	void fillSites(const unsigned int & readUpToDepth);
+	int fillSites(TSite* theseSites, const unsigned int & readUpToDepth);
+	int fillSitesDownsampling(TSite* theseSites, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
 
-	void fillSitesSubset(TSiteSubset* subset, const int & readUpToDepth);
-	int fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth);
-	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset, const int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
+	void fillSitesSubset(TSiteSubset* subset, const unsigned int & readUpToDepth);
+	int fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const unsigned int & readUpToDepth);
+	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 };

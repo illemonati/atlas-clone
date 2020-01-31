@@ -521,7 +521,7 @@ void TGenome::callGenotypes(TParameters & params){
 	if(params.parameterExists("alleles")){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
-		int windowSize = alignmentParser.getWindowSize();
+		unsigned int windowSize = alignmentParser.getWindowSize();
 		TSiteSubset subset(params.getParameterString("alleles"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
 		logfile->endIndent();
 
@@ -715,7 +715,8 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument 'rerecalibrate' to overwrite this error)";
 
 	//initialize maps
-	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
+	std::string poolReadGroupsFile = params.getParameterString("poolReadGroups", false);
+	TReadGroupMap readGroupMap(&(alignmentParser.readGroups), poolReadGroupsFile, logfile);
 	TQualityMap qualityMap;
 
 	//create recalibration object
@@ -776,7 +777,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 //TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
-	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
+	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 	recalObjectEM.initializeFromFile(params.getParameterString("recalForLL"));
 
@@ -814,7 +815,7 @@ void TGenome::BQSR(TParameters & params){
 	TWindow window;
 
 	//create BQSR object
-	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
+	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TRecalibrationBQSREstimator bqsr(params, logfile, &alignmentParser.readGroups, &readGroupMap);
 
 	if(bqsr.allConverged()){
@@ -1680,7 +1681,7 @@ void TGenome::filterBAM(TParameters & params){
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
-	int curChr = 0;
+	unsigned int curChr = 0;
 
 	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
@@ -1814,7 +1815,7 @@ void TGenome::splitMerge(TParameters & params){
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
-	int curChr = 0;
+	unsigned int curChr = 0;
 	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
 		if(curChr != alignment.chrNumber){
@@ -1922,7 +1923,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
-	int curChr = 0;
+	unsigned int curChr = 0;
 
 	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
@@ -2465,9 +2466,9 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 	TDistributionOfCounts counts(maxCounts, "readStarts");
 
 	//iterate through windows
-	int curChr = 0;
+	unsigned int curChr = 0;
 	int curChrLength = alignmentParser.chrNumberToLength(curChr);
-	int curPos = 0;
+	unsigned int curPos = 0;
 	int countsAtPos = 0;
 	while (alignmentParser.readNextAlignment(alignment)){
 		if(alignment.chrNumber != curChr){
@@ -2516,7 +2517,7 @@ void TGenome::estimatePMD(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//prepare maps
-	TReadGroupMap readGroupMap(alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
+	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
 	TGenotypeMap genoMap;
 
 	//prepare PMD table

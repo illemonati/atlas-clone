@@ -12,6 +12,20 @@
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
+void TRecalibrationEMCovariateFunction::_init(const size_t FirstParameterIndex){
+	_moduleName = RecalModuleFunctionName_none;
+	_initialized = false;
+	_numParameters = 0;
+	_firstParameterIndex = FirstParameterIndex;
+	_numNonZeroFirstDerivatives = 0;
+	_numNonZeroSecondDerivatives = 0;
+	_betas = nullptr;
+	_oldBetas = nullptr;
+
+	doTransformation = false;
+	transformationMap = nullptr;
+};
+
 void TRecalibrationEMCovariateFunction::_freeBetas(){
 	if(_initialized){
 		delete[] _betas;
@@ -32,7 +46,7 @@ void TRecalibrationEMCovariateFunction::_initializValues(std::vector<std::string
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
-			_betas[i] = values[i];
+			_betas[i] = stringToDoubleCheck(values[i]);
 		}
 	}
 };
@@ -43,6 +57,19 @@ double TRecalibrationEMCovariateFunction::_getAsDouble(const uint16_t val){
 	} else {
 		return (double) val;
 	}
+};
+
+double TRecalibrationEMCovariateFunction::_normalizeParameters(){
+	double sum = 0.0;
+	for(size_t i=0; i<_numParameters; ++i){
+		sum += _betas[i];
+	}
+
+	for(size_t i=0; i<_numParameters; ++i){
+		_betas[i] -= sum;
+	}
+
+	return sum;
 };
 
 bool TRecalibrationEMCovariateFunction::checkValueRange(std::vector<uint16_t> & values){
@@ -97,6 +124,10 @@ void TRecalibrationEMCovariateFunction_intercept::_init(){
 	_initializeBetas();
 };
 
+TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(){
+	_init();
+}
+
 TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const size_t FirstParameterIndex):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init();
 };
@@ -115,6 +146,8 @@ void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(const uint16_t
 // TRecalibrationEMCovariateFunction_polynomial
 //--------------------------------------------------------------
 void TRecalibrationEMCovariateFunction_polynomial::_init(const size_t order){
+	if(order < 1)
+		throw "Order of polynomial covariate function must be at least 1!";
 	_moduleName = RecalModuleFunctionName_polynomial;
 	_numParameters = order;
 	_numNonZeroFirstDerivatives = order;
@@ -122,14 +155,24 @@ void TRecalibrationEMCovariateFunction_polynomial::_init(const size_t order){
 	_initializeBetas();
 };
 
-
-TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, int order):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, const size_t order):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(order);
 };
 
 TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(values.size());
 	_initializValues(values);
+};
+
+double TRecalibrationEMCovariateFunction_polynomial::getEtaTerm(const uint16_t val){
+	double tmp = _getAsDouble(val);
+	double sum = _betas[0] * tmp;
+	for(size_t i=1; i<_numParameters; ++i){
+		tmp *= tmp;
+		sum += _betas[i] * tmp;
+	}
+
+	return sum;
 };
 
 void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){

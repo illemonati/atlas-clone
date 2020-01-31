@@ -88,7 +88,7 @@ std::string TSite::getBases(){
 	return b;
 };
 
-int TSite::depth(){
+unsigned int TSite::depth(){
 	if(!hasData) return 0;
 	return bases.size();
 };

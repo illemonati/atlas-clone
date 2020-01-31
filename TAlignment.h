@@ -39,7 +39,7 @@ private:
 	//BamAlignment data
 	std::string alignmentName;
 	int32_t insertSize;
-	int32_t position;
+	uint32_t position;
 
 	//booleans
 	bool parsed;
@@ -86,7 +86,7 @@ public:
 		freeStorage();
 	};
 
-	void fill(BamTools::BamAlignment & bamAlignment, int ReadGroupId);
+	void fill(BamTools::BamAlignment & bamAlignment, const uint16_t ReadGroupId);
 	void setReferenceAdded();
 	int getPosition(){ return position; };
 	int getParsedLength(){ return length; };
@@ -108,14 +108,14 @@ public:
 	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 
 	//accessed by TGenome
-	int readGroupId;
+	uint16_t readGroupId;
 	bool isReverseStrand;
 	bool isPaired;
 	bool isProperPair;
 	uint16_t mappingQuality;
 	bool isSecondMate;
 	int32_t matePosition;
-	int chrNumber;
+	unsigned int chrNumber;
 	int32_t lastPositionPlusOne;
 	int32_t lastAlignedPositionWithRespectToRef;
 	int32_t lastAlignedPos;

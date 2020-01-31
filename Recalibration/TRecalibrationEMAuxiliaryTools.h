@@ -23,7 +23,7 @@
 //--------------------------------------------------------------------
 struct TRecalibrationEMReadData{
 	uint8_t quality;
-	uint16_t position;
+	uint16_t positionFrom5Prime;
 	float D[4];
 	uint8_t context;
 	uint16_t readGroup;
@@ -39,8 +39,9 @@ struct TRecalibrationEMReadData{
 //--------------------------------------------------------------------
 class TRecalibrationEMDataTable{
 private:
-	unsigned int counts;
+	size_t counts;
 	bool countsAssembled;
+	bool initialized;
 
 	void assembleCounts();
 
@@ -49,11 +50,14 @@ public:
 	uint16_t maxPos;
 	unsigned int* qualities;
 
+	TRecalibrationEMDataTable();
 	TRecalibrationEMDataTable(const int MaxQual);
 	~TRecalibrationEMDataTable();
+
+	void initialize(const int MaxQual);
 	void clear();
 	void add(TRecalibrationEMReadData & data);
-	int size();
+	size_t size();
 	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
 };
 

@@ -52,7 +52,7 @@ public:
 
 class TPMDTables{
 public:
-	TReadGroupMap& readGroupMapObject;
+	TReadGroupMap& readGroupMap;
 	TReadGroups& readGroups;
 	int maxReadLength;
 	int origNumReadGroups;
@@ -63,8 +63,8 @@ public:
 	TPMDTables(TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap & ReadGroupMapObject);
 	~TPMDTables();
 //	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
-	void addFromFivePrime(const int readGroup, const int pos, const Base & ref, const Base & read);
-	void addFromThreePrime(const int readGroup, const int pos, const Base & ref, const Base & read);
+	void addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
+	void addFromThreePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);
 	void writeTable(std::string filename);
 	void writeTableWithCounts(std::string filename);

@@ -17,6 +17,7 @@
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
+typedef std::map<std::string, std::string>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
 class TRecalibrationEMModelCovariateDefinition{
 private:
 	std::map<std::string, std::string> covariateFunctions;  //<covariate, function>
@@ -32,8 +33,8 @@ public:
 		covariateFunctions.insert(std::pair<std::string, std::string>(covariate, function));
 	};
 	size_t size(){ return covariateFunctions.size(); };
-	std::map<std::string, std::string>::iterator begin(){ return covariateFunctions.begin(); };
-	std::map<std::string, std::string>::iterator end(){ return covariateFunctions.end(); };
+	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return covariateFunctions.begin(); };
+	TRecalibrationEMModelCovariateDefinitionIterator end(){ return covariateFunctions.end(); };
 	std::string getModelString();
 };
 
@@ -43,12 +44,12 @@ public:
 //--------------------------------------------------------------------
 class TRecalibrationEMModelDefinition{
 public:
-	std::string readGroup;
+	uint16_t readGroupId;
 	bool isSecondMate;
 	TRecalibrationEMModelCovariateDefinition covariates;
 
-	TRecalibrationEMModelDefinition(const std::string ReadGroup, const bool IsSecondMate){
-		readGroup = ReadGroup;
+	TRecalibrationEMModelDefinition(const uint16_t ReadGroupId, const bool IsSecondMate){
+		readGroupId = ReadGroupId;
 		isSecondMate = IsSecondMate;
 	};
 
@@ -84,6 +85,7 @@ private:
 
 	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
 	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap);
+	void _summarizeCovariates();
 	void _initializeDerivatives();
 	double _calcEpsilon(const double eta);
 	inline double _calcQ(const int & genotype, TRecalibrationEMReadData & data){
@@ -107,11 +109,11 @@ public:
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();
-
+	void adjustParametersPostEstimation();
 	double getSteepestGradient();
 	void printJacobianToStdOut();
 	void printFToStdOut();
@@ -137,7 +139,7 @@ private:
 	TLog* logfile;
 
 
-	void _readRecalFile(std::string filename, std::vector<TRecalibrationEMModelDefinition> & modelDefs);
+	void _readRecalFile(const std::string filename, std::vector<TRecalibrationEMModelDefinition> & modelDefs);
 
 	void _createModelsFromString(const std::string & s);
 	void _createModelsFromFile(std::string filename);
@@ -149,20 +151,21 @@ public:
 	~TRecalibrationEMModels();
 
 	//general functions to add and remove models
-	bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);
+	//bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);
 	void removeModel(int readGroupId, bool isSecondMate);
 
 	//add model for estimation: dataTable provided
-	void addModel(const int readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
+	void addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
 	void addModelsFromFile(std::string filename, TRecalibrationEMDataTables* dataTables);
 
 	//add model for recalibration: no dataTable provided
-	void addModel(const int readGroupId, const bool isSecondMate, const TRecalibrationEMModelCovariateDefinition & covariateFunctions);
+	void addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariateFunctions);
 	void createModels(std::string string);
 
 	//inline TRecalibrationEMModel* operator[](int index){ return &models[index]; };
 	int numModels(){ return models.size(); };
-	bool modelExists(int readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
+	bool modelExists(uint16_t readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
+	bool modelExists(TRecalibrationEMModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
 
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
@@ -179,7 +182,7 @@ public:
 
 	//function to estimate
 	void setEMParamsToZero();
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJFirstDerivatives, const double & weightJSecondDerivatives);
+	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
 	void setQToZero();
 	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
@@ -188,6 +191,7 @@ public:
 	void proposeNewParameters(double lambda);
 	void scaleParameters();
 	unsigned int acceptProposedParametersBasedOnQ();
+	void adjustParametersPostEstimation();
 	double getSteepestGradient();
 
 	void writeRecalFile(TOutputFile* out);

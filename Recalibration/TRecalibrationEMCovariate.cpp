@@ -29,7 +29,7 @@ void TRecalibrationEMCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ']'! " + format;
 		}
-		fillVectorFromStringAnySkipEmpty(str.substr(pos, pos2), values, ",");
+		fillVectorFromStringAnySkipEmpty(str.substr(pos+1, pos2-pos-1), values, ",");
 	} else {
 		type = str;
 	}
@@ -42,7 +42,7 @@ void TRecalibrationEMCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ')'! " + format;
 		}
-		fillVectorFromStringAnySkipEmpty(type.substr(pos, pos2), args, ",");
+		fillVectorFromStringAnySkipEmpty(type.substr(pos+1, pos2-pos-1), args, ",");
 
 		//extract type
 		type = type.substr(0, pos);
@@ -73,14 +73,14 @@ size_t TRecalibrationEMCovariate::numNonZeroSecondDerivatives(){
 	}
 };
 
-void TRecalibrationEMCovariate::_addPolynomialFunction(const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values){
+void TRecalibrationEMCovariate::_addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values){
 	if(values.empty()){
 		if(args.size() != 1){
 			throw "Wrong number of arguments for polynomial recal function '" + functionString + "': expect one argument (order).";
 		}
-		_function = new TRecalibrationEMCovariateFunction_polynomial(args[0]);
+		_function = new TRecalibrationEMCovariateFunction_polynomial(FirstParameterIndex, stringToIntCheck(args[0]));
 	} else {
-		_function = new TRecalibrationEMCovariateFunction_polynomial(values);
+		_function = new TRecalibrationEMCovariateFunction_polynomial(FirstParameterIndex, values);
 	}
 };
 
@@ -88,7 +88,8 @@ std::string TRecalibrationEMCovariate::functionString(){
 	if(_initialized){
 		return _function->getModelString();
 	} else return RecalModuleFunctionName_none;
-}
+};
+
 //-------------------------------------------
 // TRecalibrationEMCovariate_quality
 //-------------------------------------------
@@ -111,7 +112,7 @@ void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterI
 
 	//create function
 	if(type == RecalModuleFunctionName_polynomial){
-		_addPolynomialFunction(functionString, args, values);
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
 	} else if(type == RecalModuleFunctionName_specific){
 		std::vector<uint16_t> usedQualities;
 		dataTable->fillVectorWithUsedQualities(usedQualities);
@@ -143,7 +144,7 @@ void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterI
 
 	//create function
 	if(type == RecalModuleFunctionName_polynomial){
-		_addPolynomialFunction(functionString, args, values);
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
 	} else if(type == RecalModuleFunctionName_specific){
 		_function = new TRecalibrationEMCovariateFunction_specificMap(FirstParameterIndex, values);
 	} else {
@@ -162,22 +163,6 @@ bool TRecalibrationEMCovariate_quality::checkParameterRange(TRecalibrationEMData
 
 bool TRecalibrationEMCovariate_quality::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
 	return _function->checkValueRange(usedQualities);
-};
-
-double TRecalibrationEMCovariate_quality::getEtaTerm(const TBase & base){
-	return _function->getEtaTerm(base.qualityAsPhredInt);
-};
-
-double TRecalibrationEMCovariate_quality::getEtaTerm(const TRecalibrationEMReadData & data){
-	return _function->getEtaTerm(data.quality);
-};
-
-void TRecalibrationEMCovariate_quality::fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index){
-	_function->fillFirstDerivatives(data.quality, first, index);
-};
-
-void TRecalibrationEMCovariate_quality::fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index){
-
 };
 
 //-------------------------------------------
@@ -202,7 +187,7 @@ void TRecalibrationEMCovariate_position::addFunction(const size_t FirstParameter
 
 	//create function
 	if(type == RecalModuleFunctionName_polynomial){
-		_addPolynomialFunction(functionString, args, values);
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
 	} else if(type == RecalModuleFunctionName_specific){
 		if(values.empty()){
 			_function = new TRecalibrationEMCovariateFunction_specific(FirstParameterIndex, dataTable->maxPos);
@@ -232,7 +217,7 @@ void TRecalibrationEMCovariate_position::addFunction(const size_t FirstParameter
 
 	//create function
 	if(type == RecalModuleFunctionName_polynomial){
-		_addPolynomialFunction(functionString, args, values);
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
 	} else if(type == RecalModuleFunctionName_specific){
 		_function = new TRecalibrationEMCovariateFunction_specific(FirstParameterIndex, values);
 	} else {
@@ -247,14 +232,6 @@ bool TRecalibrationEMCovariate_position::checkParameterRange(TRecalibrationEMDat
 
 bool TRecalibrationEMCovariate_position::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
 	return _function->checkValueRange(maxPos);
-};
-
-double TRecalibrationEMCovariate_position::getEtaTerm(const TBase & base){
-	return _function->getEtaTerm(base.distFrom5Prime);
-};
-
-double TRecalibrationEMCovariate_position::getEtaTerm(const TRecalibrationEMReadData & data){
-	return _function->getEtaTerm(data.position);
 };
 
 //-------------------------------------------
@@ -323,13 +300,5 @@ bool TRecalibrationEMCovariate_context::checkParameterRange(TRecalibrationEMData
 
 bool TRecalibrationEMCovariate_context::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
 	return _function->checkValueRange(20);
-};
-
-double TRecalibrationEMCovariate_context::getEtaTerm(const TBase & base){
-	return _function->getEtaTerm(base.context);
-};
-
-double TRecalibrationEMCovariate_context::getEtaTerm(const TRecalibrationEMReadData & data){
-	return _function->getEtaTerm(data.context);
 };
 

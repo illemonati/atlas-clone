@@ -15,9 +15,9 @@ TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
 	bufferSize = 100000;
 	reference = Reference;
 	referenceSequence = "";
-	curStart = -1;
-	curChr = -1;
-	curEnd = -1;
+	curStart = 0;
+	curChr = 0;
+	curEnd = 0;
 };
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
@@ -57,8 +57,8 @@ TAlignmentParser::TAlignmentParser(){
 	minFragmentLength = -1;
 	maxFragmentLength = -1;
 	_parse = false;
-	previousAlignmentPos = -1;
-	previousAlignmentChr = -1;
+	previousAlignmentPos = 0;
+	previousAlignmentChr = -1; //negative at beginning to trigger a chromosome change
 	oldAlignment = NULL;
 	oldAlignmentInitialized = false;
 	oldAlignmentMustBeConsidered = false;
@@ -368,7 +368,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 		useMate[0] = false;
 		logfile->list("Will keep only the second mates. (parameter 'keepOnlySecond')");
 	}
-}
+};
 
 void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 	applyQualityFilter = true;
@@ -602,7 +602,7 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 	oldAlignmentMustBeConsidered = false;
 
 	//restart windows
-	previousAlignmentPos = -1;
+	previousAlignmentPos = 0;
 	windowNumber = 0;
 
 	if(windowsPredefined){
@@ -685,7 +685,6 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 };
 
 bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
-
 	if(window.end > 0) logfile->endIndent();
 
 	++windowNumber;
@@ -693,10 +692,11 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
 		return false;
 	if(predefinedWindows->nextWindow()){
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex());
+
 		//should we jump or are we already close enough to next window
-		if(abs(window.start - previousAlignmentPos) > maxReadLength){
-			previousAlignmentPos = -1;
-			if(window.start - maxReadLength < 0)
+		if(previousAlignmentPos > window.start || previousAlignmentPos < window.start - maxReadLength){
+			previousAlignmentPos = 0;
+			if(window.start < maxReadLength)
 				bamReader.Jump(chromosomes.curIndex(), 0);
 			else{
 				bamReader.Jump(chromosomes.curIndex(), window.start - maxReadLength);
@@ -785,7 +785,7 @@ bool TAlignmentParser::readAlignment(){
 
 		//check if chromosome changed
 		if(bamAlignment.RefID != previousAlignmentChr){
-			previousAlignmentPos = -1;
+			previousAlignmentPos = 0;
 			previousAlignmentChr = bamAlignment.RefID;
 //			chrNumber = previousAlignmentChr;
 			chrChangedAlignment = true;

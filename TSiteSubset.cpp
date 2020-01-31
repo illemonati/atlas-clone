@@ -7,35 +7,35 @@
 
 #include "TSiteSubset.h"
 
-TSiteSubsetWindow::TSiteSubsetWindow(long Start, long End){
+TSiteSubsetWindow::TSiteSubsetWindow(unsigned int Start, unsigned int End){
 	hasData = false;
 	start = Start;
 	end = End;
 };
 TSiteSubsetWindow::~TSiteSubsetWindow(){};
 
-void TSiteSubsetWindow::addPosition(long pos, char & ref, char & alt){
+void TSiteSubsetWindow::addPosition(unsigned int pos, char & ref, char & alt){
 	positions.emplace(pos, std::pair<char,char>(ref, alt));
 };
 
 void TSiteSubsetWindow::print(){
 	std::cout << "[" << start << ", " << end << "]:";
-	for(std::map<long,std::pair<char,char> >::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << it->first << "(" << it->second.first << "," << it->second.second << ")";
+	for(std::map<unsigned int,std::pair<char,char> >::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << it->first << "(" << it->second.first << "," << it->second.second << ")";
 	std::cout << std::endl;
 };
 
-long TSiteSubsetWindow::size(){
+size_t TSiteSubsetWindow::size(){
 	return positions.size();
 };
 
 
-TSiteSubsetChr::TSiteSubsetChr(std::string & Name, int & WindowSize){
+TSiteSubsetChr::TSiteSubsetChr(std::string & Name, unsigned int & WindowSize){
 		name = Name;
 		windowSize = WindowSize;
 		chrNumberInFasta = -1;
 	};
 
-TSiteSubsetChr::TSiteSubsetChr(std::string & Name, int & WindowSize, BamTools::SamHeader bamHeader){
+TSiteSubsetChr::TSiteSubsetChr(std::string & Name, unsigned int & WindowSize, BamTools::SamHeader bamHeader){
 	name = Name;
 	windowSize = WindowSize;
 	//find number by parsing through bam header
@@ -55,12 +55,12 @@ TSiteSubsetChr::~TSiteSubsetChr(){
 	windows.clear();
 };
 
-void TSiteSubsetChr::findWindow(const long & pos){
+void TSiteSubsetChr::findWindow(const unsigned int & pos){
 	int w = (double) pos / (double) windowSize;
 	windowIt = windows.find(w);
 }
 
-void TSiteSubsetChr::findOrCreateWindow(const long & pos){
+void TSiteSubsetChr::findOrCreateWindow(const unsigned int & pos){
 	findWindow(pos);
 	if(windowIt == windows.end()){
 		//insert window
@@ -149,19 +149,19 @@ void TSiteSubsetChr::print(){
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 };
 
-bool TSiteSubsetChr::hasPositionsInWindow(const long & windowStart){
+bool TSiteSubsetChr::hasPositionsInWindow(const unsigned int & windowStart){
 	findWindow(windowStart);
 	if(windowIt == windows.end()) return false;
 	return true;
 };
 
-std::map<long,std::pair<char,char> >& TSiteSubsetChr::getPositionInWindow(const long & windowStart){
+std::map<unsigned int,std::pair<char,char> >& TSiteSubsetChr::getPositionInWindow(const unsigned int & windowStart){
 	findWindow(windowStart);
 	if(windowIt == windows.end()) throw "TSiteSubset Error: window '" + toString(windowStart) + "' does not exist!";
 	return windowIt->second->positions;
 };
 
-long TSiteSubsetChr::size(){
+size_t TSiteSubsetChr::size(){
 	long s = 0;
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt)
 		s += windowIt->second->size();
@@ -287,7 +287,7 @@ TSiteSubset::TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, 
 	curChr = "";
 };
 
-TSiteSubset::TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, int & WindowSize, TLog* logfile, bool InvariantSites){
+TSiteSubset::TSiteSubset(std::string Filename, BamTools::Fasta & reference, BamTools::SamHeader bamHeader, const unsigned int WindowSize, TLog* logfile, bool InvariantSites){
 	filename = Filename;
 	windowSize = WindowSize;
 	invariantSites = InvariantSites;
@@ -312,7 +312,7 @@ void TSiteSubset::print(){
 	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
 };
 
-bool TSiteSubset::hasPositionsInWindow(const long & windowStart){
+bool TSiteSubset::hasPositionsInWindow(const unsigned int & windowStart){
 	if(curChr == "")
 		throw "chromosome name is empty!";
 	chrIt = chromosomes.find(curChr);
@@ -322,14 +322,14 @@ bool TSiteSubset::hasPositionsInWindow(const long & windowStart){
 	else return chrIt->second->hasPositionsInWindow(windowStart);
 }
 
-std::map<long,std::pair<char,char> >& TSiteSubset::getPositionInWindow(long & windowStart){
+std::map<unsigned int,std::pair<char,char> >& TSiteSubset::getPositionInWindow(const unsigned int & windowStart){
 	//find chromosome
 	chrIt = chromosomes.find(curChr);
 	if(chrIt == chromosomes.end()) throw "TSiteSubset Error: chromosome '" + curChr + "' does not exist!";
 	return chrIt->second->getPositionInWindow(windowStart);
 };
 
-long TSiteSubset::size(){
+size_t TSiteSubset::size(){
 	long size = 0;
 	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
 		size += chrIt->second->size();

@@ -64,8 +64,8 @@ private:
 	bool _keepSupplementary;
 	bool _parse;
 
-	int previousAlignmentPos;
-	int previousAlignmentChr;
+	unsigned int previousAlignmentPos;
+	int previousAlignmentChr; //negative at beginning to trigger a chromosome change
 	TAlignment* oldAlignment;
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
@@ -80,9 +80,9 @@ private:
 	int trimmingLength5Prime;
 
 	//window params
-	int windowSize;
-	int numWindowsOnChr;
-	int windowNumber;
+	unsigned int windowSize;
+	unsigned int numWindowsOnChr;
+	unsigned int windowNumber;
 
 	unsigned int maxReadLength;
 	double maxMissing;
@@ -198,7 +198,7 @@ public:
 	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
 	int numReadGroups(){ return readGroups.size(); };
 	std::string recalibrationType(){ return recalObject->type(); };
-	int getWindowSize(){return windowSize;};
+	unsigned int getWindowSize(){return windowSize;};
 	int getMaxPhredInt(){return maxQualityAsPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };

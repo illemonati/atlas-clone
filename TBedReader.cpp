@@ -11,23 +11,23 @@
 // TBedReaderWindow
 //-----------------------
 
-TBedReaderWindow::TBedReaderWindow(long Start, long End){
+TBedReaderWindow::TBedReaderWindow(unsigned int Start, unsigned int End){
 	hasData = false;
 	start = Start;
 	end = End;
 };
 TBedReaderWindow::~TBedReaderWindow(){};
-void TBedReaderWindow::addPosition(long & pos){
+void TBedReaderWindow::addPosition(unsigned int & pos){
 	positions.push_back(pos);
 };
 
 void TBedReaderWindow::print(){
 	std::cout << "[" << start+1 << ", " << end+1 << "]:";
-	for(std::vector<long>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it + 1;
+	for(std::vector<unsigned int>::iterator it=positions.begin(); it!=positions.end(); ++it) std::cout << " " << *it + 1;
 	std::cout << std::endl;
 };
 
-long TBedReaderWindow::size(){
+unsigned int TBedReaderWindow::size(){
 	return positions.size();
 }
 
@@ -35,7 +35,7 @@ long TBedReaderWindow::size(){
 // TBedReaderChromosome
 //-----------------------
 
-TBedReaderChromosome::TBedReaderChromosome(std::string & Name, int & WindowSize){
+TBedReaderChromosome::TBedReaderChromosome(std::string & Name, unsigned int & WindowSize){
 	name = Name;
 	windowSize = WindowSize;
 };
@@ -48,12 +48,12 @@ TBedReaderChromosome::~TBedReaderChromosome(){
 	windows.clear();
 };
 
-void TBedReaderChromosome::findWindow(const long & pos){
+void TBedReaderChromosome::findWindow(const unsigned int & pos){
 	int w = (double) pos / (double) windowSize;
 	windowIt = windows.find(w);
 }
 
-void TBedReaderChromosome::findOrCreateWindow(const long & pos){
+void TBedReaderChromosome::findOrCreateWindow(const unsigned int & pos){
 	findWindow(pos);
 	if(windowIt == windows.end()){
 		//insert window
@@ -63,7 +63,7 @@ void TBedReaderChromosome::findOrCreateWindow(const long & pos){
 	}
 }
 
-void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, int & numPositionsAdded){
+void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, unsigned int & numPositionsAdded){
 	long start = stringToLong(tmp[1]);
 	long end = stringToLong(tmp[2]);
 
@@ -75,7 +75,7 @@ void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, int & num
 
 	//add position to that window
 	//Note BED is already 0 indexed
-	for(long i=start; i<end; ++i){
+	for(unsigned int i=start; i<end; ++i){
 		if(i >= windowIt->second->end) findOrCreateWindow(i);
 		windowIt->second->addPosition(i);
 	}
@@ -85,20 +85,20 @@ void TBedReaderChromosome::print(){
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 };
 
-bool TBedReaderChromosome::hasPositionsInWindow(const long & windowStart){
+bool TBedReaderChromosome::hasPositionsInWindow(const unsigned int & windowStart){
 	findWindow(windowStart);
 	if(windowIt == windows.end()) return false;
 	return true;
 };
 
-std::vector<long>& TBedReaderChromosome::getPositionInWindow(long windowStart){
+std::vector<unsigned int>& TBedReaderChromosome::getPositionInWindow(const unsigned int windowStart){
 	findWindow(windowStart);
 	if(windowIt == windows.end()) throw "TBedReader Error: window '" + toString(windowStart) + "' does not exist!";
 	return windowIt->second->positions;
 };
 
-long TBedReaderChromosome::size(){
-	long s = 0;
+unsigned int TBedReaderChromosome::size(){
+	unsigned int s = 0;
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt)
 		s += windowIt->second->size();
 	return s;
@@ -108,7 +108,7 @@ long TBedReaderChromosome::size(){
 // TBedReader
 //-----------------------
 
-void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, int siteLimit, TLog* logfile){
+void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile){
 	//open file
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
@@ -153,7 +153,7 @@ void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, int siteL
 
 
 
-TBedReader::TBedReader(std::string Filename, int & WindowSize, BamTools::SamSequenceDictionary & Sequences, int siteLimit, TLog* logfile){
+TBedReader::TBedReader(std::string Filename, const unsigned int & WindowSize, BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;
@@ -177,27 +177,27 @@ void TBedReader::print(){
 	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
 };
 
-bool TBedReader::hasPositionsInWindow(const long & windowStart){
+bool TBedReader::hasPositionsInWindow(const unsigned int & windowStart){
 	chrIt = chromosomes.find(curChr);
 	if(chrIt == chromosomes.end()) return false;
 	else return chrIt->second->hasPositionsInWindow(windowStart);
 }
 
-std::vector<long>& TBedReader::getPositionInWindow(long & windowStart){
+std::vector<unsigned int>& TBedReader::getPositionInWindow(unsigned int & windowStart){
 	//find chromosome
 	chrIt = chromosomes.find(curChr);
 	if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
 	return chrIt->second->getPositionInWindow(windowStart);
 };
 
-long TBedReader::size(){
-	long s=0;
+unsigned int TBedReader::size(){
+	unsigned int s=0;
 	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
 		s += chrIt->second->size();
 	return s;
 };
 
-int TBedReader::getNumChromosomes(){
+unsigned int TBedReader::getNumChromosomes(){
 	return chromosomes.size();
 };
 

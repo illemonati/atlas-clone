@@ -32,7 +32,7 @@ void TBQSR_cell_base::empty(){
 	}
 }
 
-void TBQSR_cell_base::init(int ReadGroup){
+void TBQSR_cell_base::init(size_t ReadGroup){
 	store = false;
 	myReadGroup = ReadGroup;
 }
@@ -113,7 +113,7 @@ TBQSR_cellQuality::TBQSR_cellQuality():TBQSR_cell_base(){
 	pointerToBatch = NULL;
 }
 
-void TBQSR_cellQuality::init(int ReadGroup, float initialError){
+void TBQSR_cellQuality::init(size_t ReadGroup, float initialError){
 	TBQSR_cell_base::init(ReadGroup);
 
 	curEstimate = initialError;
@@ -262,7 +262,7 @@ void TBQSR_cellQuality::runNewtonRaphsonAndCheck(float & convergenceThreshold, f
 	}
 }
 
-bool TBQSR_cellQuality::estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF){
+bool TBQSR_cellQuality::estimate(float & convergenceThreshold, float & minEpsilon, size_t & minObservations, bool & allowIncreaseInF){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		if(store){
@@ -314,7 +314,7 @@ TBQSR_cellPosition::TBQSR_cellPosition():TBQSR_cell_base(){
 	pointerToBatch = NULL;
 }
 
-void TBQSR_cellPosition::init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_cellQuality** gotBQSR_cells_quality_readGroup){
+void TBQSR_cellPosition::init(size_t ReadGroup, TQualityIndex* QualityIndex, TBQSR_cellQuality** gotBQSR_cells_quality_readGroup){
 	TBQSR_cell_base::init(ReadGroup);
 	BQSR_cells_readGroup_quality = gotBQSR_cells_quality_readGroup;
 	qualityIndex = QualityIndex;
@@ -440,7 +440,7 @@ void TBQSR_cellPosition::runNewtonRaphsonAndCheck(float & convergenceThreshold, 
 }
 
 
-bool TBQSR_cellPosition::estimate(float & convergenceThreshold, float & minEpsilon, long & minObservations, bool & allowIncreaseInF){
+bool TBQSR_cellPosition::estimate(float & convergenceThreshold, float & minEpsilon, size_t & minObservations, bool & allowIncreaseInF){
 	if(!estimationConverged){
 		//set the number of observations this estimate was based on
 		if(store){
@@ -554,42 +554,42 @@ TRecalibrationBQSRStorage::TRecalibrationBQSRStorage(){
 
 TRecalibrationBQSRStorage::~TRecalibrationBQSRStorage(){
 	if(considerQuality){
-		for(int i=0; i<numReadGroups; ++i){
+		for(size_t i=0; i<numReadGroups; ++i){
 			delete[] qualityCells[i];
 		}
 		delete[] qualityCells;
 	}
 
 	if(considerPosition){
-		for(int i=0; i<numReadGroups; ++i){
+		for(size_t i=0; i<numReadGroups; ++i){
 			delete[] positionCells[i];
 		}
 		delete[] positionCells;
 	}
 
 	if(considerPositionReverse){
-		for(int i=0; i<numReadGroups; ++i){
+		for(size_t i=0; i<numReadGroups; ++i){
 			delete[] positionReverseCells[i];
 		}
 		delete[] positionReverseCells;
 	}
 
 	if(considerContext){
-		for(int i=0; i<numReadGroups; ++i){
+		for(size_t i=0; i<numReadGroups; ++i){
 			delete[] contextCells[i];
 		}
 		delete[] contextCells;
 	}
 };
 
-void TRecalibrationBQSRStorage::initializeQualityCells(int NumReadGroups, int NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
+void TRecalibrationBQSRStorage::initializeQualityCells(size_t NumReadGroups, size_t NumQuality, TQualityMap & qualityMap, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	numReadGroups = NumReadGroups;
 	numQuality = NumQuality;
 	qualityCells = new TBQSR_cellQuality*[numReadGroups];
 
-	for(int i=0; i<numReadGroups; ++i){
+	for(size_t i=0; i<numReadGroups; ++i){
 		qualityCells[i] = new TBQSR_cellQuality[NumQuality];
-		for(int q=0; q<NumQuality; ++q){
+		for(size_t q=0; q<NumQuality; ++q){
 			qualityCells[i][q].init(i, qualityMap.phredIntToError(qualityIndex->getPhredIntFromIndex(q)));
 			if(_storeDataInMemory){
 				qualityCells[i][q].doStoreData();
@@ -599,15 +599,15 @@ void TRecalibrationBQSRStorage::initializeQualityCells(int NumReadGroups, int Nu
 	considerQuality = true;
 };
 
-void TRecalibrationBQSRStorage::initializePositionCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
+void TRecalibrationBQSRStorage::initializePositionCells(size_t NumReadGroups, size_t MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	if(NumReadGroups != numReadGroups)
 		throw "Unequal number of read groups in TRecalibrationBQSRStorage!";
 	maxPos = MaxPos;
 	positionCells = new TBQSR_cellPosition*[numReadGroups];
 
-	for(int r=0; r<numReadGroups; ++r){
+	for(size_t r=0; r<numReadGroups; ++r){
 		positionCells[r] = new TBQSR_cellPosition[maxPos];
-		for(int p=0; p<maxPos; ++p){
+		for(size_t p=0; p<maxPos; ++p){
 			positionCells[r][p].init(r, qualityIndex, qualityCells);
 			if(_storeDataInMemory){
 				positionCells[r][p].doStoreData();
@@ -617,14 +617,14 @@ void TRecalibrationBQSRStorage::initializePositionCells(int NumReadGroups, int M
 	considerPosition = true;
 };
 
-void TRecalibrationBQSRStorage::initializePositionReverseCells(int NumReadGroups, int MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
+void TRecalibrationBQSRStorage::initializePositionReverseCells(size_t NumReadGroups, size_t MaxPos, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	if(NumReadGroups != numReadGroups)
 		throw "Unequal number of read groups in TRecalibrationBQSRStorage!";
 	maxPosReverse = MaxPos;
 	positionReverseCells = new TBQSR_cellPositionRev*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
+	for(size_t r=0; r<numReadGroups; ++r){
 		positionReverseCells[r] = new TBQSR_cellPositionRev[maxPosReverse];
-		for(int p=0; p<maxPosReverse; ++p){
+		for(size_t p=0; p<maxPosReverse; ++p){
 			if(considerPosition) positionReverseCells[r][p].init(r, qualityIndex, qualityCells, positionCells);
 			else positionReverseCells[r][p].init(r, qualityIndex, qualityCells);
 			if(_storeDataInMemory){
@@ -636,13 +636,13 @@ void TRecalibrationBQSRStorage::initializePositionReverseCells(int NumReadGroups
 	considerPositionReverse = true;
 };
 
-void TRecalibrationBQSRStorage::initializeContextCells(int NumReadGroups, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
+void TRecalibrationBQSRStorage::initializeContextCells(size_t NumReadGroups, TQualityIndex* qualityIndex, const bool & _storeDataInMemory){
 	if(NumReadGroups != numReadGroups)
 		throw "Unequal number of read groups in TRecalibrationBQSRStorage!";
 	contextCells = new TBQSR_cellContext*[numReadGroups];
-	for(int r=0; r<numReadGroups; ++r){
+	for(size_t r=0; r<numReadGroups; ++r){
 		contextCells[r] = new TBQSR_cellContext[numContexts];
-		for(int c=0; c<numContexts; ++c){
+		for(size_t c=0; c<numContexts; ++c){
 			if(considerPosition && considerPositionReverse) contextCells[r][c].init(r, qualityIndex, qualityCells, positionCells, positionReverseCells);
 			else if(considerPosition && !considerPositionReverse) contextCells[r][c].init(r, qualityIndex, qualityCells, positionCells);
 			else if(!considerPosition && considerPositionReverse) contextCells[r][c].init(r, qualityIndex, qualityCells, positionReverseCells);
@@ -655,7 +655,7 @@ void TRecalibrationBQSRStorage::initializeContextCells(int NumReadGroups, TQuali
 	considerContext = true;
 };
 
-double TRecalibrationBQSRStorage::getMaxValueFromFile(std::string filename, int col, int numCol){
+double TRecalibrationBQSRStorage::getMaxValueFromFile(std::string filename, size_t col, size_t numCol){
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "' for reading!";
 
@@ -772,7 +772,6 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionTableFromFile(std::stri
 
 	//tmp variables for file parsing
 	std::vector<std::string> vec;
-	long lineNum = 0;
 	std::string tmpF;
 	std::getline(file, tmpF); //skip header
 
@@ -1042,9 +1041,7 @@ void TRecalibrationBQSREstimator::_initializeBQSRReadGroupPositionTable(TParamet
 		_estimatePosition = false;
 		_positionConverged = true;
 		if(params.parameterExists("knownBQSRPosition")){
-			//get maxPos from file
 			std::string filename = params.getParameterString("knownBQSRPosition");
-			int maxPos = storage.getMaxValueFromFile(filename, 1, 9);
 
 			//read file
 			_fillBQSRReadGroupPositionTableFromFile(filename);
@@ -1074,7 +1071,7 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupPositionTableFromFile(std::s
 			if(_readGroups->readGroupExists(vec[0])){
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
-				int p = stringToInt(vec[1]);
+				size_t p = stringToInt(vec[1]);
 				if(p <= storage.maxPos){
 					double alpha = stringToDouble(vec[3]);
 					storage.positionCells[readGroup][p-1].set(alpha, vec[4]);
@@ -1115,7 +1112,6 @@ void TRecalibrationBQSREstimator::_initializeBQSRReadGroupPositionReverseTable(T
 		if(params.parameterExists("knownBQSRPositionReverse")){
 			//get maxPos from file
 			std::string filename = params.getParameterString("knownBQSRPositionReverse");
-			int maxPos = storage.getMaxValueFromFile(filename, 1, 9);
 
 			//read file
 			_fillBQSRReadGroupPositionReverseTableFromFile(filename);
@@ -1145,7 +1141,7 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupPositionReverseTableFromFile
 			if(_readGroups->readGroupExists(vec[0])){
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
-				int p = stringToInt(vec[1]);
+				size_t p = stringToInt(vec[1]);
 				if(p <= storage.maxPosReverse){
 					double alpha = stringToDouble(vec[3]);
 					storage.positionReverseCells[readGroup][p-1].set(alpha, vec[4]);
@@ -1244,28 +1240,28 @@ void TRecalibrationBQSREstimator::addSite(TSite & site, TQualityMap & qualMap){
 
 void TRecalibrationBQSREstimator::recalculateDerivativesFromDataInMemory(){
 	if(!_qualityConverged){
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int j=0; j<qualityIndex->numQ; ++j){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(uint16_t j=0; j<qualityIndex->numQ; ++j){
 				storage.qualityCells[r][j].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	}
 	else if(storage.considerPosition && !_positionConverged){
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int p=0; p<storage.maxPos; ++p){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(size_t p=0; p<storage.maxPos; ++p){
 				storage.positionCells[r][p].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	}
 	else if(storage.considerPositionReverse && !_positionReverseConverged){
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int p=0; p<storage.maxPosReverse; ++p){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(size_t p=0; p<storage.maxPosReverse; ++p){
 				storage.positionReverseCells[r][p].recalculateDerivativesFromDataInMemory();
 			}
 		}
 	} else if(storage.considerContext && !_contextConverged){
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int c=0; c<storage.numContexts; ++c){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(size_t c=0; c<storage.numContexts; ++c){
 				storage.contextCells[r][c].recalculateDerivativesFromDataInMemory();
 			}
 		}
@@ -1295,8 +1291,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		}
 		//now do estimation
 		_logfile->listFlush("Estimating tmpEpsilon for readGroup x quality table ...");
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int j=0; j<qualityIndex->numQ; ++j){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t j=0; j<qualityIndex->numQ; ++j){
 				if(!storage.qualityCells[i][j].estimate(_convergenceThreshold_F, _minEpsilonQuality, _minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
 				if(storage.qualityCells[i][j].hasData && storage.qualityCells[i][j].F > maxF)
@@ -1319,8 +1315,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!_qualityConverged){
 			//empty all cells
-			for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-				for(int j=0; j<qualityIndex->numQ; ++j){
+			for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+				for(size_t j=0; j<qualityIndex->numQ; ++j){
 					storage.qualityCells[i][j].empty();
 				}
 			}
@@ -1334,8 +1330,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(_storeDataInMemory){
-				for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-					for(int j=0; j<qualityIndex->numQ; ++j){
+				for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+					for(size_t j=0; j<qualityIndex->numQ; ++j){
 						storage.qualityCells[i][j].clearStorage();
 					}
 				}
@@ -1364,8 +1360,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		_logfile->listFlush("Estimating tmpEpsilon for readGroup x position table ...");
 		numCellsNotConverged = 0;
 
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int p=0; p<storage.maxPos; ++p){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t p=0; p<storage.maxPos; ++p){
 				if(!storage.positionCells[i][p].estimate(_convergenceThreshold_F, _minEpsilonFactors, _minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
 				if(storage.positionCells[i][p].hasData && storage.positionCells[i][p].F > maxF) maxF = storage.positionCells[i][p].F;
@@ -1387,8 +1383,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!_positionConverged){
 			//empty all cells
-			for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-				for(int p=0; p<storage.maxPos; ++p){
+			for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+				for(size_t p=0; p<storage.maxPos; ++p){
 					storage.positionCells[i][p].empty();
 				}
 			}
@@ -1402,8 +1398,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(_storeDataInMemory){
-				for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-					for(int p=0; p<storage.maxPos; ++p){
+				for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+					for(size_t p=0; p<storage.maxPos; ++p){
 						storage.positionCells[i][p].clearStorage();
 					}
 				}
@@ -1431,8 +1427,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		_logfile->listFlush("Estimating tmpEpsilon for readGroup x position reverse table ...");
 		numCellsNotConverged = 0;
 
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int p=0; p<storage.maxPosReverse; ++p){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t p=0; p<storage.maxPosReverse; ++p){
 				if(!storage.positionReverseCells[i][p].estimate(_convergenceThreshold_F, _minEpsilonFactors, _minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
 				if(storage.positionReverseCells[i][p].hasData && storage.positionReverseCells[i][p].F > maxF) maxF = storage.positionReverseCells[i][p].F;
@@ -1454,8 +1450,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!_positionReverseConverged){
 			//empty all cells
-			for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-				for(int p=0; p<storage.maxPosReverse; ++p){
+			for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+				for(size_t p=0; p<storage.maxPosReverse; ++p){
 					storage.positionReverseCells[i][p].empty();
 				}
 			}
@@ -1469,8 +1465,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(_storeDataInMemory){
-				for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-					for(int p=0; p<storage.maxPosReverse; ++p){
+				for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+					for(size_t p=0; p<storage.maxPosReverse; ++p){
 						storage.positionReverseCells[i][p].clearStorage();
 					}
 				}
@@ -1496,8 +1492,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 
 		//now do estimation
 		_logfile->listFlush("Estimating tmpEpsilon for quality x context table ...");
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int c=0; c<storage.numContexts; ++c){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(size_t c=0; c<storage.numContexts; ++c){
 				if(!storage.contextCells[r][c].estimate(_convergenceThreshold_F, _minEpsilonFactors, _minObservations, allowIncreaseInF))
 					++numCellsNotConverged;
 				if(storage.contextCells[r][c].hasData && storage.contextCells[r][c].F > maxF) maxF = storage.contextCells[r][c].F;
@@ -1519,8 +1515,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 		//set status
 		if(!_contextConverged){
 			//empty all cells
-			for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-				for(int c=0; c<storage.numContexts; ++c){
+			for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+				for(size_t c=0; c<storage.numContexts; ++c){
 					storage.contextCells[r][c].empty();
 				}
 			}
@@ -1534,8 +1530,8 @@ bool TRecalibrationBQSREstimator::estimateEpsilon(std::string filenameTag){
 
 			//empty storage
 			if(_storeDataInMemory){
-				for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-					for(int c=0; c<storage.numContexts; ++c){
+				for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+					for(size_t c=0; c<storage.numContexts; ++c){
 						storage.contextCells[i][c].clearStorage();
 					}
 				}
@@ -1599,7 +1595,7 @@ void TRecalibrationBQSREstimator::writeQualityToFile(std::string & filenameTag){
 	out << "\n";
 	for(size_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
-		for(int q=0; q<qualityIndex->numQ; ++q){
+		for(uint16_t q=0; q<qualityIndex->numQ; ++q){
 			out << _readGroups->getName(i) << "\t" << qualityIndex->getPhredIntFromIndex(q)
 				<< "\tM\t" << _qualityMap.errorToPhred(storage.qualityCells[rg_index][q].curEstimate)
 				<< "\t" << storage.qualityCells[rg_index][q].getNumObsForPrinting()
@@ -1621,9 +1617,9 @@ void TRecalibrationBQSREstimator::writePositionToFile(std::string & filenameTag)
 	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(size_t i=0; i<_readGroups->size(); ++i){
+	for(uint16_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
-		for(int p=0; p<storage.maxPos; ++p){
+		for(uint16_t p=0; p<storage.maxPos; ++p){
 			out << _readGroups->getName(i) << "\t" << p+1 << "\tM\t" << storage.positionCells[rg_index][p].curEstimate
 				<< "\t" << storage.positionCells[rg_index][p].getNumObsForPrinting()
 				<< "\t" << storage.positionCells[rg_index][p].firstDerivativeSave
@@ -1645,9 +1641,9 @@ void TRecalibrationBQSREstimator::writePositionReverseToFile(std::string & filen
 	out << "ReadGroup\tPosition\tEventType\tScaling\tLog10Observations";
 	out << "\tFirstDerivative\tSecondDerivative\tF\thasConverged";
 	out << "\n";
-	for(size_t i=0; i<_readGroups->size(); ++i){
+	for(uint16_t i=0; i<_readGroups->size(); ++i){
 		int rg_index = _readGroupMap->getIndex(i);
-		for(int p=0; p<storage.maxPosReverse; ++p){
+		for(size_t p=0; p<storage.maxPosReverse; ++p){
 			out << _readGroups->getName(i) << "\t" << p+1 << "\tM\t" << storage.positionReverseCells[rg_index][p].curEstimate
 				<< "\t" << storage.positionReverseCells[rg_index][p].getNumObsForPrinting()
 				<< "\t" << storage.positionReverseCells[rg_index][p].firstDerivativeSave
@@ -1670,7 +1666,7 @@ void TRecalibrationBQSREstimator::writeContextToFile(std::string & filenameTag){
 	out << "\n";
 	for(size_t r=0; r<_readGroups->size(); ++r){
 		int rg_index = _readGroupMap->getIndex(r);
-		for(int c=0; c<storage.numContexts; ++c){
+		for(size_t c=0; c<storage.numContexts; ++c){
 			out << _readGroups->getName(r) << "\t" << storage._genoMap.getContextString(c) << "\tM\t" << storage.contextCells[rg_index][c].curEstimate
 				<< "\t" << storage.contextCells[rg_index][c].getNumObsForPrinting()
 				<< "\t" << storage.contextCells[rg_index][c].firstDerivativeSave
@@ -1693,7 +1689,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceQuality(std::string 
 	//write header
 	out << "ReadGroup\tQuality\terrorRate\tLL\tFirstDerivative\tSecondDerivative\n";
 	for(size_t r=0; r<_readGroups->size(); ++r){
-		for(int q=0; q<qualityIndex->numQ; ++q){
+		for(size_t q=0; q<qualityIndex->numQ; ++q){
 			storage.qualityCells[_readGroupMap->getIndex(r)][q].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(qualityIndex->getPhredIntFromIndex(q)), out);
 		}
 	}
@@ -1710,7 +1706,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfacePosition(std::string
 	//write header
 	out << "ReadGroup\tPosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	for(size_t r=0; r<_readGroups->size(); ++r){
-		for(int p=0; p<storage.maxPos; ++p){
+		for(size_t p=0; p<storage.maxPos; ++p){
 			storage.positionCells[_readGroupMap->getIndex(r)][p].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(p+1), out);
 		}
 	}
@@ -1727,7 +1723,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceReversePosition(std:
 	//write header
 	out << "ReadGroup\tReversePosition\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	for(size_t r=0; r<_readGroups->size(); ++r){
-		for(int p=0; p<storage.maxPosReverse; ++p){
+		for(size_t p=0; p<storage.maxPosReverse; ++p){
 			storage.positionReverseCells[_readGroupMap->getIndex(r)][p].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + toString(p+1), out);
 		}
 	}
@@ -1744,7 +1740,7 @@ void TRecalibrationBQSREstimator::calculateAndPrintLLSurfaceContext(std::string 
 	//write header
 	out << "ReadGroup\tContext\talpha\tLL\tFirstDerivative\tSecondDerivative\n";
 	for(size_t r=0; r<_readGroups->size(); ++r){
-		for(int c=0; c<storage.numContexts; ++c){
+		for(size_t c=0; c<storage.numContexts; ++c){
 			storage.contextCells[_readGroupMap->getIndex(r)][c].calcLikelihoodSurface(_numPosLLsurface, _readGroups->getName(r) + "\t" + storage._genoMap.getContextString(c), out);
 		}
 	}
@@ -1763,8 +1759,8 @@ bool TRecalibrationBQSREstimator::allConverged(){
 void TRecalibrationBQSREstimator::reopenEstimation(){
 	//resets all cells not to have converged
 	if(_estimateQuality){
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int q=0; q<qualityIndex->numQ; ++q){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t q=0; q<qualityIndex->numQ; ++q){
 				storage.qualityCells[i][q].reopenEstimation();
 			}
 		}
@@ -1773,8 +1769,8 @@ void TRecalibrationBQSREstimator::reopenEstimation(){
 
 	//also for position
 	if(storage.considerPosition && _estimatePosition){
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int p=0; p<storage.maxPos; ++p){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t p=0; p<storage.maxPos; ++p){
 				storage.positionCells[i][p].reopenEstimation();
 			}
 		}
@@ -1783,8 +1779,8 @@ void TRecalibrationBQSREstimator::reopenEstimation(){
 
 	//reverse position
 	if(storage.considerPositionReverse && _estimatePositionReverse){
-		for(int i=0; i<_readGroupMap->getNumReadGroups(); ++i){
-			for(int p=0; p<storage.maxPosReverse; ++p){
+		for(size_t i=0; i<_readGroupMap->getNumReadGroups(); ++i){
+			for(size_t p=0; p<storage.maxPosReverse; ++p){
 				storage.positionReverseCells[i][p].reopenEstimation();
 			}
 		}
@@ -1793,8 +1789,8 @@ void TRecalibrationBQSREstimator::reopenEstimation(){
 
 	//and context
 	if(storage.considerContext && _estimateContext){
-		for(int r=0; r<_readGroupMap->getNumReadGroups(); ++r){
-			for(int c=0; c<storage.numContexts; ++c){
+		for(size_t r=0; r<_readGroupMap->getNumReadGroups(); ++r){
+			for(size_t c=0; c<storage.numContexts; ++c){
 				storage.contextCells[r][c].reopenEstimation();
 			}
 		}

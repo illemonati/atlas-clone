@@ -46,14 +46,14 @@ void TReadGroups::fill(BamTools::SamHeader & bamHeader){
 	_initialized = true;
 };
 
-int TReadGroups::find(const std::string & name){
+uint16_t TReadGroups::find(const std::string & name){
 	for(size_t i=0; i<_numGroups; ++i){
 		if(_groups[i].name == name) return i;
 	}
 	throw "Read Group '" + name + "' was not present in header of bam file!";
 };
 
-int TReadGroups::find(BamTools::BamAlignment & alignment){
+uint16_t TReadGroups::find(BamTools::BamAlignment & alignment){
 	std::string tmp;
 	alignment.GetTag("RG", tmp);
 	return find(tmp);
@@ -66,11 +66,7 @@ bool TReadGroups::readGroupExists(const std::string & name){
 	return false;
 };
 
-bool TReadGroups::readGroupInUse(const int & readGroupId){
-	return _inUse[readGroupId];
-};
-
-bool TReadGroups::readGroupInUse(const size_t & readGroupId){
+bool TReadGroups::readGroupInUse(const uint16_t & readGroupId){
 	return _inUse[readGroupId];
 };
 
@@ -85,12 +81,12 @@ bool TReadGroups::readGroupInUse(BamTools::BamAlignment & alignment){
 	return _inUse[find(alignment)];
 };
 
-std::string TReadGroups::getName(int readGroupId){
+std::string TReadGroups::getName(uint16_t readGroupId){
 	if(readGroupId < 0 || (size_t) readGroupId >= _numGroups) throw "No read group with number " + toString(readGroupId) + "!";
 	return _groups[readGroupId].name;
 };
 
-size_t TReadGroups::size(){
+uint16_t TReadGroups::size(){
 	return _numGroups;
 };
 
@@ -143,6 +139,7 @@ TReadGroupMap::TReadGroupMap(TReadGroups* ReadGroups){
 	//no pooling: internal index = read group index
 	_readGroups = ReadGroups;
 	_origNumReadGroups = _readGroups->size();
+	_readGroupMap = new uint16_t[_origNumReadGroups];
 
 	_fillWithoutPooling();
 };
@@ -150,14 +147,10 @@ TReadGroupMap::TReadGroupMap(TReadGroups* ReadGroups){
 TReadGroupMap::TReadGroupMap(TReadGroups* ReadGroups, const std::string filename, TLog* logfile){
 	_readGroups = ReadGroups;
 	_origNumReadGroups = _readGroups->size();
-	_readGroupMap = new int[_origNumReadGroups];
+	_readGroupMap = new uint16_t[_origNumReadGroups];
 
 	if(filename.empty()){
-		//no pooling: internal index = read group index
-		_numReadGroups = _origNumReadGroups;
-		for(int i = 0; i < _numReadGroups; ++i){
-			_readGroupMap[i] = i;
-		}
+		_fillWithoutPooling();
 	} else {
 		_fillFromFile(filename, logfile);
 	}
@@ -170,7 +163,6 @@ TReadGroupMap::~TReadGroupMap(){
 
 void TReadGroupMap::_fillWithoutPooling(){
 	_numReadGroups = _origNumReadGroups;
-	_readGroupMap = new int[_origNumReadGroups];
 	for(int i = 0; i < _numReadGroups; ++i){
 		_readGroupMap[i] = i;
 	}
@@ -216,7 +208,7 @@ void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
 	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
 	int oldId;
 
-	for(unsigned int rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
+	for(uint16_t rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
 		logfile->startIndent("The following read groups will be combined into one group for parameter estimation:");
 		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 			logfile->list(*it);
@@ -232,7 +224,7 @@ void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
 	//now add read groups that will not be merged
 	bool printed = false;
 	std::string name;
-	for(size_t i = 0; i < _readGroups->size(); ++i){
+	for(uint16_t i = 0; i < _readGroups->size(); ++i){
 		//check if it is mapped, otherwise add
 		if(_readGroupMap[i] < 0){
 			if(!printed){
@@ -254,23 +246,24 @@ void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
 };
 
 void TReadGroupMap::_fillReverseMap(){
-	_reverseReadGroupMap = new std::vector<int>[_numReadGroups];
-	for(int i = 0; i < _origNumReadGroups; ++i){
+	_reverseReadGroupMap = new std::vector<uint16_t>[_numReadGroups];
+	for(uint16_t i = 0; i < _origNumReadGroups; ++i){
 		_reverseReadGroupMap[getIndex(i)].push_back(i);
 	}
 };
 
-int TReadGroupMap::getOrigNumReadGroups(){ return _origNumReadGroups; };
-int TReadGroupMap::getNumReadGroups(){ return _numReadGroups; };
+uint16_t TReadGroupMap::getOrigNumReadGroups(){ return _origNumReadGroups; };
+uint16_t TReadGroupMap::getNumReadGroups(){ return _numReadGroups; };
 
-int TReadGroupMap::getIndex(int rg){ return _readGroupMap[rg]; };
-int TReadGroupMap::getIndex(const std::string readGroupName){
-	int rg = _readGroups->find(readGroupName);
+uint16_t TReadGroupMap::getIndex(const uint16_t rg){ return _readGroupMap[rg]; };
+uint16_t TReadGroupMap::operator[](const uint16_t rg){ return _readGroupMap[rg]; };
+uint16_t TReadGroupMap::getIndex(const std::string readGroupName){
+	uint16_t rg = _readGroups->find(readGroupName);
 	return getIndex(rg);
 };
 
-void TReadGroupMap::fillNamesOfReadgroups(int rg, std::vector<std::string> & names){
-	for(int i : _reverseReadGroupMap[rg]){
+void TReadGroupMap::fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> & names){
+	for(size_t i : _reverseReadGroupMap[rg]){
 		names.push_back(_readGroups->getName(i));
 	}
 };

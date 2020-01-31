@@ -51,7 +51,7 @@ public:
 class TReadGroups{
 private:
 	readGroup* _groups;
-	size_t _numGroups;
+	uint16_t _numGroups;
 	bool _initialized;
 	bool _limitReadGroups;
 	bool* _inUse;
@@ -61,16 +61,15 @@ public:
 	~TReadGroups();
 
 	void fill(BamTools::SamHeader & bamHeader);
-	int find(const std::string & name);
-	int find(BamTools::BamAlignment & alignment);
+	uint16_t find(const std::string & name);
+	uint16_t find(BamTools::BamAlignment & alignment);
 	bool readGroupExists(const std::string & name);
-	bool readGroupInUse(const int & readGroupId);
-	bool readGroupInUse(const size_t & readGroupId);
+	bool readGroupInUse(const uint16_t & readGroupId);
 	bool readGroupInUse(const std::string name);
 	bool readGroupInUse(BamTools::BamAlignment & alignment);
 
-	std::string getName(int readGroupId);
-	size_t size();
+	std::string getName(const uint16_t readGroupId);
+	uint16_t size();
 	void filterReadGroups(std::string readGroupList);
 	void printReadgroupsInUse(TLog* logfile);
 	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);
@@ -82,13 +81,12 @@ public:
 //--------------------------------------------------------------------------------------
 class TReadGroupMap{
 private:
-
 	TReadGroups* _readGroups;
 
-	int _origNumReadGroups;
-	int _numReadGroups;
-	int* _readGroupMap; //maps read group index to internal index
-	std::vector<int>* _reverseReadGroupMap;
+	uint16_t _origNumReadGroups;
+	uint16_t _numReadGroups;
+	uint16_t* _readGroupMap; //maps read group index to internal index
+	std::vector<uint16_t>* _reverseReadGroupMap;
 
 	void _fillWithoutPooling();
 	void _fillFromFile(std::string filename, TLog* logfile);
@@ -99,12 +97,13 @@ public:
 
 	~TReadGroupMap();
 
-	int getOrigNumReadGroups();
-	int getNumReadGroups();
+	uint16_t getOrigNumReadGroups();
+	uint16_t getNumReadGroups();
 
-	int getIndex(int rg);
-	int getIndex(const std::string readGroupName);
-	void fillNamesOfReadgroups(int rg, std::vector<std::string> & names);
+	uint16_t getIndex(const uint16_t rg);
+	uint16_t getIndex(const std::string readGroupName);
+	uint16_t operator[](const uint16_t rg);
+	void fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> & names);
 };
 
 #endif /* TREADGROUPS_H_ */

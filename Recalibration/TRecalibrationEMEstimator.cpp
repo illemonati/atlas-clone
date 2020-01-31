@@ -37,13 +37,13 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 	int k = 0;
 	for(TBase* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
-		data[k].readGroup = ReadGroupMap[it->readGroup];
+		data[k].readGroup = ReadGroupMap.getIndex(it->readGroup);
 
 		//quality
 		data[k].quality = qualiMap.errorToQuality(it->errorRate);
 
 		//position
-		data[k].position = it->distFrom5Prime;
+		data[k].positionFrom5Prime = it->distFrom5Prime;
 
 		//context
 		data[k].context = it->context;
@@ -333,7 +333,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	//recal models
 	logfile->startIndent("Settings regarding the EM algorithm:");
 	std::string recalFile = args.getParameterString("recal", false);
-	std::string modelTagForEstimation = args.getParameterStringWithDefault("model", "quality=polynomial(2);position=polynomial(2);contex=specific");
+	std::string modelTagForEstimation = args.getParameterStringWithDefault("model", "quality=polynomial(2);position=polynomial(2);context=specific");
 
 	//initialize from file?
 	if(recalFile.empty()){
@@ -406,7 +406,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	logfile->listFlush("Initializing default models ...");
 	int numModelsWithLittleData = 0;
 	int numModelsWithoutData = 0;
-	for(int rg = 0; rg < _readGroupMap->_numReadGroups; ++rg){
+	for(uint16_t rg = 0; rg < _readGroupMap->getNumReadGroups(); ++rg){
 		for(int mate = 0; mate < 2; ++mate){
 			TRecalibrationEMDataTable* table = dataTables.getTable(rg, mate);
 			if(table->size() > 0){
@@ -435,7 +435,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 			if(table->size() > 0 && table->size() < minRequiredObservations)
 				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(table->size()) + " observations.");
 
-			TRecalibrationEMDataTable* table = dataTables.getTable(index, true);
+			table = dataTables.getTable(index, true);
 			if(table->size() > 0 && table->size() < minRequiredObservations)
 				logfile->list(_readGroups->getName(rg)  + " (second mate): only " + toString(table->size()) + " observations.");
 		}
@@ -602,6 +602,9 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 		if(numUpdatedModels < models->numModels()){
 			logfile->conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) + ", aborting Newton-Raphson.");
 		}
+
+		//adjust parameters post estimation
+		models->adjustParametersPostEstimation();
 
 		//get largest gradient (F) to check if we break NR optimization
 		double maxF = models->getSteepestGradient();

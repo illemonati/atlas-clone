@@ -14,7 +14,7 @@ TAlignment::TAlignment(){
 	length = 0;
 	fragmentLength = 0;
 	chrNumber = -1;
-	readGroupId = -1;
+	readGroupId = 0;
 	position = 0;
 	matePosition = 0;
 	lastAlignedPos = 0;
@@ -144,7 +144,7 @@ void TAlignment::freeStorage(){
 	storageInitialized = false;
 };
 
-void TAlignment::fill(BamTools::BamAlignment & BamAlignment, int ReadGroupId){
+void TAlignment::fill(BamTools::BamAlignment & BamAlignment, const uint16_t ReadGroupId){
 	//clear
 	clear();
 
@@ -247,7 +247,7 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 void TAlignment::copyDataToBase(TBase & base, const char baseAsChar, const char qualAsChar, TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	base.base = genoMap.getBase(baseAsChar);
 	base.qualityAsPhredInt = qualityMap.qualityToPhredInt(qualAsChar);
-	base.errorRate = qualityMap.phredIntToErrorMap(base.qualityAsPhredInt);
+	base.errorRate = qualityMap.phredIntToError(base.qualityAsPhredInt);
 };
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
