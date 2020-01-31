@@ -12,7 +12,7 @@
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
-void TRecalibrationEMCovariateFunction::_init(const size_t FirstParameterIndex){
+void TRecalibrationEMCovariateFunction::_init(const uint16_t FirstParameterIndex){
 	_moduleName = RecalModuleFunctionName_none;
 	_initialized = false;
 	_numParameters = 0;
@@ -21,7 +21,6 @@ void TRecalibrationEMCovariateFunction::_init(const size_t FirstParameterIndex){
 	_numNonZeroSecondDerivatives = 0;
 	_betas = nullptr;
 	_oldBetas = nullptr;
-
 	doTransformation = false;
 	transformationMap = nullptr;
 };
@@ -37,6 +36,12 @@ void TRecalibrationEMCovariateFunction::_initializeBetas(){
 	_freeBetas();
 	_betas = new double[_numParameters];
 	_oldBetas = new double[_numParameters];
+	_initialized = true;
+
+	for(uint16_t i = 0; i < _numParameters; ++i){
+		_betas[i] = 0.0;
+		_oldBetas[i] = 0.0;
+	}
 };
 
 void TRecalibrationEMCovariateFunction::_initializValues(std::vector<std::string> & values){
@@ -60,16 +65,18 @@ double TRecalibrationEMCovariateFunction::_getAsDouble(const uint16_t val){
 };
 
 double TRecalibrationEMCovariateFunction::_normalizeParameters(){
-	double sum = 0.0;
-	for(size_t i=0; i<_numParameters; ++i){
-		sum += _betas[i];
+	double mean = 0.0;
+	for(uint16_t i=0; i<_numParameters; ++i){
+		mean += _betas[i];
+	}
+	mean /= (double) _numParameters;
+
+
+	for(uint16_t i=0; i<_numParameters; ++i){
+		_betas[i] -= mean;
 	}
 
-	for(size_t i=0; i<_numParameters; ++i){
-		_betas[i] -= sum;
-	}
-
-	return sum;
+	return mean;
 };
 
 bool TRecalibrationEMCovariateFunction::checkValueRange(std::vector<uint16_t> & values){
@@ -89,13 +96,13 @@ bool TRecalibrationEMCovariateFunction::checkValueRange(std::vector<uint16_t> & 
 };
 
 
-void TRecalibrationEMCovariateFunction::proposeNewParameters(const arma::mat & JxF, size_t & index, double & lambda){
+void TRecalibrationEMCovariateFunction::proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda){
 	//save old parameters
-	for(size_t i=0; i<_numParameters; ++i)
+	for(uint16_t i=0; i<_numParameters; ++i)
 		_oldBetas[i] = _betas[i];
 
 	//update new ones
-	for(size_t i=0; i<_numParameters; ++i){
+	for(uint16_t i=0; i<_numParameters; ++i){
 		_betas[i] = _oldBetas[i] - lambda * JxF(index);
 		++index;
 	}
@@ -128,11 +135,11 @@ TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_i
 	_init();
 }
 
-TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const size_t FirstParameterIndex):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init();
 };
 
-TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const size_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_moduleName = RecalModuleFunctionName_intercept;
 	_init();
 	_initializValues(values);
@@ -155,11 +162,11 @@ void TRecalibrationEMCovariateFunction_polynomial::_init(const size_t order){
 	_initializeBetas();
 };
 
-TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, const size_t order):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(order);
 };
 
-TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(values.size());
 	_initializValues(values);
 };
@@ -187,11 +194,11 @@ void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specific
 //--------------------------------------------------------------
-TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const size_t FirstParameterIndex, size_t MaxValue):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, size_t MaxValue):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(MaxValue);
 };
 
-TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const size_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	//are there any values provided?
 	if(values.size() < 1){
 		throw "Failed to initialize TRecalibrationEMCovariateFunction_specificMap: values are empty!";
@@ -243,7 +250,7 @@ void TRecalibrationEMCovariateFunction_specificMap::_freeIndexMap(){
 	delete[] _valueUsed;
 };
 
-TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction_specificMap(const size_t FirstParameterIndex, std::vector<uint16_t> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<uint16_t> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(values.size());
 
 	//find largest value
@@ -261,7 +268,7 @@ TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction
 	}
 };
 
-TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction_specificMap(const size_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	//are there any values provided?
 	if(values.size() < 1){
 		throw "Failed to initialize TRecalibrationEMCovariateFunction_specificMap: values are empty!";

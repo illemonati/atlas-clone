@@ -26,9 +26,10 @@ public:
 	double* phredIntToErrorMap;
 	double* qualityToErrorMap;
 	double* phredIntToLogErrorMap;
-	size_t* illuminaQualityBins;
+	uint8_t* illuminaQualityBins;
 	double min;
-	size_t minPhredInt, sizeQual;
+	uint8_t minPhredInt;
+	uint16_t sizeQual;
 
 	TQualityMap(){
 		//only up to phred = 255, else always return 255
@@ -40,13 +41,13 @@ public:
 
 
 		//initialize quality <= 0
-		for(int i=0; i<33; ++i)
+		for(uint8_t i=0; i<33; ++i)
 			qualityToErrorMap[i] = 1.0;
 		phredIntToErrorMap[0] = 1.0;
 
 		//and now others
 		double tmp = - log(10) / 10.0;
-		for(size_t i=0; i<(minPhredInt+1); ++i){
+		for(uint16_t i=0; i<=minPhredInt; ++i){
 			phredIntToErrorMap[i] = phredToError(i);
 			phredIntToLogErrorMap[i] = i * tmp;
 			qualityToErrorMap[i+33] = phredIntToErrorMap[i];
@@ -54,22 +55,22 @@ public:
 		min = phredToError(minPhredInt);
 
 		//Create map of illumina quality bins
-		illuminaQualityBins = new size_t[sizeQual];
-		for(size_t i=0; i<35; ++i)
+		illuminaQualityBins = new uint8_t[sizeQual];
+		for(uint16_t i=0; i<35; ++i)
 			illuminaQualityBins[i] = 33;
-		for(size_t i=35; i<43; ++i)
+		for(uint16_t i=35; i<43; ++i)
 			illuminaQualityBins[i] = 39;
-		for(size_t i=43; i<53; ++i)
+		for(uint16_t i=43; i<53; ++i)
 			illuminaQualityBins[i] = 48;
-		for(size_t i=53; i<58; ++i)
+		for(uint16_t i=53; i<58; ++i)
 			illuminaQualityBins[i] = 55;
-		for(size_t i=58; i<63; ++i)
+		for(uint16_t i=58; i<63; ++i)
 			illuminaQualityBins[i] = 60;
-		for(size_t i=63; i<68; ++i)
+		for(uint16_t i=63; i<68; ++i)
 			illuminaQualityBins[i] = 66;
-		for(size_t i=68; i<72; ++i)
+		for(uint16_t i=68; i<72; ++i)
 			illuminaQualityBins[i] = 70;
-		for(size_t i=72; i<sizeQual; ++i)
+		for(uint16_t i=72; i<sizeQual; ++i)
 			illuminaQualityBins[i] = 73;
 	};
 
@@ -96,15 +97,15 @@ public:
 		return phredIntToError(qual - 33);
 	};
 
-	size_t phredIntToQuality(size_t phredInt){
+	uint8_t phredIntToQuality(uint8_t phredInt){
 		return phredInt + 33;
 	};
 
-	size_t qualityToPhredInt(size_t quality){
+	uint8_t qualityToPhredInt(uint8_t quality){
 		return quality - 33;
 	};
 
-	double phredIntToIlluminaError(size_t phredInt){
+	double phredIntToIlluminaError(uint8_t phredInt){
 		return phredIntToError(illuminaQualityBins[phredInt + 33]);
 	};
 
@@ -123,7 +124,7 @@ public:
 		return round(-10.0 * log10(errorRate)) + 33;
 	};
 
-	double& operator[](size_t phred){
+	double& operator[](unsigned int phred){
 		//Note: no check on range!
 		return phredIntToErrorMap[phred];
 	};

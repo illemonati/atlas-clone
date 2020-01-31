@@ -40,7 +40,7 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 		data[k].readGroup = ReadGroupMap.getIndex(it->readGroup);
 
 		//quality
-		data[k].quality = qualiMap.errorToQuality(it->errorRate);
+		data[k].qualityAsPhredInt = it->qualityAsPhredInt;
 
 		//position
 		data[k].positionFrom5Prime = it->distFrom5Prime;
@@ -469,7 +469,7 @@ void TRecalibrationEMEstimator::performEstimationKnownGenotypes(std::string outp
 	_initializeModels();
 
 	//initialize tmp variables in windows and model
-	_initializeTmpEpsilon();
+	_initializTmpVariablesForEstimation();
 
 	//run Newton-Raphson optimization
 	_runNewtonRaphson();
@@ -486,7 +486,7 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
 
 	//initialize tmp variables in windows and model
-	_initializeTmpEpsilon();
+	_initializTmpVariablesForEstimation();
 
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
@@ -615,7 +615,8 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 	logfile->endIndent();
 };
 
-void TRecalibrationEMEstimator::_initializeTmpEpsilon(){
+void TRecalibrationEMEstimator::_initializTmpVariablesForEstimation(){
+	//initialize tmp epsilon
 	if(!tmpEpsilonInitialized){
 		int maxDepth = 0;
 		for(TRecalibrationEMWindow* curWindow : windows){
@@ -628,6 +629,9 @@ void TRecalibrationEMEstimator::_initializeTmpEpsilon(){
 		tmpEpsilon = new double[maxDepth];
 		tmpEpsilonInitialized = true;
 	}
+
+	//initialize variables in models
+	models->setEMParamsToZero();
 };
 
 void TRecalibrationEMEstimator::addNewWindow(TBaseFrequencies* freqs){
@@ -672,13 +676,12 @@ long TRecalibrationEMEstimator::cumulativeDepth(){
 	return cumulDepth;
 };
 
-void TRecalibrationEMEstimator::writeCurrentEstimates(std::string filename){
-	TOutputFilePlain out(filename);
-	models->writeRecalFile(&out);
+void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string filename){
+	models->writeRecalFile(filename);
 };
 
 double TRecalibrationEMEstimator::calcLL(){
-	_initializeTmpEpsilon();
+	_initializTmpVariablesForEstimation();
 	double LL = 0.0;
 	for(TRecalibrationEMWindow* curWindow : windows)
 		LL += curWindow->calcLL(*models, tmpEpsilon);

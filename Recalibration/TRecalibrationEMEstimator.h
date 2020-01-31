@@ -111,7 +111,7 @@ protected:
 	void _initializeModels();
 	void _runEM(std::string outputName, bool & writeTmpTables);
 	void _runNewtonRaphson();
-	void _initializeTmpEpsilon();
+	void _initializTmpVariablesForEstimation();
 
 public:
 	TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap);

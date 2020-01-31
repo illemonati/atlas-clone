@@ -52,9 +52,9 @@ public:
 			delete _function;
 	};
 
-	size_t numParameters();
-	size_t numNonZeroFirstDerivatives();
-	size_t numNonZeroSecondDerivatives();
+	uint16_t numParameters();
+	uint16_t numNonZeroFirstDerivatives();
+	uint16_t numNonZeroSecondDerivatives();
 
 	virtual std::string name(){ return RecalCovariateName_none; };
 
@@ -88,11 +88,13 @@ public:
 //-------------------------------------------
 class TRecalibrationEMCovariate_quality:public TRecalibrationEMCovariate{
 private:
+	TRecalibrationEMQualityTransformationMap qualityToLogit;
+
 	uint16_t _extractCovariate(const TBase & base){
 		return base.qualityAsPhredInt;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.quality;
+		return data.qualityAsPhredInt;
 	};
 
 public:

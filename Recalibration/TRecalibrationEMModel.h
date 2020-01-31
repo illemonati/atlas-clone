@@ -17,10 +17,20 @@
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-typedef std::map<std::string, std::string>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
+struct TRecalibrationEMModelCovariateDef{
+	std::string covariate;
+	std::string function;
+
+	TRecalibrationEMModelCovariateDef(const std::string Covariate, const std::string Function){
+		covariate = Covariate;
+		function = Function;
+	};
+};
+
+typedef std::vector<TRecalibrationEMModelCovariateDef>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
 class TRecalibrationEMModelCovariateDefinition{
 private:
-	std::map<std::string, std::string> covariateFunctions;  //<covariate, function>
+	std::vector<TRecalibrationEMModelCovariateDef> covariateFunctions;  //<covariate, function>
 
 public:
 	TRecalibrationEMModelCovariateDefinition(){};
@@ -30,7 +40,7 @@ public:
 
 	bool parse(const std::string & modelString, std::string & error);
 	void add(const std::string covariate, const std::string function){
-		covariateFunctions.insert(std::pair<std::string, std::string>(covariate, function));
+		covariateFunctions.emplace_back(covariate, function);
 	};
 	size_t size(){ return covariateFunctions.size(); };
 	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return covariateFunctions.begin(); };
@@ -72,7 +82,7 @@ private:
 
 	//Newton Raphson Parameters
 	//TODO: maybe split into class that can and cannot estimate?
-	size_t _numParameters;
+	uint16_t _numParameters;
 	double _Q, _oldQ;
 	arma::mat Jacobian;
 	arma::vec F;
@@ -85,11 +95,10 @@ private:
 
 	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
 	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap);
-	void _summarizeCovariates();
+	void _storePointersToCovariateFunctions();
 	void _initializeDerivatives();
 	double _calcEpsilon(const double eta);
-	inline double _calcQ(const int & genotype, TRecalibrationEMReadData & data){
-		double eps = getErrorRate(data);
+	inline double _calcQ(const double & eps, const Base & genotype, TRecalibrationEMReadData & data){
 		double B = 1.33333333333333333333 * data.D[genotype] - 1.0;
 		double P_d_given_g_beta = B * eps - data.D[genotype] + 1.0;
 		return log(P_d_given_g_beta);
@@ -144,7 +153,7 @@ private:
 	void _createModelsFromString(const std::string & s);
 	void _createModelsFromFile(std::string filename);
 
-	void _writeParameters(TOutputFile*out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
+	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
 	TRecalibrationEMModels(TReadGroups* ReadGroups, TReadGroupMap* readGroupMap, TLog* Logfile);
@@ -194,7 +203,7 @@ public:
 	void adjustParametersPostEstimation();
 	double getSteepestGradient();
 
-	void writeRecalFile(TOutputFile* out);
+	void writeRecalFile(const std::string filename);
 
 };
 

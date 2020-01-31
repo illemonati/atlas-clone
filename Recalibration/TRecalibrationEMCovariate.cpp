@@ -49,7 +49,7 @@ void TRecalibrationEMCovariate::_parseModuleString(const std::string & str, std:
 	}
 };
 
-size_t TRecalibrationEMCovariate::numParameters(){
+uint16_t TRecalibrationEMCovariate::numParameters(){
 	if(_initialized){
 		return _function->numParameters();
 	} else {
@@ -57,7 +57,7 @@ size_t TRecalibrationEMCovariate::numParameters(){
 	}
 };
 
-size_t TRecalibrationEMCovariate::numNonZeroFirstDerivatives(){
+uint16_t TRecalibrationEMCovariate::numNonZeroFirstDerivatives(){
 	if(_initialized){
 		return _function->numNonZeroFirstDerivatives();
 	} else {
@@ -65,7 +65,7 @@ size_t TRecalibrationEMCovariate::numNonZeroFirstDerivatives(){
 	}
 };
 
-size_t TRecalibrationEMCovariate::numNonZeroSecondDerivatives(){
+uint16_t TRecalibrationEMCovariate::numNonZeroSecondDerivatives(){
 	if(_initialized){
 		return _function->numNonZeroSecondDerivatives();
 	} else {
@@ -113,6 +113,11 @@ void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterI
 	//create function
 	if(type == RecalModuleFunctionName_polynomial){
 		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
+
+		//if no values are provided, set first beta = 1
+		if(values.empty()){
+			_function->setBeta(0, 1.0);
+		}
 	} else if(type == RecalModuleFunctionName_specific){
 		std::vector<uint16_t> usedQualities;
 		dataTable->fillVectorWithUsedQualities(usedQualities);
@@ -126,6 +131,9 @@ void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterI
 	}
 
 	_initialized = true;
+
+	//add transformation
+	_function->addTransformation(&qualityToLogit);
 };
 
 void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string & functionString){
@@ -152,6 +160,9 @@ void TRecalibrationEMCovariate_quality::addFunction(const size_t FirstParameterI
 	}
 
 	_initialized = true;
+
+	//add transformation
+	_function->addTransformation(&qualityToLogit);
 };
 
 bool TRecalibrationEMCovariate_quality::checkParameterRange(TRecalibrationEMDataTable* dataTable){

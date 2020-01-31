@@ -27,10 +27,10 @@
 //--------------------------------------------------------------
 class TRecalibrationEMCovariateFunction{
 protected:
-	size_t _numParameters;
-	size_t _firstParameterIndex;
-	size_t _numNonZeroFirstDerivatives;
-	size_t _numNonZeroSecondDerivatives;
+	uint16_t _numParameters;
+	uint16_t _firstParameterIndex;
+	uint16_t _numNonZeroFirstDerivatives;
+	uint16_t _numNonZeroSecondDerivatives;
 	std::string _moduleName;
 	double* _betas; //betas of the model
 	double* _oldBetas; //use during estimation
@@ -40,7 +40,7 @@ protected:
 	TRecalibrationEMTransformationMap* transformationMap;
 	bool doTransformation;
 
-	void _init(const size_t FirstParameterIndex);
+	void _init(const uint16_t FirstParameterIndex);
 	void _freeBetas();
 	void _initializeBetas();
 	void _initializValues(std::vector<std::string> & values);
@@ -53,16 +53,21 @@ public:
 	TRecalibrationEMCovariateFunction(){
 		_init(0);
 	};
-	TRecalibrationEMCovariateFunction(const size_t FirstParameterIndex){
+	TRecalibrationEMCovariateFunction(const uint16_t FirstParameterIndex){
 		_init(FirstParameterIndex);
 	};
 
 	virtual ~TRecalibrationEMCovariateFunction(){ _freeBetas();	};
+
+	void setBeta(uint16_t index, double val){
+		if(index < _numParameters)
+			_betas[index] = val;
+	};
 	virtual bool checkValueRange(const uint16_t val){ return true; };
 	bool checkValueRange(std::vector<uint16_t> & values);
-	int numParameters(){ return _numParameters; };
-	int numNonZeroFirstDerivatives(){ return _numNonZeroFirstDerivatives; };
-	int numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
+	uint16_t numParameters(){ return _numParameters; };
+	uint16_t numNonZeroFirstDerivatives(){ return _numNonZeroFirstDerivatives; };
+	uint16_t numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
 
 	void addTransformation(TRecalibrationEMTransformationMap* pointerToTransformationMap){
 		doTransformation = true;
@@ -70,7 +75,7 @@ public:
 	};
 
 	virtual double getEtaTerm(const uint16_t val){ return 0.0; }
-	void proposeNewParameters(const arma::mat & JxF, size_t & index, double & lambda);
+	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
 	void rejectProposedParameters(){
 		for(unsigned int i=0; i<_numParameters; ++i)
 			_betas[i] = _oldBetas[i];
@@ -90,8 +95,8 @@ protected:
 
 public:
 	TRecalibrationEMCovariateFunction_intercept();
-	TRecalibrationEMCovariateFunction_intercept(const size_t FirstParameterIndex);
-	TRecalibrationEMCovariateFunction_intercept(const size_t FirstParameterIndex, std::vector<std::string> & values);
+	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex);
+	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	void addToIntercept(const double val){
 		_betas[0] += val;
@@ -117,8 +122,8 @@ protected:
 	void _init(const size_t order);
 
 public:
-	TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, const size_t order);
-	TRecalibrationEMCovariateFunction_polynomial(const size_t FirstParameterIndex, std::vector<std::string> & values);
+	TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order);
+	TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	double getEtaTerm(const uint16_t val);
 	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
@@ -130,13 +135,13 @@ public:
 //--------------------------------------------------------------
 class TRecalibrationEMCovariateFunction_specific:public TRecalibrationEMCovariateFunction{
 protected:
-	size_t _maxValue;
+	unsigned int _maxValue;
 
 	void _init(const size_t MaxValue);
 
 public:
-	TRecalibrationEMCovariateFunction_specific(const size_t FirstParameterIndex, size_t MaxValue);
-	TRecalibrationEMCovariateFunction_specific(const size_t FirstParameterIndex, std::vector<std::string> & values);
+	TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, size_t MaxValue);
+	TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	bool checkValueRange(const uint16_t val){
 		if(val > _maxValue)
@@ -157,7 +162,7 @@ public:
 //--------------------------------------------------------------
 class TRecalibrationEMCovariateFunction_specificMap:public TRecalibrationEMCovariateFunction{
 protected:
-	size_t _maxValue;
+	unsigned int _maxValue;
 	uint16_t _mapSize;
 	uint16_t* _indexMap; //maps value to parameter index
 	bool* _valueUsed;
@@ -167,8 +172,8 @@ protected:
 	void _freeIndexMap();
 
 public:
-	TRecalibrationEMCovariateFunction_specificMap(const size_t FirstParameterIndex, std::vector<uint16_t> & values);
-	TRecalibrationEMCovariateFunction_specificMap(const size_t FirstParameterIndex, std::vector<std::string> & values);
+	TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<uint16_t> & values);
+	TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 	~TRecalibrationEMCovariateFunction_specificMap(){ _freeIndexMap(); };
 
 	bool checkValueRange(const uint16_t val){

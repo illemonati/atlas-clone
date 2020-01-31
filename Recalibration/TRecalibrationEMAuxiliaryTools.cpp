@@ -77,7 +77,7 @@ void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
 		throw "Can not add data point to TRecalibrationEMDataTable: quality > maxQual!";
 	}
 	*/
-	++qualities[data.quality];
+	++qualities[data.qualityAsPhredInt];
 	if(maxPos < data.positionFrom5Prime)
 		maxPos = data.positionFrom5Prime;
 };

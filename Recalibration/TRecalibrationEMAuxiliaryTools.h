@@ -22,7 +22,7 @@
 // Per site data storage
 //--------------------------------------------------------------------
 struct TRecalibrationEMReadData{
-	uint8_t quality;
+	uint8_t qualityAsPhredInt;
 	uint16_t positionFrom5Prime;
 	float D[4];
 	uint8_t context;
@@ -196,39 +196,47 @@ public:
 	};
 };
 
+
+class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
+public:
+	TRecalibrationEMQualityTransformationMap(){
+		TQualityMap qualiMap;
+
+		initialize(qualiMap.minPhredInt);
+
+		//now set
+		for(uint16_t q=0; q<qualiMap.minPhredInt; ++q){
+			//convert phred int quality to error
+			double eps = qualiMap.phredIntToError(q);
+			if(eps < 0.0000000001) eps = 0.0000000001;
+			else if(eps > 0.9999999999) eps = 0.9999999999;
+
+			//then transform into logit space
+			map[q] = log(eps / (1.0 - eps));
+		}
+	}
+};
+
 //--------------------------------------------------------------------
 // Derivatives
 //--------------------------------------------------------------------
 struct TRecalibrationEMFirstDerivative{
-	size_t index;
+	uint16_t index;
 	double derivative;
 };
 
 struct TRecalibrationEMSecondDerivative{
-	size_t index1;
-	size_t index2;
+	uint16_t index1;
+	uint16_t index2;
 	double derivative;
-};
-
-class TRecalibrationEMDerivatives{
-protected:
-	size_t _next;
-public:
-
-	TRecalibrationEMDerivatives(){
-		_next = 0;
-	};
-
-	void restart(){
-		_next = 0;
-	};
 };
 
 typedef std::vector<TRecalibrationEMFirstDerivative>::iterator TRecalibrationEMFirstDerivativesIterator;
 
-class TRecalibrationEMFirstDerivatives:public TRecalibrationEMDerivatives{
+class TRecalibrationEMFirstDerivatives{
 private:
 	std::vector<TRecalibrationEMFirstDerivative> _derivatives;
+	TRecalibrationEMFirstDerivativesIterator _cur;
 
 public:
 	TRecalibrationEMFirstDerivatives(){};
@@ -241,11 +249,12 @@ public:
 	};
 
 	size_t size(){ return _derivatives.size(); };
+	void  restart(){ _cur = _derivatives.begin(); };
 
-	void add(const size_t parameterIndex, const double & derivative){
-		_derivatives[_next].index = parameterIndex;
-		_derivatives[_next].derivative = derivative;
-		++_next;
+	void add(const uint16_t parameterIndex, const double derivative){
+		_cur->index = parameterIndex;
+		_cur->derivative = derivative;
+		++_cur;
 	};
 
 	TRecalibrationEMFirstDerivativesIterator begin(){
@@ -259,9 +268,10 @@ public:
 
 typedef std::vector<TRecalibrationEMSecondDerivative>::iterator TRecalibrationEMSecondDerivativesIterator;
 
-class TRecalibrationEMSecondDerivatives:public TRecalibrationEMDerivatives{
+class TRecalibrationEMSecondDerivatives{
 private:
 	std::vector<TRecalibrationEMSecondDerivative> _derivatives;
+	TRecalibrationEMSecondDerivativesIterator _cur;
 
 public:
 	TRecalibrationEMSecondDerivatives(){};
@@ -274,12 +284,13 @@ public:
 	};
 
 	size_t size(){ return _derivatives.size(); };
+	void  restart(){ _cur = _derivatives.begin(); };
 
-	void add(const size_t parameterIndex1, const size_t parameterIndex2, const double & derivative){
-		_derivatives[_next].index1 = parameterIndex1;
-		_derivatives[_next].index2 = parameterIndex2;
-		_derivatives[_next].derivative = derivative;
-		++_next;
+	void add(const uint16_t parameterIndex1, const uint16_t parameterIndex2, const double derivative){
+		_cur->index1 = parameterIndex1;
+		_cur->index2 = parameterIndex2;
+		_cur->derivative = derivative;
+		++_cur;
 	};
 
 	TRecalibrationEMSecondDerivativesIterator begin(){
