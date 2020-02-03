@@ -145,6 +145,10 @@ TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_i
 	_initializValues(values);
 };
 
+void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	first.add(_firstParameterIndex, 1.0);
+};
+
 void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
 	first.add(_firstParameterIndex, 1.0);
 };
@@ -183,10 +187,11 @@ double TRecalibrationEMCovariateFunction_polynomial::getEtaTerm(const uint16_t v
 };
 
 void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
-	double tmp = (double) val;
+	double valAsDouble = _getAsDouble(val);
+	double tmp = valAsDouble;
 	first.add(_firstParameterIndex, tmp);
 	for(size_t i=1; i<_numParameters; ++i){
-		tmp *= (double) val;
+		tmp *= valAsDouble;
 		first.add(_firstParameterIndex + i, tmp);
 	}
 };

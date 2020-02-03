@@ -109,7 +109,7 @@ public:
 	double getEtaTerm(const uint16_t val){
 		return _betas[0];
 	};
-
+	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
 	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
 };
 

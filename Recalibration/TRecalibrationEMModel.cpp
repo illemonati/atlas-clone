@@ -63,7 +63,10 @@ TRecalibrationEMModel::~TRecalibrationEMModel(){
 };
 
 void TRecalibrationEMModel::_createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
-	_numParameters = 0;
+	//include intercept
+	_numParameters = intercept.numParameters();
+
+	//create covariates
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
 		//create function for each covariate
 		if(it->covariate == RecalCovariateName_none){
@@ -89,7 +92,10 @@ void TRecalibrationEMModel::_createCovariates(TRecalibrationEMModelCovariateDefi
 };
 
 void TRecalibrationEMModel::_createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap){
-	_numParameters = 0;
+	//include intercept
+	_numParameters = intercept.numParameters();
+
+	//create covariates
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
 		//create function for each covariate
 		if(it->covariate == RecalCovariateName_none){
@@ -115,6 +121,10 @@ void TRecalibrationEMModel::_createCovariates(TRecalibrationEMModelCovariateDefi
 };
 
 void TRecalibrationEMModel::_storePointersToCovariateFunctions(){
+	//add intercept
+	pointerToCovariateFunctions.push_back(&intercept);
+
+	//add covariates
 	for(auto cov : covariates){
 		//store function pointer
 		pointerToCovariateFunctions.push_back(cov->getPointerToFunction());
@@ -142,8 +152,11 @@ bool TRecalibrationEMModel::checkParameterRange(std::vector<uint16_t> & Qualitie
 };
 
 void TRecalibrationEMModel::_initializeDerivatives(){
-	size_t numNonZeroFirstDeriv = 0;
-	size_t numNonZeroSecondDeriv = 0;
+	//intercept
+	size_t numNonZeroFirstDeriv = intercept.numNonZeroFirstDerivatives();
+	size_t numNonZeroSecondDeriv = intercept.numNonZeroSecondDerivatives();
+
+	//covariates
 	for(auto cov : covariates){
 		numNonZeroFirstDeriv += cov->numNonZeroFirstDerivatives();
 		numNonZeroSecondDeriv += cov->numNonZeroSecondDerivatives();
@@ -241,9 +254,15 @@ void TRecalibrationEMModel::addToFandJacobian(const TRecalibrationEMReadData & d
 	//fill derivatives
 	firstDerivatives.restart();
 	secondDerivatives.restart();
+
+	//fill derivatives of intercept
+	intercept.fillDerivatives(0.0, firstDerivatives, secondDerivatives);
+
+	//fill derivatives of covariates
 	for(auto cov : covariates){
 		cov->fillDerivatives(data, firstDerivatives, secondDerivatives);
 	}
+
 	//add first derivatives to F and Jacobian
 	for(TRecalibrationEMFirstDerivativesIterator it = firstDerivatives.begin(); it != firstDerivatives.end(); ++it){
 		//add to F
