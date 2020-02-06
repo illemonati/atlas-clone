@@ -197,9 +197,122 @@ void TRecalibrationEMCovariateFunction_polynomial::fillDerivatives(const uint16_
 };
 
 //--------------------------------------------------------------
+// TRecalibrationEMCovariateFunction_probit
+//--------------------------------------------------------------
+void TRecalibrationEMCovariateFunction_probit::_init(const uint16_t MaxValue){
+	_moduleName = RecalModuleFunctionName_probit;
+	_numParameters = 3;
+	_numNonZeroFirstDerivatives = 3;
+	_numNonZeroSecondDerivatives = 6;
+	_initializeBetas();
+	_secondParameterIndex = _firstParameterIndex + 1;
+	_thirdParameterIndex = _firstParameterIndex + 2;
+
+	//prepare tmp storage for phi and Phi
+	_tmpStorageInitialized = false;
+	if(MaxValue < 1)
+		_maxValue = 128;
+	else {
+		_maxValue = MaxValue;
+	}
+
+	_allocateTmpStorage();
+	_fillTmpStorage();
+};
+
+void TRecalibrationEMCovariateFunction_probit::_allocateTmpStorage(){
+	_freeTmpStorage();
+
+	_cumulDens_Phi = new double[_maxValue + 1];
+	_normalDens_phi = new double[_maxValue + 1];
+	_eta = new double[_maxValue + 1];
+	_normalDens_q = new double[_maxValue + 1];
+	_normalDens_Beta1 = new double[_maxValue + 1];
+	_normalDens_Beta1_q = new double[_maxValue + 1];
+	_normalDens_Beta1_z = new double[_maxValue + 1];
+	_normalDens_Beta1_q_z = new double[_maxValue + 1];
+	_normalDens_Beta1_q2_z = new double[_maxValue + 1];
+};
+
+void TRecalibrationEMCovariateFunction_probit::_freeTmpStorage(){
+	if(_tmpStorageInitialized){
+		delete[] _cumulDens_Phi;
+		delete[] _normalDens_phi;
+		delete[] _eta;
+		delete[] _normalDens_q;
+		delete[] _normalDens_Beta1;
+		delete[] _normalDens_Beta1_q;
+		delete[] _normalDens_Beta1_z;
+		delete[] _normalDens_Beta1_q_z;
+		delete[] _normalDens_Beta1_q2_z;
+	}
+};
+
+void TRecalibrationEMCovariateFunction_probit::_fillTmpStorage(){
+	for(uint16_t q = 0; q <= _maxValue; ++q){
+		double z = _betas[1] + _betas[2] * (double) q;
+		_cumulDens_Phi[q] = _normalDist.cumulativeDensity(z);
+		_normalDens_phi[q] = _normalDist.density(z);
+		_eta[q] = _cumulDens_Phi[q] * _betas[0];
+		_normalDens_q[q] = _normalDens_phi[q] * (double) q;
+		_normalDens_Beta1[q] = _normalDens_phi[q] * _betas[0];
+		_normalDens_Beta1_q[q] = _normalDens_Beta1[q] * (double) q;
+		_normalDens_Beta1_z[q] = _normalDens_Beta1 * z;
+		_normalDens_Beta1_q_z[q] = _normalDens_Beta1_q[q] * z;
+		_normalDens_Beta1_q2_z[q] = _normalDens_Beta1_q_z[q] * (double) q;
+	}
+};
+
+void TRecalibrationEMCovariateFunction_probit::_expandTmpStorage(const uint16_t MaxValue){
+	_freeTmpStorage();
+	_maxValue = MaxValue;
+	_allocateTmpStorage();
+	_fillTmpStorage();
+};
+
+
+TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, const uint16_t MaxValue):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+	_init(MaxValue);
+};
+
+TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+	_init(0);
+	_initializValues(values);
+};
+
+double TRecalibrationEMCovariateFunction_probit::getEtaTerm(const uint16_t val){
+	if(val > _maxValue){
+		_expandTmpStorage(val);
+	}
+
+	return _eta[val];
+};
+
+void TRecalibrationEMCovariateFunction_probit::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	if(val > _maxValue){
+		_expandTmpStorage(val);
+	}
+
+	//first derivatives for each parameter
+	first.add(_firstParameterIndex, _cumulDens_Phi[val]);
+	first.add(_secondParameterIndex, _normalDens_Beta1[val]);
+	first.add(_thirdParameterIndex, _normalDens_Beta1_q[val]);
+
+	//add second derivatives
+	second.add(_secondParameterIndex, _secondParameterIndex, -_normalDens_Beta1_z[val]);
+	second.add(_thirdParameterIndex, _thirdParameterIndex, -_normalDens_Beta1_q2_z[val]);
+
+	second.add(_firstParameterIndex, _secondParameterIndex, _normalDens_phi[val]);
+	second.add(_firstParameterIndex, _thirdParameterIndex, _normalDens_q[val]);
+	second.add(_secondParameterIndex, _thirdParameterIndex, -_normalDens_Beta1_q_z[val]);
+
+};
+
+
+//--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specific
 //--------------------------------------------------------------
-TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, size_t MaxValue):TRecalibrationEMCovariateFunction(FirstParameterIndex){
+TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, const uint16_t MaxValue):TRecalibrationEMCovariateFunction(FirstParameterIndex){
 	_init(MaxValue);
 };
 
@@ -216,7 +329,7 @@ TRecalibrationEMCovariateFunction_specific::TRecalibrationEMCovariateFunction_sp
 	_initializValues(values);
 };
 
-void TRecalibrationEMCovariateFunction_specific::_init(const size_t MaxValue){
+void TRecalibrationEMCovariateFunction_specific::_init(const uint16_t MaxValue){
 	_moduleName = RecalModuleFunctionName_specific;
 	_maxValue = MaxValue;
 	_numParameters = _maxValue + 1;
