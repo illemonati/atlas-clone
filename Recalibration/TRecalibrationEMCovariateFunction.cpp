@@ -257,7 +257,7 @@ void TRecalibrationEMCovariateFunction_probit::_fillTmpStorage(){
 		_normalDens_q[q] = _normalDens_phi[q] * (double) q;
 		_normalDens_Beta1[q] = _normalDens_phi[q] * _betas[0];
 		_normalDens_Beta1_q[q] = _normalDens_Beta1[q] * (double) q;
-		_normalDens_Beta1_z[q] = _normalDens_Beta1 * z;
+		_normalDens_Beta1_z[q] = _normalDens_Beta1[q] * z;
 		_normalDens_Beta1_q_z[q] = _normalDens_Beta1_q[q] * z;
 		_normalDens_Beta1_q2_z[q] = _normalDens_Beta1_q_z[q] * (double) q;
 	}
