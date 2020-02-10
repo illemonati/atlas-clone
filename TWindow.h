@@ -85,7 +85,7 @@ public:
 	void countDepthPerSite(TDistributionOfCounts & counts);
 	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
 	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
-	void countAlleles(long**** siteImbalance, const unsigned int & maxDepth);
+	void countAlleles(TAllelicDepthCounts & counts);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);

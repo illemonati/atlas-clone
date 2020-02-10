@@ -246,7 +246,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 		if(tmpInt < 0)
 			throw "minDepth must be >= 0!";
 		minDepth = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
+		tmpInt = params.getParameterIntWithDefault("maxDepth", readUpToDepth);
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
 		maxDepth = tmpInt;
 		readUpToDepth = maxDepth + 1;
@@ -254,7 +254,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	} else {
 		applyDepthFilter = false;
 		minDepth = 0;
-		maxDepth = 1000000;
+		maxDepth = readUpToDepth;
 	}
 	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
 

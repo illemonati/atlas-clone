@@ -205,6 +205,7 @@ public:
 	int getMaxPhredInt(){return maxPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
+	uint32_t getMaxDepth(){ return maxDepth; };
 
 	//setters
 	void setOutName(std::string outputName);

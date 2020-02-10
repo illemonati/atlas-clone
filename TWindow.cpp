@@ -382,13 +382,13 @@ void TWindow_base::printMateInformationPerSite(TOutputFileZipped & out, const st
 	delete[] frCounts;
 };
 
-void TWindow_base::countAlleles(long**** siteImbalance, const unsigned int & maxCov){
+void TWindow_base::countAlleles(TAllelicDepthCounts & counts){
 	//calculate and return imbalance
 	for(int i=0; i<length; ++i){
-		if(sites[i].depth() <= maxCov && sites[i].depth() > 0)
-			sites[i].countAllelesForImbalance(siteImbalance);
-		else if(sites[i].depth()  == 0){
-			++siteImbalance[0][0][0][0];
+		if(sites[i].depth() > 0){
+			sites[i].countAllelesForImbalance(counts);
+		} else {
+			counts.addSiteZeroDepth();
 		}
 
 	}

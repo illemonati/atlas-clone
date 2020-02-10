@@ -160,13 +160,13 @@ void TSite::countAlleles(int* alleleCounts){
 		++alleleCounts[it->getBaseAsEnum()];
 };
 
-void TSite::countAllelesForImbalance(long**** siteImbalance){
+void TSite::countAllelesForImbalance(TAllelicDepthCounts & counts){
 	//calculate and return imbalance
 	int b[4] = {0};
 	for(TBase* it : bases){
 		++b[it->getBaseAsEnum()];
 	}
-	++siteImbalance[b[0]][b[1]][b[2]][b[3]];
+	counts.addSite(b[0], b[1], b[2], b[3]);
 };
 
 void TSite::countMates(int* mateCounts){

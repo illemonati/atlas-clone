@@ -2230,62 +2230,30 @@ void TGenome::diagnoseBamFile(TParameters & params){
 }
 
 void TGenome::allelicDepth(TParameters & params){
-	std::ofstream output;
-	std::string outputFileName = outputName + "_allelicDepth.txt";
-	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
-	output.open(outputFileName.c_str());
-	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	//int maxCov = params.getParameterIntWithDefault("maxCov", 20);
-	int maxAllelicDepth = params.getParameterInt("maxAllelicDepth");
-	int size = maxAllelicDepth+1; // need 0 bin
-	int nCharOnLine = 0;
-
-	//prepare array
-	long**** siteCounts = new long***[size];
-	for(int i=0; i<size; ++i){
-		siteCounts[i] = new long**[size];
-		for(int j=0; j<size; ++j){
-			siteCounts[i][j] = new long*[size];
-			for(int k=0; k<size; ++k){
-				siteCounts[i][j][k] = new long[size];
-				for(int l=0; l<size; ++l){
-					siteCounts[i][j][k][l] = 0;
-				}
-			}
-		}
+	//allocate table
+	if(alignmentParser.getMaxDepth() > 100){
+		logfile->warning("Allocating count table for a max depth of " + toString(alignmentParser.getMaxDepth()) + " uses a lot of memory! Use argument maxDepth to limit.");
 	}
-
-	//write header
-	output << "A\tC\tG\tT\tCounts\tDepth" << std::endl;
+	TAllelicDepthCounts counts(alignmentParser.getMaxDepth());
 
 	//prepare windows
 	TWindow window;
+
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
 		if(window.passedFilters){
-			window.countAlleles(siteCounts, maxAllelicDepth);
+			window.countAlleles(counts);
 			logfile->listFlush("Adding imbalance values to table ...");
 			logfile->write(" done!");
 		}
 	}
 
 	//write to file
-	for(int i=0; i<(size); ++i){
-		for(int j=0; j<(size); ++j){
-			for(int k=0; k<(size); ++k){
-				for(int l=0; l<(size); ++l){
-					output << i << "\t" << j << "\t" << k << "\t" << l << "\t" << siteCounts[i][j][k][l] << "\t" << i + j + k + l;
-					output << std::endl;
-				}
-			}
-		}
-	}
-
-	//clean up
-	if(nCharOnLine > 0) output << '\n';
-	output.close();
-	delete[] siteCounts;
+	std::string outputFileName = outputName + "_allelicDepth.txt";
+	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
+	bool writeEmpty = params.parameterExists("printAll");
+	counts.write(outputFileName, writeEmpty);
 };
 
 void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
