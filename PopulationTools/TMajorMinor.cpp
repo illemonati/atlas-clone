@@ -24,10 +24,23 @@ TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
 	delete[] L10L_perCombination;
 };
 
+void TMajorMinorEstimatorBase::useAllAlleleicCombinations(){
+	usedAllelicCombinations = {0, 1, 2, 3, 4, 5, 6};
+};
+
+void TMajorMinorEstimatorBase::useAllelicCombinationsThatContain(const Base & base){
+	usedAllelicCombinations.clear();
+
+	//get the three alleleic combinations that contain base base
+	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][0]);
+	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][1]);
+	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][2]);
+};
+
 void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualScores(){
 	//select MLE combination
 	std::vector<int> best_combinations;
-	for(int i=0; i<6; ++i){
+	for(uint16_t i : usedAllelicCombinations){
 		if(L10L_perCombination[i] == L10L)
 			best_combinations.push_back(i);
 	}
@@ -38,7 +51,7 @@ void TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfRea
 	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter) not implemented for base class!";
 };
 
-void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
+void  TMajorMinorEstimatorBase::_estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
 	findMLAllelicCombination(glfReader, glfConverter);
 
 	//which one is major?
@@ -68,6 +81,24 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, 
 	variantQuality = glfConverter.toPhred(LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L));
 };
 
+void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
+	//use all allelic combinations
+	useAllAlleleicCombinations();
+
+	//now estimate
+	_estimateMajorMinor(glfReader, glfConverter);
+
+};
+
+void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter, const Base & base){
+	//use all allelic combinations
+	useAllelicCombinationsThatContain(base);
+
+	//now estimate
+	_estimateMajorMinor(glfReader, glfConverter);
+
+};
+
 //---------------------------------------------------
 // TMajorMinorEstimatorSkotte
 //---------------------------------------------------
@@ -88,13 +119,13 @@ TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){};
 
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
 	//calculate L10L for first allelic combination
-	glfReader.fill(genotypeLikelihoods, 0);
+	glfReader.fill(genotypeLikelihoods, usedAllelicCombinations[0]);
 	L10L_perCombination[0] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
 	L10L = L10L_perCombination[0];
 
 	//calculate L10L for all other allelic combination
-	for(int i=1; i<6; ++i){
-		glfReader.fill(genotypeLikelihoods, i);
+	for(int i=1; i < usedAllelicCombinations.size(); ++i){
+		glfReader.fill(genotypeLikelihoods, usedAllelicCombinations[i]);
 		L10L_perCombination[i] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
 		if(L10L_perCombination[i] > L10L){
 			L10L = L10L_perCombination[i];
@@ -106,7 +137,6 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TGlfMultiReader & glfR
 
 	//now estimate genotype frequencies at MLE allelic combination
 	glfReader.fill(genotypeLikelihoods, bestAllelicCombination);
-
 	genotypeFrequencies.estimate(genotypeLikelihoods, glfConverter, epsilonF);
 
 	//calculate likelihood again with better genotype frequencies
@@ -134,11 +164,11 @@ double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TGlfMultiReader & gl
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
 	//calculate L10L for each allelic combination
-	L10L_perCombination[0] = estimateGenotypeFrequencies(glfReader, 0, glfConverter);
+	L10L_perCombination[0] = estimateGenotypeFrequencies(glfReader, usedAllelicCombinations[0], glfConverter);
 	L10L = L10L_perCombination[0];
 
-	for(int i=1; i<6; ++i){
-		L10L_perCombination[i] = estimateGenotypeFrequencies(glfReader, i, glfConverter);
+	for(int i=1; i < usedAllelicCombinations.size(); ++i){
+		L10L_perCombination[i] = estimateGenotypeFrequencies(glfReader, usedAllelicCombinations[i], glfConverter);
 		if(L10L_perCombination[i] > L10L){
 			L10L = L10L_perCombination[i];
 		}
@@ -155,6 +185,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfRead
 TMajorMinor::TMajorMinor(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 	vcfOpened = false;
+	hasReference = false;
 
 	//initialize random generator
 	//TODO: do the random generator initialization in the task switcher?
@@ -195,6 +226,24 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
+
+	//add reference, if provided
+	if(params.parameterExists("fasta")){
+		std::string fastaFile = params.getParameterString("fasta");
+		std::string fastaIndex = fastaFile + ".fai";
+		logfile->list("Reading reference sequence from '" + fastaFile + "'");
+		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+		hasReference = true;
+		glfReader.addReference(&reference);
+	}
+
+	//major / minor, or only ref / alt?
+	bool doRefAlt = params.parameterExists("refAlt");
+	if(doRefAlt){
+		logfile->list("Will only identify the alternative allele (argument: refAlt)");
+		if(!hasReference)
+			throw "Reference must be provided when using option refAlt!";
+	}
 
 	//estimation method
 	std::string method = params.getParameterStringWithDefault("method", "MLE");
@@ -245,7 +294,12 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 			//do major minor
-			MMEstimator->estimateMajorMinor(glfReader, glfConverter);
+			if(doRefAlt){
+				Base ref = glfReader.refBase();
+				MMEstimator->estimateMajorMinor(glfReader, glfConverter, ref);
+			} else {
+				MMEstimator->estimateMajorMinor(glfReader, glfConverter);
+			}
 
 			//filter on variant quality
 			if(MMEstimator->variantQuality >= minVariantQuality){

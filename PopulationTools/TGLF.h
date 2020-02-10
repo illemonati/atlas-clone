@@ -19,6 +19,7 @@
 #include "../stringFunctions.h"
 #include "../TGenotypeMap.h"
 #include "../TRandomGenerator.h"
+#include "../TFastaBuffer.h"
 
 //----------------------------------------------------
 // TGlfConverter
@@ -65,6 +66,7 @@ private:
 public:
 	uint32_t number;
 	std::string name;
+	uint16_t refId;
 	uint32_t length;
 	uint8_t ploidy;
 	uint8_t numLikelihoodValues; //depends on ploidy
@@ -72,6 +74,7 @@ public:
 
 	TGlfChromosome(){
 		number = 0;
+		refId = 0;
 		length = 0;
 		ploidy = 2;
 		numLikelihoodValues = 10;
@@ -88,6 +91,7 @@ public:
 
 	TGlfChromosome(const TGlfChromosome & other){
 		name = other.name;
+		refId = other.refId;
 		length = other.length;
 		ploidy = other.ploidy;
 		number = other.number;
@@ -95,8 +99,9 @@ public:
 		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 	};
 
-	void update(std::string Name, uint32_t Length, uint8_t Ploidy){
+	void update(const std::string Name, const uint16_t RefId, const uint32_t Length, const uint8_t Ploidy){
 		name = Name;
+		refId = RefId;
 		length = Length;
 		setPloidy(Ploidy);
 		++number;
@@ -104,6 +109,7 @@ public:
 
 	void clear(){
 		name = "";
+		refId = 0;
 		number = 0;
 		length = 0;
 		ploidy = 2;
@@ -131,7 +137,7 @@ public:
 		isOpen = false;
 		gzfp = NULL;
 		offset = 0;
-		version = "GLFA";
+		version = "GLF2"; //change to next version if older files will not work!
 		zero8 = 0;
 		one8 = 1;
 		zero32 = 0;
@@ -157,7 +163,11 @@ public:
 		return curChr.number;
 	};
 
-	long chrLength(){
+	uint16_t refId(){
+		return curChr.refId;
+	};
+
+	uint32_t chrLength(){
 		return curChr.length;
 	};
 
@@ -208,7 +218,7 @@ public:
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
-	void newChromosome(std::string name, uint32_t length, uint8_t ploidy);
+	void newChromosome(const std::string name, const uint16_t refId, const uint32_t length, const uint8_t ploidy);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods);
 };
 
@@ -269,7 +279,8 @@ public:
 	//get details
 	bool eof(){ return _eof;};
 	std::string getNameOfParsedChr(uint32_t chrNumber);
-	long getLengthOfParsedChr(uint32_t chrNumber);
+	uint16_t getRefIdOfParsedChr(uint32_t chrNumber);
+	uint32_t getLengthOfParsedChr(uint32_t chrNumber);
 
 	//open file and parse header
 	void setFilename(std::string Filename);
@@ -316,18 +327,23 @@ private:
 	void _prepareParsing();
 
 	//Moving along active files
-	long _position;
-	int _curChrNumber;
-	long _curChrLength;
+	int32_t _position; //needs to be signed as it is initialized to -1 such that the first position will be 0
+	uint16_t _curChrNumber;
+	uint16_t _curRefId;
+	uint32_t _curChrLength;
 	std::string _curChrName;
 	int _numActiveFilesWithData;
 	uint16_t genotypeQualitiesMissingData[10];
 	int minDepth;
 
+	//reference
+	bool hasReference;
+	TFastaBuffer fastaBuffer;
+
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	uint16_t** data;
@@ -346,6 +362,7 @@ public:
 	void openGLFs(TParameters & params, TLog* logfile);
 	void closeGLF();
 	void setDepthFilter(int MinDepth, TLog* logfile);
+	void addReference(BamTools::Fasta* Reference);
 
 	//set active / inactive
 	void setActive(const int index);
@@ -356,14 +373,6 @@ public:
 	void setActive(std::vector<std::string> & names);
 	void setAllActive();
 
-	//access data
-	int numSamples(){ return numGLFs; };
-	int numActiveSamples(){ return numActiveFiles; };
-	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
-	int chrNumber(){return _curChrNumber;};
-	std::string chr(){return _curChrName;};
-	long position(){return _position;};
-
 	//parse
 	bool readNext();
 	void print();
@@ -371,6 +380,15 @@ public:
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoods);
 	void writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+
+	//access data
+	int numSamples(){ return numGLFs; };
+	int numActiveSamples(){ return numActiveFiles; };
+	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
+	int chrNumber(){return _curChrNumber;};
+	std::string chr(){return _curChrName;};
+	uint32_t position(){return _position;};
+	Base refBase();
 };
 
 #endif /* TGLF_H_ */

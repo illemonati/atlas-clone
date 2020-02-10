@@ -95,18 +95,19 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(std::string name, uint32_t length, uint8_t ploidy){
+void TGlfWriter::newChromosome(const std::string name, const uint16_t refId, const uint32_t length, const uint8_t ploidy){
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 
 	//save cur info
-	curChr.update(name, length, ploidy);
+	curChr.update(name, refId, length, ploidy);
 
-	//write new chromosome: length of label, label, length of ref sequence, ploidy
+	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	uint32_t labelLength = curChr.name.size();
 
 	write(&labelLength, sizeof(uint32_t));
 	write(curChr.name.c_str(), name.length() * sizeof(char));
+	write(&curChr.refId, sizeof(uint16_t));
 	write(&curChr.length, sizeof(uint32_t));
 	write(&curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized varable" error with valgrind. Why?
 
@@ -199,7 +200,15 @@ std::string TGlfReader::getNameOfParsedChr(uint32_t chrNumber){
 	else throw "TGlfReader does not know name of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
 };
 
-long TGlfReader::getLengthOfParsedChr(uint32_t chrNumber){
+uint16_t TGlfReader::getRefIdOfParsedChr(uint32_t chrNumber){
+	if(curChr.number == chrNumber)
+		return curChr.refId;
+	else if(curChr.number > chrNumber)
+		return chromosomesAlreadyParsed[chrNumber].refId;
+	else throw "TGlfReader does not know name of chromosome " + toString(chrNumber) + ": chromosome not yet read!";
+};
+
+uint32_t TGlfReader::getLengthOfParsedChr(uint32_t chrNumber){
 	if(curChr.number == chrNumber)
 		return curChr.length;
 	else if(curChr.number > chrNumber)
@@ -224,6 +233,10 @@ bool TGlfReader::readChr(){
 	std::string name(tmp, len);
 	delete[] tmp;
 
+	//refId
+	uint16_t refId;
+	read(&refId, sizeof(uint16_t));
+
 	//length
 	uint32_t length;
 	read(&length, sizeof(uint32_t));
@@ -233,7 +246,7 @@ bool TGlfReader::readChr(){
 	read(&ploidy, sizeof(uint8_t));
 
 	//update
-	curChr.update(name, length, ploidy);
+	curChr.update(name, refId, length, ploidy);
 
 	//set first position = 0
 	position = 0;
@@ -302,10 +315,12 @@ void TGlfReader::open(){
 	//version
 	char buffer[4];
 	read(buffer, 4*sizeof(char));
-	version.assign(buffer, 4);
+	std::string fileVersion;
+	fileVersion.assign(buffer, 4);
 
-	if(version != "GLFA")
-		throw "Non-supported GLF version '" + version + "! Currently only version GLFA is supported.";
+	if(fileVersion != version)
+		throw "Non-supported GLF version '" + fileVersion + "! Currently only version '" + version + "' is supported.";
+	version = fileVersion;
 
 	read(&HeaderLen, sizeof(uint32_t));
 
@@ -582,6 +597,11 @@ void TGlfMultiReader::setDepthFilter(int MinDepth, TLog* logfile){
 		logfile->list("Will only keep sites with depth >= " + toString(minDepth) + ".");
 };
 
+void TGlfMultiReader::addReference(BamTools::Fasta* Reference){
+	fastaBuffer.initialize(Reference, 1000000);
+	hasReference = true;
+};
+
 //-------------------------------------
 //set active / inactive
 //-------------------------------------
@@ -716,24 +736,28 @@ bool TGlfMultiReader::moveToNextChromosome(){
 	if(allFilesReachedEnd) return false;
 
 	//get name and length from first active file not at end
-	_position = 1;
-	_curChrLength = -1;
+	_position = -1;
+	_curChrLength = 0;
+	_curRefId = 0;
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(!it->eof() && it->chrNumber() == _curChrNumber){
 			_curChrName = it->getNameOfParsedChr(_curChrNumber);
 			_curChrLength = it->getLengthOfParsedChr(_curChrNumber);
+			_curRefId = it->refId();
 			break;
 		}
 	}
 	if(_curChrLength < 0) moveToNextChromosome();
 
-	//check that all files share the same name and length for this chromosome
+	//check that all files share the same name, refId and length for this chromosome
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->chrNumber() == _curChrNumber){
 			if(_curChrName != it->chr())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChrName + "' != '" + it->chr() + "'!";
+				throw "Chrosomome name differs between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChrName + "' != '" + it->chr() + "'!";
 			if(_curChrLength != it->chrLength())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
+				throw "Chrosomome length differs between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
+			if(_curRefId != it->refId())
+				throw "Chrosomome reference ID differs between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "'!";
 		}
 	}
 
@@ -830,7 +854,6 @@ void TGlfMultiReader::writeVCFHeader(gz::ogzstream & vcf, bool usePhredLikelihoo
 	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	writeSampleNamesOfActiveFiles(vcf, "\t");
 	vcf << '\n';
-
 };
 
 void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQuality, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
@@ -840,7 +863,24 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	vcf << _curChrName << '\t' << _position <<"\t.\t";
 
 	//write major and minor
-	vcf << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t';
+	std::vector<std::string> genotypeString; //strings for major/major, major/minor, minor/minor, major, minor
+	if(hasReference){
+		char ref = fastaBuffer.refAt(_curRefId, _position);
+		vcf << ref << '\t';
+		if(genoMap.baseToChar[major] == ref){
+			vcf << genoMap.baseToChar[minor] << '\t';
+			genotypeString = {"0/0", "0/1", "1/1", "0", "1"};
+		} else if(genoMap.baseToChar[minor] == ref){
+			vcf << genoMap.baseToChar[major] << '\t';
+			genotypeString = {"1/1", "0/1", "0/0", "1", "0"};
+		} else {
+			vcf << genoMap.baseToChar[major] << ',' << genoMap.baseToChar[minor] << '\t';
+			genotypeString = {"1/1", "1/2", "2/2", "1", "2"};
+		}
+	} else {
+		vcf << genoMap.baseToChar[major] << '\t' << genoMap.baseToChar[minor] << '\t';
+		genotypeString = {"0/0", "0/1", "1/1", "0", "1"};
+	}
 
 	//write quality of variant
 	vcf << varianTQuality;
@@ -854,16 +894,16 @@ void TGlfMultiReader::writeSiteToVCF(gz::ogzstream & vcf, const int & varianTQua
 	//now write active samples
 	for(int i=0; i<numActiveFiles; ++i){
 		if(isHaploid[i])
-			writeHaploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
+			writeHaploidIndividualToVCF(i, vcf, major, minor, genotypeString, randomGenerator, usePhredLikelihoods);
 		else
-			writeDiploidIndividualToVCF(i, vcf, major, minor, randomGenerator, usePhredLikelihoods);
+			writeDiploidIndividualToVCF(i, vcf, major, minor, genotypeString, randomGenerator, usePhredLikelihoods);
 	}
 
 	//end of line
 	vcf << '\n';
 };
 
-void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream & vcf, const Base major, const Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
 		//get genotype indeces
 		int refHomIndex = genoMap.genotypeMap[major][major];
@@ -883,9 +923,7 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-		if(mleGeno == 0) vcf << "\t0/0:";
-		else if(mleGeno == 1) vcf << "\t0/1:";
-		else vcf << "\t1/1:";
+		vcf << '\t' << genotypeStrings[mleGeno] << ':';
 
 		//write genotype quality
 		if(mleGenotypes.size() > 1) vcf << "0:";
@@ -930,7 +968,7 @@ void TGlfMultiReader::writeDiploidIndividualToVCF(const int ind, gz::ogzstream &
 	}
 };
 
-void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, Base major, Base minor, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
+void TGlfMultiReader::writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods){
 	if(hasData[ind]){
 		//find min qual
 		int minQual = data[ind][major];
@@ -938,13 +976,12 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 
 		//get all genotypes with minQual (=MLE)
 		std::vector<int> mleGenotypes;
-		if(data[ind][major] == minQual) mleGenotypes.push_back(major);
-		if(data[ind][minor] == minQual) mleGenotypes.push_back(minor);
+		if(data[ind][major] == minQual) mleGenotypes.push_back(3);
+		if(data[ind][minor] == minQual) mleGenotypes.push_back(4);
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
-		if(mleGeno == major) vcf << "\t0:";
-		else vcf << "\t1:";
+		vcf << '\t' << genotypeStrings[mleGeno] << ':';
 
 		//write genotype quality
 		if(mleGeno == major) vcf << (int) converter.toPhred(data[ind][minor] - minQual) << ":";
@@ -967,5 +1004,11 @@ void TGlfMultiReader::writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, 
 	} else {
 		vcf << "\t.:.:.:.";
 	}
+};
+
+Base TGlfMultiReader::refBase(){
+	if(hasReference){
+		return genoMap.getBase(fastaBuffer.refAt(_curRefId, _position));
+	} else return N;
 };
 

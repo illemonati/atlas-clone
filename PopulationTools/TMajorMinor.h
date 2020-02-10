@@ -27,10 +27,15 @@ protected:
 	TPopulationLikehoodLocus genotypeLikelihoods;
 	TGenotypeFrequencies genotypeFrequencies;
 	double* L10L_perCombination;
+	std::vector<uint8_t> usedAllelicCombinations;
 
+	void useAllAlleleicCombinations();
+	void useAllelicCombinationsThatContain(const Base & base);
 	void calculateL10LPerCombination();
 	void chooseBestAllelicCombinationAmongThoseWithEqualScores();
 	virtual void findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+
+	void _estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
 
 public:
 	Base minor, major;
@@ -42,6 +47,7 @@ public:
 	virtual ~TMajorMinorEstimatorBase();
 
 	void estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+	void estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter, const Base & base);
 };
 
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
@@ -77,6 +83,8 @@ class TMajorMinor{
 private:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
+	BamTools::Fasta reference;
+	bool hasReference;
 	TGenotypeMap genoMap;
 	gz::ogzstream vcf;
 	bool vcfOpened;
@@ -90,7 +98,6 @@ public:
 	~TMajorMinor();
 
 	void estimateMajorMinor(TParameters & params);
-
 };
 
 

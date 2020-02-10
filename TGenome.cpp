@@ -574,7 +574,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
+			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurRefId(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
@@ -2396,19 +2396,24 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 	TDistributionOfCounts counts(maxCounts, "readStarts");
 
 	//iterate through windows
-	int curChr = 0;
-	int curChrLength = alignmentParser.chrNumberToLength(curChr);
+	int curChr = -1;
+	int curChrLength = 0;
 	int curPos = 0;
 	int countsAtPos = 0;
+
 	while (alignmentParser.readNextAlignment(alignment)){
 		if(alignment.chrNumber != curChr){
-			//add last pos with data
-			counts.add(countsAtPos);
-			countsAtPos = 0;
+			if(curChr >= 0){
+				//add last pos with data
+				counts.add(countsAtPos);
+				countsAtPos = 0;
 
-			//add all positions until chromosome end to structure
-			counts.add(0, curChrLength - curPos);
+				//add all positions until chromosome end to structure
+				counts.add(0, curChrLength - curPos);
+			}
+
 			curChr = alignment.chrNumber;
+			curChrLength = alignmentParser.getCurChrLength();
 			curPos = 0;
 		}
 
