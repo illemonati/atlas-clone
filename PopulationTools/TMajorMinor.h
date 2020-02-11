@@ -87,12 +87,9 @@ private:
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
-	void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods);
-	void closeVCF();
-
 public:
-	TMajorMinor(TParameters & params, TLog* Logfile);
-	~TMajorMinor();
+	TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
+	~TMajorMinor(){};
 
 	void estimateMajorMinor(TParameters & params);
 };

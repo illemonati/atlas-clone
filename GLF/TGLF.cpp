@@ -192,20 +192,23 @@ void TGlfReader::init(){
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
 
-bool TGlfReader::fillPointerToChr(uint32_t refId, TGlfChromosome* & chr){
+TGlfChromosome* TGlfReader::pointerToChr(uint32_t refId){
 	if(curChr.refId == refId){
-		chr = &curChr;
-		return true;
+		return &curChr;
 	} else {
 		std::map< uint32_t, TGlfChromosome >::iterator it = _chromosomesAlreadyParsed.find(refId);
 		if(it == _chromosomesAlreadyParsed.end()){
-			chr = nullptr;
-			return false;
+			return nullptr;
 		} else {
-			chr = &it->second;
-			return true;
+			return &it->second;
 		}
 	}
+};
+
+bool TGlfReader::fillPointerToChr(uint32_t refId, TGlfChromosome* & chr){
+	chr = pointerToChr(refId);
+	if(chr == nullptr) return false;
+	else return true;
 };
 
 bool TGlfReader::readChr(){

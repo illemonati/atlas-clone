@@ -57,38 +57,26 @@ private:
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
+	Base ref, alt;
+	char ref_char, alt_char;
+	std::string genotypeString[5];
+	uint8_t refHomIndex, hetIndex, altHomIndex;
+
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
-
-	void _set(const Base Major, const Base Minor);
-
-	inline void _setMajorMinor(const Base & Major, const Base & Minor, TGenotypeMap & genoMap){
-		major = Major; minor = Minor;
-		major_char = genoMap.baseToChar[major];
-		minor_char = genoMap.baseToChar[minor];
-		majorHomIndex = genoMap.genotypeMap[major][major];
-		majorMinorHetIndex = genoMap.genotypeMap[major][minor];
-		minorHomIndex = genoMap.genotypeMap[minor][minor];
-	};
-
+	void _setMajorMinor(const Base & refAllele, const Base & altAllele);
 	void writeLikelihood(const uint16_t & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
 public:
-	Base major, minor;
-	char major_char, minor_char;
-	std::string genotypeString[5];
-	uint8_t majorHomIndex, majorMinorHetIndex, minorHomIndex;
-	uint8_t refHomIndex, refMajorHetIndex, refMinorHetIndex;
-
 	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, TRandomGenerator* RandomGenerator);
 	~TGlfMultiReaderVcf(){
 		_closeVCF();
 	}
 
-	void usePhredScaledLikelihoods(){ usePhredScaledLikelihoods = true; };
-	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Major, const Base Minor);
+	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
+	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Ref, const Base Alt);
 };
 
 //----------------------------------------------------
@@ -101,7 +89,6 @@ private:
 	TGlfReader* GLFs;
 	bool readersOpened;
 	TGenotypeMap genoMap;
-	TGlfMultiReaderVcf vcfLocusDef;
 
 	void _openGLFs(TLog* logfile);
 
@@ -116,13 +103,13 @@ private:
 	void _setActive(const int index);
 	void _setAllInactive();
 	void _prepareParsing();
-	void _jumpToNextPositionWithData();
-	void _getPointerToCurrentChromosome();
+	bool _jumpToNextPositionWithData();
+	void _updateChromosomeInfo();
 
 	//Moving along active files
 	uint32_t _position, _nextPosition; //next is anticipated position, used to advance
 	uint32_t _curRefId;
-	TGlfChromosome* _curChr;
+	TGlfChromosome _curChr;
 	int _numActiveFilesWithData;
 	uint16_t genotypeQualitiesMissingData[10];
 	int minDepth;
@@ -168,13 +155,12 @@ public:
 	void print();
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
 	void fillSampleNamesOfActiveFiles(std::vector<std::string> & vec);
-	void writeSiteToVCF(TGlfMultiReaderVcf & vcf, const int & variantQuality, const Base major, const Base minor);
 
 	//access data
 	int numSamples(){ return numGLFs; };
 	int numActiveSamples(){ return numActiveFiles; };
 	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
-	std::string chr(){return _curChr->name; };
+	std::string chr(){return _curChr.name; };
 	uint32_t position(){return _position; };
 	Base refBase();
 };

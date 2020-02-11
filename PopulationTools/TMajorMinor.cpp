@@ -175,67 +175,28 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(TMultiGLFData & data, TGl
 //---------------------------------------------------
 // TMajorMinor
 //---------------------------------------------------
-TMajorMinor::TMajorMinor(TParameters & params, TLog* Logfile){
+TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	vcfOpened = false;
 	hasReference = false;
-
-	//initialize random generator
-	//TODO: do the random generator initialization in the task switcher?
-	logfile->listFlush("Initializing random generator ...");
-	if(params.parameterExists("fixedSeed")){
-		randomGenerator = new TRandomGenerator(params.getParameterLong("fixedSeed"), true);
-	} else if(params.parameterExists("addToSeed")){
-		randomGenerator = new TRandomGenerator(params.getParameterLong("addToSeed"), false);
-	} else randomGenerator = new TRandomGenerator();
-	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
-};
-
-TMajorMinor::~TMajorMinor(){
-	delete randomGenerator;
-};
-
-void TMajorMinor::openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods){
-	if(vcfOpened) closeVCF();
-
-	//open vcf file
-	filenameTag += ".vcf.gz";
-	vcf.open(filenameTag.c_str());
-	vcfOpened = true;
-
-	//write info
-	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	vcf << "##fileformat=VCFv4.2\n";
-	vcf << "##source=ATLAS_GLF_Caller\n";
-	glfReader.writeVCFHeader(vcf, usePhredLikelihoods);
-};
-
-void TMajorMinor::closeVCF(){
-	vcf.close();
-	vcfOpened = false;
+	randomGenerator = RandomGenerator;
 };
 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
+	glfReader.onlyJumpToPositionsWithData();
 
 	//add reference, if provided
 	if(params.parameterExists("fasta")){
+		logfile->list("Will only identify the most likely alternative allele (argument: fasta)");
 		std::string fastaFile = params.getParameterString("fasta");
 		std::string fastaIndex = fastaFile + ".fai";
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
 		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
 		hasReference = true;
 		glfReader.addReference(&reference);
-	}
-
-	//major / minor, or only ref / alt?
-	bool doRefAlt = params.parameterExists("refAlt");
-	if(doRefAlt){
-		logfile->list("Will only identify the alternative allele (argument: refAlt)");
-		if(!hasReference)
-			throw "Reference must be provided when using option refAlt!";
 	}
 
 	//estimation method
@@ -292,17 +253,25 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 			//do major minor
-			if(doRefAlt){
+			if(hasReference){
 				Base ref = glfReader.refBase();
 				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter, ref);
+
+				//write to VCF
+				if(MMEstimator->variantQuality >= minVariantQuality){
+					if(MMEstimator->major == ref){
+						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor);
+					} else {
+						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->minor, MMEstimator->major);
+					}
+				}
 			} else {
 				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter);
-			}
 
-			//filter on variant quality
-			if(MMEstimator->variantQuality >= minVariantQuality){
 				//write to VCF
-				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, MMEstimator->major, MMEstimator->minor, randomGenerator, usePhredLikelihoods);
+				if(MMEstimator->variantQuality >= minVariantQuality){
+					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality, glfReader.data, MMEstimator->major, MMEstimator->minor);
+				}
 			}
 		} //end filter on missingness
 

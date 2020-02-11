@@ -64,13 +64,12 @@ uint32_t TMultiGLFData::totalDepth(){
 };
 
 //----------------------------------------------------
-//TGlfMultiReaderVcfLocusDefinition
+//TGlfMultiReaderVcf
 //----------------------------------------------------
 TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, TRandomGenerator* RandomGenerator){
-	major = N; minor = N;
-	major_char = 'N'; minor_char = 'N';
-	majorHomIndex = 0; majorMinorHetIndex = 0; minorHomIndex = 0;
-	refHomIndex = 0; refMajorHetIndex = 0; refMinorHetIndex = 0;
+	ref = N; alt = N;
+	ref_char = 'N'; alt_char = 'N';
+	refHomIndex = 0; hetIndex = 0; altHomIndex = 0;
 	_usePhredScaledLikelihoods = false;
 	randomGenerator = RandomGenerator;
 
@@ -112,10 +111,14 @@ void TGlfMultiReaderVcf::_closeVCF(){
 	vcfOpened = false;
 };
 
-void TGlfMultiReaderVcf::_set(const Base Major, const Base Minor){
-	_setMajorMinor(Major, Minor, genoMap);
+void TGlfMultiReaderVcf::_setMajorMinor(const Base & refAllele, const Base & altAllele){
+	ref = refAllele; alt = altAllele;
+	ref_char = genoMap.baseToChar[ref];
+	alt_char = genoMap.baseToChar[alt];
+	refHomIndex = genoMap.genotypeMap[ref][ref];
+	hetIndex = genoMap.genotypeMap[ref][alt];
+	altHomIndex = genoMap.genotypeMap[alt][alt];
 };
-
 
 void TGlfMultiReaderVcf::writeLikelihood(const uint16_t & likGlf){
 	if(_usePhredScaledLikelihoods){
@@ -126,16 +129,16 @@ void TGlfMultiReaderVcf::writeLikelihood(const uint16_t & likGlf){
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Major, const Base Minor){
+void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base refAllele, const Base altAllele){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with TCaller
-	_set(Major, Minor);
+	_setMajorMinor(refAllele, altAllele);
 
 	//write position
 	vcf << chrName << '\t' << position + 1 <<"\t.\t"; //internal position is zero-based!
 
-	//write major and minor_char
-	vcf << major_char << '\t' << minor_char;
+	//write ref and alt alleles
+	vcf << ref_char << '\t' << alt_char;
 
 	//write quality of variant
 	vcf << '\t' << varianTQuality;
@@ -164,15 +167,15 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
 		//find min qual
-		uint16_t minQual = sample.genotypeLikelihoodsGLF[majorHomIndex];
-		if(sample.genotypeLikelihoodsGLF[majorMinorHetIndex] < minQual) minQual = sample.genotypeLikelihoodsGLF[majorMinorHetIndex];
-		if(sample.genotypeLikelihoodsGLF[minorHomIndex] < minQual) minQual = sample.genotypeLikelihoodsGLF[minorHomIndex];
+		uint16_t minQual = sample.genotypeLikelihoodsGLF[refHomIndex];
+		if(sample.genotypeLikelihoodsGLF[hetIndex] < minQual) minQual = sample.genotypeLikelihoodsGLF[hetIndex];
+		if(sample.genotypeLikelihoodsGLF[altHomIndex] < minQual) minQual = sample.genotypeLikelihoodsGLF[altHomIndex];
 
 		//get all genotypes with minQual (=MLE)
 		std::vector<uint8_t> mleGenotypes;
-		if(sample.genotypeLikelihoodsGLF[majorHomIndex] == minQual) mleGenotypes.push_back(2);
-		if(sample.genotypeLikelihoodsGLF[majorMinorHetIndex] == minQual) mleGenotypes.push_back(3);
-		if(sample.genotypeLikelihoodsGLF[minorHomIndex] == minQual) mleGenotypes.push_back(4);
+		if(sample.genotypeLikelihoodsGLF[refHomIndex] == minQual) mleGenotypes.push_back(2);
+		if(sample.genotypeLikelihoodsGLF[hetIndex] == minQual) mleGenotypes.push_back(3);
+		if(sample.genotypeLikelihoodsGLF[altHomIndex] == minQual) mleGenotypes.push_back(4);
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
@@ -183,14 +186,14 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 		else {
 			//find second highest quality
 			int secondLowestQual = converter.maxValue();
-			if(sample.genotypeLikelihoodsGLF[majorHomIndex] > minQual){
-				secondLowestQual = sample.genotypeLikelihoodsGLF[majorHomIndex];
+			if(sample.genotypeLikelihoodsGLF[refHomIndex] > minQual){
+				secondLowestQual = sample.genotypeLikelihoodsGLF[refHomIndex];
 			}
-			if(sample.genotypeLikelihoodsGLF[majorMinorHetIndex] > minQual && sample.genotypeLikelihoodsGLF[majorMinorHetIndex] < secondLowestQual){
-				secondLowestQual = sample.genotypeLikelihoodsGLF[majorMinorHetIndex];
+			if(sample.genotypeLikelihoodsGLF[hetIndex] > minQual && sample.genotypeLikelihoodsGLF[hetIndex] < secondLowestQual){
+				secondLowestQual = sample.genotypeLikelihoodsGLF[hetIndex];
 			}
-			if(sample.genotypeLikelihoodsGLF[minorHomIndex] > minQual && sample.genotypeLikelihoodsGLF[minorHomIndex] < secondLowestQual){
-				secondLowestQual = sample.genotypeLikelihoodsGLF[minorHomIndex];
+			if(sample.genotypeLikelihoodsGLF[altHomIndex] > minQual && sample.genotypeLikelihoodsGLF[altHomIndex] < secondLowestQual){
+				secondLowestQual = sample.genotypeLikelihoodsGLF[altHomIndex];
 			}
 			vcf << (int) converter.toPhred(secondLowestQual - minQual) << ":";
 		}
@@ -199,11 +202,11 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 		vcf << sample.depth << ':';
 
 		//write likelihoods
-		writeLikelihood(sample.genotypeLikelihoodsGLF[majorHomIndex] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[refHomIndex] - minQual);
 		vcf << ',';
-		writeLikelihood(sample.genotypeLikelihoodsGLF[majorMinorHetIndex] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[hetIndex] - minQual);
 		vcf << ',';
-		writeLikelihood(sample.genotypeLikelihoodsGLF[minorHomIndex] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[altHomIndex] - minQual);
 	} else {
 		vcf << "\t./.:.:.:.";
 	}
@@ -212,29 +215,29 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
 		//find min qual
-		int minQual = sample.genotypeLikelihoodsGLF[major];
-		if(sample.genotypeLikelihoodsGLF[minor] < minQual) minQual = sample.genotypeLikelihoodsGLF[minor];
+		int minQual = sample.genotypeLikelihoodsGLF[ref];
+		if(sample.genotypeLikelihoodsGLF[alt] < minQual) minQual = sample.genotypeLikelihoodsGLF[alt];
 
 		//get all genotypes with minQual (=MLE)
 		std::vector<int> mleGenotypes;
-		if(sample.genotypeLikelihoodsGLF[major] == minQual) mleGenotypes.push_back(0);
-		if(sample.genotypeLikelihoodsGLF[minor] == minQual) mleGenotypes.push_back(1);
+		if(sample.genotypeLikelihoodsGLF[ref] == minQual) mleGenotypes.push_back(0);
+		if(sample.genotypeLikelihoodsGLF[alt] == minQual) mleGenotypes.push_back(1);
 
 		//write MLE genoytpe
 		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
 		vcf << '\t' << genotypeStrings[mleGeno] << ':';
 
 		//write genotype quality
-		if(mleGeno == major) vcf << (int) converter.toPhred(sample.genotypeLikelihoodsGLF[minor] - minQual) << ":";
-		else  vcf << (int) converter.toPhred(sample.genotypeLikelihoodsGLF[major] - minQual) << ":";
+		if(mleGeno == ref) vcf << (int) converter.toPhred(sample.genotypeLikelihoodsGLF[alt] - minQual) << ":";
+		else  vcf << (int) converter.toPhred(sample.genotypeLikelihoodsGLF[ref] - minQual) << ":";
 
 		//write depth
 		vcf << sample.depth << ':';
 
 		//write likelihoods
-		writeLikelihood(sample.genotypeLikelihoodsGLF[major] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[ref] - minQual);
 		vcf << ',';
-		writeLikelihood(sample.genotypeLikelihoodsGLF[minor] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[alt] - minQual);
 	} else {
 		vcf << "\t.:.:.:.";
 	}
@@ -406,46 +409,64 @@ void TGlfMultiReader::_prepareParsing(){
 		_nextPosition = 1;
 
 		//fill chromosome info
-		_getPointerToCurrentChromosome();
+		_updateChromosomeInfo();
 	}
 };
 
-void TGlfMultiReader::_jumpToNextPositionWithData(){
-	//start at min(refId) across all active files, at position 0
+bool TGlfMultiReader::_jumpToNextPositionWithData(){
+	//find min(refId) and min(pos)
+	bool allFilesReachedEnd = true;
+	bool first = true;
 	_curRefId = pointerToActiveGLFs[0]->refId();
 	_position = pointerToActiveGLFs[0]->position();
 
 	for(TGlfReader* it : pointerToActiveGLFs){
-		if(it->refId() < _curRefId){
-			_curRefId = it->refId();
-			_position = it->position();
-		} else if(it->refId() == _curRefId && it->position() < _position){
-			_position = it->position();
+		if(!it->eof()){
+			allFilesReachedEnd = false;
+
+			if(first){
+				_curRefId = it->refId();
+				_position = it->position();
+				first = false;
+			} else {
+				if(it->refId() < _curRefId){
+					_curRefId = it->refId();
+					_position = it->position();
+				} else if(it->refId() == _curRefId && it->position() < _position){
+					_position = it->position();
+				}
+			}
 		}
 	}
 
+	//did we reach end?
+	if(allFilesReachedEnd) return false;
+
 	//fill chromosome info
-	_getPointerToCurrentChromosome();
+	_updateChromosomeInfo();
 
 	//make sure first record is used
 	_nextPosition = _position;
+	return true;
 };
 
-void TGlfMultiReader::_getPointerToCurrentChromosome(){
-	//get pointer to chromosome
-	if(!pointerToActiveGLFs[0]->fillPointerToChr(_curRefId, _curChr)){
+void TGlfMultiReader::_updateChromosomeInfo(){
+	//update curChr
+	TGlfChromosome* chr = pointerToActiveGLFs[0]->pointerToChr(_curRefId);
+	if(chr == nullptr){
 		throw "Chromosome with refId " + toString(_curRefId) + " not present in GLF file '" + pointerToActiveGLFs[0]->name() + "!";
 	}
+	_curChr.update(*chr);
 
 	//check that all files share the same chromosome info
-	TGlfChromosome* chr = nullptr;
+	chr = nullptr;
 	int i=0;
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->fillPointerToChr(_curRefId, chr)){
-			if(chr->name != _curChr->name)
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChr->name + "' != '" + chr->name + "'!";
-			if(chr->length != _curChr->length)
-				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + toString(_curChr->length) + "' != '" + toString(chr->length) + "'!";
+			if(chr->name != _curChr.name)
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChr.name + "' != '" + chr->name + "'!";
+			if(chr->length != _curChr.length)
+				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + toString(_curChr.length) + "' != '" + toString(chr->length) + "'!";
 
 			//store ploidy
 			if(chr->ploidy == 1) data.samples[i].isHaploid = true;
@@ -533,19 +554,20 @@ bool TGlfMultiReader::moveToNextChromosome(){
 	}
 
 	//get pointer to chromosome
-	_getPointerToCurrentChromosome();
+	_updateChromosomeInfo();
 
 	return true;
 };
 
 bool TGlfMultiReader::readNext(){
 	//advance to next position
-	if(_nextPosition > _curChr->length){
+	if(_nextPosition > _curChr.length){
 		if(!moveToNextChromosome()) return false;
 	}
 
 	//advance all files behind next position
 	_numActiveFilesWithData = 0;
+	bool allFilesReachedEnd = true;
 	int i=0;
 	for(TGlfReader* it : pointerToActiveGLFs){
 		while(!it->eof() && it->refId() == _curRefId && it->position() < _nextPosition){
@@ -562,12 +584,20 @@ bool TGlfMultiReader::readNext(){
 			data.samples[i].hasData = false;
 			data.samples[i].depth = 0;
 		}
+
+		if(!it->eof()) allFilesReachedEnd = false;
+
 		++i;
 	}
 
+	//check if we reached end of all files
+	if(allFilesReachedEnd) return false;
+
+	//jump?
 	if(_onlyJumpToPositionsWithData && _numActiveFilesWithData == 0){
-		_jumpToNextPositionWithData();
-		return readNext();
+		if(_jumpToNextPositionWithData())
+			return readNext();
+		else return false;
 	}
 
 	//update position
@@ -578,7 +608,7 @@ bool TGlfMultiReader::readNext(){
 };
 
 void TGlfMultiReader::print(){
-	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr->name << std::endl;
+	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr.name << std::endl;
 	for(int i=0; i<numActiveFiles; ++i){
 		std::cout << "File " << i << ":";
 		if(data.samples[i].isHaploid){
@@ -609,19 +639,6 @@ void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & ve
 			vec.emplace_back(readBeforeLast(it->name(), ".glf"));
 		}
 	}
-};
-
-void TGlfMultiReader::writeSiteToVCF(TGlfMultiReaderVcf & vcf, const int & variantQuality, const Base major, const Base minor){
-	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
-	//TODO: find way to harmonize code with TCaller
-
-	Base ref = genoMap.getBase(refBase());
-	if(ref == major || ref == N){
-		vcf.writeSite(_curChr->name, _position, variantQuality, data, major, minor);
-	} else if(ref == minor){
-		vcf.writeSite(_curChr->name, _position, variantQuality, data, minor, major);
-	} else
-		throw "Reference base does not match neither major nor minor allele on chromosome " + _curChr->name + " at position " + toString(_position + 1) + "!";
 };
 
 Base TGlfMultiReader::refBase(){

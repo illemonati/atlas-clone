@@ -17,13 +17,12 @@
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
-#include "TGLF.h"
+#include "GLF/TGLF.h"
 #include "TAlignment.h"
 #include "TQualityMap.h"
 #include "TCaller.h"
 #include "TDistributionOfCounts.h"
 #include "TRecalibrationEMEstimator.h"
-#include "TGLF.h"
 #include "TRandomGenerator.h"
 
 //forward declaration to enable copy constructor

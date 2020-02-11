@@ -89,12 +89,7 @@ public:
 	};
 
 	TGlfChromosome(const TGlfChromosome & other){
-		name = other.name;
-		refId = other.refId;
-		length = other.length;
-		ploidy = other.ploidy;
-		numLikelihoodValues = other.numLikelihoodValues;
-		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
+		update(other);
 	};
 
 	void update(const std::string Name, const uint16_t RefId, const uint32_t Length, const uint8_t Ploidy){
@@ -102,6 +97,15 @@ public:
 		refId = RefId;
 		length = Length;
 		setPloidy(Ploidy);
+	};
+
+	void update(const TGlfChromosome & other){
+		name = other.name;
+		refId = other.refId;
+		length = other.length;
+		ploidy = other.ploidy;
+		numLikelihoodValues = other.numLikelihoodValues;
+		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 	};
 
 	void clear(){
@@ -269,6 +273,7 @@ public:
 
 	//get details
 	bool eof(){ return _eof;};
+	TGlfChromosome* pointerToChr(uint32_t refId);
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
 	uint32_t position(){ return _position; };
 	uint16_t depth(){ return _depth; };

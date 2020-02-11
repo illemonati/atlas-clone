@@ -463,7 +463,7 @@ public:
 		_explanation = "Estimating major and minor alles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TMajorMinor majorMinor(parameters, logfile);
+		TMajorMinor majorMinor(logfile, parameters, randomGenerator);
 		majorMinor.estimateMajorMinor(parameters);
 	};
 };
