@@ -25,7 +25,7 @@ TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
 };
 
 void TMajorMinorEstimatorBase::useAllAlleleicCombinations(){
-	usedAllelicCombinations = {0, 1, 2, 3, 4, 5, 6};
+	usedAllelicCombinations = {0, 1, 2, 3, 4, 5};
 };
 
 void TMajorMinorEstimatorBase::useAllelicCombinationsThatContain(const Base & base){
@@ -38,6 +38,14 @@ void TMajorMinorEstimatorBase::useAllelicCombinationsThatContain(const Base & ba
 };
 
 void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualScores(){
+	//identify max L10L
+	L10L = L10L_perCombination[usedAllelicCombinations[0]];
+	for(uint16_t ac : usedAllelicCombinations){
+		if(L10L_perCombination[ac] > L10L){
+			L10L = L10L_perCombination[ac];
+		}
+	}
+
 	//select MLE combination
 	std::vector<int> best_combinations;
 	for(uint16_t i : usedAllelicCombinations){
@@ -47,12 +55,12 @@ void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualSc
 	bestAllelicCombination = best_combinations[randomGenerator->pickOne(best_combinations.size())];
 };
 
-void TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
+void TMajorMinorEstimatorBase::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
 	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter) not implemented for base class!";
 };
 
-void  TMajorMinorEstimatorBase::_estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
-	findMLAllelicCombination(glfReader, glfConverter);
+void  TMajorMinorEstimatorBase::_estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter){
+	findMLAllelicCombination(data, glfConverter);
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency < 0.5){
@@ -69,34 +77,32 @@ void  TMajorMinorEstimatorBase::_estimateMajorMinor(TGlfMultiReader & glfReader,
 	//calculate variant quality
 	int refHomIndex = genoMap.genotypeMap[major][major];
 	double LL_fixed_glfPhred = 0.0;
-	for(int i=0; i<glfReader.numActiveSamples(); ++i){
-		if(glfReader.hasData[i]){
-			if(glfReader.isHaploid[i])
-				LL_fixed_glfPhred += glfReader.data[i][major];
+	for(uint32_t i=0; i<data.size; ++i){
+		if(data.samples[i].hasData){
+			if(data.samples[i].isHaploid)
+				LL_fixed_glfPhred += data.samples[i].genotypeLikelihoodsGLF[major];
 			else
-				LL_fixed_glfPhred += glfReader.data[i][refHomIndex];
+				LL_fixed_glfPhred += data.samples[i].genotypeLikelihoodsGLF[refHomIndex];
 		}
 	}
 
 	variantQuality = glfConverter.toPhred(LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L));
 };
 
-void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
+void  TMajorMinorEstimatorBase::estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter){
 	//use all allelic combinations
 	useAllAlleleicCombinations();
 
 	//now estimate
-	_estimateMajorMinor(glfReader, glfConverter);
-
+	_estimateMajorMinor(data, glfConverter);
 };
 
-void  TMajorMinorEstimatorBase::estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter, const Base & base){
+void  TMajorMinorEstimatorBase::estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter, const Base & base){
 	//use all allelic combinations
 	useAllelicCombinationsThatContain(base);
 
 	//now estimate
-	_estimateMajorMinor(glfReader, glfConverter);
-
+	_estimateMajorMinor(data, glfConverter);
 };
 
 //---------------------------------------------------
@@ -117,26 +123,19 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomG
 
 TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){};
 
-void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
-	//calculate L10L for first allelic combination
-	glfReader.fill(genotypeLikelihoods, usedAllelicCombinations[0]);
-	L10L_perCombination[0] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
-	L10L = L10L_perCombination[0];
-
-	//calculate L10L for all other allelic combination
-	for(int i=1; i < usedAllelicCombinations.size(); ++i){
-		glfReader.fill(genotypeLikelihoods, usedAllelicCombinations[i]);
-		L10L_perCombination[i] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
-		if(L10L_perCombination[i] > L10L){
-			L10L = L10L_perCombination[i];
-		}
+void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
+	//calculate L10L for each allelic combination used
+	for(uint16_t ac : usedAllelicCombinations){
+		data.fill(genotypeLikelihoods, ac);
+		L10L_perCombination[ac] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
+		L10L = L10L_perCombination[ac];
 	}
 
 	//pick combination with highest likelihood
 	chooseBestAllelicCombinationAmongThoseWithEqualScores();
 
 	//now estimate genotype frequencies at MLE allelic combination
-	glfReader.fill(genotypeLikelihoods, bestAllelicCombination);
+	data.fill(genotypeLikelihoods, bestAllelicCombination);
 	genotypeFrequencies.estimate(genotypeLikelihoods, glfConverter, epsilonF);
 
 	//calculate likelihood again with better genotype frequencies
@@ -156,22 +155,16 @@ TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
 	delete[] tmpGenotypeFrequencies;
 };
 
-double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TGlfMultiReader & glfReader, int thisAlleleicCombination, TGlfConverter & glfConverter){
-	glfReader.fill(genotypeLikelihoods, thisAlleleicCombination);
+double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TMultiGLFData & data, int thisAlleleicCombination, TGlfConverter & glfConverter){
+	data.fill(genotypeLikelihoods, thisAlleleicCombination);
 	tmpGenotypeFrequencies[thisAlleleicCombination].estimate(genotypeLikelihoods, glfConverter, epsilonF);
 	return tmpGenotypeFrequencies[thisAlleleicCombination].calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
 };
 
-void TMajorMinorEstimatorMLE::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter){
+void TMajorMinorEstimatorMLE::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
 	//calculate L10L for each allelic combination
-	L10L_perCombination[0] = estimateGenotypeFrequencies(glfReader, usedAllelicCombinations[0], glfConverter);
-	L10L = L10L_perCombination[0];
-
-	for(int i=1; i < usedAllelicCombinations.size(); ++i){
-		L10L_perCombination[i] = estimateGenotypeFrequencies(glfReader, usedAllelicCombinations[i], glfConverter);
-		if(L10L_perCombination[i] > L10L){
-			L10L = L10L_perCombination[i];
-		}
+	for(uint16_t ac : usedAllelicCombinations){
+		L10L_perCombination[ac] = estimateGenotypeFrequencies(data, ac, glfConverter);
 	}
 
 	//pick combination
@@ -280,7 +273,12 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	logfile->list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
 	//open vcf file
-	openVCF(outname, glfReader, usePhredLikelihoods);
+	std::vector<std::string> sampleNames;
+	glfReader.fillSampleNamesOfActiveFiles(sampleNames);
+	TGlfMultiReaderVcf vcf(outname + "_majorMinor.vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
+	if(usePhredLikelihoods){
+		vcf.usePhredScaledLikelihoods();
+	}
 
 	//vars
 	logfile->startIndent("Parsing through glf files:");
@@ -296,19 +294,17 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 			//do major minor
 			if(doRefAlt){
 				Base ref = glfReader.refBase();
-				MMEstimator->estimateMajorMinor(glfReader, glfConverter, ref);
+				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter, ref);
 			} else {
-				MMEstimator->estimateMajorMinor(glfReader, glfConverter);
+				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter);
 			}
 
 			//filter on variant quality
 			if(MMEstimator->variantQuality >= minVariantQuality){
-
 				//write to VCF
-				//glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, genoMap.genotypeMap[MMEstimator->major][MMEstimator->major], genoMap.genotypeMap[MMEstimator->major][MMEstimator->minor], genoMap.genotypeMap[MMEstimator->minor][MMEstimator->minor], randomGenerator, usePhredLikelihoods);
 				glfReader.writeSiteToVCF(vcf, MMEstimator->variantQuality, MMEstimator->major, MMEstimator->minor, randomGenerator, usePhredLikelihoods);
 			}
-		} //end filter on missngness
+		} //end filter on missingness
 
 		//report progress
 		if(counter % 1000000 == 0){
@@ -327,7 +323,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	logfile->removeIndent();
 
 	//clean storage
-	closeVCF();
 	delete MMEstimator;
 };
 

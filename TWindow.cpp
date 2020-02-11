@@ -243,7 +243,7 @@ void TWindow_base::call(TCaller & caller, TRecalibration & recalObject, BamTools
 	for(int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
-		caller.call(chrName, start + i + 1, sites[i]); //i + 1 to make vcf 1-based!
+		caller.call(chrName, start + i, sites[i]);
 	}
 };
 
@@ -261,7 +261,7 @@ void TWindow_base::callKnwonAlleles(TCaller & caller, TRecalibration & recalObje
 				sites[pos].calcEmissionProbabilities();
 
 				//call
-				caller.call(chrName, start + pos + 1, sites[pos], it->second.first, it->second.second); //pos + 1 to make vcf 1-based
+				caller.call(chrName, start + pos, sites[pos], it->second.first, it->second.second);
 			}
 		}
 	}
@@ -482,12 +482,12 @@ void TWindow_base::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	if(printAll){
 		for(int i=0; i<length; ++i){
-			writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
+			writer.writeSite(start + i, sites[i].depth(), 0, sites[i].emissionProbabilities);
 		}
 	} else {
 		for(int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				writer.writeSite(start + i + 1, sites[i].depth(), 0, sites[i].emissionProbabilities);
+				writer.writeSite(start + i, sites[i].depth(), 0, sites[i].emissionProbabilities);
 			}
 		}
 	}

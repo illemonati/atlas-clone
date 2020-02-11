@@ -153,12 +153,12 @@ public:
 		alleleicCombinationToGenotypes[4] = new Genotype[3]; alleleicCombinationToGenotypes[4][0] = CC; alleleicCombinationToGenotypes[4][1] = CT; alleleicCombinationToGenotypes[4][2] = TT;
 		alleleicCombinationToGenotypes[5] = new Genotype[3]; alleleicCombinationToGenotypes[5][0] = GG; alleleicCombinationToGenotypes[5][1] = GT; alleleicCombinationToGenotypes[5][2] = TT;
 
-
+		//fill allelicCombinationsMatchingBase: gives the three allelelic combinations containing a specific base
 		allelicCombinationsMatchingBase = new uint16_t*[4];
-		allelicCombinationsMatchingBase[A] = new uint16_t[3]; allelicCombinationsMatchingBase[0][0] = 0; allelicCombinationsMatchingBase[0][1] = 1; allelicCombinationsMatchingBase[0][2] = 2;
-		allelicCombinationsMatchingBase[C] = new uint16_t[3]; allelicCombinationsMatchingBase[0][0] = 0; allelicCombinationsMatchingBase[0][1] = 3; allelicCombinationsMatchingBase[0][2] = 4;
-		allelicCombinationsMatchingBase[G] = new uint16_t[3]; allelicCombinationsMatchingBase[0][0] = 1; allelicCombinationsMatchingBase[0][1] = 3; allelicCombinationsMatchingBase[0][2] = 5;
-		allelicCombinationsMatchingBase[T] = new uint16_t[3]; allelicCombinationsMatchingBase[0][0] = 2; allelicCombinationsMatchingBase[0][1] = 4; allelicCombinationsMatchingBase[0][2] = 5;
+		allelicCombinationsMatchingBase[A] = new uint16_t[3]; allelicCombinationsMatchingBase[A][0] = 0; allelicCombinationsMatchingBase[A][1] = 1; allelicCombinationsMatchingBase[A][2] = 2;
+		allelicCombinationsMatchingBase[C] = new uint16_t[3]; allelicCombinationsMatchingBase[C][0] = 0; allelicCombinationsMatchingBase[C][1] = 3; allelicCombinationsMatchingBase[C][2] = 4;
+		allelicCombinationsMatchingBase[G] = new uint16_t[3]; allelicCombinationsMatchingBase[G][0] = 1; allelicCombinationsMatchingBase[G][1] = 3; allelicCombinationsMatchingBase[G][2] = 5;
+		allelicCombinationsMatchingBase[T] = new uint16_t[3]; allelicCombinationsMatchingBase[T][0] = 2; allelicCombinationsMatchingBase[T][1] = 4; allelicCombinationsMatchingBase[T][2] = 5;
 	};
 
 	~TGenotypeMap(){
@@ -186,6 +186,11 @@ public:
 		delete[] alleleicCombinationToBase;
 		delete[] alleleicCombinationToBaseChar;
 		delete[] alleleicCombinationToGenotypes;
+
+		for(int i=0; i<4; ++i){
+			delete[] allelicCombinationsMatchingBase[i];
+		}
+		delete[] allelicCombinationsMatchingBase;
 	};
 
 	Base getBase(const char base){

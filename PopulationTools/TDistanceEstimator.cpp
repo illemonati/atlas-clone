@@ -731,23 +731,21 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 };
 
 bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
-	std::string chr1 = g1.chr();
-	eraseAllOccurences(chr1,"chr");
-	std::string chr2 = g2.chr();
-	eraseAllOccurences(chr2,"chr");
-	while(chr1 != chr2){
+	while(g1.refId() != g2.refId()){
 		//advance the one laging behind
-		if(g1.chrNumber() < g2.chrNumber()){
+		if(g1.refId() < g2.refId()){
 			if(!g1.jumpToNextChr()) return false;
-		} else if(g1.chrNumber() > g2.chrNumber()){
+		} else {
 			if(!g2.jumpToNextChr()) return false;
-		} else
-			throw "Different chromosomes in files " + g1.name() + "' and '" + g2.name() + "'!";
+		}
+	}
 
-		chr1 = g1.chr();
-		eraseAllOccurences(chr1,"chr");
-		chr2 = g2.chr();
-		eraseAllOccurences(chr2,"chr");
+	//check names
+	if(g1.chr() != g2.chr()){
+		throw "Chromosome names differ in files " + g1.name() + "' and '" + g2.name() + "': '" + g1.chr() + "' != '" + g2.chr() + "'!";
+	}
+	if(g1.chrLength() != g2.chrLength()){
+		throw "Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '" + toString(g1.chrLength()) + "' != '" + toString(g2.chrLength()) + "'!";
 	}
 
 	return true;
@@ -755,11 +753,11 @@ bool TDistanceEstimator::moveToNextCommonChr(TGlfReader & g1, TGlfReader & g2){
 
 bool TDistanceEstimator::advance(TGlfReader & g1, TGlfReader & g2){
 	//advance
-	if(g2.position == g1.position){
+	if(g2.position() == g1.position()){
 		//advance both
 		if(!g1.readNext()) return false;
 		if(!g2.readNext()) return false;
-	} else if(g2.position < g1.position){
+	} else if(g2.position() < g1.position()){
 		//advance g2
 		if(!g2.readNext()) return false;
 	} else {
@@ -780,12 +778,12 @@ void TDistanceEstimator::readCommonSites(std::vector<uint16_t*> & genoQual1, std
 
 	//if not both are good at least one file reach end. So we are done!
 	while(advance(g1, g2)){
-		if(g2.position == g1.position){
+		if(g2.position() == g1.position()){
 			//add data
 			genoQual1.push_back(new uint16_t[10]);
 			genoQual2.push_back(new uint16_t[10]);
-			g1.fillGenotypeQualities(*genoQual1.rbegin());
-			g2.fillGenotypeQualities(*genoQual2.rbegin());
+			g1.fillGenotypeLikelihoodsGLF(*genoQual1.rbegin());
+			g2.fillGenotypeLikelihoodsGLF(*genoQual2.rbegin());
 		}
 	}
 };
@@ -852,7 +850,6 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, TGlfReader & g1, TGlfReader & g2, long windowLen){
 	//initialize variables
-	bool keepReading = true;
 	bool isGood1 = true;
 	bool isGood2 = true;
 
@@ -874,6 +871,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
 
 	//prepare variables
+	uint32_t curRefId;
 	std::string curChr;
 	long curChrLen;
 	long windowStart;
@@ -883,12 +881,13 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//parse GLFs in windows
 	logfile->startIndent("Will estimate distance in windows of size " + toString(windowLen) + ":");
-	while(keepReading){
+	while(g1.eof() && g2.eof()){
 		//move to new chromosome
+		curRefId = g1.refId();
 		curChr = g1.chr();
 		curChrLen = g1.chrLength();
-		windowStart = 1;
-		windowEnd = windowLen+1;
+		windowStart = 0;
+		windowEnd = windowLen + 1;
 
 		logfile->startNumbering("Chromosome " + curChr + ":");
 
@@ -896,10 +895,11 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		while(windowStart < curChrLen){
 			logfile->number("Window [" + toString(windowStart) + ", " + toString(windowEnd) + ")");
 			logfile->addIndent();
+
 			//read data
-			isGood1 = g1.readNextWindow(genoQual1, curChr, windowStart, windowEnd);
+			isGood1 = g1.readNextWindow(genoQual1, curRefId, windowStart, windowEnd);
 			if(isGood1 || g1.eof()){
-				isGood2 = g2.readNextWindow(genoQual2, curChr, windowStart, windowEnd);
+				isGood2 = g2.readNextWindow(genoQual2, curRefId, windowStart, windowEnd);
 				if(isGood2){
 					//estimate distance
 					EM_object.estimatePhiWithEM(genoQual1, genoQual2);
@@ -932,9 +932,6 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 			logfile->endIndent();
 		}
 		logfile->endNumbering();
-
-		if(g1.eof() && g2.eof())
-			keepReading = false;
 	}
 
 	//clean up memory
@@ -952,7 +949,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 // Writing estimates
 //--------------------------------------------
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd, int numsitesWithData, TEMforDistanceEstimation & EM_object){
-	out << chr << "\t" << windowStart << "\t" << windowEnd;
+	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd; //internal position is zero-based
 	writeDistanceEstimates(out, numsitesWithData, EM_object);
 }
 
@@ -970,7 +967,7 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsite
 }
 
 void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, long & windowStart, long & windowEnd){
-	out << chr << "\t" << windowStart << "\t" << windowEnd << "\t";
+	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd << "\t"; //internal position is zero-based
 	writeDistanceEstimatesNoData(out);
 }
 
