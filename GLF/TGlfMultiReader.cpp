@@ -406,7 +406,7 @@ void TGlfMultiReader::_prepareParsing(){
 	} else {
 		_curRefId = 0;
 		_position = 0;
-		_nextPosition = 1;
+		_nextPosition = 0;
 
 		//fill chromosome info
 		_updateChromosomeInfo();
