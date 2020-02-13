@@ -12,6 +12,7 @@ TAlignment::TAlignment(){
 	empty = true;
 	maxSize = 0;
 	length = 0;
+	fragmentLength = 0;
 	chrNumber = -1;
 	readGroupId = -1;
 	position = 0;
@@ -522,14 +523,8 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	if(!hasReference) throw "Reference was not added!";
 
 	for(int d=0; d<length; ++d){
-		if(bases[d].aligned){
-			//recalibrate quality scores
-			if(recalObject->recalibrationChangesQualities())
-				bases[d].errorRate = recalObject->getErrorRate(bases[d]);
-
-			if(bases[d].context > 20) throw "there is a invalid context in alignment " + alignmentName + " at position " + toString(d);
-
-			//now add effect of PMD
+		if(bases[d].aligned && bases[d].base != N){
+			//alignment is already recalibrated, just need to add effect of PMD
 			if(bases[d].base == T && referenceSequence[bases[d].alignedPos] == 'C')
 				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
 			else if(bases[d].base == A && referenceSequence[bases[d].alignedPos] == 'G')
