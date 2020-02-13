@@ -11,7 +11,7 @@
 #include <TPopulationLikelihoodLocus.h>
 #include <iostream>
 #include "../TFile.h"
-#include "TGLF.h"
+#include "../GLF/TGLF.h"
 
 //------------------------------------------------
 // TGenotypeFreqencies

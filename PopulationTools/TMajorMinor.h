@@ -10,7 +10,7 @@
 
 #include <math.h>
 #include <TPopulationLikelihoodLocus.h>
-#include "TGLF.h"
+#include "../GLF/TGlfMultiReader.h"
 #include "../TGenotypeMap.h"
 #include "../TQualityMap.h"
 #include "../TRandomGenerator.h"
@@ -21,16 +21,21 @@
 //-----------------------------------------------
 class TMajorMinorEstimatorBase{
 protected:
-	TGenotypeMap genoMap;
+	TGenotypeMap genoMap; //TODO: pass?
 	TRandomGenerator* randomGenerator;
 
 	TPopulationLikehoodLocus genotypeLikelihoods;
 	TGenotypeFrequencies genotypeFrequencies;
 	double* L10L_perCombination;
+	std::vector<uint8_t> usedAllelicCombinations;
 
+	void useAllAlleleicCombinations();
+	void useAllelicCombinationsThatContain(const Base & base);
 	void calculateL10LPerCombination();
 	void chooseBestAllelicCombinationAmongThoseWithEqualScores();
-	virtual void findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+	virtual void findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter);
+
+	void _estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter);
 
 public:
 	Base minor, major;
@@ -41,7 +46,8 @@ public:
 	TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorBase();
 
-	void estimateMajorMinor(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+	void estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter);
+	void estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter, const Base & base);
 };
 
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
@@ -49,7 +55,7 @@ private:
 	double epsilonF;
 	TGenotypeFrequencies priorGenotypeFrequencies;
 
-	void findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+	void findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter);
 
 public:
 	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF);
@@ -61,13 +67,12 @@ private:
 	double epsilonF;
 	TGenotypeFrequencies* tmpGenotypeFrequencies;
 
-	double estimateGenotypeFrequencies(TGlfMultiReader & glfReader, const int alleleicCombination, TGlfConverter & glfConverter);
-	void findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter);
+	double estimateGenotypeFrequencies(TMultiGLFData & data, const int alleleicCombination, TGlfConverter & glfConverter);
+	void findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter);
 
 public:
 	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorMLE();
-
 };
 
 //-----------------------------------------------
@@ -77,20 +82,16 @@ class TMajorMinor{
 private:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
-	TGenotypeMap genoMap;
+	BamTools::Fasta reference;
+	bool hasReference;
 	gz::ogzstream vcf;
 	bool vcfOpened;
-	TGlfConverter glfConverter;
-
-	void openVCF(std::string filenameTag, TGlfMultiReader & glfReader, bool usePhredLikelihoods);
-	void closeVCF();
 
 public:
-	TMajorMinor(TParameters & params, TLog* Logfile);
-	~TMajorMinor();
+	TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
+	~TMajorMinor(){};
 
 	void estimateMajorMinor(TParameters & params);
-
 };
 
 

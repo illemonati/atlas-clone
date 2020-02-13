@@ -7,40 +7,6 @@
 
 #include "TAlignmentParser.h"
 
-
-//-----------------------------------------------------
-//TFastaBuffer
-//-----------------------------------------------------
-TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
-	bufferSize = 100000;
-	reference = Reference;
-	referenceSequence = "";
-	curStart = -1;
-	curChr = -1;
-	curEnd = -1;
-};
-
-void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
-	curChr = chr;
-	curStart = pos;
-	curEnd = pos + bufferSize;
-	if(!reference->GetSequence(chr, curStart, curEnd, referenceSequence))
-		throw "Problem reading " + toString(chr) + ":" + toString(curStart) + "-" + toString(curEnd) + " from fasta file!";
-};
-
-void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref){
-	//move buffer, if necessary
-	if(chr != curChr || end > curEnd || start < curStart){
-		if(end - start + 1 > bufferSize){
-			bufferSize = end - start + 1;
-		}
-		moveTo(chr, start);
-	}
-
-	//now copy to string
-	ref.assign(referenceSequence, start - curStart, end - start + 1);
-};
-
 //-----------------------------------------------------
 //TAlignmentParser
 //-----------------------------------------------------
@@ -140,9 +106,6 @@ TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog
 };
 
 TAlignmentParser::~TAlignmentParser(){
-	if(hasReference){
-		delete fastaBuffer;
-	}
 	if(doMasking)
 		delete mask;
 	if(windowsPredefined)
@@ -550,7 +513,7 @@ void TAlignmentParser::setChrPloidy(TParameters & params){
 void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
 	fastaReference = reference;
-	fastaBuffer = new TFastaBuffer(reference);
+	fastaBuffer.initialize(reference, windowSize);
 };
 
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
@@ -562,7 +525,7 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	alignment.hasReference = true;
 };
 
-std::string TAlignmentParser::chrNumberToName(int chrNumber){
+std::string TAlignmentParser::chrNumberToName(uint16_t chrNumber){
 	int counter = 0;
 	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
 		if(counter == chrNumber)
@@ -571,16 +534,7 @@ std::string TAlignmentParser::chrNumberToName(int chrNumber){
 	throw "chrNumber not in header";
 };
 
-int TAlignmentParser::chrNumberToLength(int chrNumber){
-	int counter = 0;
-	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
-		if(counter == chrNumber)
-			return stringToInt(chrIt->Length);
-	}
-	throw "chrNumber not in header";
-};
-
-long TAlignmentParser::calcReferenceLength(){
+uint32_t TAlignmentParser::calcReferenceLength(){
     return chromosomes.referenceLength();
 };
 
@@ -588,11 +542,15 @@ std::string TAlignmentParser::getCurChrName(){
 	return chromosomes.curName();
 };
 
-long TAlignmentParser::getCurChrLength(){
+uint16_t TAlignmentParser::getCurRefId(){
+	return chromosomes.curIndex();
+};
+
+uint32_t TAlignmentParser::getCurChrLength(){
 	return chromosomes.curLength();
 };
 
-int TAlignmentParser::getCurChrPloidy(){
+uint8_t TAlignmentParser::getCurChrPloidy(){
 	return chromosomes.curPloidy();
 };
 
@@ -901,7 +859,7 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 		if(doRecalibration)
 			recalibrate(alignment);
 		if(hasReference)
-			fillReferenceSequence(fastaBuffer, alignment);
+			fillReferenceSequence(&fastaBuffer, alignment);
 	}
 
 	return true;

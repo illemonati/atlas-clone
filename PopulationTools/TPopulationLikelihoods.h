@@ -17,7 +17,6 @@
 #include "TVcfFile.h"
 #include "../TQualityMap.h"
 #include "TGenotypeFrequencies.h"
-#include "TGLF.h"
 
 //------------------------------------------------
 //TPopulationSamples
