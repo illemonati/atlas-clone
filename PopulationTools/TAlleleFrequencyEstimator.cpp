@@ -27,7 +27,7 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
-		for(int i=0; i<storage.numSamples; i++){
+		for(uint32_t i=0; i<storage.numSamples(); i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
 					weights[0] = glfConverter[ storage[i][0] ] * pGenotype.oneMinusf;
@@ -132,7 +132,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ];
@@ -157,7 +157,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
 	double LL = 0.0;
 
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				LL += log(glfConverter[ storage[i][0] ] * pGenotype.oneMinusf + glfConverter[ storage[i][1] ] * pGenotype.f);

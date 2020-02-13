@@ -455,7 +455,7 @@ bool TPopulationLikelihoodReader::filterVCF(uint8_t* data, bool* sampleIsMissing
 
 bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
 	data.resize(samples.numSamples());
-	return readDataFromVCF(data.samples, samples, glfConverter, logfile);
+	return readDataFromVCF(data.samples(), samples, glfConverter, logfile);
 };
 
 int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
