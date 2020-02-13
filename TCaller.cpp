@@ -252,7 +252,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & si
 		altAlleles.clear();
 
 	//write chr, position and (no) variant ID
-	vcf << chr << '\t' << pos << "\t.\t";
+	vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
 
 	//write reference and alternative alleles
 	vcf << site.referenceBase << "\t";
@@ -318,17 +318,17 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 	}
 };
 
-void TCaller::call(const std::string & chr, const long pos, TSite & site, char & first, char & second){
+void TCaller::call(const std::string & chr, const long pos, TSite & site, char & firstAllele, char & secondAllele){
 	//check if there is data
 	if(site.hasData){
 		//set reference base from site
 		referenceBase = genoMap.getBase(site.referenceBase);
 
 		//call
-		if(referenceBase == genoMap.getBase(first))
-			altAlleles.push_back(genoMap.getBase(second));
+		if(referenceBase == genoMap.getBase(firstAllele))
+			altAlleles.push_back(genoMap.getBase(secondAllele));
 		else
-			altAlleles.push_back(genoMap.getBase(first));
+			altAlleles.push_back(genoMap.getBase(firstAllele));
 		callGenotypeKnownAlleles(site);
 
 		//check if we write

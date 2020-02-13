@@ -22,7 +22,6 @@
 #include <map>
 #include <algorithm>
 #include "TAlignmentMerger.h"
-#include "TGLF.h"
 #include "TSoftClipping.h"
 #include "TAllelicDepthCounts.h"
 

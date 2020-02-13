@@ -120,7 +120,7 @@ public:
 	bool usesPrior(){ return _usesPrior; };
 	void setPrior(double* GenoPrior){ genotypePrior = GenoPrior; priorSet = true; };
 	void call(const std::string & chr, const long pos, TSite & site);
-	void call(const std::string & chr, const long pos, TSite & site, char & first, char & second);
+	void call(const std::string & chr, const long pos, TSite & site, char & firstAllele, char & secondAllele);
 };
 
 

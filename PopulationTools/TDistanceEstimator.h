@@ -9,7 +9,7 @@
 #define TDISTANCEESTIMATOR_H_
 
 #include "../TParameters.h"
-#include "TGLF.h"
+#include "../GLF/TGLF.h"
 #include <math.h>
 #include "../TGenotypeMap.h"
 #include "../TQualityMap.h"
