@@ -17,6 +17,7 @@
 #include "bamtools/api/BamWriter.h"
 #include "TQualityMap.h"
 #include "QualityTables.h"
+#include "TSoftClipping.h"
 
 class TAlignmentParser;
 
@@ -129,8 +130,7 @@ public:
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
-	void assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
-	void removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
+	void removeSoftClippedBases(TSoftClippingData & softClippingData);
 	int measureOverlap();
 	int getUsableLength(int minQual, int maxQual);
 	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);

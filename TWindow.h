@@ -17,13 +17,12 @@
 #include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
-#include "TGLF.h"
+#include "GLF/TGLF.h"
 #include "TAlignment.h"
 #include "TQualityMap.h"
 #include "TCaller.h"
 #include "TDistributionOfCounts.h"
 #include "TRecalibrationEMEstimator.h"
-#include "TGLF.h"
 #include "TRandomGenerator.h"
 
 //forward declaration to enable copy constructor
@@ -85,7 +84,7 @@ public:
 	void countDepthPerSite(TDistributionOfCounts & counts);
 	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
 	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
-	void countAlleles(long**** siteImbalance, const unsigned int & maxDepth);
+	void countAlleles(TAllelicDepthCounts & counts);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);

@@ -21,33 +21,9 @@
 #include "TBed.h"
 #include "TBedReader.h"
 #include "TChromosomes.h"
+#include "TFastaBuffer.h"
 #include <vector>
 
-//-----------------------------------------------------
-//TFastaBuffer
-//-----------------------------------------------------
-//a buffer class to speed up adding the reference sequence to each read
-//This class makes use of the fact that bam files are sorted, hence the buffer can always start at the current position
-
-class TFastaBuffer{
-private:
-	BamTools::Fasta* reference;
-	int bufferSize;
-	std::string referenceSequence;
-
-	int curChr;
-	long curStart, curEnd;
-
-	void moveTo(const int & chr, const int32_t & pos);
-
-public:
-	TFastaBuffer(BamTools::Fasta* Reference);
-	~TFastaBuffer(){};
-	void fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref);
-	int getCurChr(){return curChr;};
-	long getCurStart(){return curStart;};
-	long getCurEnd(){return curEnd;};
-};
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -114,6 +90,8 @@ private:
 	long limitWindows;
 	int skipWindows;
 	int indexOfLimitChr;
+	bool doLimitReads;
+	long limitReads;
 //	bool* useChromosome;
 
 	//contructor functions
@@ -123,7 +101,7 @@ private:
 	void setMasks(TParameters & params);
 //	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
-	void setChrAndWindowLimits(TParameters & params);
+	void setParsingLimits(TParameters & params);
 	void setChrPloidy(TParameters & params);
 
 	//move genome
@@ -178,7 +156,7 @@ public:
 	bool chrChangedAlignment;
 	bool chrChangedWindow;
 	BamTools::Fasta* fastaReference;
-	TFastaBuffer* fastaBuffer;
+	TFastaBuffer fastaBuffer;
 
  	//recalibration
 	TRecalibration* recalObject;
@@ -203,6 +181,7 @@ public:
 	int getMaxPhredInt(){return maxPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
 	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
+	uint32_t getMaxDepth(){ return maxDepth; };
 
 	//setters
 	void setOutName(std::string outputName);
@@ -223,12 +202,12 @@ public:
 	void keepSupplementaryReads(){_keepSupplementary = true;};
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
-	std::string chrNumberToName(int chrNumber);
-	int chrNumberToLength(int chrNumber);
-	long calcReferenceLength();
+	std::string chrNumberToName(uint16_t chrNumber);
+	uint32_t calcReferenceLength();
 	std::string getCurChrName();
-	long getCurChrLength();
-	int getCurChrPloidy();
+	uint16_t getCurRefId();
+	uint32_t getCurChrLength();
+	uint8_t getCurChrPloidy();
 
 	//blacklist
 	void setUpdateBlacklistToTrue(){

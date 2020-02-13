@@ -97,6 +97,14 @@ public:
 		_lineNum = 1;
 	};
 
+	int numColumnsInFile(){
+		return _numCols;
+	};
+
+	int numColumnsPrintedOnLine(){
+		return _colsWritten;
+	};
+
 	void close(){
 		_closeFile();
 	};

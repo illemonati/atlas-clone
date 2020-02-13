@@ -7,40 +7,6 @@
 
 #include "TAlignmentParser.h"
 
-
-//-----------------------------------------------------
-//TFastaBuffer
-//-----------------------------------------------------
-TFastaBuffer::TFastaBuffer(BamTools::Fasta* Reference){
-	bufferSize = 100000;
-	reference = Reference;
-	referenceSequence = "";
-	curStart = -1;
-	curChr = -1;
-	curEnd = -1;
-};
-
-void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
-	curChr = chr;
-	curStart = pos;
-	curEnd = pos + bufferSize;
-	if(!reference->GetSequence(chr, curStart, curEnd, referenceSequence))
-		throw "Problem reading " + toString(chr) + ":" + toString(curStart) + "-" + toString(curEnd) + " from fasta file!";
-};
-
-void TFastaBuffer::fill(const int & chr, const int32_t & start, const int32_t end, std::string & ref){
-	//move buffer, if necessary
-	if(chr != curChr || end > curEnd || start < curStart){
-		if(end - start + 1 > bufferSize){
-			bufferSize = end - start + 1;
-		}
-		moveTo(chr, start);
-	}
-
-	//now copy to string
-	ref.assign(referenceSequence, start - curStart, end - start + 1);
-};
-
 //-----------------------------------------------------
 //TAlignmentParser
 //-----------------------------------------------------
@@ -115,6 +81,8 @@ TAlignmentParser::TAlignmentParser(){
 	limitWindows = -1;
 	skipWindows = 0;
 	indexOfLimitChr = -1;
+	doLimitReads = false;
+	limitReads = -1;
 
 	//reference
 	hasReference = false;
@@ -138,9 +106,6 @@ TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog
 };
 
 TAlignmentParser::~TAlignmentParser(){
-	if(hasReference){
-		delete fastaBuffer;
-	}
 	if(doMasking)
 		delete mask;
 	if(windowsPredefined)
@@ -178,7 +143,7 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	//settings
 	setWindowParameters(params);
-	setChrAndWindowLimits(params);
+	setParsingLimits(params);
 	setMasks(params);
 	setFilters(params);
 	setChrPloidy(params);
@@ -244,7 +209,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 		if(tmpInt < 0)
 			throw "minDepth must be >= 0!";
 		minDepth = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxDepth", 1000000);
+		tmpInt = params.getParameterIntWithDefault("maxDepth", readUpToDepth);
 		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
 		maxDepth = tmpInt;
 		readUpToDepth = maxDepth + 1;
@@ -252,7 +217,7 @@ void TAlignmentParser::setFilters(TParameters & params){
 	} else {
 		applyDepthFilter = false;
 		minDepth = 0;
-		maxDepth = 1000000;
+		maxDepth = readUpToDepth;
 	}
 	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
 
@@ -495,7 +460,8 @@ void TAlignmentParser::initializeReadGroups(TParameters & params){
 	}
 };
 
-void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
+void TAlignmentParser::setParsingLimits(TParameters & params){
+	//Limit chromosomes
 	if(params.parameterExists("chr")){
 		//parse chromosome names
 		std::vector<std::string> vec;
@@ -505,11 +471,11 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 		if(params.parameterExists("limitChr")){
 			std::string limitName = params.getParameterString("limitChr");
 			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName + ". (parameter 'limitChr')");
-			chromosomes.limitChr(limitName);
-			indexOfLimitChr = chromosomes.getIndexFromName(limitName) + 1;
+			indexOfLimitChr = chromosomes.limitChr(limitName);
 		}
 	}
 
+	//limit windows
 	skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
 	if(skipWindows > 0) logfile->list("Will skip the first " + toString(skipWindows) + " windows per chromosome. (parameter 'skipWindows')");
 	limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
@@ -517,6 +483,13 @@ void TAlignmentParser::setChrAndWindowLimits(TParameters & params){
 		logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome. (parameter 'limitWindows')");
 	if(limitWindows <= skipWindows)
 		throw "limitWindows has to be larger than skipWindows!";
+
+	//limit reads
+	if(params.parameterExists("limitReads")){
+		doLimitReads = true;
+		limitReads = params.getParameterLong("limitReads");
+		logfile->list("Will limit analysis to " + toString(limitReads) + " reads.");
+	}
 };
 
 void TAlignmentParser::setChrPloidy(TParameters & params){
@@ -540,7 +513,7 @@ void TAlignmentParser::setChrPloidy(TParameters & params){
 void TAlignmentParser::addReference(BamTools::Fasta* reference){
 	hasReference = true;
 	fastaReference = reference;
-	fastaBuffer = new TFastaBuffer(reference);
+	fastaBuffer.initialize(reference, windowSize);
 };
 
 void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment){
@@ -552,7 +525,7 @@ void TAlignmentParser::fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignme
 	alignment.hasReference = true;
 };
 
-std::string TAlignmentParser::chrNumberToName(int chrNumber){
+std::string TAlignmentParser::chrNumberToName(uint16_t chrNumber){
 	int counter = 0;
 	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
 		if(counter == chrNumber)
@@ -561,16 +534,7 @@ std::string TAlignmentParser::chrNumberToName(int chrNumber){
 	throw "chrNumber not in header";
 };
 
-int TAlignmentParser::chrNumberToLength(int chrNumber){
-	int counter = 0;
-	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
-		if(counter == chrNumber)
-			return stringToInt(chrIt->Length);
-	}
-	throw "chrNumber not in header";
-};
-
-long TAlignmentParser::calcReferenceLength(){
+uint32_t TAlignmentParser::calcReferenceLength(){
     return chromosomes.referenceLength();
 };
 
@@ -578,11 +542,15 @@ std::string TAlignmentParser::getCurChrName(){
 	return chromosomes.curName();
 };
 
-long TAlignmentParser::getCurChrLength(){
+uint16_t TAlignmentParser::getCurRefId(){
+	return chromosomes.curIndex();
+};
+
+uint32_t TAlignmentParser::getCurChrLength(){
 	return chromosomes.curLength();
 };
 
-int TAlignmentParser::getCurChrPloidy(){
+uint8_t TAlignmentParser::getCurChrPloidy(){
 	return chromosomes.curPloidy();
 };
 
@@ -783,6 +751,9 @@ bool TAlignmentParser::readAlignment(){
 		if(!bamReader.GetNextAlignment(bamAlignment)){
 			return false;
 		}
+		if(doLimitReads && totalNumberAlignmentsRead > limitReads){
+			return false;
+		}
 		++totalNumberAlignmentsRead;
 
 		//check if chromosome changed
@@ -888,7 +859,7 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 		if(doRecalibration)
 			recalibrate(alignment);
 		if(hasReference)
-			fillReferenceSequence(fastaBuffer, alignment);
+			fillReferenceSequence(&fastaBuffer, alignment);
 	}
 
 	return true;
@@ -1291,8 +1262,7 @@ void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment,
 			}
 		}
 	}
-}
-
+};
 
 void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
 	//deletions and insertions are kept as is. these positions are not compared
@@ -1322,7 +1292,7 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 			}
 		}
 	}
-}
+};
 
 //-----------------------------------------------------
 // TBamProgressReporter
