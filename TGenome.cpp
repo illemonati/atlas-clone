@@ -2303,6 +2303,8 @@ void TGenome::diagnoseBamFile(TParameters & params){
 
 void TGenome::allelicDepth(TParameters & params){
 	//allocate table
+	//std::cout << "maxDepth " << alignmentParser.getMaxDepth() << std::endl;
+	params.getParameterInt("maxDepth");
 	if(alignmentParser.getMaxDepth() > 100){
 		logfile->warning("Allocating count table for a max depth of " + toString(alignmentParser.getMaxDepth()) + " uses a lot of memory! Use argument maxDepth to limit.");
 	}
@@ -2322,7 +2324,7 @@ void TGenome::allelicDepth(TParameters & params){
 	}
 
 	//write to file
-	std::string outputFileName = outputName + "_allelicDepth.txt";
+	std::string outputFileName = outputName + "_allelicDepth.txt.gz";
 	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
 	bool writeEmpty = params.parameterExists("printAll");
 	counts.write(outputFileName, writeEmpty);

@@ -70,7 +70,7 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "minorAllele", "Counts"});
 
 	//write counts
-	uint32_t max = 0;
+	//uint32_t max = 0;
 	for(uint32_t i=0; i<_size; ++i){
 		for(uint32_t j=0; j<_size; ++j){
 			for(uint32_t k=0; k<_size; ++k){
@@ -79,12 +79,39 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 						//write numA, C, G and T and depth
 						out << i << j << k << l << i+j+k+l;
 
-						//write major and minor allele
-						std::map<uint32_t, char> tmp = { {i, 'A'}, {j, 'C'}, {k, 'G'}, {l, 'T'} };
-						std::map<uint32_t, char>::iterator it = tmp.begin();
-						out << it->second;
-						++it;
-						out << it->second;
+						//find max
+						uint32_t max = i;
+						if(j > max) max = j;
+						if(k > max) max = k;
+						if(l > max) max = l;
+
+						//identify those that are at max
+						std::vector<char> tmp;
+						if(i == max) tmp.push_back('A');
+						if(j == max) tmp.push_back('C');
+						if(k == max) tmp.push_back('G');
+						if(l == max) tmp.push_back('T');
+
+						//write major
+						out << tmp[0];
+
+						//find minor
+						if(tmp.size() > 1){
+							out << tmp[1];
+						} else {
+							//find second
+							uint32_t second = 0;
+							if(i < max && i > second) second = i;
+							if(j < max && j > second) second = j;
+							if(k < max && k > second) second = k;
+							if(l < max && l > second) second = l;
+
+							//print minor
+							if(i == second) out << 'A';
+							else if(j == second) out << 'C';
+							else if(k == second) out << 'G';
+							else out << 'T';
+						}
 
 						//write counts
 						out << _counts[i][j][k][l] << std::endl;
