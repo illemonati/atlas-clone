@@ -1047,17 +1047,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	reporter.printEnd();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 }
 
 void TGenome::binQualityScores(TParameters & params){
@@ -1662,17 +1652,7 @@ void TGenome::filterBAM(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 };
 
 void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger){
@@ -1809,17 +1789,7 @@ void TGenome::splitMerge(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 };
 
 void TGenome::mergePairedEndReads(TParameters & params){
@@ -1904,17 +1874,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 };
 
 void TGenome::fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector){
@@ -1936,12 +1896,26 @@ void TGenome::fillVectorOfDownsamplingProbabilities(std::string prob, std::vecto
 	}
 };
 
+void TGenome::renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<std::string> & names){
+	//check if same frac appears twice
+	std::map <double, int> fracNames;
+	for(int i=0; i<fracVector.size(); ++i){
+		std::map<double, int>::iterator it = fracNames.find(fracVector[i]);
+		if(it == fracNames.end()){
+			fracNames.emplace(fracVector[i],1);
+			names.push_back(toString(fracVector[i]));
+		} else {
+			++(it->second);
+			names.push_back(toString(fracVector[i]) + "_" + toString(it->second));
+		}
+	}
+}
+
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
-	TReadList keep;
 
 	//read downsampling rate
 	std::vector<double> downSampleProbVector;
@@ -1956,6 +1930,10 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->list("Will accept reads with probabilities (parameter 'prob'): " + concatenateString(downSampleProbVector, ", "));
 	if(*downSampleProbVector.begin() == 1.0) logfile->warning("Probability of 1 will result in identical file!");
 
+	//check if some probs are double
+	std::vector<std::string> names;
+	renameBAMSIfDouble(downSampleProbVector, names);
+
 	//open bam files for writing
 	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
 	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
@@ -1963,12 +1941,24 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	for(int i=0; i<numProbs; ++i){
 		//construct and print filename
-		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
+		std::string filename = outputName + "_downsampled_" + names[i] + ".bam";
 		logfile->list(filename);
 		//open file
 		if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
 	}
 	logfile->endIndent();
+
+	//create read lists
+	std::vector<TReadList> keep;
+	std::vector<TReadList> discard;
+	for(int i=0; i<numProbs; ++i){
+		TReadList readListKeep;
+		TReadList readListDiscard;
+		keep.emplace_back(readListKeep);
+		keep.push_back(readListKeep);
+		discard.push_back(readListDiscard);
+	}
+
 
 	//other temp variables
 	long counter = 0;
@@ -1987,18 +1977,19 @@ void TGenome::downSampleBamFile(TParameters & params){
 		for(int i=0; i<numProbs; ++i){
 			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
-				continue;
-			} if(keep.isInReadList(alignment.name())){
+			} else if(discard[i].isInReadList(alignment.name())){
+				discard[i].removeFromReadList(alignment, "was in list of discarded reads");
+			} else if(keep[i].isInReadList(alignment.name())){
 				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProbVector[i]){
 					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 					if(alignment.isProperPair)
-						keep.addToReadList(alignment, "passed downsampling");
+						keep[i].addToReadList(alignment, "passed downsampling");
 				} else {
 					if(alignment.isProperPair){
-						alignmentParser.addToBlacklist(alignment, "did not pass downsampling");
+						discard[i].addToReadList(alignment, "did not pass downsampling");
 					}
 				}
 			}
@@ -2012,20 +2003,10 @@ void TGenome::downSampleBamFile(TParameters & params){
 	for(int i=0; i<numProbs; ++i){
 		bamWriter[i].Close();
 
-		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
+		std::string filename = outputName + "_downsampled_" + names[i] + ".bam";
 
 		//create index of new bam file
-		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-		BamTools::BamReader reader;
-		if(!reader.Open(filename))
-			throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-		// create index for BAM file
-		reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-		//close BAM file
-		reader.Close();
-		logfile->done();
+		indexBamFile(filename);
 	}
 
 	delete[] bamWriter;
@@ -2050,28 +2031,17 @@ void TGenome::separateReads(TParameters & params){
 
 	//normalize fractions provided by user
 	double sum = 0.0;
-	for(int i=0; i<numFrac; ++i){
+	for(int i=0; i<numFrac; ++i)
 		sum += fracVector[i];
-	}
-
-	std::map <double, int> fracNames;
-	std::vector<std::string> names;
-
 
 	for(int i=0; i<numFrac; ++i){
 		fracVector[i] = fracVector[i] / sum;
 		if(fracVector[i] == 1.0)
 			logfile->warning("Fraction of 1.0 will result in one identical BAM file!");
-
-		std::map<double, int>::iterator it = fracNames.find(fracVector[i]);
-		if(it == fracNames.end()){
-			fracNames.emplace(fracVector[i],1);
-			names.push_back(toString(fracVector[i]));
-		} else {
-			++(it->second);
-			names.push_back(toString(fracVector[i]) + "_" + toString(it->second));
-		}
 	}
+
+	std::vector<std::string> names;
+	renameBAMSIfDouble(fracVector, names);
 
 	//check if probs are between 0 and 1, save in array and print them
 	logfile->list("Will assign reads to " + toString(numFrac) + " BAM files with the following probabilities: " + concatenateString(fracVector, ", "));
@@ -2119,7 +2089,6 @@ void TGenome::separateReads(TParameters & params){
 			}
 		}
 
-
 		//report
 		reporter.printProgress();
 	}
@@ -2127,21 +2096,8 @@ void TGenome::separateReads(TParameters & params){
 	//close bam writer and clean up memory
 	for(int i=0; i<numFrac; ++i){
 		bamWriter[i].Close();
-
 		std::string filename = outputName + "_fraction_" + names[i] + ".bam";
-
-		//create index of new bam file
-		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-		BamTools::BamReader reader;
-		if(!reader.Open(filename))
-			throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-		// create index for BAM file
-		reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-		//close BAM file
-		reader.Close();
-		logfile->done();
+		indexBamFile(filename);
 	}
 
 	delete[] bamWriter;

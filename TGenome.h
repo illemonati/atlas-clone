@@ -49,6 +49,7 @@ private:
 	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
 	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
 	void fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector);
+	void renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<std::string> & names);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);

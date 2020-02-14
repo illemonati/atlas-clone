@@ -10,37 +10,46 @@
 
 #include "TAlignment.h"
 
+class NullBuffer : public std::streambuf
+{
+public:
+  int overflow(int c) { return c; }
+};
+
 class TReadList{
 private:
 	bool _writeToFile;
-	gz::ogzstream ignoredReads;
+	gz::ogzstream* ignoredReads;
 	std::string filename;
 	std::map <std::string, int> readList;
 
 	void _write(const std::string & Name, const std::string & Error, const bool & isSecondMate){
 		if(_writeToFile){
 			if(isSecondMate){
-				ignoredReads << "Read " << Name << " (second mate): " << Error << "\n";
+				*ignoredReads << "Read " << Name << " (second mate): " << Error << "\n";
 			} else {
-				ignoredReads << "Read " << Name << " (first mate): " << Error << "\n";
+				*ignoredReads << "Read " << Name << " (first mate): " << Error << "\n";
 			}
 		}
 	};
 
 public:
-	TReadList(){
+	explicit TReadList(){
+		NullBuffer null_buffer;
 		_writeToFile = false;
+		ignoredReads = nullptr;
 	}
 
 	TReadList(const bool & writeToFile, std::string & filename){
 		_writeToFile = writeToFile;
+		ignoredReads = nullptr;
 	}
 
 	void setWriteReadListToFileToTrue(TLog* logfile, std::string & Filename){
 		_writeToFile = true;
 		filename = Filename + "_ignoredReads.txt.gz";
 		logfile->list("Writing sequencing depth estimates to '" + filename + "'");
-		ignoredReads.open(filename.c_str());
+		ignoredReads->open(filename.c_str());
 		if(!ignoredReads) throw "Failed to open output file '" + filename + "'!";
 	}
 
@@ -54,7 +63,7 @@ public:
 		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
 		readList.emplace(alignmentName, 1);
 		if(_writeToFile){
-			ignoredReads << "Read " << alignmentName << ": " << errorMessage << "\n";
+			*ignoredReads << "Read " << alignmentName << ": " << errorMessage << "\n";
 		}
 	};
 
