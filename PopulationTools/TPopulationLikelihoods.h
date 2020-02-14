@@ -65,6 +65,8 @@ public:
 //-------------------------------------------------
 class TPopulationLikelihoodReader{
 private:
+	bool _initialized;
+	TLog* logfile;
 	TQualityMap phredToGTLMap;
 	TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
@@ -109,9 +111,10 @@ private:
 	void resetCounters();
 	void closeVCF();
 	void closeTrueAlleleFreqFile();
-    void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
-    void printProgressFrequencyFiltering(TLog* logfile);
+    //void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples);
+    void printProgressFrequencyFiltering();
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
+    bool _readNextLineFromVCF();
 
 public:
 	TPopulationLikelihoodReader();
@@ -122,12 +125,14 @@ public:
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
 	void doSaveTrueAlleleFrequencies(){ storeTrueAlleleFreq = true; }
 
-	void openVCF(std::string, TLog* logfile);
+	void openVCF(std::string);
 	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
-    bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
-    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
-	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
-	void concludeFilters(TLog* logfile);
+    bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, std::string & outputName);
+    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+	bool readDataFromVCF(TPopulationLikehoodWindow & region, TPopulationSamples & samples, TGlfConverter & glfConverter);
+
+	void concludeFilters();
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
 	std::string chr(){ return curChr; };

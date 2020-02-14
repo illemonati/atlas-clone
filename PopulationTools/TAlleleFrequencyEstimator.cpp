@@ -327,7 +327,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	// open vcf file
 	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
-	reader.openVCF(vcfFilename, logfile);
+	reader.openVCF(vcfFilename);
 
 	//Match samples
 	if(samples.hasSamples())
@@ -372,7 +372,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, glfConverter, logfile)){
+    while(reader.readDataFromVCF(storage, samples, glfConverter)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -413,7 +413,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();

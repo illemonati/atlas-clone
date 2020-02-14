@@ -132,7 +132,7 @@ public:
 // TPopulationLikehoodRegion
 // class used when reading line by line
 //------------------------------------------------
-class TPopulationLikehoodRegion{
+class TPopulationLikehoodWindow{
 private:
 	uint32_t _numSamples;
 	uint32_t _numLoci;
@@ -140,14 +140,14 @@ private:
 	TPopulationLikehoodLocus* _loci; //allows simple access to subsets based on populations
 
 public:
-	TPopulationLikehoodRegion(){
+	TPopulationLikehoodWindow(){
 		_numSamples = 0;
 		_numLoci = 0;
 		_storageSize = 0;
 		_loci = nullptr;
 	};
 
-	TPopulationLikehoodRegion(TPopulationLikehoodRegion & other){
+	TPopulationLikehoodWindow(TPopulationLikehoodWindow & other){
 		_numSamples = 0;
 		_storageSize = 0;
 		_numLoci = 0;
@@ -159,13 +159,13 @@ public:
 		}
 	};
 
-	TPopulationLikehoodRegion(int NumSamples){
+	TPopulationLikehoodWindow(int NumSamples){
 		_numSamples = 0;
 		_storageSize = 0;
 		resize(NumSamples);
 	};
 
-	~TPopulationLikehoodRegion(){
+	~TPopulationLikehoodWindow(){
 		clear();
 	};
 

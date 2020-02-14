@@ -244,6 +244,7 @@ TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
 
 void TPopulationLikelihoodReader::_init(){
 	//set all values to defaults
+	_initialized = false;
 	vcfOpen = false;
 	trueFreqFileOpen = false;
 
@@ -269,10 +270,12 @@ void TPopulationLikelihoodReader::_init(){
 	_trueAlleleFrequency = -1.0;
 };
 
-void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* logfile, bool saveAlleleFreq){
+void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+	logfile = Logfile;
+
 	//read parsing parameters
 	// do we limit the lines to read?
-	maxLinesToRead = Parameters.getParameterLongWithDefault("limitLines", -1);
+	maxLinesToRead = Parameters.getParameterLongWithDefault("limitLines", 0);
 	if(maxLinesToRead > 0){
 		limitLines = true;
 		logfile->list("Will limit analysis to the first " + toString(maxLinesToRead) + " lines of the VCF file. (parameter 'limitLines')");
@@ -329,6 +332,8 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* log
 
 	//additional settings
 	storeTrueAlleleFreq = false;
+
+	_initialized = true;
 };
 
 void TPopulationLikelihoodReader::resetCounters(){
@@ -344,7 +349,11 @@ void TPopulationLikelihoodReader::resetCounters(){
 	curChr = "";
 };
 
-void TPopulationLikelihoodReader::openVCF(std::string vcfFilename, TLog* logfile){
+void TPopulationLikelihoodReader::openVCF(std::string vcfFilename){
+	if(!_initialized){
+		throw "Can not open VCF: TPopulationLikelihoodReader was never initialized!";
+	}
+
 	//open input stream
 	bool isZipped = false;
 	if(vcfFilename.find(".gz") == std::string::npos){
@@ -386,9 +395,9 @@ void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
+bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter){
 	data.resize(samples.numSamples());
-	return readDataFromVCF(data.samples(), samples, glfConverter, logfile);
+	return readDataFromVCF(data.samples(), samples, glfConverter);
 };
 
 int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
@@ -410,7 +419,51 @@ int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopula
 	return numIndividualsWithData;
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile){
+bool TPopulationLikelihoodReader::_readNextLineFromVCF(){
+	++_lineCounter;
+
+	//print progress
+	if(_lineCounter % progressFrequency == 0)
+		printProgressFrequencyFiltering();
+
+	// limit lines
+	if(limitLines && _lineCounter > maxLinesToRead){
+		logfile->list("Reached limit of " + toString(maxLinesToRead) + " lines.");
+		return false;
+	}
+
+	//read next line
+	if(!vcfFile.next()) return false;
+
+	//read true allele frequency
+	//file is assumed to have exact same dimension: always read next line!
+	if(storeTrueAlleleFreq){
+		std::string temp;
+		getline(*trueFreq, temp);
+		std::vector<std::string> tmp;
+		fillVectorFromString(temp, tmp, "\t");
+		if(tmp.size() != 3)
+			throw "wrong number of columns in true allele frequency file!";
+		std::string chr = tmp[0];
+		int pos = stringToInt(tmp[1]);
+		_trueAlleleFrequency = stringToDouble(tmp[2]);
+		//check if positions match (allele file is 0-based)
+		while(pos < vcfFile.position() - 1){
+			getline(*trueFreq, temp);
+			fillVectorFromString(temp, tmp, "\t");
+			if(tmp.size() != 3)
+				throw "wrong number of columns in true allele frequency file!";
+			pos = stringToInt(tmp[1]);
+		}
+		if(pos > vcfFile.position() - 1)
+			throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
+	}
+
+	//all fine!
+	return true;
+};
+
+bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -418,9 +471,7 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 	}
 
 	//read next
-	while(vcfFile.next()){ // new line in vcf-file (= new locus)
-		++_lineCounter;
-
+	while(_readNextLineFromVCF()){ // new line in vcf-file (= new locus)
 		//update chr
 		if(curChr != vcfFile.chr()){
 			curChr = vcfFile.chr();
@@ -428,30 +479,6 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			if(limitToSitesInBed){
 				bedFile->setChr(vcfFile.chr());
 			}
-		}
-
-		//read true allele frequency
-		//file is assumed to have exact same dimension: always read next line!
-		if(storeTrueAlleleFreq){
-			std::string temp;
-			getline(*trueFreq, temp);
-			std::vector<std::string> tmp;
-			fillVectorFromString(temp, tmp, "\t");
-			if(tmp.size() != 3)
-				throw "wrong number of columns in true allele frequency file!";
-			std::string chr = tmp[0];
-			int pos = stringToInt(tmp[1]);
-			_trueAlleleFrequency = stringToDouble(tmp[2]);
-			//check if positions match (allele file is 0-based)
-			while(pos < vcfFile.position() - 1){
-				getline(*trueFreq, temp);
-				fillVectorFromString(temp, tmp, "\t");
-				if(tmp.size() != 3)
-					throw "wrong number of columns in true allele frequency file!";
-				pos = stringToInt(tmp[1]);
-			}
-			if(pos > vcfFile.position() - 1)
-				throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
 		}
 
 		//check if site is used
@@ -479,16 +506,6 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			}
 
 			//else accept current position
-		}
-
-		//print progress
-		if(_lineCounter % progressFrequency == 0)
-			printProgressFrequencyFiltering(logfile);
-
-		// limit lines
-		if(limitLines && _lineCounter > maxLinesToRead){
-			logfile->list("Reached limit of " + toString(maxLinesToRead) + " lines.");
-			return false;
 		}
 
         //skip sites with != 2 alleles
@@ -556,15 +573,15 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 	return false;
 };
 
-void TPopulationLikelihoodReader::printProgressFrequencyFiltering(TLog* logfile){
+void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
 	struct timeval end;
 	gettimeofday(&end, NULL);
 	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
 	logfile->list("Parsing line " + toString(_lineCounter) + ", retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
 };
 
-void TPopulationLikelihoodReader::concludeFilters(TLog* logfile){
-	printProgressFrequencyFiltering(logfile);
+void TPopulationLikelihoodReader::concludeFilters(){
+	printProgressFrequencyFiltering();
 	if(_notInBedFile > 0)
 		logfile->conclude(toString(_notInBedFile) + " loci were not in considered windows (BED file).");
 	if(_notBialleleicCounter > 0)
@@ -702,7 +719,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	// open vcf file
 	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	reader.openVCF(vcfFilename, logfile);
+	reader.openVCF(vcfFilename);
 
 	//open true allele freq file
 	if(saveTrueAlleleFrequencies){
@@ -730,7 +747,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     std::string curChr = "";
-    while(reader.readDataFromVCF(data.back(), samples, glfConverter, logfile)){
+    while(reader.readDataFromVCF(data.back(), samples, glfConverter)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
@@ -758,7 +775,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 
     //report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	if(_numLoci < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
