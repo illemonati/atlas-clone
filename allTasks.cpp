@@ -27,6 +27,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["createDepthMask"] = new TTask_createDepthMask();
 	taskMap_regular["allelicDepth"] = new TTask_allelicDepth();
 	taskMap_regular["downsample"] = new TTask_downsample();
+	taskMap_regular["separateReads"] = new TTask_separateReads();
 	taskMap_regular["downsampleReads"] = new TTask_downSampleReads();
 	taskMap_regular["PMD"] = new TTask_estimatePMD();
 	taskMap_regular["PMDS"] = new TTask_PMDS();
