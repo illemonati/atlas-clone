@@ -10,67 +10,88 @@
 
 
 class TBedChromosome{
-public:
-	std::string name;
-	std::map<long, long> windows;
-	std::map<long, long>::iterator windowIt;
+private:
+	std::string _name;
+	std::map<uint64_t, uint64_t> _windows;
+	std::map<uint64_t, uint64_t>::iterator _windowIt;
+	bool _parsed;
 
+public:
 	TBedChromosome(std::string & Name){
-		name = Name;
+		_name = Name;
+		rewind();
 	};
 
 	~TBedChromosome(){
 		//delete all windows
-		windows.clear();
+		_windows.clear();
 	};
 
-	void addWindow(long start, long end){
+	void addWindow(uint64_t start, uint64_t end){
 		if(end <= start) throw "Window  [" + toString(start) + ", " + toString(end) + "] is not valid!";
 		//check if there is overlap with any other window
-		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt){
-			if((start >= windowIt->first && start < windowIt->second) || (end > windowIt->first && end <= windowIt->second))
-				throw "Error reading bed file: window [" + toString(start) + ", " + toString(end) + ") overlaps window [" + toString(windowIt->first) + ", " + toString(windowIt->second) + ")!";
+		for(_windowIt=_windows.begin(); _windowIt!=_windows.end(); ++_windowIt){
+			if((start >= _windowIt->first && start < _windowIt->second) || (end > _windowIt->first && end <= _windowIt->second))
+				throw "Error reading bed file: window [" + toString(start) + ", " + toString(end) + ") overlaps window [" + toString(_windowIt->first) + ", " + toString(_windowIt->second) + ")!";
 		}
-		windows.insert(std::pair<long,long>(start, end));
+		_windows.emplace(start, end);
 	};
 
 	void print(){
-		std::cout << "Chromosome '" << name << "':" << std::endl;
-		for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt){
-			std::cout << " - [" << windowIt->first << ", " << windowIt->second << "]" << std::endl;
+		std::cout << "Chromosome '" << _name << "':" << std::endl;
+		for(_windowIt=_windows.begin(); _windowIt!=_windows.end(); ++_windowIt){
+			std::cout << " - [" << _windowIt->first << ", " << _windowIt->second << "]" << std::endl;
 		}
 	};
 
-	long size(){
-		return windows.size();
+	size_t size(){
+		return _windows.size();
+	};
+
+	void setAsParsed(){
+		_parsed = true;
+	};
+
+	void rewind(){
+		_parsed = false;
+	};
+
+	bool parsed(){
+		return _parsed;
 	};
 
 	bool begin(){
-		windowIt = windows.begin();
-		if(windowIt == windows.end()) return false;
+		_windowIt = _windows.begin();
+		if(_windowIt == _windows.end()) return false;
 		return true;
 	};
 
 	bool next(){
-		++windowIt;
-		if(windowIt == windows.end()) return false;
+		++_windowIt;
+		if(_windowIt == _windows.end()) return false;
 		return true;
 	};
 
-	long curStart(){
-		return windowIt->first;
+	bool reachedEnd(){
+		if(_windowIt == _windows.end()) return true;
+		return false;
 	};
 
-	long curEnd(){
-		return windowIt->second;
+	uint64_t curStart(){
+		return _windowIt->first;
+	};
+
+	uint64_t curEnd(){
+		return _windowIt->second;
 	};
 };
 
 class TBed{
 private:
-	std::map<std::string, TBedChromosome*> chromosomes;
-	std::map<std::string, TBedChromosome*>::iterator chrIt;
-	std::string curChr;
+	std::map<std::string, TBedChromosome*> _chromosomes;
+	std::map<std::string, TBedChromosome*>::iterator _chrIt;
+	std::string _curChr;
+	bool _allChrParsed;
 
 	void readFile(){
 		//open file
@@ -82,7 +103,7 @@ private:
 		//tmp variables
 		long lineNum = 0;
 		std::vector<std::string> vec;
-		curChr = "";
+		_curChr = "";
 
 		//read file
 		while(myStream->good() && !myStream->eof()){
@@ -95,26 +116,23 @@ private:
 				if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
 
 				//get chromosome
-				if(vec[0] != curChr){
-					chrIt = chromosomes.find(vec[0]);
-					if(chrIt == chromosomes.end()){
-						chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0])));
-						chrIt = chromosomes.find(vec[0]);
+				if(vec[0] != _curChr){
+					_chrIt = _chromosomes.find(vec[0]);
+					if(_chrIt == _chromosomes.end()){
+						_chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0])));
+						_chrIt = _chromosomes.find(vec[0]);
 					}
-					curChr = vec[0];
+					_curChr = vec[0];
 				}
 
 				//add positions
-				chrIt->second->addWindow(stringToLong(vec[1]), stringToLong(vec[2]));
+				_chrIt->second->addWindow(stringToLong(vec[1]), stringToLong(vec[2]));
 			}
 		}
 
 		//close file
 		delete myStream;
-//		for(std::map<std::string, TBedChromosome*>::iterator chrIt = chromosomes.begin(); chrIt != chromosomes.end(); ++chrIt){
-//			std::cout << "in map chr name: " << chrIt->first << " windows number "<<  chrIt->second->size() << std::endl;
-//
-//		}
+		_chrIt = _chromosomes.end();
 	};
 
 public:
@@ -123,59 +141,102 @@ public:
 	TBed(std::string Filename){
 		filename = Filename;
 		readFile();
-		curChr = "";
+		_curChr = "";
+		rewind();
 	};
 
 	~TBed(){
 		//delete all chromosomes
-		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
-			delete chrIt->second;
+		for(auto& it : _chromosomes){
+			delete it.second;
 		}
-		chromosomes.clear();
+		_chromosomes.clear();
 	};
 
-	void setChr(const std::string & chr){
-		curChr = chr;
-		chrIt = chromosomes.find(curChr);
-		if(chrIt!=chromosomes.end())
-			chrIt->second->begin();
+	void rewind(){
+		for(auto& it : _chromosomes){
+			it.second->rewind();
+		}
+
+		_allChrParsed = false;
+		_chrIt = _chromosomes.end();
+	};
+
+	bool setChr(const std::string & chr){
+		//set cur chr as parsed
+		if(_chrIt != _chromosomes.end()){
+			_chrIt->second->setAsParsed();
+
+			//check if all chromosomes have been parsed
+			_allChrParsed = true;
+			for(auto& it : _chromosomes){
+				if(!it.second->parsed()){
+					_allChrParsed = false;
+					break;
+				}
+			}
+		}
+
+		//jump to requested chromosome
+		_curChr = chr;
+		_chrIt = _chromosomes.find(_curChr);
+		if(_chrIt!=_chromosomes.end()){
+			_chrIt->second->begin();
+			return true;
+		}
+		return false;
+	};
+
+	std::string curChr(){
+		if(_chrIt==_chromosomes.end()) return "";
+		return _chrIt->first;
 	};
 
 	bool nextWindow(){
-		if(chrIt==chromosomes.end()) return false;
-		return chrIt->second->next();
+		if(_chrIt==_chromosomes.end()) return false;
+		return _chrIt->second->next();
+	};
+
+	bool reachedEnd(){
+		return _allChrParsed;
+	};
+
+	bool reachedEndOfChr(){
+		if(_chrIt==_chromosomes.end()) return true;
+		return _chrIt->second->reachedEnd();
 	};
 
 	long curWindowStart(){
-		if(chrIt==chromosomes.end()) return -1;
-		return chrIt->second->curStart();
+		if(_chrIt==_chromosomes.end()) return -1;
+		return _chrIt->second->curStart();
 	};
 
 	long curWindowEnd(){
-		if(chrIt==chromosomes.end()) return -1;
-		return chrIt->second->curEnd();
+		if(_chrIt==_chromosomes.end()) return -1;
+		return _chrIt->second->curEnd();
 	};
 
 	void print(){
 		std::cout << "Bed File '" << filename << "':" << std::endl;
-		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
-			chrIt->second->print();
+		for(_chrIt=_chromosomes.begin(); _chrIt!=_chromosomes.end(); ++_chrIt)
+			_chrIt->second->print();
 	};
 
-	long size(){
-		long s=0;
-		for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt)
-			s += chrIt->second->size();
+	uint64_t size(){
+		uint64_t s = 0;
+		for(auto& it : _chromosomes){
+			s += it.second->size();
+		}
 		return s;
 	};
 
 	int getNumChromosomes(){
-		return chromosomes.size();
+		return _chromosomes.size();
 	};
 
 	int getNumWindowsOnCurChr(){
-		if(chrIt==chromosomes.end()) return 0;
-		return chrIt->second->size();
+		if(_chrIt==_chromosomes.end()) return 0;
+		return _chrIt->second->size();
 	};
 };
 

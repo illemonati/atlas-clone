@@ -87,8 +87,8 @@ public:
 		_storageSize = 0;
 	};
 
-	void resize(int NumSamples){
-		if(_storageSize < _numSamples){
+	void resize(uint32_t NumSamples){
+		if(_storageSize < NumSamples){
 			clear();
 			_numSamples = NumSamples;
 			_storageSize = _numSamples;

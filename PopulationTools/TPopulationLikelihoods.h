@@ -17,6 +17,7 @@
 #include "TVcfFile.h"
 #include "../TQualityMap.h"
 #include "TGenotypeFrequencies.h"
+#include "../TBed.h"
 
 //------------------------------------------------
 //TPopulationSamples
@@ -70,32 +71,39 @@ private:
 	std::istream* trueFreq;
 	bool trueFreqFileOpen = false;
 
+	//BED file
+	TBed* bedFile;
+	bool limitToSitesInBed;
+
 	//settings
-	long limitLines;
-	int minDepth;
-	int minNumSamplesWithData;
+	bool limitLines;
+	uint64_t maxLinesToRead;
+	uint32_t minDepth;
+	uint32_t minNumSamplesWithData;
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
-	int minVariantQuality;
+	uint32_t minVariantQuality;
 	bool estimateGenotypeFrequencies;
 	bool storeTrueAlleleFreq;
-	long progressFrequency;
+	uint64_t progressFrequency;
 	std::string trueAlleleFreqFile;
 
 	//counters
 	struct timeval startTime;
 	bool vcfParsingStarted;
-	long _lineCounter;
-	long _notBialleleicCounter;
-	long _missingSNPCounter;
-	long _lowFreqSNPCounter;
-	long _lowVariantQualityCounter;
-	long _noPLCounter;
-	long _numAcceptedLoci;
+	uint64_t _lineCounter; //lines read in VCF
+	uint64_t _notInBedFile; //sites considered (smaller than # lines if BED file is used
+	uint64_t _notBialleleicCounter;
+	uint64_t _missingSNPCounter;
+	uint64_t _lowFreqSNPCounter;
+	uint64_t _lowVariantQualityCounter;
+	uint64_t _noPLCounter;
+	uint64_t _numAcceptedLoci;
 
 	//tmp variables used for reading
 	TGenotypeFrequencies genoFrequencies;
 	double _trueAlleleFrequency;
+	std::string curChr;
 
 	void _init();
 	void resetCounters();
@@ -122,7 +130,7 @@ public:
 	void concludeFilters(TLog* logfile);
 
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
-	std::string chr(){ return vcfFile.chr(); };
+	std::string chr(){ return curChr; };
 	long position(){ return vcfFile.position(); };
 	char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
