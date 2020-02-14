@@ -84,6 +84,10 @@ public:
 	uint64_t curEnd(){
 		return _windowIt->second;
 	};
+
+	uint64_t curSize(){
+		return _windowIt->second - _windowIt->first;
+	};
 };
 
 class TBed{
@@ -135,6 +139,19 @@ private:
 		_chrIt = _chromosomes.end();
 	};
 
+	void _setCurChrAsParsed(){
+		_chrIt->second->setAsParsed();
+
+		//check if all chromosomes have been parsed
+		_allChrParsed = true;
+		for(auto& it : _chromosomes){
+			if(!it.second->parsed()){
+				_allChrParsed = false;
+				break;
+			}
+		}
+	};
+
 public:
 	std::string filename;
 
@@ -165,16 +182,14 @@ public:
 	bool setChr(const std::string & chr){
 		//set cur chr as parsed
 		if(_chrIt != _chromosomes.end()){
-			_chrIt->second->setAsParsed();
 
-			//check if all chromosomes have been parsed
-			_allChrParsed = true;
-			for(auto& it : _chromosomes){
-				if(!it.second->parsed()){
-					_allChrParsed = false;
-					break;
-				}
+			//already on correct chromosome?
+			if(_chrIt->first == chr){
+				return true;
 			}
+
+			//set current as parsed
+			_setCurChrAsParsed();
 		}
 
 		//jump to requested chromosome
@@ -194,7 +209,12 @@ public:
 
 	bool nextWindow(){
 		if(_chrIt==_chromosomes.end()) return false;
-		return _chrIt->second->next();
+		if(!_chrIt->second->next()){
+			//set current as parsed
+			_setCurChrAsParsed();
+			return false;
+		}
+		return true;
 	};
 
 	bool reachedEnd(){
@@ -206,14 +226,19 @@ public:
 		return _chrIt->second->reachedEnd();
 	};
 
-	long curWindowStart(){
+	uint64_t curWindowStart(){
 		if(_chrIt==_chromosomes.end()) return -1;
 		return _chrIt->second->curStart();
 	};
 
-	long curWindowEnd(){
+	uint64_t curWindowEnd(){
 		if(_chrIt==_chromosomes.end()) return -1;
 		return _chrIt->second->curEnd();
+	};
+
+	uint64_t curWindowSize(){
+		if(_chrIt==_chromosomes.end()) return 0;
+				return _chrIt->second->curSize();
 	};
 
 	void print(){

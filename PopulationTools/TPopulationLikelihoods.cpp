@@ -42,7 +42,7 @@ void TPopulationSamples::_init(){
 };
 
 std::string TPopulationSamples::getPopulationName(int index){
-	for(std::map<std::string, int>::iterator it = populations.begin(); it != populations.end(); ++it){
+	for(std::map<std::string, uint32_t>::iterator it = populations.begin(); it != populations.end(); ++it){
 		if(it->second == index)
 			return it->first;
 	}
@@ -62,7 +62,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	std::string line;
 	bool hasPopColumn = false;
 	_numPopulations = 0;
-	std::map<std::string, int>::iterator it;
+	std::map<std::string, uint32_t>::iterator it;
 
 	//now parse and store
 	while(file.good() && !file.eof()){
@@ -120,14 +120,14 @@ void TPopulationSamples::fillSampleOrder(){
 	_numSamples = samples.size();
 	if(_numSamples > 0){
 		_hasSamples = true;
-		numSamplesPerPop = new int[_numPopulations];
-		startIndexPerPop = new int[_numPopulations];
+		numSamplesPerPop = new uint32_t[_numPopulations];
+		startIndexPerPop = new uint32_t[_numPopulations];
 		//put samples in order by populations
 		int nextIndex = 0;
-		for(int p=0; p<_numPopulations; ++p){
+		for(uint32_t p=0; p<_numPopulations; ++p){
 			numSamplesPerPop[p] = 0;
 			startIndexPerPop[p] = nextIndex;
-			for(std::map<std::string, int>::iterator it = samples.begin(); it != samples.end(); ++it){
+			for(std::map<std::string, uint32_t>::iterator it = samples.begin(); it != samples.end(); ++it){
 				if(it->second == p){
 					sampleOrder.emplace(it->first, nextIndex);
 					++nextIndex;
@@ -143,14 +143,14 @@ bool TPopulationSamples::sampleIsUsed(const std::string& name){
 	return true;
 };
 
-int TPopulationSamples::getOrderedSampleIndex(const std::string & name){
+uint32_t TPopulationSamples::getOrderedSampleIndex(const std::string & name){
 	if(!sampleIsUsed(name))
 		throw "Sample '" + name + "' does not exist!";
 	return sampleOrder.find(name)->second;
 };
 
-std::string TPopulationSamples::getNameFromOrderedIndex(int index){
-	for(std::map<std::string, int>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
+std::string TPopulationSamples::getNameFromOrderedIndex(uint32_t index){
+	for(std::map<std::string, uint32_t>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
 		if(it->second == index)
 			return it->first;
 	}
@@ -158,9 +158,20 @@ std::string TPopulationSamples::getNameFromOrderedIndex(int index){
 	throw "Sample index " + toString(index) + " out of range!";
 };
 
+void TPopulationSamples::addOrderedSampleNamesToVector(std::vector<std::string> & vec){
+	if(_hasSamples){
+		std::vector<std::string> tmp(_numSamples);
+		for(std::map<std::string, uint32_t>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
+			tmp[it->second] = it->first;
+		}
+
+		vec.insert(vec.end(), tmp.begin(), tmp.end());
+	}
+};
+
 void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames){
 	_numSamples = vcfSampleNames.size();
-	_VCF_order = new int[_numSamples];
+	_VCF_order = new uint32_t[_numSamples];
 	_VCF_order_initialized = true;
 
 	//set a single populations
@@ -179,10 +190,10 @@ void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfS
 
 
 void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames){
-	_VCF_order = new int[_numSamples];
+	_VCF_order = new uint32_t[_numSamples];
 	_VCF_order_initialized = true;
 	bool sampleUsed[_numSamples];
-	for(int s=0; s<_numSamples; ++s)
+	for(uint32_t s=0; s<_numSamples; ++s)
 		sampleUsed[s] = false;
 
 	int vcfIndex = 0;
@@ -198,24 +209,24 @@ void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames)
 	}
 
 	//check if we lack samples
-	for(int s=0; s<_numSamples; ++s){
+	for(uint32_t s=0; s<_numSamples; ++s){
 		if(!sampleUsed[s])
 			throw "Sample '" + getNameFromOrderedIndex(s) + "' missing in VCF!";
 	}
 };
 
-int TPopulationSamples::numSamplesMissingInPop(bool* sampleMissing, int population){
+uint32_t TPopulationSamples::numSamplesMissingInPop(bool* sampleMissing, uint32_t population){
 	int numMissing = 0;
-	for(int s=0; s<numSamplesPerPop[population]; ++s){
+	for(uint32_t s=0; s<numSamplesPerPop[population]; ++s){
 		if(sampleMissing[startIndexPerPop[population] + s])
 			numMissing++;
 	}
 	return numMissing;
 };
 
-int TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, int population){
+uint32_t TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, uint32_t population){
 	int numWithData = 0;
-	for(int s=0; s<numSamplesPerPop[population]; ++s){
+	for(uint32_t s=0; s<numSamplesPerPop[population]; ++s){
 		if(!sampleMissing[startIndexPerPop[population] + s])
 			numWithData++;
 	}
@@ -236,8 +247,6 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameter
 
 TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
 	closeVCF();
-	if(trueFreqFileOpen)
-		closeTrueAlleleFreqFile();
 	if(limitToSitesInBed)
 		delete bedFile;
 };
@@ -246,7 +255,6 @@ void TPopulationLikelihoodReader::_init(){
 	//set all values to defaults
 	_initialized = false;
 	vcfOpen = false;
-	trueFreqFileOpen = false;
 
 	//BED file
 	bedFile = nullptr;
@@ -261,13 +269,9 @@ void TPopulationLikelihoodReader::_init(){
 	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
 	minVariantQuality = 0;
 	estimateGenotypeFrequencies = false;
-	storeTrueAlleleFreq = false;
 
 	//counters
 	resetCounters();
-
-	//allele frequency
-	_trueAlleleFrequency = -1.0;
 };
 
 void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
@@ -324,14 +328,8 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ". (parameter 'minVariantQuality')");
 	}
 
-	//set store stuff to off
-	storeTrueAlleleFreq = false;
-
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
-
-	//additional settings
-	storeTrueAlleleFreq = false;
 
 	_initialized = true;
 };
@@ -377,32 +375,13 @@ void TPopulationLikelihoodReader::openVCF(std::string vcfFilename){
 	resetCounters();
 };
 
-void TPopulationLikelihoodReader::openTrueAlleleFrequenciesFile(std::string trueAlleleFreqFileName, bool isZipped){
-	if(isZipped)
-		trueFreq = new gz::igzstream(trueAlleleFreqFileName.c_str());
-	else trueFreq = new std::ifstream(trueAlleleFreqFileName.c_str());
-	if(!(*trueFreq) || trueFreq->fail() || !trueFreq->good())
-		throw "Failed to open file '" + trueAlleleFreqFileName + "'!";
-	trueFreqFileOpen = true;
-}
-
-void TPopulationLikelihoodReader::closeTrueAlleleFreqFile(){
-	delete trueFreq;
-	trueFreqFileOpen = false;
-}
-
 void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter){
-	data.resize(samples.numSamples());
-	return readDataFromVCF(data.samples(), samples, glfConverter);
-};
-
 int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
 	int numIndividualsWithData = 0;
-	for(int s = 0; s < samples.numSamples(); ++s){
+	for(uint32_t s = 0; s < samples.numSamples(); ++s){
 		int vcfIndex = samples.VCF_order(s);
 
 		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
@@ -435,6 +414,171 @@ bool TPopulationLikelihoodReader::_readNextLineFromVCF(){
 	//read next line
 	if(!vcfFile.next()) return false;
 
+	//all fine!
+	return true;
+};
+
+bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+	//skip sites with != 2 alleles
+	if(vcfFile.getNumAlleles() != 2){
+		_notBialleleicCounter++;
+		return false;
+	}
+
+	//skip sites with too low variant quality
+	if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
+		_lowVariantQualityCounter++;
+		return false;
+	}
+
+	//check if GL or PL is given
+	uint32_t numIndividualsWithData = 0;
+	if(vcfFile.formatColExists("GL")){
+		numIndividualsWithData = filterOnDepth(data, samples);
+		double tmp[3];
+		for(uint32_t s = 0; s < samples.numSamples(); ++s){
+			int vcfIndex = samples.VCF_order(s);
+			vcfFile.fillLog10GenotypeLikelihoods(vcfIndex, tmp[0], tmp[1], tmp[2]);
+			data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
+			data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
+			data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
+		}
+	} else if(vcfFile.formatColExists("PL")){
+		numIndividualsWithData = filterOnDepth(data, samples);
+		uint8_t tmp[3];
+		for(uint32_t s = 0; s < samples.numSamples(); ++s){
+			int vcfIndex = samples.VCF_order(s);
+			vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[1], tmp[2]);
+			data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
+			data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
+			data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
+		}
+	} else {
+		++_noPLCounter;
+		return false;
+	}
+
+	// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
+	if (numIndividualsWithData < minNumSamplesWithData){
+		_missingSNPCounter++;
+		return false;
+	}
+
+	//filter in MAF
+	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
+		genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
+
+		if(genoFrequencies.MAF < freqFilter){
+			_lowFreqSNPCounter++;
+			return false;
+		}
+	}
+
+	//all fine!
+	return true;
+};
+
+bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
+	while(!vcfFile.eof && vcfFile.chr() == curChr){
+		vcfFile.next();
+		++_lineCounter;
+		++_notInBedFile;
+	}
+
+	if(vcfFile.eof){
+		return false;
+	} else {
+		//update chr
+		curChr = vcfFile.chr();
+
+		if(limitToSitesInBed){
+			bedFile->setChr(vcfFile.chr());
+		}
+		return true;
+	}
+};
+
+void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
+	struct timeval end;
+	gettimeofday(&end, NULL);
+	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
+	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
+};
+
+void TPopulationLikelihoodReader::concludeFilters(){
+	printProgressFrequencyFiltering();
+	if(_notInBedFile > 0)
+		logfile->conclude(toString(_notInBedFile) + " loci were not in considered windows (BED file).");
+	if(_notBialleleicCounter > 0)
+		logfile->conclude(toString(_notBialleleicCounter) + " loci were not bi-allelic.");
+	if(_lowVariantQualityCounter > 0)
+		logfile->conclude(toString(_lowVariantQualityCounter) + " loci had variant quality < " + toString(minVariantQuality) + ".");
+	if(_noPLCounter > 0)
+		logfile->conclude(toString(_noPLCounter) + " loci had no PL or GL field.");
+	if(_missingSNPCounter > 0)
+		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
+	if(_lowFreqSNPCounter > 0)
+		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
+};
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// TPopulationLikelihoodReaderLocus                                                           //
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+TPopulationLikelihoodReaderLocus::TPopulationLikelihoodReaderLocus():TPopulationLikelihoodReader(){
+	//settings regarding true allele frequencies
+	_init();
+};
+
+TPopulationLikelihoodReaderLocus::~TPopulationLikelihoodReaderLocus(){
+	_closeTrueAlleleFreqFile();
+};
+
+TPopulationLikelihoodReaderLocus::TPopulationLikelihoodReaderLocus(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
+	_init();
+};
+
+void TPopulationLikelihoodReaderLocus::_init(){
+	trueFreqFileOpen = false;
+	storeTrueAlleleFreq = false;
+	_trueAlleleFrequency = -1.0;
+};
+
+void TPopulationLikelihoodReaderLocus::initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+	TPopulationLikelihoodReader::initialize(Parameters, Logfile, saveAlleleFreq);
+
+	//open true allele freq file
+	if(Parameters.parameterExists("trueAlleleFreq")){
+		openTrueAlleleFrequenciesFile(Parameters.getParameterString("trueAlleleFreq"));
+	}
+};
+
+void TPopulationLikelihoodReaderLocus::openTrueAlleleFrequenciesFile(const std::string trueAlleleFreqFileName){
+	if(trueAlleleFreqFileName.find(".gz") == std::string::npos){
+		logfile->startIndent("Reading true allele frequencies from gzipped file '" + trueAlleleFreqFileName + "'.");
+		trueFreq = new gz::igzstream(trueAlleleFreqFileName.c_str());
+	} else {
+		logfile->startIndent("Reading true allele frequencies from file '" + trueAlleleFreqFileName + "'.");
+		trueFreq = new std::ifstream(trueAlleleFreqFileName.c_str());
+	}
+	if(!(*trueFreq) || trueFreq->fail() || !trueFreq->good())
+		throw "Failed to open file '" + trueAlleleFreqFileName + "'!";
+	trueFreqFileOpen = true;
+};
+
+void TPopulationLikelihoodReaderLocus::_closeTrueAlleleFreqFile(){
+	if(trueFreqFileOpen){
+		delete trueFreq;
+		trueFreqFileOpen = false;
+	}
+};
+
+bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
+
+	if(!TPopulationLikelihoodReader::_readNextLineFromVCF())
+		return false;
+
 	//read true allele frequency
 	//file is assumed to have exact same dimension: always read next line!
 	if(storeTrueAlleleFreq){
@@ -445,7 +589,7 @@ bool TPopulationLikelihoodReader::_readNextLineFromVCF(){
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
-		int pos = stringToInt(tmp[1]);
+		uint64_t pos = stringToLong(tmp[1]);
 		_trueAlleleFrequency = stringToDouble(tmp[2]);
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
@@ -463,7 +607,12 @@ bool TPopulationLikelihoodReader::_readNextLineFromVCF(){
 	return true;
 };
 
-bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+	data.resize(samples.numSamples());
+	return readDataFromVCF(data.samples(), samples, glfConverter);
+};
+
+bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -508,64 +657,12 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 			//else accept current position
 		}
 
-        //skip sites with != 2 alleles
-        if(vcfFile.getNumAlleles() != 2){
-        	_notBialleleicCounter++;
-        	continue;
-        }
-
-        //skip sites with too low variant quality
-        if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
-        	_lowVariantQualityCounter++;
-        	continue;
-        }
-
-		//check if GL or PL is given
-        uint32_t numIndividualsWithData = 0;
-		if(vcfFile.formatColExists("GL")){
-			numIndividualsWithData = filterOnDepth(data, samples);
-			double tmp[3];
-			for(int s = 0; s < samples.numSamples(); ++s){
-				int vcfIndex = samples.VCF_order(s);
-				vcfFile.fillLog10GenotypeLikelihoods(vcfIndex, tmp[0], tmp[1], tmp[2]);
-				data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
-				data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
-				data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
-			}
-		} else if(vcfFile.formatColExists("PL")){
-			numIndividualsWithData = filterOnDepth(data, samples);
-			uint8_t tmp[3];
-			for(int s = 0; s < samples.numSamples(); ++s){
-				int vcfIndex = samples.VCF_order(s);
-				vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[1], tmp[2]);
-				data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
-				data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
-				data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
-			}
-		} else {
-			++_noPLCounter;
-			continue;
+		//filter
+		if(_filterSite(data, samples, glfConverter)){
+     		//SNP is accepted!
+			++_numAcceptedLoci;
+			return true;
 		}
-
-		// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
-		if (numIndividualsWithData < minNumSamplesWithData){
-			_missingSNPCounter++;
-			continue; // skip rest of loop (don't store)
-		}
-
-		//filter in MAF
-		if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-			genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
-
-			if(genoFrequencies.MAF < freqFilter){
-				_lowFreqSNPCounter++;
-				continue;
-			}
-		}
-
-		//SNP is accepted!
-		++_numAcceptedLoci;
-		return true;
     }
 
 	//return false at end of file
@@ -573,31 +670,107 @@ bool TPopulationLikelihoodReader::readDataFromVCF(TSampleLikelihoods* data, TPop
 	return false;
 };
 
-void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
-	struct timeval end;
-	gettimeofday(&end, NULL);
-	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
-	logfile->list("Parsing line " + toString(_lineCounter) + ", retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
-};
-
-void TPopulationLikelihoodReader::concludeFilters(){
-	printProgressFrequencyFiltering();
-	if(_notInBedFile > 0)
-		logfile->conclude(toString(_notInBedFile) + " loci were not in considered windows (BED file).");
-	if(_notBialleleicCounter > 0)
-		logfile->conclude(toString(_notBialleleicCounter) + " loci were not bi-allelic.");
-	if(_lowVariantQualityCounter > 0)
-		logfile->conclude(toString(_lowVariantQualityCounter) + " loci had variant quality < " + toString(minVariantQuality) + ".");
-	if(_noPLCounter > 0)
-		logfile->conclude(toString(_noPLCounter) + " loci had no PL or GL field.");
-	if(_missingSNPCounter > 0)
-		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
-	if(_lowFreqSNPCounter > 0)
-		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
-};
-
-void TPopulationLikelihoodReader::writePosition(TOutputFile & out){
+void TPopulationLikelihoodReaderLocus::writePosition(TOutputFile & out){
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+// TPopulationLikelihoodReaderWindow                                                          //
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+TPopulationLikelihoodReaderWindow::TPopulationLikelihoodReaderWindow():TPopulationLikelihoodReader(){
+
+};
+
+TPopulationLikelihoodReaderWindow::TPopulationLikelihoodReaderWindow(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
+
+};
+
+TPopulationLikelihoodReaderWindow::~TPopulationLikelihoodReaderWindow(){
+
+};
+
+bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindow & window, TPopulationSamples & samples, TGlfConverter & glfConverter){
+	//set time at beginning
+	if(!vcfParsingStarted){
+		vcfParsingStarted = true;
+		gettimeofday(&startTime, NULL);
+
+		//read first locus
+		if(!_readNextLineFromVCF()) return false; //reached end of VCF
+	}
+
+	//only works if BED file is open
+	if(!limitToSitesInBed){
+		throw "Can not read data from VCF into window: no windows defined!";
+	}
+
+	//1) make sure we are at right window and place in VCF
+	//----------------------------------------------------
+	//go to next window on current chromosome
+	bedFile->nextWindow();
+	if(bedFile->reachedEnd()) return false;
+
+	//if bed is at end of chr, jump to next chr
+	while(bedFile->reachedEndOfChr()){
+		if(!_jumpToNextChromosome()){
+			//return false at end of file
+			logfile->list("Reached end of VCF file.");
+		}
+		bedFile->setChr(curChr);
+
+		if(bedFile->reachedEnd()) return false;
+	}
+
+	//if VCF is on same chromosome but behind, advance VCF
+	while(!vcfFile.eof && vcfFile.chr() == bedFile->curChr() && vcfFile.position() < bedFile->curWindowStart()){
+		_readNextLineFromVCF();
+	}
+
+	//if VCF is at end, is on next chromosome or past window, return empty
+	if(vcfFile.eof || vcfFile.chr() != bedFile->curChr() || vcfFile.position() > bedFile->curWindowEnd()){
+		window.fillAsMissing();
+		return true;
+	}
+
+	//2) fill window!
+	//---------------
+	//resize
+	window.resize(bedFile->curWindowSize(), samples.numSamples());
+
+	//fill
+	uint32_t index = 0;
+	while(vcfFile.position() < bedFile->curWindowEnd()){
+		uint32_t curIndex = vcfFile.position() - bedFile->curWindowStart();
+
+		//fill empty until cur position
+		for(; index<curIndex; ++index){
+			window[index].fillAsMissing();
+		}
+
+		//fill cur position
+		if(_filterSite(window[index].samples(), samples, glfConverter)){
+     		//SNP is accepted!
+			++_numAcceptedLoci;
+		} else {
+			window[index].fillAsMissing();
+		}
+
+		//read next
+		if(!_readNextLineFromVCF()){
+			//end of file: fill empty until end
+			for(; index<window.numLoci(); ++index){
+				window[index].fillAsMissing();
+			}
+		}
+	}
+
+	//all fine!
+	return true;
+};
+
+void TPopulationLikelihoodReaderWindow::writeWindow(TOutputFile & out){
+	out << bedFile->curChr() << bedFile->curWindowStart() << bedFile->curWindowEnd();
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -709,7 +882,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		throw "VCF already read!";
 
 	//create reader
-	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+	TPopulationLikelihoodReaderLocus reader(Parameters, logfile, saveAlleleFrequencies);
 	if(saveAlleleFrequencies){
 		reader.doEstimateGenotypeFrequencies();
 	}
@@ -720,18 +893,6 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename);
-
-	//open true allele freq file
-	if(saveTrueAlleleFrequencies){
-		std::string trueFreqFileName = Parameters.getParameterString("trueAlleleFreq");
-		if(trueFreqFileName.find(".gz") == std::string::npos){
-			logfile->startIndent("Reading true allele frequencies from gzipped file '" + trueFreqFileName + "'.");
-			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, false);
-		} else {
-			logfile->startIndent("Reading true allele frequencies from file '" + trueFreqFileName + "'.");
-			reader.openTrueAlleleFrequenciesFile(trueFreqFileName, true);
-		}
-	}
 
 	//Match samples
 	if(samples.hasSamples())

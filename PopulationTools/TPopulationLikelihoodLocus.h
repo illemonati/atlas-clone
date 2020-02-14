@@ -30,6 +30,15 @@ public:
 		if(genotype == 2) return glfLikelihood_2;
 		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
 	};
+
+	void setAsMissing(){
+		glfLikelihood_0 = 0.0;
+		glfLikelihood_1 = 0.0;
+		glfLikelihood_2 = 0.0;
+
+		isHaploid = false;
+		isMissing = true;
+	};
 };
 
 //------------------------------------------------
@@ -42,24 +51,10 @@ private:
 	uint32_t _storageSize;
 	TSampleLikelihoods* _samples; //allows simple access to subsets based on populations
 
-	void _copy(const TPopulationLikehoodLocus & other){
-		_numSamples = 0;
-		_storageSize = 0;
-		resize(other._numSamples);
-
-		//copy data
-		for(uint32_t i=0; i<_numSamples; i++){
-			_samples[i] = other._samples[i];
-		}
-	};
+	void _copy(const TPopulationLikehoodLocus & other);
 
 public:
-	TPopulationLikehoodLocus(){
-		_numSamples = 0;
-		_storageSize = 0;
-		_samples = nullptr;
-	};
-
+	TPopulationLikehoodLocus();
 	TPopulationLikehoodLocus(const TPopulationLikehoodLocus & other){
 		_copy(other);
 	};
@@ -69,32 +64,13 @@ public:
 		return *this;
 	};
 
-	TPopulationLikehoodLocus(int NumSamples){
-		_numSamples = 0;
-		_storageSize = 0;
-		resize(NumSamples);
-	};
-
+	TPopulationLikehoodLocus(int NumSamples);
 	~TPopulationLikehoodLocus(){
 		clear();
 	};
 
-	void clear(){
-		if(_storageSize > 0){
-			delete[] _samples;
-		}
-		_numSamples = 0;
-		_storageSize = 0;
-	};
-
-	void resize(uint32_t NumSamples){
-		if(_storageSize < NumSamples){
-			clear();
-			_numSamples = NumSamples;
-			_storageSize = _numSamples;
-			_samples = new TSampleLikelihoods[_storageSize];
-		}
-	};
+	void clear();
+	void resize(uint32_t NumSamples);
 
 	TSampleLikelihoods & operator[](int index){
 		return _samples[index];
@@ -108,24 +84,9 @@ public:
 		return _numSamples;
 	};
 
-	uint32_t numSamplesWithData(){
-		uint32_t n = 0;
-		for(uint32_t i=0; i<_numSamples; i++){
-			if(!_samples[i].isMissing){
-				++n;
-			}
-		}
-		return n;
-	};
-
-	bool hasData(){
-		for(uint32_t i=0; i<_numSamples; i++){
-			if(!_samples[i].isMissing){
-				return true;
-			}
-		}
-		return false;
-	};
+	uint32_t numSamplesWithData();
+	bool hasData();
+	void fillAsMissing();
 };
 
 //------------------------------------------------
@@ -139,70 +100,24 @@ private:
 	uint32_t _storageSize;
 	TPopulationLikehoodLocus* _loci; //allows simple access to subsets based on populations
 
+	void _init();
+
 public:
-	TPopulationLikehoodWindow(){
-		_numSamples = 0;
-		_numLoci = 0;
-		_storageSize = 0;
-		_loci = nullptr;
-	};
-
-	TPopulationLikehoodWindow(TPopulationLikehoodWindow & other){
-		_numSamples = 0;
-		_storageSize = 0;
-		_numLoci = 0;
-		resize(other._numSamples);
-
-		//_copy data
-		for(uint32_t i=0; i<_numLoci; i++){
-			_loci[i] = other._loci[i];
-		}
-	};
-
-	TPopulationLikehoodWindow(int NumSamples){
-		_numSamples = 0;
-		_storageSize = 0;
-		resize(NumSamples);
-	};
+	TPopulationLikehoodWindow();
+	TPopulationLikehoodWindow(TPopulationLikehoodWindow & other);
+	TPopulationLikehoodWindow(uint32_t NumLoci, uint32_t NumSamples);
+	TPopulationLikehoodWindow(uint32_t NumLoci);
 
 	~TPopulationLikehoodWindow(){
 		clear();
 	};
 
-	void clear(){
-		if(_storageSize > 0){
-			delete[] _loci;
-		}
-		_numSamples = 0;
-		_storageSize = 0;
-	};
+	void clear();
+	void resize(uint32_t NumLoci);
+	void resize(uint32_t NumLoci, uint32_t NumSamples);
 
-	void resize(uint32_t NumLoci){
-		if(_storageSize < _numLoci){
-			clear();
-			_numLoci = NumLoci;
-			_storageSize = _numLoci;
-			_loci = new TPopulationLikehoodLocus[_storageSize];
-		}
-	};
-
-	void resize(uint32_t NumLoci, uint32_t NumSamples){
-		//resize container
-		resize(NumLoci);
-
-		//ensure sample size
-		if(NumSamples != _numSamples){
-			_numSamples = NumSamples;
-
-			for(uint32_t i=0; i<_numLoci; i++){
-				_loci[i].resize(_numSamples);
-			}
-		}
-	};
-
-
-	TPopulationLikehoodLocus & operator[](int index){
-		return _loci[index];
+	TPopulationLikehoodLocus & operator[](int locus){
+		return _loci[locus];
 	};
 
 	uint32_t numSamples(){
@@ -213,25 +128,10 @@ public:
 		return _numLoci;
 	};
 
-	uint32_t numLociwithData(){
-		uint32_t n = 0;
-		for(uint32_t i=0; i<_numLoci; i++){
-			if(_loci[i].hasData()){
-				++n;
-			}
-		}
-		return n;
-	}
-
-	bool hasData(){
-		for(uint32_t i=0; i<_numLoci; i++){
-			if(_loci[i].hasData()){
-				return true;
-			}
-		}
-		return false;
-	};
-
+	uint32_t numLociwithData();
+	bool hasData();
+	void fillAsMissing();
+	bool individualHasMissingData(uint32_t individual);
 };
 
 

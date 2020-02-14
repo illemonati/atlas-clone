@@ -321,7 +321,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//create reader
 	bool saveAlleleFrequencies = true;
-	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+	TPopulationLikelihoodReaderLocus reader(Parameters, logfile, saveAlleleFrequencies);
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file

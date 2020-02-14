@@ -134,7 +134,7 @@ public:
 	long lineNumber;
 	std::vector<std::string> data; //used to store read data
 	bool positionParsed, variantParsed, idParsed, filterParsed, qualityParsed, infoParsed, formatParsed, samplesParsed;
-	long pos;
+	uint64_t pos;
 	std::string chr;
 	double variantQuality;
 	bool variantQualityMissing;
@@ -207,7 +207,7 @@ public:
 
 	//get variant info
 	std::string getChr(TVcfLine & line);
-	long getPos(TVcfLine & line);
+	uint64_t getPos(TVcfLine & line);
 	int getNumAlleles(TVcfLine & line);
 	char getRefAllele(TVcfLine & line);
 	char getFirstAltAllele(TVcfLine & line);

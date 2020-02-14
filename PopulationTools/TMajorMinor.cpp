@@ -236,7 +236,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open vcf file
 	std::vector<std::string> sampleNames;
 	glfReader.fillSampleNamesOfActiveFiles(sampleNames);
-	TGlfMultiReaderVcf vcf(outname + "_majorMinor.vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
+	TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
 	if(usePhredLikelihoods){
 		vcf.usePhredScaledLikelihoods();
 	}
