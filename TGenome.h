@@ -94,6 +94,7 @@ public:
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
+	void separateReads(TParameters & params);
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
 	void allelicDepth(TParameters & params);

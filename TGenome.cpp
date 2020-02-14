@@ -2034,6 +2034,126 @@ void TGenome::downSampleBamFile(TParameters & params){
 	reporter.printEnd();
 };
 
+void TGenome::separateReads(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
+
+	//read downsampling rate
+	std::vector<double> fracVector;
+	fillVectorOfDownsamplingProbabilities(params.getParameterString("frac"), fracVector);
+	int numFrac = fracVector.size();
+
+	if(numFrac < 1)
+		throw "No downsampling probabilities provided!";
+
+	//normalize fractions provided by user
+	double sum = 0.0;
+	for(int i=0; i<numFrac; ++i){
+		sum += fracVector[i];
+	}
+
+	std::map <double, int> fracNames;
+	std::vector<std::string> names;
+
+
+	for(int i=0; i<numFrac; ++i){
+		fracVector[i] = fracVector[i] / sum;
+		if(fracVector[i] == 1.0)
+			logfile->warning("Fraction of 1.0 will result in one identical BAM file!");
+
+		std::map<double, int>::iterator it = fracNames.find(fracVector[i]);
+		if(it == fracNames.end()){
+			fracNames.emplace(fracVector[i],1);
+			names.push_back(toString(fracVector[i]));
+		} else {
+			++(it->second);
+			names.push_back(toString(fracVector[i]) + "_" + toString(it->second));
+		}
+	}
+
+	//check if probs are between 0 and 1, save in array and print them
+	logfile->list("Will assign reads to " + toString(numFrac) + " BAM files with the following probabilities: " + concatenateString(fracVector, ", "));
+
+	//open bam files for writing
+	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numFrac];
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	logfile->startIndent("Writing results to the following files:");
+
+	for(int i=0; i<numFrac; ++i){
+		//construct and print filename
+		std::string filename = outputName + "_fraction_" + names[i] + ".bam";
+		logfile->list(filename);
+		//open file
+		if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+	}
+	logfile->endIndent();
+
+	//other temp variables
+	long counter = 0;
+	TGenotypeMap genoMap;
+	TQualityMap qualMap;
+
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
+
+    //now parse through bam file and write alignments
+	while (alignmentParser.readNextAlignment(alignment)){
+		++counter;
+
+		//accept read or not?
+		for(int i=0; i<numFrac; ++i){
+			if(alignmentParser.isInBlacklist(alignment.name())){
+				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
+				continue;
+			}
+
+			double r = randomGenerator->getRand();
+			double tmp = fracVector[0];
+			for(int i=0; i<numFrac-1; ++i){
+				std::cout << "rand: " << r << " i: " << i << " fracVector[i]: " << fracVector[i] << " tmp: " << tmp << std::endl;
+				if(r < tmp){
+					std::cout << "accepted!" << std::endl;
+					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+					break;
+				} else {
+					std::cout << "declined!" << std::endl;
+					tmp = tmp + fracVector[i+1];
+				}
+			}
+		}
+
+		//report
+		reporter.printProgress();
+	}
+
+	//close bam writer and clean up memory
+	for(int i=0; i<numFrac; ++i){
+		bamWriter[i].Close();
+
+		std::string filename = outputName + "_fraction_" + names[i] + ".bam";
+
+		//create index of new bam file
+		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
+		BamTools::BamReader reader;
+		if(!reader.Open(filename))
+			throw "Failed to open BAM file '" + filename + "' for indexing!";
+
+		// create index for BAM file
+		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+		//close BAM file
+		reader.Close();
+		logfile->done();
+	}
+
+	delete[] bamWriter;
+
+	//report end
+	reporter.printEnd();
+};
+
 void TGenome::downSampleReads(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
