@@ -2103,26 +2103,22 @@ void TGenome::separateReads(TParameters & params){
 		++counter;
 
 		//accept read or not?
-		for(int i=0; i<numFrac; ++i){
-			if(alignmentParser.isInBlacklist(alignment.name())){
-				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
-				continue;
-			}
+		if(alignmentParser.isInBlacklist(alignment.name())){
+			alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
+			continue;
+		}
 
-			double r = randomGenerator->getRand();
-			double tmp = fracVector[0];
-			for(int i=0; i<numFrac-1; ++i){
-				std::cout << "rand: " << r << " i: " << i << " fracVector[i]: " << fracVector[i] << " tmp: " << tmp << std::endl;
-				if(r < tmp){
-					std::cout << "accepted!" << std::endl;
-					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-					break;
-				} else {
-					std::cout << "declined!" << std::endl;
-					tmp = tmp + fracVector[i+1];
-				}
+		double r = randomGenerator->getRand();
+		double tmp = fracVector[0];
+		for(int i=0; i<numFrac; ++i){
+			if(r < tmp){
+				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+				break;
+			} else {
+				tmp = tmp + fracVector[i+1];
 			}
 		}
+
 
 		//report
 		reporter.printProgress();
