@@ -48,6 +48,14 @@ public:
 		return _windows.size();
 	};
 
+	uint64_t length(){
+		uint64_t l = 0;
+		for(auto& it : _windows){
+			l += it.second - it.first;
+		}
+		return l;
+	};
+
 	void setAsParsed(){
 		_parsed = true;
 	};
@@ -85,7 +93,7 @@ public:
 		return _windowIt->second;
 	};
 
-	uint64_t curSize(){
+	uint64_t curLength(){
 		return _windowIt->second - _windowIt->first;
 	};
 };
@@ -99,10 +107,16 @@ private:
 
 	void readFile(){
 		//open file
-		std::istream* myStream = NULL;
-		if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
-		else myStream = new std::ifstream(filename.c_str());
-		if(!*myStream) throw "Failed to open BED file '" + filename + "'!";
+		std::istream* myStream = nullptr;
+		if(filename.find(".gz")){
+			myStream = new gz::igzstream(filename.c_str());
+		} else {
+			std::ifstream* tmp = new std::ifstream(filename.c_str());
+			if(!tmp->is_open())
+				throw "Failed to open BED file '" + filename + "'!";
+			myStream = tmp;
+		}
+		if(!myStream->good() || myStream->eof()) throw "Failed to open BED file '" + filename + "'!";
 
 		//tmp variables
 		long lineNum = 0;
@@ -137,6 +151,11 @@ private:
 		//close file
 		delete myStream;
 		_chrIt = _chromosomes.end();
+
+		//check if file contains windows
+		if(size() == 0){
+			throw "BED file '" + filename + "' is empty (or does not exists)!";
+		}
 	};
 
 	void _setCurChrAsParsed(){
@@ -238,7 +257,7 @@ public:
 
 	uint64_t curWindowSize(){
 		if(_chrIt==_chromosomes.end()) return 0;
-				return _chrIt->second->curSize();
+				return _chrIt->second->curLength();
 	};
 
 	void print(){
@@ -247,12 +266,20 @@ public:
 			_chrIt->second->print();
 	};
 
-	uint64_t size(){
-		uint64_t s = 0;
+	size_t size(){
+		size_t s = 0;
 		for(auto& it : _chromosomes){
 			s += it.second->size();
 		}
 		return s;
+	};
+
+	uint64_t length(){
+		uint64_t l = 0;
+		for(auto& it : _chromosomes){
+			l += it.second->length();
+		}
+		return l;
 	};
 
 	int getNumChromosomes(){

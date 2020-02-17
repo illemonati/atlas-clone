@@ -292,6 +292,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 		std::string filename = Parameters.getParameterString("window");
 		logfile->list("Will limit analysis to windows listed in BED file '" + filename + "'.");
 		bedFile = new TBed(filename);
+		logfile->conclude("Will use " + toString(bedFile->size()) + " windows of cumulative length " + toString(bedFile->length()) + " bp on " + toString(bedFile->getNumChromosomes()) + " chromosomes.");
 		limitToSitesInBed = true;
 	}
 
@@ -709,13 +710,14 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 	//----------------------------------------------------
 	//go to next window on current chromosome
 	bedFile->nextWindow();
-	if(bedFile->reachedEnd()) return false;
+	if(bedFile->reachedEnd() || vcfFile.eof) return false;
 
 	//if bed is at end of chr, jump to next chr
 	while(bedFile->reachedEndOfChr()){
 		if(!_jumpToNextChromosome()){
 			//return false at end of file
 			logfile->list("Reached end of VCF file.");
+			return false;
 		}
 		bedFile->setChr(curChr);
 
@@ -762,6 +764,15 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 			for(; index<window.numLoci(); ++index){
 				window[index].fillAsMissing();
 			}
+			break;
+		}
+
+		//if VCF is on next chromosome, fill empty until end
+		if(vcfFile.chr() != bedFile->curChr()){
+			for(; index<window.numLoci(); ++index){
+				window[index].fillAsMissing();
+			}
+			break;
 		}
 	}
 

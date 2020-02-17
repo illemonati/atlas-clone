@@ -39,7 +39,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	//output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = readBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
 	TOutputFileZipped out(outputName);
@@ -85,7 +85,4 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
-
-
-
-}
+};
