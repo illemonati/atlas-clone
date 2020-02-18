@@ -153,7 +153,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 		vcf << "\tGT:GQ:DP:GL";
 
 	//now write active samples
-	for(int i=0; i<data.size; ++i){
+	for(uint32_t i=0; i<data.size; ++i){
 		if(data.samples[i].isHaploid)
 			writeHaploidIndividualToVCF(data.samples[i]);
 		else

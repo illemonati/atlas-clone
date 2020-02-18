@@ -27,7 +27,7 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
-		for(int i=0; i<storage.numSamples; i++){
+		for(uint32_t i=0; i<storage.numSamples(); i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
 					weights[0] = glfConverter[ storage[i][0] ] * pGenotype.oneMinusf;
@@ -132,7 +132,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ];
@@ -157,7 +157,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
 	double LL = 0.0;
 
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				LL += log(glfConverter[ storage[i][0] ] * pGenotype.oneMinusf + glfConverter[ storage[i][1] ] * pGenotype.f);
@@ -321,13 +321,13 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//create reader
 	bool saveAlleleFrequencies = true;
-	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+	TPopulationLikelihoodReaderLocus reader(Parameters, logfile, saveAlleleFrequencies);
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file
 	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
-	reader.openVCF(vcfFilename, logfile);
+	reader.openVCF(vcfFilename);
 
 	//Match samples
 	if(samples.hasSamples())
@@ -372,7 +372,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, glfConverter, logfile)){
+    while(reader.readDataFromVCF(storage, samples, glfConverter)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -413,7 +413,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
