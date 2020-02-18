@@ -249,6 +249,16 @@ public:
 	};
 };
 
+class TTask_separateReads:public TTask_atlas{
+public:
+	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.separateReads(parameters);
+	};
+};
+
 class TTask_downSampleReads:public TTask_atlas{
 public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
