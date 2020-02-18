@@ -49,7 +49,6 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_regular["alleleCounts"] = new TTask_estimateAlleleCounts();
 	taskMap_regular["transformCountFormat"] = new TTask_transformAlleleCountFormat();
 	taskMap_regular["alleleFreq"] = new TTask_estimateAlleleFreq();
-	taskMap_regular["polymorphicWindows"] = new TTask_identifyPolymorphicWindows();
 	taskMap_regular["inbreeding"] = new TTask_estimateInbreeding();
 	taskMap_regular["VCFAssessAllelicBalance"] = new TTask_VCFDiagnostics();
 	taskMap_regular["VCFToInvariantBed"] = new TTask_VCFToInvariantBed();
@@ -63,6 +62,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_debug["inbreedingLikelihood"] = new TTask_inbreedingLikelihood();
 	taskMap_debug["thetaLLSurface"] = new TTask_thetaLLSurface();
 	taskMap_debug["alleleFrequencyLikelihoods"] = new TTask_writeAlleleFrequencyLikelihoods();
+	taskMap_debug["polymorphicWindows"] = new TTask_identifyPolymorphicWindows();
 };
 
 

@@ -130,6 +130,7 @@ public:
 	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	//variant info
 	uint64_t position();
+	uint64_t positionZeroBased();
 	std::string chr();
 	bool variantQualityIsMissing();
 	double variantQuality();

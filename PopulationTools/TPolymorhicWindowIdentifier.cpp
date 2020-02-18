@@ -45,7 +45,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	TOutputFileZipped out(outputName);
 
 	//write header
-	std::vector<std::string> header = {"chr", "start", "end"};
+	std::vector<std::string> header = {"chr", "start", "end", "numWithData", "numMono", "numPoly"};
 	samples.addOrderedSampleNamesToVector(header);
 	out.writeHeader(header);
 
@@ -54,29 +54,44 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
+    uint64_t totalWindowsChecked = 0;
+    uint64_t totalPolymorphicWindows = 0;
     while(reader.readDataFromVCF(window, samples, glfConverter)){
+        int numWindowsWithData = 0;
+        int numWindowsPoly = 0;
+        std::vector<std::string> ind;
+
     	//write window
  		reader.writeWindow(out);
 
  		//write polymoprhic state for each sample
  		for(uint32_t i = 0; i<samples.numSamples(); ++i){
  			if(window.individualHasMissingData(i)){
- 				out << "NA";
+ 				ind.push_back("NA");
  			} else {
+ 				++numWindowsWithData;
  				uint32_t numPoly = 0;
  				for(uint32_t l = 0; l<window.numLoci(); ++l){
- 					if(window[l][i].glfLikelihood_1 > window[l][i].glfLikelihood_0 && window[l][i].glfLikelihood_1 > window[l][i].glfLikelihood_2)
+ 					if(window[l][i].glfLikelihood_1 < window[l][i].glfLikelihood_0 && window[l][i].glfLikelihood_1 < window[l][i].glfLikelihood_2)
  						++numPoly;
  				}
- 				if(numPoly > 0)
- 					out << "1";
- 				else
- 					out << "0";
+ 				if(numPoly > 0){
+ 					ind.push_back("1");
+ 					++numWindowsPoly;
+ 				} else {
+ 					ind.push_back("0");
+ 				}
  			}
  		}
 
- 		//end line
+ 		//write data
+ 		out << numWindowsWithData << numWindowsWithData - numWindowsPoly << numWindowsPoly;
+ 		out.write(ind);
  		out << std::endl;
+
+ 		//update global counts
+ 		totalWindowsChecked += numWindowsWithData;
+ 		totalPolymorphicWindows += numWindowsPoly;
     }
 
     //report final status
@@ -84,5 +99,9 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+
+	//print global stats
+	logfile->conclude(toString(totalPolymorphicWindows) + " of " + toString(totalWindowsChecked) + " windows were found polymoprhic (" + toString(100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked) + "%).");
+
 	logfile->endIndent();
 };

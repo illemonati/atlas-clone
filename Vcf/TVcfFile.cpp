@@ -289,6 +289,9 @@ void TVcfFileSingleLine::fillLog10GenotypeLikelihoods(unsigned int sample, doubl
 uint64_t TVcfFileSingleLine::position(){
 	return parser.getPos(tempLine);
 }
+uint64_t TVcfFileSingleLine::positionZeroBased(){
+	return position() - 1;
+}
 std::string TVcfFileSingleLine::chr(){
 	return parser.getChr(tempLine);
 }
