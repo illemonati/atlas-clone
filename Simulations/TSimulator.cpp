@@ -769,15 +769,14 @@ void TSimulator::setBaseFreq(std::vector<float> & freq){
 //--------------------------------------------------------------
 void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
-	long numReads;
+	uint64_t numReads;
 	if(averageReadLength == 0) numReads = 0;
 	else numReads = thisChr->length * seqDepth / averageReadLength;
 
-	long chrLengthForStart = thisChr->length - maxReadLength;
+	uint64_t chrLengthForStart = thisChr->length - maxReadLength + 1;
 	double probReadPerSite = 1.0 / (double) chrLengthForStart;
-	long numReadsSimulated = 0;
-	int numReadsHere;
-	int r;
+	uint64_t numReadsSimulated = 0;
+	uint32_t numReadsHere;
 
 	//prepare bam alignment
 	for(std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
@@ -791,7 +790,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	logfile->listFlush(progressString);
 
 	//now simulate
-	for(long l=0; l<chrLengthForStart; ++l){
+	for(uint64_t l=0; l<chrLengthForStart; ++l){
 		//write unwritten alignments
 		for(TSimulatorSingleEndRead* rs : readSimulators)
 			rs->writeUnwrittenAlignments(l, bamFile);
@@ -801,7 +800,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;
-			for(r=0; r<numReadsHere; ++r){
+			for(uint32_t r=0; r<numReadsHere; ++r){
 				readSimulators[randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data())]->simulate(haplotypes[randomGenerator->pickOne(2)], l, bamFile);
 			}
 
@@ -922,7 +921,7 @@ void TSimulatorOneIndividual::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 	//fill mutation table
 	mutTable.fill(baseFreq, thetas[chromosome.refID]);
 
-	for(int l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		haplotypes(0,0,l) = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
 		haplotypes(0,1,l) = static_cast<Base>(randomGenerator->pickOne(4, mutTable[haplotypes(0,0,l)]));
 
@@ -939,7 +938,7 @@ void TSimulatorOneIndividual::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 	mutTable.fill(baseFreq, thetas[chromosome.refID]);
 
 	//now simulate genotypes
-	for(int l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		haplotypes(0,0,l) = static_cast<Base> (randomGenerator->pickOne(4, cumulBaseFreq));
 		haplotypes(0,1,l) = haplotypes(0,0,l);
 
@@ -1245,7 +1244,7 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes
 	simulateHaplotypesDiploid(haplotypes, chromosome, ref);
 
 	//now set homozygous
-	for(long l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		//assign to haplotypes
 		haplotypes(0,1,l) = haplotypes(0,0,l);
 		haplotypes(1,1,l) = haplotypes(1,0,l);
@@ -1254,7 +1253,7 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes
 
 void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//run across loci
-	for(long l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick a case
 		int c = randomGenerator->pickOne(9, cumulGenoCaseFrequencies);
 
@@ -1389,7 +1388,7 @@ static inline int is_odd(int x){ return x % 2 != 0; }
 
 void TSimulatorSFS::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	//now simulate haplotypes
-	for(int l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick alleles
 		Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
 		Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
@@ -1431,7 +1430,7 @@ void TSimulatorSFS::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes,
 
 void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
 	int numHaplotypes = 2 * sampleSize;
-	for(int l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick alleles
 		Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
 		Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
@@ -1493,7 +1492,7 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
 	beta = params.getParameterDoubleWithDefault("beta", 0.5);
 	if(beta <= 0.0) throw "Beta must be > 0!";
-	logfile->list("Polymoprhic sites will have allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
+	logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
 	F = params.getParameterDoubleWithDefault("F", 0.0);
 	if(F > 0.0) logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
 	if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
@@ -1501,9 +1500,10 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	//write true allele freq?
 	writeTrueAlleleFreq = false;
 	if(params.parameterExists("writeTrueAlleleFreq")){
-		alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
-		alleleFreqFileMAF = outname + "_trueMAF.txt.gz";
-		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "' and the MAF ot file '" + alleleFreqFileMAF + "'");
+		std::string alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
+		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
+		trueFreqFile.open(alleleFreqFile);
+		trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
 		writeTrueAlleleFreq = true;
 	}
 
@@ -1521,144 +1521,125 @@ void TSimulatorHardyWeinberg::fillCumulGenoProb(const double & f){
 	cumulGenoProb[2] = 1.0;
 };
 
-void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref){
-	Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-	for(int i=0; i<sampleSize; ++i){
-		haplotypes(i,0,locus) = ancestral;
-		haplotypes(i,1,locus) = ancestral;
-	}
+void TSimulatorHardyWeinberg::simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref){
+	//simulate bases
+	site.reference = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+	site.alternative = static_cast<Base>(randomGenerator->pickOne(4, mutTable[site.reference]));
 
-	//reference potentially with divergence
-	ref[locus] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
-};
+	//is the site polymorphic?
+	if(randomGenerator->getRand() < fracPoly){
+		site.isPolymorphic = true;
+		site.f = randomGenerator->getBetaRandom(alpha, beta);
 
-void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
-	//open file to write true allele freq
-	gz::ogzstream outFreq, outFreqMAF;
-	if(writeTrueAlleleFreq){
-		outFreq.open(alleleFreqFile.c_str());
-		if(!outFreq)
-			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
-		outFreqMAF.open(alleleFreqFileMAF.c_str());
-		if(!outFreq)
-			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
+		//reference is a random sample from pop with frequency f: flip if ref is alt!
+		if(randomGenerator->getRand() < site.f){
+			Base tmp = site.reference;
+			site.reference = site.alternative;
+			site.alternative = tmp;
+			site.f = 1 - site.f;
+		}
+	} else {
+		site.isPolymorphic = false;
 
-	}
-
-	//now simulate haplotypes
-	for(int l=0; l<chromosome.length; ++l){
-		//polymoprhic or not?
-		if(randomGenerator->getRand() < fracPoly){
-			//pick alleles
-			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
-
-			//pick allele Frequency
-			double f = randomGenerator->getBetaRandom(alpha, beta);
-			if(writeTrueAlleleFreq)
-				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
-
-			//simulate genotypes
-			for(int i=0; i<sampleSize; ++i){
-				if(randomGenerator->getRand() < f){
-					haplotypes(i,0,l) = derived;
-					haplotypes(i,1,l) = derived;
-				} else {
-					haplotypes(i,0,l) = ancestral;
-					haplotypes(i,1,l) = ancestral;
-				}
-			}
-
-			//reference is ancestral or derived with probability f
-			if(randomGenerator->getRand() < f)
-				ref[l] = derived;
-			else
-				ref[l] = ancestral;
+		//is reference diverged?
+		if(randomGenerator->getRand() < referenceDivergence){
+			site.f = 1.0;
 		} else {
-			fillhaplotypesMonomoprhic(haplotypes, l, ref);
-			if(writeTrueAlleleFreq)
-				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
+			site.f = 0.0;
 		}
 	}
 
-	outFreq.close();
+	//store reference
+	ref[pos] = site.reference;
+
+	//write true frequency: pos is 1 based!
+	if(writeTrueAlleleFreq){
+		trueFreqFile << chr << pos+1 << toBase[site.reference] << toBase[site.alternative] << site.f;
+		if(site.f < 0.5){
+			trueFreqFile << site.f << std::endl;
+		} else {
+			trueFreqFile << 1.0 - site.f << std::endl;
+		}
+	}
+};
+
+void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site){
+	if(site.f == 0.0){
+		for(int i=0; i<sampleSize; ++i){
+			haplotypes(i,0,locus) = site.reference;
+			haplotypes(i,1,locus) = site.reference;
+		}
+	} else {
+		for(int i=0; i<sampleSize; ++i){
+			haplotypes(i,0,locus) = site.alternative;
+			haplotypes(i,1,locus) = site.alternative;
+		}
+	}
+};
+
+void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
+	//storage
+	TSimulatorHardyWeinbergSite site;
+
+	//now simulate haplotypes
+	for(uint64_t l=0; l<chromosome.length; ++l){
+		//simulate site
+		simulateSite(site, chromosome.name, l, ref);
+
+		//polymoprhic or not?
+		if(site.isPolymorphic){
+			//simulate genotypes
+			for(int i=0; i<sampleSize; ++i){
+				if(randomGenerator->getRand() < site.f){
+					haplotypes(i,0,l) = site.alternative;
+					haplotypes(i,1,l) = site.alternative;
+				} else {
+					haplotypes(i,0,l) = site.reference;
+					haplotypes(i,1,l) = site.reference;
+				}
+			}
+		} else {
+			fillhaplotypesMonomoprhic(haplotypes, l, site);
+		}
+	}
 };
 
 void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){
-	//open file to write true allele freq
-	gz::ogzstream outFreq;
-	if(writeTrueAlleleFreq){
-		outFreq.open(alleleFreqFile.c_str());
-		if(!outFreq)
-			throw "Failed to open file '" + alleleFreqFile + "' for writing!";
-	}
-
-	gz::ogzstream outFreqMAF;
-	if(writeTrueAlleleFreq){
-		outFreqMAF.open(alleleFreqFileMAF.c_str());
-		if(!outFreqMAF)
-			throw "Failed to open file '" + alleleFreqFileMAF + "' for writing!";
-	}
+	//storage
+	TSimulatorHardyWeinbergSite site;
 
 	//now simulate haplotypes
-	for(int l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<chromosome.length; ++l){
+		//simulate site
+		simulateSite(site, chromosome.name, l, ref);
+
 		//polymoprhic or not?
-		if(randomGenerator->getRand() < fracPoly){
-			//pick alleles
-			Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-			Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
-
-			//pick allele Frequency
-			double f = randomGenerator->getBetaRandom(alpha, beta);
-//			double f = 0.2;
-
-			//if simulations go through major minor, the allele freq will be flipped
-			if(writeTrueAlleleFreq && f < 0.5)
-				outFreqMAF << chromosome.name << "\t" << l << "\t" << f << std::endl;
-			else if(writeTrueAlleleFreq && f > 0.5)
-				outFreqMAF << chromosome.name << "\t" << l << "\t" << 1.0 - f << std::endl;
-
-			if(writeTrueAlleleFreq)
-				outFreq << chromosome.name << "\t" << l << "\t" << f << std::endl;
-
-
-			fillCumulGenoProb(f);
+		if(site.isPolymorphic){
+			fillCumulGenoProb(site.f);
 
 			//simulate genotypes
 			for(int i=0; i<sampleSize; ++i){
 				int geno = randomGenerator->pickOne(3, cumulGenoProb);
 				if(geno == 0){
-					haplotypes(i,0,l) = ancestral;
-					haplotypes(i,1,l) = ancestral;
+					haplotypes(i,0,l) = site.reference;
+					haplotypes(i,1,l) = site.reference;
 				} else if(geno == 1){
 					if(randomGenerator->getRand() < 0.5){
-						haplotypes(i,0,l) = derived;
-						haplotypes(i,1,l) = ancestral;
+						haplotypes(i,0,l) = site.reference;
+						haplotypes(i,1,l) = site.alternative;
 					} else {
-						haplotypes(i,0,l) = ancestral;
-						haplotypes(i,1,l) = derived;
+						haplotypes(i,0,l) = site.alternative;
+						haplotypes(i,1,l) = site.reference;
 					}
 				} else {
-					haplotypes(i,0,l) = derived;
-					haplotypes(i,1,l) = derived;
+					haplotypes(i,0,l) = site.alternative;
+					haplotypes(i,1,l) = site.alternative;
 				}
 			}
-
-			//reference is ancestral or derived with probability f
-			if(randomGenerator->getRand() < f)
-				ref[l] = derived;
-			else
-				ref[l] = ancestral;
 		} else {
-			fillhaplotypesMonomoprhic(haplotypes, l, ref);
-			if(writeTrueAlleleFreq){
-				outFreq << chromosome.name << "\t" << l << "\t0" << std::endl;
-				outFreqMAF << chromosome.name << "\t" << l << "\t" << 0 << std::endl;
-			}
+			fillhaplotypesMonomoprhic(haplotypes, l, site);
 		}
 	}
-	outFreq.close();
-	outFreqMAF.close();
 };
 
 //--------------------------------------------------------------------

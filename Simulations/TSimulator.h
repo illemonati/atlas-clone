@@ -16,6 +16,7 @@
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
 #include "TSimulatorRead.h"
+#include "../TFile.h"
 
 //---------------------------------------------------------
 //TSimulator
@@ -168,17 +169,24 @@ public:
 //---------------------------------------------------------
 //TSimulatorHardyWeinberg
 //---------------------------------------------------------
+struct TSimulatorHardyWeinbergSite{
+	bool isPolymorphic;
+	Base reference;
+	Base alternative;
+	double f;
+};
+
 class TSimulatorHardyWeinberg:public TSimulator{
 private:
 	double fracPoly, alpha, beta, F;
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
 	bool writeTrueAlleleFreq;
-	std::string alleleFreqFile;
-	std::string alleleFreqFileMAF;
+	TOutputFileZipped trueFreqFile;
 
 	void fillCumulGenoProb(const double & f);
-	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, int & locus, Base* ref);
+	void simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref);
+	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site);
 	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
 
