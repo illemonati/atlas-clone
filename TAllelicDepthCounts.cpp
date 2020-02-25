@@ -67,7 +67,7 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 	TOutputFileZipped out(filename);
 
 	//write header
-	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "minorAllele", "Counts"});
+	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "majorDepth","minorAllele", "minorDepth","Counts"});
 
 	//write counts
 	//uint32_t max = 0;
@@ -93,11 +93,11 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 						if(l == max) tmp.push_back('T');
 
 						//write major
-						out << tmp[0];
+						out << tmp[0] << max;
 
 						//find minor
 						if(tmp.size() > 1){
-							out << tmp[1];
+							out << tmp[1] << 0;
 						} else {
 							//find second
 							uint32_t second = 0;
@@ -107,10 +107,10 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 							if(l < max && l > second) second = l;
 
 							//print minor
-							if(i == second) out << 'A';
-							else if(j == second) out << 'C';
-							else if(k == second) out << 'G';
-							else out << 'T';
+							if(i == second) out << 'A' << i;
+							else if(j == second) out << 'C' << j;
+							else if(k == second) out << 'G' << k;
+							else out << 'T' << l;
 						}
 
 						//write counts
