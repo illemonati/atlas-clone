@@ -27,7 +27,7 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
-		for(int i=0; i<storage.numSamples; i++){
+		for(uint32_t i=0; i<storage.numSamples(); i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
 					weights[0] = glfConverter[ storage[i][0] ] * pGenotype.oneMinusf;
@@ -75,6 +75,13 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
+
+	//prior support
+	minPriorSupport = 1e-16;
+	maxPriorSupport = 1.0 - 1e-16;
+	priorDensAtMin = _prior(minPriorSupport);
+	priorDensAtMax = _prior(maxPriorSupport);
+
 	logfile->list("Will use a beta(" + toString(alpha) + "," + toString(beta) + ") prior (alpha, beta).");
 	logfile->endIndent();
 
@@ -84,7 +91,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	f_MAP = 0.5;
 	f_CI_lower = 0.0;
 	f_CI_upper = 1.0;
-	LL_atMAP = 0.0;
+	logDensity_atMAP = 0.0;
 
 	//prepare initial search grid between 0.0 and 1.0
 	credibleInterval = Parameters.getParameterDoubleWithDefault("credibleInterval", 0.9);
@@ -95,7 +102,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 		throw "Initial grid size must be >= 3!";
 	}
 	initialGridLast = initialGridSize - 1;
-	LL_initialGrid = new double[initialGridSize];
+	density_initialGrid = new double[initialGridSize];
 	f_initialGrid = new double[initialGridSize];
 	double step = 1.0 / (double) initialGridLast;
 	f_initialGrid[0] = 0.0;
@@ -116,15 +123,15 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	if(logGridThreshold < 1.0){
 		throw "grid threshold must be >= 1.0!";
 	}
-	Likelihood_grid = new double[gridSize];
+	density_grid = new double[gridSize];
 	f_grid = new double[gridSize];
 };
 
 TAlleleFreqEstimatorBayes::~TAlleleFreqEstimatorBayes(){
 	delete[] f_initialGrid;
-	delete[] LL_initialGrid;
+	delete[] density_initialGrid;
 	delete[] f_grid;
-	delete[] Likelihood_grid;
+	delete[] density_grid;
 };
 
 double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
@@ -132,7 +139,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ];
@@ -154,10 +161,24 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 	return (sum_1 + 2.0 * sum_2) / (double) n;
 };
 
-double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorBayes::_prior(const double & f){
+	return alphaMinusOne * log(f) + betaMinusOne * log(1.0 - f);
+};
+
+double TAlleleFreqEstimatorBayes::_prior(const THardyWeinbergGenotypeProbabilities & pGenotype){
+	if(pGenotype.f < minPriorSupport){
+		return priorDensAtMin;
+	} else if(pGenotype.f > maxPriorSupport){
+		return priorDensAtMax;
+	} else {
+		return _prior(pGenotype.f);
+	}
+};
+
+double TAlleleFreqEstimatorBayes::calcPosterior(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
 	double LL = 0.0;
 
-	for(int i=0; i<storage.numSamples; i++){
+	for(uint32_t i=0; i<storage.numSamples(); i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
 				LL += log(glfConverter[ storage[i][0] ] * pGenotype.oneMinusf + glfConverter[ storage[i][1] ] * pGenotype.f);
@@ -166,13 +187,17 @@ double TAlleleFreqEstimatorBayes::calcLL(TPopulationLikehoodLocus & storage, THa
 			}
 		}
 	}
-	return LL;
+
+	//add prior
+	//return LL + alphaMinusOne * log(pGenotype.f) + betaMinusOne * log(pGenotype.oneMinusf);
+	//std::cout << pGenotype.f << "\t" << LL << "\t" << _prior(pGenotype) << "\t" << LL + _prior(pGenotype) << std::endl;
+	return LL + _prior(pGenotype);
 };
 
 void TAlleleFreqEstimatorBayes::fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
 	for(int i=0; i<initialGridSize; ++i){
 		pGenotype.set(f_initialGrid[i]);
-		LL_initialGrid[i] = calcLL(storage, pGenotype, glfConverter);
+		density_initialGrid[i] = calcPosterior(storage, pGenotype, glfConverter);
 	}
 };
 
@@ -180,7 +205,7 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 	//use simple line-search to find MAP
 	//initialize
 	pGenotype.set(guessInitialAlleleFrequency(storage, glfConverter));
-	LL_atMAP = calcLL(storage, pGenotype, glfConverter);
+	logDensity_atMAP = calcPosterior(storage, pGenotype, glfConverter);
 	double step = 0.05;
 
 	//now do line search
@@ -189,11 +214,11 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 		pGenotype.set(pGenotype.f + step);
 
 		//calc LL and switch if LL is lower
-		double LL = calcLL(storage, pGenotype, glfConverter);
-		if(LL < LL_atMAP || pGenotype.f == 0.0 || pGenotype.f == 1.0){
+		double LL = calcPosterior(storage, pGenotype, glfConverter);
+		if(LL < logDensity_atMAP || pGenotype.f == 0.0 || pGenotype.f == 1.0){
 			step = - step / 2.718282;
 		}
-		LL_atMAP = LL;
+		logDensity_atMAP = LL;
 	}
 	f_MAP = pGenotype.f;
 
@@ -201,12 +226,12 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 	fillInitialGrid(storage, glfConverter);
 
 	//check if MAP is zero or one
-	if(LL_initialGrid[0] >= LL_atMAP){
+	if(density_initialGrid[0] >= logDensity_atMAP){
 		f_MAP = 0.0;
-		LL_atMAP = LL_initialGrid[0];
-	} else if(LL_initialGrid[initialGridLast] >= LL_atMAP){
+		logDensity_atMAP = density_initialGrid[0];
+	} else if(density_initialGrid[initialGridLast] >= logDensity_atMAP){
 		f_MAP = 1.0;
-		LL_atMAP = LL_initialGrid[initialGridLast];
+		logDensity_atMAP = density_initialGrid[initialGridLast];
 	}
 };
 
@@ -214,15 +239,15 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 	//use initial grid to define final grid
 	//search first that is larger than LL_atMAP - logGridThreshold
 	int first = 0;
-	double relevantLL = LL_atMAP - logGridThreshold;
-	while(LL_initialGrid[first] < relevantLL && f_initialGrid[first] < f_MAP){
+	double relevantLL = logDensity_atMAP - logGridThreshold;
+	while(density_initialGrid[first] < relevantLL && f_initialGrid[first] < f_MAP){
 		++first;
 	}
 	if(first > 0) --first;
 
 	//search last
 	int last = initialGridLast;
-	while(LL_initialGrid[last] < relevantLL && f_initialGrid[last] > f_MAP){
+	while(density_initialGrid[last] < relevantLL && f_initialGrid[last] > f_MAP){
 		--last;
 	}
 	if(last < initialGridLast) ++last;
@@ -234,12 +259,12 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 	for(int i=0; i<gridSize; ++i){
 		f_grid[i] = f_initialGrid[first] + i * step;
 		pGenotype.set(f_grid[i]);
-		Likelihood_grid[i] = exp(calcLL(storage, pGenotype, glfConverter) - LL_atMAP);
-		integral += Likelihood_grid[i];
+		density_grid[i] = exp(calcPosterior(storage, pGenotype, glfConverter) - logDensity_atMAP);
+		integral += density_grid[i];
 	}
 
 	//adjust integral: remove half of first and last and multiply by step
-	integral -= (Likelihood_grid[0] + Likelihood_grid[gridLast]) / 2.0; //first and last count half a step
+	integral -= (density_grid[0] + density_grid[gridLast]) / 2.0; //first and last count half a step
 	integral *= step;
 
 	//find index left and right of MAP
@@ -256,16 +281,16 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 	//add part from MAP to left and right grid points: average height as used when computing integral
 	//then move left and right to next ones
 	double halfStep = step / 2.0;
-	double CI = (Likelihood_grid[left] + Likelihood_grid[right])  * halfStep;
+	double CI = (density_grid[left] + density_grid[right])  * halfStep;
 	-- left;
 	++right;
 
 	//now find 90% CI by iteratively adding on left and right of MAP, depending on which has higher LL
 	double relevantIntegral = credibleInterval * integral;
 	while(CI < relevantIntegral){
-		if(left < 0 || Likelihood_grid[left] < Likelihood_grid[right]){
+		if(left < 0 || density_grid[left] < density_grid[right]){
 			//add at right
-			double add = (Likelihood_grid[right] + Likelihood_grid[right - 1]) * halfStep;
+			double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
 			if(CI + add > relevantIntegral){
 				f_CI_lower = f_grid[left + 1];
 				f_CI_upper = f_grid[right - 1] + step * (relevantIntegral - CI) / add;
@@ -276,7 +301,7 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 			}
 		} else {
 			//add at left
-			double add = (Likelihood_grid[left] + Likelihood_grid[left + 1]) * halfStep;
+			double add = (density_grid[left] + density_grid[left + 1]) * halfStep;
 			if(CI + add > relevantIntegral){
 				f_CI_upper = f_grid[right - 1];
 				f_CI_lower = f_grid[left + 1] + step * (relevantIntegral - CI) / add;
@@ -321,13 +346,13 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//create reader
 	bool saveAlleleFrequencies = true;
-	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
+	TPopulationLikelihoodReaderLocus reader(Parameters, logfile, saveAlleleFrequencies);
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file
 	vcfFilename = Parameters.getParameterString("vcf");
 	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
-	reader.openVCF(vcfFilename, logfile);
+	reader.openVCF(vcfFilename);
 
 	//Match samples
 	if(samples.hasSamples())
@@ -372,7 +397,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, glfConverter, logfile)){
+    while(reader.readDataFromVCF(storage, samples, glfConverter)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -413,7 +438,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();

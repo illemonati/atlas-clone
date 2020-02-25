@@ -107,7 +107,7 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 };
 
 void TGenotypeFrequencies::guess(TPopulationLikehoodLocus & samples){
-	guess(samples.samples, samples.numSamples);
+	guess(samples.samples(), samples.numSamples());
 };
 
 void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
@@ -138,7 +138,7 @@ void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
 };
 
 void TGenotypeFrequencies::estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF){
-	estimate(samples.samples, samples.numSamples, glfConverter, epsilonF);
+	estimate(samples.samples(), samples.numSamples(), glfConverter, epsilonF);
 };
 
 void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter, double epsilonF){
@@ -219,7 +219,7 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 };
 
 double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter){
-	return calculateLog10Likelihood(samples.samples, samples.numSamples, glfConverter);
+	return calculateLog10Likelihood(samples.samples(), samples.numSamples(), glfConverter);
 };
 
 double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter){

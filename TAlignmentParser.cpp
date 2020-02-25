@@ -194,7 +194,7 @@ void TAlignmentParser::setWindowParameters(TParameters & params){
 		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
 		predefinedWindows = new TBed(tmp);
 		logfile->done();
-		logfile->conclude("read " + toString(predefinedWindows->size()) + " on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes");
+		logfile->conclude("Read " + toString(predefinedWindows->size()) + " of cumulative length " + toString(predefinedWindows->length()) + " bp on " + toString(predefinedWindows->getNumChromosomes()) + " chromosomes.");
 	}
 	numWindowsOnChr = 0;
 };

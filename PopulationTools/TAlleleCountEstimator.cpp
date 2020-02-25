@@ -332,8 +332,8 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	//open VCF reader
 	std::string vcfFilename = params.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReader reader(params, logfile, false);
-	reader.openVCF(vcfFilename, logfile);
+	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
+	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
 	//Match samples
@@ -364,7 +364,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(data, samples, glfConverter, logfile)){
+	while(reader.readDataFromVCF(data, samples, glfConverter)){
 		//write chromosome and position
 		alleleCountFile->writePosition(reader.chr(), reader.position());
 
@@ -387,7 +387,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 
 	//report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	logfile->endIndent();
 };
 
@@ -401,8 +401,8 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 	//open VCF reader
 	std::string vcfFilename = params.getParameterString("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReader reader(params, logfile, false);
-	reader.openVCF(vcfFilename, logfile);
+	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
+	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
 	//Match samples
@@ -445,7 +445,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(data, samples, glfConverter, logfile)){
+	while(reader.readDataFromVCF(data, samples, glfConverter)){
 		//write chromosome and position
 		alleleFrequencyLikelihoodFile << reader.chr() << sep << reader.position();
 
@@ -470,7 +470,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 
 	//report final status
 	logfile->endIndent();
-	reader.concludeFilters(logfile);
+	reader.concludeFilters();
 	logfile->endIndent();
 };
 

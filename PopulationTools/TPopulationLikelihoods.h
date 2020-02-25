@@ -17,6 +17,7 @@
 #include "TVcfFile.h"
 #include "../TQualityMap.h"
 #include "TGenotypeFrequencies.h"
+#include "../TBed.h"
 
 //------------------------------------------------
 //TPopulationSamples
@@ -24,14 +25,14 @@
 class TPopulationSamples{
 private:
 	bool _hasSamples;
-	int _numPopulations;
-	int _numSamples;
-	int* numSamplesPerPop;
-	int* startIndexPerPop;
-	std::map<std::string, int> populations; // name and pop index
-	std::map<std::string, int> samples; //name and pop index
-	std::map<std::string, int> sampleOrder; //stores order of samples such that samples of the same population are together
-	int* _VCF_order;
+	uint32_t _numPopulations;
+	uint32_t _numSamples;
+	uint32_t* numSamplesPerPop;
+	uint32_t* startIndexPerPop;
+	std::map<std::string, uint32_t> populations; // name and pop index
+	std::map<std::string, uint32_t> samples; //name and pop index
+	std::map<std::string, uint32_t> sampleOrder; //stores order of samples such that samples of the same population are together
+	uint32_t* _VCF_order;
 	bool _VCF_order_initialized;
 
 	void _init();
@@ -42,92 +43,125 @@ public:
 	~TPopulationSamples();
 
 	bool hasSamples(){ return _hasSamples; };
-	int numSamples(){ return _numSamples; };
+	uint32_t numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
 	std::string getPopulationName(int index);
-	int numSamplesInPop(int population){ return numSamplesPerPop[population]; };
+	uint32_t numSamplesInPop(int population){ return numSamplesPerPop[population]; };
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
 	bool sampleIsUsed(const std::string & name);
-	int getOrderedSampleIndex(const std::string & name);
-	int startIndex(int population){ return startIndexPerPop[population]; };
-	std::string getNameFromOrderedIndex(int index);
+	uint32_t getOrderedSampleIndex(const std::string & name);
+	uint32_t startIndex(int population){ return startIndexPerPop[population]; };
+	std::string getNameFromOrderedIndex(uint32_t index);
+	void addOrderedSampleNamesToVector(std::vector<std::string> & vec);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
-	int VCF_order(const int & index){ return _VCF_order[index]; };
-	uint8_t* getPointerToDataInPop(uint8_t* data, int population){ return &data[3*startIndexPerPop[population]]; };
-	int numSamplesMissingInPop(bool* sampleMissing, int population);
-	int numSamplesWithDataInPop(bool* sampleMissing, int population);
+	uint32_t VCF_order(const uint32_t & index){ return _VCF_order[index]; };
+	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population){ return &data[3*startIndexPerPop[population]]; };
+	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population);
+	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population);
 };
 
 //-------------------------------------------------
 //TPopulationLikelihoodReader
 //-------------------------------------------------
 class TPopulationLikelihoodReader{
-private:
+protected:
+	bool _initialized;
+	TLog* logfile;
 	TQualityMap phredToGTLMap;
 	TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
-	std::istream* trueFreq;
-	bool trueFreqFileOpen = false;
+
+	//BED file for windows
+	TBed* bedFile;
+	bool limitToSitesInBed;
 
 	//settings
-	long limitLines;
-	int minDepth;
-	int minNumSamplesWithData;
+	bool limitLines;
+	uint64_t maxLinesToRead;
+	uint32_t minDepth;
+	uint32_t minNumSamplesWithData;
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
-	int minVariantQuality;
+	uint32_t minVariantQuality;
 	bool estimateGenotypeFrequencies;
-	bool storeTrueAlleleFreq;
-	long progressFrequency;
-	std::string trueAlleleFreqFile;
+	uint64_t progressFrequency;
 
 	//counters
 	struct timeval startTime;
 	bool vcfParsingStarted;
-	long _lineCounter;
-	long _notBialleleicCounter;
-	long _missingSNPCounter;
-	long _lowFreqSNPCounter;
-	long _lowVariantQualityCounter;
-	long _noPLCounter;
-	long _numAcceptedLoci;
+	uint64_t _lineCounter; //lines read in VCF
+	uint64_t _notInBedFile; //sites considered (smaller than # lines if BED file is used
+	uint64_t _notBialleleicCounter;
+	uint64_t _missingSNPCounter;
+	uint64_t _lowFreqSNPCounter;
+	uint64_t _lowVariantQualityCounter;
+	uint64_t _noPLCounter;
+	uint64_t _numAcceptedLoci;
 
 	//tmp variables used for reading
 	TGenotypeFrequencies genoFrequencies;
-	double _trueAlleleFrequency;
+	std::string curChr;
 
-	void _init();
+	virtual void _init();
 	void resetCounters();
 	void closeVCF();
-	void closeTrueAlleleFreqFile();
-    void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
-    void printProgressFrequencyFiltering(TLog* logfile);
+
+    //void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples);
+    void printProgressFrequencyFiltering();
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
+    virtual bool _readNextLineFromVCF();
+    bool _filterSite(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+    bool _jumpToNextChromosome();
 
 public:
 	TPopulationLikelihoodReader();
 	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
-	~TPopulationLikelihoodReader();
+	virtual ~TPopulationLikelihoodReader();
 
-	void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	virtual void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
+
+
+	void openVCF(std::string);
+	void concludeFilters();
+	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
+	long numLociParsed(){ return _lineCounter; };
+	long numAcceptedLoci(){ return _numAcceptedLoci; };
+};
+
+class TPopulationLikelihoodReaderLocus:public TPopulationLikelihoodReader{
+private:
+	//true allele frequencies
+	std::istream* trueFreq;
+	bool trueFreqFileOpen = false;
+	double _trueAlleleFrequency;
+
+	//settings
+	bool storeTrueAlleleFreq;
+	std::string trueAlleleFreqFile;
+
+	void _init();
+	void _closeTrueAlleleFreqFile();
+	bool _readNextLineFromVCF();
+
+public:
+	TPopulationLikelihoodReaderLocus();
+	TPopulationLikelihoodReaderLocus(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	~TPopulationLikelihoodReaderLocus();
+
+	virtual void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
 	void doSaveTrueAlleleFrequencies(){ storeTrueAlleleFreq = true; }
 
-	void openVCF(std::string, TLog* logfile);
-	void openTrueAlleleFrequenciesFile(std::string filename, bool isZipped);
-    bool filterVCF(uint8_t* data, bool* sampleIsMissing, TPopulationSamples & samples, TLog* logfile, std::string & outputName);
-    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
-	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter, TLog* logfile);
-	void concludeFilters(TLog* logfile);
-
-	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
-	std::string chr(){ return vcfFile.chr(); };
+	std::string chr(){ return curChr; };
 	long position(){ return vcfFile.position(); };
 	char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
-	long numLociParsed(){ return _lineCounter; };
-	long numAcceptedLoci(){ return _numAcceptedLoci; };
+
+    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+
+	void openTrueAlleleFrequenciesFile(const std::string filename);
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
 	double* diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
 	double allelFrequency(){ return genoFrequencies.alleleFrequency; };
@@ -135,9 +169,21 @@ public:
 	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
 	int numSamplesWithDataInPopulation(int population);
-
 	void writePosition(TOutputFile & out);
 };
+
+class TPopulationLikelihoodReaderWindow:public TPopulationLikelihoodReader{
+private:
+
+public:
+	TPopulationLikelihoodReaderWindow();
+	TPopulationLikelihoodReaderWindow(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	~TPopulationLikelihoodReaderWindow();
+
+	bool readDataFromVCF(TPopulationLikehoodWindow & region, TPopulationSamples & samples, TGlfConverter & glfConverter);
+	void writeWindow(TOutputFile & out);
+};
+
 
 //------------------------------------------------
 //TVcfFilter

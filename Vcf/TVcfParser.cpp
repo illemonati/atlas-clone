@@ -715,7 +715,7 @@ std::string TVcfParser::getChr(TVcfLine & line){
 	return line.chr;
 }
 
-long TVcfParser::getPos(TVcfLine & line){
+uint64_t TVcfParser::getPos(TVcfLine & line){
 	if(!line.positionParsed){
 		//cerr << endl << endl << endl << "THIS LINE:" << endl << line.lineNumber << endl;
 		throw "Position has not been parsed!";

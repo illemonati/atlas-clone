@@ -22,6 +22,7 @@
 #include "TAlleleFrequencyEstimator.h"
 #include "TInbreedingEstimator.h"
 #include "TVCFCompare.h"
+#include "TPolymorhicWindowIdentifier.h"
 
 //---------------------------------------------------------------------------
 // TTask class specific to this application (optional)
@@ -567,6 +568,15 @@ public:
 	};
 };
 
+class TTask_identifyPolymorphicWindows:public TTask_atlas{
+public:
+	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TPolymorhicWindowIdentifier identifier(parameters, logfile);
+		identifier.identifyPolymorphicWindows(parameters, randomGenerator);
+	}
+};
 //---------------------------------------------------------------------------
 // Simulations
 //---------------------------------------------------------------------------

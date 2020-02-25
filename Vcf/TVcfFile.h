@@ -129,7 +129,8 @@ public:
 	void fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	//variant info
-	long position();
+	uint64_t position();
+	uint64_t positionZeroBased();
 	std::string chr();
 	bool variantQualityIsMissing();
 	double variantQuality();
