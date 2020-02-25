@@ -74,16 +74,19 @@ private:
 	double credibleInterval;
 	THardyWeinbergGenotypeProbabilities pGenotype;
 	double f_MAP;
-	double LL_atMAP;
+	double logDensity_atMAP;
 	double f_CI_lower, f_CI_upper;
 	double* f_initialGrid;
 	double* f_grid;
-	double* LL_initialGrid;
-	double* Likelihood_grid;
-
+	double* density_initialGrid;
+	double* density_grid;
+	double minPriorSupport, maxPriorSupport;
+	double priorDensAtMin, priorDensAtMax;
 
 	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
-	double calcLL(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
+	double _prior(const double & f);
+	double _prior(const THardyWeinbergGenotypeProbabilities & pGenotype);
+	double calcPosterior(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
 	void fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 	void estimateMAP(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
 	void estimateCredibleIntervals(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);

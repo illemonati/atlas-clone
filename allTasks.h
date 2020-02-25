@@ -22,6 +22,7 @@
 #include "TAlleleFrequencyEstimator.h"
 #include "TInbreedingEstimator.h"
 #include "TVCFCompare.h"
+#include "TPolymorhicWindowIdentifier.h"
 
 //---------------------------------------------------------------------------
 // TTask class specific to this application (optional)
@@ -245,6 +246,16 @@ public:
 	void run(TParameters & parameters, TLog* logfile){
 		TGenome genome(logfile, parameters, randomGenerator);
 		genome.downSampleBamFile(parameters);
+	};
+};
+
+class TTask_separateReads:public TTask_atlas{
+public:
+	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.separateReads(parameters);
 	};
 };
 
@@ -547,6 +558,15 @@ public:
 	};
 };
 
+class TTask_identifyPolymorphicWindows:public TTask_atlas{
+public:
+	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TPolymorhicWindowIdentifier identifier(parameters, logfile);
+		identifier.identifyPolymorphicWindows(parameters, randomGenerator);
+	}
+};
 //---------------------------------------------------------------------------
 // Simulations
 //---------------------------------------------------------------------------
