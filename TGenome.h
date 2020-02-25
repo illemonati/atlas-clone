@@ -99,6 +99,7 @@ public:
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
 	void allelicDepth(TParameters & params);
+	void writeNonConservedBed(TParameters & params);
 	void estimateApproximateDepthPerWindow(TParameters & params);
 	void estimateDepthPerSite(TParameters & params);
 	void writeDepthPerSite(TParameters & params);

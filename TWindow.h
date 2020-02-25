@@ -85,6 +85,7 @@ public:
 	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
 	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
 	void countAlleles(TAllelicDepthCounts & counts);
+	void writeNonConservedBed(std::ofstream & output);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);

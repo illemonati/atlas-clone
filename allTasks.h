@@ -228,6 +228,16 @@ public:
 	};
 };
 
+class TTask_createNonRefMask:public TTask_atlas{
+public:
+	TTask_createNonRefMask(){ _explanation = "Creating mask BED file with sites with non-reference alleles"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.writeNonConservedBed(parameters);
+	};
+};
+
 class TTask_allelicDepth:public TTask_atlas{
 public:
 	TTask_allelicDepth(){ _explanation = "Estimating allelic depth distribution"; };

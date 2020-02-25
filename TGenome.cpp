@@ -2317,8 +2317,8 @@ void TGenome::allelicDepth(TParameters & params){
 	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
 		if(window.passedFilters){
-			window.countAlleles(counts);
 			logfile->listFlush("Adding imbalance values to table ...");
+			window.countAlleles(counts);
 			logfile->write(" done!");
 		}
 	}
@@ -2328,6 +2328,32 @@ void TGenome::allelicDepth(TParameters & params){
 	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
 	bool writeEmpty = params.parameterExists("printAll");
 	counts.write(outputFileName, writeEmpty);
+};
+
+void TGenome::writeNonConservedBed(TParameters & params){
+	if(!alignmentParser.hasReference){
+		throw "Must provide reference to create nonRef mask";
+	}
+
+	//prepare windows
+	TWindow window;
+
+	//prepare output file
+	std::ofstream output;
+	std::string outputFileName = outputName + "_nonRefMask.bed";
+	logfile->list("Writing mask to '" + outputFileName + "'");
+	output.open(outputFileName.c_str());
+	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//write chromosome to file
+		if(window.passedFilters){
+			logfile->listFlush("Writing invariant site coordinates to BED file ...");
+			window.writeNonConservedBed(output);
+			logfile->write(" done!");
+		}
+	}
 };
 
 void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
