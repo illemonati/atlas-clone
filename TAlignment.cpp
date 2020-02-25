@@ -13,7 +13,7 @@ TAlignment::TAlignment(){
 	maxSize = 0;
 	length = 0;
 	fragmentLength = 0;
-	chrNumber = -1;
+	chrNumber = 0;
 	readGroupId = 0;
 	position = 0;
 	matePosition = 0;
@@ -515,14 +515,8 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	if(!hasReference) throw "Reference was not added!";
 
 	for(int d=0; d<length; ++d){
-		if(bases[d].aligned){
-			//recalibrate quality scores
-			if(recalObject->recalibrationChangesQualities())
-				bases[d].errorRate = recalObject->getErrorRate(bases[d]);
-
-			if(bases[d].context > 20) throw "there is a invalid context in alignment " + alignmentName + " at position " + toString(d);
-
-			//now add effect of PMD
+		if(bases[d].aligned && bases[d].base != N){
+			//alignment is already recalibrated, just need to add effect of PMD
 			if(bases[d].base == T && referenceSequence[bases[d].alignedPos] == 'C')
 				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
 			else if(bases[d].base == A && referenceSequence[bases[d].alignedPos] == 'G')
@@ -640,62 +634,9 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	return PMDS;
 };
 
-void TAlignment::assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	//count S, not S, S pattern from cigar string
-	S_left = 0;
-	S_right = 0;
-	middle = 0;
-	S_string_left = "";
-	S_string_middle = "";
-	S_string_right = "";
-	bool reachedMiddle = false;
-
-	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
-	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
-
-	//position in read, i is position in cigar type
-	int p = 0;
-
-	for(; cigarIter != cigarEnd; ++cigarIter ){
-		if(cigarIter->Type == 'S'){
-			if(reachedMiddle){
-				S_right += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
-					S_string_right += bamAlignment.QueryBases[p];
-			}
-			else{
-				S_left += cigarIter->Length;
-				for(unsigned int i=0; i<cigarIter->Length; ++i, ++p)
-					S_string_left += bamAlignment.QueryBases[p];
-			}
-		} else {
-			if(cigarIter->Type == 'D')
-				continue;
-			reachedMiddle = true;
-			middle += cigarIter->Length;
-			for(unsigned int i=0; i<cigarIter->Length; ++i, ++p){
-				S_string_middle += bamAlignment.QueryBases[p];
-				S_qualities_middle += bamAlignment.QueryBases[p];
-			}
-		}
-	}
-
-	//return "-" if string is empty
-	if(S_left == 0)
-		S_string_left = "-";
-	if(middle == 0)
-		S_string_middle = "-";
-	if(S_right == 0){
-		S_string_right = "-";
-	}
-};
-
-void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap){
-	assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
-
-	if(S_left + S_right > 0){
-
-
+void TAlignment::removeSoftClippedBases(TSoftClippingData & softClippingData){
+	//check if there is softclipping
+	if(softClippingData.softClippingLength > 0){
 		//adapt CIGAR string
 		std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
 		std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
@@ -724,6 +665,7 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 				case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 						bamAlignment.CigarData.push_back(BamTools::CigarOp(BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR, op.Length));
 						break;
+				// for 'S': ignore
 				case (BamTools::Constants::BAM_CIGAR_SOFTCLIP_CHAR) :
 						break;
 				// for 'H' - hard clip: do nothing as these bases are not present in SEQ
@@ -736,8 +678,8 @@ void TAlignment::removeSoftClippedBases(int & S_left, int & middle, int & S_righ
 			}
 		}
 
-		bamAlignment.QueryBases = S_string_middle;
-		bamAlignment.Qualities = S_qualities_middle;
+		bamAlignment.QueryBases = softClippingData.middleBases;
+		bamAlignment.Qualities = softClippingData.middleQualities;
 	}
 
 	changed = true;

@@ -20,7 +20,7 @@
 #include <algorithm>
 #include "../TQualityMap.h"
 #include "../TFile.h"
-#include "../PopulationTools/TGLF.h"
+#include "../GLF/TGLF.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"
 
 class TGenotype{

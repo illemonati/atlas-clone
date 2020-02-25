@@ -24,7 +24,7 @@
 class TSimulatorChromosome{
 public:
 	std::string name;
-	long length;
+	uint64_t length;
 	bool haploid;
 	int refID;
 
@@ -77,7 +77,7 @@ public:
 	void close();
 
 	void setChr(std::string ChrName, long ChrLength);
-	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
+//	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
 	Base* getPointerToRef(){ return ref; };
 };
 
@@ -191,8 +191,8 @@ public:
 class TSimulatorHaplotypes{
 private:
 	int numInd;
-	long curLength;
-	long storageLength;
+	uint64_t curLength;
+	uint64_t storageLength;
 	bool initialized;
 	Base*** haplotypes;
 
@@ -201,7 +201,7 @@ private:
 	bool trueGenoVCFOpend;
 
 
-	void allocateStorage(long length);
+	void allocateStorage(uint64_t length);
 	void freeStorage();
 
 public:
@@ -210,7 +210,7 @@ public:
 		freeStorage();
 	};
 
-	void setLength(long length);
+	void setLength(uint64_t length);
 	void openTrueGenotypeVCF(std::string filename);
 	void closeTrueGenotypeVCF();
 	Base** getHaplotypesOfIndividual(int i);
@@ -219,10 +219,10 @@ public:
 	};
 	void writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap);
 	int size(){ return numInd; };
-	Base& operator()(int ind, int hap, long site){
+	Base& operator()(int ind, int hap, uint64_t site){
 		return haplotypes[ind][hap][site];
 	};
-	bool isPolymoprhic(long pos);
+	bool isPolymoprhic(uint64_t pos);
 };
 
 //---------------------------------------------------------

@@ -17,6 +17,7 @@
 #include "gzstream.h"
 #include <algorithm>
 #include "TRandomGenerator.h"
+#include "TAllelicDepthCounts.h"
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100
@@ -87,7 +88,7 @@ public:
 	std::string getEmissionProbs();
 	double calculateLogLikelihood(double* genotypeProbabilities);
 	void countAlleles(int* alleleCounts);
-	void countAllelesForImbalance(long**** siteImbalance);
+	void countAllelesForImbalance(TAllelicDepthCounts & counts);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);

@@ -128,21 +128,21 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 	needsWriting = true;
 };
 
-void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){
-	logfile->listFlush("Simulating reference alleles ...");
-
-	if(!storageInitialized)
-		throw "Can not simulate reference sequence, no chromosome set!";
-
-	//simulate reference sequence
-	for(int l=0; l<chrLength; ++l){
-		ref[l] = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-	}
-
-	if(fastaOpen){
-		writeRefToFasta();
-	};
-};
+//void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){
+//	logfile->listFlush("Simulating reference alleles ...");
+//
+//	if(!storageInitialized)
+//		throw "Can not simulate reference sequence, no chromosome set!";
+//
+//	//simulate reference sequence
+//	for(int l=0; l<chrLength; ++l){
+//		ref[l] = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
+//	}
+//
+//	if(fastaOpen){
+//		writeRefToFasta();
+//	};
+//};
 
 
 //---------------------------------------------------
@@ -252,7 +252,7 @@ TSimulatorHaplotypes::TSimulatorHaplotypes(int NumIndividuals){
 	trueGenoVCFOpend = false;
 };
 
-void TSimulatorHaplotypes::allocateStorage(long length){
+void TSimulatorHaplotypes::allocateStorage(uint64_t length){
 	freeStorage();
 	//allocate storage
 	haplotypes = new Base**[numInd];
@@ -277,7 +277,7 @@ void TSimulatorHaplotypes::freeStorage(){
 	}
 };
 
-void TSimulatorHaplotypes::setLength(long length){
+void TSimulatorHaplotypes::setLength(uint64_t length){
 	if(length > storageLength){
 		allocateStorage(length);
 	}
@@ -320,7 +320,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 	TSimulatorAlleleIndex index;
 	std::string genoString;
 
-	for(int l=0; l<curLength; ++l){
+	for(uint64_t l=0; l<curLength; ++l){
 		//chromosome name, position and ID
 		trueGenoVCF << chromosome.name << '\t' << l+1 << "\t.\t";
 
@@ -360,7 +360,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome,
 	}
 };
 
-bool TSimulatorHaplotypes::isPolymoprhic(long pos){
+bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos){
 	//count how many allele match that of first individual
 	Base testBase = haplotypes[0][0][pos];
 	int counts = 0;
@@ -510,8 +510,8 @@ void TSimulatorVariantInvariantBedFiles::close(){
 
 void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome){
 	//0-based
-	int invariantStart = 0;
-	for(int l=0; l<chromosome.length; ++l){
+	uint64_t invariantStart = 0;
+	for(uint64_t l=0; l<chromosome.length; ++l){
 		if(haplotypes.isPolymoprhic(l)){
 			//write invariant
 			if(invariantStart < l)

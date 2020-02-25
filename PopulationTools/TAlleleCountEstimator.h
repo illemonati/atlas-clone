@@ -63,7 +63,6 @@ public:
 class TAlleleCountEstimator{
 private:
 	TLog* logfile;
-	//TRandomGenerator* randomGenerator;
 	TGlfConverter glfConverter;
 
 public:

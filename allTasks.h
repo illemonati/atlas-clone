@@ -22,6 +22,7 @@
 #include "TAlleleFrequencyEstimator.h"
 #include "TInbreedingEstimator.h"
 #include "TVCFCompare.h"
+#include "TPolymorhicWindowIdentifier.h"
 
 //---------------------------------------------------------------------------
 // TTask class specific to this application (optional)
@@ -248,6 +249,16 @@ public:
 	};
 };
 
+class TTask_separateReads:public TTask_atlas{
+public:
+	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.separateReads(parameters);
+	};
+};
+
 class TTask_downSampleReads:public TTask_atlas{
 public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
@@ -463,7 +474,7 @@ public:
 		_explanation = "Estimating major and minor alles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TMajorMinor majorMinor(parameters, logfile);
+		TMajorMinor majorMinor(logfile, parameters, randomGenerator);
 		majorMinor.estimateMajorMinor(parameters);
 	};
 };
@@ -547,6 +558,15 @@ public:
 	};
 };
 
+class TTask_identifyPolymorphicWindows:public TTask_atlas{
+public:
+	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TPolymorhicWindowIdentifier identifier(parameters, logfile);
+		identifier.identifyPolymorphicWindows(parameters, randomGenerator);
+	}
+};
 //---------------------------------------------------------------------------
 // Simulations
 //---------------------------------------------------------------------------

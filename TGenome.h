@@ -22,7 +22,8 @@
 #include <map>
 #include <algorithm>
 #include "TAlignmentMerger.h"
-#include "TGLF.h"
+#include "TSoftClipping.h"
+#include "TAllelicDepthCounts.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -48,6 +49,7 @@ private:
 	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
 	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
 	void fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector);
+	void renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<std::string> & names);
 
 public:
 	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -93,6 +95,7 @@ public:
 	void mergePairedEndReads(TParameters & params);
 	void generatePSMCInput(TParameters & params);
 	void downSampleBamFile(TParameters & params);
+	void separateReads(TParameters & params);
 	void downSampleReads(TParameters & params);
 	void diagnoseBamFile(TParameters & params);
 	void allelicDepth(TParameters & params);

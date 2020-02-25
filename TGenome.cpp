@@ -32,8 +32,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
 		outputName = alignmentParser.filename;
 		outputName = extractBeforeLast(outputName, ".");
-		alignmentParser.setOutName(outputName);
 	}
+	alignmentParser.setOutName(outputName);
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 
 	//open FASTA reference
@@ -580,7 +580,7 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
+			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurRefId(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlush("Adding window to GLF file ...");
@@ -892,25 +892,19 @@ void TGenome::printQualityDistribution(TParameters & params){
 	TQualityMap qualMap;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
-    long counter = 0;
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		++counter;
 		//update and write (only if alignment qualities could be calculated)
 		alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
 
 		//report
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 
 	//print per read group table
 	logfile->startIndent("Writing distributions:");
@@ -1035,9 +1029,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	TQualityMap qualMap;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	if(withPMD){
@@ -1045,37 +1037,24 @@ void TGenome::recalibrateBamFile(TParameters & params){
 			++counter;
 			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
 			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-			reportProgressParsingBamFile(counter, start);
+			reporter.printProgress();
         }
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
 			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-			reportProgressParsingBamFile(counter, start);
+			reporter.printProgress();
 		}
 	}
 
 	//close bam writer
 	bamWriter.Close();
-	logfile->done();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 }
 
 void TGenome::binQualityScores(TParameters & params){
@@ -1097,9 +1076,7 @@ void TGenome::binQualityScores(TParameters & params){
 	long counter = 0;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
@@ -1110,16 +1087,14 @@ void TGenome::binQualityScores(TParameters & params){
 		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 
 		//report
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 
@@ -1145,57 +1120,39 @@ void TGenome::assessSoftClipping(TParameters & params){
 		logfile->list("Writing only counts of soft clipped bases to file.");
 
 	//open output file
-	std::string filename = outputName + "_clippingStats.txt.gz";
-	gz::ogzstream out(filename.c_str());
-	if(!out)
-		throw "Failed to open file '" + filename + "' for writing!";
-	if(printSequences)
-		out << "Read\tposition\tnClippedLeft\tsClippedLeft\tnNotClipped\tsNotClipped\tnClippedRight\tsClippedRight\n";
-	else
-		out << "Read\tposition\tnClippedLeft\tnNotClipped\tnClippedRight\n";
+	TSoftClippingStatsFile statFile(outputName, printSequences);
+
+	//create soft clipping matrix
+	TSoftClippingMatrix matrix(maxReadLength);
 
 	//other temp variables
-	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
-	TGenotypeMap genoMap;
-	long counter = 0;
+	TSoftClippingData softClippingData;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-	gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		alignment.assessSoftClipping(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+		softClippingData.assessSoftClipping(alignment.bamAlignment);
 
 		//report
-		if(S_left + S_right > 0 || printAll){
-			out << alignment.name() << "\t";
-			out	<< alignment.getPosition() << "\t";
-			out	<< S_left << "\t";
-			if(printSequences) out	<< S_string_left << "\t";
-			out	<< middle  << "\t";
-			if(printSequences) out	<< S_string_middle << "\t";
-			out	<< S_right << "\t";
-			if(printSequences) out	<< S_string_right << "\n";
-			if(!printSequences) out << "\n";
+		if(softClippingData.hasSoftClipping || printAll){
+			statFile.write(alignment.name(), alignment.getPosition(), softClippingData);
 		}
 
+		//add count to matrix
+		matrix.add(softClippingData);
+
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
-	//close output file
-	out.close();
+	//write matrix
+	matrix.write(outputName + "_clippingStats_matrix.txt");
 
-	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
-}
+	//report end
+	reporter.printEnd();
+};
 
 void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	//open a bam file for writing
@@ -1208,30 +1165,23 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 
 	//other temp variables
 	TAlignment alignment;
-	std::vector<BamTools::CigarOp>::iterator it;
-	int S_left, S_right, middle;
-	std::string S_string_left, S_string_middle, S_qualities_middle, S_string_right;
-	TGenotypeMap genoMap;
-	long counter = 0;
-
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TSoftClippingData softClippingData;
 	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 
+	//prepare reporting
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
-		alignment.removeSoftClippedBases(S_left, middle, S_right, S_string_left, S_string_middle, S_qualities_middle, S_string_right, genoMap);
+		softClippingData.assessSoftClipping(alignment.bamAlignment);
+		alignment.removeSoftClippedBases(softClippingData);
 
 		//write
 		bamWriter.SaveAlignment(alignment.bamAlignment);
 //		alignment.bamAlignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
@@ -1241,9 +1191,7 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 	indexBamFile(filename);
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 void TGenome::assessOverlap(TParameters & params){
@@ -1256,7 +1204,6 @@ void TGenome::assessOverlap(TParameters & params){
 
 	//other variables
 	float numProperPairs = 0.0;
-	int counter = 0;
 
 	//open output file
 	std::string filename = outputName + "_overlapStats.txt";
@@ -1266,9 +1213,7 @@ void TGenome::assessOverlap(TParameters & params){
 	out << "overlap\tcount\tproportion\n";
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    	gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//now parse through bam file and write alignments
     while(alignmentParser.readNextAlignment(alignment)){
@@ -1279,9 +1224,9 @@ void TGenome::assessOverlap(TParameters & params){
 		}
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
+    reporter.printEnd();
 
 	//write counts to table
 	for(int i=0; i<maxReadLength; ++i){
@@ -1356,14 +1301,11 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//other temp variables
-	long counter = 0;
+	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
 	TAlignment alignment;
 
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
-	std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT;
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1389,8 +1331,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
@@ -1400,9 +1341,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 	indexBamFile(filename);
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 }
 
 
@@ -1492,13 +1431,8 @@ void TGenome::mergeReadGroups(TParameters & params){
 	if (!bamWriter.Open(filename, newHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
-	//other temp variables
-	long counter = 0;
-
 	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	TBamProgressReporter reporter(&alignmentParser, logfile);
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
@@ -1512,17 +1446,14 @@ void TGenome::mergeReadGroups(TParameters & params){
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
 
 		//report
-		++counter;
-		reportProgressParsingBamFile(counter, start);
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	reportProgressParsingBamFile(counter, start);
-	logfile->list("Reached end of BAM file!");
-	logfile->removeIndent();
+	reporter.printEnd();
 };
 
 void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings){
@@ -1546,8 +1477,6 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 			}
 		}
 	}
-
-	logfile->done();
 
 	std::string readGroupSettingsFile = params.getParameterString("readGroupSettings");
 	logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
@@ -1683,7 +1612,7 @@ void TGenome::filterBAM(TParameters & params){
     //now parse through bam file and write alignments
 	unsigned int curChr = 0;
 
-	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
+	while(alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
 		if(curChr != alignment.chrNumber){
 			//write all ready currently in storage
@@ -1730,17 +1659,7 @@ void TGenome::filterBAM(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 };
 
 void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger){
@@ -1877,18 +1796,8 @@ void TGenome::splitMerge(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
-}
+	indexBamFile(filename);
+};
 
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
@@ -1972,17 +1881,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	bamWriter.Close();
 
 	//create index of new bam file
-	logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	logfile->done();
+	indexBamFile(filename);
 };
 
 void TGenome::fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector){
@@ -2004,12 +1903,26 @@ void TGenome::fillVectorOfDownsamplingProbabilities(std::string prob, std::vecto
 	}
 };
 
+void TGenome::renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<std::string> & names){
+	//check if same frac appears twice
+	std::map <double, int> fracNames;
+	for(size_t i=0; i<fracVector.size(); ++i){
+		std::map<double, int>::iterator it = fracNames.find(fracVector[i]);
+		if(it == fracNames.end()){
+			fracNames.emplace(fracVector[i],1);
+			names.push_back(toString(fracVector[i]));
+		} else {
+			++(it->second);
+			names.push_back(toString(fracVector[i]) + "_" + toString(it->second));
+		}
+	}
+}
+
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
 	TAlignment alignment(maxReadLength);
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
-	TReadList keep;
 
 	//read downsampling rate
 	std::vector<double> downSampleProbVector;
@@ -2024,6 +1937,10 @@ void TGenome::downSampleBamFile(TParameters & params){
 	logfile->list("Will accept reads with probabilities (parameter 'prob'): " + concatenateString(downSampleProbVector, ", "));
 	if(*downSampleProbVector.begin() == 1.0) logfile->warning("Probability of 1 will result in identical file!");
 
+	//check if some probs are double
+	std::vector<std::string> names;
+	renameBAMSIfDouble(downSampleProbVector, names);
+
 	//open bam files for writing
 	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numProbs];
 	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
@@ -2031,12 +1948,24 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 	for(int i=0; i<numProbs; ++i){
 		//construct and print filename
-		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
+		std::string filename = outputName + "_downsampled_" + names[i] + ".bam";
 		logfile->list(filename);
 		//open file
 		if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
 	}
 	logfile->endIndent();
+
+	//create read lists
+	std::vector<TReadList> keep;
+	std::vector<TReadList> discard;
+	for(int i=0; i<numProbs; ++i){
+		TReadList readListKeep;
+		TReadList readListDiscard;
+		keep.emplace_back(readListKeep);
+		keep.push_back(readListKeep);
+		discard.push_back(readListDiscard);
+	}
+
 
 	//other temp variables
 	long counter = 0;
@@ -2055,18 +1984,19 @@ void TGenome::downSampleBamFile(TParameters & params){
 		for(int i=0; i<numProbs; ++i){
 			if(alignmentParser.isInBlacklist(alignment.name())){
 				alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
-				continue;
-			} if(keep.isInReadList(alignment.name())){
+			} else if(discard[i].isInReadList(alignment.name())){
+				discard[i].removeFromReadList(alignment, "was in list of discarded reads");
+			} else if(keep[i].isInReadList(alignment.name())){
 				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProbVector[i]){
 					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
 					if(alignment.isProperPair)
-						keep.addToReadList(alignment, "passed downsampling");
+						keep[i].addToReadList(alignment, "passed downsampling");
 				} else {
 					if(alignment.isProperPair){
-						alignmentParser.addToBlacklist(alignment, "did not pass downsampling");
+						discard[i].addToReadList(alignment, "did not pass downsampling");
 					}
 				}
 			}
@@ -2080,20 +2010,101 @@ void TGenome::downSampleBamFile(TParameters & params){
 	for(int i=0; i<numProbs; ++i){
 		bamWriter[i].Close();
 
-		std::string filename = outputName + "_downsampled_" + toString(downSampleProbVector[i]) + ".bam";
+		std::string filename = outputName + "_downsampled_" + names[i] + ".bam";
 
 		//create index of new bam file
-		logfile->listFlush("Creating index of recalibrated BAM file '" + filename + "' ...");
-		BamTools::BamReader reader;
-		if(!reader.Open(filename))
-			throw "Failed to open BAM file '" + filename + "' for indexing!";
+		indexBamFile(filename);
+	}
 
-		// create index for BAM file
-		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+	delete[] bamWriter;
 
-		//close BAM file
-		reader.Close();
-		logfile->done();
+	//report end
+	reporter.printEnd();
+};
+
+void TGenome::separateReads(TParameters & params){
+	//initialize alignment reading
+	TAlignment alignment(maxReadLength);
+	alignmentParser.setUpdateBlacklistToTrue();
+	alignmentParser.setWriteBlacklistToFileToTrue();
+
+	//read downsampling rate
+	std::vector<double> fracVector;
+	fillVectorOfDownsamplingProbabilities(params.getParameterString("frac"), fracVector);
+	int numFrac = fracVector.size();
+
+	if(numFrac < 1)
+		throw "No downsampling probabilities provided!";
+
+	//normalize fractions provided by user
+	double sum = 0.0;
+	for(int i=0; i<numFrac; ++i)
+		sum += fracVector[i];
+
+	for(int i=0; i<numFrac; ++i){
+		fracVector[i] = fracVector[i] / sum;
+		if(fracVector[i] == 1.0)
+			logfile->warning("Fraction of 1.0 will result in one identical BAM file!");
+	}
+
+	std::vector<std::string> names;
+	renameBAMSIfDouble(fracVector, names);
+
+	//check if probs are between 0 and 1, save in array and print them
+	logfile->list("Will assign reads to " + toString(numFrac) + " BAM files with the following probabilities: " + concatenateString(fracVector, ", "));
+
+	//open bam files for writing
+	BamTools::BamWriter* bamWriter = new BamTools::BamWriter[numFrac];
+	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	logfile->startIndent("Writing results to the following files:");
+
+	for(int i=0; i<numFrac; ++i){
+		//construct and print filename
+		std::string filename = outputName + "_fraction_" + names[i] + ".bam";
+		logfile->list(filename);
+		//open file
+		if(!bamWriter[i].Open(filename, alignmentParser.bamHeader, references))	throw "Failed to open BAM file '" + filename + "'!";
+	}
+	logfile->endIndent();
+
+	//other temp variables
+	long counter = 0;
+	TGenotypeMap genoMap;
+	TQualityMap qualMap;
+
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
+
+    //now parse through bam file and write alignments
+	while (alignmentParser.readNextAlignment(alignment)){
+		++counter;
+
+		//accept read or not?
+		if(alignmentParser.isInBlacklist(alignment.name())){
+			alignmentParser.removeFromBlacklist(alignment, "was in blacklist");
+			continue;
+		}
+
+		double r = randomGenerator->getRand();
+		double tmp = fracVector[0];
+		for(int i=0; i<numFrac; ++i){
+			if(r < tmp){
+				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+				break;
+			} else {
+				tmp = tmp + fracVector[i+1];
+			}
+		}
+
+		//report
+		reporter.printProgress();
+	}
+
+	//close bam writer and clean up memory
+	for(int i=0; i<numFrac; ++i){
+		bamWriter[i].Close();
+		std::string filename = outputName + "_fraction_" + names[i] + ".bam";
+		indexBamFile(filename);
 	}
 
 	delete[] bamWriter;
@@ -2300,62 +2311,32 @@ void TGenome::diagnoseBamFile(TParameters & params){
 }
 
 void TGenome::allelicDepth(TParameters & params){
-	std::ofstream output;
-	std::string outputFileName = outputName + "_allelicDepth.txt";
-	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
-	output.open(outputFileName.c_str());
-	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	//int maxCov = params.getParameterIntWithDefault("maxCov", 20);
-	int maxAllelicDepth = params.getParameterInt("maxAllelicDepth");
-	int size = maxAllelicDepth+1; // need 0 bin
-	int nCharOnLine = 0;
-
-	//prepare array
-	long**** siteCounts = new long***[size];
-	for(int i=0; i<size; ++i){
-		siteCounts[i] = new long**[size];
-		for(int j=0; j<size; ++j){
-			siteCounts[i][j] = new long*[size];
-			for(int k=0; k<size; ++k){
-				siteCounts[i][j][k] = new long[size];
-				for(int l=0; l<size; ++l){
-					siteCounts[i][j][k][l] = 0;
-				}
-			}
-		}
+	//allocate table
+	//std::cout << "maxDepth " << alignmentParser.getMaxDepth() << std::endl;
+	params.getParameterInt("maxDepth");
+	if(alignmentParser.getMaxDepth() > 100){
+		logfile->warning("Allocating count table for a max depth of " + toString(alignmentParser.getMaxDepth()) + " uses a lot of memory! Use argument maxDepth to limit.");
 	}
-
-	//write header
-	output << "A\tC\tG\tT\tCounts\tDepth" << std::endl;
+	TAllelicDepthCounts counts(alignmentParser.getMaxDepth());
 
 	//prepare windows
 	TWindow window;
+
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		//write chromosome to file
 		if(window.passedFilters){
-			window.countAlleles(siteCounts, maxAllelicDepth);
+			window.countAlleles(counts);
 			logfile->listFlush("Adding imbalance values to table ...");
 			logfile->write(" done!");
 		}
 	}
 
 	//write to file
-	for(int i=0; i<(size); ++i){
-		for(int j=0; j<(size); ++j){
-			for(int k=0; k<(size); ++k){
-				for(int l=0; l<(size); ++l){
-					output << i << "\t" << j << "\t" << k << "\t" << l << "\t" << siteCounts[i][j][k][l] << "\t" << i + j + k + l;
-					output << std::endl;
-				}
-			}
-		}
-	}
-
-	//clean up
-	if(nCharOnLine > 0) output << '\n';
-	output.close();
-	delete[] siteCounts;
+	std::string outputFileName = outputName + "_allelicDepth.txt.gz";
+	logfile->list("Writing allelic imbalance table to '" + outputFileName + "'");
+	bool writeEmpty = params.parameterExists("printAll");
+	counts.write(outputFileName, writeEmpty);
 };
 
 void TGenome::estimateApproximateDepthPerWindow(TParameters & params){
@@ -2467,18 +2448,23 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 
 	//iterate through windows
 	unsigned int curChr = 0;
-	int curChrLength = alignmentParser.chrNumberToLength(curChr);
+	int curChrLength = 0;
 	unsigned int curPos = 0;
 	int countsAtPos = 0;
-	while (alignmentParser.readNextAlignment(alignment)){
-		if(alignment.chrNumber != curChr){
-			//add last pos with data
-			counts.add(countsAtPos);
-			countsAtPos = 0;
 
-			//add all positions until chromosome end to structure
-			counts.add(0, curChrLength - curPos);
+	while (alignmentParser.readNextAlignment(alignment)){
+		if(alignmentParser.chrChangedAlignment){
+			//add last pos with data
+			if(curChrLength > 0){
+				counts.add(countsAtPos);
+				countsAtPos = 0;
+
+				//add all positions until chromosome end to structure
+				counts.add(0, curChrLength - curPos);
+			}
+
 			curChr = alignment.chrNumber;
+			curChrLength = alignmentParser.getCurChrLength();
 			curPos = 0;
 		}
 
@@ -2493,7 +2479,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 			curPos = alignment.getPosition();
 			countsAtPos = 1;
 		} else if(alignment.getPosition() == curPos){
-			countsAtPos = countsAtPos + 1;
+			++countsAtPos;
 		} else
 			throw "Bam file is not sorted!";
 	}

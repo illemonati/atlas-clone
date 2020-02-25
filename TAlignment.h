@@ -18,6 +18,7 @@
 #include "TQualityMap.h"
 #include "QualityTables.h"
 #include "TContextStats.h"
+#include "TSoftClipping.h"
 
 class TAlignmentParser;
 
@@ -88,9 +89,9 @@ public:
 
 	void fill(BamTools::BamAlignment & bamAlignment, const uint16_t ReadGroupId);
 	void setReferenceAdded();
-	int getPosition(){ return position; };
-	int getParsedLength(){ return length; };
-	int getBamAlignmentLength(){ return bamAlignment.Length; };
+	uint32_t getPosition(){ return position; };
+	uint16_t getParsedLength(){ return length; };
+	uint32_t getBamAlignmentLength(){ return bamAlignment.Length; };
 	std::string name(){ return alignmentName; };
 	int32_t getInsertSize(){ return insertSize; };
 
@@ -115,7 +116,7 @@ public:
 	uint16_t mappingQuality;
 	bool isSecondMate;
 	int32_t matePosition;
-	unsigned int chrNumber;
+	uint32_t chrNumber;
 	int32_t lastPositionPlusOne;
 	int32_t lastAlignedPositionWithRespectToRef;
 	int32_t lastAlignedPos;
@@ -130,8 +131,7 @@ public:
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, TPMD* pmdObjects);
-	void assessSoftClipping(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
-	void removeSoftClippedBases(int & S_left, int & middle, int & S_right, std::string & S_string_left, std::string & S_string_middle, std::string & S_qualities_middle, std::string & S_string_right, TGenotypeMap & genoMap);
+	void removeSoftClippedBases(TSoftClippingData & softClippingData);
 	int measureOverlap();
 	int getUsableLength(const int minQual, const int maxQual);
 	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);

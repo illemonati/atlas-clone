@@ -20,18 +20,18 @@ private:
 	BamTools::SamHeader* bamHeader;
 	int numChromosomes;
 	std::vector<std::string> names;
-	std::vector<long> lengths;
-	std::vector<int> ploidies;
+	std::vector<uint32_t> lengths;
+	std::vector<uint8_t> ploidies;
 	std::vector<bool> isInUse;
-	std::map<std::string, int> nameMap;
+	std::map<std::string, uint16_t> nameMap;
 
-	int curChrNumber;
+	uint16_t curChrNumber;
 	BamTools::SamSequenceIterator curChrIterator;
 
 public:
 	TChromosomes();
 	TChromosomes(BamTools::SamHeader* BamHeader);
-	void limitChr(std::string & limitName);
+	int limitChr(std::string & limitName);
 	void useSpecifiedChr(std::vector<std::string> & chrNames, TLog* logfile);
 	void specifyPloidy(std::ifstream & ploidyFile, TLog* logfile);
 	void setToHaploid(std::vector<std::string> chrNames, TLog* logfile);
@@ -44,19 +44,19 @@ public:
 	void jumpToBeginningOfLastChr();
 
 	//getters
-	int size();
-	int curIndex();
-	long referenceLength();
-	int getIndexFromName(const std::string chrName);
+	uint16_t size();
+	uint16_t curIndex();
+	uint32_t referenceLength();
+	uint16_t getIndexFromName(const std::string chrName);
 
-	long length(const int index);
-	long curLength();
-	std::string name(const int index);
+	uint32_t length(const uint16_t index);
+	uint32_t curLength();
+	std::string name(const uint16_t index);
 	std::string curName();
-	bool inUse(const int index);
+	bool inUse(const uint16_t index);
 	bool curInUse();
-	int ploidy(const int index);
-	int curPloidy();
+	uint8_t ploidy(const uint16_t index);
+	uint8_t curPloidy();
 };
 
 

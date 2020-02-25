@@ -30,61 +30,155 @@ public:
 		if(genotype == 2) return glfLikelihood_2;
 		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
 	};
+
+	void setAsMissing(){
+		glfLikelihood_0 = 0.0;
+		glfLikelihood_1 = 0.0;
+		glfLikelihood_2 = 0.0;
+
+		isHaploid = false;
+		isMissing = true;
+	};
+
+	void print(){
+		if(isMissing)
+			std::cout << "-";
+		else {
+			if(isHaploid)
+				std::cout << glfLikelihood_0 << "," << glfLikelihood_2;
+			else
+				std::cout << glfLikelihood_0 << "," << glfLikelihood_1 << "," << glfLikelihood_2;
+		}
+	};
 };
 
 //------------------------------------------------
-// TPopulationLikehoodStorage
+// TPopulationLikehoodLocus
 // class used when reading line by line
 //------------------------------------------------
 class TPopulationLikehoodLocus{
+private:
+	uint32_t _numSamples;
+	uint32_t _storageSize;
+	TSampleLikelihoods* _samples; //allows simple access to subsets based on populations
+
+	void _copy(const TPopulationLikehoodLocus & other);
+
 public:
-	int numSamples;
-	TSampleLikelihoods* samples;
-
-	TPopulationLikehoodLocus(){
-		numSamples = 0;
-		samples = nullptr;
+	TPopulationLikehoodLocus();
+	TPopulationLikehoodLocus(const TPopulationLikehoodLocus & other){
+		_copy(other);
 	};
 
-	TPopulationLikehoodLocus(TPopulationLikehoodLocus & other){
-		numSamples = 0;
-		resize(other.numSamples);
-
-		//copy data
-		for(int i=0; i<numSamples; i++){
-			samples[i] = other.samples[i];
-		}
+	TPopulationLikehoodLocus& operator=(const TPopulationLikehoodLocus & other){
+		_copy(other);
+		return *this;
 	};
 
-	TPopulationLikehoodLocus(int NumSamples){
-		numSamples = 0;
-		resize(NumSamples);
-	};
-
+	TPopulationLikehoodLocus(int NumSamples);
 	~TPopulationLikehoodLocus(){
 		clear();
 	};
 
-	void clear(){
-		if(numSamples > 0){
-			delete[] samples;
-		}
-		numSamples = 0;
+	void clear();
+	void resize(uint32_t NumSamples);
+
+	TSampleLikelihoods & operator[](uint32_t index){
+		return _samples[index];
 	};
 
-	void resize(int NumSamples){
-		if(NumSamples != numSamples){
-			clear();
-			numSamples = NumSamples;
-			samples = new TSampleLikelihoods[numSamples];
-		}
+	TSampleLikelihoods* samples(){
+		return _samples;
 	};
 
-	TSampleLikelihoods & operator[](int index){
-		return samples[index];
+	uint32_t numSamples(){
+		return _numSamples;
+	};
+
+	uint32_t numSamplesWithData();
+	bool hasData();
+	void fillAsMissing();
+
+	void print(uint32_t index){
+		_samples[index].print();
+	};
+
+	void print(){
+		_samples[0].print();
+		for(uint32_t i=1; i<_numSamples; ++i){
+			std::cout << '\t';
+			_samples[i].print();
+		}
 	};
 };
 
+//------------------------------------------------
+// TPopulationLikehoodRegion
+// class used when reading line by line
+//------------------------------------------------
+class TPopulationLikehoodWindow{
+private:
+	uint32_t _numSamples;
+	uint32_t _numLoci;
+	uint32_t _storageSize;
+	TPopulationLikehoodLocus* _loci; //allows simple access to subsets based on populations
+
+	void _init();
+
+public:
+	TPopulationLikehoodWindow();
+	TPopulationLikehoodWindow(TPopulationLikehoodWindow & other);
+	TPopulationLikehoodWindow(uint32_t NumLoci, uint32_t NumSamples);
+	TPopulationLikehoodWindow(uint32_t NumLoci);
+
+	~TPopulationLikehoodWindow(){
+		clear();
+	};
+
+	void clear();
+	void resize(uint32_t NumLoci);
+	void resize(uint32_t NumLoci, uint32_t NumSamples);
+
+	TPopulationLikehoodLocus & operator[](int locus){
+		return _loci[locus];
+	};
+
+	uint32_t numSamples(){
+		return _numSamples;
+	};
+
+	uint32_t numLoci(){
+		return _numLoci;
+	};
+
+	uint32_t numLociwithData();
+	bool hasData();
+	void fillAsMissing();
+	bool individualHasMissingData(uint32_t individual);
+
+	void print(){
+		for(uint32_t l=0; l<_numLoci; ++l){
+			std::cout << "Pos" << l << "\t";
+			_loci[l].print();
+			std::cout << std::endl;
+		}
+	};
+
+	void print(uint32_t locus){
+		_loci[locus].print();
+		std::cout << std::endl;
+	};
+
+	void printIndividual(uint32_t ind){
+		_loci[0].print(ind);
+		for(uint32_t l=1; l<_numLoci; ++l){
+			std::cout << '\t';
+			_loci[l].print(ind);
+		}
+		std::cout << std::endl;
+	};
+
+};
 
 
 #endif /* POPULATIONTOOLS_TPOPULATIONLIKELIHOODLOCUS_H_ */

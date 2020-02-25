@@ -7,6 +7,8 @@
 #include <iostream>
 #include <sstream>
 #include <limits>
+#include <vector>
+#include <algorithm>
 
 #include "mathFunctions.h"
 
