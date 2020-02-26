@@ -167,7 +167,7 @@ add_executable(${PROJECT_NAME}
         bamtools/utils/bamtools_utilities.cpp bamtools/utils/bamtools_utilities.h
         bamtools/utils/bamtools_variant.h
         bamtools/utils/utils_global.h
-        )
+        Vcf/TVcfConverter.cpp Vcf/TVcfConverter.h)
 
 # load packages
 find_package(Armadillo REQUIRED)

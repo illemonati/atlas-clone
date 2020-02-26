@@ -13,49 +13,50 @@
 //---------------------------------------------------
 //TAnnotator
 //---------------------------------------------------
+
 VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
-	logfile = Logfile;
-	randomGeneratorInitialized = false;
-	randomGenerator = NULL;
-	chr=-1;
+    logfile = Logfile;
+    randomGeneratorInitialized = false;
+    randomGenerator = NULL;
+    chr=-1;
 
-	//open vcf file
-	openVCF(Params.getParameterString("vcf"), vcfFile);
+    //open vcf file
+    openVCF(Params.getParameterString("vcf"), vcfFile);
 
-	//outputname
-	outname = Params.getParameterStringWithDefault("out", "");
-	if(outname == ""){
-		//guess from filename
-		outname = vcfFile.filename;
-		outname = extractBeforeLast(outname, ".");
-		if(isZipped)
-			//if zipped there is extra .gz
-			outname = extractBeforeLast(outname, ".");
+    //outputname
+    outname = Params.getParameterStringWithDefault("out", "");
+    if(outname == ""){
+        //guess from filename
+        outname = vcfFile.filename;
+        outname = extractBeforeLast(outname, ".");
+        if(isZipped)
+            //if zipped there is extra .gz
+            outname = extractBeforeLast(outname, ".");
 
-	}
-	logfile->list("Writing output files with prefix '" + outname + "'.");
+    }
+    logfile->list("Writing output files with prefix '" + outname + "'.");
 }
 
 //open input stream
 void VcfDiagnostics::openVCF(std::string filename, TVcfFile_base & vcfFile){
-	//open vcf file
-	if(filename.find(".gz") == std::string::npos){
-		logfile->list("Reading vcf from file '" + filename + "'.");
-		isZipped = false;
-	} else {
-		logfile->list("Reading vcf from gzipped file '" + filename + "'.");
-		isZipped = true;
-	}
+    //open vcf file
+    if(filename.find(".gz") == std::string::npos){
+        logfile->list("Reading vcf from file '" + filename + "'.");
+        isZipped = false;
+    } else {
+        logfile->list("Reading vcf from gzipped file '" + filename + "'.");
+        isZipped = true;
+    }
 
-	vcfFile.openStream(filename, isZipped);
+    vcfFile.openStream(filename, isZipped);
 
-	//enable parsers
-	vcfFile.enablePositionParsing();
-	vcfFile.enableVariantParsing();
-	vcfFile.enableVariantQualityParsing();
-	vcfFile.enableFormatParsing();
-	vcfFile.enableSampleParsing();
-	vcfFile.enableInfoParsing();
+    //enable parsers
+    vcfFile.enablePositionParsing();
+    vcfFile.enableVariantParsing();
+    vcfFile.enableVariantQualityParsing();
+    vcfFile.enableFormatParsing();
+    vcfFile.enableSampleParsing();
+    vcfFile.enableInfoParsing();
 }
 
 void VcfDiagnostics::initializeRandomGenerator(){
@@ -64,14 +65,6 @@ void VcfDiagnostics::initializeRandomGenerator(){
 		logfile->list("Random generator initialized with seed " + toString(randomGenerator->usedSeed));
 		randomGeneratorInitialized=true;
 	}
-}
-
-int VcfDiagnostics::baseToNumber(char base, std::string & marker){
-	if(base == 'A') return 0;
-	else if(base == 'C') return 1;
-	else if(base == 'G') return 2;
-	else if (base == 'T') return 3;
-	else throw "unknown base " + toString(base) + " at marker " + marker;
 }
 
 void VcfDiagnostics::vcfToInvariantBed(){
@@ -247,230 +240,6 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 
 }
 
-/***************************************
- * 									   *
- * 			 Vcf to Beagle			   *
- * 									   *
- ***************************************/
-
-void VcfDiagnostics::writeBeagleHeader(TOutputFileZipped & beagleFile){
-	//header string
-	std::vector <std::string> header {"marker", "allele1", "allele2"};
-	for(int i=0; i<vcfFile.numSamples(); ++i){
-		for(int r=0; r<3; ++r)
-			header.push_back(vcfFile.sampleName(i));
-	}
-	beagleFile.writeHeader(header);
-}
-
-void VcfDiagnostics::printProgressFrequencyFiltering(const struct timeval & startTime, long lineCounter, long numAcceptedLoci){
-	struct timeval end;
-	gettimeofday(&end, nullptr);
-	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
-	logfile->list("Parsing line " + toString(lineCounter) + ", retained " + toString(numAcceptedLoci) + " loci in " + toString(runtime) + " min");
-}
-
-void VcfDiagnostics::concludeFilters(TVcfFilters & vcfFilters, const struct timeval & startTime,
-		long lineCounter, long notBialleleicCounter,
-		long missingSNPCounter, long lowFreqSNPCounter,
-		long lowVariantQualityCounter,
-		long noPLCounter, long notOnChrCounter, long numAcceptedLoci){
-	printProgressFrequencyFiltering(startTime, lineCounter, numAcceptedLoci);
-	if(notBialleleicCounter > 0)
-		logfile->conclude(toString(notBialleleicCounter) + " loci were not bi-allelic.");
-	if(lowVariantQualityCounter > 0)
-		logfile->conclude(toString(lowVariantQualityCounter) + " loci had variant quality < " + toString(vcfFilters.minVariantQuality) + ".");
-	if(noPLCounter > 0)
-		logfile->conclude(toString(noPLCounter) + " loci had no PL or GL field.");
-	if(missingSNPCounter > 0)
-		logfile->conclude(toString(missingSNPCounter) + " loci had < " + toString(vcfFilters.minNumSamplesWithData) + " samples with data.");
-	if(notOnChrCounter > 0)
-		logfile->conclude(toString(notOnChrCounter) + " loci were on other chromosomes than specified.");
-	/*if(lowFreqSNPCounter > 0)
-		logfile->conclude(toString(lowFreqSNPCounter) + " loci had MAF < " + toString(vcfFilters.freqFilter) + ".");*/
-}
-
-int VcfDiagnostics::filterOnDepth(int numSamples, double * data, TVcfFilters & vcfFilters){
-	int numIndividualsWithData = 0;
-	unsigned int index = 0;
-	for(int s = 0; s < numSamples; ++s, index+=3){
-		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 0.333)
-		if (vcfFile.sampleDepth(s) < vcfFilters.minDepth)
-			vcfFile.setSampleMissing(s);
-		else
-			numIndividualsWithData++;
-	}
-
-	return numIndividualsWithData;
-}
-
-inline double VcfDiagnostics::phredToError(double phred){
-	return pow(10.0, -phred/10.0);
-};
-
-bool VcfDiagnostics::readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilters,
-		TOutputFileZipped & beagleFile,
-		long & lineCounter, long & notBialleleicCounter,
-		long & missingSNPCounter, long & lowFreqSNPCounter,
-		long & lowVariantQualityCounter,
-		long & noPLCounter, long & notOnChrCounter, long & numAcceptedLoci, struct timeval & startTime){
-
-    double data[3*numSamples];
-
-	//read next
-	while(vcfFile.next()){ // new line in vcf-file (= new locus)
-		++lineCounter;
-
-		//print progress
-		if(lineCounter % vcfFilters.progressFrequency == 0)
-			printProgressFrequencyFiltering(startTime, lineCounter, numAcceptedLoci);
-
-		// limit lines
-		if(vcfFilters.limitLines > 0 && lineCounter > vcfFilters.limitLines){
-			logfile->list("Reached limit of " + toString(vcfFilters.limitLines) + " lines.");
-			return false;
-		}
-
-		// keep chromosomes
-		if (!vcfFilters.chromosomesToKeep.empty() && // don't keep this chromosome
-				std::find(vcfFilters.chromosomesToKeep.begin(), vcfFilters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.chromosomesToKeep.end()){
-			notOnChrCounter ++;
-			continue;
-		}
-
-        //skip sites with != 2 alleles
-        if(vcfFile.getNumAlleles() != 2){
-        	notBialleleicCounter++;
-        	continue;
-        }
-
-        //skip sites with too low variant quality
-        if(vcfFilters.minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < vcfFilters.minVariantQuality)){
-        	lowVariantQualityCounter++;
-        	continue;
-        }
-
-		//check if GL or PL is given
-        int numIndividualsWithData = 0;
-		if(vcfFile.formatColExists("GL")){
-			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
-			double tmp[3];
-			unsigned int index = 0;
-			for(int s = 0; s < numSamples; ++s, index+=3){
-				if (vcfFile.sampleIsMissing(s)){
-					data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
-				}
-				else{
-					vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]); // log10 -> take 10^
-					data[index] = pow(10, tmp[0]);
-					data[index + 1] = pow(10, tmp[1]);
-					data[index + 2] = pow(10, tmp[2]);
-				}
-			}
-		} else if(vcfFile.formatColExists("PL")){
-			numIndividualsWithData = filterOnDepth(numSamples, data, vcfFilters);
-			uint8_t tmp[3];
-			unsigned int index = 0;
-			for(int s = 0; s < numSamples; ++s, index+=3){
-				if (vcfFile.sampleIsMissing(s)){
-					data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
-				}
-				else{
-					vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
-					data[index] = phredToError(tmp[0]);
-					data[index + 1] = phredToError(tmp[1]);
-					data[index + 2] = phredToError(tmp[2]);
-				}
-			}
-		} else {
-			++noPLCounter;
-			continue;
-		}
-
-		// missingness filter: if less than <minNumSamplesWithData> individuals per locus have are missing, remove locus
-		if (numIndividualsWithData < vcfFilters.minNumSamplesWithData){
-			missingSNPCounter++;
-			continue;
-		}
-
-		/*//filter in MAF --> TODO: check with Dan if this is necessary
-		if(vcfFilters.freqFilter > 0.0 || vcfFilters.estimateGenotypeFrequencies){
-			genoFrequencies.estimate(data, glfConverter, vcfFilters.epsilonF);
-
-			if(genoFrequencies.MAF < vcfFilters.freqFilter){
-				lowFreqSNPCounter++;
-				continue;
-			}
-		}*/
-
-		//SNP is accepted!
-		++numAcceptedLoci;
-		writeLocusToBeagleFile(beagleFile, data, numSamples);
-		return true;
-    }
-
-	//return false at end of file
-	logfile->endIndent("Reached end of VCF file.");
-	concludeFilters(vcfFilters, startTime,
-			lineCounter, notBialleleicCounter,
-			missingSNPCounter, lowFreqSNPCounter,
-			lowVariantQualityCounter, noPLCounter, notOnChrCounter, numAcceptedLoci);
-
-	return false;
-}
-
-void VcfDiagnostics::writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
-		double * data, int numSamples){
-	//write line
-	std::string marker = vcfFile.chr() + ":" + toString(vcfFile.position());
-	beagleFile << marker; // marker
-	beagleFile << baseToNumber(vcfFile.getRefAllele(), marker) << baseToNumber(vcfFile.getFirstAltAllele(), marker); // ref and alt allele
-
-	for (int s = 0; s < numSamples * 3; s+=3){
-		beagleFile << data[s] << data[s + 1] << data[s + 2];
-	}
-
-	beagleFile.endLine();
-}
-
-void VcfDiagnostics::vcfToBeagle(TParameters & Params){
-	// read vcf filters
-	TVcfFilters vcfFilters(Params, logfile);
-
-	//open output files
-	TOutputFileZipped beagleFile(outname + ".beagle.gz");
-	writeBeagleHeader(beagleFile);
-
-	// initialize counters (filtering)
-	long lineCounter = 0;
-	long notBialleleicCounter = 0;
-	long missingSNPCounter = 0;
-	long lowFreqSNPCounter = 0;
-	long lowVariantQualityCounter = 0;
-	long noPLCounter = 0;
-	long notOnChrCounter = 0;
-	long numAcceptedLoci = 0;
-
-	//set time at beginning
-	logfile->startIndent("Start parsing VCF-file...");
-	struct timeval startTime;
-	gettimeofday(&startTime, nullptr);
-
-    // initialize storage (store locus, then write, then overwrite)
-    int numSamples = vcfFile.numSamples();
-
-	// parse vcf-file and write to beagle
-	while(readVcfAndWriteBeagle(numSamples, vcfFilters, beagleFile,
-			lineCounter, notBialleleicCounter,
-			missingSNPCounter, lowFreqSNPCounter,
-			lowVariantQualityCounter, noPLCounter, notOnChrCounter, numAcceptedLoci, startTime))
-	{ continue; }
-
-
-	// clean up
-	beagleFile.close();
-}
-
 /*
 void VcfDiagnostics::filterAllelicImbalance(){
 	//open vcf file
@@ -601,104 +370,3 @@ void VcfDiagnostics::fixIntAsFloat(){
 	}
 	logfile->endIndent();
 };
-
-/***************************************
- * 									   *
- * 			 TVcfFiltering			   *
- * 									   *
- ***************************************/
-
-TVcfFilters::TVcfFilters(TParameters & Params, TLog * logfile){
-	//settings
-	limitLines = 0;
-	minDepth = 1;
-	minNumSamplesWithData = 0;
-	//freqFilter = 0.0;
-	//epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
-	minVariantQuality = 0;
-	//estimateGenotypeFrequencies = false;
-
-	initialize(Params, logfile);
-}
-
-void TVcfFilters::initialize(TParameters & Parameters, TLog * logfile){
-	//read parsing parameters
-	// do we limit the lines to read?
-	limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
-	if(limitLines > 0)
-		logfile->list("Will limit analysis to the first " + toString(limitLines) + " lines of the VCF file.");
-
-	// do we set a depth filter?
-	minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
-	if(minDepth < 1)
-		throw "minDepth must be >= 1!";
-	if(minDepth > 1)
-		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ".");
-
-	// do we set a missingness filter?
-	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
-	if(minNumSamplesWithData < 1)
-		throw "minNumSamplesWithData must be >= 1!";
-	if(minNumSamplesWithData > 1)
-		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data.");
-
-	// parameters to set a filter on the allele frequency?
-	/*freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
-	if(freqFilter < 0.0 || freqFilter >= 0.5)
-		throw "MAF filter must be within (0.0,0.5)!";
-	if(freqFilter > 0.0){
-		estimateGenotypeFrequencies = true;
-		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
-		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ".");
-	} else {
-		estimateGenotypeFrequencies = false;
-	}*/
-
-	//filter on variant quality?
-	minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
-	if(minVariantQuality < 0) throw "minVariantQuality must be >= 0!";
-	if(minVariantQuality > 0){
-		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ".");
-	}
-
-	// filter for specific chromosomes?
-	if(Parameters.parameterExists("keepChromosomes"))
-		specifyChromosomesToKeep(logfile, Parameters);
-
-	//set progress frequency
-	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
-}
-
-
-void TVcfFilters::specifyChromosomesToKeep(TLog* logfile, TParameters & Parameters){
-	std::string argument = Parameters.getParameterString("keepChromosomes");
-	if(stringContains(argument, ".txt")){ // specified as a file name
-		logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
-		std::ifstream keepChromosomesFile(argument.c_str());
-		if(!keepChromosomesFile)
-			throw "Failed to open file '" + argument + "'!";
-		while(keepChromosomesFile.good() && !keepChromosomesFile.eof()){
-			std::string line;
-			std::getline(keepChromosomesFile, line);
-			std::vector<std::string> vec;
-			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
-			//skip empty lines
-			if(vec.size() > 0)
-				chromosomesToKeep.push_back(vec[0]);
-		}
-		keepChromosomesFile.close();
-	}
-	else { // specified as a vector on command line
-		logfile->startIndent("Reading chromosomes from command line.");
-		fillVectorFromString(Parameters.getParameterString("keepChromosomes"), chromosomesToKeep, ',');
-	}
-
-	// write to logfile
-	logfile->startIndent("Will keep the following chromosomes in the beagle file:");
-	for (std::vector<std::string>::iterator it = chromosomesToKeep.begin(); it < chromosomesToKeep.end(); it ++)
-		logfile->list(*it);
-
-	logfile->endIndent();
-	logfile->endIndent();
-}
-

@@ -17,6 +17,7 @@
 #include "TDistanceEstimator.h"
 #include "Simulations/TSimulator.h"
 #include "TVcfDiagnostics.h"
+#include "TVcfConverter.h"
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
 #include "TAlleleFrequencyEstimator.h"
@@ -606,8 +607,8 @@ public:
 	TTask_VCFToBeagle(){ _explanation = "Converting a VCF file to Beagle format"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		VcfDiagnostics VcfDiagnoser(parameters, logfile);
-		VcfDiagnoser.vcfToBeagle(parameters);
+		TVcfToBeagle VcfToBeagle(parameters, logfile);
+        VcfToBeagle.vcfToBeagle(parameters);
 	};
 };
 
