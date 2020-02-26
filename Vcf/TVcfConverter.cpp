@@ -412,3 +412,73 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     // clean up
     beagleFile->close();
 }
+
+/***************************************
+ * 									   *
+ * 	Vcf to LFMM (posterior genotype)   *
+ * 									   *
+ ***************************************/
+TVcfToLFMM::TVcfToLFMM(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    lfmmFile = nullptr;
+}
+
+TVcfToLFMM::~TVcfToLFMM(){
+    for (auto it = post_genotypes.begin(); it < post_genotypes.end(); it++)
+        delete [] *it;
+}
+
+void TVcfToLFMM::writeLFMMHeader(){
+    // empty header
+    std::vector <std::string> header {};
+    lfmmFile->writeHeader(header);
+}
+
+void TVcfToLFMM::writeData(TSampleLikelihoods * data){
+    // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
+    storePosteriorGenotypes(data);
+}
+
+double TVcfToLFMM::computePosteriorGenotype(TSampleLikelihoods * data, int i){
+    double denominator = data[i][0] + data[i][1] + data[i][2];
+    double probG0 = static_cast<double>(data[i][0]) / denominator;
+    double probG1 = static_cast<double>(data[i][1]) / denominator;
+    double probG2 = static_cast<double>(data[i][2]) / denominator;
+
+    double meanPostGeno = probG0 * 0. + probG1 * 1. + probG2 * 2.;
+    return meanPostGeno;
+}
+
+
+void TVcfToLFMM::storePosteriorGenotypes(TSampleLikelihoods * data){
+    auto * oneLocus = new double[vcfReader.vcfFile.numSamples()];
+    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+        double meanPostGeno = computePosteriorGenotype(data, i);
+        oneLocus[i] = meanPostGeno;
+    }
+    post_genotypes.emplace_back(oneLocus);
+}
+
+void TVcfToLFMM::writeLFMM(){
+    int numLoci = post_genotypes.size();
+    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+        for (int l = 0; l < numLoci; l++){
+            *(lfmmFile) << post_genotypes[l][i];
+        }
+        lfmmFile->endLine();
+    }
+}
+
+void TVcfToLFMM::vcfToLFMM(TParameters & Params){
+    //open output files
+    lfmmFile = new TOutputFilePlain(outname + ".lfmm");
+    writeLFMMHeader();
+
+    // read Vcf and write output
+    readVcfAndWriteFile();
+
+    // write actual lfmm
+    writeLFMM();
+
+    // clean up
+    lfmmFile->close();
+}

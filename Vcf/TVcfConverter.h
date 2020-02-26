@@ -109,5 +109,23 @@ public:
     void vcfToBeagle(TParameters & Params);
 };
 
+class TVcfToLFMM : protected TVcfConverter {
+private:
+    TOutputFilePlain * lfmmFile;
+    // beagle
+    void writeLFMMHeader();
+    void writeData(TSampleLikelihoods * data) override ;
+    void writeLFMM();
+    void storePosteriorGenotypes(TSampleLikelihoods * data);
+    static double computePosteriorGenotype(TSampleLikelihoods * data, int i);
+
+    std::vector<double *> post_genotypes;
+
+public:
+    TVcfToLFMM(TParameters &Params, TLog *Logfile);
+    ~TVcfToLFMM();
+    void vcfToLFMM(TParameters & Params);
+};
+
 
 #endif //ATLAS_TVCFCONVERTER_H

@@ -612,6 +612,16 @@ public:
 	};
 };
 
+class TTask_VCFToLFMM:public TTask_atlas{
+public:
+    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format, using posterior genotypes"; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToLFMM VcfToLFMM(parameters, logfile);
+        VcfToLFMM.vcfToLFMM(parameters);
+    };
+};
+
 class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
