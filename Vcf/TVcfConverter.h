@@ -9,6 +9,9 @@
 #include "../TLog.h"
 #include "../TParameters.h"
 #include "TVcfFile.h"
+#include <TPopulationLikelihoodLocus.h>
+#include "TGenotypeFrequencies.h"
+#include "TGLF.h"
 
 struct TFilterCounters {
     TFilterCounters();
@@ -48,16 +51,18 @@ public:
 
     long progressFrequency;
     void printProgressFrequencyFiltering(const struct timeval & startTime);
-    int filterOnDepth(unsigned int numSamples, TVcfFileSingleLine & vcfFile);
+    int filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vcfFile, unsigned int numSamples);
     void concludeFilters(const struct timeval & startTime);
 
-    TVcfFilters(TParameters & Parameters, TLog* logfile);
+    TVcfFilters();
+    void init(TParameters & Parameters, TLog* logfile);
 };
 
 class TVcfReader {
 private:
     TLog* logfile;
-    static inline double phredToError(double phred);
+    TGlfConverter glfConverter;
+    TGenotypeFrequencies genoFrequencies;
 
 public:
     TVcfFileSingleLine vcfFile;
@@ -70,7 +75,7 @@ public:
 
     void init(TParameters & Params, TLog* Logfile);
     void openVCF(std::string name);
-    bool readOneLineVcf(TVcfFilters & vcfFilters, double * data);
+    bool readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data);
 };
 
 class TVcfConverter {
@@ -78,7 +83,8 @@ protected:
     std::string outname;
     TLog * logfile;
     TVcfReader vcfReader;
-    void readFilters(TParameters & Params);
+    TVcfFilters vcfFilters;
+    TGlfConverter glfConverter;
     static int baseToNumber(char base, std::string & marker);
 
 public:
@@ -86,8 +92,8 @@ public:
     ~TVcfConverter();
 
     void readOutputName(TParameters & Params);
-    bool readVcf(TVcfFilters & vcfFilters);
-    virtual void writeData(double * data);
+    void readVcfAndWriteFile();
+    virtual void writeData(TSampleLikelihoods * data);
 
     };
 
@@ -96,7 +102,7 @@ private:
     TOutputFileZipped * beagleFile;
     // beagle
     void writeBeagleHeader();
-    void writeData(double * data) override ;
+    void writeData(TSampleLikelihoods * data) override ;
 
 public:
     TVcfToBeagle(TParameters &Params, TLog *Logfile);

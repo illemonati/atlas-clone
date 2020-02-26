@@ -24,10 +24,6 @@ void TVcfReader::init(TParameters & Params, TLog* Logfile){
     openVCF(Params.getParameterString("vcf"));
 }
 
-inline double TVcfReader::phredToError(double phred){
-    return pow(10.0, -phred/10.0);
-}
-
 //open input stream
 void TVcfReader::openVCF(std::string name) {
     //open vcf file
@@ -52,7 +48,7 @@ void TVcfReader::openVCF(std::string name) {
     numSamples = vcfFile.numSamples();
 }
 
-bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, double * data){
+bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data){
     // keep chromosomes
     if (!vcfFilters.filterParameters.chromosomesToKeep.empty() && // don't keep this chromosome
         std::find(vcfFilters.filterParameters.chromosomesToKeep.begin(), vcfFilters.filterParameters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.filterParameters.chromosomesToKeep.end()){
@@ -75,34 +71,22 @@ bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, double * data){
     //check if GL or PL is given
     int numIndividualsWithData = 0;
     if(vcfFile.formatColExists("GL")){
-        numIndividualsWithData = vcfFilters.filterOnDepth(numSamples, vcfFile);
+        numIndividualsWithData = vcfFilters.filterOnDepth(data, vcfFile, numSamples);
         double tmp[3];
-        unsigned int index = 0;
-        for(int s = 0; s < numSamples; ++s, index+=3){
-            if (vcfFile.sampleIsMissing(s)){
-                data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
-            }
-            else{
-                vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]); // log10 -> take 10^
-                data[index] = pow(10, tmp[0]);
-                data[index + 1] = pow(10, tmp[1]);
-                data[index + 2] = pow(10, tmp[2]);
-            }
+        for(int s = 0; s < numSamples; ++s){
+            vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]);
+            data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
+            data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
+            data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
         }
     } else if(vcfFile.formatColExists("PL")){
-        numIndividualsWithData = vcfFilters.filterOnDepth(numSamples, vcfFile);
+        numIndividualsWithData = vcfFilters.filterOnDepth(data, vcfFile, numSamples);
         uint8_t tmp[3];
-        unsigned int index = 0;
-        for(int s = 0; s < numSamples; ++s, index+=3){
-            if (vcfFile.sampleIsMissing(s)){
-                data[index] = 0.333; data[index + 1] = 0.333; data[index + 2] = 0.333;
-            }
-            else{
-                vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
-                data[index] = phredToError(tmp[0]);
-                data[index + 1] = phredToError(tmp[1]);
-                data[index + 2] = phredToError(tmp[2]);
-            }
+        for(int s = 0; s < numSamples; ++s){
+            vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
+            data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
+            data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
+            data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
         }
     } else {
         ++vcfFilters.filterCounters.noPLCounter;
@@ -116,14 +100,14 @@ bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, double * data){
     }
 
     //filter in MAF
-    /*if(vcfFilters.filterParameters.freqFilter > 0.0 || vcfFilters.filterParameters.estimateGenotypeFrequencies) {
-        genoFrequencies.estimate(data, numSamples, glfConverter, epsilonF);
+    if(vcfFilters.filterParameters.freqFilter > 0.0 || vcfFilters.filterParameters.estimateGenotypeFrequencies) {
+        genoFrequencies.estimate(data, static_cast<int>(numSamples), glfConverter, vcfFilters.filterParameters.epsilonF);
 
-        if (genoFrequencies.MAF < freqFilter) {
+        if (genoFrequencies.MAF < vcfFilters.filterParameters.freqFilter) {
             vcfFilters.filterCounters.lowFreqSNPCounter++;
             return false;
         }
-    }*/
+    }
 
     //SNP is accepted!
     vcfFilters.filterCounters.numAcceptedLoci++;
@@ -157,32 +141,47 @@ TFilterParameters::TFilterParameters() {
     estimateGenotypeFrequencies = false;
 }
 
-TVcfFilters::TVcfFilters(TParameters & Params, TLog * Logfile){
+TVcfFilters::TVcfFilters(){
+    logfile = nullptr;
     progressFrequency = 0;
-    logfile = Logfile;
+}
 
+void TVcfFilters::init(TParameters & Params, TLog * Logfile){
+    logfile = Logfile;
     readFilteringOptions(Params);
 }
 
 void TVcfFilters::readFilteringOptions(TParameters & Parameters){
+    logfile->startIndent("Filter options:");
+    int filterCounter = 0;
+
     // do we limit the lines to read?
     filterParameters.limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
-    if(filterParameters.limitLines > 0)
-        logfile->list("Will limit analysis to the first " + toString(filterParameters.limitLines) + " lines of the VCF file. (parameter 'limitLines')");
+    if(filterParameters.limitLines > 0) {
+        logfile->list("Will limit analysis to the first " + toString(filterParameters.limitLines) +
+                      " lines of the VCF file. (parameter 'limitLines')");
+        filterCounter++;
+    }
 
     // do we set a depth filter?
     filterParameters.minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
     if(filterParameters.minDepth < 1)
         throw std::runtime_error("minDepth must be >= 1!");
-    if(filterParameters.minDepth > 1)
-        logfile->list("Will filter samples to a minimum depth of " + toString(filterParameters.minDepth) + ". (parameter 'minDepth')");
+    if(filterParameters.minDepth > 1) {
+        logfile->list("Will filter samples to a minimum depth of " + toString(filterParameters.minDepth) +
+                      ". (parameter 'minDepth')");
+        filterCounter++;
+    }
 
     // do we set a missingness filter?
     filterParameters.minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
     if(filterParameters.minNumSamplesWithData < 1)
         throw std::runtime_error("minNumSamplesWithData must be >= 1!");
-    if(filterParameters.minNumSamplesWithData > 1)
-        logfile->list("Will remove loci where less than " + toString(filterParameters.minNumSamplesWithData) + " samples have data. (parameter 'minSamplesWithData')");
+    if(filterParameters.minNumSamplesWithData > 1) {
+        logfile->list("Will remove loci where less than " + toString(filterParameters.minNumSamplesWithData) +
+                      " samples have data. (parameter 'minSamplesWithData')");
+        filterCounter++;
+    }
 
     // parameters to set a filter on the allele frequency?
     filterParameters.freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
@@ -191,7 +190,8 @@ void TVcfFilters::readFilteringOptions(TParameters & Parameters){
     if(filterParameters.freqFilter > 0.0){
         filterParameters.estimateGenotypeFrequencies = true;
         filterParameters.epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
-        logfile->list("Will filter on an allele frequency of " + toString(filterParameters.freqFilter) + ". (parameter 'epsF')");
+        logfile->list("Will filter on an allele frequency of " + toString(filterParameters.freqFilter) + ". (parameter 'minMAF')");
+        filterCounter++;
     } else {
         filterParameters.estimateGenotypeFrequencies = false;
     }
@@ -201,14 +201,21 @@ void TVcfFilters::readFilteringOptions(TParameters & Parameters){
     if(filterParameters.minVariantQuality < 0) throw std::runtime_error("minVariantQuality must be >= 0!");
     if(filterParameters.minVariantQuality > 0){
         logfile->list("Will only keep sites with variant quality >= " + toString(filterParameters.minVariantQuality) + ". (parameter 'minVariantQuality')");
+        filterCounter++;
     }
 
     // filter for specific chromosomes?
-    if(Parameters.parameterExists("keepChromosomes"))
+    if(Parameters.parameterExists("keepChromosomes")) {
         specifyChromosomesToKeep(Parameters);
+        filterCounter++;
+    }
+
+    if (filterCounter == 0)
+        logfile->list("No filter options set.");
 
     //set progress frequency
     progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
+    logfile->endIndent();
 }
 
 void TVcfFilters::printProgressFrequencyFiltering(const struct timeval & startTime){
@@ -264,21 +271,25 @@ void TVcfFilters::concludeFilters(const struct timeval & startTime){
         logfile->conclude(toString(filterCounters.notOnChrCounter) + " loci were on other chromosomes than specified.");
     if(filterCounters.lowFreqSNPCounter > 0)
         logfile->conclude(toString(filterCounters.lowFreqSNPCounter) + " loci had MAF < " + toString(filterParameters.freqFilter) + ".");
+    logfile->endIndent();
 }
 
-int TVcfFilters::filterOnDepth(unsigned int numSamples, TVcfFileSingleLine & vcfFile){
+int TVcfFilters::filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vcfFile, unsigned int numSamples){
     int numIndividualsWithData = 0;
-    unsigned int index = 0;
-    for(int s = 0; s < numSamples; ++s, index+=3){
-        // depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 0.333)
+    for(int s = 0; s < numSamples; ++s){
+        // depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
         if (vcfFile.sampleDepth(s) < filterParameters.minDepth)
             vcfFile.setSampleMissing(s);
         else
             numIndividualsWithData++;
+
+        //store if missing and haploid
+        data[s].isMissing = vcfFile.sampleIsMissing(s);
+        data[s].isHaploid = vcfFile.sampleIsHaploid(s);
     }
 
     return numIndividualsWithData;
-}
+};
 
 /***************************************
  * 									   *
@@ -290,8 +301,8 @@ TVcfConverter::TVcfConverter(TLog * Logfile, TParameters & Params){
     logfile = Logfile;
 
     vcfReader.init(Params, logfile);
+    vcfFilters.init(Params, logfile);
     readOutputName(Params);
-    readFilters(Params);
 }
 
 TVcfConverter::~TVcfConverter()= default;
@@ -311,19 +322,14 @@ void TVcfConverter::readOutputName(TParameters & Params){
     logfile->list("Writing output files with prefix '" + outname + "'.");
 }
 
-void TVcfConverter::readFilters(TParameters & Params) {
-    // read vcf filters
-    TVcfFilters vcfFilters(Params, logfile);
-}
-
-bool TVcfConverter::readVcf(TVcfFilters & vcfFilters){
+void TVcfConverter::readVcfAndWriteFile(){
     //set time at beginning
     logfile->startIndent("Start parsing VCF-file...");
     struct timeval startTime{};
     gettimeofday(&startTime, nullptr);
 
     // init data for one locus (will be overwritten every line)
-    double data[3*vcfReader.numSamples];
+    auto * data = new TSampleLikelihoods[vcfReader.numSamples];
 
     //read next
     while(vcfReader.vcfFile.next()){ // new locus
@@ -344,14 +350,15 @@ bool TVcfConverter::readVcf(TVcfFilters & vcfFilters){
         }
     }
 
-    //return false at end of file
-    logfile->endIndent("Reached end of VCF file.");
+    // end of vcf file reached
     vcfFilters.concludeFilters(startTime);
-
-    return false;
+    logfile->endIndent("Reached end of VCF file.");
 }
 
-void TVcfConverter::writeData(double * data){}
+void TVcfConverter::writeData(TSampleLikelihoods * data){
+    // will be overwritten by respective function in daughter class
+    // because every daughter class will write output in different format
+}
 
 int TVcfConverter::baseToNumber(char base, std::string & marker){
     if(base == 'A') return 0;
@@ -367,7 +374,9 @@ int TVcfConverter::baseToNumber(char base, std::string & marker){
  * 			 Vcf to Beagle			   *
  * 									   *
  ***************************************/
-TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {}
+TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    beagleFile = nullptr;
+}
 
 void TVcfToBeagle::writeBeagleHeader(){
     //header string
@@ -379,14 +388,14 @@ void TVcfToBeagle::writeBeagleHeader(){
     beagleFile->writeHeader(header);
 }
 
-void TVcfToBeagle::writeData(double * data){
+void TVcfToBeagle::writeData(TSampleLikelihoods * data){
     //write line
     std::string marker = vcfReader.vcfFile.chr() + ":" + toString(vcfReader.vcfFile.position());
     (*beagleFile) << marker; // marker
     (*beagleFile) << baseToNumber(vcfReader.vcfFile.getRefAllele(), marker) << baseToNumber(vcfReader.vcfFile.getFirstAltAllele(), marker); // ref and alt allele
 
-    for (int s = 0; s < vcfReader.vcfFile.numSamples() * 3; s+=3){
-        (*beagleFile) << data[s] << data[s + 1] << data[s + 2];
+    for (int s = 0; s < vcfReader.vcfFile.numSamples(); s++){
+        (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
     }
 
     beagleFile->endLine();
@@ -396,6 +405,9 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     //open output files
     beagleFile = new TOutputFileZipped(outname + ".beagle.gz");
     writeBeagleHeader();
+
+    // read Vcf and write output
+    readVcfAndWriteFile();
 
     // clean up
     beagleFile->close();
