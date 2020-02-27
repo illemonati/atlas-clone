@@ -290,7 +290,7 @@ int TVcfFilters::filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vc
     }
 
     return numIndividualsWithData;
-};
+}
 
 /***************************************
  * 									   *
@@ -396,7 +396,10 @@ void TVcfToBeagle::writeData(TSampleLikelihoods * data, const std::string & locu
     (*beagleFile) << baseToNumber(vcfReader.vcfFile.getRefAllele(), locusName) << baseToNumber(vcfReader.vcfFile.getFirstAltAllele(), locusName); // ref and alt allele
 
     for (int s = 0; s < vcfReader.vcfFile.numSamples(); s++){
-        (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
+        if (data[s].isMissing)
+            (*beagleFile) << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
+        else
+            (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
     }
 
     beagleFile->endLine();
@@ -421,6 +424,7 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
  ***************************************/
 TVcfToLFMM::TVcfToLFMM(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
     lfmmFile = nullptr;
+    lociNamesFile = nullptr;
 }
 
 TVcfToLFMM::~TVcfToLFMM(){
