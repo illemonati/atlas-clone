@@ -112,12 +112,12 @@ public:
 class TVcfToLFMM : protected TVcfConverter {
 private:
     TOutputFilePlain * lfmmFile;
-    // beagle
+    // lfmm
     void writeLFMMHeader();
     void writeData(TSampleLikelihoods * data) override ;
     void writeLFMM();
     void storePosteriorGenotypes(TSampleLikelihoods * data);
-    static double computePosteriorGenotype(TSampleLikelihoods * data, int i);
+    double computePosteriorGenotype(TSampleLikelihoods * data, int i);
 
     std::vector<double *> post_genotypes;
 

@@ -429,8 +429,7 @@ TVcfToLFMM::~TVcfToLFMM(){
 
 void TVcfToLFMM::writeLFMMHeader(){
     // empty header
-    std::vector <std::string> header {};
-    lfmmFile->writeHeader(header);
+    lfmmFile->noHeader(post_genotypes.size());
 }
 
 void TVcfToLFMM::writeData(TSampleLikelihoods * data){
@@ -439,23 +438,29 @@ void TVcfToLFMM::writeData(TSampleLikelihoods * data){
 }
 
 double TVcfToLFMM::computePosteriorGenotype(TSampleLikelihoods * data, int i){
-    double denominator = data[i][0] + data[i][1] + data[i][2];
-    double probG0 = static_cast<double>(data[i][0]) / denominator;
-    double probG1 = static_cast<double>(data[i][1]) / denominator;
-    double probG2 = static_cast<double>(data[i][2]) / denominator;
+    // first convert glf to genotype likelihood
+    double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
+    double llG1 = glfConverter.toScaledLikelihood(data[i][1]);
+    double llG2 = glfConverter.toScaledLikelihood(data[i][2]);
 
-    double meanPostGeno = probG0 * 0. + probG1 * 1. + probG2 * 2.;
+    // normalize by sum to get posterior genotype
+    double denominator = llG0 + llG1 + llG2;
+    double postG0 = llG0 / denominator;
+    double postG1 = llG1 / denominator;
+    double postG2 = llG2 / denominator;
+
+    // take mean
+    double meanPostGeno = postG0 * 0. + postG1 * 1. + postG2 * 2.;
     return meanPostGeno;
 }
 
 
 void TVcfToLFMM::storePosteriorGenotypes(TSampleLikelihoods * data){
-    auto * oneLocus = new double[vcfReader.vcfFile.numSamples()];
+    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
     for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
-        double meanPostGeno = computePosteriorGenotype(data, i);
-        oneLocus[i] = meanPostGeno;
+        meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
     }
-    post_genotypes.emplace_back(oneLocus);
+    post_genotypes.emplace_back(meanPostGenoForOneLocus);
 }
 
 void TVcfToLFMM::writeLFMM(){
@@ -471,12 +476,12 @@ void TVcfToLFMM::writeLFMM(){
 void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     //open output files
     lfmmFile = new TOutputFilePlain(outname + ".lfmm");
-    writeLFMMHeader();
 
-    // read Vcf and write output
+    // read Vcf and store output
     readVcfAndWriteFile();
 
     // write actual lfmm
+    writeLFMMHeader();
     writeLFMM();
 
     // clean up
