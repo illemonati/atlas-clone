@@ -75,7 +75,7 @@ public:
 
     void init(TParameters & Params, TLog* Logfile);
     void openVCF(std::string name);
-    bool readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data);
+    bool readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data, std::string & locusName);
 };
 
 class TVcfConverter {
@@ -85,7 +85,7 @@ protected:
     TVcfReader vcfReader;
     TVcfFilters vcfFilters;
     TGlfConverter glfConverter;
-    static int baseToNumber(char base, std::string & marker);
+    static int baseToNumber(char base, const std::string & marker);
 
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
@@ -93,7 +93,7 @@ public:
 
     void readOutputName(TParameters & Params);
     void readVcfAndWriteFile();
-    virtual void writeData(TSampleLikelihoods * data);
+    virtual void writeData(TSampleLikelihoods * data, const std::string & locusName);
 
     };
 
@@ -102,7 +102,7 @@ private:
     TOutputFileZipped * beagleFile;
     // beagle
     void writeBeagleHeader();
-    void writeData(TSampleLikelihoods * data) override ;
+    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
 
 public:
     TVcfToBeagle(TParameters &Params, TLog *Logfile);
@@ -112,14 +112,18 @@ public:
 class TVcfToLFMM : protected TVcfConverter {
 private:
     TOutputFilePlain * lfmmFile;
+    TOutputFilePlain * lociNamesFile;
     // lfmm
     void writeLFMMHeader();
-    void writeData(TSampleLikelihoods * data) override ;
+    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
     void writeLFMM();
     void storePosteriorGenotypes(TSampleLikelihoods * data);
     double computePosteriorGenotype(TSampleLikelihoods * data, int i);
+    void storeLocusNames(const std::string & locusName);
+    void writeLociNames();
 
     std::vector<double *> post_genotypes;
+    std::vector<std::string> loci_names;
 
 public:
     TVcfToLFMM(TParameters &Params, TLog *Logfile);

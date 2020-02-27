@@ -48,7 +48,7 @@ void TVcfReader::openVCF(std::string name) {
     numSamples = vcfFile.numSamples();
 }
 
-bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data){
+bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data, std::string & locusName){
     // keep chromosomes
     if (!vcfFilters.filterParameters.chromosomesToKeep.empty() && // don't keep this chromosome
         std::find(vcfFilters.filterParameters.chromosomesToKeep.begin(), vcfFilters.filterParameters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.filterParameters.chromosomesToKeep.end()){
@@ -110,6 +110,7 @@ bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * d
     }
 
     //SNP is accepted!
+    locusName = vcfFile.chr() + ":" + toString(vcfFile.position());
     vcfFilters.filterCounters.numAcceptedLoci++;
     return true;
 }
@@ -330,6 +331,7 @@ void TVcfConverter::readVcfAndWriteFile(){
 
     // init data for one locus (will be overwritten every line)
     auto * data = new TSampleLikelihoods[vcfReader.numSamples];
+    std::string locusName;
 
     //read next
     while(vcfReader.vcfFile.next()){ // new locus
@@ -344,9 +346,9 @@ void TVcfConverter::readVcfAndWriteFile(){
             vcfFilters.printProgressFrequencyFiltering(startTime);
 
         // filter, keep or not
-        if (vcfReader.readOneLineVcf(vcfFilters, data)){
+        if (vcfReader.readOneLineVcf(vcfFilters, data, locusName)){
             // filter passed
-            writeData(data);
+            writeData(data, locusName);
         }
     }
 
@@ -355,12 +357,12 @@ void TVcfConverter::readVcfAndWriteFile(){
     logfile->endIndent("Reached end of VCF file.");
 }
 
-void TVcfConverter::writeData(TSampleLikelihoods * data){
+void TVcfConverter::writeData(TSampleLikelihoods * data, const std::string & locusName){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
 }
 
-int TVcfConverter::baseToNumber(char base, std::string & marker){
+int TVcfConverter::baseToNumber(char base, const std::string & marker){
     if(base == 'A') return 0;
     else if(base == 'C') return 1;
     else if(base == 'G') return 2;
@@ -388,11 +390,10 @@ void TVcfToBeagle::writeBeagleHeader(){
     beagleFile->writeHeader(header);
 }
 
-void TVcfToBeagle::writeData(TSampleLikelihoods * data){
+void TVcfToBeagle::writeData(TSampleLikelihoods * data, const std::string & locusName){
     //write line
-    std::string marker = vcfReader.vcfFile.chr() + ":" + toString(vcfReader.vcfFile.position());
-    (*beagleFile) << marker; // marker
-    (*beagleFile) << baseToNumber(vcfReader.vcfFile.getRefAllele(), marker) << baseToNumber(vcfReader.vcfFile.getFirstAltAllele(), marker); // ref and alt allele
+    (*beagleFile) << locusName; // marker
+    (*beagleFile) << baseToNumber(vcfReader.vcfFile.getRefAllele(), locusName) << baseToNumber(vcfReader.vcfFile.getFirstAltAllele(), locusName); // ref and alt allele
 
     for (int s = 0; s < vcfReader.vcfFile.numSamples(); s++){
         (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
@@ -425,6 +426,8 @@ TVcfToLFMM::TVcfToLFMM(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfi
 TVcfToLFMM::~TVcfToLFMM(){
     for (auto it = post_genotypes.begin(); it < post_genotypes.end(); it++)
         delete [] *it;
+    delete lociNamesFile;
+    delete lfmmFile;
 }
 
 void TVcfToLFMM::writeLFMMHeader(){
@@ -432,9 +435,22 @@ void TVcfToLFMM::writeLFMMHeader(){
     lfmmFile->noHeader(post_genotypes.size());
 }
 
-void TVcfToLFMM::writeData(TSampleLikelihoods * data){
+void TVcfToLFMM::writeData(TSampleLikelihoods * data, const std::string & locusName){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storePosteriorGenotypes(data);
+    storeLocusNames(locusName);
+}
+
+void TVcfToLFMM::storePosteriorGenotypes(TSampleLikelihoods * data){
+    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
+    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+        meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
+    }
+    post_genotypes.emplace_back(meanPostGenoForOneLocus);
+}
+
+void TVcfToLFMM::storeLocusNames(const std::string & locusName){
+    loci_names.emplace_back(locusName);
 }
 
 double TVcfToLFMM::computePosteriorGenotype(TSampleLikelihoods * data, int i){
@@ -454,15 +470,6 @@ double TVcfToLFMM::computePosteriorGenotype(TSampleLikelihoods * data, int i){
     return meanPostGeno;
 }
 
-
-void TVcfToLFMM::storePosteriorGenotypes(TSampleLikelihoods * data){
-    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
-    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
-        meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
-    }
-    post_genotypes.emplace_back(meanPostGenoForOneLocus);
-}
-
 void TVcfToLFMM::writeLFMM(){
     int numLoci = post_genotypes.size();
     for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
@@ -473,9 +480,17 @@ void TVcfToLFMM::writeLFMM(){
     }
 }
 
+void TVcfToLFMM::writeLociNames(){
+    lociNamesFile->noHeader(loci_names.size());
+    for (auto it = loci_names.begin(); it < loci_names.end(); it++)
+        *(lociNamesFile) << *it;
+    lociNamesFile->endLine();
+}
+
 void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     //open output files
     lfmmFile = new TOutputFilePlain(outname + ".lfmm");
+    lociNamesFile = new TOutputFilePlain(outname + ".lfmm.kept_loci");
 
     // read Vcf and store output
     readVcfAndWriteFile();
@@ -483,7 +498,9 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     // write actual lfmm
     writeLFMMHeader();
     writeLFMM();
+    writeLociNames();
 
     // clean up
     lfmmFile->close();
+    lociNamesFile->close();
 }
