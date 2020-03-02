@@ -113,22 +113,39 @@ class TVcfToLFMM : protected TVcfConverter {
 private:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
-    // lfmm
+    bool postGeno;
+    bool calledGeno;
+    void getTask(TParameters &Params, TLog *Logfile);
+
     void writeLFMMHeader();
-    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
-    void writeLFMM();
-    void storePosteriorGenotypes(TSampleLikelihoods * data);
-    double computePosteriorGenotype(TSampleLikelihoods * data, int i);
     void storeLocusNames(const std::string & locusName);
     void writeLociNames();
+    void writeLFMM();
 
-    std::vector<double *> post_genotypes;
+    std::vector<double *> genotypes;
     std::vector<std::string> loci_names;
 
 public:
-    TVcfToLFMM(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMM();
+    TVcfToLFMM(TLog *Logfile, TParameters &Params);
     void vcfToLFMM(TParameters & Params);
+};
+
+class TVcfToLFMMCalledGeno : protected TVcfToLFMM {
+
+public:
+    TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
+    ~TVcfToLFMMCalledGeno();
+};
+
+class TVcfToLFMMPostGeno : protected TVcfToLFMM {
+private:
+    // lfmm
+    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
+    void storePosteriorGenotypes(TSampleLikelihoods * data);
+    double computePosteriorGenotype(TSampleLikelihoods * data, int i);
+
+public:
+    TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);
 };
 
 

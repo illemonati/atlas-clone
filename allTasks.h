@@ -614,7 +614,7 @@ public:
 
 class TTask_VCFToLFMM:public TTask_atlas{
 public:
-    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format, using posterior genotypes"; };
+    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };
 
     void run(TParameters & parameters, TLog* logfile){
         TVcfToLFMM VcfToLFMM(parameters, logfile);

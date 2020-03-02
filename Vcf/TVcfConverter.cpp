@@ -416,19 +416,23 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     // clean up
     beagleFile->close();
 }
-
 /***************************************
  * 									   *
- * 	Vcf to LFMM (posterior genotype)   *
+ *    Vcf to LFMM                      *
  * 									   *
  ***************************************/
-TVcfToLFMM::TVcfToLFMM(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+
+TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfile, Params){
+    postGeno = false;
+    calledGeno = false;
     lfmmFile = nullptr;
     lociNamesFile = nullptr;
+
+    getTask(Params, Logfile);
 }
 
 TVcfToLFMM::~TVcfToLFMM(){
-    for (auto it = post_genotypes.begin(); it < post_genotypes.end(); it++)
+    for (auto it = genotypes.begin(); it < genotypes.end(); it++)
         delete [] *it;
     delete lociNamesFile;
     delete lfmmFile;
@@ -436,49 +440,18 @@ TVcfToLFMM::~TVcfToLFMM(){
 
 void TVcfToLFMM::writeLFMMHeader(){
     // empty header
-    lfmmFile->noHeader(post_genotypes.size());
-}
-
-void TVcfToLFMM::writeData(TSampleLikelihoods * data, const std::string & locusName){
-    // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
-    storePosteriorGenotypes(data);
-    storeLocusNames(locusName);
-}
-
-void TVcfToLFMM::storePosteriorGenotypes(TSampleLikelihoods * data){
-    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
-    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
-        meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
-    }
-    post_genotypes.emplace_back(meanPostGenoForOneLocus);
+    lfmmFile->noHeader(genotypes.size());
 }
 
 void TVcfToLFMM::storeLocusNames(const std::string & locusName){
     loci_names.emplace_back(locusName);
 }
 
-double TVcfToLFMM::computePosteriorGenotype(TSampleLikelihoods * data, int i){
-    // first convert glf to genotype likelihood
-    double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
-    double llG1 = glfConverter.toScaledLikelihood(data[i][1]);
-    double llG2 = glfConverter.toScaledLikelihood(data[i][2]);
-
-    // normalize by sum to get posterior genotype
-    double denominator = llG0 + llG1 + llG2;
-    double postG0 = llG0 / denominator;
-    double postG1 = llG1 / denominator;
-    double postG2 = llG2 / denominator;
-
-    // take mean
-    double meanPostGeno = postG0 * 0. + postG1 * 1. + postG2 * 2.;
-    return meanPostGeno;
-}
-
 void TVcfToLFMM::writeLFMM(){
-    int numLoci = post_genotypes.size();
+    int numLoci = genotypes.size();
     for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
         for (int l = 0; l < numLoci; l++){
-            *(lfmmFile) << post_genotypes[l][i];
+            *(lfmmFile) << genotypes[l][i];
         }
         lfmmFile->endLine();
     }
@@ -507,4 +480,69 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     // clean up
     lfmmFile->close();
     lociNamesFile->close();
+}
+
+void TVcfToLFMM::getTask(TParameters &Params, TLog *Logfile){
+    std::string task = Params.getParameterString("geno");
+    if (task == "postGeno"){
+        postGeno = true;
+        Logfile->list("Will store posterior genotypes.");
+    }
+    else if (task == "calledGeno"){
+        calledGeno = true;
+        Logfile->list("Will store called genotypes.");
+    }
+    else {
+        throw std::runtime_error("Unknown LFMM format " + task + "! Please choose either 'postGeno' or 'calledGeno'.");
+    }
+}
+
+/***************************************
+ * 									   *
+ *    Vcf to LFMM (called genotypes)   *
+ * 									   *
+ ***************************************/
+TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
+
+}
+
+/***************************************
+ * 									   *
+ * 	Vcf to LFMM (posterior genotype)   *
+ * 									   *
+ ***************************************/
+TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
+
+}
+
+void TVcfToLFMMPostGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){
+    // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
+    storePosteriorGenotypes(data);
+    storeLocusNames(locusName);
+}
+
+void TVcfToLFMMPostGeno::storePosteriorGenotypes(TSampleLikelihoods * data){
+    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
+    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+        meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
+    }
+    genotypes.emplace_back(meanPostGenoForOneLocus);
+}
+
+
+double TVcfToLFMMPostGeno::computePosteriorGenotype(TSampleLikelihoods * data, int i){
+    // first convert glf to genotype likelihood
+    double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
+    double llG1 = glfConverter.toScaledLikelihood(data[i][1]);
+    double llG2 = glfConverter.toScaledLikelihood(data[i][2]);
+
+    // normalize by sum to get posterior genotype
+    double denominator = llG0 + llG1 + llG2;
+    double postG0 = llG0 / denominator;
+    double postG1 = llG1 / denominator;
+    double postG2 = llG2 / denominator;
+
+    // take mean
+    double meanPostGeno = postG0 * 0. + postG1 * 1. + postG2 * 2.;
+    return meanPostGeno;
 }
