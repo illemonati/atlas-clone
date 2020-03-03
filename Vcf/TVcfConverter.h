@@ -110,7 +110,7 @@ public:
 };
 
 class TVcfToLFMM : protected TVcfConverter {
-private:
+protected:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
     bool postGeno;
@@ -127,14 +127,17 @@ private:
 
 public:
     TVcfToLFMM(TLog *Logfile, TParameters &Params);
+    ~TVcfToLFMM();
     void vcfToLFMM(TParameters & Params);
 };
 
 class TVcfToLFMMCalledGeno : protected TVcfToLFMM {
-
+private:
+    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
+    void storeCalledGenotypes(TSampleLikelihoods * data);
+    double getCalledGenotype(TSampleLikelihoods * data, int i);
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMMCalledGeno();
 };
 
 class TVcfToLFMMPostGeno : protected TVcfToLFMM {

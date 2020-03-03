@@ -506,6 +506,37 @@ TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) :
 
 }
 
+void TVcfToLFMMCalledGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){
+    // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
+    storeCalledGenotypes(data);
+    storeLocusNames(locusName);
+}
+
+void TVcfToLFMMCalledGeno::storeCalledGenotypes(TSampleLikelihoods * data){
+    auto * calledGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
+    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+        calledGenoForOneLocus[i] = getCalledGenotype(data, i);
+    }
+    genotypes.emplace_back(calledGenoForOneLocus);
+}
+
+double TVcfToLFMMCalledGeno::getCalledGenotype(TSampleLikelihoods * data, int i){
+    // find genotype with highest likelihood
+    // I could also directly take the genotype from the vcf-file, but then I would have to
+    // re-write the base class to store genotypes too, so I chose this way (should give the same results)
+    double bestGenoLL = data[i][0];
+    unsigned int bestGeno = 0;
+    if (data[i][1] > bestGenoLL) {
+        bestGenoLL = data[i][1];
+        bestGeno = 1;
+    }
+    if (data[i][2] > bestGenoLL) {
+        bestGenoLL = data[i][2];
+        bestGeno = 2;
+    }
+    return bestGeno;
+}
+
 /***************************************
  * 									   *
  * 	Vcf to LFMM (posterior genotype)   *
