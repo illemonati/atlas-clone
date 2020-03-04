@@ -423,12 +423,8 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
  ***************************************/
 
 TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfile, Params){
-    postGeno = false;
-    calledGeno = false;
     lfmmFile = nullptr;
     lociNamesFile = nullptr;
-
-    getTask(Params, Logfile);
 }
 
 TVcfToLFMM::~TVcfToLFMM(){
@@ -482,28 +478,13 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     lociNamesFile->close();
 }
 
-void TVcfToLFMM::getTask(TParameters &Params, TLog *Logfile){
-    std::string task = Params.getParameterString("geno");
-    if (task == "postGeno"){
-        postGeno = true;
-        Logfile->list("Will store posterior genotypes.");
-    }
-    else if (task == "calledGeno"){
-        calledGeno = true;
-        Logfile->list("Will store called genotypes.");
-    }
-    else {
-        throw std::runtime_error("Unknown LFMM format " + task + "! Please choose either 'postGeno' or 'calledGeno'.");
-    }
-}
-
 /***************************************
  * 									   *
  *    Vcf to LFMM (called genotypes)   *
  * 									   *
  ***************************************/
 TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
-
+    logfile->list("Will store the called genotype for each locus.");
 }
 
 void TVcfToLFMMCalledGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){
@@ -543,7 +524,7 @@ double TVcfToLFMMCalledGeno::getCalledGenotype(TSampleLikelihoods * data, int i)
  * 									   *
  ***************************************/
 TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
-
+    logfile->list("Will store the mean posterior genotype for each locus.");
 }
 
 void TVcfToLFMMPostGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){

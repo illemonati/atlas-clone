@@ -617,8 +617,18 @@ public:
     TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };
 
     void run(TParameters & parameters, TLog* logfile){
-        TVcfToLFMM VcfToLFMM(parameters, logfile);
-        VcfToLFMM.vcfToLFMM(parameters);
+        std::string output = parameters.getParameterString("geno");
+        if (output == "postGeno"){
+            TVcfToLFMMPostGeno vcfToLFMMPostGeno(parameters, logfile);
+            vcfToLFMMPostGeno.vcfToLFMM(parameters);
+        }
+        else if (output == "calledGeno"){
+            TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(parameters, logfile);
+            vcfToLFMMCalledGeno.vcfToLFMM(parameters);
+        }
+        else {
+            throw std::runtime_error("Unknown LFMM format '" + output + "'! Please choose either 'postGeno' or 'calledGeno'.");
+        }
     };
 };
 

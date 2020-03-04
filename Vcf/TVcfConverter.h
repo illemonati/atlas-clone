@@ -113,9 +113,6 @@ class TVcfToLFMM : protected TVcfConverter {
 protected:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
-    bool postGeno;
-    bool calledGeno;
-    void getTask(TParameters &Params, TLog *Logfile);
 
     void writeLFMMHeader();
     void storeLocusNames(const std::string & locusName);
@@ -131,16 +128,16 @@ public:
     void vcfToLFMM(TParameters & Params);
 };
 
-class TVcfToLFMMCalledGeno : protected TVcfToLFMM {
+class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
     void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
     void storeCalledGenotypes(TSampleLikelihoods * data);
-    double getCalledGenotype(TSampleLikelihoods * data, int i);
+    static double getCalledGenotype(TSampleLikelihoods * data, int i);
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
 };
 
-class TVcfToLFMMPostGeno : protected TVcfToLFMM {
+class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
     // lfmm
     void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
