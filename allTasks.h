@@ -661,17 +661,17 @@ public:
 	};
 };
 
-/*
-class TTask_filterVCF:public TTask_atlas{
+//---------------------------------------------------------------------------
+// Debugging
+//---------------------------------------------------------------------------
+class TTask_testBED:public TTask_atlas{
 public:
-	TTask_filterVCF(){ _explanation = "Filtering a VCF file"; };
+	TTask_testBED(){ _explanation = "Testing BED files"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TVcfFilter vcfFilter(parameters, logfile);
-		vcfFilter.filterVCF(parameters);
+		TBed bed;
+		bed.test();
 	};
 };
-*/
-
 
 #endif /* ALLTASKS_H_ */

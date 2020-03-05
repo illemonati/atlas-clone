@@ -395,7 +395,7 @@ void TWindow_base::countAlleles(TAllelicDepthCounts & counts){
 
 void TWindow_base::writeNonConservedBed(std::ofstream & output){
 	//calculate and return imbalance
-	for(int i=0; i<length; ++i){
+	for(unsigned int i=0; i<length; ++i){
 		if(sites[i].depth() > 0 && sites[i].refDepth() < sites[i].depth()){
 			output << chrName << "\t" << start + i << "\t" << start + i + 1 << "\n";
 		}
