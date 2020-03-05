@@ -442,10 +442,12 @@ void TPMDTables::writePMDFile(std::string filename){
 
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tCT\t" << forward[readGroupMapObject[i]]->getPMDString(C, T) << "\n";
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tGA\t" << reverse[readGroupMapObject[i]]->getPMDString(G, A) << "\n";
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tGT\t" << forward[readGroupMapObject[i]]->getPMDString(G, T) << "\n";
-		if(readGroups.readGroupInUse(i)) out << readGroups.getName(i) << "\tCA\t" << reverse[readGroupMapObject[i]]->getPMDString(C, A) << "\n";
+		if(readGroups.readGroupInUse(i)){
+			out << readGroups.getName(i) << "\tCT\t" << forward[readGroupMapObject[i]]->getPMDString(C, T) << "\n";
+			out << readGroups.getName(i) << "\tGA\t" << reverse[readGroupMapObject[i]]->getPMDString(G, A) << "\n";
+			out << readGroups.getName(i) << "\tGT\t" << forward[readGroupMapObject[i]]->getPMDString(G, T) << "\n";
+			out << readGroups.getName(i) << "\tCA\t" << reverse[readGroupMapObject[i]]->getPMDString(C, A) << "\n";
+		}
 	}
 	out.close();
 }
