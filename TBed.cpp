@@ -4,8 +4,8 @@
 //---------------------------------------
 // TBedChromosome
 //---------------------------------------
-void TBedChromosome::_fuseNeighboringWindowsIfNeeded(TBedMap::iterator & it){
-	TBedMap::iterator before = it; --before;
+void TBedChromosome::_fuseNeighboringWindowsIfNeeded(TBedWindowMap::iterator & it){
+	TBedWindowMap::iterator before = it; --before;
 	while(it != _windows.begin() && before->second >= it->first){
 		//windows overlap: fuse
 		before->second = std::max(before->second, it->second);
@@ -15,7 +15,7 @@ void TBedChromosome::_fuseNeighboringWindowsIfNeeded(TBedMap::iterator & it){
 		--before;
 	}
 
-	TBedMap::iterator after = it; ++after;
+	TBedWindowMap::iterator after = it; ++after;
 	while(after != _windows.end() && after->first <= it->second){
 		//windows overlap: fuse
 		it->second = std::max(it->second, after->second);
@@ -28,7 +28,7 @@ void TBedChromosome::_fuseNeighboringWindowsIfNeeded(TBedMap::iterator & it){
 void TBedChromosome::addWindow(uint64_t start, uint64_t end){
 	if(end <= start) throw "Window  [" + toString(start) + ", " + toString(end) + "] is not valid!";
 	//check if there is overlap with any other window
-	for(TBedMap::iterator it = _windows.begin(); it!=_windows.end(); ++it){
+	for(TBedWindowMap::iterator it = _windows.begin(); it!=_windows.end(); ++it){
 		if((start >= it->first && start < it->second) || (end > it->first && end <= it->second))
 			throw "Error reading bed file: window [" + toString(start) + ", " + toString(end) + ") overlaps window [" + toString(_windowIt->first) + ", " + toString(_windowIt->second) + ")!";
 	}
@@ -40,7 +40,7 @@ void TBedChromosome::addOrExtendWindow(const uint64_t start, const uint64_t end)
 	//check if there is overlap with any other window
 
 	//check if window with same start exists
-	TBedMap::iterator it = _windows.find(start);
+	TBedWindowMap::iterator it = _windows.find(start);
 
 	if(it != _windows.end()){
 		//window has same start: extend if necessary
@@ -54,8 +54,8 @@ void TBedChromosome::addOrExtendWindow(const uint64_t start, const uint64_t end)
 	}
 };
 
-void TBedChromosome::print(){
-	std::cout << "Chromosome '" << _name << "':" << std::endl;
+void TBedChromosome::print(const std::string & chrName){
+	std::cout << "Chromosome '" << chrName << "':" << std::endl;
 	for(_windowIt=_windows.begin(); _windowIt!=_windows.end(); ++_windowIt){
 		std::cout << " - [" << _windowIt->first << ", " << _windowIt->second << "]" << std::endl;
 	}
@@ -84,6 +84,12 @@ bool TBedChromosome::next(){
 bool TBedChromosome::reachedEnd(){
 	if(_windowIt == _windows.end()) return true;
 	return false;
+};
+
+void TBedChromosome::write(TOutputFilePlain & out, const std::string & chrName){
+	for(_windowIt=_windows.begin(); _windowIt!=_windows.end(); ++_windowIt){
+		out << chrName << _windowIt->first << _windowIt->second << std::endl;
+	}
 };
 
 //---------------------------------------
@@ -121,14 +127,14 @@ void TBed::readFile(const std::string filename){
 			if(vec[0] != _curChr){
 				_chrIt = _chromosomes.find(vec[0]);
 				if(_chrIt == _chromosomes.end()){
-					_chromosomes.insert(std::pair<std::string, TBedChromosome*>(vec[0], new TBedChromosome(vec[0])));
+					_chromosomes.emplace(vec[0], TBedChromosome{});
 					_chrIt = _chromosomes.find(vec[0]);
 				}
 				_curChr = vec[0];
 			}
 
 			//add positions
-			_chrIt->second->addWindow(stringToLong(vec[1]), stringToLong(vec[2]));
+			_chrIt->second.addWindow(stringToLong(vec[1]), stringToLong(vec[2]));
 		}
 	}
 
@@ -143,12 +149,12 @@ void TBed::readFile(const std::string filename){
 };
 
 void TBed::_setCurChrAsParsed(){
-	_chrIt->second->setAsParsed();
+	_chrIt->second.setAsParsed();
 
 	//check if all chromosomes have been parsed
 	_allChrParsed = true;
 	for(auto& it : _chromosomes){
-		if(!it.second->parsed()){
+		if(!it.second.parsed()){
 			_allChrParsed = false;
 			break;
 		}
@@ -156,16 +162,16 @@ void TBed::_setCurChrAsParsed(){
 };
 
 void TBed::addWindowCurChr(const uint64_t start, const uint64_t end){
-	_chrIt->second->addOrExtendWindow(start, end);
+	_chrIt->second.addOrExtendWindow(start, end);
 };
 
 void TBed::addSite(const uint64_t pos){
-	_chrIt->second->addOrExtendWindow(pos, pos+1);
+	_chrIt->second.addOrExtendWindow(pos, pos+1);
 };
 
 void TBed::rewind(){
 	for(auto& it : _chromosomes){
-		it.second->rewind();
+		it.second.rewind();
 	}
 
 	_allChrParsed = false;
@@ -174,9 +180,6 @@ void TBed::rewind(){
 
 void TBed::clear(){
 	//delete all chromosomes
-	for(auto& it : _chromosomes){
-		delete it.second;
-	}
 	_chromosomes.clear();
 };
 
@@ -197,7 +200,7 @@ bool TBed::setChr(const std::string & chr){
 	_curChr = chr;
 	_chrIt = _chromosomes.find(_curChr);
 	if(_chrIt!=_chromosomes.end()){
-		_chrIt->second->begin();
+		_chrIt->second.begin();
 		return true;
 	}
 	return false;
@@ -206,7 +209,7 @@ bool TBed::setChr(const std::string & chr){
 void TBed::setChrCreateIfNew(const std::string & chr){
 	if(!setChr(chr)){
 		//create chromosome
-		_chromosomes.insert(std::pair<std::string, TBedChromosome*>(chr, new TBedChromosome(chr)));
+		_chromosomes.emplace(chr, TBedChromosome{});
 		setChr(chr);
 	}
 };
@@ -218,7 +221,7 @@ std::string TBed::curChr(){
 
 bool TBed::nextWindow(){
 	if(_chrIt==_chromosomes.end()) return false;
-	if(!_chrIt->second->next()){
+	if(!_chrIt->second.next()){
 		//set current as parsed
 		_setCurChrAsParsed();
 		return false;
@@ -228,34 +231,35 @@ bool TBed::nextWindow(){
 
 bool TBed::reachedEndOfChr(){
 	if(_chrIt==_chromosomes.end()) return true;
-	return _chrIt->second->reachedEnd();
+	return _chrIt->second.reachedEnd();
 };
 
 uint64_t TBed::curWindowStart(){
 	if(_chrIt==_chromosomes.end()) return -1;
-	return _chrIt->second->curStart();
+	return _chrIt->second.curStart();
 };
 
 uint64_t TBed::curWindowEnd(){
 	if(_chrIt==_chromosomes.end()) return -1;
-	return _chrIt->second->curEnd();
+	return _chrIt->second.curEnd();
 };
 
 uint64_t TBed::curWindowSize(){
 	if(_chrIt==_chromosomes.end()) return 0;
-			return _chrIt->second->curLength();
+			return _chrIt->second.curLength();
 };
 
 void TBed::print(){
 	std::cout << "Bed File:" << std::endl;
-	for(_chrIt=_chromosomes.begin(); _chrIt!=_chromosomes.end(); ++_chrIt)
-		_chrIt->second->print();
+	for(auto& it:  _chromosomes){
+		it.second.print(it.first);
+	}
 };
 
 size_t TBed::size(){
 	size_t s = 0;
 	for(auto& it : _chromosomes){
-		s += it.second->size();
+		s += it.second.size();
 	}
 	return s;
 };
@@ -263,14 +267,23 @@ size_t TBed::size(){
 uint64_t TBed::length(){
 	uint64_t l = 0;
 	for(auto& it : _chromosomes){
-		l += it.second->length();
+		l += it.second.length();
 	}
 	return l;
 };
 
 int TBed::getNumWindowsOnCurChr(){
 	if(_chrIt==_chromosomes.end()) return 0;
-	return _chrIt->second->size();
+	return _chrIt->second.size();
+};
+
+void TBed::write(const std::string filename){
+	TOutputFilePlain out(filename);
+	out.noHeader(3);
+
+	for(auto& it:  _chromosomes){
+		it.second.write(out, it.first);
+	}
 };
 
 bool TBed::test(){
@@ -324,6 +337,8 @@ bool TBed::test(){
 		print();
 		throw "BED Test failed: wrong length!";
 	}
+
+	write("test.bed");
 
 	return true;
 };

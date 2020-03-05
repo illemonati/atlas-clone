@@ -661,4 +661,17 @@ public:
 	};
 };
 
+//---------------------------------------------------------------------------
+// Debugging
+//---------------------------------------------------------------------------
+class TTask_testBED:public TTask_atlas{
+public:
+	TTask_testBED(){ _explanation = "Testing BED files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TBed bed;
+		bed.test();
+	};
+};
+
 #endif /* ALLTASKS_H_ */

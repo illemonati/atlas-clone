@@ -11,22 +11,20 @@
 #include <map>
 #include "stringFunctions.h"
 #include "gzstream.h"
+#include "TFile.h"
 
-typedef std::map<uint64_t, uint64_t> TBedMap;
-
+typedef std::map<uint64_t, uint64_t> TBedWindowMap;
 
 class TBedChromosome{
 private:
-	std::string _name;
-	TBedMap _windows;
-	TBedMap::iterator _windowIt;
+	TBedWindowMap _windows;
+	TBedWindowMap::iterator _windowIt;
 	bool _parsed;
 
-	void _fuseNeighboringWindowsIfNeeded(TBedMap::iterator & it);
+	void _fuseNeighboringWindowsIfNeeded(TBedWindowMap::iterator & it);
 
 public:
-	TBedChromosome(const std::string & Name){
-		_name = Name;
+	TBedChromosome(){
 		rewind();
 	};
 
@@ -37,7 +35,7 @@ public:
 
 	void addWindow(uint64_t start, uint64_t end);
 	void addOrExtendWindow(const uint64_t start, const uint64_t end);
-	void print();
+	void print(const std::string & chrName);
 	size_t size(){ return _windows.size(); };
 	uint64_t length();
 	void setAsParsed(){ _parsed = true; };
@@ -49,12 +47,15 @@ public:
 	uint64_t curStart(){ return _windowIt->first; };
 	uint64_t curEnd(){ return _windowIt->second; };
 	uint64_t curLength(){ return _windowIt->second - _windowIt->first; };
+	void write(TOutputFilePlain & out, const std::string & chrName);
 };
+
+typedef std::map<std::string, TBedChromosome> TBedChrMap;
 
 class TBed{
 private:
-	std::map<std::string, TBedChromosome*> _chromosomes;
-	std::map<std::string, TBedChromosome*>::iterator _chrIt;
+	TBedChrMap _chromosomes;
+	TBedChrMap::iterator _chrIt;
 	std::string _curChr;
 	bool _allChrParsed;
 
@@ -96,6 +97,7 @@ public:
 	int getNumChromosomes(){ return _chromosomes.size(); };
 	int getNumWindowsOnCurChr();
 	bool test();
+	void write(const std::string filename);
 };
 
 
