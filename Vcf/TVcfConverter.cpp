@@ -177,7 +177,7 @@ void TVcfFilters::readFilteringOptions(TParameters & Parameters){
     // do we set a missingness filter?
     filterParameters.minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
     if(filterParameters.minNumSamplesWithData < 1)
-        throw std::runtime_error("minNumSamplesWithData must be >= 1!");
+        throw std::runtime_error("minSamplesWithData must be >= 1!");
     if(filterParameters.minNumSamplesWithData > 1) {
         logfile->list("Will remove loci where less than " + toString(filterParameters.minNumSamplesWithData) +
                       " samples have data. (parameter 'minSamplesWithData')");
@@ -483,6 +483,7 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
  *    Vcf to LFMM (called genotypes)   *
  * 									   *
  ***************************************/
+
 TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the called genotype for each locus.");
 }
@@ -507,11 +508,11 @@ double TVcfToLFMMCalledGeno::getCalledGenotype(TSampleLikelihoods * data, int i)
     // re-write the base class to store genotypes too, so I chose this way (should give the same results)
     double bestGenoLL = data[i][0];
     unsigned int bestGeno = 0;
-    if (data[i][1] > bestGenoLL) {
+    if (data[i][1] < bestGenoLL) {
         bestGenoLL = data[i][1];
         bestGeno = 1;
     }
-    if (data[i][2] > bestGenoLL) {
+    if (data[i][2] < bestGenoLL) {
         bestGenoLL = data[i][2];
         bestGeno = 2;
     }
@@ -523,6 +524,7 @@ double TVcfToLFMMCalledGeno::getCalledGenotype(TSampleLikelihoods * data, int i)
  * 	Vcf to LFMM (posterior genotype)   *
  * 									   *
  ***************************************/
+
 TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the mean posterior genotype for each locus.");
 }
