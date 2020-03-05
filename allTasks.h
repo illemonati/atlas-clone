@@ -661,17 +661,4 @@ public:
 	};
 };
 
-/*
-class TTask_filterVCF:public TTask_atlas{
-public:
-	TTask_filterVCF(){ _explanation = "Filtering a VCF file"; };
-
-	void run(TParameters & parameters, TLog* logfile){
-		TVcfFilter vcfFilter(parameters, logfile);
-		vcfFilter.filterVCF(parameters);
-	};
-};
-*/
-
-
 #endif /* ALLTASKS_H_ */
