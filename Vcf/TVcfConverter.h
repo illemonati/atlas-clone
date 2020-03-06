@@ -9,100 +9,37 @@
 #include "../TLog.h"
 #include "../TParameters.h"
 #include "TVcfFile.h"
-#include <TPopulationLikelihoodLocus.h>
+#include "TPopulationLikelihoods.h"
 #include "TGenotypeFrequencies.h"
 #include "TGLF.h"
 
-struct TFilterCounters {
-    TFilterCounters();
-
-    unsigned long lineCounter;
-    unsigned long notBialleleicCounter;
-    unsigned long missingSNPCounter;
-    unsigned long lowFreqSNPCounter;
-    unsigned long lowVariantQualityCounter;
-    unsigned long noPLCounter;
-    unsigned long notOnChrCounter;
-    unsigned long numAcceptedLoci;
-};
-
-struct TFilterParameters {
-    TFilterParameters();
-
-    long limitLines;
-    int minDepth;
-    int minNumSamplesWithData;
-    double freqFilter;
-    double epsilonF; //F for EM algorithm to estimate allele frequencies
-    int minVariantQuality;
-    bool estimateGenotypeFrequencies;
-    std::vector<std::string> chromosomesToKeep;
-};
-
-class TVcfFilters{
-private:
-    void specifyChromosomesToKeep(TParameters & Parameters);
-    void readFilteringOptions(TParameters & Parameters);
-    TLog * logfile;
-
-public:
-    TFilterParameters filterParameters;
-    TFilterCounters filterCounters;
-
-    long progressFrequency;
-    void printProgressFrequencyFiltering(const struct timeval & startTime);
-    int filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vcfFile, unsigned int numSamples);
-    void concludeFilters(const struct timeval & startTime);
-
-    TVcfFilters();
-    void init(TParameters & Parameters, TLog* logfile);
-};
-
-class TVcfReader {
-private:
-    TLog* logfile;
-    TGlfConverter glfConverter;
-    TGenotypeFrequencies genoFrequencies;
-
-public:
-    TVcfFileSingleLine vcfFile;
-    // info about vcf file
-    std::string filename;
-    bool isZipped;
-    unsigned int numSamples;
-
-    TVcfReader();
-
-    void init(TParameters & Params, TLog* Logfile);
-    void openVCF(std::string name);
-    bool readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data, std::string & locusName);
-};
-
 class TVcfConverter {
 protected:
-    std::string outname;
+    std::string _outname;
     TLog * logfile;
-    TVcfReader vcfReader;
-    TVcfFilters vcfFilters;
     TGlfConverter glfConverter;
-    static int baseToNumber(char base, const std::string & marker);
+    TPopulationLikelihoodReader * reader;
+    TPopulationSamples * samples;
 
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
     ~TVcfConverter();
 
-    void readOutputName(TParameters & Params);
-    void readVcfAndWriteFile();
-    virtual void writeData(TSampleLikelihoods * data, const std::string & locusName);
-
-    };
+    void readOutputName(TParameters & Params, std::string vcfFilename);
+    void readVcfAndWriteFile(TParameters & Params);
+    virtual void writeHeader();
+    virtual void writeData(TPopulationLikehoodLocus & data);
+};
 
 class TVcfToBeagle : protected TVcfConverter {
 private:
     TOutputFileZipped * beagleFile;
     // beagle
-    void writeBeagleHeader();
-    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
+    void writeHeader() override;
+    void writeRefAndAlt();
+    static int baseToNumber(char base);
+    void writeData(TPopulationLikehoodLocus & data) override;
+    void writePosition();
 
 public:
     TVcfToBeagle(TParameters &Params, TLog *Logfile);
@@ -114,12 +51,12 @@ protected:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
 
-    void writeLFMMHeader();
-    void storeLocusNames(const std::string & locusName);
+    void writeHeader() override;
+    void storeLocusNames();
     void writeLociNames();
     void writeLFMM();
 
-    std::vector<double *> genotypes;
+    std::vector<float *> genotypes;
     std::vector<std::string> loci_names;
 
 public:
@@ -130,9 +67,9 @@ public:
 
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
-    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
-    void storeCalledGenotypes(TSampleLikelihoods * data);
-    static double getCalledGenotype(TSampleLikelihoods * data, int i);
+    void writeData(TPopulationLikehoodLocus & data) override ;
+    void storeCalledGenotypes();
+    static double getCalledGenotype(TPopulationLikehoodLocus & data, int i);
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
 };
@@ -140,9 +77,9 @@ public:
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
     // lfmm
-    void writeData(TSampleLikelihoods * data, const std::string & locusName) override ;
-    void storePosteriorGenotypes(TSampleLikelihoods * data);
-    double computePosteriorGenotype(TSampleLikelihoods * data, int i);
+    void writeData(TPopulationLikehoodLocus & data) override ;
+    void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
+    float computePosteriorGenotype(TPopulationLikehoodLocus & data, int i);
 
 public:
     TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);

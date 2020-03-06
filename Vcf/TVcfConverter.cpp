@@ -5,292 +5,6 @@
 #include <TPopulationLikelihoods.h>
 #include "TVcfConverter.h"
 
-/***************************************
- * 									   *
- * 			 TVcfReader 			   *
- * 									   *
- ***************************************/
-
-TVcfReader::TVcfReader(){
-    logfile = nullptr;
-    isZipped = false;
-    numSamples = 0;
-}
-
-void TVcfReader::init(TParameters & Params, TLog* Logfile){
-    logfile = Logfile;
-
-    //open vcf file
-    openVCF(Params.getParameterString("vcf"));
-}
-
-//open input stream
-void TVcfReader::openVCF(std::string name) {
-    //open vcf file
-    if (name.find(".gz") == std::string::npos) {
-        logfile->list("Reading vcf from file '" + name + "'.");
-    } else {
-        logfile->list("Reading vcf from gzipped file '" + name + "'.");
-        isZipped = true;
-    }
-
-    vcfFile.openStream(name, isZipped);
-    filename = name;
-
-    //enable parsers
-    vcfFile.enablePositionParsing();
-    vcfFile.enableVariantParsing();
-    vcfFile.enableVariantQualityParsing();
-    vcfFile.enableFormatParsing();
-    vcfFile.enableSampleParsing();
-    vcfFile.enableInfoParsing();
-
-    numSamples = vcfFile.numSamples();
-}
-
-bool TVcfReader::readOneLineVcf(TVcfFilters & vcfFilters, TSampleLikelihoods * data, std::string & locusName){
-    // keep chromosomes
-    if (!vcfFilters.filterParameters.chromosomesToKeep.empty() && // don't keep this chromosome
-        std::find(vcfFilters.filterParameters.chromosomesToKeep.begin(), vcfFilters.filterParameters.chromosomesToKeep.end(), vcfFile.chr()) == vcfFilters.filterParameters.chromosomesToKeep.end()){
-        vcfFilters.filterCounters.notOnChrCounter ++;
-        return false;
-    }
-
-    //skip sites with != 2 alleles
-    if(vcfFile.getNumAlleles() != 2){
-        vcfFilters.filterCounters.notBialleleicCounter++;
-        return false;
-    }
-
-    //skip sites with too low variant quality
-    if(vcfFilters.filterParameters.minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < vcfFilters.filterParameters.minVariantQuality)){
-        vcfFilters.filterCounters.lowVariantQualityCounter++;
-        return false;
-    }
-
-    //check if GL or PL is given
-    int numIndividualsWithData = 0;
-    if(vcfFile.formatColExists("GL")){
-        numIndividualsWithData = vcfFilters.filterOnDepth(data, vcfFile, numSamples);
-        double tmp[3];
-        for(int s = 0; s < numSamples; ++s){
-            vcfFile.fillLog10GenotypeLikelihoods(s, tmp[0], tmp[1], tmp[2]);
-            data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
-            data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
-            data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
-        }
-    } else if(vcfFile.formatColExists("PL")){
-        numIndividualsWithData = vcfFilters.filterOnDepth(data, vcfFile, numSamples);
-        uint8_t tmp[3];
-        for(int s = 0; s < numSamples; ++s){
-            vcfFile.fillPhredScore(s, tmp[0], tmp[1], tmp[2]);
-            data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
-            data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
-            data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
-        }
-    } else {
-        ++vcfFilters.filterCounters.noPLCounter;
-        return false;
-    }
-
-    // missingness filter: if less than <minNumSamplesWithData> individuals per locus have are missing, remove locus
-    if (numIndividualsWithData < vcfFilters.filterParameters.minNumSamplesWithData){
-        vcfFilters.filterCounters.missingSNPCounter++;
-        return false;
-    }
-
-    //filter in MAF
-    if(vcfFilters.filterParameters.freqFilter > 0.0 || vcfFilters.filterParameters.estimateGenotypeFrequencies) {
-        genoFrequencies.estimate(data, static_cast<int>(numSamples), glfConverter, vcfFilters.filterParameters.epsilonF);
-
-        if (genoFrequencies.MAF < vcfFilters.filterParameters.freqFilter) {
-            vcfFilters.filterCounters.lowFreqSNPCounter++;
-            return false;
-        }
-    }
-
-    //SNP is accepted!
-    locusName = vcfFile.chr() + ":" + toString(vcfFile.position());
-    vcfFilters.filterCounters.numAcceptedLoci++;
-    return true;
-}
-
-/***************************************
- * 									   *
- * 			 TVcfFiltering			   *
- * 									   *
- ***************************************/
-
-TFilterCounters::TFilterCounters() {
-    lineCounter = 0;
-    notBialleleicCounter = 0;
-    missingSNPCounter = 0;
-    lowFreqSNPCounter = 0;
-    lowVariantQualityCounter = 0;
-    noPLCounter = 0;
-    notOnChrCounter = 0;
-    numAcceptedLoci = 0;
-}
-
-TFilterParameters::TFilterParameters() {
-    limitLines = 0;
-    minDepth = 1;
-    minNumSamplesWithData = 0;
-    minVariantQuality = 0;
-    freqFilter = 0.0;
-    epsilonF = 0; //F for EM algorithm to estimate allele frequencies
-    estimateGenotypeFrequencies = false;
-}
-
-TVcfFilters::TVcfFilters(){
-    logfile = nullptr;
-    progressFrequency = 0;
-}
-
-void TVcfFilters::init(TParameters & Params, TLog * Logfile){
-    logfile = Logfile;
-    readFilteringOptions(Params);
-}
-
-void TVcfFilters::readFilteringOptions(TParameters & Parameters){
-    logfile->startIndent("Filter options:");
-    int filterCounter = 0;
-
-    // do we limit the lines to read?
-    filterParameters.limitLines = Parameters.getParameterLongWithDefault("limitLines", -1);
-    if(filterParameters.limitLines > 0) {
-        logfile->list("Will limit analysis to the first " + toString(filterParameters.limitLines) +
-                      " lines of the VCF file. (parameter 'limitLines')");
-        filterCounter++;
-    }
-
-    // do we set a depth filter?
-    filterParameters.minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
-    if(filterParameters.minDepth < 1)
-        throw std::runtime_error("minDepth must be >= 1!");
-    if(filterParameters.minDepth > 1) {
-        logfile->list("Will filter samples to a minimum depth of " + toString(filterParameters.minDepth) +
-                      ". (parameter 'minDepth')");
-        filterCounter++;
-    }
-
-    // do we set a missingness filter?
-    filterParameters.minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
-    if(filterParameters.minNumSamplesWithData < 1)
-        throw std::runtime_error("minSamplesWithData must be >= 1!");
-    if(filterParameters.minNumSamplesWithData > 1) {
-        logfile->list("Will remove loci where less than " + toString(filterParameters.minNumSamplesWithData) +
-                      " samples have data. (parameter 'minSamplesWithData')");
-        filterCounter++;
-    }
-
-    // parameters to set a filter on the allele frequency?
-    filterParameters.freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
-    if(filterParameters.freqFilter < 0.0 || filterParameters.freqFilter >= 0.5)
-        throw std::runtime_error("MAF filter must be within (0.0,0.5)!");
-    if(filterParameters.freqFilter > 0.0){
-        filterParameters.estimateGenotypeFrequencies = true;
-        filterParameters.epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
-        logfile->list("Will filter on an allele frequency of " + toString(filterParameters.freqFilter) + ". (parameter 'minMAF')");
-        filterCounter++;
-    } else {
-        filterParameters.estimateGenotypeFrequencies = false;
-    }
-
-    //filter on variant quality?
-    filterParameters.minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
-    if(filterParameters.minVariantQuality < 0) throw std::runtime_error("minVariantQuality must be >= 0!");
-    if(filterParameters.minVariantQuality > 0){
-        logfile->list("Will only keep sites with variant quality >= " + toString(filterParameters.minVariantQuality) + ". (parameter 'minVariantQuality')");
-        filterCounter++;
-    }
-
-    // filter for specific chromosomes?
-    if(Parameters.parameterExists("keepChromosomes")) {
-        specifyChromosomesToKeep(Parameters);
-        filterCounter++;
-    }
-
-    if (filterCounter == 0)
-        logfile->list("No filter options set.");
-
-    //set progress frequency
-    progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
-    logfile->endIndent();
-}
-
-void TVcfFilters::printProgressFrequencyFiltering(const struct timeval & startTime){
-    struct timeval end{};
-    gettimeofday(&end, nullptr);
-    double runtime = static_cast<double>(end.tv_sec  - startTime.tv_sec)/60.0;
-    logfile->list("Parsing line " + toString(filterCounters.lineCounter) + ", retained " + toString(filterCounters.numAcceptedLoci) + " loci in " + toString(runtime) + " min");
-}
-
-void TVcfFilters::specifyChromosomesToKeep(TParameters & Parameters){
-    std::string argument = Parameters.getParameterString("keepChromosomes");
-    if(stringContains(argument, ".txt")){ // specified as a file name
-        logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
-        std::ifstream keepChromosomesFile(argument.c_str());
-        if(!keepChromosomesFile)
-            throw std::runtime_error("Failed to open file '" + argument + "'!");
-        while(keepChromosomesFile.good() && !keepChromosomesFile.eof()){
-            std::string line;
-            std::getline(keepChromosomesFile, line);
-            std::vector<std::string> vec;
-            fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
-            //skip empty lines
-            if(!vec.empty())
-                filterParameters.chromosomesToKeep.push_back(vec[0]);
-        }
-        keepChromosomesFile.close();
-    }
-    else { // specified as a vector on command line
-        logfile->startIndent("Reading chromosomes from command line.");
-        fillVectorFromString(Parameters.getParameterString("keepChromosomes"), filterParameters.chromosomesToKeep, ',');
-    }
-
-    // write to logfile
-    logfile->startIndent("Will keep the following chromosomes in the output file:");
-    for (auto it = filterParameters.chromosomesToKeep.begin(); it < filterParameters.chromosomesToKeep.end(); it ++)
-        logfile->list(*it);
-
-    logfile->endIndent();
-    logfile->endIndent();
-}
-
-void TVcfFilters::concludeFilters(const struct timeval & startTime){
-    printProgressFrequencyFiltering(startTime);
-    if(filterCounters.notBialleleicCounter > 0)
-        logfile->conclude(toString(filterCounters.notBialleleicCounter) + " loci were not bi-allelic.");
-    if(filterCounters.lowVariantQualityCounter > 0)
-        logfile->conclude(toString(filterCounters.lowVariantQualityCounter) + " loci had variant quality < " + toString(filterParameters.minVariantQuality) + ".");
-    if(filterCounters.noPLCounter > 0)
-        logfile->conclude(toString(filterCounters.noPLCounter) + " loci had no PL or GL field.");
-    if(filterCounters.missingSNPCounter > 0)
-        logfile->conclude(toString(filterCounters.missingSNPCounter) + " loci had < " + toString(filterParameters.minNumSamplesWithData) + " samples with data.");
-    if(filterCounters.notOnChrCounter > 0)
-        logfile->conclude(toString(filterCounters.notOnChrCounter) + " loci were on other chromosomes than specified.");
-    if(filterCounters.lowFreqSNPCounter > 0)
-        logfile->conclude(toString(filterCounters.lowFreqSNPCounter) + " loci had MAF < " + toString(filterParameters.freqFilter) + ".");
-    logfile->endIndent();
-}
-
-int TVcfFilters::filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vcfFile, unsigned int numSamples){
-    int numIndividualsWithData = 0;
-    for(int s = 0; s < numSamples; ++s){
-        // depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-        if (vcfFile.sampleDepth(s) < filterParameters.minDepth)
-            vcfFile.setSampleMissing(s);
-        else
-            numIndividualsWithData++;
-
-        //store if missing and haploid
-        data[s].isMissing = vcfFile.sampleIsMissing(s);
-        data[s].isHaploid = vcfFile.sampleIsHaploid(s);
-    }
-
-    return numIndividualsWithData;
-}
 
 /***************************************
  * 									   *
@@ -300,76 +14,71 @@ int TVcfFilters::filterOnDepth(TSampleLikelihoods* data, TVcfFileSingleLine & vc
 
 TVcfConverter::TVcfConverter(TLog * Logfile, TParameters & Params){
     logfile = Logfile;
-
-    vcfReader.init(Params, logfile);
-    vcfFilters.init(Params, logfile);
-    readOutputName(Params);
+    reader = nullptr;
+    samples = nullptr;
 }
 
-TVcfConverter::~TVcfConverter()= default;
-
-void TVcfConverter::readOutputName(TParameters & Params){
-    //outputname
-    outname = Params.getParameterStringWithDefault("out", "");
-    if(outname.empty()){
-        //guess from filename
-        outname = vcfReader.filename;
-        outname = extractBeforeLast(outname, ".");
-        if(vcfReader.isZipped)
-            //if zipped there is extra .gz
-            outname = extractBeforeLast(outname, ".");
-
-    }
-    logfile->list("Writing output files with prefix '" + outname + "'.");
+TVcfConverter::~TVcfConverter(){
+    delete reader;
+    delete samples;
 }
 
-void TVcfConverter::readVcfAndWriteFile(){
-    //set time at beginning
-    logfile->startIndent("Start parsing VCF-file...");
-    struct timeval startTime{};
-    gettimeofday(&startTime, nullptr);
+void TVcfConverter::readOutputName(TParameters & Params, std::string vcfFilename){
+    //create out file
+    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    _outname = Params.getParameterStringWithDefault("out", tmp);
 
-    // init data for one locus (will be overwritten every line)
-    auto * data = new TSampleLikelihoods[vcfReader.numSamples];
-    std::string locusName;
+    logfile->list("Writing output files with prefix '" + _outname + "'.");
+}
 
-    //read next
-    while(vcfReader.vcfFile.next()){ // new locus
-        ++vcfFilters.filterCounters.lineCounter;
-        // limit lines
-        if(vcfFilters.filterParameters.limitLines > 0 && vcfFilters.filterCounters.lineCounter > vcfFilters.filterParameters.limitLines){
-            logfile->list("Reached limit of " + toString(vcfFilters.filterParameters.limitLines) + " lines.");
-            break;
-        }
-        //print progress
-        if(vcfFilters.filterCounters.lineCounter % vcfFilters.progressFrequency == 0)
-            vcfFilters.printProgressFrequencyFiltering(startTime);
+void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
+    //read samples
+    samples = new TPopulationSamples;
+    if(Params.parameterExists("samples"))
+        samples->readSamples(Params.getParameterString("samples"), logfile);
 
-        // filter, keep or not
-        if (vcfReader.readOneLineVcf(vcfFilters, data, locusName)){
-            // filter passed
-            writeData(data, locusName);
-        }
+    //open VCF reader
+    std::string vcfFilename = Params.getParameterString("vcf");
+    logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
+    reader = new TPopulationLikelihoodReader(Params, logfile, false);
+    reader->openVCF(vcfFilename, logfile);
+    logfile->endIndent();
+
+    //Match samples
+    if(samples->hasSamples())
+        samples->fillVCFOrder(reader->getSampleVCFNames());
+    else
+        samples->readSamplesFromVCFNames(reader->getSampleVCFNames());
+    // write header
+    writeHeader();
+
+    //open output file name
+    readOutputName(Params, vcfFilename);
+
+    // initialize variables for vcf-file
+    struct timeval start{}; gettimeofday(&start, nullptr);
+    TPopulationLikehoodLocus data(samples->numSamples());
+
+    //run through VCF file
+    logfile->startIndent("Parsing VCF file:");
+    while(reader->readDataFromVCF(data, *samples, glfConverter, logfile)){
+        writeData(data);
     }
 
     // end of vcf file reached
-    vcfFilters.concludeFilters(startTime);
+    reader->concludeFilters(logfile);
     logfile->endIndent("Reached end of VCF file.");
 }
 
-void TVcfConverter::writeData(TSampleLikelihoods * data, const std::string & locusName){
+void TVcfConverter::writeHeader(){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
 }
 
-int TVcfConverter::baseToNumber(char base, const std::string & marker){
-    if(base == 'A') return 0;
-    else if(base == 'C') return 1;
-    else if(base == 'G') return 2;
-    else if (base == 'T') return 3;
-    else throw std::runtime_error("unknown base " + toString(base) + " at marker " + marker);
+void TVcfConverter::writeData(TPopulationLikehoodLocus & data){
+    // will be overwritten by respective function in daughter class
+    // because every daughter class will write output in different format
 }
-
 
 /***************************************
  * 									   *
@@ -380,22 +89,37 @@ TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(L
     beagleFile = nullptr;
 }
 
-void TVcfToBeagle::writeBeagleHeader(){
+int TVcfToBeagle::baseToNumber(char base){ // TODO: is this implemented somewhere in ATLAS???
+    if(base == 'A') return 0;
+    else if(base == 'C') return 1;
+    else if(base == 'G') return 2;
+    else if (base == 'T') return 3;
+    else throw std::runtime_error("Unknown base " + toString(base) + "!");
+}
+
+void TVcfToBeagle::writeHeader(){
     //header string
     std::vector <std::string> header {"marker", "allele1", "allele2"};
-    for(int i=0; i<vcfReader.vcfFile.numSamples(); ++i){
+    for(int p=0; p<samples->numPopulations(); p++){
         for(int r=0; r<3; ++r)
-            header.push_back(vcfReader.vcfFile.sampleName(i));
+            header.push_back(samples->getPopulationName(p));
     }
     beagleFile->writeHeader(header);
 }
 
-void TVcfToBeagle::writeData(TSampleLikelihoods * data, const std::string & locusName){
-    //write line
-    (*beagleFile) << locusName; // marker
-    (*beagleFile) << baseToNumber(vcfReader.vcfFile.getRefAllele(), locusName) << baseToNumber(vcfReader.vcfFile.getFirstAltAllele(), locusName); // ref and alt allele
+void TVcfToBeagle::writePosition(){
+    (*beagleFile) << toString(reader->position()) + ":" + reader->chr();
+}
 
-    for (int s = 0; s < vcfReader.vcfFile.numSamples(); s++){
+void TVcfToBeagle::writeRefAndAlt(){
+    (*beagleFile) << baseToNumber(reader->refAllele()) << baseToNumber(reader->altAllele());
+}
+
+void TVcfToBeagle::writeData(TPopulationLikehoodLocus & data){
+    writePosition();
+    writeRefAndAlt();
+    //write line
+    for (int s = 0; s < samples->numSamples(); s++){
         if (data[s].isMissing)
             (*beagleFile) << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
         else
@@ -407,11 +131,10 @@ void TVcfToBeagle::writeData(TSampleLikelihoods * data, const std::string & locu
 
 void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     //open output files
-    beagleFile = new TOutputFileZipped(outname + ".beagle.gz");
-    writeBeagleHeader();
+    beagleFile = new TOutputFileZipped(_outname + ".beagle.gz");
 
     // read Vcf and write output
-    readVcfAndWriteFile();
+    readVcfAndWriteFile(Params);
 
     // clean up
     beagleFile->close();
@@ -434,18 +157,17 @@ TVcfToLFMM::~TVcfToLFMM(){
     delete lfmmFile;
 }
 
-void TVcfToLFMM::writeLFMMHeader(){
+void TVcfToLFMM::writeHeader(){
     // empty header
-    lfmmFile->noHeader(genotypes.size());
 }
 
-void TVcfToLFMM::storeLocusNames(const std::string & locusName){
-    loci_names.emplace_back(locusName);
+void TVcfToLFMM::storeLocusNames(){
+    loci_names.emplace_back(toString(reader->position()) + ":" + reader->chr());
 }
 
 void TVcfToLFMM::writeLFMM(){
     int numLoci = genotypes.size();
-    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+    for (int i = 0; i < samples->numSamples(); i++){
         for (int l = 0; l < numLoci; l++){
             *(lfmmFile) << genotypes[l][i];
         }
@@ -462,14 +184,14 @@ void TVcfToLFMM::writeLociNames(){
 
 void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     //open output files
-    lfmmFile = new TOutputFilePlain(outname + ".lfmm");
-    lociNamesFile = new TOutputFilePlain(outname + ".lfmm.kept_loci");
+    lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
+    lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
 
     // read Vcf and store output
-    readVcfAndWriteFile();
+    readVcfAndWriteFile(Params);
 
     // write actual lfmm
-    writeLFMMHeader();
+    lfmmFile->noHeader(genotypes.size()); // we only know now how many loci there are
     writeLFMM();
     writeLociNames();
 
@@ -488,35 +210,18 @@ TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) :
     logfile->list("Will store the called genotype for each locus.");
 }
 
-void TVcfToLFMMCalledGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){
+void TVcfToLFMMCalledGeno::writeData(TPopulationLikehoodLocus & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
-    storeCalledGenotypes(data);
-    storeLocusNames(locusName);
+    storeCalledGenotypes();
+    storeLocusNames();
 }
 
-void TVcfToLFMMCalledGeno::storeCalledGenotypes(TSampleLikelihoods * data){
-    auto * calledGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
-    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
-        calledGenoForOneLocus[i] = getCalledGenotype(data, i);
+void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
+    auto * calledGenoForOneLocus = new float[samples->numSamples()];
+    for (int i = 0; i < samples->numSamples(); i++){
+        calledGenoForOneLocus[i] = reader->genotypes(*samples)[i];
     }
     genotypes.emplace_back(calledGenoForOneLocus);
-}
-
-double TVcfToLFMMCalledGeno::getCalledGenotype(TSampleLikelihoods * data, int i){
-    // find genotype with highest likelihood
-    // I could also directly take the genotype from the vcf-file, but then I would have to
-    // re-write the base class to store genotypes too, so I chose this way (should give the same results)
-    double bestGenoLL = data[i][0];
-    unsigned int bestGeno = 0;
-    if (data[i][1] < bestGenoLL) {
-        bestGenoLL = data[i][1];
-        bestGeno = 1;
-    }
-    if (data[i][2] < bestGenoLL) {
-        bestGenoLL = data[i][2];
-        bestGeno = 2;
-    }
-    return bestGeno;
 }
 
 /***************************************
@@ -529,22 +234,22 @@ TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVc
     logfile->list("Will store the mean posterior genotype for each locus.");
 }
 
-void TVcfToLFMMPostGeno::writeData(TSampleLikelihoods * data, const std::string & locusName){
+void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storePosteriorGenotypes(data);
-    storeLocusNames(locusName);
+    storeLocusNames();
 }
 
-void TVcfToLFMMPostGeno::storePosteriorGenotypes(TSampleLikelihoods * data){
-    auto * meanPostGenoForOneLocus = new double[vcfReader.vcfFile.numSamples()];
-    for (int i = 0; i < vcfReader.vcfFile.numSamples(); i++){
+void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data){
+    auto * meanPostGenoForOneLocus = new float[samples->numSamples()];
+    for (int i = 0; i < samples->numSamples(); i++){
         meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
     }
     genotypes.emplace_back(meanPostGenoForOneLocus);
 }
 
 
-double TVcfToLFMMPostGeno::computePosteriorGenotype(TSampleLikelihoods * data, int i){
+float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, int i){
     // first convert glf to genotype likelihood
     double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
     double llG1 = glfConverter.toScaledLikelihood(data[i][1]);
@@ -557,6 +262,6 @@ double TVcfToLFMMPostGeno::computePosteriorGenotype(TSampleLikelihoods * data, i
     double postG2 = llG2 / denominator;
 
     // take mean
-    double meanPostGeno = postG0 * 0. + postG1 * 1. + postG2 * 2.;
+    auto meanPostGeno = static_cast<float>(postG0 * 0. + postG1 * 1. + postG2 * 2.);
     return meanPostGeno;
 }

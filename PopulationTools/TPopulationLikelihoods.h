@@ -77,6 +77,7 @@ private:
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
 	int minVariantQuality;
+    std::vector<std::string> chromosomesToKeep;
 	bool estimateGenotypeFrequencies;
 	bool storeTrueAlleleFreq;
 	long progressFrequency;
@@ -91,6 +92,7 @@ private:
 	long _lowFreqSNPCounter;
 	long _lowVariantQualityCounter;
 	long _noPLCounter;
+	long _notOnChrCounter;
 	long _numAcceptedLoci;
 
 	//tmp variables used for reading
@@ -102,6 +104,7 @@ private:
 	void closeVCF();
 	void closeTrueAlleleFreqFile();
     void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples, TLog* logfile);
+    void specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile);
     void printProgressFrequencyFiltering(TLog* logfile);
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
 
@@ -126,6 +129,7 @@ public:
 	long position(){ return vcfFile.position(); };
 	char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
+	std::vector<u_int8_t> genotypes(TPopulationSamples & samples);
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
