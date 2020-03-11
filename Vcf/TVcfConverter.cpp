@@ -15,16 +15,18 @@
 TVcfConverter::TVcfConverter(TLog * Logfile, TParameters & Params){
     logfile = Logfile;
     reader = nullptr;
-    samples = nullptr;
+
+    //open output file name (has to be done before readVcfAndWriteFile)
+    readOutputName(Params);
 }
 
 TVcfConverter::~TVcfConverter(){
     delete reader;
-    delete samples;
 }
 
-void TVcfConverter::readOutputName(TParameters & Params, std::string vcfFilename){
+void TVcfConverter::readOutputName(TParameters & Params){
     //create out file
+    std::string vcfFilename = Params.getParameterString("vcf");
     std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
     _outname = Params.getParameterStringWithDefault("out", tmp);
 
@@ -33,41 +35,35 @@ void TVcfConverter::readOutputName(TParameters & Params, std::string vcfFilename
 
 void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     //read samples
-    samples = new TPopulationSamples;
     if(Params.parameterExists("samples"))
-        samples->readSamples(Params.getParameterString("samples"), logfile);
+        samples.readSamples(Params.getParameterString("samples"), logfile);
 
     //open VCF reader
     std::string vcfFilename = Params.getParameterString("vcf");
-    logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
     reader = new TPopulationLikelihoodReader(Params, logfile, false);
     reader->openVCF(vcfFilename, logfile);
     logfile->endIndent();
 
     //Match samples
-    if(samples->hasSamples())
-        samples->fillVCFOrder(reader->getSampleVCFNames());
+    if(samples.hasSamples())
+        samples.fillVCFOrder(reader->getSampleVCFNames());
     else
-        samples->readSamplesFromVCFNames(reader->getSampleVCFNames());
+        samples.readSamplesFromVCFNames(reader->getSampleVCFNames());
     // write header
     writeHeader();
 
-    //open output file name
-    readOutputName(Params, vcfFilename);
-
     // initialize variables for vcf-file
     struct timeval start{}; gettimeofday(&start, nullptr);
-    TPopulationLikehoodLocus data(samples->numSamples());
+    TPopulationLikehoodLocus data(samples.numSamples());
 
     //run through VCF file
-    logfile->startIndent("Parsing VCF file:");
-    while(reader->readDataFromVCF(data, *samples, glfConverter, logfile)){
+    logfile->list("Parsing VCF file...");
+    while(reader->readDataFromVCF(data, samples, glfConverter, logfile)){
         writeData(data);
     }
 
     // end of vcf file reached
     reader->concludeFilters(logfile);
-    logfile->endIndent("Reached end of VCF file.");
 }
 
 void TVcfConverter::writeHeader(){
@@ -87,41 +83,43 @@ void TVcfConverter::writeData(TPopulationLikehoodLocus & data){
  ***************************************/
 TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
     beagleFile = nullptr;
+    baseToNumber['A'] = 0;
+    baseToNumber['C'] = 1;
+    baseToNumber['G'] = 2;
+    baseToNumber['T'] = 3;
 }
 
-int TVcfToBeagle::baseToNumber(char base){ // TODO: is this implemented somewhere in ATLAS???
-    if(base == 'A') return 0;
-    else if(base == 'C') return 1;
-    else if(base == 'G') return 2;
-    else if (base == 'T') return 3;
-    else throw std::runtime_error("Unknown base " + toString(base) + "!");
+TVcfToBeagle::~TVcfToBeagle() {
+    delete beagleFile;
 }
 
 void TVcfToBeagle::writeHeader(){
     //header string
     std::vector <std::string> header {"marker", "allele1", "allele2"};
-    for(int p=0; p<samples->numPopulations(); p++){
+    for(int s = 0; s < samples.numSamples(); s++){
         for(int r=0; r<3; ++r)
-            header.push_back(samples->getPopulationName(p));
+            header.push_back(samples.getNameFromOrderedIndex(s));
     }
     beagleFile->writeHeader(header);
 }
 
 void TVcfToBeagle::writePosition(){
-    (*beagleFile) << toString(reader->position()) + ":" + reader->chr();
+    (*beagleFile) << reader->chr() + "_" + toString(reader->position());
 }
 
 void TVcfToBeagle::writeRefAndAlt(){
-    (*beagleFile) << baseToNumber(reader->refAllele()) << baseToNumber(reader->altAllele());
+    (*beagleFile) << baseToNumber.find(reader->refAllele())->second << baseToNumber.find(reader->altAllele())->second;
 }
 
 void TVcfToBeagle::writeData(TPopulationLikehoodLocus & data){
     writePosition();
     writeRefAndAlt();
     //write line
-    for (int s = 0; s < samples->numSamples(); s++){
+    for (int s = 0; s < samples.numSamples(); s++){
         if (data[s].isMissing)
             (*beagleFile) << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
+        else if (data[s].isHaploid)
+            (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
         else
             (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
     }
@@ -167,7 +165,7 @@ void TVcfToLFMM::storeLocusNames(){
 
 void TVcfToLFMM::writeLFMM(){
     int numLoci = genotypes.size();
-    for (int i = 0; i < samples->numSamples(); i++){
+    for (int i = 0; i < samples.numSamples(); i++){
         for (int l = 0; l < numLoci; l++){
             *(lfmmFile) << genotypes[l][i];
         }
@@ -217,9 +215,13 @@ void TVcfToLFMMCalledGeno::writeData(TPopulationLikehoodLocus & data){
 }
 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
-    auto * calledGenoForOneLocus = new float[samples->numSamples()];
-    for (int i = 0; i < samples->numSamples(); i++){
-        calledGenoForOneLocus[i] = reader->genotypes(*samples)[i];
+    auto * calledGenoForOneLocus = new float[samples.numSamples()];
+    std::vector<u_int8_t> all_geno = reader->genotypes(samples);
+    for (int i = 0; i < samples.numSamples(); i++){
+        if (all_geno[i] == 3)
+            all_geno[i] = 9; // re-code missing genotypes to LFMM format
+         // if locus was haploid -> is just 0 or 1 -> no need to treat in special way
+        calledGenoForOneLocus[i] = all_geno[i];
     }
     genotypes.emplace_back(calledGenoForOneLocus);
 }
@@ -241,8 +243,8 @@ void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
 }
 
 void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data){
-    auto * meanPostGenoForOneLocus = new float[samples->numSamples()];
-    for (int i = 0; i < samples->numSamples(); i++){
+    auto * meanPostGenoForOneLocus = new float[samples.numSamples()];
+    for (int i = 0; i < samples.numSamples(); i++){
         meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
     }
     genotypes.emplace_back(meanPostGenoForOneLocus);
@@ -250,6 +252,10 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
 
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, int i){
+    if (data[i].isMissing)
+        throw std::runtime_error("Missing data at individual " + toString(i) + " and locus " + toString(reader->position()) + ":" + reader->chr()
+        + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.");
+    // if locus is haploid -> llG2 will be ~0 -> gives same result as if I ignored it -> will not treat haploid data in a special way
     // first convert glf to genotype likelihood
     double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
     double llG1 = glfConverter.toScaledLikelihood(data[i][1]);

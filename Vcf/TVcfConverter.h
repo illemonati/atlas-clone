@@ -19,13 +19,13 @@ protected:
     TLog * logfile;
     TGlfConverter glfConverter;
     TPopulationLikelihoodReader * reader;
-    TPopulationSamples * samples;
+    TPopulationSamples samples;
 
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
     ~TVcfConverter();
 
-    void readOutputName(TParameters & Params, std::string vcfFilename);
+    void readOutputName(TParameters & Params);
     void readVcfAndWriteFile(TParameters & Params);
     virtual void writeHeader();
     virtual void writeData(TPopulationLikehoodLocus & data);
@@ -34,15 +34,16 @@ public:
 class TVcfToBeagle : protected TVcfConverter {
 private:
     TOutputFileZipped * beagleFile;
+    std::map<char, int> baseToNumber;
     // beagle
     void writeHeader() override;
     void writeRefAndAlt();
-    static int baseToNumber(char base);
     void writeData(TPopulationLikehoodLocus & data) override;
     void writePosition();
 
 public:
     TVcfToBeagle(TParameters &Params, TLog *Logfile);
+    ~TVcfToBeagle();
     void vcfToBeagle(TParameters & Params);
 };
 
@@ -69,7 +70,6 @@ class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
     void writeData(TPopulationLikehoodLocus & data) override ;
     void storeCalledGenotypes();
-    static double getCalledGenotype(TPopulationLikehoodLocus & data, int i);
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
 };
