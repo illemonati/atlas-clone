@@ -167,7 +167,7 @@ void TVcfToLFMM::writeLFMM(){
     int numLoci = genotypes.size();
     for (int i = 0; i < samples.numSamples(); i++){
         for (int l = 0; l < numLoci; l++){
-            *(lfmmFile) << genotypes[l][i];
+            *(lfmmFile) << static_cast<float>(genotypes[l][i]);
         }
         lfmmFile->endLine();
     }
