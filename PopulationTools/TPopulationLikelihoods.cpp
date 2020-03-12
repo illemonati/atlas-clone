@@ -658,13 +658,11 @@ void TPopulationLikelihoodReader::writePosition(TOutputFile & out){
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
 
-std::vector<u_int8_t> TPopulationLikelihoodReader::genotypes(TPopulationSamples & samples){
-    std::vector<u_int8_t> genotypes;
+void TPopulationLikelihoodReader::fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes){
     for(int s = 0; s < samples.numSamples(); ++s) {
         int vcfIndex = samples.VCF_order(s);
-        genotypes.push_back(vcfFile.sampleGenotype(vcfIndex));
+        genotypes[s] = vcfFile.sampleGenotype(vcfIndex);
     }
-    return genotypes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

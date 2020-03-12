@@ -160,7 +160,7 @@ void TVcfToLFMM::writeHeader(){
 }
 
 void TVcfToLFMM::storeLocusNames(){
-    loci_names.emplace_back(toString(reader->position()) + ":" + reader->chr());
+    loci_names.emplace_back( reader->chr() + ":" + toString(reader->position()));
 }
 
 void TVcfToLFMM::writeLFMM(){
@@ -215,15 +215,14 @@ void TVcfToLFMMCalledGeno::writeData(TPopulationLikehoodLocus & data){
 }
 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
-    auto * calledGenoForOneLocus = new float[samples.numSamples()];
-    std::vector<u_int8_t> all_geno = reader->genotypes(samples);
+    auto * calledGeno = new uint8_t[samples.numSamples()];
+    reader->fillGenotypes(samples, calledGeno);
     for (int i = 0; i < samples.numSamples(); i++){
-        if (all_geno[i] == 3)
-            all_geno[i] = 9; // re-code missing genotypes to LFMM format
+        if (calledGeno[i] == 3)
+            calledGeno[i] = 9; // re-code missing genotypes to LFMM format
          // if locus was haploid -> is just 0 or 1 -> no need to treat in special way
-        calledGenoForOneLocus[i] = all_geno[i];
     }
-    genotypes.emplace_back(calledGenoForOneLocus);
+    genotypes.emplace_back(calledGeno);
 }
 
 /***************************************
@@ -253,7 +252,7 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, int i){
     if (data[i].isMissing)
-        throw std::runtime_error("Missing data at individual " + toString(i) + " and locus " + toString(reader->position()) + ":" + reader->chr()
+        throw std::runtime_error("Missing data at sample " + samples.getNameFromOrderedIndex(i) + " and locus " + reader->chr() + ":" + toString(reader->position())
         + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.");
     // if locus is haploid -> llG2 will be ~0 -> gives same result as if I ignored it -> will not treat haploid data in a special way
     // first convert glf to genotype likelihood

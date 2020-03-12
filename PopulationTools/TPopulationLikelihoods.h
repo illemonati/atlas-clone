@@ -129,7 +129,7 @@ public:
 	long position(){ return vcfFile.position(); };
 	char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
-	std::vector<u_int8_t> genotypes(TPopulationSamples & samples);
+	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };

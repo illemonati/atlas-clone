@@ -57,7 +57,7 @@ protected:
     void writeLociNames();
     void writeLFMM();
 
-    std::vector<float *> genotypes;
+    std::vector<uint8_t *> genotypes;
     std::vector<std::string> loci_names;
 
 public:
@@ -81,6 +81,7 @@ private:
     void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
     float computePosteriorGenotype(TPopulationLikehoodLocus & data, int i);
 
+    std::vector<float *> genotypes;
 public:
     TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);
 };
