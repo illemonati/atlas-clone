@@ -71,9 +71,9 @@ void TSiteSubsetChr::findOrCreateWindow(const long & pos){
 };
 
 void TSiteSubsetChr::addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
-	long pos = stringToLong(tmp[1]) - 1; //make 0-based
-	char ref = tmp[2][0];
-	char alt = tmp[3][0];
+	long pos = stringToLong(tmp[1]); // - 1; //make 0-based
+	char ref = tmp[3][0];
+	char alt = tmp[4][0];
 
 	//check
 	if(ref != 'A' && ref != 'C' && ref != 'G' && ref != 'T'){
@@ -186,7 +186,8 @@ void TSiteSubset::readFile(TLog* logfile){
 		fillVectorFromLineWhiteSpaceSkipEmpty(sitesFile, vec);
 		//skip empty lines
 		if(vec.size() > 0){
-			if(vec.size() != 4) throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "!";
+			if(vec.size() != 5)
+				throw "Wrong number of columns in sites file '" + filename + "' on line " + toString(lineNum) + "! Expected 5 but read " + toString(vec.size()) + ".";
 
 			//get chromosome
 			if(vec[0] != curChr){
@@ -282,7 +283,6 @@ TSiteSubset::TSiteSubset(std::string Filename, int & WindowSize, TLog* logfile, 
 	filename = Filename;
 	windowSize = WindowSize;
 	invariantSites = InvariantSites;
-	std::cout << "invariantSites "<< invariantSites << std::endl;
 	readFile(logfile);
 	curChr = "";
 };
