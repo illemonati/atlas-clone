@@ -51,39 +51,54 @@ class TVcfToLFMM : protected TVcfConverter {
 protected:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
+    std::vector<std::string> loci_names;
 
     void writeHeader() override;
     void storeLocusNames();
     void writeLociNames();
-    void writeLFMM();
 
-    std::vector<uint8_t *> genotypes;
-    std::vector<std::string> loci_names;
+    template <class T>
+    void writeLFMM(T genotypes) {
+        int numLoci = genotypes.size();
+        for (int i = 0; i < samples.numSamples(); i++){
+            for (int l = 0; l < numLoci; l++){
+                *(lfmmFile) << static_cast<float>(genotypes[l][i]);
+            }
+            lfmmFile->endLine();
+        }
+    }
+
+    void prepareAndReadVcf(TParameters & Params);
 
 public:
     TVcfToLFMM(TLog *Logfile, TParameters &Params);
     ~TVcfToLFMM();
-    void vcfToLFMM(TParameters & Params);
 };
 
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
     void writeData(TPopulationLikehoodLocus & data) override ;
     void storeCalledGenotypes();
+    std::vector<uint8_t *> genotypes;
+
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
+    ~TVcfToLFMMCalledGeno();
+    void vcfToLFMM(TParameters & Params);
 };
 
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
-    // lfmm
     void writeData(TPopulationLikehoodLocus & data) override ;
     void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
     float computePosteriorGenotype(TPopulationLikehoodLocus & data, int i);
-
     std::vector<float *> genotypes;
+
 public:
     TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);
+    ~TVcfToLFMMPostGeno();
+    void vcfToLFMM(TParameters & Params);
+
 };
 
 

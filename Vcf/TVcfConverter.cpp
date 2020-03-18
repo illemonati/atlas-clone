@@ -149,8 +149,8 @@ TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfi
 }
 
 TVcfToLFMM::~TVcfToLFMM(){
-    for (auto it = genotypes.begin(); it < genotypes.end(); it++)
-        delete [] *it;
+    lfmmFile->close();
+    lociNamesFile->close();
     delete lociNamesFile;
     delete lfmmFile;
 }
@@ -163,16 +163,6 @@ void TVcfToLFMM::storeLocusNames(){
     loci_names.emplace_back( reader->chr() + ":" + toString(reader->position()));
 }
 
-void TVcfToLFMM::writeLFMM(){
-    int numLoci = genotypes.size();
-    for (int i = 0; i < samples.numSamples(); i++){
-        for (int l = 0; l < numLoci; l++){
-            *(lfmmFile) << static_cast<float>(genotypes[l][i]);
-        }
-        lfmmFile->endLine();
-    }
-}
-
 void TVcfToLFMM::writeLociNames(){
     lociNamesFile->noHeader(loci_names.size());
     for (auto it = loci_names.begin(); it < loci_names.end(); it++)
@@ -180,7 +170,7 @@ void TVcfToLFMM::writeLociNames(){
     lociNamesFile->endLine();
 }
 
-void TVcfToLFMM::vcfToLFMM(TParameters & Params){
+void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
     //open output files
     lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
     lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
@@ -188,14 +178,7 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
     // read Vcf and store output
     readVcfAndWriteFile(Params);
 
-    // write actual lfmm
-    lfmmFile->noHeader(genotypes.size()); // we only know now how many loci there are
-    writeLFMM();
     writeLociNames();
-
-    // clean up
-    lfmmFile->close();
-    lociNamesFile->close();
 }
 
 /***************************************
@@ -206,6 +189,11 @@ void TVcfToLFMM::vcfToLFMM(TParameters & Params){
 
 TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the called genotype for each locus.");
+}
+
+TVcfToLFMMCalledGeno::~TVcfToLFMMCalledGeno(){
+    for (auto it = genotypes.begin(); it < genotypes.end(); it++)
+        delete [] *it;
 }
 
 void TVcfToLFMMCalledGeno::writeData(TPopulationLikehoodLocus & data){
@@ -225,6 +213,18 @@ void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
     genotypes.emplace_back(calledGeno);
 }
 
+void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
+    prepareAndReadVcf(Params);
+
+    // write actual lfmm
+    lfmmFile->noHeader(genotypes.size()); // we only know now how many loci there are
+    writeLFMM(genotypes);
+
+    // clean up
+    lfmmFile->close();
+    lociNamesFile->close();
+}
+
 /***************************************
  * 									   *
  * 	Vcf to LFMM (posterior genotype)   *
@@ -233,6 +233,23 @@ void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
 
 TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the mean posterior genotype for each locus.");
+}
+
+TVcfToLFMMPostGeno::~TVcfToLFMMPostGeno(){
+    for (auto it = genotypes.begin(); it < genotypes.end(); it++)
+        delete [] *it;
+}
+
+void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
+    prepareAndReadVcf(Params);
+
+    // write actual lfmm
+    lfmmFile->noHeader(genotypes.size()); // we only know now how many loci there are
+    writeLFMM(genotypes);
+
+    // clean up
+    lfmmFile->close();
+    lociNamesFile->close();
 }
 
 void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
@@ -248,7 +265,6 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
     }
     genotypes.emplace_back(meanPostGenoForOneLocus);
 }
-
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, int i){
     if (data[i].isMissing)
