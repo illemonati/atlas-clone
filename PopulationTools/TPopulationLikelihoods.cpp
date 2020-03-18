@@ -329,11 +329,52 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ". (parameter 'minVariantQuality')");
 	}
 
+    // filter for specific chromosomes?
+    if(Parameters.parameterExists("keepChromosomes")) {
+        specifyChromosomesToKeep(Parameters, logfile);
+    }
+
+	//set store stuff to off
+	storeTrueAlleleFreq = false;
+
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
 
 	_initialized = true;
-};
+}
+
+
+void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile){
+    std::string argument = Parameters.getParameterString("keepChromosomes");
+    if(stringContains(argument, ".txt")){ // specified as a file name
+        logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
+        std::ifstream keepChromosomesFile(argument.c_str());
+        if(!keepChromosomesFile)
+            throw std::runtime_error("Failed to open file '" + argument + "'!");
+        while(keepChromosomesFile.good() && !keepChromosomesFile.eof()){
+            std::string line;
+            std::getline(keepChromosomesFile, line);
+            std::vector<std::string> vec;
+            fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+            //skip empty lines
+            if(!vec.empty())
+                chromosomesToKeep.push_back(vec[0]);
+        }
+        keepChromosomesFile.close();
+    }
+    else { // specified as a vector on command line
+        logfile->startIndent("Reading chromosomes from command line.");
+        fillVectorFromString(Parameters.getParameterString("keepChromosomes"), chromosomesToKeep, ',');
+    }
+
+    // write to logfile
+    logfile->startIndent("Will keep the following chromosomes in the output file:");
+    for (auto it = chromosomesToKeep.begin(); it < chromosomesToKeep.end(); it ++)
+        logfile->list(*it);
+
+    logfile->endIndent();
+    logfile->endIndent();
+}
 
 void TPopulationLikelihoodReader::resetCounters(){
 	vcfParsingStarted = false;
@@ -345,6 +386,7 @@ void TPopulationLikelihoodReader::resetCounters(){
 	_lowVariantQualityCounter = 0;
 	_noPLCounter = 0;
 	_numAcceptedLoci = 0;
+	_notOnChrCounter = 0;
 	curChr = "";
 };
 
@@ -426,6 +468,12 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 		return false;
 	}
 
+    // keep chromosomes
+    if (!chromosomesToKeep.empty() && std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), vcfFile.chr()) == chromosomesToKeep.end()){
+        _notOnChrCounter ++;
+        return false;
+    }
+
 	//skip sites with too low variant quality
 	if(minVariantQuality > 0 && (vcfFile.variantQualityIsMissing() || vcfFile.variantQuality() < minVariantQuality)){
 		_lowVariantQualityCounter++;
@@ -500,9 +548,9 @@ bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
 };
 
 void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
-	struct timeval end;
-	gettimeofday(&end, NULL);
-	float runtime = (end.tv_sec  - startTime.tv_sec)/60.0;
+	struct timeval end{};
+	gettimeofday(&end, nullptr);
+	float runtime = static_cast<double>(end.tv_sec  - startTime.tv_sec)/60.0;
 	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
 };
 
@@ -520,6 +568,8 @@ void TPopulationLikelihoodReader::concludeFilters(){
 		logfile->conclude(toString(_missingSNPCounter) + " loci had < " + toString(minNumSamplesWithData) + " samples with data.");
 	if(_lowFreqSNPCounter > 0)
 		logfile->conclude(toString(_lowFreqSNPCounter) + " loci had MAF < " + toString(freqFilter) + ".");
+    if(_notOnChrCounter > 0)
+        logfile->conclude(toString(_notOnChrCounter) + " loci were on other chromosomes than specified.");
 };
 
 
@@ -674,6 +724,13 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 void TPopulationLikelihoodReaderLocus::writePosition(TOutputFile & out){
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
+
+void TPopulationLikelihoodReader::fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes){
+    for(int s = 0; s < samples.numSamples(); ++s) {
+        int vcfIndex = samples.VCF_order(s);
+        genotypes[s] = vcfFile.sampleGenotype(vcfIndex);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoodReaderWindow                                                          //

@@ -17,6 +17,7 @@
 #include "TDistanceEstimator.h"
 #include "Simulations/TSimulator.h"
 #include "TVcfDiagnostics.h"
+#include "TVcfConverter.h"
 #include "TMajorMinor.h"
 #include "TAlleleCountEstimator.h"
 #include "TAlleleFrequencyEstimator.h"
@@ -636,9 +637,29 @@ public:
 	TTask_VCFToBeagle(){ _explanation = "Converting a VCF file to Beagle format"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		VcfDiagnostics VcfDiagnoser(parameters, logfile);
-		VcfDiagnoser.vcfToBeagle(parameters);
+		TVcfToBeagle VcfToBeagle(parameters, logfile);
+        VcfToBeagle.vcfToBeagle(parameters);
 	};
+};
+
+class TTask_VCFToLFMM:public TTask_atlas{
+public:
+    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        std::string output = parameters.getParameterString("geno");
+        if (output == "postGeno"){
+            TVcfToLFMMPostGeno vcfToLFMMPostGeno(parameters, logfile);
+            vcfToLFMMPostGeno.vcfToLFMM(parameters);
+        }
+        else if (output == "calledGeno"){
+            TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(parameters, logfile);
+            vcfToLFMMCalledGeno.vcfToLFMM(parameters);
+        }
+        else {
+            throw std::runtime_error("Unknown LFMM format '" + output + "'! Please choose either 'postGeno' or 'calledGeno'.");
+        }
+    };
 };
 
 class TTask_VCFFixInt:public TTask_atlas{
