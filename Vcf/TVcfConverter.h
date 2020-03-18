@@ -18,7 +18,7 @@ protected:
     std::string _outname;
     TLog * logfile;
     TGlfConverter glfConverter;
-    TPopulationLikelihoodReader * reader;
+    TPopulationLikelihoodReaderLocus * reader;
     TPopulationSamples samples;
 
 public:
@@ -60,7 +60,7 @@ protected:
     template <class T>
     void writeLFMM(T genotypes) {
         int numLoci = genotypes.size();
-        for (int i = 0; i < samples.numSamples(); i++){
+        for (uint32_t i = 0; i < samples.numSamples(); i++){
             for (int l = 0; l < numLoci; l++){
                 *(lfmmFile) << static_cast<float>(genotypes[l][i]);
             }
@@ -91,7 +91,7 @@ class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
     void writeData(TPopulationLikehoodLocus & data) override ;
     void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
-    float computePosteriorGenotype(TPopulationLikehoodLocus & data, int i);
+    float computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i);
     std::vector<float *> genotypes;
 
 public:

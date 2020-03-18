@@ -334,9 +334,6 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
         specifyChromosomesToKeep(Parameters, logfile);
     }
 
-	//set store stuff to off
-	storeTrueAlleleFreq = false;
-
 	//set progress frequency
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
 
@@ -725,9 +722,9 @@ void TPopulationLikelihoodReaderLocus::writePosition(TOutputFile & out){
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
 
-void TPopulationLikelihoodReader::fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes){
-    for(int s = 0; s < samples.numSamples(); ++s) {
-        int vcfIndex = samples.VCF_order(s);
+void TPopulationLikelihoodReaderLocus::fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes){
+    for(uint32_t s = 0; s < samples.numSamples(); ++s) {
+        uint32_t vcfIndex = samples.VCF_order(s);
         genotypes[s] = vcfFile.sampleGenotype(vcfIndex);
     }
 }
