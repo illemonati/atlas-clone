@@ -9,9 +9,9 @@
 #include "../TLog.h"
 #include "../TParameters.h"
 #include "TVcfFile.h"
-#include "TPopulationLikelihoods.h"
-#include "TGenotypeFrequencies.h"
-#include "TGLF.h"
+#include "../PopulationTools/TPopulationLikelihoods.h"
+#include "../PopulationTools/TGenotypeFrequencies.h"
+#include "../GLF/TGLF.h"
 
 class TVcfConverter {
 protected:
