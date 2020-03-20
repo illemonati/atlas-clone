@@ -66,6 +66,7 @@ void fillTaskMaps(std::map< std::string, TTask* > & taskMap_regular, std::map< s
 	taskMap_debug["thetaLLSurface"] = new TTask_thetaLLSurface();
 	taskMap_debug["alleleFrequencyLikelihoods"] = new TTask_writeAlleleFrequencyLikelihoods();
 	taskMap_debug["polymorphicWindows"] = new TTask_identifyPolymorphicWindows();
+	taskMap_debug["testBED"] = new TTask_testBED(); //TODO: write as test!
 };
 
 
