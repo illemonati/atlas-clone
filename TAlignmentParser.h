@@ -95,7 +95,7 @@ private:
 //	bool* useChromosome;
 
 	//contructor functions
-	void openBamFile(std::string filename);
+	void openBamFile(std::string filename, bool indexNotRequired);
 	void setWindowParameters(TParameters & params);
 	void setFilters(TParameters & params);
 	void setMasks(TParameters & params);

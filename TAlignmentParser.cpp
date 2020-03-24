@@ -129,7 +129,8 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	//BAM file
 	filename = params.getParameterString("bam");
-	openBamFile(filename);
+	bool indexNotRequired = params.parameterExists("indexNotRequired");
+	openBamFile(filename, indexNotRequired);
 
 	//alignments
 	maxReadLength = MaxReadLength;
@@ -149,13 +150,13 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	setChrPloidy(params);
 };
 
-void TAlignmentParser::openBamFile(std::string filename){
+void TAlignmentParser::openBamFile(std::string filename, bool indexNotRequired){
 	//open BAM file
 	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
 	//load index file
-	if(!bamReader.LocateIndex())
+	if(!bamReader.LocateIndex() && !indexNotRequired)
 		throw "No index file found for BAM file '" + filename + "'!";
 
 	//initialize bam stuff
