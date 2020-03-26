@@ -35,19 +35,20 @@ private:
 public:
 	std::string intercept;
 
-	TRecalibrationEMModelCovariateDefinition(){};
+	TRecalibrationEMModelCovariateDefinition(){
+		intercept = "0.0";
+	};
 	TRecalibrationEMModelCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
 	};
 
 	bool parse(const std::string & modelString, std::string & error);
-	void add(const std::string covariate, const std::string function){
-		covariateFunctions.emplace_back(covariate, function);
-	};
+	void setIntercept(const double Intercept);
+	void addCovariate(const std::string covariate, const std::string function);
 	size_t size(){ return covariateFunctions.size(); };
 	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return covariateFunctions.begin(); };
 	TRecalibrationEMModelCovariateDefinitionIterator end(){ return covariateFunctions.end(); };
-	std::string getModelString(double intercept);
+	std::string getModelString();
 };
 
 //--------------------------------------------------------------------
@@ -71,6 +72,30 @@ public:
 };
 
 //--------------------------------------------------------------------
+// TRecalibrationEMModelCovariateList
+//--------------------------------------------------------------------
+class TRecalibrationEMModelCovariateList{
+private:
+	void _storePointersToCovariateFunctions();
+	void _clear();
+
+public:
+	TRecalibrationEMCovariateFunction_intercept intercept;
+	std::vector< TRecalibrationEMCovariate* > covariates;
+	std::vector< TRecalibrationEMCovariateFunction* > pointerToCovariateFunctions;
+	uint16_t numParameters;
+
+	TRecalibrationEMModelCovariateList();
+	~TRecalibrationEMModelCovariateList();
+	TRecalibrationEMModelCovariateList(TRecalibrationEMModelCovariateList&& other);
+	TRecalibrationEMModelCovariateList& operator=(TRecalibrationEMModelCovariateList&& other);
+
+	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
+	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap);
+	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
+};
+
+//--------------------------------------------------------------------
 // TRecalibrationEMModel
 //--------------------------------------------------------------------
 class TRecalibrationEMModel{
@@ -78,26 +103,19 @@ private:
 	TLog* logfile;
 
 	//covariates
-	TRecalibrationEMCovariateFunction_intercept intercept;
-	std::vector<TRecalibrationEMCovariate*> covariates;
-	std::vector<TRecalibrationEMCovariateFunction*> pointerToCovariateFunctions;
+	TRecalibrationEMModelCovariateList _covariates;
 
 	//Newton Raphson Parameters
-	//TODO: maybe split into class that can and cannot estimate?
-	uint16_t _numParameters;
 	double _Q, _oldQ;
-	arma::mat Jacobian;
-	arma::vec F;
-	arma::mat JxF;
-	TRecalibrationEMFirstDerivatives firstDerivatives;
-	TRecalibrationEMSecondDerivatives secondDerivatives;
+	arma::mat _Jacobian;
+	arma::vec _F;
+	arma::mat _JxF;
+	TRecalibrationEMFirstDerivatives _firstDerivatives;
+	TRecalibrationEMSecondDerivatives _secondDerivatives;
 	unsigned int _numSitesAdded;
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
-	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap);
-	void _storePointersToCovariateFunctions();
 	void _initializeDerivatives();
 	double _calcEpsilon(const double eta);
 	inline double _calcQ(const double & eps, const Base & genotype, TRecalibrationEMReadData & data){
@@ -109,11 +127,10 @@ private:
 public:
 	TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TLog* Logfile);
 	TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
-	~TRecalibrationEMModel();
 
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
 	bool checkParameterRange(std::vector<uint16_t> & Qualities, uint16_t maxPos, std::string & error);
-	int numParameters(){ return _numParameters; };
+	uint16_t numParameters(){ return _covariates.numParameters; };
 
 	void setEMParamsToZero();
 	void setQToZero();
@@ -134,7 +151,6 @@ public:
 	double getErrorRate(const TRecalibrationEMReadData & data);
 
 	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
-	double getIntercept();
 };
 
 //--------------------------------------------------------------------
@@ -143,13 +159,12 @@ public:
 //--------------------------------------------------------------------
 class TRecalibrationEMModels{
 private:
+	TLog* logfile;
 	TReadGroups* readGroups;
 	TReadGroupMap* readGroupMap;
 	std::vector<TRecalibrationEMModel> models;
 	unsigned int totNumParameters;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
-	TLog* logfile;
-
 
 	void _readRecalFile(const std::string filename, std::vector<TRecalibrationEMModelDefinition> & modelDefs);
 
@@ -160,7 +175,6 @@ private:
 
 public:
 	TRecalibrationEMModels(TReadGroups* ReadGroups, TReadGroupMap* readGroupMap, TLog* Logfile);
-	~TRecalibrationEMModels();
 
 	//general functions to add and remove models
 	//bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);

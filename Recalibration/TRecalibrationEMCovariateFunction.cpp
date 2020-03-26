@@ -14,29 +14,17 @@
 //--------------------------------------------------------------
 void TRecalibrationEMCovariateFunction::_init(const uint16_t FirstParameterIndex){
 	_moduleName = RecalModuleFunctionName_none;
-	_initialized = false;
 	_numParameters = 0;
 	_firstParameterIndex = FirstParameterIndex;
 	_numNonZeroFirstDerivatives = 0;
 	_numNonZeroSecondDerivatives = 0;
-	_betas = nullptr;
-	_oldBetas = nullptr;
 	doTransformation = false;
 	transformationMap = nullptr;
 };
 
-void TRecalibrationEMCovariateFunction::_freeBetas(){
-	if(_initialized){
-		delete[] _betas;
-		delete[] _oldBetas;
-	}
-};
-
 void TRecalibrationEMCovariateFunction::_initializeBetas(){
-	_freeBetas();
-	_betas = new double[_numParameters];
-	_oldBetas = new double[_numParameters];
-	_initialized = true;
+	_betas.resize(_numParameters);
+	_oldBetas.resize(_numParameters);
 
 	for(uint16_t i = 0; i < _numParameters; ++i){
 		_betas[i] = 0.0;
@@ -146,6 +134,10 @@ TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_i
 
 void TRecalibrationEMCovariateFunction_intercept::initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values){
 	_initializValues(values);
+};
+
+void TRecalibrationEMCovariateFunction_intercept::setIntercept(const double val){
+	_betas[0] = val;
 };
 
 void TRecalibrationEMCovariateFunction_intercept::addToIntercept(const double val){

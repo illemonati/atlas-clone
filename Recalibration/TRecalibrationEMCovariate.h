@@ -8,6 +8,7 @@
 #ifndef RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_
 #define RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_
 
+#include <memory>
 #include <TRecalibrationEMCovariateFunction.h>
 
 //define covariate names
@@ -23,8 +24,7 @@
 //------------------------------------------------------------------------------------
 class TRecalibrationEMCovariate{
 protected:
-	TRecalibrationEMCovariateFunction* _function;
-	bool _initialized;
+	std::unique_ptr<TRecalibrationEMCovariateFunction> _function;
 
 	void _parseModuleString(const std::string & str, std::string & type, std::vector<std::string> & args, std::vector<std::string> & values);
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
@@ -38,20 +38,10 @@ protected:
 	};
 
 public:
-	TRecalibrationEMCovariate(){
-		_initialized = false;
-		_function = nullptr;
-	};
+	TRecalibrationEMCovariate(){};
 
 	virtual ~TRecalibrationEMCovariate(){
-		clear();
-	};
-
-	void clear(){
-		if(_initialized){
-			delete _function;
-			_initialized = false;
-		}
+		std::cout << "trying to delete covariate " << name() << std::endl;
 	};
 
 	uint16_t numParameters();
@@ -66,7 +56,7 @@ public:
 	std::string functionString();
 	virtual bool checkParameterRange(TRecalibrationEMDataTable* dataTable){ return true; };
 	virtual bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){ return true; };
-	TRecalibrationEMCovariateFunction* getPointerToFunction(){ return _function;};
+	TRecalibrationEMCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
 	double getEtaTerm(const TBase & base){
@@ -102,7 +92,6 @@ private:
 public:
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
-	~TRecalibrationEMCovariate_quality(){};
 
 	std::string name(){ return RecalCovariateName_quality; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -128,7 +117,6 @@ private:
 public:
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
-	~TRecalibrationEMCovariate_position(){};
 
 	std::string name(){ return RecalCovariateName_position; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -154,7 +142,6 @@ private:
 public:
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
-	~TRecalibrationEMCovariate_context(){};
 
 	std::string name(){ return RecalCovariateName_context; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);

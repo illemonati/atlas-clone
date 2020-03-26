@@ -34,16 +34,14 @@ protected:
 	uint16_t _numNonZeroFirstDerivatives;
 	uint16_t _numNonZeroSecondDerivatives;
 	std::string _moduleName;
-	double* _betas; //betas of the model
-	double* _oldBetas; //use during estimation
-	bool _initialized;
+	std::vector<double> _betas; //betas of the model
+	std::vector<double> _oldBetas; //use during estimation
 
 	//transform values?
 	TRecalibrationEMTransformationMap* transformationMap;
 	bool doTransformation;
 
 	void _init(const uint16_t FirstParameterIndex);
-	void _freeBetas();
 	void _initializeBetas();
 	void _initializValues(std::vector<std::string> & values);
 	double _getAsDouble(const uint16_t val);
@@ -59,7 +57,7 @@ public:
 		_init(FirstParameterIndex);
 	};
 
-	virtual ~TRecalibrationEMCovariateFunction(){ _freeBetas();	};
+	virtual ~TRecalibrationEMCovariateFunction(){};
 
 	void setBeta(uint16_t index, double val){
 		if(index < _numParameters)
@@ -103,6 +101,7 @@ public:
 	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	void setIntercept(const double val);
 	void addToIntercept(const double val);
 	double getEtaTerm();
 	double getEtaTerm(const uint16_t val);
