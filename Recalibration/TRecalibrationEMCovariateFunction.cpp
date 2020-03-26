@@ -140,9 +140,24 @@ TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_i
 };
 
 TRecalibrationEMCovariateFunction_intercept::TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values):TRecalibrationEMCovariateFunction(FirstParameterIndex){
-	_moduleName = RecalModuleFunctionName_intercept;
 	_init();
 	_initializValues(values);
+};
+
+void TRecalibrationEMCovariateFunction_intercept::initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values){
+	_initializValues(values);
+};
+
+void TRecalibrationEMCovariateFunction_intercept::addToIntercept(const double val){
+	_betas[0] += val;
+};
+
+double TRecalibrationEMCovariateFunction_intercept::getEtaTerm(){
+	return _betas[0];
+};
+
+double TRecalibrationEMCovariateFunction_intercept::getEtaTerm(const uint16_t val){
+	return _betas[0];
 };
 
 void TRecalibrationEMCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){

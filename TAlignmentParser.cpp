@@ -1140,6 +1140,7 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
 			if(alignment.bases[d].aligned && alignment.bases[d].base != N){
+				std::cout << "recalibrating base " << std::endl;
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
 			}
 		}

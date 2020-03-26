@@ -76,7 +76,9 @@ public:
 		transformationMap = pointerToTransformationMap;
 	};
 
-	virtual double getEtaTerm(const uint16_t val){ return 0.0; }
+	virtual double getEtaTerm(const uint16_t val){
+		return 0.0;
+	};
 	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
 	void rejectProposedParameters(){
 		for(unsigned int i=0; i<_numParameters; ++i)
@@ -100,17 +102,10 @@ public:
 	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex);
 	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
-	void addToIntercept(const double val){
-		_betas[0] += val;
-	};
-
-	double getEtaTerm(){
-		return _betas[0];
-	};
-
-	double getEtaTerm(const uint16_t val){
-		return _betas[0];
-	};
+	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	void addToIntercept(const double val);
+	double getEtaTerm();
+	double getEtaTerm(const uint16_t val);
 	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
 	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
 };

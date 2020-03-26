@@ -33,6 +33,8 @@ private:
 	std::vector<TRecalibrationEMModelCovariateDef> covariateFunctions;  //<covariate, function>
 
 public:
+	std::string intercept;
+
 	TRecalibrationEMModelCovariateDefinition(){};
 	TRecalibrationEMModelCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
@@ -45,7 +47,7 @@ public:
 	size_t size(){ return covariateFunctions.size(); };
 	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return covariateFunctions.begin(); };
 	TRecalibrationEMModelCovariateDefinitionIterator end(){ return covariateFunctions.end(); };
-	std::string getModelString();
+	std::string getModelString(double intercept);
 };
 
 //--------------------------------------------------------------------
@@ -93,8 +95,8 @@ private:
 	bool _NRconverged;
 	bool _NRStepAccepted;
 
-	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
-	void _createCovariates(TRecalibrationEMModelCovariateDefinition & covariateMap);
+	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
+	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap);
 	void _storePointersToCovariateFunctions();
 	void _initializeDerivatives();
 	double _calcEpsilon(const double eta);
@@ -132,6 +134,7 @@ public:
 	double getErrorRate(const TRecalibrationEMReadData & data);
 
 	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
+	double getIntercept();
 };
 
 //--------------------------------------------------------------------

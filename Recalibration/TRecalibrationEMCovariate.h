@@ -48,8 +48,10 @@ public:
 	};
 
 	void clear(){
-		if(_initialized)
+		if(_initialized){
 			delete _function;
+			_initialized = false;
+		}
 	};
 
 	uint16_t numParameters();
@@ -100,6 +102,7 @@ private:
 public:
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
+	~TRecalibrationEMCovariate_quality(){};
 
 	std::string name(){ return RecalCovariateName_quality; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -125,6 +128,7 @@ private:
 public:
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
+	~TRecalibrationEMCovariate_position(){};
 
 	std::string name(){ return RecalCovariateName_position; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -150,6 +154,7 @@ private:
 public:
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
+	~TRecalibrationEMCovariate_context(){};
 
 	std::string name(){ return RecalCovariateName_context; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
