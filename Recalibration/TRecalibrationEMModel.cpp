@@ -147,19 +147,13 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 };
 
 void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap){
-
-	std::cout << "------------ A -------------" << std::endl;
-
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
 
-	std::cout << "------------ B -------------" << std::endl;
-
 	//create covariates
 	numParameters = intercept.numParameters();
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
-		std::cout << "------------ C -------------" << std::endl;
 		//create function for each covariate
 		if(it->covariate == RecalCovariateName_none){
 			continue;
@@ -179,11 +173,8 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 		numParameters += covariates.back()->numParameters();
 	}
 
-	std::cout << "------------ Y -------------" << std::endl;
 	//summarize
 	_storePointersToCovariateFunctions();
-
-	std::cout << "------------ Z -------------" << std::endl;
 };
 
 void TRecalibrationEMModelCovariateList::_storePointersToCovariateFunctions(){
@@ -590,19 +581,11 @@ void TRecalibrationEMModels::createModels(std::string s){
 };
 
 void TRecalibrationEMModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariateFunctions){
-	std::cout << "------------ START -------------" << std::endl;
 	if(!readGroupIndex.inUse(readGroupId,isSecondMate)){
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
-
-		std::cout << "Model: '" << covariateFunctions.getModelString() << "'" << std::endl;
-
-		std::cout << "------------ 1 -------------" << std::endl;
 		models.emplace_back(covariateFunctions, logfile);
-		std::cout << "------------ 2 -------------" << std::endl;
-
 		totNumParameters += models.back().numParameters();
 	}
-	std::cout << "------------ END -------------" << std::endl;
 };
 
 void TRecalibrationEMModels::_createModelsFromString(const std::string & s){
