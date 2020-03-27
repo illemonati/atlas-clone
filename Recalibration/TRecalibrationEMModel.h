@@ -36,7 +36,7 @@ public:
 	std::string intercept;
 
 	TRecalibrationEMModelCovariateDefinition(){
-		intercept = "0.0";
+		intercept = "";
 	};
 	TRecalibrationEMModelCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
@@ -80,10 +80,10 @@ private:
 	void _clear();
 
 public:
+	uint16_t numParameters;
 	TRecalibrationEMCovariateFunction_intercept intercept;
 	std::vector< TRecalibrationEMCovariate* > covariates;
 	std::vector< TRecalibrationEMCovariateFunction* > pointerToCovariateFunctions;
-	uint16_t numParameters;
 
 	TRecalibrationEMModelCovariateList();
 	~TRecalibrationEMModelCovariateList();
