@@ -140,7 +140,7 @@ void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
 }
 
 //TODO: what is difference???
-void TWindow_base::move(long Start, long End, int ChrNumber){
+void TWindow_base::move(unsigned int Start, unsigned int End, int ChrNumber){
 	setCoordinates(Start, End, ChrNumber);
 };
 

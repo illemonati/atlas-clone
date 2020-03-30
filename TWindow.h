@@ -68,7 +68,7 @@ public:
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
-	virtual void move(long Start, long End, int chrNumber);
+	virtual void move(unsigned int Start, unsigned int End, int chrNumber);
 	void addReferenceBaseToSites(BamTools::Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);

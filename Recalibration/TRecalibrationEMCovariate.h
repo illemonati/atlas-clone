@@ -40,9 +40,7 @@ protected:
 public:
 	TRecalibrationEMCovariate(){};
 
-	virtual ~TRecalibrationEMCovariate(){
-		std::cout << "trying to delete covariate " << name() << std::endl;
-	};
+	virtual ~TRecalibrationEMCovariate(){};
 
 	uint16_t numParameters();
 	uint16_t numNonZeroFirstDerivatives();
