@@ -80,9 +80,7 @@ TRecalibrationEMModelCovariateList::TRecalibrationEMModelCovariateList(TRecalibr
 	intercept = std::move(other.intercept);
 	numParameters = other.numParameters;
 
-	//clean other without deleting objects
-	other.covariates.clear();
-	other.pointerToCovariateFunctions.clear();
+	//set intercept of other to zero
 	other.intercept.setIntercept(0.0);
 };
 
@@ -97,9 +95,7 @@ TRecalibrationEMModelCovariateList& TRecalibrationEMModelCovariateList::operator
 		intercept = std::move(other.intercept);
 		numParameters = other.numParameters;
 
-		//clean other without deleting objects
-		other.covariates.clear();
-		other.pointerToCovariateFunctions.clear();
+		//set intercept of other to zero
 		other.intercept.setIntercept(0.0);
 	}
 	//return
@@ -190,6 +186,7 @@ void TRecalibrationEMModelCovariateList::_storePointersToCovariateFunctions(){
 
 TRecalibrationEMModelCovariateDefinition TRecalibrationEMModelCovariateList::getCovariateDefinition(){
 	TRecalibrationEMModelCovariateDefinition def;
+	def.setIntercept(intercept.getIntercept());
 	for(const auto & cov : covariates){
 		def.addCovariate(cov->name(), cov->functionString());
 	}

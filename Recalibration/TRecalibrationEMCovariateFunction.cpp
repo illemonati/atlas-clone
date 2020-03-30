@@ -144,6 +144,10 @@ void TRecalibrationEMCovariateFunction_intercept::addToIntercept(const double va
 	_betas[0] += val;
 };
 
+double TRecalibrationEMCovariateFunction_intercept::getIntercept(){
+	return _betas[0];
+};
+
 double TRecalibrationEMCovariateFunction_intercept::getEtaTerm(){
 	return _betas[0];
 };

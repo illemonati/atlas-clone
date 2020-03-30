@@ -39,7 +39,6 @@ protected:
 
 public:
 	TRecalibrationEMCovariate(){};
-
 	virtual ~TRecalibrationEMCovariate(){};
 
 	uint16_t numParameters();

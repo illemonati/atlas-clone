@@ -103,6 +103,7 @@ public:
 	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 	void setIntercept(const double val);
 	void addToIntercept(const double val);
+	double getIntercept();
 	double getEtaTerm();
 	double getEtaTerm(const uint16_t val);
 	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
