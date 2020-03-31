@@ -101,5 +101,20 @@ public:
 
 };
 
+class TVcfToPosFile : public TVcfConverter {
+private:
+    TOutputFilePlain * posFile;
+    // beagle
+    void writeHeader() override;
+    void writeRefAndAlt();
+    void writeData(TPopulationLikehoodLocus & data) override;
+    void writePosition();
+
+public:
+    TVcfToPosFile(TParameters &Params, TLog *Logfile);
+    ~TVcfToPosFile();
+    void vcfToPosFile(TParameters & Params);
+};
+
 
 #endif //ATLAS_TVCFCONVERTER_H

@@ -662,6 +662,16 @@ public:
     };
 };
 
+class TTask_VCFToPosFile:public TTask_atlas{
+public:
+    TTask_VCFToPosFile(){ _explanation = "Converting a VCF file to posfile format (STITCH input)"; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToPosFile VcfToPosFile(parameters, logfile);
+        VcfToPosFile.vcfToPosFile(parameters);
+    };
+};
+
 class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
