@@ -8,7 +8,7 @@
 #ifndef TSIMULATORREAD_H_
 #define TSIMULATORREAD_H_
 
-#include "../TParameters.h"
+#include "TParameters.h"
 #include "../TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
 #include "../TPostMortemDamage.h"

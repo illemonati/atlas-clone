@@ -614,6 +614,8 @@ void TWindow::review(){
 };
 
 void TWindow::cleanUpUsedAlignments(){
+	throw "cleaning up used alignments";
+
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
@@ -635,6 +637,7 @@ void TWindow::clearAllUsedAlignments(){
 };
 
 void TWindow::move(long Start, long End, int ChrNumber){
+	throw "in derived move function";
 	setCoordinates(Start, End, ChrNumber);
 	cleanUpUsedAlignments();
 };

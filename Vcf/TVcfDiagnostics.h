@@ -8,18 +8,18 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include <vector>
-#include "../TParameters.h"
+#include "TParameters.h"
 #include <iostream>
 #include <fstream>
 #include "TVcfFile.h"
-#include "../TRandomGenerator.h"
+#include "TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
 #include "../TQualityMap.h"
-#include "../TFile.h"
+#include "TFile.h"
 #include "../GLF/TGLF.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"
 

@@ -305,7 +305,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	if(parameters.parameterExists("limitLines")){
 		limitLines = true;
 		logfile->list("Will stop reading after " + toString(limitLines) + " lines.");
-		lineLimit = parameters.getParameterLong("limitLines");
+		lineLimit = parameters.getParameterInt("limitLines");
 	}
 
 	//set filters in VCF files

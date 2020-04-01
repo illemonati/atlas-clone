@@ -11,50 +11,58 @@
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
-TAtlasTest::TAtlasTest(TParameters & params, TLog* Logfile){
-	logfile = Logfile;
-	_name = "empty";
-	_testingPrefix = params.getParameterStringWithDefault("prefix", "ATLAS_testing_");
-	logfile->list("Will use prefix '" + _testingPrefix + "' for all testing files.");
-};
-
-bool TAtlasTest::runTGenomeFromInputfile(std::string task){
-	logfile->startIndent("Running task '" + task + "':");
-	_testParams.addParameter("task", task);
-	_testParams.addParameter("verbose", "");
-
-	//open task switcher and run task
-	TTaskList taskList;
-	bool returnVal = true;
-	try{
-		taskList.run(task, _testParams, logfile);
-	}
-	catch (std::string & error){
-		logfile->conclude(error);
-		returnVal = false;
-	}
-	catch (const char* error){
-		logfile->conclude(error);
-		returnVal = false;
-	}
-	catch(std::exception & error){
-		logfile->conclude(error.what());
-		returnVal = false;
-	}
-	catch (...){
-		logfile->conclude("unhandeled error!");
-		returnVal = false;
-	}
-	logfile->endIndent();
-	return returnVal;
-};
+//TAtlasTest::TAtlasTest(TParameters & params, TLog* Logfile){
+//	logfile = Logfile;
+//	_name = "empty";
+//	_testingPrefix = params.getParameterStringWithDefault("prefix", "ATLAS_testing_");
+//	logfile->list("Will use prefix '" + _testingPrefix + "' for all testing files.");
+//};
+//
+//bool TAtlasTest::runTGenomeFromInputfile(std::string task){
+//	logfile->startIndent("Running task '" + task + "':");
+//	_testParams.addParameter("task", task);
+//	_testParams.addParameter("verbose", "");
+//
+//	//open task switcher and run task
+//	TTaskList taskList;
+//	bool returnVal = true;
+//	try{
+//		taskList.run(task, _testParams, logfile);
+//	}
+//	catch (std::string & error){
+//		logfile->conclude(error);
+//		returnVal = false;
+//	}
+//	catch (const char* error){
+//		logfile->conclude(error);
+//		returnVal = false;
+//	}
+//	catch(std::exception & error){
+//		logfile->conclude(error.what());
+//		returnVal = false;
+//	}
+//	catch (...){
+//		logfile->conclude("unhandeled error!");
+//		returnVal = false;
+//	}
+//	logfile->endIndent();
+//	return returnVal;
+//};
 
 //------------------------------------------
 //TAtlasTest_pileup
 //------------------------------------------
-TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_pileup::TAtlasTest_pileup():TTest(){
+	_testingPrefix = "ATLAS_testing_";
 	_name = "pileup";
+	logfile = nullptr;
+	readLength = -1;
+	chrLength = -1;
+	phredError = -1;
+	emissionTolerance = -1.0;
+};
 
+void TAtlasTest_pileup::defineVariables(TParameters & params, TLog* Logfile){
 	//variables
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
 	logfile->list("Will simulate reads of length " + toString(readLength) + ".");
@@ -70,9 +78,12 @@ TAtlasTest_pileup::TAtlasTest_pileup(TParameters & params, TLog* logfile):TAtlas
 
 	emissionTolerance = params.getParameterDoubleWithDefault("pileupTest_qual", 0.0001);
 	logfile->list("Will allow for a relative error in emission probabilities up to " + toString(emissionTolerance) + ".");
-};
+}
 
-bool TAtlasTest_pileup::run(){
+bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList * TaskList){
+	//1) Define variables
+	defineVariables(parameters, Logfile);
+
 	//1) create a bam and fasta file with known pileup results
 	//----------------------------------------------
 	writeFasta();
@@ -85,7 +96,7 @@ bool TAtlasTest_pileup::run(){
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
-	if(!runTGenomeFromInputfile("pileup"))
+	if(!runMain("pileup", Logfile))
 		return false;
 
 	//3) check if results are OK
@@ -390,9 +401,15 @@ bool TAtlasTest_pileup::checkPileupFile(){
 //TAtlasTest_allelicDepth
 //------------------------------------------
 
-TAtlasTest_allelicDepth::TAtlasTest_allelicDepth(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_allelicDepth::TAtlasTest_allelicDepth():TTest(){
 	_name = "allelicDepth";
+	_testingPrefix = "ATLAS_testing_";
+	_name = "pileup";
+	logfile = nullptr;
+	phredError = -1;
+};
 
+void TAtlasTest_allelicDepth::defineVariables(TParameters & params, TLog* Logfile){
 	//variables
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
 	logfile->list("Will test with quality " + toString(phredError) + ".");
@@ -401,20 +418,23 @@ TAtlasTest_allelicDepth::TAtlasTest_allelicDepth(TParameters & params, TLog* log
 	readGroupName = "TestReadGroup";
 };
 
-bool TAtlasTest_allelicDepth::run(){
-	//1) create a bam file with known pileup results
+bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList * TaskList){
+	//1) Define variables
+	defineVariables(params, Logfile);
+
+	//2) create a bam file with known pileup results
 	//----------------------------------------------
 	writeBAM();
 
-	//2) Run ATLAS to create allelicDepthTable
+	//3) Run ATLAS to create allelicDepthTable
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("maxAllelicDepth", toString(3));
 
-	if(!runTGenomeFromInputfile("allelicDepth"))
+	if(!runMain("allelicDepth", logfile))
 		return false;
 
-	//3) check if results are OK
+	//4) check if results are OK
 	//--------------------------
 	return checkAllelicDepthTable();
 };
@@ -601,7 +621,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 	return true;
 };
 
-TAtlasTest_theta::TAtlasTest_theta(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_theta::TAtlasTest_theta():TTest(){
 	_name = "theta";
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
@@ -623,7 +643,7 @@ bool TAtlasTest_theta::run(){
 	logfile->list("Writing simulated reads to '" + filenameBAM + "'.");
 	std::ifstream bam(filenameBAM.c_str());
 	if(!bam){
-		if(!runTGenomeFromInputfile("simulate"))
+		if(!runMain("simulate", logfile))
 			return false;
 	} else
 		logfile->flush("file already exists");
@@ -637,7 +657,7 @@ bool TAtlasTest_theta::run(){
 	gz::igzstream in(filenameTheta.c_str());
 //	if(!in){
 		_testParams.addParameter("bam", bamFileName);
-		if(!runTGenomeFromInputfile("estimateTheta"))
+		if(!runMain("estimateTheta", logfile))
 			return false;
 //	} else
 //		logfile->conclude("theta estimates already exists");

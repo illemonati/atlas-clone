@@ -9,10 +9,10 @@
 #define TSIMULATORQUALITYTRANSFORMATION_H_
 
 #include "../TBase.h"
-#include "../TLog.h"
-#include "../TRandomGenerator.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 #include "../TQualityMap.h"
-#include "../TParameters.h"
+#include "TParameters.h"
 #include "TSimulatorReadLength.h"
 #include "TRecalibrationEMModel.h"
 
