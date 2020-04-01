@@ -7,16 +7,34 @@
 
 #include "TAtlasTestFilter.h"
 
-
-TAtlasTest_filter::TAtlasTest_filter(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	_name = "testFilter";
 	filenameTag = _testingPrefix + _name;
+
+	chrLength = -1;
+	readLength = -1;
+	minMQ = -1;
+	phredError = -1;
+	keepReadsLongerThanFragment = false;
+	keepOrphanedReads = false;
+	keepImproperPairs = false;
+	keepUnmappedReads = false;
+	keepFailedQC = false;
+	keepSecondary = false;
+	keepSupplementary = false;
+	keepDuplicates = false;
+	filterSoftClips = false;
+};
+
+void TAtlasTest_filter::defineVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	bamFileName = filenameTag + "_filtered.bam";
 	readGroupName = "TestReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
 
+	//booleans
 	keepReadsLongerThanFragment = params.parameterExists("filter_keepReadsLongerThanFragment");
 	keepImproperPairs = params.parameterExists("filter_keepImproperPairs");
 	keepUnmappedReads = params.parameterExists("filter_keepUnmappedReads");
@@ -34,14 +52,17 @@ TAtlasTest_filter::TAtlasTest_filter(TParameters & params, TLog* logfile):TAtlas
 //	readGroups.readGroupInUse(curReadGroupID)
 //					&& useStrand[bamAlignment.IsReverseStrand()]
 //					&& useMate[bamAlignment.IsSecondMate()];
-}
+};
 
-bool TAtlasTest_filter::run(){
-	//1) create a bam and fasta file with known pileup results
+bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList * TaskList){
+	//1) Define variables
+	defineVariables(params, Logfile);
+
+	//2) create a bam and fasta file with known pileup results
 	//----------------------------------------------
 	writeBAM();
 
-	//2) Run ATLAS to create filtered BAM
+	//3) Run ATLAS to create filtered BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
 
@@ -75,11 +96,11 @@ bool TAtlasTest_filter::run(){
 
 	_testParams.addParameter("minMQ", toString(minMQ));
 
-	if(!runTGenomeFromInputfile("filter"))
+	if(!runMain("filter", logfile))
 		return false;
 
 
-	//3) check if results are OK
+	//4) check if results are OK
 	//--------------------------
 	return checkfilteredBAMFile();
 }

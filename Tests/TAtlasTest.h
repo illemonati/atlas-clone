@@ -25,34 +25,25 @@
 //Base class for individual tests.
 //Tests can be combined to suites in TATlasTesting
 
-//class TAtlasTest{
-//protected:
-//	TLog* logfile;
-//	TParameters _testParams;
-//	std::string _testingPrefix;
-//	std::string _name;
-//
-//	bool runTGenomeFromInputfile(std::string task);
-//
-//public:
-//	TAtlasTest(TParameters & params, TLog* Logfile);
-//	virtual ~TAtlasTest(){};
-//
-//	std::string name(){return _name;};
-//
-//	virtual bool run(){
-//		return true;
-//	};
-//};
+class TAtlasTest:public TTest{
+protected:
+	TLog* logfile;
+	TParameters _testParams;
+	std::string _testingPrefix;
+	std::string _name;
+
+public:
+	TAtlasTest();
+	virtual ~TAtlasTest(){};
+
+	std::string name(){return _name;};
+};
 
 //------------------------------------------
 //TAtlasTest_pileup
 //------------------------------------------
-class TAtlasTest_pileup:public TTest{
+class TAtlasTest_pileup:public TAtlasTest{
 private:
-	TLog* logfile;
-	std::string _testingPrefix;
-
 	int phredError;
 	int readLength;
 	int chrLength;
@@ -79,11 +70,8 @@ public:
 //------------------------------------------
 //TAtlasTest_allelicDepth
 //------------------------------------------
-class TAtlasTest_allelicDepth:public TTest{
+class TAtlasTest_allelicDepth:public TAtlasTest{
 private:
-	TLog* logfile;
-	std::string _testingPrefix;
-
 	int phredError;
 	TQualityMap qualMap;
 	std::string filenameTag;
@@ -103,11 +91,8 @@ public:
 //------------------------------------------
 //TAtlasTest_theta
 //------------------------------------------
-class TAtlasTest_theta:public TTest{
+class TAtlasTest_theta:public TAtlasTest{
 private:
-	TLog* logfile;
-	std::string _testingPrefix;
-
 	std::string filenameTag;
 	std::string bamFileName;
 	double simTheta;

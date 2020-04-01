@@ -32,10 +32,12 @@ private:
 	std::ofstream outRecalParams;
 	std::ofstream outRecalPool;
 
+	void defineVariables(TParameters & params, TLog* Logfile);
+
 public:
-	TAtlasTest_recalSimulation(TParameters & params, TLog* logfile);
+	TAtlasTest_recalSimulation();
 	~TAtlasTest_recalSimulation(){};
-	bool run();
+	bool run(TParameters & params, TLog* logfile);
 	bool checkRecalFile();
 };
 
@@ -64,11 +66,13 @@ private:
 	double positionEffectSlope;
 	double positionEffectIntercept;
 
+	void setVariables(TParameters & params, TLog* logfile);
+
 
 public:
-	TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile);
+	TAtlasTest_BQSRSimulation();
 	~TAtlasTest_BQSRSimulation(){};
-	bool run();
+	bool run(TParameters & params, TLog* logfile);
 	double trueQual(int & phi1, double & phi2, int & fakeQual);
 	bool checkBQSRQualityFile();
 	bool checkBQSRPositionFile();
@@ -97,24 +101,30 @@ protected:
 	TSimulatorQualityTransformationRecal* recalObject;
 	bool readTransformationFile();
 	bool checkTransformation(std::vector<int> trueQualScores);
+	void setVariables(TParameters & params, TLog* Logfile);
 
 public:
-	virtual bool run();
-	TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile);
+	TAtlasTest_qualityTransformationRecalPlain();
 	virtual ~TAtlasTest_qualityTransformationRecalPlain(){
 		delete randomGenerator;
 		delete qualityDist;
 		delete recalObject;
 	};
+	virtual bool run(TParameters & params, TLog* logfile);
 };
 
 //------------------------------------------
 
 class TAtlasTest_qualityTransformationRecalBinned:public TAtlasTest_qualityTransformationRecalPlain{
+private:
+	void setVariables(TParameters & params, TLog* Logfile);
+
 public:
-	bool run();
-	TAtlasTest_qualityTransformationRecalBinned(TParameters & params, TLog* logfile);
+	TAtlasTest_qualityTransformationRecalBinned();
 	~TAtlasTest_qualityTransformationRecalBinned(){};
+
+	bool run(TParameters & params, TLog* logfile);
+
 };
 
 

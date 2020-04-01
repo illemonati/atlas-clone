@@ -7,19 +7,22 @@
 
 #include "TVcfTest.h"
 
-TAtlasTest_invariantBed::TAtlasTest_invariantBed(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_invariantBed::TAtlasTest_invariantBed():TAtlasTest(){
 	_name = "invariantBed";
+};
 
+void TAtlasTest_invariantBed::setVariables(TParameters & params, TLog* Logfile){
 	//variables
+	logfile = Logfile;
 	filenameTag = _testingPrefix + _name;
 	vcfFileName = filenameTag + ".vcf";
 	bedFileName = filenameTag + ".bed.gz";
 	logfile->list("Will write test vcf to " + vcfFileName);
-};
+}
 
 void TAtlasTest_invariantBed::writeLineVcf(std::string chr, std::string pos, std::string gt){
 	vcf << chr << "\t" << pos << "\t.\tA\tT\t.\t.\tDP=1\tGT:DP:AD:GQ:PL\t" << gt << ":1:1,0:3:0,3,40\t0/0:1:1,0:3:0,3,40\n";
-}
+};
 
 void TAtlasTest_invariantBed::writeTestVcf(){
 	vcf.open(vcfFileName.c_str());
@@ -95,13 +98,16 @@ bool TAtlasTest_invariantBed::checkBedFile(){
 		return true;
 }
 
-bool TAtlasTest_invariantBed::run(){
+bool TAtlasTest_invariantBed::run(TParameters & params, TLog* Logfile){
+	//set variables
+	setVariables(params, Logfile);
+
 	//create vcf file
 	writeTestVcf();
 
 	//write invariant bed
 	_testParams.addParameter("vcf", vcfFileName);
-	if(!runTGenomeFromInputfile("VCFToInvariantBed"))
+	if(!runMain("VCFToInvariantBed", logfile))
 		return false;
 
 	//check bed file

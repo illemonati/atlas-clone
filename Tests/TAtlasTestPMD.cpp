@@ -8,9 +8,18 @@
 #include "TAtlasTestPMD.h"
 
 
-TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric():TAtlasTest(){
 	_name = "pmdEmpiricSimulation";
 	filenameTag = _testingPrefix + _name;
+
+	minReadLength = -1;
+	maxReadLength = -1;
+	alpha = -1.0;
+	beta = -1.0;
+};
+
+void TAtlasTest_PMDEmpiric::defineVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 
@@ -37,10 +46,12 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric(TParameters & params, TLog* logfile
 	GApatterns[0] = firstPMDStringGA;
 	GApatterns[1] = secondPMDStringGA;
 	GApatterns[2] = thirdPMDStringGA;
-}
+};
 
-bool TAtlasTest_PMDEmpiric::run(){
-	//1) Write PMD params to file
+bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile){
+	//1) define variables
+	defineVariables(params, Logfile);
+	//2) Write PMD params to file
 	//-----------------------------
 	outPMD.open(pmdEmpiricFileName.c_str());
 	if(!outPMD) throw "Failed to open file '" + pmdEmpiricFileName + "'!";
@@ -52,7 +63,7 @@ bool TAtlasTest_PMDEmpiric::run(){
 	outPMD.close();
 	//TODO: find minimal data necessary to run test in order to speed up
 
-	//2) Run ATLAS to simulate BAM file
+	//3) Run ATLAS to simulate BAM file
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
 	_testParams.addParameter("chrLength", "10000000");
@@ -61,12 +72,12 @@ bool TAtlasTest_PMDEmpiric::run(){
 	_testParams.addParameter("readLength", "single:gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength)+"]");
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
 
-	if(!runTGenomeFromInputfile("simulate"))
+	if(!runMain("simulate", logfile))
 		return false;
 
 	logfile->newLine();
 
-	//3) Run estimatePMD
+	//4) Run estimatePMD
 	//-----------------------------
 	//open pool read group file
 	outPool.open(poolRGFileName.c_str());
@@ -79,10 +90,10 @@ bool TAtlasTest_PMDEmpiric::run(){
 	_testParams.addParameter("fasta", fastaFileName);
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
 
-	if(!runTGenomeFromInputfile("estimatePMD"))
+	if(!runMain("estimatePMD", logfile))
 		return false;
 
-	//4) check if results are OK
+	//5) check if results are OK
 	//--------------------------
 	if(checkPMDEmpiricFile() == true) return true;
 	else return false;

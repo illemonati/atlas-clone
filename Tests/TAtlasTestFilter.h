@@ -19,6 +19,7 @@ private:
 	int chrLength;
 	int phredError;
 	std::string readGroupName;
+	int minMQ;
 	bool keepReadsLongerThanFragment;
 	bool keepOrphanedReads;
 	bool keepImproperPairs;
@@ -28,12 +29,13 @@ private:
 	bool keepSupplementary;
 	bool keepDuplicates;
 	bool filterSoftClips;
-	int minMQ;
+
 
 	TQualityMap qualMap;
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;
 
+	void defineVariables(TParameters & params, TLog* Logfile);
 	void writeBAM();
 	void setToSingleEnd(BamTools::BamAlignment & bamAlignment);
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
@@ -44,8 +46,8 @@ private:
 
 
 public:
-	TAtlasTest_filter(TParameters & params, TLog* logfile);
-	bool run();
+	TAtlasTest_filter();
+	bool run(TParameters & params, TLog* logfile, TTaskList * TaskList);
 };
 
 

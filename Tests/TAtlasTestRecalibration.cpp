@@ -11,9 +11,18 @@
 //------------------------------------------
 //TAtlasTest_recalSimulation
 //------------------------------------------
-TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_recalSimulation::TAtlasTest_recalSimulation():TAtlasTest(){
 	_name = "recalSimulation";
 	filenameTag = _testingPrefix + _name;
+
+	maxPhredInt = -1;
+	minPhredInt = -1;
+	sdphredInt = -1.0;
+	meanQual = -1;
+};
+
+void TAtlasTest_recalSimulation::defineVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	bamFileName = filenameTag + ".bam";
 	meanQual = params.getParameterIntWithDefault("recal_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("recal_sdQual", 10);
@@ -26,10 +35,13 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation(TParameters & params, TLo
 	repeatIndexes(tmpVec, trueParams);
 	recalParamsFileName = filenameTag + "_true_recalibrationEM.txt";
 	poolRGFileName = filenameTag + "_poolThese.txt";
-}
+};
 
-bool TAtlasTest_recalSimulation::run(){
-	//1) Write recal params to file
+bool TAtlasTest_recalSimulation::run(TParameters & params, TLog* Logfile){
+	//1) Define variables
+	defineVariables(params, Logfile);
+
+	//2) Write recal params to file
 	//-----------------------------
 	std::vector<std::string> paramVector;
 	fillVectorFromStringAny(recalParamString, paramVector, ",");
@@ -53,7 +65,7 @@ bool TAtlasTest_recalSimulation::run(){
 	}
 	outRecalParams.close();
 
-	//1) Run ATLAS to simulate BAM file
+	//2) Run ATLAS to simulate BAM file
 	//-----------------------------
 	//TODO: find minimal data necessary to run test in order to speed up
 
@@ -67,12 +79,12 @@ bool TAtlasTest_recalSimulation::run(){
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "single:fixed(70)");
 
-	if(!runTGenomeFromInputfile("simulate"))
+	if(!runMain("simulate", logfile))
 		return false;
 
 	logfile->newLine();
 
-	//2) Run recal
+	//3) Run recal
 	//-----------------------------
 	//open pool read group file
 	outRecalPool.open(poolRGFileName.c_str());
@@ -85,10 +97,10 @@ bool TAtlasTest_recalSimulation::run(){
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
 
 
-	if(!runTGenomeFromInputfile("recal"))
+	if(!runMain("recal", logfile))
 		return false;
 
-	//3) check if results are OK
+	//4) check if results are OK
 	//--------------------------
 	if(checkRecalFile() == true)
 		return true;
@@ -153,9 +165,26 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 //TAtlasTest_BQSRSimulation
 //------------------------------------------
 
-TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation():TAtlasTest(){
 	_name = "BQSRSimulation";
 	filenameTag = _testingPrefix + _name;
+
+	meanQual = -1;;
+	sdphredInt = -1.0;
+	minPhredInt = -1;
+	maxPhredInt = -1;
+	phi1 = -1;
+	phi2 = -1.0;
+	revIntercept = -1.0;
+	acceptedDelta = -1.0;
+	minReadLen = -1;
+	maxReadLen = -1;
+	positionEffectSlope = -1.0;
+	positionEffectIntercept = -1.0;
+};
+
+void TAtlasTest_BQSRSimulation::setVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterIntWithDefault("BQSR_meanQual", 25);
@@ -174,13 +203,13 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation(TParameters & params, TLog*
 	phi2 = params.getParameterDoubleWithDefault("BQSR_phi2", 1.2);
 	revIntercept = params.getParameterDoubleWithDefault("BQSR_revIntercept", 1.5);
 	acceptedDelta = params.getParameterDoubleWithDefault("BQSR_acceptedDelta", 1);
+};
 
-}
-
-bool TAtlasTest_BQSRSimulation::run(){
+bool TAtlasTest_BQSRSimulation::run(TParameters & params, TLog* Logfile){
+	//set variables
+	setVariables(params, Logfile);
 
 	//TODO: find minimal data necessary to run test in order to speed up
-
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
@@ -193,7 +222,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("readLength", "fixed(70)");
 
 
-	if(!runTGenomeFromInputfile("simulate"))
+	if(!runMain("simulate", logfile))
 		return false;
 
 	logfile->newLine();
@@ -206,7 +235,7 @@ bool TAtlasTest_BQSRSimulation::run(){
 	_testParams.addParameter("estimateBQSRPosition", "");
 	_testParams.addParameter("maxPos", "110");
 
-	if(!runTGenomeFromInputfile("BQSR"))
+	if(!runMain("BQSR", logfile))
 		return false;
 
 
@@ -353,9 +382,18 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 //TAtlasTest_qualityTransformationRecal
 //------------------------------------------
 
-TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationRecalPlain(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationRecalPlain():TAtlasTest(){
 	_name = "qualityTransformation";
 	filenameTag = _testingPrefix + _name;
+
+	recalObject = nullptr;
+	randomGenerator = nullptr;
+	qualityDist = nullptr;
+	maxReadLength = -1;
+};
+
+void TAtlasTest_qualityTransformationRecalPlain::setVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	bamFileName = filenameTag + ".bam";
 	std::string onlyRecalParams = "1,0;0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams","qualFuncPosFuncContext[" + onlyRecalParams +"]");
@@ -364,9 +402,13 @@ TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationReca
 	qualDistString = "10";
 	qualityDist =  new TSimulatorQualityDist(qualDistString);
 	recalObject = new TSimulatorQualityTransformationRecal("qualFuncPosFuncContext[" + onlyRecalParams + "]", maxReadLength, qualityDist, randomGenerator);
-}
 
-bool TAtlasTest_qualityTransformationRecalPlain::run(){
+};
+
+bool TAtlasTest_qualityTransformationRecalPlain::run(TParameters & params, TLog* Logfile){
+	//1) set variables
+	setVariables(params, Logfile);
+
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
@@ -377,7 +419,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("qualityDist", "fixed(" + qualDistString + ")");
 
 
-	if(!runTGenomeFromInputfile("simulate"))
+	if(!runMain("simulate", logfile))
 		return false;
 
 	logfile->newLine();
@@ -388,7 +430,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(){
 	_testParams.addParameter("recal", recalParamString);
 
 
-	if(!runTGenomeFromInputfile("qualityTransformation"))
+	if(!runMain("qualityTransformation", logfile))
 		return false;
 
 
@@ -457,15 +499,22 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 }
 
 //---------------------------------------
-TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRecalBinned(TParameters & params, TLog* logfile):TAtlasTest_qualityTransformationRecalPlain(params, logfile){
+TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRecalBinned():TAtlasTest_qualityTransformationRecalPlain(){
+};
+
+void TAtlasTest_qualityTransformationRecalBinned::setVariables(TParameters & params, TLog* Logfile){
+	logfile = Logfile;
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "qualFuncPosFuncContext[2,0;0,0;0{20}]");
 	qualDistString = "(10,15,20,30)";
 	qualityDist =  new TSimulatorQualityDistBinned(qualDistString, randomGenerator);
 	recalObject = new TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
 	fillVectorFromStringAnySkipEmpty(qualDistString, qualDistVec, ",");
-}
+};
 
-bool TAtlasTest_qualityTransformationRecalBinned::run(){
+bool TAtlasTest_qualityTransformationRecalBinned::run(TParameters & params, TLog* Logfile){
+	//1) set variables
+	setVariables(params, Logfile);
+
 	//1) Run ATLAS to simulate BAM file
 	//-----------------------------
 	_testParams.addParameter("out", filenameTag);
@@ -475,7 +524,7 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	_testParams.addParameter("readLength", "single:fixed("+toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
 
-	if(!runTGenomeFromInputfile("simulate"))
+	if(!runMain("simulate", logfile))
 		return false;
 
 	logfile->newLine();
@@ -485,7 +534,7 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(){
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("recal", recalParamString);
 
-	if(!runTGenomeFromInputfile("qualityTransformation"))
+	if(!runMain("qualityTransformation", logfile))
 		return false;
 
 	//3) check if results are OK
