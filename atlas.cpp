@@ -64,6 +64,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());
 	main.addRegularTask("VCFToBeagle", new TTask_VCFToBeagle());
     main.addRegularTask("VCFToLFMM", new TTask_VCFToLFMM());
+    main.addRegularTask("VCFToPosFile", new TTask_VCFToPosFile());
     main.addRegularTask("VCFFixInt", new TTask_VCFFixInt());
 	main.addRegularTask("VCFCompare", new TTask_VCFCompare());
 	main.addRegularTask("simulate", new TTask_simulate());
