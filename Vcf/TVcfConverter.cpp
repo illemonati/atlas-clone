@@ -286,3 +286,54 @@ float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & da
     auto meanPostGeno = static_cast<float>(postG0 * 0. + postG1 * 1. + postG2 * 2.);
     return meanPostGeno;
 }
+
+/***************************************
+ * 									   *
+ * 	Vcf to posfile (STITCH)            *
+ * 									   *
+ ***************************************/
+
+TVcfToPosFile::TVcfToPosFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    // posFile is needed as input for STITCH
+    // format:
+    //   - tab-separated
+    //   - no header
+    //   - 4 columns: col 1 = chromosome, col 2 = physical position (sorted from smallest to largest), col 3 = reference base, col 4 = alternate base
+    //   - one row per SNP
+    // Idea: one posfile per chromosome -> use option keepChromosomes
+    posFile = nullptr;
+}
+
+TVcfToPosFile::~TVcfToPosFile() {
+    delete posFile;
+}
+
+void TVcfToPosFile::writeHeader(){
+    //no header
+    posFile->noHeader(4);
+}
+
+void TVcfToPosFile::writePosition(){
+    (*posFile) << reader->chr() << reader->position();
+}
+
+void TVcfToPosFile::writeRefAndAlt(){
+    (*posFile) << reader->refAllele() << reader->altAllele();
+}
+
+void TVcfToPosFile::writeData(TPopulationLikehoodLocus & data){
+    writePosition();
+    writeRefAndAlt();
+    posFile->endLine();
+}
+
+void TVcfToPosFile::vcfToPosFile(TParameters & Params){
+    //open output files
+    posFile = new TOutputFilePlain(_outname + ".pos");
+
+    // read Vcf and write output
+    readVcfAndWriteFile(Params);
+
+    // clean up
+    posFile->close();
+}
