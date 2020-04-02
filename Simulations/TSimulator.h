@@ -9,14 +9,14 @@
 #define TSIMULATOR_H_
 
 #include "SFS.h"
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include <math.h>
 #include <numeric>
 #include <algorithm>
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
 #include "TSimulatorRead.h"
-#include "../TFile.h"
+#include "TFile.h"
 
 //---------------------------------------------------------
 //TSimulator

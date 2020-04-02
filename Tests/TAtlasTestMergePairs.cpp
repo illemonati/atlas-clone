@@ -8,9 +8,19 @@
 #include "TAtlasTestMergePairs.h"
 
 
-TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile):TAtlasTest(params, logfile){
+TAtlasTest_mergePairs::TAtlasTest_mergePairs():TAtlasTest(){
 	_name = "testMerging";
 	filenameTag = _testingPrefix + _name;
+
+	chrLength = -1;
+	readLength = -1;
+	phredError = -1.0;
+	filterOrphanedReads = false;
+}
+
+void TAtlasTest_mergePairs::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+	logfile = Logfile;
+	taskList = TaskList;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
@@ -18,16 +28,17 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs(TParameters & params, TLog* logfile
 	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
 //	filterPairsDiffChr = params.parameterExists("filterPairsDiffChr");
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
+};
 
-}
+bool TAtlasTest_mergePairs::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+	//1) Define variables
+	setVariables(params, Logfile, TaskList);
 
-
-bool TAtlasTest_mergePairs::run(){
-	//1) create a bam and fasta file with known pileup results
+	//2) create a bam and fasta file with known pileup results
 	//----------------------------------------------
 	writeBAM();
 
-	//2) Run ATLAS to create BAM
+	//3) Run ATLAS to create BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
 //	if(filterPairsDiffChr){
@@ -40,10 +51,10 @@ bool TAtlasTest_mergePairs::run(){
 
 	_testParams.addParameter("keepOriginalQuality", "");
 
-	if(!runTGenomeFromInputfile("mergeReads"))
+	if(!runMain("mergeReads"))
 		return false;
 
-	//3) check if results are OK
+	//4) check if results are OK
 	//--------------------------
 	return checkMergedBAMFile();
 };
@@ -661,16 +672,19 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 // TAtlasTest_mergeSplitPairs
 //----------------------------------
 
-TAtlasTest_mergeSplitPairs::TAtlasTest_mergeSplitPairs(TParameters & params, TLog* logfile):TAtlasTest_mergePairs(params, logfile){
+TAtlasTest_mergeSplitPairs::TAtlasTest_mergeSplitPairs():TAtlasTest_mergePairs(){
 	_name = "testSplitMerging";
 	filenameTag = _testingPrefix + _name;
+};
+
+void TAtlasTest_mergeSplitPairs::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+	logfile = Logfile;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
 	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
-
 };
 
 void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
@@ -689,14 +703,17 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 	out.close();
 };
 
-bool TAtlasTest_mergeSplitPairs::run(){
+bool TAtlasTest_mergeSplitPairs::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+	//1) define variables
+	setVariables(params, Logfile, TaskList);
+
 	//TODO: add function to test header
-	//1) create a bam and fasta file with known pileup results
+	//2) create a bam and fasta file with known pileup results
 	//----------------------------------------------
 	writeBAM();
 	writeRGSpecsFile();
 
-	//2) Run ATLAS to create BAM
+	//3) Run ATLAS to create BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
 	_testParams.addParameter("readGroupSettings", _name + "_RGSpecs.txt");
@@ -711,10 +728,10 @@ bool TAtlasTest_mergeSplitPairs::run(){
 	_testParams.addParameter("keepOriginalQuality", "");
 	_testParams.addParameter("ignoreReadGroups", _name + "_ignoreThese.txt");
 
-	if(!runTGenomeFromInputfile("splitMerge"))
+	if(!runMain("splitMerge"))
 		return false;
 
-	//3) check if results are OK
+	//4) check if results are OK
 	//--------------------------
 	return checkMergedBAMFile();
 }

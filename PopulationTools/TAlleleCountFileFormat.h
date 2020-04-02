@@ -8,9 +8,9 @@
 #ifndef POPULATIONTOOLS_TALLELECOUNTFILEFORMAT_H_
 #define POPULATIONTOOLS_TALLELECOUNTFILEFORMAT_H_
 
-#include "../mathFunctions.h"
+#include "mathFunctions.h"
 #include "TPopulationLikelihoods.h"
-#include "../TFile.h"
+#include "TFile.h"
 
 class TAlleleCountFile{
 protected:

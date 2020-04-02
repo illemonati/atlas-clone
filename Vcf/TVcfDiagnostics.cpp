@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <typeinfo>
 #include <sstream>
-#include "../gzstream.h"
+#include "gzstream.h"
 #include "TVcfDiagnostics.h"
 
 //---------------------------------------------------
@@ -160,7 +160,7 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 	int maxDP = Params.getParameterIntWithDefault("maxDepth", 100);
 	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
-	long inputLines = Params.getParameterLongWithDefault("inputLines", -1);
+	int inputLines = Params.getParameterIntWithDefault("inputLines", -1);
 	if(inputLines <= 0){
 		logfile->list("Reading whole vcf.");
 	} else

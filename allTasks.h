@@ -8,7 +8,7 @@
 #ifndef ALLTASKS_H_
 #define ALLTASKS_H_
 
-#include "TTask.h"
+#include "commonutilities/TTask.h"
 
 //---------------------------------------------------------------------------
 // all includes necessary for the application

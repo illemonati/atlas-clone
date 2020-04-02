@@ -8,7 +8,7 @@
 #ifndef TDISTANCEESTIMATOR_H_
 #define TDISTANCEESTIMATOR_H_
 
-#include "../TParameters.h"
+#include "TParameters.h"
 #include "../GLF/TGLF.h"
 #include <math.h>
 #include "../TGenotypeMap.h"

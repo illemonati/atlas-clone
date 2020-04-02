@@ -5,9 +5,9 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
-#include "../stringFunctions.h"
-#include "../TLog.h"
-#include "../TParameters.h"
+#include "stringFunctions.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TVcfFile.h"
 #include "../PopulationTools/TPopulationLikelihoods.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"

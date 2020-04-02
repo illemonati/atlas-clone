@@ -9,7 +9,7 @@
 #define POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_
 
 
-#include "../TParameters.h"
+#include "TParameters.h"
 #include "TPopulationLikelihoods.h"
 #include "../TQualityMap.h"
 
