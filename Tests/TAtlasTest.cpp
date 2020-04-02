@@ -12,9 +12,7 @@
 //TAtlasTest
 //------------------------------------------
 TAtlasTest::TAtlasTest():TTest(){
-	logfile = nullptr;
 	_testingPrefix = "ATLAS_testing_";
-	_name = "empty";
 };
 
 //------------------------------------------
@@ -28,9 +26,10 @@ TAtlasTest_pileup::TAtlasTest_pileup():TAtlasTest(){
 	emissionTolerance = -1.0;
 };
 
-void TAtlasTest_pileup::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_pileup::setVariables(TParameters & params, TLog* Logfile, TTaskList * TaskList){
 	//variables
 	logfile = Logfile;
+	taskList = TaskList;
 	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
 	logfile->list("Will simulate reads of length " + toString(readLength) + ".");
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
@@ -48,7 +47,7 @@ void TAtlasTest_pileup::defineVariables(TParameters & params, TLog* Logfile){
 
 bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList * TaskList){
 	//1) Define variables
-	defineVariables(parameters, Logfile);
+	setVariables(parameters, Logfile, TaskList);
 
 	//1) create a bam and fasta file with known pileup results
 	//----------------------------------------------
@@ -62,7 +61,7 @@ bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList *
 	_testParams.addParameter("maxReadLength", toString(readLength));
 	_testParams.addParameter("window", toString(2*readLength));
 
-	if(!runMain("pileup", Logfile))
+	if(!runMain("pileup"))
 		return false;
 
 	//3) check if results are OK
@@ -84,7 +83,7 @@ void TAtlasTest_pileup::writeFasta(){
 
 	//write to fasta file
 	std::string chrName = "chr1";
-	fasta << ">chr1\n";
+	fasta << ">chr1";
 	for(int l=0; l<chrLength; ++l){
 		if(l % 70 == 0)
 			fasta << "\n";
@@ -98,7 +97,7 @@ void TAtlasTest_pileup::writeFasta(){
 
 	//write to fasta file
 	chrName = "chr2";
-	fasta << "\n>chr2\n";
+	fasta << "\n>chr2";
 	for(int l=0; l<chrLength; ++l){
 		if(l % 70 == 0)
 			fasta << "\n";
@@ -370,14 +369,14 @@ bool TAtlasTest_pileup::checkPileupFile(){
 TAtlasTest_allelicDepth::TAtlasTest_allelicDepth():TAtlasTest(){
 	_name = "allelicDepth";
 	_testingPrefix = "ATLAS_testing_";
-	_name = "pileup";
 	logfile = nullptr;
 	phredError = -1;
 };
 
-void TAtlasTest_allelicDepth::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_allelicDepth::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//variables
 	logfile = Logfile;
+	taskList = TaskList;
 	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
 	logfile->list("Will test with quality " + toString(phredError) + ".");
 	filenameTag = _testingPrefix + _name;
@@ -385,9 +384,9 @@ void TAtlasTest_allelicDepth::defineVariables(TParameters & params, TLog* Logfil
 	readGroupName = "TestReadGroup";
 };
 
-bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList * TaskList){
+bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//1) Define variables
-	defineVariables(params, Logfile);
+	setVariables(params, Logfile, TaskList);
 
 	//2) create a bam file with known pileup results
 	//----------------------------------------------
@@ -398,7 +397,7 @@ bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("maxAllelicDepth", toString(3));
 
-	if(!runMain("allelicDepth", logfile))
+	if(!runMain("allelicDepth"))
 		return false;
 
 	//4) check if results are OK
@@ -620,7 +619,7 @@ bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList * Task
 	logfile->list("Writing simulated reads to '" + filenameBAM + "'.");
 	std::ifstream bam(filenameBAM.c_str());
 	if(!bam){
-		if(!runMain("simulate", logfile))
+		if(!runMain("simulate"))
 			return false;
 	} else
 		logfile->flush("file already exists");
@@ -634,7 +633,7 @@ bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList * Task
 	gz::igzstream in(filenameTheta.c_str());
 //	if(!in){
 		_testParams.addParameter("bam", bamFileName);
-		if(!runMain("estimateTheta", logfile))
+		if(!runMain("estimateTheta"))
 			return false;
 //	} else
 //		logfile->conclude("theta estimates already exists");

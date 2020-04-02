@@ -11,9 +11,10 @@ TAtlasTest_invariantBed::TAtlasTest_invariantBed():TAtlasTest(){
 	_name = "invariantBed";
 };
 
-void TAtlasTest_invariantBed::setVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_invariantBed::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//variables
 	logfile = Logfile;
+	taskList = TaskList;
 	filenameTag = _testingPrefix + _name;
 	vcfFileName = filenameTag + ".vcf";
 	bedFileName = filenameTag + ".bed.gz";
@@ -98,16 +99,16 @@ bool TAtlasTest_invariantBed::checkBedFile(){
 		return true;
 }
 
-bool TAtlasTest_invariantBed::run(TParameters & params, TLog* Logfile){
+bool TAtlasTest_invariantBed::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//set variables
-	setVariables(params, Logfile);
+	setVariables(params, Logfile, TaskList);
 
 	//create vcf file
 	writeTestVcf();
 
 	//write invariant bed
 	_testParams.addParameter("vcf", vcfFileName);
-	if(!runMain("VCFToInvariantBed", logfile))
+	if(!runMain("VCFToInvariantBed"))
 		return false;
 
 	//check bed file

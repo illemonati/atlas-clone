@@ -18,8 +18,9 @@ TAtlasTest_mergePairs::TAtlasTest_mergePairs():TAtlasTest(){
 	filterOrphanedReads = false;
 }
 
-void TAtlasTest_mergePairs::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_mergePairs::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	logfile = Logfile;
+	taskList = TaskList;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
@@ -29,9 +30,9 @@ void TAtlasTest_mergePairs::defineVariables(TParameters & params, TLog* Logfile)
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
 };
 
-bool TAtlasTest_mergePairs::run(TParameters & params, TLog* Logfile){
+bool TAtlasTest_mergePairs::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//1) Define variables
-	defineVariables(params, Logfile);
+	setVariables(params, Logfile, TaskList);
 
 	//2) create a bam and fasta file with known pileup results
 	//----------------------------------------------
@@ -50,7 +51,7 @@ bool TAtlasTest_mergePairs::run(TParameters & params, TLog* Logfile){
 
 	_testParams.addParameter("keepOriginalQuality", "");
 
-	if(!runMain("mergeReads", logfile))
+	if(!runMain("mergeReads"))
 		return false;
 
 	//4) check if results are OK
@@ -676,7 +677,7 @@ TAtlasTest_mergeSplitPairs::TAtlasTest_mergeSplitPairs():TAtlasTest_mergePairs()
 	filenameTag = _testingPrefix + _name;
 };
 
-void TAtlasTest_mergeSplitPairs::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_mergeSplitPairs::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	logfile = Logfile;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
@@ -702,9 +703,9 @@ void TAtlasTest_mergeSplitPairs::writeRGSpecsFile(){
 	out.close();
 };
 
-bool TAtlasTest_mergeSplitPairs::run(TParameters & params, TLog* logfile){
+bool TAtlasTest_mergeSplitPairs::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//1) define variables
-	defineVariables(params, logfile);
+	setVariables(params, Logfile, TaskList);
 
 	//TODO: add function to test header
 	//2) create a bam and fasta file with known pileup results
@@ -727,7 +728,7 @@ bool TAtlasTest_mergeSplitPairs::run(TParameters & params, TLog* logfile){
 	_testParams.addParameter("keepOriginalQuality", "");
 	_testParams.addParameter("ignoreReadGroups", _name + "_ignoreThese.txt");
 
-	if(!runMain("splitMerge", logfile))
+	if(!runMain("splitMerge"))
 		return false;
 
 	//4) check if results are OK

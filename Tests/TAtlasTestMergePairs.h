@@ -36,12 +36,12 @@ protected:
 	bool checkMergedBAMFile();
 	void writePairedEndReads(BamTools::BamWriter & bamWriter);
 	void writeBAM();
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void setVariables(TParameters & params, TLog* Logfile, TTaskList * TaskList);
 
 public:
 	TAtlasTest_mergePairs();
 	virtual ~TAtlasTest_mergePairs(){};
-	virtual bool run(TParameters & params, TLog* logfile);
+	virtual bool run(TParameters & params, TLog* logfile, TTaskList * TaskList);
 };
 
 //class TAtlasTest_mergePairsAdaptQual:public TAtlasTest_mergePairs{
@@ -53,12 +53,12 @@ private:
 	void writeSingleEndReads(BamTools::BamWriter & bamWriter);
 	void writeAlignments(BamTools::BamWriter & bamWriter);
 	void writeRGSpecsFile();
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
 
 public:
 	TAtlasTest_mergeSplitPairs();
 	~TAtlasTest_mergeSplitPairs(){};
-	bool run(TParameters & params, TLog* logfile);
+	bool run(TParameters & params, TLog* Logfile, TTaskList* TaskList);
 };
 
 #endif /* TATLASTESTMERGEPAIRS_H_ */

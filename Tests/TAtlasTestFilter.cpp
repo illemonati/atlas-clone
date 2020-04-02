@@ -26,8 +26,9 @@ TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	filterSoftClips = false;
 };
 
-void TAtlasTest_filter::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	logfile = Logfile;
+	taskList = TaskList;
 	bamFileName = filenameTag + "_filtered.bam";
 	readGroupName = "TestReadGroup";
 	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
@@ -54,9 +55,9 @@ void TAtlasTest_filter::defineVariables(TParameters & params, TLog* Logfile){
 //					&& useMate[bamAlignment.IsSecondMate()];
 };
 
-bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList * TaskList){
+bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//1) Define variables
-	defineVariables(params, Logfile);
+	setVariables(params, Logfile, TaskList);
 
 	//2) create a bam and fasta file with known pileup results
 	//----------------------------------------------
@@ -96,7 +97,7 @@ bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList * Tas
 
 	_testParams.addParameter("minMQ", toString(minMQ));
 
-	if(!runMain("filter", logfile))
+	if(!runMain("filter"))
 		return false;
 
 

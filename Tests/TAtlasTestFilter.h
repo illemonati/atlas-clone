@@ -35,7 +35,7 @@ private:
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;
 
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
 	void writeBAM();
 	void setToSingleEnd(BamTools::BamAlignment & bamAlignment);
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);

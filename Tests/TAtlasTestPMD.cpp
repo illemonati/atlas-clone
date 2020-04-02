@@ -18,8 +18,9 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric():TAtlasTest(){
 	beta = -1.0;
 };
 
-void TAtlasTest_PMDEmpiric::defineVariables(TParameters & params, TLog* Logfile){
+void TAtlasTest_PMDEmpiric::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	logfile = Logfile;
+	taskList = TaskList;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 
@@ -48,9 +49,9 @@ void TAtlasTest_PMDEmpiric::defineVariables(TParameters & params, TLog* Logfile)
 	GApatterns[2] = thirdPMDStringGA;
 };
 
-bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile){
+bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	//1) define variables
-	defineVariables(params, Logfile);
+	setVariables(params, Logfile, TaskList);
 	//2) Write PMD params to file
 	//-----------------------------
 	outPMD.open(pmdEmpiricFileName.c_str());
@@ -72,7 +73,7 @@ bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile){
 	_testParams.addParameter("readLength", "single:gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength)+"]");
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
 
-	if(!runMain("simulate", logfile))
+	if(!runMain("simulate"))
 		return false;
 
 	logfile->newLine();
@@ -90,7 +91,7 @@ bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile){
 	_testParams.addParameter("fasta", fastaFileName);
 	_testParams.addParameter("poolReadGroups", poolRGFileName);
 
-	if(!runMain("estimatePMD", logfile))
+	if(!runMain("PMD"))
 		return false;
 
 	//5) check if results are OK

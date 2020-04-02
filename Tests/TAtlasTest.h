@@ -27,10 +27,7 @@
 
 class TAtlasTest:public TTest{
 protected:
-	TLog* logfile;
-	TParameters _testParams;
 	std::string _testingPrefix;
-	std::string _name;
 
 public:
 	TAtlasTest();
@@ -56,7 +53,7 @@ private:
 	std::string readGroupName;
 	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
 	void writeFasta();
 	void writeBAM();
 	bool checkPileupFile();
@@ -64,7 +61,7 @@ private:
 public:
 	TAtlasTest_pileup();
 	~TAtlasTest_pileup(){};
-	bool run(TParameters & parameters, TLog* Logfile, TTaskList * TaskList);
+	bool run(TParameters & parameters, TLog* Logfile, TTaskList* TaskList);
 };
 
 //------------------------------------------
@@ -78,7 +75,7 @@ private:
 	std::string bamFileName;
 	std::string readGroupName;
 
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
 	void writeBAM();
 	bool checkAllelicDepthTable();
 
