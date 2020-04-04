@@ -14,7 +14,9 @@ TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	chrLength = -1;
 	readLength = -1;
 	minMQ = -1;
+	maxMQ = -1;
 	phredError = -1;
+	keepAll = false;
 	keepReadsLongerThanFragment = false;
 	keepOrphanedReads = false;
 	keepImproperPairs = false;
@@ -36,6 +38,7 @@ void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
 
 	//booleans
+	keepAll = params.parameterExists("filter_keepAll");
 	keepReadsLongerThanFragment = params.parameterExists("filter_keepReadsLongerThanFragment");
 	keepImproperPairs = params.parameterExists("filter_keepImproperPairs");
 	keepUnmappedReads = params.parameterExists("filter_keepUnmappedReads");
@@ -46,6 +49,7 @@ void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	filterSoftClips = params.parameterExists("filter_filterSoftClips");
 	keepOrphanedReads = params.parameterExists("filter_keepOrphans");
 	minMQ = 0;
+	maxMQ = 100000;
 	if(params.parameterExists("filter_minMQ")){
 		minMQ = params.getParameterInt("filter_minMQ");
 	}
@@ -66,6 +70,10 @@ bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList* Task
 	//3) Run ATLAS to create filtered BAM
 	//-----------------------------
 	_testParams.addParameter("bam", filenameTag + ".bam");
+
+	if(keepAll){
+		_testParams.addParameter("keepAllReads", "");
+	}
 
 	if(keepReadsLongerThanFragment){
 		_testParams.addParameter("keepReadsLongerThanFragment", "");
@@ -96,6 +104,9 @@ bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList* Task
 	}
 
 	_testParams.addParameter("minMQ", toString(minMQ));
+
+	_testParams.addParameter("maxMQ", toString(maxMQ));
+
 
 	if(!runMain("filter"))
 		return false;
@@ -296,12 +307,12 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepDuplicates)
+	if(keepDuplicates || keepAll)
 		shouldKeep.push_back("duplicate");
 	else
 		trueIgnoredReadMessages.push_back("Read duplicate, fwd : did not pass parser filters");
 
-	// duplicate
+	// duplicate rev
 	setToProperPairEtc(bamAlignment);
 	setToRevMate(bamAlignment);
 	bamAlignment.AddTag("RG", "Z", readGroupName);
@@ -318,7 +329,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads)
+	if(keepDuplicates || keepAll)
 		shouldKeep.push_back("duplicate");
 	else
 		trueIgnoredReadMessages.push_back("Read duplicate, rev : not a proper pair (orphan)");
@@ -331,7 +342,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Name = "improperPair";
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepImproperPairs)
+	if(keepImproperPairs || keepAll)
 		shouldKeep.push_back("improperPair");
 	else
 		trueIgnoredReadMessages.push_back("Read improperPair, fwd : did not pass parser filters");
@@ -342,7 +353,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Name = "unmapped";
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepUnmappedReads)
+	if(keepUnmappedReads || keepAll)
 		shouldKeep.push_back("unmapped");
 	else
 		trueIgnoredReadMessages.push_back("Read unmapped, fwd : did not pass parser filters");
@@ -353,7 +364,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Name = "failedQC";
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepFailedQC)
+	if(keepFailedQC || keepAll)
 		shouldKeep.push_back("failedQC");
 	else
 		trueIgnoredReadMessages.push_back("Read failedQC, fwd : did not pass parser filters");
@@ -364,7 +375,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Name = "secondaryAlignment";
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepSecondary)
+	if(keepSecondary || keepAll)
 		shouldKeep.push_back("secondaryAlignment");
 	else
 		trueIgnoredReadMessages.push_back("Read secondaryAlignment, fwd : did not pass parser filters");
@@ -386,7 +397,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length - 3));
 	bamAlignment.Name = "softClipsLeft";
 	bamWriter.SaveAlignment(bamAlignment);
-	if(!filterSoftClips){
+	if(!filterSoftClips || keepAll){
 		shouldKeep.push_back("softClipsLeft");
 	} else {
 		trueIgnoredReadMessages.push_back("Read softClipsLeft, fwd : did not pass parser filters");
@@ -399,7 +410,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('S', 3));
 	bamAlignment.Name = "softClipsRight";
 	bamWriter.SaveAlignment(bamAlignment);
-	if(!filterSoftClips)
+	if(!filterSoftClips || keepAll)
 		shouldKeep.push_back("softClipsRight");
 	else {
 		trueIgnoredReadMessages.push_back("Read softClipsRight, fwd : did not pass parser filters");
@@ -554,7 +565,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepReadsLongerThanFragment)
+	if(keepReadsLongerThanFragment || keepAll)
 		shouldKeep.push_back("5th_pair_longerThanInsert");
 	else
 		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, fwd : longer than insert size (TLEN)");
@@ -572,7 +583,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads || keepReadsLongerThanFragment){
+	if(keepOrphanedReads || keepReadsLongerThanFragment || keepAll){
 		shouldKeep.push_back("5th_pair_longerThanInsert");
 	} else {
 		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : not a proper pair (orphan)");
@@ -594,7 +605,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads){
+	if(keepOrphanedReads || keepAll){
 		shouldKeep.push_back("6th_pair_mateTooFarAway");
 	} else {
 		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, fwd : orphaned read: mate is farther away than 2000 bp");
@@ -645,7 +656,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads){
+	if(keepOrphanedReads || keepAll){
 		shouldKeep.push_back("6th_pair_mateTooFarAway");
 	} else {
 		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, rev : not a proper pair (orphan)");
@@ -706,7 +717,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads){
+	if(keepOrphanedReads || keepAll){
 		shouldKeep.push_back("9th_pair_mateOnDiffChr_first");
 	} else {
 		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_first, fwd : mate on different chromosome");
@@ -727,7 +738,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(keepOrphanedReads){
+	if(keepOrphanedReads || keepAll){
 		shouldKeep.push_back("9th_pair_mateOnDiffChr_second");
 	} else {
 		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr_second, rev : mate on different chromosome");
@@ -771,7 +782,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
-	if(minMQ <= bamAlignment.MapQuality){
+	if(minMQ <= bamAlignment.MapQuality || keepAll){
 		shouldKeep.push_back("low_mapping_qual");
 	} else {
 		trueIgnoredReadMessages.push_back("Read low_mapping_qual, rev : did not pass parser filters");

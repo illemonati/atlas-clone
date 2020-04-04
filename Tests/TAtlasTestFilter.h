@@ -19,7 +19,8 @@ private:
 	int chrLength;
 	int phredError;
 	std::string readGroupName;
-	int minMQ;
+	int minMQ, maxMQ;
+	bool keepAll;
 	bool keepReadsLongerThanFragment;
 	bool keepOrphanedReads;
 	bool keepImproperPairs;
