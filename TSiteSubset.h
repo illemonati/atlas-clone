@@ -12,9 +12,9 @@
 #include <vector>
 #include <map>
 #include "bamtools/utils/bamtools_fasta.h"
-#include "TLog.h"
+#include "commonutilities/TLog.h"
 #include "bamtools/api/BamReader.h"
-#include "stringFunctions.h"
+#include "commonutilities/stringFunctions.h"
 
 
 

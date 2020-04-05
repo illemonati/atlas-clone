@@ -30,6 +30,7 @@
 class TAlignmentParser{
 private:
 	TLog* logfile;
+	bool _keepAll;
 	bool _keepDuplicates;
 	bool _filterSoftClips;
 	bool _keepImproperPairs;
@@ -75,7 +76,7 @@ private:
 	int minMQ, maxMQ;
 	bool applyFragmentLengthFilter;
 	int minFragmentLength, maxFragmentLength;
-	bool applyFragmentLengthLongerThanInsertSizeFilter;
+	bool _keepReadsLongerThanInsertSize;
 	bool useStrand[2];
 	bool useMate[2];
 
@@ -93,9 +94,13 @@ private:
 //	bool* useChromosome;
 
 	//contructor functions
-	void openBamFile(std::string filename);
+	void openBamFile(std::string filename, bool indexNotRequired);
 	void setWindowParameters(TParameters & params);
 	void setFilters(TParameters & params);
+	void setWindowFilters(TParameters & params);
+	void setAlignmentFilters(TParameters & params);
+	void setSiteFilters(TParameters & params);
+	void setBaseFilters(TParameters & params);
 	void setMasks(TParameters & params);
 //	void initializeSiteSubset(TParameters & params);
 	void initializeReadGroups(TParameters & params);
@@ -188,9 +193,19 @@ public:
 	void setQualityRangeForPrinting(int minQual, int maxQual);
 	void setContextFilter(std::vector<std::string> contexts);
 	void setReadTrimming(int trim3Prime, int trim5Prime);
-	void setApplyFragmentLengthLongerThanInsertSizeFilter(bool filterYesNo);
 	void setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
 
+	void setFiltersToKeepAll(){
+		_keepAll = true;
+		_keepDuplicates = true;
+		_filterSoftClips = false;
+		_keepImproperPairs = true;
+		_keepUnmappedReads = true;
+		_keepFailedQC = true;
+		_keepSecondary = true;
+		_keepSupplementary = true;
+		_keepReadsLongerThanInsertSize = true;
+	};
 	void keepDuplicates(){_keepDuplicates = true;};
 	void filterSoftClips(){_filterSoftClips = true;};
 	void keepImproperPairs(){_keepImproperPairs = true;};
@@ -198,6 +213,7 @@ public:
 	void keepFailedQC(){_keepFailedQC = true;};
 	void keepSecondaryReads(){_keepSecondary = true;};
 	void keepSupplementaryReads(){_keepSupplementary = true;};
+	void keepReadsLongerThanInsertSize(){_keepReadsLongerThanInsertSize = true;};
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
 	std::string chrNumberToName(uint16_t chrNumber);
@@ -206,6 +222,7 @@ public:
 	uint16_t getCurRefId();
 	uint32_t getCurChrLength();
 	uint8_t getCurChrPloidy();
+	bool getKeepAll();
 
 	//blacklist
 	void setUpdateBlacklistToTrue(){

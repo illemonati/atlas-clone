@@ -11,10 +11,10 @@
 #include <TRecalibrationEMModel.h>
 
 #include "../TBase.h"
-#include "../TLog.h"
-#include "../TRandomGenerator.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 #include "../TQualityMap.h"
-#include "../TParameters.h"
+#include "TParameters.h"
 #include "TSimulatorReadLength.h"
 
 //-------------------------------

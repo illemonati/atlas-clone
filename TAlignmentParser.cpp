@@ -12,6 +12,7 @@
 //-----------------------------------------------------
 TAlignmentParser::TAlignmentParser(){
 	logfile = NULL;
+	_keepAll = false;
 	_keepDuplicates = false;
 	_filterSoftClips = false;
 	_keepImproperPairs = false;
@@ -67,7 +68,7 @@ TAlignmentParser::TAlignmentParser(){
 	trimReads = false;
 	trimmingLength3Prime = 0;
 	trimmingLength5Prime = 0;
-	applyFragmentLengthLongerThanInsertSizeFilter = false;
+	_keepReadsLongerThanInsertSize = false;
 	useStrand[0] = true; useStrand[1] = true;
 	useMate[0] = true; useMate[1] = true;
 
@@ -127,7 +128,8 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 
 	//BAM file
 	filename = params.getParameterString("bam");
-	openBamFile(filename);
+	bool indexNotRequired = params.parameterExists("indexNotRequired");
+	openBamFile(filename, indexNotRequired);
 
 	//alignments
 	maxReadLength = MaxReadLength;
@@ -147,13 +149,13 @@ void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfi
 	setChrPloidy(params);
 };
 
-void TAlignmentParser::openBamFile(std::string filename){
+void TAlignmentParser::openBamFile(std::string filename, bool indexNotRequired){
 	//open BAM file
 	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
 	//load index file
-	if(!bamReader.LocateIndex())
+	if(!bamReader.LocateIndex() && !indexNotRequired)
 		throw "No index file found for BAM file '" + filename + "'!";
 
 	//initialize bam stuff
@@ -198,63 +200,21 @@ void TAlignmentParser::setWindowParameters(TParameters & params){
 };
 
 void TAlignmentParser::setFilters(TParameters & params){
-	//depth filter
-	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
-	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
-		applyDepthFilter = true;
-		unsigned int tmpInt;
-		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
-		if(tmpInt < 0)
-			throw "minDepth must be >= 0!";
-		minDepth = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxDepth", readUpToDepth);
-		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
-		maxDepth = tmpInt;
-		readUpToDepth = maxDepth + 1;
-		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth) + ". (parameters 'minDepth', 'maxDepth')");
+	setWindowFilters(params);
+
+	if(params.parameterExists("keepAllReads")){
+		setFiltersToKeepAll();
+		logfile->list("Will keep all reads. All filters turned off (parameter 'keepAll')");
 	} else {
-		applyDepthFilter = false;
-		minDepth = 0;
-		maxDepth = readUpToDepth;
-	}
-	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
-
-	//Mapping quality filters
-	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-		applyMQFilter = true;
-		minMQ = params.getParameterIntWithDefault("minMQ", 0);
-		if(minMQ < 0)
-			throw "minMQ must be >= 0!";
-		maxMQ = params.getParameterIntWithDefault("maxMQ", 1000000);
-		if(maxMQ < minMQ)
-			throw "maxMQ must be larger than minMQ";
-		setMappingQualityFilters(minMQ, maxMQ);
-		logfile->list("Will filter out reads with mapping quality outside the range [" + toString(minMQ) + ", " + toString(maxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
+		setAlignmentFilters(params);
 	}
 
-	//quality filters
-	minQualityAsPhredInt = params.getParameterIntWithDefault("minQual", 1);
-	if(minQualityAsPhredInt < 0) throw "minQual must be >= 0!";
-	maxQualityAsPhredInt = params.getParameterIntWithDefault("maxQual", 93);
-	if(maxQualityAsPhredInt < minQualityAsPhredInt) throw "maxQual must be >= minQual!";
-	setQualityFilters(minQualityAsPhredInt, maxQualityAsPhredInt);
-	logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
+	setSiteFilters(params);
 
-	//quality filters for printing
-	int minOutQual = params.getParameterIntWithDefault("minOutQual", 0) + 33;
-	if(minOutQual < 0) throw "minOutQual must be >= 0!";
-	int maxOutQual = params.getParameterIntWithDefault("maxOutQual", 93) + 33;
-	if(maxOutQual < minOutQual) throw "maxOutQual must be >= minOutQual!";
-	setQualityRangeForPrinting(minOutQual, maxOutQual);
-	logfile->list("Will print qualities truncated to [" + toString(minOutQual) + ", " + toString(maxOutQual) + "] (parameters 'minOutQual', 'maxOutQual')");
+	setBaseFilters(params);
+};
 
-	//context filter
-	if(params.parameterExists("ignoreContexts")){
-		std::vector<std::string> contexts;
-		fillVectorFromString(params.getParameterString("ignoreContexts"), contexts, ',');
-		setContextFilter(contexts);
-	}
-
+void TAlignmentParser::setWindowFilters(TParameters & params){
 	//filter for missing reference
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
@@ -264,6 +224,18 @@ void TAlignmentParser::setFilters(TParameters & params){
 	if(maxRefN > 1.0) throw "maxRefN must be smaller or equal to 1.0!";
 	if(maxRefN < 1.0 && hasReference == false) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided.";
 	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxRefN')");
+};
+
+void TAlignmentParser::setAlignmentFilters(TParameters & params){
+	//Mapping quality filter
+	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
+		setMappingQualityFilters(params.getParameterInt("minMQ"), params.getParameterInt("maxMQ"));
+	}
+
+	//Fragment length filter
+	if(params.parameterExists("minFragmentLength") || params.parameterExists("maxFragmentLength")){
+		setFragmentLengthFilter(params.getParameterInt("minFragmentLength"), params.getParameterInt("maxFragmentLength"));
+	}
 
 	//duplicates
 	if(params.parameterExists("keepDuplicates")){
@@ -309,10 +281,9 @@ void TAlignmentParser::setFilters(TParameters & params){
 
 	//fragment length
 	if(params.parameterExists("keepReadsLongerThanFragment")){
-		setApplyFragmentLengthLongerThanInsertSizeFilter(false);
+		keepReadsLongerThanInsertSize();
 		logfile->list("Will keep reads that are longer than the fragment size. (parameter 'keepReadsLongerThanFragment')");
-	} else
-		setApplyFragmentLengthLongerThanInsertSizeFilter(true);
+	}
 
 	//strand
 	if(params.parameterExists("keepOnlyFwd")){
@@ -335,25 +306,6 @@ void TAlignmentParser::setFilters(TParameters & params){
 	}
 };
 
-void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
-	applyQualityFilter = true;
-	minQualityAsPhredInt = MinPhredInt;
-	maxQualityAsPhredInt = MaxPhredInt;
-	//minQual = qualMap.phredIntToQuality(minPhredInt);
-	//maxQual = qualMap.phredIntToQuality(maxPhredInt);
-};
-
-void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
-	applyMQFilter = true;
-	minMQ = MinMQ;
-	maxMQ = MaxMQ;
-};
-
-void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
-	minQualForPrinting = minQual;
-	maxQualForPrinting = maxQual;
-};
-
 void TAlignmentParser::setContextFilter(std::vector<std::string> contexts){
 	applyContextFilter = true;
 	for(unsigned int i=0; i < contexts.size(); i++){
@@ -368,6 +320,84 @@ void TAlignmentParser::setContextFilter(std::vector<std::string> contexts){
 		logfile->list(genoMap.getContextString(it->first));
 	}
 	logfile->endIndent();
+};
+
+void TAlignmentParser::setSiteFilters(TParameters & params){
+	//depth filter
+	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
+	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
+		applyDepthFilter = true;
+		unsigned int tmpInt;
+		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
+		if(tmpInt < 0)
+			throw "minDepth must be >= 0!";
+		minDepth = tmpInt;
+		tmpInt = params.getParameterIntWithDefault("maxDepth", readUpToDepth);
+		if(tmpInt < minDepth) throw "maxDepth must be >= minDepth!";
+		maxDepth = tmpInt;
+		readUpToDepth = maxDepth + 1;
+		logfile->list("Will filter out sites with sequencing depth < " + toString(minDepth) + " or > " + toString(maxDepth) + ". (parameters 'minDepth', 'maxDepth')");
+	} else {
+		applyDepthFilter = false;
+		minDepth = 0;
+		maxDepth = readUpToDepth;
+	}
+	logfile->list("Will read data up to depth " + toString(readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
+
+};
+
+void TAlignmentParser::setBaseFilters(TParameters & params){
+	//quality filters
+	setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 1));
+
+	//quality filters for printing
+	setQualityRangeForPrinting(params.getParameterIntWithDefault("minOutQual", 0) + 33, params.getParameterIntWithDefault("maxOutQual", 93) + 33);
+
+	//context filter
+	if(params.parameterExists("ignoreContexts")){
+		std::vector<std::string> contexts;
+		fillVectorFromString(params.getParameterString("ignoreContexts"), contexts, ',');
+		setContextFilter(contexts);
+	}
+};
+
+//void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
+//	applyQualityFilter = true;
+//	minQualityAsPhredInt = MinPhredInt;
+//	maxQualityAsPhredInt = MaxPhredInt;
+//	//minQual = qualMap.phredIntToQuality(minPhredInt);
+//	//maxQual = qualMap.phredIntToQuality(maxPhredInt);
+//};
+
+void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
+	minQualityAsPhredInt = MinPhredInt;
+	maxQualityAsPhredInt = MaxPhredInt;
+	if(minQualityAsPhredInt < 0) throw "minQual must be >= 0!";
+	if(maxQualityAsPhredInt < minQualityAsPhredInt) throw "maxQual must be >= minQual!";
+	applyQualityFilter = true;
+
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
+};
+
+void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
+	minQualForPrinting = minQual;
+	maxQualForPrinting = maxQual;
+	if(minQualForPrinting < 0) throw "minOutQual must be >= 0!";
+	if(maxQualForPrinting < minQualForPrinting) throw "maxOutQual must be >= minOutQual!";
+
+	logfile->list("Will print qualities truncated to [" + toString(minQualForPrinting) + ", " + toString(maxQualForPrinting) + "] (parameters 'minOutQual', 'maxOutQual')");
+};
+
+void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
+	if(MinMQ < 0)
+		throw "minMQ must be >= 0!";
+	if(MaxMQ < MinMQ)
+		throw "maxMQ must be larger than minMQ";
+	applyMQFilter = true;
+	minMQ = MinMQ;
+	maxMQ = MaxMQ;
+	logfile->list("Will filter out reads with mapping quality outside the range [" + toString(minMQ) + ", " + toString(maxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
+
 };
 
 void TAlignmentParser::setMasks(TParameters & params){
@@ -428,10 +458,6 @@ void TAlignmentParser::setReadTrimming(int trim3Prime, int trim5Prime){
 	trimReads = true;
 };
 
-void TAlignmentParser::setApplyFragmentLengthLongerThanInsertSizeFilter(bool filterYesNo){
-	applyFragmentLengthLongerThanInsertSizeFilter = filterYesNo;
-};
-
 void TAlignmentParser::setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength){
 	if(MinFragmentLength < 0)
 		throw "Min fragment length must be >= 0!";
@@ -444,6 +470,7 @@ void TAlignmentParser::setFragmentLengthFilter(int MinFragmentLength, int MaxFra
 	maxFragmentLength = MaxFragmentLength;
 	applyFragmentLengthFilter = true;
 	setParsingToTrue(); //filter requires parsing!
+	logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 };
 
 void TAlignmentParser::initializeReadGroups(TParameters & params){
@@ -551,6 +578,10 @@ uint32_t TAlignmentParser::getCurChrLength(){
 uint8_t TAlignmentParser::getCurChrPloidy(){
 	return chromosomes.curPloidy();
 };
+
+bool TAlignmentParser::getKeepAll(){
+	return _keepAll;
+}
 
 //--------------
 //move genome
@@ -780,12 +811,11 @@ bool TAlignmentParser::readAlignment(){
 		curReadGroupID = readGroups.find(readGroup);
 
 		//filter
-		//TODO: add functionality to not filter at all (i.e. _keepAll switch)
 		filtersPassed = true;
 		/* check if insert size is shorter than read-insertions+deletions=alignedBases.length() -> this means we are reading the adaptor sequence.
 		Insert size is determined by mapping -> insertions are not in ref and should not count. If we don't add deletions, adapter at end could be sequenced but we still keep read
 		(deletions in aligned bases are represented as dashes) */
-		if(bamAlignment.IsPaired() && applyFragmentLengthLongerThanInsertSizeFilter && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
+		if(bamAlignment.IsPaired() && !_keepReadsLongerThanInsertSize && abs(bamAlignment.InsertSize) < bamAlignment.AlignedBases.length()){
 			if(_updateBlacklist){
 				addToBlacklist(bamAlignment, "longer than insert size (TLEN)");
 			} else {

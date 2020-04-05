@@ -10,7 +10,7 @@
 
 #include <TPopulationLikelihoodLocus.h>
 #include <iostream>
-#include "../TFile.h"
+#include "TFile.h"
 #include "../GLF/TGLF.h"
 
 //------------------------------------------------

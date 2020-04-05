@@ -10,8 +10,7 @@
 
 #include <TRecalibrationEMCovariate.h>
 #include "TRecalibrationEMAuxiliaryTools.h"
-#include "../TFile.h"
-
+#include "TFile.h"
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModelCovariateDefinition

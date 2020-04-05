@@ -8,18 +8,18 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include <vector>
-#include "../TParameters.h"
+#include "TParameters.h"
 #include <iostream>
 #include <fstream>
 #include "TVcfFile.h"
-#include "../TRandomGenerator.h"
+#include "TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
 #include "../TQualityMap.h"
-#include "../TFile.h"
+#include "TFile.h"
 #include "../GLF/TGLF.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"
 
@@ -104,27 +104,6 @@ public:
 	}
 };
 
-class TVcfFilters{
-private:
-	void specifyChromosomesToKeep(TLog* logfile, TParameters & Parameters);
-	void initialize(TParameters & Parameters, TLog* logfile);
-
-public:
-	//settings
-	long limitLines;
-	int minDepth;
-	int minNumSamplesWithData;
-	//double freqFilter;
-	//double epsilonF; //F for EM algorithm to estimate allele frequencies
-	int minVariantQuality;
-	//bool estimateGenotypeFrequencies;
-	long progressFrequency;
-	std::string trueAlleleFreqFile;
-	std::vector<std::string> chromosomesToKeep;
-
-	TVcfFilters(TParameters & Parameters, TLog* logfile);
-};
-
 class VcfDiagnostics{
 private:
 	TLog* logfile;
@@ -138,41 +117,20 @@ private:
 	std::string outname;
 	bool isZipped;
 
-	void openVCF(std::string filename, TVcfFile_base & vcfFile);
 	void initializeRandomGenerator();
 	std::pair<char, char> getGenotypeFromIndex(int index);
+	void openVCF(std::string filename, TVcfFile_base & vcfFile);
 
-	// beagle
-	void writeBeagleHeader(TOutputFileZipped & beagleFile);
-	void printProgressFrequencyFiltering(const struct timeval & startTime, long lineCounter, long numAcceptedLoci);
-	void concludeFilters(TVcfFilters & vcfFilters, const struct timeval & startTime,
-			long lineCounter, long notBialleleicCounter,
-			long missingSNPCounter, long lowFreqSNPCounter,
-			long lowVariantQualityCounter,
-			long noPLCounter, long notOnChrCounter, long numAcceptedLoci);
-	int filterOnDepth(int numSamples, double * data, TVcfFilters & vcfFilters);
-	bool readVcfAndWriteBeagle(int numSamples, TVcfFilters & vcfFilters,
-			TOutputFileZipped & beagleFile,
-			long & lineCounter, long & notBialleleicCounter,
-			long & missingSNPCounter, long & lowFreqSNPCounter,
-			long & lowVariantQualityCounter,
-			long & noPLCounter, long & notOnChrCounter, long & numAcceptedLoci, struct timeval & startTime);
-	void writeLocusToBeagleFile(TOutputFileZipped & beagleFile,
-			double * data, int numSamples);
-	inline double phredToError(double phred);
 public:
-	VcfDiagnostics(TParameters & Params, TLog* Logfile);
-	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
-	int baseToNumber(char base, std::string & marker);
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
 	void assessAllelicImbalance(TParameters & Params);
 	//void filterAllelicImbalance();
 	void vcfToInvariantBed();
 
-	// beagle
-	void vcfToBeagle(TParameters & Params);
-
 	void fixIntAsFloat();
+
+	VcfDiagnostics(TParameters & Params, TLog* Logfile);
+	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 };
 
 

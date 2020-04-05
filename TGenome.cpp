@@ -743,7 +743,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 			subset.setChr(alignmentParser.getCurChrName());
 
 			//read data for current window
-			if(window.passedFilters)
+			if(window.passedFilters && subset.hasPositionsInWindow(window.start))
 				window.addToRecalibrationEM(recalObjectEM, &subset, qualityMap);
 			else logfile->list("No positions in this window.");
 		}
@@ -1627,7 +1627,9 @@ void TGenome::filterBAM(TParameters & params){
 		//attempt merging of paired reads
 		if(alignment.isPaired){
 			//Ignore reads in black list
-			if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
+			if(alignmentParser.getKeepAll()){
+				merger.addReadyToBeWritten(alignment);
+			} else if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
 				merger.addAsImproperPair(alignment);
 			} else {
 				//is a proper pair: attempt merging
@@ -1663,6 +1665,11 @@ void TGenome::filterBAM(TParameters & params){
 };
 
 void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger){
+	//check if keepAllReads is turned on
+	if(alignmentParser.getKeepAll()){
+		logfile->warning("Undefined behavior when merging reads that do not pass default filters. Consider removing 'keepAllReads'");
+	}
+
 	//which data to keep
 	if(params.parameterExists("keepOrphans")){
 		logfile->list("Will keep keep orphaned reads.");

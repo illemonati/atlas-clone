@@ -11,9 +11,9 @@
 #include <iostream>
 #include <math.h>
 #include <TPopulationLikelihoodLocus.h>
-#include "../stringFunctions.h"
-#include "../TParameters.h"
-#include "../TRandomGenerator.h"
+#include "stringFunctions.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TVcfFile.h"
 #include "../TQualityMap.h"
 #include "TGenotypeFrequencies.h"
@@ -84,6 +84,7 @@ protected:
 	double freqFilter;
 	double epsilonF; //F for EM algorithm to estimate allele frequencies
 	uint32_t minVariantQuality;
+    std::vector<std::string> chromosomesToKeep;
 	bool estimateGenotypeFrequencies;
 	uint64_t progressFrequency;
 
@@ -98,8 +99,9 @@ protected:
 	uint64_t _lowVariantQualityCounter;
 	uint64_t _noPLCounter;
 	uint64_t _numAcceptedLoci;
+    uint64_t _notOnChrCounter;
 
-	//tmp variables used for reading
+    //tmp variables used for reading
 	TGenotypeFrequencies genoFrequencies;
 	std::string curChr;
 
@@ -108,6 +110,7 @@ protected:
 	void closeVCF();
 
     //void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples);
+    void specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile);
     void printProgressFrequencyFiltering();
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
     virtual bool _readNextLineFromVCF();
@@ -157,6 +160,7 @@ public:
 	long position(){ return vcfFile.position(); };
 	char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
+	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
 
     bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);
 	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
