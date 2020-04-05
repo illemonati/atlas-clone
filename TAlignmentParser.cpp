@@ -348,7 +348,7 @@ void TAlignmentParser::setSiteFilters(TParameters & params){
 
 void TAlignmentParser::setBaseFilters(TParameters & params){
 	//quality filters
-	setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 1));
+	setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 93));
 
 	//quality filters for printing
 	setQualityRangeForPrinting(params.getParameterIntWithDefault("minOutQual", 0) + 33, params.getParameterIntWithDefault("maxOutQual", 93) + 33);

@@ -46,19 +46,21 @@ private:
 	void assembleCounts();
 
 public:
-	int maxQual;
+	int maxQual, maxFragmentLength;
 	uint16_t maxPos;
 	unsigned int* qualities;
+	unsigned int* fragmentLengths;
 
 	TRecalibrationEMDataTable();
-	TRecalibrationEMDataTable(const int MaxQual);
+	TRecalibrationEMDataTable(const int MaxQual, const int MaxFragmentLength);
 	~TRecalibrationEMDataTable();
 
-	void initialize(const int MaxQual);
+	void initialize(const int MaxQual, const int MaxFragmentLength);
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	size_t size();
 	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
+	void fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths);
 };
 
 class TRecalibrationEMDataTables{
@@ -68,7 +70,7 @@ public:
 	TRecalibrationEMDataTable** tables; //tables[readGroup][first/second]
 	unsigned int totalCounts;
 
-	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual);
+	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength);
 	~TRecalibrationEMDataTables();
 
 	void clear();

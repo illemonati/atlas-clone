@@ -147,4 +147,32 @@ public:
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
 };
 
+//-------------------------------------------
+// TRecalibrationEMCovariate_fragmentLength
+//-------------------------------------------
+
+class TRecalibrationEMCovariate_fragmentLength:public TRecalibrationEMCovariate{
+private:
+
+	uint16_t _extractCovariate(const TBase & base){
+		return base.qualityAsPhredInt;
+	};
+	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
+		return data.qualityAsPhredInt;
+	};
+
+public:
+	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
+
+	std::string name(){ return RecalCovariateName_fragmentLength; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
+	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
+	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
+	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
+
+};
+
 #endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_ */

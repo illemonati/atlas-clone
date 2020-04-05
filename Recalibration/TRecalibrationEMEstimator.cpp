@@ -48,6 +48,9 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 		//context
 		data[k].context = it->context;
 
+		//fragmentLength
+		data[k].fragmentLength = it->fragmentLength;
+
 		//isSecond
 		data[k].isSecond = it->isSecondMate;
 
@@ -375,7 +378,7 @@ void TRecalibrationEMEstimator::initializeFromFile(const std::string string){
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
-	TRecalibrationEMDataTables dataTables(_readGroups->size(), 500);
+	TRecalibrationEMDataTables dataTables(_readGroups->size(), 500, 1000);
 	addToDataTable(dataTables);
 	int numSitesWithData = numSites();
 	logfile->done();

@@ -46,27 +46,33 @@ void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
 //--------------------------------------------------------------------
 TRecalibrationEMDataTable::TRecalibrationEMDataTable(){
 	maxQual = 0;
+	maxFragmentLength = 0;
 	maxPos = 0;
 	counts = 0;
 	initialized = false;
 	countsAssembled = false;
 	qualities = nullptr;
+	fragmentLengths = nullptr;
 };
 
-TRecalibrationEMDataTable::TRecalibrationEMDataTable(const int MaxQual){
-	initialize(MaxQual);
+TRecalibrationEMDataTable::TRecalibrationEMDataTable(const int MaxQual, const int MaxFragmentLength){
+	initialize(MaxQual, MaxFragmentLength);
 };
 
 TRecalibrationEMDataTable::~TRecalibrationEMDataTable(){
 	delete[] qualities;
 };
 
-void TRecalibrationEMDataTable::initialize(const int MaxQual){
+void TRecalibrationEMDataTable::initialize(const int MaxQual, const int MaxFragmentLength){
 	if(initialized){
 		delete[] qualities;
 	}
 	maxQual = MaxQual;
 	qualities = new unsigned int[maxQual];
+
+	maxFragmentLength = MaxFragmentLength;
+	fragmentLengths = new unsigned int[maxFragmentLength];
+
 	initialized = true;
 	clear();
 };
@@ -78,6 +84,7 @@ void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
 	}
 	*/
 	++qualities[data.qualityAsPhredInt];
+	++fragmentLengths[data.fragmentLength];
 	if(maxPos < data.positionFrom5Prime)
 		maxPos = data.positionFrom5Prime;
 };
@@ -114,17 +121,26 @@ void TRecalibrationEMDataTable::fillVectorWithUsedQualities(std::vector<uint16_t
 	};
 };
 
+void TRecalibrationEMDataTable::fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths){
+	lengths.clear();
+	for(int i=0; i<maxFragmentLength; ++i){
+		if(fragmentLengths[i] > 0){
+			lengths.push_back(i);
+		}
+	};
+};
+
 //--------------------------------------------------------------------
 
-TRecalibrationEMDataTables::TRecalibrationEMDataTables(const  int NumReadGroups, const int MaxQual){
+TRecalibrationEMDataTables::TRecalibrationEMDataTables(const  int NumReadGroups, const int MaxQual, const int MaxFragmentLength){
 	numReadGroups = NumReadGroups;
 	maxQual = MaxQual;
 
 	tables = new TRecalibrationEMDataTable*[numReadGroups];
 	for(int rg = 0; rg<numReadGroups; ++rg){
 		tables[rg] = new TRecalibrationEMDataTable[2];
-		tables[rg][0].initialize(maxQual);
-		tables[rg][1].initialize(maxQual);
+		tables[rg][0].initialize(maxQual, MaxFragmentLength);
+		tables[rg][1].initialize(maxQual, MaxFragmentLength);
 	}
 
 	clear();
