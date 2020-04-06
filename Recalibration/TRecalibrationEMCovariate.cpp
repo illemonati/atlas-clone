@@ -311,7 +311,7 @@ void TRecalibrationEMCovariate_fragmentLength::addFunction(const size_t FirstPar
 		}
 	} else if(type == RecalModuleFunctionName_specific){
 		std::vector<uint16_t> usedLengths;
-		dataTable->fillVectorWithUsedQualities(usedLengths);
+		dataTable->fillVectorWithUsedFragmentLengths(usedLengths);
 		if(values.empty()){
 			_function.reset(new TRecalibrationEMCovariateFunction_specificMap(FirstParameterIndex, usedLengths));
 		} else {
@@ -345,7 +345,7 @@ void TRecalibrationEMCovariate_fragmentLength::addFunction(const size_t FirstPar
 
 bool TRecalibrationEMCovariate_fragmentLength::checkParameterRange(TRecalibrationEMDataTable* dataTable){
 	std::vector<uint16_t> usedLengths;
-	dataTable->fillVectorWithUsedQualities(usedLengths);
+	dataTable->fillVectorWithUsedFragmentLengths(usedLengths);
 
 	return _function->checkValueRange(usedLengths);
 };
