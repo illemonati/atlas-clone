@@ -42,7 +42,6 @@ void addTaks(TMain & main) {
 	main.addRegularTask("PMDS", new TTask_PMDS());
 	main.addRegularTask("PSMC", new TTask_PSMC());
 	main.addRegularTask("recal", new TTask_recal());
-	main.addRegularTask("recalLL", new TTask_recalLL());
 	main.addRegularTask("BQSR", new TTask_BQSR());
 	main.addRegularTask("BAMUpdateQualities", new TTask_recalBAM());
 	main.addRegularTask("qualityDist", new TTask_qualityDist());
@@ -70,6 +69,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("simulate", new TTask_simulate());
 
 	//debug tasks
+	main.addDebugTask("recalLL", new TTask_recalLL());
 	main.addDebugTask("inbreedingLikelihood", new TTask_inbreedingLikelihood());
 	main.addDebugTask("thetaLLSurface", new TTask_thetaLLSurface());
 	main.addDebugTask("alleleFrequencyLikelihoods", new TTask_writeAlleleFrequencyLikelihoods);
