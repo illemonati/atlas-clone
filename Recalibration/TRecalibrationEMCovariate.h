@@ -155,15 +155,43 @@ class TRecalibrationEMCovariate_fragmentLength:public TRecalibrationEMCovariate{
 private:
 
 	uint16_t _extractCovariate(const TBase & base){
-		return base.qualityAsPhredInt;
+		return base.fragmentLength;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.qualityAsPhredInt;
+		return data.fragmentLength;
 	};
 
 public:
 	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
+
+	std::string name(){ return RecalCovariateName_fragmentLength; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
+	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
+	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
+	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
+
+};
+
+//-------------------------------------------
+// TRecalibrationEMCovariate Mapping Quality
+//-------------------------------------------
+
+class TRecalibrationEMCovariate_MQ:public TRecalibrationEMCovariate{
+private:
+
+	uint16_t _extractCovariate(const TBase & base){
+		return base.mappingQuality;
+	};
+	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
+		return data.mappingQuality;
+	};
+
+public:
+	TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string name(){ return RecalCovariateName_fragmentLength; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);

@@ -29,6 +29,7 @@ struct TRecalibrationEMReadData{
 	uint16_t readGroup;
 	bool isSecond;
 	uint16_t fragmentLength;
+	uint8_t mappingQuality;
 
 	void setD(Base base, double PMD_CT, double PMD_GA);
 };
@@ -46,21 +47,23 @@ private:
 	void assembleCounts();
 
 public:
-	int maxQual, maxFragmentLength;
+	int maxQual, maxFragmentLength, maxMQ;
 	uint16_t maxPos;
 	unsigned int* qualities;
 	unsigned int* fragmentLengths;
+	unsigned int* MQ;
 
 	TRecalibrationEMDataTable();
-	TRecalibrationEMDataTable(const int MaxQual, const int MaxFragmentLength);
+	TRecalibrationEMDataTable(const int MaxQual, const int MaxFragmentLength, const int MQ);
 	~TRecalibrationEMDataTable();
 
-	void initialize(const int MaxQual, const int MaxFragmentLength);
+	void initialize(const int MaxQual, const int MaxFragmentLength, const int MQ);
 	void clear();
 	void add(TRecalibrationEMReadData & data);
 	size_t size();
 	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
 	void fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths);
+	void fillVectorWithUsedMQ(std::vector<uint16_t> & MQ);
 };
 
 class TRecalibrationEMDataTables{
@@ -70,7 +73,7 @@ public:
 	TRecalibrationEMDataTable** tables; //tables[readGroup][first/second]
 	unsigned int totalCounts;
 
-	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength);
+	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MQ);
 	~TRecalibrationEMDataTables();
 
 	void clear();

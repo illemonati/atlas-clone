@@ -354,3 +354,74 @@ bool TRecalibrationEMCovariate_fragmentLength::checkParameterRange(std::vector<u
 	return _function->checkValueRange(usedLengths);
 };
 
+//-------------------------------------------
+// TRecalibrationEMCovariate_MQ
+//-------------------------------------------
+
+TRecalibrationEMCovariate_MQ::TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+	addFunction(FirstParameterIndex, functionString, dataTable);
+};
+
+TRecalibrationEMCovariate_MQ::TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString){
+	addFunction(FirstParameterIndex, functionString);
+};
+
+void TRecalibrationEMCovariate_MQ::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+	//parse
+	std::string type;
+	std::vector<std::string> values, args;
+	_parseModuleString(functionString, type, args, values);
+
+	//create function
+	if(type == RecalModuleFunctionName_polynomial){
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
+
+		//if no values are provided, set first beta = 1
+		if(values.empty()){
+			_function->setBeta(0, 1.0);
+		}
+	} else if(type == RecalModuleFunctionName_specific){
+		std::vector<uint16_t> usedMQ;
+		dataTable->fillVectorWithUsedFragmentLengths(usedMQ);
+		if(values.empty()){
+			_function.reset(new TRecalibrationEMCovariateFunction_specificMap(FirstParameterIndex, usedMQ));
+		} else {
+			_function.reset(new TRecalibrationEMCovariateFunction_specificMap(FirstParameterIndex, values));
+		}
+	} else {
+		throw "Recalibration function '" + type + "' not valid for covariate quality!";
+	}
+};
+
+void TRecalibrationEMCovariate_MQ::addFunction(const size_t FirstParameterIndex, const std::string & functionString){
+	//parse
+	std::string type;
+	std::vector<std::string> values, args;
+	_parseModuleString(functionString, type, args, values);
+
+	//are values provided?
+	if(values.empty()){
+		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
+	}
+
+	//create function
+	if(type == RecalModuleFunctionName_polynomial){
+		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
+	} else if(type == RecalModuleFunctionName_specific){
+		_function.reset(new TRecalibrationEMCovariateFunction_specificMap(FirstParameterIndex, values));
+	} else {
+		throw "Recalibration function '" + type + "' not valid for covariate quality!";
+	}
+};
+
+bool TRecalibrationEMCovariate_MQ::checkParameterRange(TRecalibrationEMDataTable* dataTable){
+	std::vector<uint16_t> usedMQ;
+	dataTable->fillVectorWithUsedMQ(usedMQ);
+
+	return _function->checkValueRange(usedMQ);
+};
+
+bool TRecalibrationEMCovariate_MQ::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t maxPos){
+	return _function->checkValueRange(usedLengths);
+};
+
