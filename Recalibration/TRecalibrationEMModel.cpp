@@ -116,6 +116,7 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
 
+
 	//create covariates
 	numParameters = intercept.numParameters();
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
@@ -129,7 +130,7 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 		} else if(it->covariate == RecalCovariateName_context){
 			covariates.emplace_back(new TRecalibrationEMCovariate_context(numParameters, it->function, dataTable));
 		} else if(it->covariate == RecalCovariateName_fragmentLength){
-			throw "Covariate " + (std::string) RecalCovariateName_fragmentLength + " is currently not implemented!";
+			covariates.emplace_back(new TRecalibrationEMCovariate_fragmentLength(numParameters, it->function, dataTable));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
 		}
@@ -215,16 +216,6 @@ TRecalibrationEMModel::TRecalibrationEMModel(TRecalibrationEMModelCovariateDefin
 bool TRecalibrationEMModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
 	for(auto & cov : _covariates.covariates){
 		if(!cov->checkParameterRange(dataTable)){
-			error = "Function for covariate " + cov->name() + " does not cover full range of data";
-			return false;
-		}
-	}
-	return true;
-};
-
-bool TRecalibrationEMModel::checkParameterRange(std::vector<uint16_t> & Qualities, uint16_t maxPos, std::string & error){
-	for(auto & cov : _covariates.covariates){
-		if(!cov->checkParameterRange(Qualities, maxPos)){
 			error = "Function for covariate " + cov->name() + " does not cover full range of data";
 			return false;
 		}

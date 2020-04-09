@@ -187,10 +187,11 @@ TRecalibrationEMCovariateFunction_polynomial::TRecalibrationEMCovariateFunction_
 };
 
 double TRecalibrationEMCovariateFunction_polynomial::getEtaTerm(const uint16_t val){
-	double tmp = _getAsDouble(val);
+	double valAsDouble = _getAsDouble(val);
+	double tmp = valAsDouble;
 	double sum = _betas[0] * tmp;
 	for(size_t i=1; i<_numParameters; ++i){
-		tmp *= tmp;
+		tmp *= valAsDouble;
 		sum += _betas[i] * tmp;
 	}
 

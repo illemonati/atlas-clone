@@ -247,7 +247,7 @@ void TRecalibrationEMCovariate_context::addFunction(const size_t FirstParameterI
 	//create function
 	if(type == RecalModuleFunctionName_specific){
 		if(values.empty()){
-			_function.reset(new TRecalibrationEMCovariateFunction_specific(FirstParameterIndex, 20));
+			_function.reset(new TRecalibrationEMCovariateFunction_specific(FirstParameterIndex, 19));
 		} else {
 			_function.reset(new TRecalibrationEMCovariateFunction_specific(FirstParameterIndex, values));
 		}

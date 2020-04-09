@@ -128,7 +128,6 @@ public:
 	TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
 
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
-	bool checkParameterRange(std::vector<uint16_t> & Qualities, uint16_t maxPos, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
 
 	void setEMParamsToZero();

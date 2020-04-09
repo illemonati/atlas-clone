@@ -351,7 +351,7 @@ void TAlignmentParser::setBaseFilters(TParameters & params){
 	setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 93));
 
 	//quality filters for printing
-	setQualityRangeForPrinting(params.getParameterIntWithDefault("minOutQual", 0) + 33, params.getParameterIntWithDefault("maxOutQual", 93) + 33);
+	setQualityRangeForPrinting(params.getParameterIntWithDefault("minOutQual", 0), params.getParameterIntWithDefault("maxOutQual", 93));
 
 	//context filter
 	if(params.parameterExists("ignoreContexts")){
@@ -380,12 +380,13 @@ void TAlignmentParser::setQualityFilters(int MinPhredInt, int MaxPhredInt){
 };
 
 void TAlignmentParser::setQualityRangeForPrinting(int minQual, int maxQual){
-	minQualForPrinting = minQual;
-	maxQualForPrinting = maxQual;
-	if(minQualForPrinting < 0) throw "minOutQual must be >= 0!";
-	if(maxQualForPrinting < minQualForPrinting) throw "maxOutQual must be >= minOutQual!";
-
+	if(minQual < 0) throw "minOutQual must be >= 0!";
+	if(maxQual < minQual) throw "maxOutQual must be >= minOutQual!";
 	logfile->list("Will print qualities truncated to [" + toString(minQualForPrinting) + ", " + toString(maxQualForPrinting) + "] (parameters 'minOutQual', 'maxOutQual')");
+
+	//add 33 to make it quality after printing to log
+	minQualForPrinting = minQual + 33;
+	maxQualForPrinting = maxQual + 33;
 };
 
 void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
