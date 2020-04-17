@@ -106,9 +106,11 @@ public:
 //TAlleleFreqEstimator
 //------------------------------------------------
 class TAlleleFreqEstimator{
+private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
+	bool doBayesian;
 	TLog* logfile;
 
 	// data on individuals
@@ -117,6 +119,8 @@ class TAlleleFreqEstimator{
 
 	//data on loci
 	long _numLoci;
+
+	void writeHeader(TParameters & Parameters, TOutputFileZipped & out, TAlleleFreqEstimatorBayes* BHWEstimator);
 
 public:
 	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);

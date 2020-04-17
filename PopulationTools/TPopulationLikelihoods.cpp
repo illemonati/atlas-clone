@@ -512,11 +512,14 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 
 	//filter in MAF
 	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-		genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
+		for(int s=0; s<samples.numPopulations(); ++s){
+			genoFrequencies.emplace_back(TGenotypeFrequencies());
+			genoFrequencies[s].estimate(data, samples.numSamples(), glfConverter, epsilonF);
 
-		if(genoFrequencies.MAF < freqFilter){
-			_lowFreqSNPCounter++;
-			return false;
+			if(genoFrequencies[s].MAF < freqFilter){
+				_lowFreqSNPCounter++;
+				return false;
+			}
 		}
 	}
 
@@ -983,7 +986,11 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		//store SNP info
 		position.emplace_back(reader.position());
 		if(saveAlleleFrequencies)
-			alleleFrequencies.emplace_back(reader.allelFrequency());
+			for(int p=0; p<samples.numPopulations(); ++p){
+				std::vector<double> v;
+				alleleFrequencies.push_back(v);
+				alleleFrequencies[p].emplace_back(reader.allelFrequency(p));
+			}
 		if(saveTrueAlleleFrequencies)
 			trueAlleleFrequencies.emplace_back(reader.trueAlleleFrequency());
 

@@ -333,14 +333,40 @@ TAlleleFreqEstimator::TAlleleFreqEstimator(TParameters & Parameters, TLog* Logfi
 	vcfRead = false;
 	_numLoci = 0;
 	logfile = Logfile;
+	doBayesian = false;
 };
+
+void TAlleleFreqEstimator::writeHeader(TParameters & Parameters, TOutputFileZipped & out, TAlleleFreqEstimatorBayes* BHWEstimator){
+	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "freqAltGF"};
+
+	for(int p=0; p<samples.numPopulations(); p++){
+		std::string name = samples.getNameFromOrderedIndex(p);
+		header.push_back("freqAltHW_" + name);
+		header.push_back("numDiploid_" + name);
+		header.push_back("numHaploid" + name);
+
+		if(Parameters.parameterExists("writeGenoFreq")){
+			header.push_back("freqGenoRefRef_" + name);
+			header.push_back("freqGenoRefAlt_" + name);
+			header.push_back("freqGenoAltAlt_" + name);
+			header.push_back("freqGenoRef_" + name);
+			header.push_back("freqGenoAlt_" + name);
+		}
+
+		if(doBayesian){
+			header.push_back("freqAltHW_MAP_" + name);
+			header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower_" + name);
+			header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper_" + name);
+		}
+	}
+	out.writeHeader(header);
+}
 
 void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	if(vcfRead)
 		throw "VCF already read!";
 
 	//read samples
-	TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
 		samples.readSamples(Parameters.getParameterString("samples"), logfile);
 
@@ -374,7 +400,6 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//3) Bayesian HW estimator (optional)
 	TAlleleFreqEstimatorBayes* BHWEstimator;
-	bool doBayesian = false;
 	if(Parameters.parameterExists("doBayesian")){
 		doBayesian = true;
 		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
@@ -387,13 +412,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	TOutputFileZipped out(outputName);
 
 	//write header
-	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "numDiploid", "numHaploid", "freqAltHW", "freqGenoRefRef", "freqGenoRefAlt", "freqGenoAltAlt", "freqGenoRef", "freqGenoAlt", "freqAltGF"};
-	if(doBayesian){
-		header.push_back("freqAltHW_MAP");
-		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower");
-		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper");
-	}
-	out.writeHeader(header);
+	writeHeader(Parameters, out, BHWEstimator);
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
@@ -401,26 +420,28 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
     	//print SNP
  		reader.writePosition(out);
 
- 		//write num samples with data
- 		out << reader.genotypeFrequencies()->numDiploid();
- 		out << reader.genotypeFrequencies()->numHaploid();
+ 		for(int p=0; p<samples.numPopulations(); p++){
+			//write num samples with data
+			out << reader.genotypeFrequencies(p)->numDiploid();
+			out << reader.genotypeFrequencies(p)->numHaploid();
 
- 		//write HW estimates
- 		out << MLHWEstimator.estimate(storage, epsF, glfConverter);
+			//write HW estimates
+			out << MLHWEstimator.estimate(storage, epsF, glfConverter);
 
- 		//write genotype frequency estimates
- 		reader.genotypeFrequencies()->writeDiploidFrequencies(out);
- 		reader.genotypeFrequencies()->writeHaploidFrequencies(out);
+			//write genotype frequency estimates
+			reader.genotypeFrequencies(p)->writeDiploidFrequencies(out);
+			reader.genotypeFrequencies(p)->writeHaploidFrequencies(out);
 
- 		//write frequency estimate based on genotype estimates
- 		out << reader.allelFrequency();
+			//write frequency estimate based on genotype estimates
+			out << reader.allelFrequency(p);
 
- 		//Bayesian estimation
- 		if(doBayesian){
- 			out << BHWEstimator->estimate(storage, glfConverter);
- 			out << BHWEstimator->lowerCredibleInterval();
- 			out << BHWEstimator->upperCredibleInterval();
- 		};
+			//Bayesian estimation
+			if(doBayesian){
+				out << BHWEstimator->estimate(storage, glfConverter);
+				out << BHWEstimator->lowerCredibleInterval();
+				out << BHWEstimator->upperCredibleInterval();
+			}
+ 		}
 
  		//end line
  		out << std::endl;
