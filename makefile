@@ -21,7 +21,7 @@ $(BIN): $(GIT_HEADER) $(OBJ)
 	$(CXX) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
 
 
-$(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG
+$(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG .git/index
 	echo "#include \"gitversion.h\"" > $@
 	echo "std::string getGitVersion(){" >> $@
 	echo "return \"$(shell git rev-parse HEAD)\";" >> $@
