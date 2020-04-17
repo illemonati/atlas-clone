@@ -116,5 +116,17 @@ public:
     void vcfToPosFile(TParameters & Params);
 };
 
+class TVcfToBedFile : public TVcfConverter {
+private:
+    TOutputFilePlain * bedFile;
+    void writeHeader() override;
+    void writeData(TPopulationLikehoodLocus & data) override;
+    void writePosition();
+
+public:
+    TVcfToBedFile(TParameters &Params, TLog *Logfile);
+    ~TVcfToBedFile();
+    void vcfToBedFile(TParameters & Params);
+};
 
 #endif //ATLAS_TVCFCONVERTER_H

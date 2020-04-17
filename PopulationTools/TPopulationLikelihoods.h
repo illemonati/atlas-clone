@@ -158,7 +158,8 @@ public:
 
 	std::string chr(){ return curChr; };
 	long position(){ return vcfFile.position(); };
-	char refAllele(){ return vcfFile.getRefAllele(); };
+    long positionZeroBased(){ return vcfFile.positionZeroBased(); };
+    char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
 	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
 

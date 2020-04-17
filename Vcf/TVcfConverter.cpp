@@ -337,3 +337,47 @@ void TVcfToPosFile::vcfToPosFile(TParameters & Params){
     // clean up
     posFile->close();
 }
+
+/***************************************
+ * 									   *
+ * 	Vcf to bed file                    *
+ * 									   *
+ ***************************************/
+
+TVcfToBedFile::TVcfToBedFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    // extracts positions from vcf and writes them as bed-format
+    // format:
+    //   - tab-separated
+    //   - no header
+    //   - 3 columns: col 1 = chromosome, col 2 = start (0-based), col 3 = stop
+    bedFile = nullptr;
+}
+
+TVcfToBedFile::~TVcfToBedFile() {
+    delete bedFile;
+}
+
+void TVcfToBedFile::writeHeader(){
+    //no header
+    bedFile->noHeader(3);
+}
+
+void TVcfToBedFile::writePosition(){
+    (*bedFile) << reader->chr() << reader->positionZeroBased() << reader->positionZeroBased() + 1;
+}
+
+void TVcfToBedFile::writeData(TPopulationLikehoodLocus & data){
+    writePosition();
+    bedFile->endLine();
+}
+
+void TVcfToBedFile::vcfToBedFile(TParameters & Params){
+    //open output files
+    bedFile = new TOutputFilePlain(_outname + ".bed");
+
+    // read Vcf and write output
+    readVcfAndWriteFile(Params);
+
+    // clean up
+    bedFile->close();
+}

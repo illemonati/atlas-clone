@@ -672,6 +672,16 @@ public:
     };
 };
 
+class TTask_VCFToBedFile:public TTask_atlas{
+public:
+    TTask_VCFToBedFile(){ _explanation = "Converting a VCF file to BED format"; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToBedFile VcfToBedFile(parameters, logfile);
+        VcfToBedFile.vcfToBedFile(parameters);
+    };
+};
+
 class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
