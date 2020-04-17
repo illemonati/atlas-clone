@@ -340,44 +340,83 @@ void TVcfToPosFile::vcfToPosFile(TParameters & Params){
 
 /***************************************
  * 									   *
- * 	Vcf to bed file                    *
+ * Vcf to genotype truth set (STITCH)  *
  * 									   *
  ***************************************/
 
-TVcfToBedFile::TVcfToBedFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
-    // extracts positions from vcf and writes them as bed-format
+TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    // produces genotype truth set (genfile) for STITCH and bed files for samples
+    // idea: first locus -> find 0-n samples that have depth higher than minDepth
+    //                   -> write position of this locus into bed-files for these individuals
+    //                   -> write genotypes of these individuals to genfile; write genotypes of all other individuals as NA to genfile
+    //       next locus  -> is distance to previous locus more than x basepairs?
+    //                   -> If yes: find 0-n samples that have depth higher than minDepth
+    //                              -> write genotypes of these individuals to genfile; write genotypes of all other individuals as NA to genfile
+    //                   -> Else: write genotypes of all individuals as NA to genfile
     // format:
-    //   - tab-separated
-    //   - no header
-    //   - 3 columns: col 1 = chromosome, col 2 = start (0-based), col 3 = stop
-    bedFile = nullptr;
+    //   - produces a BED file (3 columns, col 1 = chromosome, col 2 = start (0-based), col 3 = stop) for each individual
+    //   - produces a genfile
+    //      - tab-separated
+    //      - header = sample names from vcf
+    //      - one row per SNP
+    //      - genotypes encoded as 0,1,2 or NA
+    genFile = nullptr;
+    bedFiles = nullptr;
 }
 
-TVcfToBedFile::~TVcfToBedFile() {
-    delete bedFile;
+TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
+    delete genFile;
+    delete [] bedFiles;
 }
 
-void TVcfToBedFile::writeHeader(){
-    //no header
-    bedFile->noHeader(3);
+void TVcfToGenotypeTruthSetFile::writeHeader(){
+    //header string
+    std::vector <std::string> header;
+    for(uint32_t s = 0; s < samples.numSamples(); s++){
+        header.push_back(samples.getNameFromOrderedIndex(s));
+    }
+    genFile->writeHeader(header);
 }
 
-void TVcfToBedFile::writePosition(){
-    (*bedFile) << reader->chr() << reader->positionZeroBased() << reader->positionZeroBased() + 1;
+void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
+    // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
+    // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
+    int numIndivWithHigherDepth = 0;
+    for(uint32_t s = 0; s < samples.numSamples(); ++s){
+        if (!data[s].isMissing)
+            numIndivWithHigherDepth++;
+    }
+    if (numIndivWithHigherDepth == 0)
+        return;
+    if (numIndivWithHigherDepth <= numSamplesPerLocus) // keep all of them
+        //write();
+    else { // rank according to depth
+        std::vector<double> depths;
+        for(uint32_t s = 0; s < samples.numSamples(); ++s){
+            if (!data[s].isMissing)
+                depths.push_back(reader->depth(samples, s));
+        }
+        // sort depths
+        // write
+    }
 }
 
-void TVcfToBedFile::writeData(TPopulationLikehoodLocus & data){
-    writePosition();
-    bedFile->endLine();
+void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
+    filterIndividuals(data);
 }
 
-void TVcfToBedFile::vcfToBedFile(TParameters & Params){
+void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     //open output files
-    bedFile = new TOutputFilePlain(_outname + ".bed");
+    genFile = new TOutputFilePlain(_outname + ".gen");
+    bedFiles = new TBed[samples.numSamples()];
+
+    // read params
+    minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
+    numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);
 
     // clean up
-    bedFile->close();
+    genFile->close();
 }

@@ -729,6 +729,11 @@ void TPopulationLikelihoodReaderLocus::fillGenotypes(TPopulationSamples & sample
     }
 }
 
+double TPopulationLikelihoodReaderLocus::depth(TPopulationSamples & samples,uint32_t s){
+    uint32_t vcfIndex = samples.VCF_order(s);
+    return vcfFile.sampleDepth(vcfIndex);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoodReaderWindow                                                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////
