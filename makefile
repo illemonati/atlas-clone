@@ -1,7 +1,7 @@
 #make file for atlas
 
 SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard Tests/*.cpp) $(wildcard commonutilities/*.cpp) $(wildcard commonutilities/IntegrationTests/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard Vcf/*.cpp) $(wildcard Recalibration/*.cpp) $(wildcard PopulationTools/*.cpp) $(wildcard GLF/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
-GIT_HEADER = gitversion.cpp
+GIT_HEADER = commonutilities/gitversion.cpp
 
 OBJ = $(SRC:%.cpp=%.o)
 BIN = atlas
