@@ -106,11 +106,7 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 	normalize();
 };
 
-void TGenotypeFrequencies::guess(TPopulationLikehoodLocus & samples){
-	guess(samples.samples(), samples.numSamples());
-};
-
-void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
+void TGenotypeFrequencies::guess(const TSampleLikelihoods* samples, int numSamples){
 	//calculate by using MLE genotype for each individual
 	clear();
 

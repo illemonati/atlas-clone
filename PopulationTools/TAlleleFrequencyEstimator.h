@@ -51,7 +51,7 @@ private:
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
-	double estimate(TPopulationLikehoodLocus & storage, double epsilonF, TGlfConverter & glfConverter);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF, TGlfConverter & glfConverter);
 };
 
 //------------------------------------------------
@@ -83,18 +83,18 @@ private:
 	double minPriorSupport, maxPriorSupport;
 	double priorDensAtMin, priorDensAtMax;
 
-	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 	double _prior(const double & f);
 	double _prior(const THardyWeinbergGenotypeProbabilities & pGenotype);
-	double calcPosterior(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
-	void fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
-	void estimateMAP(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
-	void estimateCredibleIntervals(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double calcPosterior(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
+	void fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
+	void estimateMAP(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
+	void estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 
 public:
 	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator);
 	~TAlleleFreqEstimatorBayes();
-	double estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 
 	double credibleIntervalUsed(){ return credibleInterval; };
 	double MAP(){ return f_MAP; };

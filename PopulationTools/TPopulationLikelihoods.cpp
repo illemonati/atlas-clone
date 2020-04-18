@@ -512,11 +512,11 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 
 	//filter in MAF
 	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-		for(int s=0; s<samples.numPopulations(); ++s){
+		for(int p=0; p<samples.numPopulations(); ++p){
 			genoFrequencies.emplace_back(TGenotypeFrequencies());
-			genoFrequencies[s].estimate(data, samples.numSamples(), glfConverter, epsilonF);
+			genoFrequencies[p].estimate(&data[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, epsilonF);
 
-			if(genoFrequencies[s].MAF < freqFilter){
+			if(genoFrequencies[p].MAF < freqFilter){
 				_lowFreqSNPCounter++;
 				return false;
 			}
