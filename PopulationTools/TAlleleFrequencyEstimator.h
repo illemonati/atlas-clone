@@ -82,6 +82,7 @@ private:
 	double* density_grid;
 	double minPriorSupport, maxPriorSupport;
 	double priorDensAtMin, priorDensAtMax;
+	double* mcmcSamples;
 
 	double guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 	double _prior(const double & f);
@@ -100,6 +101,7 @@ public:
 	double MAP(){ return f_MAP; };
 	double lowerCredibleInterval(){ return f_CI_lower; };
 	double upperCredibleInterval(){ return f_CI_upper; };
+	double* runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter, const uint32_t numIterations, const double frac);
 };
 
 //------------------------------------------------
@@ -120,11 +122,13 @@ private:
 	//data on loci
 	long _numLoci;
 
-	void writeHeader(TParameters & Parameters, TOutputFileZipped & out, TAlleleFreqEstimatorBayes* BHWEstimator);
+	std::vector<std::string> writeHeaderAlleleFreq(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator);
+	std::vector<std::string> writeHeaderAlleleFreqComparison(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator);
 
 public:
 	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);
 	void estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
+	void compareAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
 };
 
 
