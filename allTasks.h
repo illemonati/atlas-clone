@@ -672,13 +672,13 @@ public:
     };
 };
 
-class TTask_VCFToBedFile:public TTask_atlas{
+class TTask_VCFToGenotypeTruthSetFile:public TTask_atlas{
 public:
-    TTask_VCFToBedFile(){ _explanation = "Converting a VCF file to BED format"; };
+    TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
 
     void run(TParameters & parameters, TLog* logfile){
-        TVcfToBedFile VcfToBedFile(parameters, logfile);
-        VcfToBedFile.vcfToBedFile(parameters);
+        TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(parameters, logfile);
+        VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(parameters);
     };
 };
 

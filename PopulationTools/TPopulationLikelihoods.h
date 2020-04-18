@@ -162,6 +162,7 @@ public:
     char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
 	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
+    uint8_t genotype(TPopulationSamples & samples, uint32_t s);
     double depth(TPopulationSamples & samples,uint32_t s);
 
     bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);

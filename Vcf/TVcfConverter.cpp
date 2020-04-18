@@ -362,6 +362,10 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     //      - genotypes encoded as 0,1,2 or NA
     genFile = nullptr;
     bedFiles = nullptr;
+    distanceToPreviousLocus = 0;
+    minDistanceToPreviousLocus = 0;
+    numSamplesPerLocus = 0;
+    curChr = "";
 }
 
 TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
@@ -378,30 +382,86 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
     genFile->writeHeader(header);
 }
 
-void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
-    // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
-    // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
-    int numIndivWithHigherDepth = 0;
-    for(uint32_t s = 0; s < samples.numSamples(); ++s){
-        if (!data[s].isMissing)
-            numIndivWithHigherDepth++;
-    }
-    if (numIndivWithHigherDepth == 0)
-        return;
-    if (numIndivWithHigherDepth <= numSamplesPerLocus) // keep all of them
-        //write();
-    else { // rank according to depth
-        std::vector<double> depths;
-        for(uint32_t s = 0; s < samples.numSamples(); ++s){
-            if (!data[s].isMissing)
-                depths.push_back(reader->depth(samples, s));
+void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep){
+    std::map< double, std::vector<uint32_t>, std::greater<double> > depthVsSampleIndexMap; // use depth as key in map -> automatically sorted in descending order
+    for (auto & s : samplesToKeep){
+        // does depth already exist in map?
+        double depth = reader->depth(samples, s);
+        auto it = depthVsSampleIndexMap.find(depth);
+        if (it == depthVsSampleIndexMap.end()){ // new depth
+            std::vector<uint32_t> v = {s};
+            depthVsSampleIndexMap[depth] = v;
+        } else { // depth already exists
+            it->second.push_back(s);
         }
-        // sort depths
-        // write
+    }
+    // only keep top numSamplesPerLocus
+    samplesToKeep.clear();
+    int c = 0;
+    for (auto & it : depthVsSampleIndexMap) { // one depth
+        for (auto & it2 : it.second){ // one sample at this depth
+            if (c >= numSamplesPerLocus)
+                break;
+            samplesToKeep.push_back(it2);
+            c++;
+        }
+    }
+}
+
+void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
+    std::vector<uint32_t> samplesToKeep;
+    if (distanceToPreviousLocus >= minDistanceToPreviousLocus) { // check if distance is big enough
+        // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
+        // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
+        for (uint32_t s = 0; s < samples.numSamples(); ++s) {
+            if (!data[s].isMissing)
+                samplesToKeep.push_back(s);
+        }
+        if (samplesToKeep.empty()) // no individuals have > minDepth
+            writeToGenFile(samplesToKeep);
+            // no need to write to bed file
+        if (samplesToKeep.size() <= static_cast<unsigned int>(numSamplesPerLocus)) { // keep all of them
+            writeToGenFile(samplesToKeep);
+            storeInBedFile(samplesToKeep);
+        }
+        else { // rank according to depth
+            filterIndividualsWithHighestDepth(samplesToKeep);
+            writeToGenFile(samplesToKeep);
+            storeInBedFile(samplesToKeep);
+        }
+    } else {
+        writeToGenFile(samplesToKeep);
+        // no need to write to bed file
+    }
+}
+
+void TVcfToGenotypeTruthSetFile::writeToGenFile(const std::vector<uint32_t> & samplesToKeep){
+    for(uint32_t s = 0; s < samples.numSamples(); s++) {
+        // should we write true genotype of sample?
+        auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
+        if (it != samplesToKeep.end()) // sample found
+            (*genFile) << static_cast<int>(reader->genotype(samples, s));
+        else
+            (*genFile) << "NA";
+    }
+}
+
+void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & samplesToKeep){
+    for(uint32_t s = 0; s < samples.numSamples(); s++) {
+        // should we write to bed of sample?
+        auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
+        if (it != samplesToKeep.end()) // sample found
+            bedFiles[s].addSite(reader->positionZeroBased()); // TODO: give 0-based position???
     }
 }
 
 void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
+    if (curChr != reader->chr()){
+        curChr = reader->chr();
+        for(uint32_t s = 0; s < samples.numSamples(); s++) {
+            bedFiles[s].setChrCreateIfNew(curChr);
+        }
+    }
     filterIndividuals(data);
 }
 
@@ -412,11 +472,17 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
 
     // read params
     minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
+    distanceToPreviousLocus = minDistanceToPreviousLocus + 1; // for first locus
     numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);
 
-    // clean up
+    // write bed files (one per sample)
+    for(uint32_t s = 0; s < samples.numSamples(); s++) {
+        bedFiles[s].write(_outname + samples.getNameFromOrderedIndex(s) + ".bed");
+    }
+
+        // clean up
     genFile->close();
 }

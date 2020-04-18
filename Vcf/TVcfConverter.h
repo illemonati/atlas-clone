@@ -123,11 +123,16 @@ private:
     TOutputFilePlain * genFile;
 
     int minDistanceToPreviousLocus;
+    int distanceToPreviousLocus;
     int numSamplesPerLocus;
+    std::string curChr;
 
     void writeHeader() override;
     void writeData(TPopulationLikehoodLocus & data) override;
     void filterIndividuals(TPopulationLikehoodLocus & data);
+    void filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep);
+    void writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
+    void storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
 
 public:
     TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile);
