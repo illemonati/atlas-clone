@@ -101,7 +101,8 @@ public:
 	double MAP(){ return f_MAP; };
 	double lowerCredibleInterval(){ return f_CI_lower; };
 	double upperCredibleInterval(){ return f_CI_upper; };
-	double* runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter, const uint32_t numIterations, const double frac);
+	double runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter, const uint32_t numIterations, const double frac);
+	double* getMcmcSamples(){ return mcmcSamples; };
 };
 
 //------------------------------------------------
@@ -112,7 +113,6 @@ private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
-	bool doBayesian;
 	TLog* logfile;
 
 	// data on individuals
@@ -122,7 +122,7 @@ private:
 	//data on loci
 	long _numLoci;
 
-	std::vector<std::string> writeHeaderAlleleFreq(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator);
+	std::vector<std::string> writeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
 	std::vector<std::string> writeHeaderAlleleFreqComparison(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator);
 
 public:
