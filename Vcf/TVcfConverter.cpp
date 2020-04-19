@@ -362,7 +362,7 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     //      - genotypes encoded as 0,1,2 or NA
     genFile = nullptr;
     bedFiles = nullptr;
-    distanceToPreviousLocus = 0;
+    positionPreviousLocus = 0;
     minDistanceToPreviousLocus = 0;
     numSamplesPerLocus = 0;
     curChr = "";
@@ -370,6 +370,8 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
 
 TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
     delete genFile;
+    for(uint32_t s = 0; s < samples.numSamples(); s++)
+        delete bedFiles[s];
     delete [] bedFiles;
 }
 
@@ -380,6 +382,12 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
         header.push_back(samples.getNameFromOrderedIndex(s));
     }
     genFile->writeHeader(header);
+
+    // initialize bed files (we now know how many samples there are)
+    bedFiles = new TBed * [samples.numSamples()];
+    for(uint32_t s = 0; s < samples.numSamples(); s++) {
+        bedFiles[s] = new TBed;
+    }
 }
 
 void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep){
@@ -410,12 +418,14 @@ void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<u
 
 void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
     std::vector<uint32_t> samplesToKeep;
+    long distanceToPreviousLocus = reader->position() - positionPreviousLocus;
     if (distanceToPreviousLocus >= minDistanceToPreviousLocus) { // check if distance is big enough
         // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
         // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
         for (uint32_t s = 0; s < samples.numSamples(); ++s) {
-            if (!data[s].isMissing)
+            if (!data[s].isMissing) {
                 samplesToKeep.push_back(s);
+            }
         }
         if (samplesToKeep.empty()) // no individuals have > minDepth
             writeToGenFile(samplesToKeep);
@@ -444,6 +454,7 @@ void TVcfToGenotypeTruthSetFile::writeToGenFile(const std::vector<uint32_t> & sa
         else
             (*genFile) << "NA";
     }
+    genFile->endLine();
 }
 
 void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & samplesToKeep){
@@ -451,15 +462,16 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
-            bedFiles[s].addSite(reader->positionZeroBased()); // TODO: give 0-based position???
+            bedFiles[s]->addSite(reader->positionZeroBased()); // TODO: give 0-based position???
     }
+    positionPreviousLocus = reader->position();
 }
 
 void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
     if (curChr != reader->chr()){
         curChr = reader->chr();
         for(uint32_t s = 0; s < samples.numSamples(); s++) {
-            bedFiles[s].setChrCreateIfNew(curChr);
+            bedFiles[s]->setChrCreateIfNew(curChr);
         }
     }
     filterIndividuals(data);
@@ -468,21 +480,23 @@ void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
 void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     //open output files
     genFile = new TOutputFilePlain(_outname + ".gen");
-    bedFiles = new TBed[samples.numSamples()];
+    // open bed files only after reading samples (we need to know how many samples there are)
 
     // read params
     minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
-    distanceToPreviousLocus = minDistanceToPreviousLocus + 1; // for first locus
+    logfile->list("Will keep loci that have a minimal distance of " + toString(minDistanceToPreviousLocus) + " to previous locus (parameter 'minDistance').");
+    positionPreviousLocus = -minDistanceToPreviousLocus - 1; // for first locus
     numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
+    logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamplesPerLocus').");
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);
 
     // write bed files (one per sample)
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
-        bedFiles[s].write(_outname + samples.getNameFromOrderedIndex(s) + ".bed");
+        bedFiles[s]->write(_outname + "_" + samples.getNameFromOrderedIndex(s) + ".bed");
     }
 
-        // clean up
+    // clean up
     genFile->close();
 }

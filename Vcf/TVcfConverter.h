@@ -119,11 +119,11 @@ public:
 
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
-    TBed * bedFiles;
+    TBed ** bedFiles;
     TOutputFilePlain * genFile;
 
     int minDistanceToPreviousLocus;
-    int distanceToPreviousLocus;
+    long positionPreviousLocus;
     int numSamplesPerLocus;
     std::string curChr;
 
