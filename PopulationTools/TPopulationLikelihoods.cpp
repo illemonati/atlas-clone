@@ -269,6 +269,7 @@ void TPopulationLikelihoodReader::_init(){
 	epsilonF = 0.001; //F for EM algorithm to estimate allele frequencies
 	minVariantQuality = 0;
 	estimateGenotypeFrequencies = false;
+    filterOnChr = false;
 
 	//counters
 	resetCounters();
@@ -305,8 +306,8 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 
 	// do we set a missingness filter?
 	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
-	if(minNumSamplesWithData < 1)
-		throw "minNumSamplesWithData must be >= 1!";
+	if(minNumSamplesWithData < 0)
+		throw "minNumSamplesWithData must be >= 0!";
 	if(minNumSamplesWithData > 1)
 		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data. (parameter 'minSamplesWithData')");
 
@@ -368,6 +369,8 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
     logfile->startIndent("Will keep the following chromosomes in the output file:");
     for (auto it = chromosomesToKeep.begin(); it < chromosomesToKeep.end(); it ++)
         logfile->list(*it);
+
+    filterOnChr = true;
 
     logfile->endIndent();
     logfile->endIndent();
@@ -466,7 +469,7 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 	}
 
     // keep chromosomes
-    if (!chromosomesToKeep.empty() && std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), vcfFile.chr()) == chromosomesToKeep.end()){
+    if (filterOnChr && std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), vcfFile.chr()) == chromosomesToKeep.end()){
         _notOnChrCounter ++;
         return false;
     }
@@ -671,6 +674,10 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 	while(_readNextLineFromVCF()){ // new line in vcf-file (= new locus)
 		//update chr
 		if(curChr != vcfFile.chr()){
+            // first remove previous chromosome from vector chromosomesToKeep (not needed anymore; we stop when vector is empty)
+            if (filterOnChr && std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr) != chromosomesToKeep.end()){
+                chromosomesToKeep.erase(std::remove(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr), chromosomesToKeep.end());
+            }
 			curChr = vcfFile.chr();
 
 			if(limitToSitesInBed){
@@ -703,6 +710,12 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 			}
 
 			//else accept current position
+		}
+
+		// Is there any chromosome left that should be kept?
+		if (filterOnChr && chromosomesToKeep.empty()){
+		    logfile->list("Parsed all chromosomes that were defined with parameter 'keepChromosomes'.");
+		    return false;
 		}
 
 		//filter

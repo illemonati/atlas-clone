@@ -50,6 +50,7 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     else
         samples.readSamplesFromVCFNames(reader->getSampleVCFNames());
     // write header
+    initOutputFiles();
     writeHeader();
 
     // initialize variables for vcf-file
@@ -67,6 +68,11 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
 }
 
 void TVcfConverter::writeHeader(){
+    // will be overwritten by respective function in daughter class
+    // because every daughter class will write output in different format
+}
+
+void TVcfConverter::initOutputFiles(){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
 }
@@ -91,6 +97,10 @@ TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(L
 
 TVcfToBeagle::~TVcfToBeagle() {
     delete beagleFile;
+}
+
+void TVcfToBeagle::initOutputFiles(){
+    beagleFile = new TOutputFileZipped(_outname + ".beagle.gz");
 }
 
 void TVcfToBeagle::writeHeader(){
@@ -128,9 +138,6 @@ void TVcfToBeagle::writeData(TPopulationLikehoodLocus & data){
 }
 
 void TVcfToBeagle::vcfToBeagle(TParameters & Params){
-    //open output files
-    beagleFile = new TOutputFileZipped(_outname + ".beagle.gz");
-
     // read Vcf and write output
     readVcfAndWriteFile(Params);
 
@@ -159,6 +166,11 @@ void TVcfToLFMM::writeHeader(){
     // empty header
 }
 
+void TVcfToLFMM::initOutputFiles() {
+    lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
+    lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
+}
+
 void TVcfToLFMM::storeLocusNames(){
     loci_names.emplace_back( reader->chr() + ":" + toString(reader->position()));
 }
@@ -171,10 +183,6 @@ void TVcfToLFMM::writeLociNames(){
 }
 
 void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
-    //open output files
-    lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
-    lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
-
     // read Vcf and store output
     readVcfAndWriteFile(Params);
 
@@ -313,6 +321,10 @@ void TVcfToPosFile::writeHeader(){
     posFile->noHeader(4);
 }
 
+void TVcfToPosFile::initOutputFiles() {
+    posFile = new TOutputFilePlain(_outname + ".pos");
+}
+
 void TVcfToPosFile::writePosition(){
     (*posFile) << reader->chr() << reader->position();
 }
@@ -328,9 +340,6 @@ void TVcfToPosFile::writeData(TPopulationLikehoodLocus & data){
 }
 
 void TVcfToPosFile::vcfToPosFile(TParameters & Params){
-    //open output files
-    posFile = new TOutputFilePlain(_outname + ".pos");
-
     // read Vcf and write output
     readVcfAndWriteFile(Params);
 
@@ -382,15 +391,24 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
         header.push_back(samples.getNameFromOrderedIndex(s));
     }
     genFile->writeHeader(header);
+}
 
+void TVcfToGenotypeTruthSetFile::initOutputFiles() {
+    genFile = new TOutputFilePlain(_outname + ".gen");
     // initialize bed files (we now know how many samples there are)
     bedFiles = new TBed * [samples.numSamples()];
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
         bedFiles[s] = new TBed;
     }
+
+    // check if minNumSamplesWithData-Filter of TPopulationLikelihoods is zero
+    // (even if all samples have missing data, we still need to keep the locus, because otherwise
+    // positions in posfile and genfile do not match)
+    if (reader->getMinNumSamplesWithData() != 0)
+        throw std::runtime_error("Parameter 'minSamplesWithData' must be 0 for this task! Please specify 'minSamplesWithData=0'.");
 }
 
-void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep){
+void TVcfToGenotypeTruthSetFile::mapIndividualsToDepth(std::vector<uint32_t> &samplesToKeep) {
     std::map< double, std::vector<uint32_t>, std::greater<double> > depthVsSampleIndexMap; // use depth as key in map -> automatically sorted in descending order
     for (auto & s : samplesToKeep){
         // does depth already exist in map?
@@ -403,13 +421,17 @@ void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<u
             it->second.push_back(s);
         }
     }
+    filterIndividualsWithHighestDepth(samplesToKeep, depthVsSampleIndexMap);
+}
+
+void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<double> > & depthVsSampleIndexMap){
     // only keep top numSamplesPerLocus
     samplesToKeep.clear();
     int c = 0;
     for (auto & it : depthVsSampleIndexMap) { // one depth
         for (auto & it2 : it.second){ // one sample at this depth
             if (c >= numSamplesPerLocus)
-                break;
+                return;
             samplesToKeep.push_back(it2);
             c++;
         }
@@ -430,12 +452,12 @@ void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & da
         if (samplesToKeep.empty()) // no individuals have > minDepth
             writeToGenFile(samplesToKeep);
             // no need to write to bed file
-        if (samplesToKeep.size() <= static_cast<unsigned int>(numSamplesPerLocus)) { // keep all of them
+        else if (samplesToKeep.size() <= static_cast<unsigned int>(numSamplesPerLocus)) { // keep all of them
             writeToGenFile(samplesToKeep);
             storeInBedFile(samplesToKeep);
         }
         else { // rank according to depth
-            filterIndividualsWithHighestDepth(samplesToKeep);
+            mapIndividualsToDepth(samplesToKeep);
             writeToGenFile(samplesToKeep);
             storeInBedFile(samplesToKeep);
         }
@@ -462,32 +484,33 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
-            bedFiles[s]->addSite(reader->positionZeroBased()); // TODO: give 0-based position???
+            bedFiles[s]->addSite(reader->positionZeroBased());
     }
     positionPreviousLocus = reader->position();
 }
 
 void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
-    if (curChr != reader->chr()){
+    if (curChr != reader->chr()){ // new chromosome
         curChr = reader->chr();
         for(uint32_t s = 0; s < samples.numSamples(); s++) {
             bedFiles[s]->setChrCreateIfNew(curChr);
         }
+        resetDistance();
     }
     filterIndividuals(data);
 }
 
-void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
-    //open output files
-    genFile = new TOutputFilePlain(_outname + ".gen");
-    // open bed files only after reading samples (we need to know how many samples there are)
+void TVcfToGenotypeTruthSetFile::resetDistance() {
+    positionPreviousLocus = -minDistanceToPreviousLocus - 1; // for first locus on chromosome
+}
 
+void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     // read params
     minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
     logfile->list("Will keep loci that have a minimal distance of " + toString(minDistanceToPreviousLocus) + " to previous locus (parameter 'minDistance').");
-    positionPreviousLocus = -minDistanceToPreviousLocus - 1; // for first locus
+    resetDistance();
     numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
-    logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamplesPerLocus').");
+    logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamples').");
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);

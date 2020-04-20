@@ -78,6 +78,7 @@ protected:
 
 	//settings
 	bool limitLines;
+	bool filterOnChr;
 	uint64_t maxLinesToRead;
 	uint32_t minDepth;
 	uint32_t minNumSamplesWithData;
@@ -131,6 +132,7 @@ public:
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
+	uint32_t getMinNumSamplesWithData(){return minNumSamplesWithData; };
 };
 
 class TPopulationLikelihoodReaderLocus:public TPopulationLikelihoodReader{
