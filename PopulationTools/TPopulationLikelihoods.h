@@ -102,7 +102,7 @@ protected:
     uint64_t _notOnChrCounter;
 
     //tmp variables used for reading
-	std::vector<TGenotypeFrequencies> genoFrequencies;
+	TGenotypeFrequencies genoFrequencies;
 	std::string curChr;
 
 	virtual void _init();
@@ -166,11 +166,11 @@ public:
 	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
 
 	void openTrueAlleleFrequenciesFile(const std::string filename);
-	TGenotypeFrequencies* genotypeFrequencies(int population){ return &(genoFrequencies[population]); };
-	double* diploidGenotypeFrequencies(int population){ return genoFrequencies[population].diploidFrequencies; };
-	double allelFrequency(int population){ return genoFrequencies[population].alleleFrequency; };
+	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
+	double* diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
+	double allelFrequency(){ return genoFrequencies.alleleFrequency; };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
-	double MAF(int population){ return genoFrequencies[population].MAF; };
+	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
 	void writePosition(TOutputFile & out);
 };
@@ -235,8 +235,8 @@ private:
 	std::map<int, std::string> chromosomes; //first SNP index and name
 	std::vector<long> position;
     std::vector<TSampleLikelihoods*> data;
-    std::vector< std::vector<double> > alleleFrequencies;
-    std::vector< std::vector<double> > trueAlleleFrequencies;
+    std::vector<double> alleleFrequencies;
+    std::vector<double> trueAlleleFrequencies;
     bool saveAlleleFrequencies;
     bool saveTrueAlleleFrequencies;
 
@@ -261,13 +261,13 @@ public:
     void clean();
     void doSaveAlleleFrequencies(){ saveAlleleFrequencies = true; };
     void doSaveTrueAlleleFrequencies(){ saveTrueAlleleFrequencies = true; };
-    std::vector<double> donateAlleleFrequencies(int population){
-    	std::vector<double> alleleFrequenciesCopy = alleleFrequencies[population];
-    	alleleFrequencies[population].clear();
+    std::vector<double> donateAlleleFrequencies(){
+    	std::vector<double> alleleFrequenciesCopy = alleleFrequencies;
+    	alleleFrequencies.clear();
     	return alleleFrequenciesCopy;
     };
-    std::vector<double> donateTrueAlleleFrequencies(int population){
-    	std::vector<double> trueAlleleFrequenciesCopy = trueAlleleFrequencies[population];
+    std::vector<double> donateTrueAlleleFrequencies(){
+    	std::vector<double> trueAlleleFrequenciesCopy = trueAlleleFrequencies;
     	trueAlleleFrequencies.clear();
     	return trueAlleleFrequenciesCopy;
     }

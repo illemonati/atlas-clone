@@ -384,8 +384,6 @@ std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreq(bool writeG
 		std::string name = samples.getPopulationName(p);
 		header.push_back("numDiploid_" + name);
 		header.push_back("numHaploid_" + name);
-		header.push_back("freqAltHW_" + name);
-		header.push_back("freqAltGF_" + name);
 
 		if(writeGenoFreq){
 			header.push_back("freqGenoRefRef_" + name);
@@ -395,6 +393,9 @@ std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreq(bool writeG
 			header.push_back("freqGenoAlt_" + name);
 		}
 
+		header.push_back("freqAltGF_" + name);
+		header.push_back("freqAltHW_" + name);
+
 		if(doBayesian){
 			header.push_back("freqAltHW_MAP_" + name);
 			header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower_" + name);
@@ -402,7 +403,34 @@ std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreq(bool writeG
 		}
 	}
 	return(header);
-}
+};
+
+void TAlleleFreqEstimator::writeEstimatesOnePop(TOutputFileZipped & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, int numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+	//write num samples with data
+	out << genoFrequencies.numDiploid();
+	out << genoFrequencies.numHaploid();
+
+
+	//write genotype frequency estimates
+	if(writeGenoFreq){
+		genoFrequencies.writeDiploidFrequencies(out);
+		genoFrequencies.writeHaploidFrequencies(out);
+	}
+
+	//write frequency estimate based on genotype estimates
+	out << alleleFrequency;
+
+	//write HW estimates
+	out << MLHWEstimator.estimate(samples, numSamples, epsF, glfConverter);
+
+	//Bayesian estimation
+	if(doBayesian){
+		out << BHWEstimator->estimate(samples, numSamples, glfConverter);
+		out << BHWEstimator->lowerCredibleInterval();
+		out << BHWEstimator->upperCredibleInterval();
+	}
+
+};
 
 void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	if(vcfRead)
@@ -448,6 +476,8 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
 	}
 
+	bool writeGenoFreq = Parameters.parameterExists("writeGenoFreq");
+
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreq.txt.gz";
@@ -455,7 +485,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	TOutputFileZipped out(outputName);
 
 	//write header
-	out.writeHeader(writeHeaderAlleleFreq(Parameters.parameterExists("writeGenoFreq"), doBayesian, BHWEstimator));
+	out.writeHeader(writeHeaderAlleleFreq(writeGenoFreq, doBayesian, BHWEstimator));
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
@@ -463,30 +493,15 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
     	//print SNP
  		reader.writePosition(out);
 
- 		for(int p=0; p<samples.numPopulations(); p++){
-			//write num samples with data
-			out << reader.genotypeFrequencies(p)->numDiploid();
-			out << reader.genotypeFrequencies(p)->numHaploid();
-
-			//write HW estimates
-//			const TSampleLikelihoods* samples
-			out << MLHWEstimator.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF, glfConverter);
-
-			//write genotype frequency estimates
-			if(Parameters.parameterExists("writeGenoFreq")){
-				reader.genotypeFrequencies(p)->writeDiploidFrequencies(out);
-				reader.genotypeFrequencies(p)->writeHaploidFrequencies(out);
-			}
-
-			//write frequency estimate based on genotype estimates
-			out << reader.allelFrequency(p);
-
-			//Bayesian estimation
-			if(doBayesian){
-				out << BHWEstimator->estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
-				out << BHWEstimator->lowerCredibleInterval();
-				out << BHWEstimator->upperCredibleInterval();
-			}
+ 		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
+ 		if(samples.numPopulations() == 0){
+ 			writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.allelFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 		} else {
+ 			TGenotypeFrequencies genoFrequencies;
+ 	 		for(int p=0; p<samples.numPopulations(); p++){
+ 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, epsF);
+ 	 			writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency, &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 	 		}
  		}
 
  		//end line
@@ -522,6 +537,7 @@ std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreqComparison(b
 		header.push_back("freqAltHW_MAP_" + name);
 		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower_" + name);
 		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper_" + name);
+		header.push_back("MCMCAcceptanceRate_" + name);
 	}
 
     //pairwise comparisons
@@ -532,6 +548,8 @@ std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreqComparison(b
 	}
 	return(header);
 };
+
+
 
 void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	if(vcfRead)
@@ -569,6 +587,9 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	TAlleleFreqEstimatorBayes* BHWEstimator;
 	BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
 
+	//genotype frequencies estimator
+	TGenotypeFrequencies genoFrequencies;
+
 	//variables for MCMC chains
 	std::vector<double*> mcmcChains;
 	int numIterations = Parameters.getParameterIntWithDefault("iterations", 1000);
@@ -593,12 +614,13 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
     while(reader.readDataFromVCF(storage, samples, glfConverter)){
     	//print SNP
  		reader.writePosition(out);
+		logfile->list("Running MCMC's for " + toString(samples.numPopulations()) +" populations at locus " + reader.chr() + ":" + toString(reader.position()));
 
  		for(int p=0; p<samples.numPopulations(); p++){
- 			logfile->listFlush("Running MCMC for population '" + samples.getPopulationName(p) + "'. Acceptance rate: ");
 			//write num samples with data
-			out << reader.genotypeFrequencies(p)->numDiploid();
-			out << reader.genotypeFrequencies(p)->numHaploid();
+			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, Parameters.getParameterDoubleWithDefault("epsF", 0.0000001));
+			out << genoFrequencies.numDiploid();
+			out << genoFrequencies.numHaploid();
 
 			//Bayesian estimation
 			out << BHWEstimator->estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
@@ -608,13 +630,31 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 			//store mcmc chain
 			double acceptanceRate = BHWEstimator->runMCMC(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, numIterations, frac);
 			mcmcChains.push_back(BHWEstimator->getMcmcSamples());
-			logfile->flush(acceptanceRate);
-			logfile->newLine();
+			out << acceptanceRate;
  		}
 
  		//update for next
  		++_numLoci;
      }
+
+    //end VCF file and report final status
+	vcfRead = true;
+	logfile->endIndent();
+	reader.concludeFilters();
+	if(reader.numAcceptedLoci() < 1)
+		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+	logfile->endIndent();
+
+
+//	//MCMC file
+//	std::string tempOut = "MCMC.txt.gz";
+//	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
+//	TOutputFileZipped outT(tempOut);
+//
+//	//write header
+//	std::vector<std::string> h = {"prague", "tollense"};
+//	outT.writeHeader(h);
+
 
     //pairwise comparisons
 	for(int p1=0; p1<(samples.numPopulations()-1); ++p1){
@@ -623,6 +663,10 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
 			int smallerThan = 0;
 			for(int i=0; i<numIterations; ++i){
+//				outT << mcmcChains[p1][i];
+//				outT << mcmcChains[p2][i];
+//				outT.endLine();
+
 				if(mcmcChains[p1][i] < mcmcChains[p2][i]){
 					++smallerThan;
 				}
@@ -631,19 +675,11 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		}
 	}
 
-	//end line
-	out << std::endl;
+//	outT.close();
 
-    //clean up
-	vcfRead = true;
+	//clean up
+	out << std::endl;
 	out.close();
 	delete BHWEstimator;
-
-    //report final status
-	logfile->endIndent();
-	reader.concludeFilters();
-	if(reader.numAcceptedLoci() < 1)
-		throw "No usable loci in VCF file '" + vcfFilename + "'!";
-	logfile->endIndent();
 };
 
