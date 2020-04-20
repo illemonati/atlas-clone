@@ -12,6 +12,7 @@
 #include "../PopulationTools/TPopulationLikelihoods.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"
 #include "../GLF/TGLF.h"
+#include "../TBed.h"
 
 class TVcfConverter {
 protected:
@@ -21,14 +22,14 @@ protected:
     TPopulationLikelihoodReaderLocus * reader;
     TPopulationSamples samples;
 
+    virtual void initOutputFiles();
+    virtual void writeHeader();
+    virtual void writeData(TPopulationLikehoodLocus & data);
+    void readOutputName(TParameters & Params);
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
     ~TVcfConverter();
-
-    void readOutputName(TParameters & Params);
     void readVcfAndWriteFile(TParameters & Params);
-    virtual void writeHeader();
-    virtual void writeData(TPopulationLikehoodLocus & data);
 };
 
 class TVcfToBeagle : protected TVcfConverter {
@@ -40,6 +41,7 @@ private:
     void writeRefAndAlt();
     void writeData(TPopulationLikehoodLocus & data) override;
     void writePosition();
+    void initOutputFiles() override;
 
 public:
     TVcfToBeagle(TParameters &Params, TLog *Logfile);
@@ -56,6 +58,7 @@ protected:
     void writeHeader() override;
     void storeLocusNames();
     void writeLociNames();
+    void initOutputFiles() override;
 
     template <class T>
     void writeLFMM(T genotypes) {
@@ -109,6 +112,7 @@ private:
     void writeRefAndAlt();
     void writeData(TPopulationLikehoodLocus & data) override;
     void writePosition();
+    void initOutputFiles() override;
 
 public:
     TVcfToPosFile(TParameters &Params, TLog *Logfile);
@@ -116,5 +120,30 @@ public:
     void vcfToPosFile(TParameters & Params);
 };
 
+class TVcfToGenotypeTruthSetFile : public TVcfConverter {
+private:
+    TBed ** bedFiles;
+    TOutputFilePlain * genFile;
+
+    int minDistanceToPreviousLocus;
+    long positionPreviousLocus;
+    int numSamplesPerLocus;
+    std::string curChr;
+
+    void writeHeader() override;
+    void writeData(TPopulationLikehoodLocus & data) override;
+    void filterIndividuals(TPopulationLikehoodLocus & data);
+    void mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
+    void filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<double> > & depthVsSampleIndexMap);
+    void writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
+    void storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
+    void initOutputFiles() override;
+    void resetDistance();
+
+public:
+    TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile);
+    ~TVcfToGenotypeTruthSetFile();
+    void vcfToGenotypeTruthSetFile(TParameters & Params);
+};
 
 #endif //ATLAS_TVCFCONVERTER_H
