@@ -517,7 +517,11 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
 
     // write bed files (one per sample)
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
-        bedFiles[s]->write(_outname + "_" + samples.getNameFromOrderedIndex(s) + ".bed");
+        // check if sample name contains / (would be interpreted as path)
+        std::string sample_name = samples.getNameFromOrderedIndex(s);
+        if (stringContains(sample_name, '/'))
+            sample_name = stringReplace("/", "_", sample_name);
+        bedFiles[s]->write(_outname + "_" + sample_name + ".bed");
     }
 
     // clean up
