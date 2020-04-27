@@ -682,6 +682,16 @@ public:
     };
 };
 
+class TTask_VCFToGenotypeTruthSetFile:public TTask_atlas{
+public:
+    TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(parameters, logfile);
+        VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(parameters);
+    };
+};
+
 class TTask_VCFFixInt:public TTask_atlas{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
