@@ -71,8 +71,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
 
 	//prior
-	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.7);
-	beta = Parameters.getParameterDoubleWithDefault("beta", 0.7);
+	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.5);
+	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
 
@@ -125,6 +125,9 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	}
 	density_grid = new double[gridSize];
 	f_grid = new double[gridSize];
+
+	//mcmcSamples
+	mcmcSamplesInitialized = false;
 };
 
 TAlleleFreqEstimatorBayes::~TAlleleFreqEstimatorBayes(){
@@ -132,7 +135,6 @@ TAlleleFreqEstimatorBayes::~TAlleleFreqEstimatorBayes(){
 	delete[] density_initialGrid;
 	delete[] f_grid;
 	delete[] density_grid;
-	delete mcmcSamples;
 };
 
 double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
@@ -200,11 +202,12 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 	//prepare MCMC
 	int numAccepted = 1;
 	double proposalWidth = frac * (f_CI_upper - f_CI_lower);
-	pGenotype.set(maxPriorSupport);
+	pGenotype.set(f_MAP);
 	double oldLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 
 	mcmcSamples = new double[numIterations];
-	mcmcSamples[0] = maxPriorSupport;
+	mcmcSamplesInitialized = true;
+	mcmcSamples[0] = f_MAP;
 
 	//run MCMC
 	for(uint32_t i=1; i<numIterations; ++i){
@@ -213,9 +216,9 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 		double newFreq = mcmcSamples[i-1] + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
 
 		//mirror
-		if(newFreq < minPriorSupport){
+		if(newFreq < 0.0){
 			newFreq = -newFreq;
-		} else if(newFreq > maxPriorSupport){
+		} else if(newFreq > 1.0){
 			newFreq = 2.0 - newFreq;
 		}
 
@@ -223,6 +226,7 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 		pGenotype.set(newFreq);
 		double newLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 		double h = newLL - oldLL;
+//		std::cout << "h " << h << " newLL " << newLL << " oldLL " << oldLL << std::endl;
 		double r = log(randomGenerator->getRand());
 		if(r < h){
 			oldLL = newLL;
@@ -329,7 +333,7 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(const TSampleLikelihoo
 	//now find 90% CI by iteratively adding on left and right of MAP, depending on which has higher LL
 	double relevantIntegral = credibleInterval * integral;
 	while(CI < relevantIntegral){
-		if(left < 0 || density_grid[left] < density_grid[right]){
+		if(right < gridSize && (left < 0 || density_grid[left] < density_grid[right] )){
 			//add at right
 			double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
 			if(CI + add > relevantIntegral){
@@ -469,7 +473,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//3) Bayesian HW estimator (optional)
 	TAlleleFreqEstimatorBayes* BHWEstimator;
-	bool doBayesian = false;
+	bool doBayesian;
 	if(Parameters.parameterExists("doBayesian")){
 		doBayesian = true;
 		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
@@ -597,7 +601,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		throw "Cannot run MCMC for less than 1 iteration!";
 	if(frac <= 0.0)
 		throw "proposalFrac must be larger than 0!";
-	logfile->list("Running MCMC for " + toString(numIterations) + " iterations (parameter 'iterations') with a propsal width of " + toString(frac) + " times the 90% confidence interval (parameter 'proposalFrac').");
+	logfile->list("Running MCMC for " + toString(numIterations) + " iterations with a propsal width of " + toString(frac) + " times the 90% confidence interval.");
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
@@ -644,14 +648,28 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
 
+
+//	//MCMC file
+//	std::string tempOut = "MCMC.txt.gz";
+//	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
+//	TOutputFileZipped outT(tempOut);
+//
+//	//write header
+//	std::vector<std::string> h = {"prague", "tollense"};
+//	outT.writeHeader(h);
+
+
     //pairwise comparisons
 	for(int p1=0; p1<(samples.numPopulations()-1); ++p1){
-		//compare populations
 		for(int p2 = p1+1; p2 < samples.numPopulations(); ++p2){
 			logfile->list("Comparing allele frequencies of '" + samples.getPopulationName(p1) + "' and '" + samples.getPopulationName(p2)+ "'");
 
 			int smallerThan = 0;
 			for(int i=0; i<numIterations; ++i){
+//				outT << mcmcChains[p1][i];
+//				outT << mcmcChains[p2][i];
+//				outT.endLine();
+
 				if(mcmcChains[p1][i] < mcmcChains[p2][i]){
 					++smallerThan;
 				}
@@ -660,40 +678,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		}
 	}
 
-	//write MCMC to file?
-	std::string writePop = Parameters.getParameterStringWithDefault("writeMCMC", "");
-	std::vector<std::string> popToWriteMCMC;
-	std::map<std::string, int> writePopMap;
-	TOutputFileZipped outT;
-
-	if(Parameters.parameterExists("writeMCMC")){
-		std::string tempOut = tmp + "_MCMC.txt.gz";
-		logfile->list("Will write MCMC chains to file '" + tempOut + "'.");
-		TOutputFileZipped outT(tempOut);
-		fillVectorFromString(writePop, popToWriteMCMC, ',');
-
-		//write header
-		outT.writeHeader(popToWriteMCMC);
-
-		//fill map
-		for(unsigned int i=0; i<popToWriteMCMC.size(); ++i){
-			if(samples.populationExists(popToWriteMCMC[i]))
-				writePopMap.emplace(popToWriteMCMC[i], i);
-			else
-				throw "Population '" + popToWriteMCMC[i] + "' does not exist!";
-		}
-
-
-		//write to file
-		for(int i=0; i<numIterations; ++i){
-			for(int p1=0; p1<(samples.numPopulations()); ++p1){
-				if(writePopMap.find(samples.getPopulationName(p1)) != writePopMap.end())
-					outT << mcmcChains[p1][i];
-			}
-			outT.endLine();
-		}
-		outT.close();
-	}
+//	outT.close();
 
 	//clean up
 	out << std::endl;

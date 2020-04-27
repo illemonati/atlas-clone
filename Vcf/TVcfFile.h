@@ -37,15 +37,13 @@ public:
 	bool eof;
 	double totalFileSize;
 	std::string filename, outputFilename;
-	bool limitFormatColsToWrite;
-	std::map<std::string, int> formatColsToWrite;
 
 	//vector<TVcfFilter> filters;
 	//bool applyFilters;
 
 	std::vector<std::string> unknownHeader;
 
-	TVcfFile_base();
+	TVcfFile_base(){currentLine=0; automaticallyWriteVcf=false;eof=false;numCols=-1;totalFileSize=-1;myOutStream=NULL; myStream=NULL; inputStreamOpend=false; outputStreamOpend=false;};
 	TVcfFile_base(std::string & filename, bool zipped);
 	virtual ~TVcfFile_base(){
 		if(inputStreamOpend) delete myStream;
@@ -72,7 +70,6 @@ public:
 	GTLikelihoods _genotypeLikelihoods(TVcfLine* line, unsigned int sample);
 	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
 	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
-	void addFormatColl(TVcfLine* line, std::string tag);
 	void fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	void fillLog10GenotypeLikelihoods(TVcfLine* line, unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	int sampleNumber(std::string & Name);
@@ -129,7 +126,6 @@ public:
 	GTLikelihoods genotypeLikelihoods(unsigned int sample);
 	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
 	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
-	void addFormatCol(const std::string tag);
 	void fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	//variant info

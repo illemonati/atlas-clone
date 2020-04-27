@@ -83,6 +83,7 @@ private:
 	double minPriorSupport, maxPriorSupport;
 	double priorDensAtMin, priorDensAtMax;
 	double* mcmcSamples;
+	bool mcmcSamplesInitialized;
 
 	double guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 	double _prior(const double & f);

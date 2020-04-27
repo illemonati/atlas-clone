@@ -248,7 +248,6 @@ public:
 	void writeInfoHeader(std::ostream &  out);
 	void writeFormatHeader(std::ostream &  out);
 	void writeLine(TVcfLine & line, std::ostream & out);
-	void writeLine(TVcfLine & line, std::ostream & out, std::map<std::string, int> formatColsToWrite);
 };
 
 #endif /* TVCFPARSER_H_ */
