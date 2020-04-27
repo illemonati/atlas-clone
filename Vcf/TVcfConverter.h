@@ -9,6 +9,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TVcfFile.h"
+#include "TVCFFields.h"
 #include "../PopulationTools/TPopulationLikelihoods.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"
 #include "../GLF/TGLF.h"
@@ -114,6 +115,17 @@ public:
     TVcfToPosFile(TParameters &Params, TLog *Logfile);
     ~TVcfToPosFile();
     void vcfToPosFile(TParameters & Params);
+};
+
+class TVcfToVcf: public TVcfConverter {
+private:
+	void writeRefAndAlt();
+    void writeHeader() override;
+    void writeData(TPopulationLikehoodLocus & data) override;
+
+public:
+    TVcfToVcf(TParameters &Params, TLog *Logfile);
+    virtual ~TVcfToVcf(){};
 };
 
 

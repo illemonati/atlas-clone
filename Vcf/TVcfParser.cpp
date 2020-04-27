@@ -1041,7 +1041,73 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	}
 
 	out << std::endl;
-}
+};
+
+void TVcfParser::writeLine(TVcfLine & line, std::ostream & out, std::map<std::string, int> formatColsToWrite){
+	//position
+	if(line.positionParsed) out << line.chr << "\t" << line.pos;
+	else out << line.data[cols.Chr] << "\t" << line.data[cols.Pos];
+
+	//id
+	if(line.idParsed) out << "\tERROR"; // we do not yet parse id
+	else out << "\t" << line.data[cols.Id];
+
+	//variant
+	if(line.variantParsed){
+		out << "\t";
+		line.writeVariant(out);
+	} else out << "\t" << line.data[cols.Ref] << "\t" << line.data[cols.Alt];
+
+	//qual
+	if(line.qualityParsed) out << "\t" << line.variantQuality;
+	else out << "\t" << line.data[cols.Qual];
+
+	//filter
+	if(line.filterParsed) out << "\tERROR"; // we do not yet parse it
+	else out << "\t" << line.data[cols.Filter];
+
+	//info
+	if(line.infoParsed){
+		out << "\t";
+		std::vector<std::string>::iterator i;
+		bool first=true;
+		for(std::map<std::string, std::vector<std::string> >::iterator it=line.info.begin(); it!=line.info.end(); ++it){
+			if(first) first=false;
+			else out << ";";
+			out << it->first;
+			if(it->second.size()>0){
+				out << "=" << it->second[0];
+				for(i=it->second.begin()+1; i!=it->second.end(); ++i){
+					out << "," << *i;
+				}
+			}
+		}
+	} else out << "\t" << line.data[cols.Info];
+
+	//format
+	if(line.formatParsed){
+		std::vector<std::string>::iterator it=line.formatOrdered.begin();
+		out << "\t" << *it; ++it;
+		for(;it!=line.formatOrdered.end(); ++it){
+			if(formatColsToWrite.find(*it) != formatColsToWrite.end()){
+				out << ":" << *it;
+			}
+		}
+	} else out << "\t" << line.data[cols.Format];
+
+	//samples
+	if(line.samplesParsed){
+		for(std::vector<TVcfSample>::iterator it=line.samples.begin(); it!=line.samples.end(); ++it){
+			it->write(out, line.formatOrdered.size());
+		}
+	} else {
+		for(int i=cols.FirstInd; i<maxIndColPlusOne; ++i){
+			out << "\t" << line.data[i];
+		}
+	}
+
+	out << std::endl;
+};
 
 
 

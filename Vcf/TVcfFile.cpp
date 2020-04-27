@@ -8,6 +8,19 @@
 #include "TVcfFile.h"
 
 //--------------------------------------------------------------------
+TVcfFile_base::TVcfFile_base(){
+	currentLine=0;
+	automaticallyWriteVcf=false;
+	eof=false;
+	numCols=-1;
+	totalFileSize=-1;
+	myOutStream=NULL;
+	myStream=NULL;
+	inputStreamOpend=false;
+	outputStreamOpend=false;
+	limitFormatColsToWrite = false;
+};
+
 TVcfFile_base::TVcfFile_base(std::string & Filename, bool zipped){
 	filename = Filename;
 	eof=false;
@@ -123,6 +136,10 @@ GTLikelihoods TVcfFile_base::_genotypeLikelihoodsPhred(TVcfLine* line, unsigned 
 
 void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl){
 	parser.fillGenotypeLikelihoods(*line, sample, gtl);
+}
+
+void TVcfFile_base::addFormatColl(TVcfLine* line, std::string tag){
+	parser.addFormatCol(tag, *line);
 }
 
 void TVcfFile_base::fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
@@ -276,7 +293,11 @@ GTLikelihoods TVcfFileSingleLine::genotypeLikelihoodsPhred(unsigned int sample){
 }
 void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl){
 	fillGenotypeLiklihoods(&tempLine, sample, gtl);
-}
+};
+
+void TVcfFileSingleLine::addFormatCol(const std::string tag){
+	addFormatColl(&tempLine, tag);
+};
 
 void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
 	fillPherdScore(&tempLine, sample, gtl_0, gtl_1, gtl_2);
