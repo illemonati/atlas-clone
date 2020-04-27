@@ -660,12 +660,14 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		trueAlleleFreq = tmp2;
 		trueAlleleFreqProvided = true;
 		logfile->list("Initializing allele frequencies to true values read from trueAlleleFreq file");
+		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 	} else if(parameters.parameterExists("initialP")){
 		p.setToValue(parameters.getParameterDouble("initialP"));
 		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameterDouble("initialP")) + ". (parameter 'initialP')");
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
 		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
+		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 		trueAlleleFreqProvided = false;
 	}
 	double probMovingToModel0 = parameters.getParameterDoubleWithDefault("probMovingToModelP0", 0.1);

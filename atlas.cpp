@@ -59,6 +59,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("alleleCounts", new TTask_estimateAlleleCounts());
 	main.addRegularTask("transformCountFormat", new TTask_transformAlleleCountFormat());
 	main.addRegularTask("alleleFreq", new TTask_estimateAlleleFreq());
+	main.addRegularTask("compareAlleleFreq", new TTask_compareAlleleFreq());
 	main.addRegularTask("inbreeding", new TTask_estimateInbreeding());
 	main.addRegularTask("VCFAssessAllelicBalance", new TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());
@@ -75,8 +76,6 @@ void addTaks(TMain & main) {
 	main.addDebugTask("alleleFrequencyLikelihoods", new TTask_writeAlleleFrequencyLikelihoods);
 	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
 	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
-
-
 };
 
 void addTests(TMain & main){

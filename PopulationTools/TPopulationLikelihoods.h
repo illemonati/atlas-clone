@@ -172,7 +172,6 @@ public:
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
-	int numSamplesWithDataInPopulation(int population);
 	void writePosition(TOutputFile & out);
 };
 

@@ -51,7 +51,7 @@ private:
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
-	double estimate(TPopulationLikehoodLocus & storage, double epsilonF, TGlfConverter & glfConverter);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF, TGlfConverter & glfConverter);
 };
 
 //------------------------------------------------
@@ -82,30 +82,35 @@ private:
 	double* density_grid;
 	double minPriorSupport, maxPriorSupport;
 	double priorDensAtMin, priorDensAtMax;
+	double* mcmcSamples;
+	bool mcmcSamplesInitialized;
 
-	double guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 	double _prior(const double & f);
 	double _prior(const THardyWeinbergGenotypeProbabilities & pGenotype);
-	double calcPosterior(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
-	void fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
-	void estimateMAP(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
-	void estimateCredibleIntervals(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double calcPosterior(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter);
+	void fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
+	void estimateMAP(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
+	void estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 
 public:
 	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator);
 	~TAlleleFreqEstimatorBayes();
-	double estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
 
 	double credibleIntervalUsed(){ return credibleInterval; };
 	double MAP(){ return f_MAP; };
 	double lowerCredibleInterval(){ return f_CI_lower; };
 	double upperCredibleInterval(){ return f_CI_upper; };
+	double runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter, const uint32_t numIterations, const double frac);
+	double* getMcmcSamples(){ return mcmcSamples; };
 };
 
 //------------------------------------------------
 //TAlleleFreqEstimator
 //------------------------------------------------
 class TAlleleFreqEstimator{
+private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
@@ -118,9 +123,14 @@ class TAlleleFreqEstimator{
 	//data on loci
 	long _numLoci;
 
+	std::vector<std::string> writeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
+	void writeEstimatesOnePop(TOutputFileZipped & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, int numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
+	std::vector<std::string> writeHeaderAlleleFreqComparison(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator);
+
 public:
 	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);
 	void estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
+	void compareAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
 };
 
 
