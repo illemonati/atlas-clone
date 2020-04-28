@@ -677,11 +677,17 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		outT.writeHeader(popToWriteMCMC);
 
 		//fill map
-		for(unsigned int i=0; i<popToWriteMCMC.size(); ++i){
-			if(samples.populationExists(popToWriteMCMC[i]))
-				writePopMap.emplace(popToWriteMCMC[i], i);
-			else
-				throw "Population '" + popToWriteMCMC[i] + "' does not exist!";
+		if(writePop.size() == 1 && popToWriteMCMC[0] == "all"){
+	 		for(int p=0; p<samples.numPopulations(); p++){
+	 			writePopMap.emplace(samples.getPopulationName(p), 1);
+	 		}
+		} else {
+			for(unsigned int i=0; i<popToWriteMCMC.size(); ++i){
+				if(samples.populationExists(popToWriteMCMC[i]))
+					writePopMap.emplace(popToWriteMCMC[i], 1);
+				else
+					throw "Population '" + popToWriteMCMC[i] + "' does not exist!";
+			}
 		}
 
 		//write to file
