@@ -71,8 +71,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
 
 	//prior
-	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.5);
-	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
+	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.7);
+	beta = Parameters.getParameterDoubleWithDefault("beta", 0.7);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
 
@@ -216,9 +216,9 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 		double newFreq = mcmcSamples[i-1] + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
 
 		//mirror
-		if(newFreq < 0.0){
+		if(newFreq < minPriorSupport){
 			newFreq = -newFreq;
-		} else if(newFreq > 1.0){
+		} else if(newFreq > maxPriorSupport){
 			newFreq = 2.0 - newFreq;
 		}
 
@@ -226,7 +226,6 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 		pGenotype.set(newFreq);
 		double newLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 		double h = newLL - oldLL;
-//		std::cout << "h " << h << " newLL " << newLL << " oldLL " << oldLL << std::endl;
 		double r = log(randomGenerator->getRand());
 		if(r < h){
 			oldLL = newLL;
@@ -473,7 +472,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//3) Bayesian HW estimator (optional)
 	TAlleleFreqEstimatorBayes* BHWEstimator;
-	bool doBayesian;
+	bool doBayesian = false;
 	if(Parameters.parameterExists("doBayesian")){
 		doBayesian = true;
 		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
@@ -648,17 +647,6 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
 
-
-//	//MCMC file
-//	std::string tempOut = "MCMC.txt.gz";
-//	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
-//	TOutputFileZipped outT(tempOut);
-//
-//	//write header
-//	std::vector<std::string> h = {"prague", "tollense"};
-//	outT.writeHeader(h);
-
-
     //pairwise comparisons
 	for(int p1=0; p1<(samples.numPopulations()-1); ++p1){
 		for(int p2 = p1+1; p2 < samples.numPopulations(); ++p2){
@@ -666,10 +654,6 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
 			int smallerThan = 0;
 			for(int i=0; i<numIterations; ++i){
-//				outT << mcmcChains[p1][i];
-//				outT << mcmcChains[p2][i];
-//				outT.endLine();
-
 				if(mcmcChains[p1][i] < mcmcChains[p2][i]){
 					++smallerThan;
 				}
@@ -678,7 +662,38 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		}
 	}
 
-//	outT.close();
+	//write MCMC to file?
+	std::string writePop = Parameters.getParameterStringWithDefault("writeMCMC", "");
+	std::vector<std::string> popToWriteMCMC;
+	std::map<std::string, int> writePopMap;
+	TOutputFileZipped outT;
+	if(Parameters.parameterExists("writeMCMC")){
+		std::string tempOut = tmp + "_MCMC.txt.gz";
+		logfile->list("Will write MCMC chains to file '" + tempOut + "'.");
+		TOutputFileZipped outT(tempOut);
+		fillVectorFromString(writePop, popToWriteMCMC, ',');
+
+		//write header
+		outT.writeHeader(popToWriteMCMC);
+
+		//fill map
+		for(unsigned int i=0; i<popToWriteMCMC.size(); ++i){
+			if(samples.populationExists(popToWriteMCMC[i]))
+				writePopMap.emplace(popToWriteMCMC[i], i);
+			else
+				throw "Population '" + popToWriteMCMC[i] + "' does not exist!";
+		}
+
+		//write to file
+		for(int i=0; i<numIterations; ++i){
+			for(int p1=0; p1<(samples.numPopulations()); ++p1){
+				if(writePopMap.find(samples.getPopulationName(p1)) != writePopMap.end())
+					outT << mcmcChains[p1][i];
+			}
+			outT.endLine();
+		}
+		outT.close();
+	}
 
 	//clean up
 	out << std::endl;

@@ -527,3 +527,26 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     // clean up
     genFile->close();
 }
+
+/***************************************
+ * 					*
+ * 	Vcf to Vcf (filter, convert,...)*
+ * 					*
+ ***************************************/
+
+
+TVcfToVcf::TVcfToVcf(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params){
+	//open output file
+	std::string filename = _outname + (std::string) "_filtered.vcf.gz";
+	gz::ogzstream out(filename.c_str());
+	if(!out) throw "Failed to open outputfile '" + filename + "'!";
+	reader->setOutStream(out);
+};
+
+void TVcfToVcf::writeData(TPopulationLikehoodLocus & data){
+	reader->writeVCFLine();
+};
+
+void TVcfToVcf::writeHeader(){
+	reader->writeUnknownHeader();
+};

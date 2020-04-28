@@ -42,6 +42,13 @@ public:
 	TPopulationSamples(std::string filename, TLog* logfile);
 	~TPopulationSamples();
 
+	bool populationExists(const std::string & name){
+		if(populations.find(name) != populations.end())
+			return true;
+		else
+			return false;
+
+	};
 	bool hasSamples(){ return _hasSamples; };
 	uint32_t numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
@@ -133,6 +140,10 @@ public:
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
 	uint32_t getMinNumSamplesWithData(){return minNumSamplesWithData; };
+	void writeUnknownHeader(){ vcfFile.writeHeaderVCF_4_0(); };
+	int variantQuality(){ return vcfFile.variantQuality(); };
+	void setOutStream(std::ostream & os){ vcfFile.setOutStream(os); };
+	void writeVCFLine(){ vcfFile.writeLine(); };
 };
 
 class TPopulationLikelihoodReaderLocus:public TPopulationLikelihoodReader{

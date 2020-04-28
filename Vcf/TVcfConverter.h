@@ -146,4 +146,15 @@ public:
     void vcfToGenotypeTruthSetFile(TParameters & Params);
 };
 
+class TVcfToVcf: public TVcfConverter {
+private:
+	void writeRefAndAlt();
+	void writeHeader() override;
+	void writeData(TPopulationLikehoodLocus & data) override;
+
+public:
+	TVcfToVcf(TParameters &Params, TLog *Logfile);
+	virtual ~TVcfToVcf(){};
+};
+
 #endif //ATLAS_TVCFCONVERTER_H

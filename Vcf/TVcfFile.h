@@ -43,7 +43,7 @@ public:
 
 	std::vector<std::string> unknownHeader;
 
-	TVcfFile_base(){currentLine=0; automaticallyWriteVcf=false;eof=false;numCols=-1;totalFileSize=-1;myOutStream=NULL; myStream=NULL; inputStreamOpend=false; outputStreamOpend=false;};
+	TVcfFile_base();
 	TVcfFile_base(std::string & filename, bool zipped);
 	virtual ~TVcfFile_base(){
 		if(inputStreamOpend) delete myStream;
