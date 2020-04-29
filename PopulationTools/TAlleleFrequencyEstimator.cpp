@@ -271,11 +271,13 @@ void TAlleleFreqEstimatorBayes::estimateMAP(const TSampleLikelihoods* storage, c
 
 	//check if MAP is zero or one
 	if(density_initialGrid[0] >= logDensity_atMAP){
-		f_MAP = 0.0;
-		logDensity_atMAP = density_initialGrid[0];
+		f_MAP = minPriorSupport;
+		pGenotype.set(f_MAP);
+		logDensity_atMAP = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 	} else if(density_initialGrid[initialGridLast] >= logDensity_atMAP){
-		f_MAP = 1.0;
-		logDensity_atMAP = density_initialGrid[initialGridLast];
+		f_MAP = maxPriorSupport;
+		pGenotype.set(f_MAP);
+		logDensity_atMAP = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 	}
 };
 
@@ -331,6 +333,10 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(const TSampleLikelihoo
 
 	//now find 90% CI by iteratively adding on left and right of MAP, depending on which has higher LL
 	double relevantIntegral = credibleInterval * integral;
+	if(CI >= relevantIntegral){
+		f_CI_upper = f_grid[right];
+		f_CI_lower = f_grid[left];
+	}
 	while(CI < relevantIntegral){
 		if(right < gridSize && (left < 0 || density_grid[left] < density_grid[right] )){
 			//add at right
@@ -427,7 +433,8 @@ void TAlleleFreqEstimator::writeEstimatesOnePop(TOutputFileZipped & out, TGenoty
 
 	//Bayesian estimation
 	if(doBayesian){
-		out << BHWEstimator->estimate(samples, numSamples, glfConverter);
+		double MAP = BHWEstimator->estimate(samples, numSamples, glfConverter);
+		out << MAP;
 		out << BHWEstimator->lowerCredibleInterval();
 		out << BHWEstimator->upperCredibleInterval();
 	}
