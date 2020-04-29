@@ -363,7 +363,7 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     //                              -> write genotypes of these individuals to genfile; write genotypes of all other individuals as NA to genfile
     //                   -> Else: write genotypes of all individuals as NA to genfile
     // format:
-    //   - produces a BED file (3 columns, col 1 = chromosome, col 2 = start (0-based), col 3 = stop) for each individual
+    //   - produces a BED file (3 columns, col 1 = chromosome, col 2 = start (1-based), col 3 = stop) for each individual
     //   - produces a genfile
     //      - tab-separated
     //      - header = sample names from vcf
@@ -484,7 +484,7 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
-            bedFiles[s]->addSite(reader->positionZeroBased());
+            bedFiles[s]->addSite(reader->position());
     }
     positionPreviousLocus = reader->position();
 }
