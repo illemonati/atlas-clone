@@ -105,11 +105,11 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	density_initialGrid = new double[initialGridSize];
 	f_initialGrid = new double[initialGridSize];
 	double step = 1.0 / (double) initialGridLast;
-	f_initialGrid[0] = 0.0;
+	f_initialGrid[0] = minPriorSupport;
 	for(int i=1; i<initialGridLast; ++i){
 		f_initialGrid[i] = i * step;
 	}
-	f_initialGrid[initialGridLast] = 1.0;
+	f_initialGrid[initialGridLast] = maxPriorSupport;
 
 	//final grid
 	gridSize = Parameters.getParameterIntWithDefault("gridSize", 1001);
@@ -202,6 +202,10 @@ double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, con
 	//prepare MCMC
 	int numAccepted = 1;
 	double proposalWidth = frac * (f_CI_upper - f_CI_lower);
+	if(f_MAP == 0.0)
+		f_MAP = minPriorSupport;
+	if(f_MAP == 1.0)
+		f_MAP = maxPriorSupport;
 	pGenotype.set(f_MAP);
 	double oldLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 
@@ -271,13 +275,11 @@ void TAlleleFreqEstimatorBayes::estimateMAP(const TSampleLikelihoods* storage, c
 
 	//check if MAP is zero or one
 	if(density_initialGrid[0] >= logDensity_atMAP){
-		f_MAP = minPriorSupport;
-		pGenotype.set(f_MAP);
-		logDensity_atMAP = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
+		f_MAP = 0.0;
+		logDensity_atMAP = density_initialGrid[0];
 	} else if(density_initialGrid[initialGridLast] >= logDensity_atMAP){
-		f_MAP = maxPriorSupport;
-		pGenotype.set(f_MAP);
-		logDensity_atMAP = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
+		f_MAP = 1.0;
+		logDensity_atMAP = density_initialGrid[initialGridLast];
 	}
 };
 
@@ -336,32 +338,38 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(const TSampleLikelihoo
 	if(CI >= relevantIntegral){
 		f_CI_upper = f_grid[right];
 		f_CI_lower = f_grid[left];
-	}
-	while(CI < relevantIntegral){
-		if(right < gridSize && (left < 0 || density_grid[left] < density_grid[right] )){
-			//add at right
-			double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
-			if(CI + add > relevantIntegral){
-				f_CI_lower = f_grid[left + 1];
-				f_CI_upper = f_grid[right - 1] + step * (relevantIntegral - CI) / add;
-				break;
+	} else {
+		while(CI < relevantIntegral){
+			if(right < gridSize && (left < 0 || density_grid[left] < density_grid[right] )){
+				//add at right
+				double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
+				if(CI + add >= relevantIntegral){
+					f_CI_lower = f_grid[left + 1];
+					f_CI_upper = f_grid[right - 1] + step * (relevantIntegral - CI) / add;
+					break;
+				} else {
+					CI += add;
+					++right;
+				}
 			} else {
-				CI += add;
-				++right;
-			}
-		} else {
-			//add at left
-			double add = (density_grid[left] + density_grid[left + 1]) * halfStep;
-			if(CI + add > relevantIntegral){
-				f_CI_upper = f_grid[right - 1];
-				f_CI_lower = f_grid[left + 1] + step * (relevantIntegral - CI) / add;
-				break;
-			} else {
-				CI += add;
-				--left;
+				//add at left
+				double add = (density_grid[left] + density_grid[left + 1]) * halfStep;
+				if(CI + add >= relevantIntegral){
+					f_CI_upper = f_grid[right - 1];
+					f_CI_lower = f_grid[left + 1] + step * (relevantIntegral - CI) / add;
+					break;
+				} else {
+					CI += add;
+					--left;
+				}
 			}
 		}
 	}
+
+	if(f_CI_lower == minPriorSupport)
+		f_CI_lower = 0.0;
+	if(f_CI_upper == maxPriorSupport)
+		f_CI_upper = 1.0;
 };
 
 double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TGlfConverter & glfConverter){
@@ -601,7 +609,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
 	//variables for MCMC chains
 	std::vector<double*> mcmcChains;
-	int numIterations = Parameters.getParameterIntWithDefault("iterations", 1000);
+	int numIterations = Parameters.getParameterIntWithDefault("iterations", 100000);
 	double frac = Parameters.getParameterDoubleWithDefault("proposalFrac", 3.0);
 	if(numIterations < 1)
 		throw "Cannot run MCMC for less than 1 iteration!";
@@ -611,9 +619,9 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreqComparison.txt.gz";
-	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
-	TOutputFileZipped out(outputName);
+	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp);
+	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
+	TOutputFileZipped out(outputName + "_alleleFreqComparison.txt.gz");
 
 	//write header
 	out.writeHeader(writeHeaderAlleleFreqComparison(Parameters.parameterExists("writeGenoFreq"), BHWEstimator));
@@ -675,16 +683,14 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	std::map<std::string, int> writePopMap;
 	TOutputFileZipped outT;
 	if(Parameters.parameterExists("writeMCMC")){
-		std::string tempOut = tmp + "_MCMC.txt.gz";
+		std::string tempOut = outputName + "_MCMC.txt.gz";
 		logfile->list("Will write MCMC chains to file '" + tempOut + "'.");
 		TOutputFileZipped outT(tempOut);
 		fillVectorFromString(writePop, popToWriteMCMC, ',');
 
-		//write header
-		outT.writeHeader(popToWriteMCMC);
 
 		//fill map
-		if(writePop.size() == 1 && popToWriteMCMC[0] == "all"){
+		if(popToWriteMCMC.size() == 1 && popToWriteMCMC[0] == "all"){
 	 		for(int p=0; p<samples.numPopulations(); p++){
 	 			writePopMap.emplace(samples.getPopulationName(p), 1);
 	 		}
@@ -697,11 +703,21 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 			}
 		}
 
+		//write header
+		std::vector<std::string> header;
+ 		for(int p=0; p<samples.numPopulations(); p++){
+ 			if(writePopMap.find(samples.getPopulationName(p)) != writePopMap.end()){
+ 				header.push_back(samples.getPopulationName(p));
+ 			}
+ 		}
+ 		outT.writeHeader(header);
+
 		//write to file
 		for(int i=0; i<numIterations; ++i){
 			for(int p1=0; p1<(samples.numPopulations()); ++p1){
-				if(writePopMap.find(samples.getPopulationName(p1)) != writePopMap.end())
+				if(writePopMap.find(samples.getPopulationName(p1)) != writePopMap.end()){
 					outT << mcmcChains[p1][i];
+				}
 			}
 			outT.endLine();
 		}
