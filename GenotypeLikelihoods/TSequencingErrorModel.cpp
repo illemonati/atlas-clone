@@ -5,15 +5,15 @@
  *      Author: phaentu
  */
 
-#include <TRecalibrationEMModel.h>
+#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-bool TRecalibrationEMModelCovariateDefinition::parse(const std::string & modelString, std::string & error){
+bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString, std::string & error){
 	std::vector<std::string> tmp;
 	fillVectorFromStringAnySkipEmpty(modelString, tmp, ";");
 	for(std::string s : tmp){
@@ -47,15 +47,15 @@ bool TRecalibrationEMModelCovariateDefinition::parse(const std::string & modelSt
 	return true;
 };
 
-void TRecalibrationEMModelCovariateDefinition::setIntercept(const double Intercept){
+void TSequencingErrorCovariateDefinition::setIntercept(const double Intercept){
 	intercept = toString(Intercept);
 };
 
-void TRecalibrationEMModelCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
+void TSequencingErrorCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
 	covariateFunctions.emplace_back(covariate, function);
 };
 
-std::string TRecalibrationEMModelCovariateDefinition::getModelString(){
+std::string TSequencingErrorCovariateDefinition::getModelString(){
 	std::string modelString = "intercept[" + intercept + "]";
 	for(auto& it : covariateFunctions){
 
@@ -67,15 +67,15 @@ std::string TRecalibrationEMModelCovariateDefinition::getModelString(){
 //--------------------------------------------------------------------
 // TRecalibrationEMModelCovariateList
 //--------------------------------------------------------------------
-TRecalibrationEMModelCovariateList::TRecalibrationEMModelCovariateList(){
+TSequencingErrorCovariateList::TSequencingErrorCovariateList(){
 	numParameters = intercept.numParameters();
 };
 
-TRecalibrationEMModelCovariateList::~TRecalibrationEMModelCovariateList(){
+TSequencingErrorCovariateList::~TSequencingErrorCovariateList(){
 	_clear();
 };
 
-TRecalibrationEMModelCovariateList::TRecalibrationEMModelCovariateList(TRecalibrationEMModelCovariateList&& other){
+TSequencingErrorCovariateList::TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other){
 	//copy from other
 	covariates = std::move(other.covariates);
 	pointerToCovariateFunctions = std::move(other.pointerToCovariateFunctions);
@@ -86,7 +86,7 @@ TRecalibrationEMModelCovariateList::TRecalibrationEMModelCovariateList(TRecalibr
 	other.intercept.setIntercept(0.0);
 };
 
-TRecalibrationEMModelCovariateList& TRecalibrationEMModelCovariateList::operator=(TRecalibrationEMModelCovariateList&& other){
+TSequencingErrorCovariateList& TSequencingErrorCovariateList::operator=(TSequencingErrorCovariateList&& other){
 	if(&other != this){ //don't copy yourself
 		//clear
 		_clear();
@@ -104,8 +104,8 @@ TRecalibrationEMModelCovariateList& TRecalibrationEMModelCovariateList::operator
 	return *this;
 };
 
-void TRecalibrationEMModelCovariateList::_clear(){
-	for(TRecalibrationEMCovariate* it : covariates){
+void TSequencingErrorCovariateList::_clear(){
+	for(auto* it : covariates){
 		delete it;
 	}
 	covariates.clear();
@@ -113,7 +113,7 @@ void TRecalibrationEMModelCovariateList::_clear(){
 	intercept.setIntercept(0.0);
 };
 
-void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariateList::_createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
@@ -123,16 +123,18 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 	numParameters = intercept.numParameters();
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
 		//create function for each covariate
-		if(it->covariate == RecalCovariateName_none){
+		if(it->covariate == SequencingErrorCovariateName_none){
 			continue;
-		} else if(it->covariate == RecalCovariateName_quality){
-			covariates.emplace_back(new TRecalibrationEMCovariate_quality(numParameters, it->function, dataTable));
-		} else if(it->covariate == RecalCovariateName_position){
-			covariates.emplace_back(new TRecalibrationEMCovariate_position(numParameters, it->function, dataTable));
-		} else if(it->covariate == RecalCovariateName_context){
-			covariates.emplace_back(new TRecalibrationEMCovariate_context(numParameters, it->function, dataTable));
-		} else if(it->covariate == RecalCovariateName_fragmentLength){
-			covariates.emplace_back(new TRecalibrationEMCovariate_fragmentLength(numParameters, it->function, dataTable));
+		} else if(it->covariate == SequencingErrorCovariateName_quality){
+			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function, dataTable));
+		} else if(it->covariate == SequencingErrorCovariateName_position){
+			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function, dataTable));
+		} else if(it->covariate == SequencingErrorCovariateName_context){
+			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function, dataTable));
+		} else if(it->covariate == SequencingErrorCovariateName_fragmentLength){
+			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function, dataTable));
+		} else if(it->covariate == SequencingErrorCovariateName_mappingQuality){
+			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function, dataTable));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
 		}
@@ -145,7 +147,7 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 	_storePointersToCovariateFunctions();
 };
 
-void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap){
+void TSequencingErrorCovariateList::_createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap){
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
@@ -154,16 +156,18 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 	numParameters = intercept.numParameters();
 	for(TRecalibrationEMModelCovariateDefinitionIterator it = covariateMap.begin(); it != covariateMap.end(); ++it){
 		//create function for each covariate
-		if(it->covariate == RecalCovariateName_none){
+		if(it->covariate == SequencingErrorCovariateName_none){
 			continue;
-		} else if(it->covariate == RecalCovariateName_quality){
-			covariates.emplace_back(new TRecalibrationEMCovariate_quality(numParameters, it->function));
-		} else if(it->covariate == RecalCovariateName_position){
-			covariates.emplace_back(new TRecalibrationEMCovariate_position(numParameters, it->function));
-		} else if(it->covariate == RecalCovariateName_context){
-			covariates.emplace_back(new TRecalibrationEMCovariate_context(numParameters, it->function));
-		} else if(it->covariate == RecalCovariateName_fragmentLength){
-			throw "Covariate " + (std::string) RecalCovariateName_fragmentLength + " is currently not implemented!";
+		} else if(it->covariate == SequencingErrorCovariateName_quality){
+			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function));
+		} else if(it->covariate == SequencingErrorCovariateName_position){
+			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function));
+		} else if(it->covariate == SequencingErrorCovariateName_context){
+			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function));
+		} else if(it->covariate == SequencingErrorCovariateName_fragmentLength){
+			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function));
+		} else if(it->covariate == SequencingErrorCovariateName_mappingQuality){
+			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
 		}
@@ -176,7 +180,7 @@ void TRecalibrationEMModelCovariateList::_createCovariatesAndIntercept(TRecalibr
 	_storePointersToCovariateFunctions();
 };
 
-void TRecalibrationEMModelCovariateList::_storePointersToCovariateFunctions(){
+void TSequencingErrorCovariateList::_storePointersToCovariateFunctions(){
 	//add intercept
 	pointerToCovariateFunctions.emplace_back(&intercept);
 
@@ -187,8 +191,8 @@ void TRecalibrationEMModelCovariateList::_storePointersToCovariateFunctions(){
 	}
 };
 
-TRecalibrationEMModelCovariateDefinition TRecalibrationEMModelCovariateList::getCovariateDefinition(){
-	TRecalibrationEMModelCovariateDefinition def;
+TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateDefinition(){
+	TSequencingErrorCovariateDefinition def;
 	def.setIntercept(intercept.getIntercept());
 	for(const auto & cov : covariates){
 		def.addCovariate(cov->name(), cov->functionString());
@@ -199,7 +203,7 @@ TRecalibrationEMModelCovariateDefinition TRecalibrationEMModelCovariateList::get
 //--------------------------------------------------------------------
 // TRecalibrationEMModel
 //--------------------------------------------------------------------
-TRecalibrationEMModel::TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TLog* Logfile){
+TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile){
 	logfile = Logfile;
 	setEMParamsToZero();
 
@@ -207,7 +211,7 @@ TRecalibrationEMModel::TRecalibrationEMModel(TRecalibrationEMModelCovariateDefin
 	_covariates._createCovariatesAndIntercept(covariateMap);
 };
 
-TRecalibrationEMModel::TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
+TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
 	logfile = Logfile;
 	setEMParamsToZero();
 
@@ -215,7 +219,7 @@ TRecalibrationEMModel::TRecalibrationEMModel(TRecalibrationEMModelCovariateDefin
 	_covariates._createCovariatesAndIntercept(covariateMap, dataTable);
 };
 
-bool TRecalibrationEMModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
+bool TSequencingErrorModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
 	for(auto & cov : _covariates.covariates){
 		if(!cov->checkParameterRange(dataTable)){
 			error = "Function for covariate " + cov->name() + " does not cover full range of data";
@@ -225,7 +229,7 @@ bool TRecalibrationEMModel::checkParameterRange(TRecalibrationEMDataTable* dataT
 	return true;
 };
 
-void TRecalibrationEMModel::_initializeDerivatives(){
+void TSequencingErrorModel::_initializeDerivatives(){
 	//intercept
 	size_t numNonZeroFirstDeriv = _covariates.intercept.numNonZeroFirstDerivatives();
 	size_t numNonZeroSecondDeriv = _covariates.intercept.numNonZeroSecondDerivatives();
@@ -239,7 +243,7 @@ void TRecalibrationEMModel::_initializeDerivatives(){
 	_secondDerivatives.resize(numNonZeroSecondDeriv);
 };
 
-double TRecalibrationEMModel::_calcEpsilon(const double eta){
+double TSequencingErrorModel::_calcEpsilon(const double eta){
 	if(eta > 23.03){
 		return 0.9999999999;
 	}
@@ -250,7 +254,7 @@ double TRecalibrationEMModel::_calcEpsilon(const double eta){
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TRecalibrationEMModel::getErrorRate(const TBaseData & base){
+double TSequencingErrorModel::getErrorRate(const TBaseData & base){
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -261,7 +265,7 @@ double TRecalibrationEMModel::getErrorRate(const TBaseData & base){
 	return _calcEpsilon(eta);
 };
 
-double TRecalibrationEMModel::getErrorRate(const TRecalibrationEMReadData & data){
+double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data){
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -272,13 +276,13 @@ double TRecalibrationEMModel::getErrorRate(const TRecalibrationEMReadData & data
 	return _calcEpsilon(eta);
 };
 
-TRecalibrationEMModelCovariateDefinition TRecalibrationEMModel::getCovariateDefinition(){
+TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinition(){
 	return _covariates.getCovariateDefinition();
 };
 
 //-------------------------------------------------
 //functions for estimation
-void TRecalibrationEMModel::setEMParamsToZero(){
+void TSequencingErrorModel::setEMParamsToZero(){
 	_Jacobian.resize(_covariates.numParameters, _covariates.numParameters);
 	_F.resize(_covariates.numParameters);
 	_JxF.resize(_covariates.numParameters, 1);
@@ -293,21 +297,21 @@ void TRecalibrationEMModel::setEMParamsToZero(){
 	_NRStepAccepted = false;
 };
 
-void TRecalibrationEMModel::setQToZero(){
+void TSequencingErrorModel::setQToZero(){
 	if(!_NRconverged){
 		_oldQ = _Q;
 		_Q = 0.0;
 	}
 };
 
-void TRecalibrationEMModel::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
+void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
 	if(!_NRconverged){
 		double eps = getErrorRate(data);
 		_Q += _calcQ(eps, knownGenotype, data);
 	}
 };
 
-void TRecalibrationEMModel::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
+void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
 	if(!_NRconverged){
 		//get error rate
 		double eps = getErrorRate(data);
@@ -320,7 +324,7 @@ void TRecalibrationEMModel::addToQ(TRecalibrationEMReadData & data, double* P_g_
 	}
 };
 
-void TRecalibrationEMModel::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TSequencingErrorModel::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	//fill derivatives
 	_firstDerivatives.restart();
 	_secondDerivatives.restart();
@@ -352,7 +356,7 @@ void TRecalibrationEMModel::addToFandJacobian(const TRecalibrationEMReadData & d
 	++_numSitesAdded;
 };
 
-bool TRecalibrationEMModel::solveJxF(){
+bool TSequencingErrorModel::solveJxF(){
 	if(_NRconverged){
 		return true;
 	} else {
@@ -373,7 +377,7 @@ bool TRecalibrationEMModel::solveJxF(){
 	}
 };
 
-void TRecalibrationEMModel::proposeNewParameters(double & lambda){
+void TSequencingErrorModel::proposeNewParameters(double & lambda){
 	if(!_NRStepAccepted){
 		uint16_t index = 0;
 		for(const auto it : _covariates.pointerToCovariateFunctions){
@@ -382,7 +386,7 @@ void TRecalibrationEMModel::proposeNewParameters(double & lambda){
 	}
 };
 
-bool TRecalibrationEMModel::acceptProposedParametersBasedOnQ(){
+bool TSequencingErrorModel::acceptProposedParametersBasedOnQ(){
 	if(_NRStepAccepted) return true;
 	if(_Q > _oldQ){
 		_NRStepAccepted = true;
@@ -397,13 +401,13 @@ bool TRecalibrationEMModel::acceptProposedParametersBasedOnQ(){
 	return _NRStepAccepted;
 };
 
-void TRecalibrationEMModel::adjustParametersPostEstimation(){
+void TSequencingErrorModel::adjustParametersPostEstimation(){
 	for(const auto it : _covariates.pointerToCovariateFunctions){
 		_covariates.intercept.addToIntercept(it->adjustParametersPostEstimation());
 	}
 };
 
-double TRecalibrationEMModel::getSteepestGradient(){
+double TSequencingErrorModel::getSteepestGradient(){
 	if(_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
 	for(unsigned int i=0; i<_covariates.numParameters; ++i){
@@ -412,23 +416,23 @@ double TRecalibrationEMModel::getSteepestGradient(){
 	return maxF;
 };
 
-void TRecalibrationEMModel::printJacobianToStdOut(){
+void TSequencingErrorModel::printJacobianToStdOut(){
 	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << _Jacobian << std::endl << std::endl;
 };
 
-void TRecalibrationEMModel::printFToStdOut(){
+void TSequencingErrorModel::printFToStdOut(){
 	std::cout << std::endl << std::endl << "F:" << std::endl << _F << std::endl << std::endl;
 };
 
-void TRecalibrationEMModel::printJxFToStdOut(){
+void TSequencingErrorModel::printJxFToStdOut(){
 	std::cout << std::endl << std::endl << "JxF:" << std::endl << _JxF << std::endl << std::endl;
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModels
+// TErrorModels
 //--------------------------------------------------------------------
 //Has model definitions, which are read from file or command line. For each model definition a model is created (taking into account RG pooling)
-TRecalibrationEMModels::TRecalibrationEMModels(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
+TSequencingErrorModels::TSequencingErrorModels(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	readGroups = ReadGroups;
 	readGroupMap = ReadGroupMap;
 	totNumParameters = 0;
@@ -438,7 +442,7 @@ TRecalibrationEMModels::TRecalibrationEMModels(TReadGroups* ReadGroups,  TReadGr
 
 //general function to add and remove models
 //-----------------------------------------
-void TRecalibrationEMModels::_readRecalFile(const std::string filename, std::vector<TRecalibrationEMModelDefinition> & modelDefs){
+void TSequencingErrorModels::_readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs){
 	//read parameters from file
 	logfile->listFlush("Reading recalibration models from '" + filename + "' ...");
 
@@ -492,7 +496,7 @@ void TRecalibrationEMModels::_readRecalFile(const std::string filename, std::vec
 	logfile->done();
 };
 
-void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
+void TSequencingErrorModels::removeModel(int readGroupId, bool isSecondMate){
 	//get index of model
 	int index = readGroupIndex.index(readGroupId, isSecondMate);
 
@@ -508,7 +512,7 @@ void TRecalibrationEMModels::removeModel(int readGroupId, bool isSecondMate){
 
 // Functions to add models for estimation: dataTable is provided
 //-------------------------------------------------------------
-void TRecalibrationEMModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable){
 	if(readGroupIndex.inUse(readGroupId,isSecondMate)){
 		//check model
 		std::string error;
@@ -541,9 +545,9 @@ void TRecalibrationEMModels::addModel(const uint16_t readGroupId, const bool isS
 	}
 };
 
-void TRecalibrationEMModels::addModelsFromFile(const std::string filename, TRecalibrationEMDataTables* dataTables){
+void TSequencingErrorModels::addModelsFromFile(const std::string filename, TRecalibrationEMDataTables* dataTables){
 	//read recal file
-	std::vector<TRecalibrationEMModelDefinition> modelDefs;
+	std::vector<TSequencingErrorModelDefinition> modelDefs;
 	_readRecalFile(filename, modelDefs);
 
 	//now create models
@@ -560,7 +564,7 @@ void TRecalibrationEMModels::addModelsFromFile(const std::string filename, TReca
 
 // Functions to add models for recalibration: no dataTable is provided
 //-------------------------------------------------------------------
-void TRecalibrationEMModels::createModels(std::string s){
+void TSequencingErrorModels::createModels(std::string s){
 	//initialize from string or file
 	size_t pos = s.find_first_of('=');
 	if(pos == std::string::npos){
@@ -570,7 +574,7 @@ void TRecalibrationEMModels::createModels(std::string s){
 	}
 };
 
-void TRecalibrationEMModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariateFunctions){
+void TSequencingErrorModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions){
 	if(!readGroupIndex.inUse(readGroupId,isSecondMate)){
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
 		models.emplace_back(covariateFunctions, logfile);
@@ -578,12 +582,12 @@ void TRecalibrationEMModels::addModel(const uint16_t readGroupId, const bool isS
 	}
 };
 
-void TRecalibrationEMModels::_createModelsFromString(const std::string & s){
+void TSequencingErrorModels::_createModelsFromString(const std::string & s){
 	//s has format model[param1, param2, param3, ...]
 	logfile->startIndent("Initializing recal with string '" + s + "' for all read groups:");
 
 	std::string error;
-	TRecalibrationEMModelCovariateDefinition modelDef(s, error);
+	TSequencingErrorCovariateDefinition modelDef(s, error);
 	if(!error.empty()){
 		throw error + "!";
 	}
@@ -596,9 +600,9 @@ void TRecalibrationEMModels::_createModelsFromString(const std::string & s){
 	logfile->endIndent();
 };
 
-void TRecalibrationEMModels::_createModelsFromFile(std::string filename){
+void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 	//read recal file
-	std::vector<TRecalibrationEMModelDefinition> modelDefs;
+	std::vector<TSequencingErrorModelDefinition> modelDefs;
 	_readRecalFile(filename, modelDefs);
 
 	//now create models
@@ -621,24 +625,24 @@ void TRecalibrationEMModels::_createModelsFromFile(std::string filename){
 
 // functions for reporting / writing
 //-------------------------------------------------------------------
-bool TRecalibrationEMModels::hasReadGroupsWithoutModel(){
+bool TSequencingErrorModels::hasReadGroupsWithoutModel(){
 	return readGroupIndex.hasCasesWithoutIndex();
 };
 
-void TRecalibrationEMModels::addNoRecalModelIfMissing(){
+void TSequencingErrorModels::addNoRecalModelIfMissing(){
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	std::pair<int, bool> missingReadGroupInfo;
-	TRecalibrationEMModelCovariateDefinition empty;
+	TSequencingErrorCovariateDefinition empty;
 	while(readGroupIndex.nextNotInUse(missingReadGroupInfo)){
 		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, empty);
 	}
 };
 
-void TRecalibrationEMModels::reportReadGroupsNotUsed(){
+void TSequencingErrorModels::reportReadGroupsNotUsed(){
 	readGroupIndex.reportReadGroupsNotUsed(logfile);
 };
 
-void TRecalibrationEMModels::reportReadGroupsConsideredSingleEnd(){
+void TSequencingErrorModels::reportReadGroupsConsideredSingleEnd(){
 	if(readGroupIndex.hasCasesWithoutSecondMate()){
 		logfile->startIndent("Will assume the following read groups to be single end (no recalibration provided for second mate):");
 		readGroupIndex.reportReadGroupsConsideredSingleEnd(logfile);
@@ -646,11 +650,11 @@ void TRecalibrationEMModels::reportReadGroupsConsideredSingleEnd(){
 	}
 };
 
-void TRecalibrationEMModels::warningForMissingReadGroups(){
+void TSequencingErrorModels::warningForMissingReadGroups(){
 	readGroupIndex.warningForMissingReadGroups(logfile);
 };
 
-void TRecalibrationEMModels::writeRecalFile(const std::string filename){
+void TSequencingErrorModels::writeRecalFile(const std::string filename){
 	//open file and write header
 	TOutputFilePlain out(filename);
 	out.writeHeader({"ReadGroup", "Mate", "Model"});
@@ -667,43 +671,43 @@ void TRecalibrationEMModels::writeRecalFile(const std::string filename){
 	}
 };
 
-void TRecalibrationEMModels::_writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate){
+void TSequencingErrorModels::_writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate){
 	if(readGroupIndex.inUse(readGroup, isSecondMate)){
 		out << readGroupName;
 		if(isSecondMate) out << "second";
 		else out << "first";
-		TRecalibrationEMModelCovariateDefinition def = models[ readGroupIndex.index(readGroup, isSecondMate) ].getCovariateDefinition();
+		TSequencingErrorCovariateDefinition def = models[ readGroupIndex.index(readGroup, isSecondMate) ].getCovariateDefinition();
 		out << def.getModelString() << std::endl;
 	}
 };
 
 // functions for estimation
 //-------------------------------------------------------------------
-void TRecalibrationEMModels::setEMParamsToZero(){
+void TSequencingErrorModels::setEMParamsToZero(){
 	for(auto& model : models){
 		model.setEMParamsToZero();
 	}
 };
 
-void TRecalibrationEMModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
+void TSequencingErrorModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
 	models[ readGroupIndex.index(data) ].addToFandJacobian(data, weightF, weightJacobian);
 };
 
-void TRecalibrationEMModels::setQToZero(){
+void TSequencingErrorModels::setQToZero(){
 	for(auto& model : models){
 		model.setQToZero();
 	}
 };
 
-void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
+void TSequencingErrorModels::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
 	models[ readGroupIndex.index(data) ].addToQ(data, P_g_given_d_oldBeta);
 };
 
-void TRecalibrationEMModels::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
+void TSequencingErrorModels::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
 	models[ readGroupIndex.index(data) ].addToQ(data, knownGenotype);
 };
 
-double TRecalibrationEMModels::curQ(){
+double TSequencingErrorModels::curQ(){
 	double Q = 0.0;
 	for(auto& model : models){
 		Q += model.curQ();
@@ -711,7 +715,7 @@ double TRecalibrationEMModels::curQ(){
 	return Q;
 };
 
-bool TRecalibrationEMModels::solveJxF(){
+bool TSequencingErrorModels::solveJxF(){
 	bool couldSolve = true;
 	for(auto& model : models){
 		if(!model.solveJxF()){
@@ -723,13 +727,13 @@ bool TRecalibrationEMModels::solveJxF(){
 	return couldSolve;
 };
 
-void TRecalibrationEMModels::proposeNewParameters(double lambda){
+void TSequencingErrorModels::proposeNewParameters(double lambda){
 	for(auto& model : models){
 		model.proposeNewParameters(lambda);
 	}
 };
 
-unsigned int TRecalibrationEMModels::acceptProposedParametersBasedOnQ(){
+unsigned int TSequencingErrorModels::acceptProposedParametersBasedOnQ(){
 	unsigned int numAccepted = 0;
 	for(auto& model : models){
 		numAccepted += (unsigned int) model.acceptProposedParametersBasedOnQ();
@@ -737,13 +741,13 @@ unsigned int TRecalibrationEMModels::acceptProposedParametersBasedOnQ(){
 	return numAccepted;
 };
 
-void TRecalibrationEMModels::adjustParametersPostEstimation(){
+void TSequencingErrorModels::adjustParametersPostEstimation(){
 	for(auto& model : models){
 		model.adjustParametersPostEstimation();
 	}
 };
 
-double TRecalibrationEMModels::getSteepestGradient(){
+double TSequencingErrorModels::getSteepestGradient(){
 	double maxF = 0.0;
 	for(auto& model : models){
 		double tmp = model.getSteepestGradient();
@@ -752,7 +756,6 @@ double TRecalibrationEMModels::getSteepestGradient(){
 	return maxF;
 };
 
-//end namespace
-};
+}; //end namespace
 
 

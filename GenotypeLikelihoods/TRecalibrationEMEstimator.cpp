@@ -5,9 +5,9 @@
  *      Author: phaentu
  */
 
-#include "TRecalibrationEMEstimator.h"
+#include "../GenotypeLikelihoods/TRecalibrationEMEstimator.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //---------------------------------------------------------------
 //RecalibrationEMSite
@@ -71,7 +71,7 @@ void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTables & dataTable
 		dataTable.add(data[k]);
 };
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon){
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon){
 	calcEpsilon(models, epsilon);
 
 	//over all genotypes
@@ -119,7 +119,7 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMMo
 	return log(P_g_given_d_theta_denominator) + max;
 };
 
-double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon){
+double TRecalibrationEMSite::calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon){
 	calcEpsilon(models, epsilon);
 
 	//over all genotypes
@@ -160,7 +160,7 @@ double TRecalibrationEMSite::calcLL(TRecalibrationEMModels & models, double* & f
 	}
 };
 
-void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
+void TRecalibrationEMSite::addToQ(TSequencingErrorModels & models){
 	if(trueBase == N){
 		for(unsigned int k=0; k<numReads; ++k){
 			models.addToQ(data[k], P_g_given_d_oldBeta);
@@ -172,7 +172,7 @@ void TRecalibrationEMSite::addToQ(TRecalibrationEMModels & models){
 	}
 };
 
-void TRecalibrationEMSite::_addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
+void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon){
 	//tmp variables
 	double* eps1MinusEps = new double[numReads];
 	double* oneMinus2Eps = new double[numReads];
@@ -202,7 +202,7 @@ void TRecalibrationEMSite::_addToJacobianAndF(TRecalibrationEMModels & models, d
 	delete[] oneMinus2Eps;
 };
 
-void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TRecalibrationEMModels & models, double* & epsilon){
+void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* & epsilon){
 	//fill F and Jacobian
 	for(unsigned int k=0; k<numReads; ++k){
 		//tmp variables
@@ -219,7 +219,7 @@ void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TRecalibrationEMModel
 	}
 };
 
-void TRecalibrationEMSite::addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon){
+void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon){
 	//calculate tmpEpsilon with current parameters
 	calcEpsilon(models, epsilon);
 
@@ -284,7 +284,7 @@ long TRecalibrationEMWindow::cumulativeDepth(){
 	return cumulDepth;
 }
 
-double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon){
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites){
 		LL += site->fill_P_g_given_d_beta_AND_calcLL(models, freqs, tmpEpsilon);
@@ -292,7 +292,7 @@ double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEM
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon){
+double TRecalibrationEMWindow::calcLL(TSequencingErrorModels & models, double* & tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		LL += site->calcLL(models, freqs, tmpEpsilon);
@@ -308,12 +308,12 @@ double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, double* & 
 };
 */
 
-void TRecalibrationEMWindow::addToQ(TRecalibrationEMModels & models){
+void TRecalibrationEMWindow::addToQ(TSequencingErrorModels & models){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToQ(models);
 };
 
-void TRecalibrationEMWindow::addToJacobianAndF(TRecalibrationEMModels & models, double* & tmpEpsilon){
+void TRecalibrationEMWindow::addToJacobianAndF(TSequencingErrorModels & models, double* & tmpEpsilon){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToJacobianAndF(models, tmpEpsilon);
 };
@@ -336,7 +336,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	_readGroupMap = ReadGroupMap;
 
 	//models
-	models = new TRecalibrationEMModels(_readGroups, _readGroupMap, logfile);
+	models = new TSequencingErrorModels(_readGroups, _readGroupMap, logfile);
 
 	//recal models
 	logfile->startIndent("Settings regarding the EM algorithm:");
@@ -696,138 +696,4 @@ double TRecalibrationEMEstimator::calcLL(){
 	return LL;
 };
 
-/*
-void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
-	double LL;
-
-	//open outputfile
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
-	out << "beta0\tbeta1\tLL" << std::endl;
-
-	//set min, max and step for each parameter
-	double min[5];
-	min[0] = -5.0;
-	min[1] = -5.0;
-	min[2] = -1.0;
-	min[3] = -1.0;
-	min[4] = -1.0;
-
-
-	double max[5];
-	max[0] = 10.0;
-	max[1] = 10.0;
-	max[2] = 1.0;
-	max[3] = 1.0;
-	max[4] = 1.0;
-
-	double step[5];
-	for(int i=0; i<5; ++i){
-		step[i] = (max[i] - min[i]) / (numMarginalGridPoints - 1.0);
-	}
-
-	//without last two
-	for(int r=0; r<numReadGroups; ++r){
-		params[r][3] = 0.0;
-		params[r][4] = 0.0;
-	}
-
-	//Loop over parameters
-	for(int p1=0; p1<numMarginalGridPoints; ++p1){
-		//for(int r=0; r<numReadGroups; ++r) params[r][0] = min[0] + p1 * step[0];
-		params[0][0] = min[0] + p1 * step[0];
-		for(int p2=0; p2<numMarginalGridPoints; ++p2){
-			//for(int r=0; r<numReadGroups; ++r) params[r][1] = min[1] + p2 * step[1];
-			params[0][1] = min[1] + p2 * step[1];
-			for(int p3=0; p3<numMarginalGridPoints; ++p3){
-				//for(int r=0; r<numReadGroups; ++r) params[r][2] = min[2] + p3 * step[2];
-				params[0][2] = min[2] + p3 * step[2];
-				//for(int p4=0; p4<numMarginalGridPoints; ++p4){
-					//for(int r=0; r<numReadGroups; ++r) params[r][3] = min[3] + p4 * step[3];
-					//for(int p5=0; p5<numMarginalGridPoints; ++p5){
-						//for(int r=0; r<numReadGroups; ++r) params[r][4] = min[4] + p5 * step[4];
-
-
-						//calculate LL
-						LL = 0.0;
-						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-							LL += (*curWindow)->calcLL(params);
-						}
-
-						//write to file
-						for(int i=0; i<5; ++i) out << params[0][i] << "\t";
-						out << LL << std::endl;
-					//}
-				//}
-			}
-		}
-	}
-
-	//close file
-	out.close();
-}
-
-
-void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoints){
-	double Q;
-
-	//open outputfile
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
-	out << "beta0\tbeta1\tQ" << std::endl;
-
-	//set min, max and step for each parameter
-	double min[2];
-	min[0] = -5.0;
-	min[1] = -5.0;
-
-	double max[2];
-	max[0] = 10.0;
-	max[1] = 10.0;
-
-	double step[2];
-	for(int i=0; i<2; ++i){
-		step[i] = (max[i] - min[i]) / (numMarginalGridPoints - 1.0);
-	}
-
-	//print old params
-
-	//Loop over parameters
-	for(int p1=0; p1<numMarginalGridPoints; ++p1){
-		for(int r=0; r<numReadGroups; ++r) newParams[r][0] = min[0] + p1 * step[0];
-		for(int p2=0; p2<numMarginalGridPoints; ++p2){
-			for(int r=0; r<numReadGroups; ++r) newParams[r][1] = min[1] + p2 * step[1];
-			//for(int p3=0; p3<numMarginalGridPoints; ++p3){
-				//for(int r=0; r<numReadGroups; ++r) params[r][2] = min[2] + p3 * step[2];
-				//for(int p4=0; p4<numMarginalGridPoints; ++p4){
-					//for(int r=0; r<numReadGroups; ++r) params[r][3] = min[3] + p4 * step[3];
-					//for(int p5=0; p5<numMarginalGridPoints; ++p5){
-						//for(int r=0; r<numReadGroups; ++r) params[r][4] = min[4] + p5 * step[4];
-
-
-						//calculate Q
-						Q = 0.0;
-						//logfile->listFlush("Calculating Q at {" + toString(params[0][0]) + ", " + toString(params[0][1]) + "} ...");
-						for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
-							Q += (*curWindow)->calcQ(newParams);
-						}
-						//logfile->done();
-						//logfile->conclude("Current Q = " + toString(Q));
-
-						//write to file
-						for(int i=0; i<2; ++i) out << newParams[0][i] << "\t";
-						out << Q << std::endl;
-					//}
-				//}
-			//}
-		}
-	}
-
-	//close file
-	out.close();
-}
-
-*/
-
-//end namespace recal
-};
+}; //end namespace

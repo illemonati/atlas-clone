@@ -1,4 +1,4 @@
-#include "TRecalibration.h"
+#include "../GenotypeLikelihoods/TRecalibration.h"
 
 
 //---------------------------------------------------------------

@@ -8,38 +8,38 @@
 #ifndef TRECALIBRATIONEMMODEL_H_
 #define TRECALIBRATIONEMMODEL_H_
 
-#include <TRecalibrationEMCovariate.h>
-#include "TRecalibrationEMAuxiliaryTools.h"
 #include "TFile.h"
+#include "../GenotypeLikelihoods/TSequencingErrorCovariate.h"
+#include "auxiliaryTools.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModelCovariateDefinition
+// TSequencingErrorCovariateDef
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-struct TRecalibrationEMModelCovariateDef{
+struct TSequencingErrorCovariateDef{
 	std::string covariate;
 	std::string function;
 
-	TRecalibrationEMModelCovariateDef(const std::string Covariate, const std::string Function){
+	TSequencingErrorCovariateDef(const std::string Covariate, const std::string Function){
 		covariate = Covariate;
 		function = Function;
 	};
 };
 
-typedef std::vector<TRecalibrationEMModelCovariateDef>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
-class TRecalibrationEMModelCovariateDefinition{
+typedef std::vector<TSequencingErrorCovariateDef>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
+class TSequencingErrorCovariateDefinition{
 private:
-	std::vector<TRecalibrationEMModelCovariateDef> covariateFunctions;  //<covariate, function>
+	std::vector<TSequencingErrorCovariateDef> covariateFunctions;  //<covariate, function>
 
 public:
 	std::string intercept;
 
-	TRecalibrationEMModelCovariateDefinition(){
+	TSequencingErrorCovariateDefinition(){
 		intercept = "";
 	};
-	TRecalibrationEMModelCovariateDefinition(const std::string modelString, std::string & error){
+	TSequencingErrorCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
 	};
 
@@ -53,16 +53,16 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModelDefinition
+// TSequencingErrorModelDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-class TRecalibrationEMModelDefinition{
+class TSequencingErrorModelDefinition{
 public:
 	uint16_t readGroupId;
 	bool isSecondMate;
-	TRecalibrationEMModelCovariateDefinition covariates;
+	TSequencingErrorCovariateDefinition covariates;
 
-	TRecalibrationEMModelDefinition(const uint16_t ReadGroupId, const bool IsSecondMate){
+	TSequencingErrorModelDefinition(const uint16_t ReadGroupId, const bool IsSecondMate){
 		readGroupId = ReadGroupId;
 		isSecondMate = IsSecondMate;
 	};
@@ -73,38 +73,38 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModelCovariateList
+// TSequencingErrorCovariateList
 //--------------------------------------------------------------------
-class TRecalibrationEMModelCovariateList{
+class TSequencingErrorCovariateList{
 private:
 	void _storePointersToCovariateFunctions();
 	void _clear();
 
 public:
 	uint16_t numParameters;
-	TRecalibrationEMCovariateFunction_intercept intercept;
-	std::vector< TRecalibrationEMCovariate* > covariates;
-	std::vector< TRecalibrationEMCovariateFunction* > pointerToCovariateFunctions;
+	TSequencingErrorCovariateFunction_intercept intercept;
+	std::vector< TSequencingErrorCovariate* > covariates;
+	std::vector< TSequencingErrorCovariateFunction* > pointerToCovariateFunctions;
 
-	TRecalibrationEMModelCovariateList();
-	~TRecalibrationEMModelCovariateList();
-	TRecalibrationEMModelCovariateList(TRecalibrationEMModelCovariateList&& other);
-	TRecalibrationEMModelCovariateList& operator=(TRecalibrationEMModelCovariateList&& other);
+	TSequencingErrorCovariateList();
+	~TSequencingErrorCovariateList();
+	TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other);
+	TSequencingErrorCovariateList& operator=(TSequencingErrorCovariateList&& other);
 
-	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
-	void _createCovariatesAndIntercept(TRecalibrationEMModelCovariateDefinition & covariateMap);
-	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
+	void _createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
+	void _createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap);
+	TSequencingErrorCovariateDefinition getCovariateDefinition();
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModel
+// TSequencingErrorModel
 //--------------------------------------------------------------------
-class TRecalibrationEMModel{
+class TSequencingErrorModel{
 private:
 	TLog* logfile;
 
 	//covariates
-	TRecalibrationEMModelCovariateList _covariates;
+	TSequencingErrorCovariateList _covariates;
 
 	//Newton Raphson Parameters
 	double _Q, _oldQ;
@@ -126,8 +126,8 @@ private:
 	};
 
 public:
-	TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TLog* Logfile);
-	TRecalibrationEMModel(TRecalibrationEMModelCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
+	TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile);
+	TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
 
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
@@ -150,23 +150,23 @@ public:
 	double getErrorRate(const TBaseData & base);
 	double getErrorRate(const TRecalibrationEMReadData & data);
 
-	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
+	TSequencingErrorCovariateDefinition getCovariateDefinition();
 };
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModels
+// TSequencingErrorModels
 // Object containing a vector of recal models
 //--------------------------------------------------------------------
-class TRecalibrationEMModels{
+class TSequencingErrorModels{
 private:
 	TLog* logfile;
 	TReadGroups* readGroups;
 	TReadGroupMap* readGroupMap;
-	std::vector<TRecalibrationEMModel> models;
+	std::vector<TSequencingErrorModel> models;
 	unsigned int totNumParameters;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 
-	void _readRecalFile(const std::string filename, std::vector<TRecalibrationEMModelDefinition> & modelDefs);
+	void _readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs);
 
 	void _createModelsFromString(const std::string & s);
 	void _createModelsFromFile(std::string filename);
@@ -174,24 +174,24 @@ private:
 	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
-	TRecalibrationEMModels(TReadGroups* ReadGroups, TReadGroupMap* readGroupMap, TLog* Logfile);
+	TSequencingErrorModels(TReadGroups* ReadGroups, TReadGroupMap* readGroupMap, TLog* Logfile);
 
 	//general functions to add and remove models
 	//bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);
 	void removeModel(int readGroupId, bool isSecondMate);
 
 	//add model for estimation: dataTable provided
-	void addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
+	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
 	void addModelsFromFile(std::string filename, TRecalibrationEMDataTables* dataTables);
 
 	//add model for recalibration: no dataTable provided
-	void addModel(const uint16_t readGroupId, const bool isSecondMate, TRecalibrationEMModelCovariateDefinition & covariateFunctions);
+	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions);
 	void createModels(std::string string);
 
 	//inline TRecalibrationEMModel* operator[](int index){ return &models[index]; };
 	int numModels(){ return models.size(); };
 	bool modelExists(uint16_t readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
-	bool modelExists(TRecalibrationEMModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
+	bool modelExists(TSequencingErrorModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
 
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);

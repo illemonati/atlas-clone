@@ -8,11 +8,11 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
-#include "TRecalibrationEMModel.h"
-#include "TRecalibrationEMAuxiliaryTools.h"
+#include "../GenotypeLikelihoods/auxiliaryTools.h"
+#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
 #include "../TSite.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMSite
@@ -24,7 +24,7 @@ private:
 	Base trueBase;
 	double P_g_given_d_oldBeta[4];
 
-	inline void calcEpsilon(TRecalibrationEMModels & models, double* & epsilon){
+	inline void calcEpsilon(TSequencingErrorModels & models, double* & epsilon){
 		for(unsigned int k=0; k<numReads; ++k)
 			epsilon[k] = models.calcEpsilon(data[k]);
 	};
@@ -34,8 +34,8 @@ private:
 	};
 
 	void _save(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
-	void _addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon);
-	void _addToJacobianAndFKnownGenotype(TRecalibrationEMModels & models, double* & epsilon);
+	void _addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon);
+	void _addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* & epsilon);
 
 public:
 	unsigned int numReads;
@@ -46,10 +46,10 @@ public:
 	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
-	double calcLL(TRecalibrationEMModels & models, double* & freqs, double* & epsilon);
-	void addToQ(TRecalibrationEMModels & models);
-	void addToJacobianAndF(TRecalibrationEMModels & models, double* & epsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon);
+	double calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon);
+	void addToQ(TSequencingErrorModels & models);
+	void addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon);
 };
 
 //--------------------------------------------------------------------
@@ -76,11 +76,11 @@ public:
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);
 	long cumulativeDepth();
-	double fill_P_g_given_d_beta_AND_calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
-	double calcLL(TRecalibrationEMModels & models, double* & tmpEpsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & tmpEpsilon);
+	double calcLL(TSequencingErrorModels & models, double* & tmpEpsilon);
 	//double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
-	void addToQ(TRecalibrationEMModels & models);
-	void addToJacobianAndF(TRecalibrationEMModels & models, double* & tmpEpsilon);
+	void addToQ(TSequencingErrorModels & models);
+	void addToJacobianAndF(TSequencingErrorModels & models, double* & tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };
 
@@ -92,7 +92,7 @@ protected:
 	TLog* logfile;
 	TReadGroups* _readGroups;
 	TReadGroupMap* _readGroupMap;
-	TRecalibrationEMModels* models;
+	TSequencingErrorModels* models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
 
@@ -104,7 +104,7 @@ protected:
 	double NewtonRaphsonMaxF;
 	unsigned int minRequiredObservations;
 	std::string recalFile; //file name in case a file with model is provided
-	TRecalibrationEMModelCovariateDefinition covariateDefitionForEstimation;
+	TSequencingErrorCovariateDefinition covariateDefitionForEstimation;
 	double* tmpEpsilon;
 	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
@@ -145,6 +145,6 @@ public:
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
 
-}; //end namespace recal
+}; //end namespace
 
 #endif /* TRECALIBRATIONEMESTIMATOR_H_ */

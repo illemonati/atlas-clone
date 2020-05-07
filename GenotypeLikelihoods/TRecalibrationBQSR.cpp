@@ -1,4 +1,4 @@
-#include "TRecalibrationBQSR.h"
+#include "../GenotypeLikelihoods/TRecalibrationBQSR.h"
 //---------------------------------------------------------------
 //TBQSR_cell_base BQSR
 //---------------------------------------------------------------

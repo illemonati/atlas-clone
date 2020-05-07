@@ -16,7 +16,7 @@
 #include "TLog.h"
 #include "../TReadGroups.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -308,8 +308,8 @@ public:
 	};
 };
 
-//end namespace recal
-};
+
+}; //end namespace
 
 
 #endif /* TRECALIBRATIONEMAUXILIARYTOOLS_H_ */

@@ -544,7 +544,7 @@ void TWindow_base::generatePSMCInput(TThetaEstimator & estimator, int & blockSiz
 	delete[] pGenotype;
 };
 
-void TWindow_base::addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
+void TWindow_base::addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	for(unsigned int i=0; i<length; ++i){
@@ -554,7 +554,7 @@ void TWindow_base::addToRecalibrationEM(recal::TRecalibrationEMEstimator & recal
 	}
 };
 
-void TWindow_base::addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
+void TWindow_base::addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap){
 	estimateBaseFrequencies();
 	recalObject.addNewWindow(&baseFreq);
 	//now only run over sites listed in that window

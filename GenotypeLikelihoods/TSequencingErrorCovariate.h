@@ -5,28 +5,29 @@
  *      Author: wegmannd
  */
 
-#ifndef RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_
-#define RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_
+#ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
+#define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
 #include <memory>
-#include <TRecalibrationEMCovariateFunction.h>
+#include "../GenotypeLikelihoods/TSequencingErrorCovariateFunction.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //define covariate names
-#define RecalCovariateName_none "none"
-#define RecalCovariateName_quality "quality"
-#define RecalCovariateName_position "position"
-#define RecalCovariateName_context "context"
-#define RecalCovariateName_fragmentLength "fragmentLength"
+#define SequencingErrorCovariateName_none "none"
+#define SequencingErrorCovariateName_quality "quality"
+#define SequencingErrorCovariateName_position "position"
+#define SequencingErrorCovariateName_context "context"
+#define SequencingErrorCovariateName_fragmentLength "fragmentLength"
+#define SequencingErrorCovariateName_mappingQuality "mappingQuality"
 
 //------------------------------------------------------------------------------------
-// TRecalibrationEMCovariate
+// TSequencingErrorCovariate
 // This is the base class without any covariate. Not intended to be used in models!
 //------------------------------------------------------------------------------------
-class TRecalibrationEMCovariate{
+class TSequencingErrorCovariate{
 protected:
-	std::unique_ptr<TRecalibrationEMCovariateFunction> _function;
+	std::unique_ptr<TSequencingErrorCovariateFunction> _function;
 
 	void _parseModuleString(const std::string & str, std::string & type, std::vector<std::string> & args, std::vector<std::string> & values);
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
@@ -40,14 +41,14 @@ protected:
 	};
 
 public:
-	TRecalibrationEMCovariate(){};
-	virtual ~TRecalibrationEMCovariate(){};
+	TSequencingErrorCovariate(){};
+	virtual ~TSequencingErrorCovariate(){};
 
 	uint16_t numParameters();
 	uint16_t numNonZeroFirstDerivatives();
 	uint16_t numNonZeroSecondDerivatives();
 
-	virtual std::string name(){ return RecalCovariateName_none; };
+	virtual std::string name(){ return SequencingErrorCovariateName_none; };
 
 	//covariate function
 	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){};
@@ -55,7 +56,7 @@ public:
 	std::string functionString();
 	virtual bool checkParameterRange(TRecalibrationEMDataTable* dataTable){ return true; };
 	virtual bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){ return true; };
-	TRecalibrationEMCovariateFunction* getPointerToFunction(){ return _function.get(); };
+	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
 	double getEtaTerm(const TBaseData & base){
@@ -75,9 +76,9 @@ public:
 };
 
 //-------------------------------------------
-// TRecalibrationEMCovariate_quality
+// TSequencingErrorCovariate_quality
 //-------------------------------------------
-class TRecalibrationEMCovariate_quality:public TRecalibrationEMCovariate{
+class TSequencingErrorCovariate_quality:public TSequencingErrorCovariate{
 private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
@@ -89,10 +90,10 @@ private:
 	};
 
 public:
-	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	TRecalibrationEMCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
+	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return RecalCovariateName_quality; };
+	std::string name(){ return SequencingErrorCovariateName_quality; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
@@ -102,9 +103,9 @@ public:
 };
 
 //-------------------------------------------
-// TRecalibrationEMCovariate_position
+// TSequencingErrorCovariate_position
 //-------------------------------------------
-class TRecalibrationEMCovariate_position:public TRecalibrationEMCovariate{
+class TSequencingErrorCovariate_position:public TSequencingErrorCovariate{
 private:
 	uint16_t _extractCovariate(const TBaseData & base){
 		return base.distFrom5Prime;
@@ -114,10 +115,10 @@ private:
 	};
 
 public:
-	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	TRecalibrationEMCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
+	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return RecalCovariateName_position; };
+	std::string name(){ return SequencingErrorCovariateName_position; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
@@ -125,9 +126,9 @@ public:
 };
 
 //-------------------------------------------
-// TRecalibrationEMCovariate_context
+// TSequencingErrorCovariate_context
 //-------------------------------------------
-class TRecalibrationEMCovariate_context:public TRecalibrationEMCovariate{
+class TSequencingErrorCovariate_context:public TSequencingErrorCovariate{
 private:
 	int numContext;
 
@@ -139,10 +140,10 @@ private:
 	};
 
 public:
-	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	TRecalibrationEMCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
+	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return RecalCovariateName_context; };
+	std::string name(){ return SequencingErrorCovariateName_context; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
@@ -150,10 +151,10 @@ public:
 };
 
 //-------------------------------------------
-// TRecalibrationEMCovariate_fragmentLength
+// TSequencingErrorCovariate_fragmentLength
 //-------------------------------------------
 
-class TRecalibrationEMCovariate_fragmentLength:public TRecalibrationEMCovariate{
+class TSequencingErrorCovariate_fragmentLength:public TSequencingErrorCovariate{
 private:
 
 	uint16_t _extractCovariate(const TBaseData & base){
@@ -164,10 +165,10 @@ private:
 	};
 
 public:
-	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	TRecalibrationEMCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
+	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return RecalCovariateName_fragmentLength; };
+	std::string name(){ return SequencingErrorCovariateName_fragmentLength; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
@@ -178,10 +179,10 @@ public:
 };
 
 //-------------------------------------------
-// TRecalibrationEMCovariate Mapping Quality
+// TSequencingErrorCovariate_mappingQuality
 //-------------------------------------------
 
-class TRecalibrationEMCovariate_MQ:public TRecalibrationEMCovariate{
+class TSequencingErrorCovariate_mappingQuality:public TSequencingErrorCovariate{
 private:
 
 	uint16_t _extractCovariate(const TBaseData & base){
@@ -192,10 +193,10 @@ private:
 	};
 
 public:
-	TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	TRecalibrationEMCovariate_MQ(const size_t FirstParameterIndex, const std::string & functionString);
+	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return RecalCovariateName_fragmentLength; };
+	std::string name(){ return SequencingErrorCovariateName_fragmentLength; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
@@ -207,4 +208,4 @@ public:
 
 }; //end namespace recal
 
-#endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_ */
+#endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_ */

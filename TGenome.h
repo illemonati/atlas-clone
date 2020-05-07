@@ -9,7 +9,6 @@
 #define LOCI_H_
 
 #include "TWindow.h"
-#include "TRecalibration.h"
 #include "gzstream.h"
 #include "bamtools/api/BamWriter.h"
 #include "TLog.h"
@@ -21,6 +20,8 @@
 #include <typeinfo>
 #include <map>
 #include <algorithm>
+
+#include "GenotypeLikelihoods/TRecalibration.h"
 #include "TAlignmentMerger.h"
 #include "TSoftClipping.h"
 #include "TAllelicDepthCounts.h"

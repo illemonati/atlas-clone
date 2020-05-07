@@ -11,8 +11,9 @@
 #include "../bamtools/api/BamReader.h"
 #include "../TSite.h"
 #include <omp.h>
-#include <TRecalibrationEMModel.h>
 #include "../bamtools/api/SamHeader.h"
+
+#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
 #include "../TQualityMap.h"
 
 //---------------------------------------------------------------
@@ -48,7 +49,7 @@ public:
 class TRecalibrationEM:public TRecalibration{
 private:
 	TLog* logfile;
-	recal::TRecalibrationEMModels* models;
+	GenotypeLikelihoods::TSequencingErrorModels* models;
 	TReadGroupMap* readGroupMap;
 
 	void _initializeRecalibrationParametersFromString(std::string & string);

@@ -11,8 +11,6 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "TRecalibration.h"
-#include "TRecalibrationBQSR.h"
 #include "TThetaEstimator.h"
 #include "TBedReader.h"
 #include "TSiteSubset.h"
@@ -22,8 +20,10 @@
 #include "TQualityMap.h"
 #include "TCaller.h"
 #include "TDistributionOfCounts.h"
-#include "TRecalibrationEMEstimator.h"
 #include "TRandomGenerator.h"
+#include "GenotypeLikelihoods/TRecalibration.h"
+#include "GenotypeLikelihoods/TRecalibrationBQSR.h"
+#include "GenotypeLikelihoods/TRecalibrationEMEstimator.h"
 
 //forward declaration to enable copy constructor
 class TWindow;
@@ -99,8 +99,8 @@ public:
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, const int ploidy, bool printAll);
-	void addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
+	void addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
+	void addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 	//callers
 	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);

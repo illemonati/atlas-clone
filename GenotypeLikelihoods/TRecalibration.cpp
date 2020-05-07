@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TRecalibration.h"
+#include "../GenotypeLikelihoods/TRecalibration.h"
 
 //---------------------------------------------------------------
 //TRecalibration
@@ -34,7 +34,7 @@ TRecalibrationEM::TRecalibrationEM(std::string string, TReadGroups* ReadGroups, 
 	readGroupMap = new TReadGroupMap(ReadGroups);
 
 	//models
-	models = new recal::TRecalibrationEMModels(ReadGroups, readGroupMap, logfile);
+	models = new GenotypeLikelihoods::TSequencingErrorModels(ReadGroups, readGroupMap, logfile);
 	models->createModels(string);
 };
 

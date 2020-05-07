@@ -5,9 +5,9 @@
  *      Author: phaentu
  */
 
-#include "TRecalibrationEMAuxiliaryTools.h"
+#include "auxiliaryTools.h"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -372,5 +372,5 @@ void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile){
 	}
 };
 
-//end namespace recal
-};
+
+}; //end namespace

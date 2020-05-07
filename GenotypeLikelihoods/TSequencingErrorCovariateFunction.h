@@ -5,30 +5,31 @@
  *      Author: wegmannd
  */
 
-#ifndef RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_
-#define RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_
+#ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
+#define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
 #include "stringFunctions.h"
-#include "TRecalibrationEMAuxiliaryTools.h"
+
 #include "../TNormalDistribution.h"
+#include "auxiliaryTools.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
 
 //define module names
-#define RecalModuleFunctionName_none "none"
-#define RecalModuleFunctionName_intercept "intercept"
-#define RecalModuleFunctionName_polynomial "polynomial"
-#define RecalModuleFunctionName_probit "probit"
-#define RecalModuleFunctionName_specific "specific"
+#define SequencingErrorCovariateFunction_none "none"
+#define SequencingErrorCovariateFunction_intercept "intercept"
+#define SequencingErrorCovariateFunction_polynomial "polynomial"
+#define SequencingErrorCovariateFunction_probit "probit"
+#define SequencingErrorCovariateFunction_specific "specific"
 
-namespace recal{
+namespace GenotypeLikelihoods{
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction
+// TSequencingErrorCovariateFunction
 // Base class for recal covariate functions
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction{
+class TSequencingErrorCovariateFunction{
 protected:
 	uint16_t _numParameters;
 	uint16_t _firstParameterIndex;
@@ -48,17 +49,17 @@ protected:
 	double _getAsDouble(const uint16_t val);
 	double _normalizeParameters();
 
-	friend class TRecalibrationEMModel;
+	friend class TSequencingErrorModel;
 
 public:
-	TRecalibrationEMCovariateFunction(){
+	TSequencingErrorCovariateFunction(){
 		_init(0);
 	};
-	TRecalibrationEMCovariateFunction(const uint16_t FirstParameterIndex){
+	TSequencingErrorCovariateFunction(const uint16_t FirstParameterIndex){
 		_init(FirstParameterIndex);
 	};
 
-	virtual ~TRecalibrationEMCovariateFunction(){};
+	virtual ~TSequencingErrorCovariateFunction(){};
 
 	void setBeta(uint16_t index, double val){
 		if(index < _numParameters)
@@ -89,17 +90,17 @@ public:
 };
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_intercept
+// TSequencingErrorCovariateFunction_intercept
 // An intercept term
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction_intercept:public TRecalibrationEMCovariateFunction{
+class TSequencingErrorCovariateFunction_intercept:public TSequencingErrorCovariateFunction{
 protected:
 	void _init();
 
 public:
-	TRecalibrationEMCovariateFunction_intercept();
-	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex);
-	TRecalibrationEMCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_intercept();
+	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex);
+	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 	void setIntercept(const double val);
@@ -112,18 +113,18 @@ public:
 };
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_polynomial
+// TSequencingErrorCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction_polynomial:public TRecalibrationEMCovariateFunction{
+class TSequencingErrorCovariateFunction_polynomial:public TSequencingErrorCovariateFunction{
 protected:
 	void _init(const size_t order);
 
 	//TODO: add tmp storage for eta!
 
 public:
-	TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order);
-	TRecalibrationEMCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order);
+	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	double getEtaTerm(const uint16_t val);
 	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
@@ -133,7 +134,7 @@ public:
 // TRecalibrationEMCovariateFunction_probit
 // A polynomial function
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction_probit:public TRecalibrationEMCovariateFunction{
+class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
 protected:
 	unsigned int _maxValue;
 	TNormalDistribution _normalDist;
@@ -171,18 +172,18 @@ public:
 
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_specific
+// TSequencingErrorCovariateFunction_specific
 // A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction_specific:public TRecalibrationEMCovariateFunction{
+class TSequencingErrorCovariateFunction_specific:public TSequencingErrorCovariateFunction{
 protected:
 	uint16_t _maxValue;
 
 	void _init(const uint16_t MaxValue);
 
 public:
-	TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, const uint16_t MaxValue);
-	TRecalibrationEMCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, const uint16_t MaxValue);
+	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
 	bool checkValueRange(const uint16_t val){
 		if(val > _maxValue)
@@ -198,10 +199,10 @@ public:
 };
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_specificMap
+// TSequencingErrorCovariateFunction_specificMap
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
-class TRecalibrationEMCovariateFunction_specificMap:public TRecalibrationEMCovariateFunction{
+class TSequencingErrorCovariateFunction_specificMap:public TSequencingErrorCovariateFunction{
 protected:
 	uint16_t _maxValue;
 	uint16_t _mapSize;
@@ -213,9 +214,9 @@ protected:
 	void _freeIndexMap();
 
 public:
-	TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<uint16_t> & values);
-	TRecalibrationEMCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
-	~TRecalibrationEMCovariateFunction_specificMap(){ _freeIndexMap(); };
+	TSequencingErrorCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<uint16_t> & values);
+	TSequencingErrorCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	~TSequencingErrorCovariateFunction_specificMap(){ _freeIndexMap(); };
 
 	bool checkValueRange(const uint16_t val){
 		if(!_valueUsed[val])
@@ -230,6 +231,6 @@ public:
 	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
 };
 
-}; //end namespace recal
+}; //end namespace
 
-#endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_ */
+#endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_ */

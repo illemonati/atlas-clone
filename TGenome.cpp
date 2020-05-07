@@ -725,7 +725,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		writeTmpTables = true;
 		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
 	}
-	recal::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+	GenotypeLikelihoods::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 
 	//prepare windows
 	TWindow window;
@@ -778,7 +778,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
-	recal::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+	GenotypeLikelihoods::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 	recalObjectEM.initializeFromFile(params.getParameterString("recalForLL"));
 
 	//prepare windows

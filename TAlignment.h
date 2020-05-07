@@ -11,10 +11,11 @@
 #include "stringFunctions.h"
 #include "TBase.h"
 #include "TPostMortemDamage.h"
-#include "TRecalibration.h"
 #include "bamtools/api/BamAlignment.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "bamtools/api/BamWriter.h"
+
+#include "GenotypeLikelihoods/TRecalibration.h"
 #include "TQualityMap.h"
 #include "QualityTables.h"
 #include "TContextStats.h"
