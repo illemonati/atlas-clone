@@ -540,6 +540,16 @@ public:
 	};
 };
 
+class TTask_compareAlleleFreq:public TTask_atlas{
+public:
+	TTask_compareAlleleFreq(){_explanation = "Pairwise comparison of population allele frequencies"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
+		alleleFreqEstimator.compareAlleleFreq(parameters, randomGenerator);
+	};
+};
+
 class TTask_estimateInbreeding:public TTask_atlas{
 public:
 	TTask_estimateInbreeding(){ _explanation = "Estimating the inbreeding coefficient"; };
@@ -669,6 +679,16 @@ public:
     void run(TParameters & parameters, TLog* logfile){
         TVcfToPosFile VcfToPosFile(parameters, logfile);
         VcfToPosFile.vcfToPosFile(parameters);
+    };
+};
+
+class TTask_VCFToGenotypeTruthSetFile:public TTask_atlas{
+public:
+    TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(parameters, logfile);
+        VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(parameters);
     };
 };
 

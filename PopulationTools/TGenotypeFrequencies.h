@@ -37,8 +37,7 @@ public:
 	void set(const TGenotypeFrequencies & other);
 	void flip(); //flip major / minor
 	bool isMonomorphic();
-	void guess(TPopulationLikehoodLocus & samples);
-	void guess(TSampleLikelihoods* samples, int numSamples);
+	void guess(const TSampleLikelihoods* samples, int numSamples);
 	void estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF);
 	void estimate(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter, double epsilonF);
 	double calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter);

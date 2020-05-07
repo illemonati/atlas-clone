@@ -42,6 +42,13 @@ public:
 	TPopulationSamples(std::string filename, TLog* logfile);
 	~TPopulationSamples();
 
+	bool populationExists(const std::string & name){
+		if(populations.find(name) != populations.end())
+			return true;
+		else
+			return false;
+
+	};
 	bool hasSamples(){ return _hasSamples; };
 	uint32_t numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
@@ -78,6 +85,7 @@ protected:
 
 	//settings
 	bool limitLines;
+	bool filterOnChr;
 	uint64_t maxLinesToRead;
 	uint32_t minDepth;
 	uint32_t minNumSamplesWithData;
@@ -131,6 +139,11 @@ public:
 	std::vector<std::string>& getSampleVCFNames(){ return vcfFile.parser.samples; };
 	long numLociParsed(){ return _lineCounter; };
 	long numAcceptedLoci(){ return _numAcceptedLoci; };
+	uint32_t getMinNumSamplesWithData(){return minNumSamplesWithData; };
+	void writeUnknownHeader(){ vcfFile.writeHeaderVCF_4_0(); };
+	int variantQuality(){ return vcfFile.variantQuality(); };
+	void setOutStream(std::ostream & os){ vcfFile.setOutStream(os); };
+	void writeVCFLine(){ vcfFile.writeLine(); };
 };
 
 class TPopulationLikelihoodReaderLocus:public TPopulationLikelihoodReader{
@@ -158,9 +171,12 @@ public:
 
 	std::string chr(){ return curChr; };
 	long position(){ return vcfFile.position(); };
-	char refAllele(){ return vcfFile.getRefAllele(); };
+    long positionZeroBased(){ return vcfFile.positionZeroBased(); };
+    char refAllele(){ return vcfFile.getRefAllele(); };
 	char altAllele(){ return vcfFile.getFirstAltAllele(); };
 	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
+    uint8_t genotype(TPopulationSamples & samples, uint32_t s);
+    double depth(TPopulationSamples & samples,uint32_t s);
 
     bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);
 	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
@@ -172,7 +188,6 @@ public:
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
-	int numSamplesWithDataInPopulation(int population);
 	void writePosition(TOutputFile & out);
 };
 

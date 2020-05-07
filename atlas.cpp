@@ -58,12 +58,14 @@ void addTaks(TMain & main) {
 	main.addRegularTask("alleleCounts", new TTask_estimateAlleleCounts());
 	main.addRegularTask("transformCountFormat", new TTask_transformAlleleCountFormat());
 	main.addRegularTask("alleleFreq", new TTask_estimateAlleleFreq());
+	main.addRegularTask("compareAlleleFreq", new TTask_compareAlleleFreq());
 	main.addRegularTask("inbreeding", new TTask_estimateInbreeding());
 	main.addRegularTask("VCFAssessAllelicBalance", new TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());
 	main.addRegularTask("VCFToBeagle", new TTask_VCFToBeagle());
     main.addRegularTask("VCFToLFMM", new TTask_VCFToLFMM());
     main.addRegularTask("VCFToPosFile", new TTask_VCFToPosFile());
+    main.addRegularTask("VCFToGenotypeTruthSetFile", new TTask_VCFToGenotypeTruthSetFile());
     main.addRegularTask("VCFFixInt", new TTask_VCFFixInt());
 	main.addRegularTask("VCFCompare", new TTask_VCFCompare());
 	main.addRegularTask("simulate", new TTask_simulate());
@@ -75,8 +77,6 @@ void addTaks(TMain & main) {
 	main.addDebugTask("alleleFrequencyLikelihoods", new TTask_writeAlleleFrequencyLikelihoods);
 	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
 	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
-
-
 };
 
 void addTests(TMain & main){

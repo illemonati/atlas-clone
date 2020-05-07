@@ -12,7 +12,19 @@ TVcfFile_base::TVcfFile_base(std::string & Filename, bool zipped){
 	filename = Filename;
 	eof=false;
 	openStream(filename, zipped);
-}
+};
+
+TVcfFile_base::TVcfFile_base(){
+	currentLine=0;
+	automaticallyWriteVcf=false;
+	eof=false;
+	numCols=-1;
+	totalFileSize=-1;
+	myOutStream=NULL;
+	myStream=NULL;
+	inputStreamOpend=false;
+	outputStreamOpend=false;
+};
 
 void TVcfFile_base::openStream(std::string & Filename, bool zipped){
 	//open stream

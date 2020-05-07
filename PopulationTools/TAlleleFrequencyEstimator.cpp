@@ -14,7 +14,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & storage, double epsilonF, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF, TGlfConverter & glfConverter){
 	pGenotype.set(0.5);
 	double weights[3];
 
@@ -27,11 +27,11 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
-		for(uint32_t i=0; i<storage.numSamples(); i++){
+		for(uint32_t i=0; i<numSamplesInPop; i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
-					weights[0] = glfConverter[ storage[i][0] ] * pGenotype.oneMinusf;
-					weights[1] = glfConverter[ storage[i][1] ] * pGenotype.f;
+					weights[0] = glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype.oneMinusf;
+					weights[1] = glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype.f;
 					double sum = weights[0] + weights[1];
 
 					//add to sums
@@ -39,9 +39,9 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(TPopulationLikehoodLocus & st
 					n += 1;
 				} else {
 					//calculate weights
-					weights[0] = glfConverter[ storage[i][0] ] * pGenotype[0];
-					weights[1] = glfConverter[ storage[i][1] ] * pGenotype[1];
-					weights[2] = glfConverter[ storage[i][2] ] * pGenotype[2];
+					weights[0] = glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype[0];
+					weights[1] = glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype[1];
+					weights[2] = glfConverter[ storage[i].glfLikelihood_2 ] * pGenotype[2];
 					double sum = weights[0] + weights[1] + weights[2];
 
 					//add to sums
@@ -71,8 +71,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
 
 	//prior
-	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.5);
-	beta = Parameters.getParameterDoubleWithDefault("beta", 0.5);
+	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.7);
+	beta = Parameters.getParameterDoubleWithDefault("beta", 0.7);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
 
@@ -105,11 +105,11 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	density_initialGrid = new double[initialGridSize];
 	f_initialGrid = new double[initialGridSize];
 	double step = 1.0 / (double) initialGridLast;
-	f_initialGrid[0] = 0.0;
+	f_initialGrid[0] = minPriorSupport;
 	for(int i=1; i<initialGridLast; ++i){
 		f_initialGrid[i] = i * step;
 	}
-	f_initialGrid[initialGridLast] = 1.0;
+	f_initialGrid[initialGridLast] = maxPriorSupport;
 
 	//final grid
 	gridSize = Parameters.getParameterIntWithDefault("gridSize", 1001);
@@ -125,6 +125,9 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	}
 	density_grid = new double[gridSize];
 	f_grid = new double[gridSize];
+
+	//mcmcSamples
+	mcmcSamplesInitialized = false;
 };
 
 TAlleleFreqEstimatorBayes::~TAlleleFreqEstimatorBayes(){
@@ -134,25 +137,25 @@ TAlleleFreqEstimatorBayes::~TAlleleFreqEstimatorBayes(){
 	delete[] density_grid;
 };
 
-double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
 	//calculate average posterior probs using a non-informative prior.
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
-	for(uint32_t i=0; i<storage.numSamples(); i++){
+	for(uint32_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ];
+				double sum = glfConverter[ storage[i].glfLikelihood_0 ] + glfConverter[ storage[i].glfLikelihood_1 ];
 
 				//add to sums
-				sum_1 += glfConverter[ storage[i][1] ] / sum;
+				sum_1 += glfConverter[ storage[i].glfLikelihood_1 ] / sum;
 				n += 1;
 			} else {
-				double sum = glfConverter[ storage[i][0] ] + glfConverter[ storage[i][1] ] + glfConverter[ storage[i][2] ];
+				double sum = glfConverter[ storage[i].glfLikelihood_0 ] + glfConverter[ storage[i].glfLikelihood_1 ] + glfConverter[ storage[i].glfLikelihood_2 ];
 
 				//add to sums
-				sum_1 += glfConverter[ storage[i][1] ] / sum;
-				sum_2 += glfConverter[ storage[i][2] ] / sum;
+				sum_1 += glfConverter[ storage[i].glfLikelihood_1 ] / sum;
+				sum_2 += glfConverter[ storage[i].glfLikelihood_2 ] / sum;
 				n += 2;
 			}
 		}
@@ -160,6 +163,7 @@ double TAlleleFreqEstimatorBayes::guessInitialAlleleFrequency(TPopulationLikehoo
 
 	return (sum_1 + 2.0 * sum_2) / (double) n;
 };
+
 
 double TAlleleFreqEstimatorBayes::_prior(const double & f){
 	return alphaMinusOne * log(f) + betaMinusOne * log(1.0 - f);
@@ -175,15 +179,15 @@ double TAlleleFreqEstimatorBayes::_prior(const THardyWeinbergGenotypeProbabiliti
 	}
 };
 
-double TAlleleFreqEstimatorBayes::calcPosterior(TPopulationLikehoodLocus & storage, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorBayes::calcPosterior(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype, TGlfConverter & glfConverter){
 	double LL = 0.0;
 
-	for(uint32_t i=0; i<storage.numSamples(); i++){
+	for(uint32_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				LL += log(glfConverter[ storage[i][0] ] * pGenotype.oneMinusf + glfConverter[ storage[i][1] ] * pGenotype.f);
+				LL += log(glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype.oneMinusf + glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype.f);
 			} else {
-				LL += log(glfConverter[ storage[i][0] ] * pGenotype[0] + glfConverter[ storage[i][1] ] * pGenotype[1] + glfConverter[ storage[i][2] ] * pGenotype[2]);
+				LL += log(glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype[0] + glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype[1] + glfConverter[ storage[i].glfLikelihood_2 ] * pGenotype[2]);
 			}
 		}
 	}
@@ -194,18 +198,62 @@ double TAlleleFreqEstimatorBayes::calcPosterior(TPopulationLikehoodLocus & stora
 	return LL + _prior(pGenotype);
 };
 
-void TAlleleFreqEstimatorBayes::fillInitialGrid(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter, const uint32_t numIterations, const double frac){
+	//prepare MCMC
+	int numAccepted = 1;
+	double proposalWidth = frac * (f_CI_upper - f_CI_lower);
+	if(f_MAP == 0.0)
+		f_MAP = minPriorSupport;
+	if(f_MAP == 1.0)
+		f_MAP = maxPriorSupport;
+	pGenotype.set(f_MAP);
+	double oldLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
+
+	mcmcSamples = new double[numIterations];
+	mcmcSamplesInitialized = true;
+	mcmcSamples[0] = f_MAP;
+
+	//run MCMC
+	for(uint32_t i=1; i<numIterations; ++i){
+
+		//propose new
+		double newFreq = mcmcSamples[i-1] + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
+
+		//mirror
+		if(newFreq < minPriorSupport){
+			newFreq = -newFreq;
+		} else if(newFreq > maxPriorSupport){
+			newFreq = 2.0 - newFreq;
+		}
+
+		//accept?
+		pGenotype.set(newFreq);
+		double newLL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
+		double h = newLL - oldLL;
+		double r = log(randomGenerator->getRand());
+		if(r < h){
+			oldLL = newLL;
+			mcmcSamples[i] = newFreq;
+			++numAccepted;
+		} else {
+			mcmcSamples[i] = mcmcSamples[i-1];
+		}
+	}
+	return (double) numAccepted / (double) numIterations;
+};
+
+void TAlleleFreqEstimatorBayes::fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
 	for(int i=0; i<initialGridSize; ++i){
 		pGenotype.set(f_initialGrid[i]);
-		density_initialGrid[i] = calcPosterior(storage, pGenotype, glfConverter);
+		density_initialGrid[i] = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 	}
 };
 
-void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+void TAlleleFreqEstimatorBayes::estimateMAP(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
 	//use simple line-search to find MAP
 	//initialize
-	pGenotype.set(guessInitialAlleleFrequency(storage, glfConverter));
-	logDensity_atMAP = calcPosterior(storage, pGenotype, glfConverter);
+	pGenotype.set(guessInitialAlleleFrequency(storage, numSamplesInPopulation, glfConverter));
+	logDensity_atMAP = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 	double step = 0.05;
 
 	//now do line search
@@ -214,7 +262,7 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 		pGenotype.set(pGenotype.f + step);
 
 		//calc LL and switch if LL is lower
-		double LL = calcPosterior(storage, pGenotype, glfConverter);
+		double LL = calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter);
 		if(LL < logDensity_atMAP || pGenotype.f == 0.0 || pGenotype.f == 1.0){
 			step = - step / 2.718282;
 		}
@@ -223,7 +271,7 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 	f_MAP = pGenotype.f;
 
 	//assumes that initial grid was pre-calculated! to check and boundaries
-	fillInitialGrid(storage, glfConverter);
+	fillInitialGrid(storage, numSamplesInPopulation, glfConverter);
 
 	//check if MAP is zero or one
 	if(density_initialGrid[0] >= logDensity_atMAP){
@@ -235,7 +283,7 @@ void TAlleleFreqEstimatorBayes::estimateMAP(TPopulationLikehoodLocus & storage, 
 	}
 };
 
-void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
 	//use initial grid to define final grid
 	//search first that is larger than LL_atMAP - logGridThreshold
 	int first = 0;
@@ -259,7 +307,7 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 	for(int i=0; i<gridSize; ++i){
 		f_grid[i] = f_initialGrid[first] + i * step;
 		pGenotype.set(f_grid[i]);
-		density_grid[i] = exp(calcPosterior(storage, pGenotype, glfConverter) - logDensity_atMAP);
+		density_grid[i] = exp(calcPosterior(storage, numSamplesInPopulation, pGenotype, glfConverter) - logDensity_atMAP);
 		integral += density_grid[i];
 	}
 
@@ -287,39 +335,49 @@ void TAlleleFreqEstimatorBayes::estimateCredibleIntervals(TPopulationLikehoodLoc
 
 	//now find 90% CI by iteratively adding on left and right of MAP, depending on which has higher LL
 	double relevantIntegral = credibleInterval * integral;
-	while(CI < relevantIntegral){
-		if(left < 0 || density_grid[left] < density_grid[right]){
-			//add at right
-			double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
-			if(CI + add > relevantIntegral){
-				f_CI_lower = f_grid[left + 1];
-				f_CI_upper = f_grid[right - 1] + step * (relevantIntegral - CI) / add;
-				break;
+	if(CI >= relevantIntegral){
+		f_CI_upper = f_grid[right];
+		f_CI_lower = f_grid[left];
+	} else {
+		while(CI < relevantIntegral){
+			if(right < gridSize && (left < 0 || density_grid[left] < density_grid[right] )){
+				//add at right
+				double add = (density_grid[right] + density_grid[right - 1]) * halfStep;
+				if(CI + add >= relevantIntegral){
+					f_CI_lower = f_grid[left + 1];
+					f_CI_upper = f_grid[right - 1] + step * (relevantIntegral - CI) / add;
+					break;
+				} else {
+					CI += add;
+					++right;
+				}
 			} else {
-				CI += add;
-				++right;
-			}
-		} else {
-			//add at left
-			double add = (density_grid[left] + density_grid[left + 1]) * halfStep;
-			if(CI + add > relevantIntegral){
-				f_CI_upper = f_grid[right - 1];
-				f_CI_lower = f_grid[left + 1] + step * (relevantIntegral - CI) / add;
-				break;
-			} else {
-				CI += add;
-				--left;
+				//add at left
+				double add = (density_grid[left] + density_grid[left + 1]) * halfStep;
+				if(CI + add >= relevantIntegral){
+					f_CI_upper = f_grid[right - 1];
+					f_CI_lower = f_grid[left + 1] + step * (relevantIntegral - CI) / add;
+					break;
+				} else {
+					CI += add;
+					--left;
+				}
 			}
 		}
 	}
+
+	if(f_CI_lower == minPriorSupport)
+		f_CI_lower = 0.0;
+	if(f_CI_upper == maxPriorSupport)
+		f_CI_upper = 1.0;
 };
 
-double TAlleleFreqEstimatorBayes::estimate(TPopulationLikehoodLocus & storage, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TGlfConverter & glfConverter){
 	//get MAP estimate
-	estimateMAP(storage, glfConverter);
+	estimateMAP(storage, numSamplesInPop, glfConverter);
 
 	//estimate credible interval
-	estimateCredibleIntervals(storage, glfConverter);
+	estimateCredibleIntervals(storage, numSamplesInPop, glfConverter);
 
 	//return MAP estimate
 	return f_MAP;
@@ -335,12 +393,67 @@ TAlleleFreqEstimator::TAlleleFreqEstimator(TParameters & Parameters, TLog* Logfi
 	logfile = Logfile;
 };
 
+std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator){
+	std::vector<std::string> header = {"chr", "pos", "ref", "alt"};
+
+	for(int p=0; p<samples.numPopulations(); p++){
+		std::string name = samples.getPopulationName(p);
+		header.push_back("numDiploid_" + name);
+		header.push_back("numHaploid_" + name);
+
+		if(writeGenoFreq){
+			header.push_back("freqGenoRefRef_" + name);
+			header.push_back("freqGenoRefAlt_" + name);
+			header.push_back("freqGenoAltAlt_" + name);
+			header.push_back("freqGenoRef_" + name);
+			header.push_back("freqGenoAlt_" + name);
+		}
+
+		header.push_back("freqAltGF_" + name);
+		header.push_back("freqAltHW_" + name);
+
+		if(doBayesian){
+			header.push_back("freqAltHW_MAP_" + name);
+			header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower_" + name);
+			header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper_" + name);
+		}
+	}
+	return(header);
+};
+
+void TAlleleFreqEstimator::writeEstimatesOnePop(TOutputFileZipped & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, int numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+	//write num samples with data
+	out << genoFrequencies.numDiploid();
+	out << genoFrequencies.numHaploid();
+
+
+	//write genotype frequency estimates
+	if(writeGenoFreq){
+		genoFrequencies.writeDiploidFrequencies(out);
+		genoFrequencies.writeHaploidFrequencies(out);
+	}
+
+	//write frequency estimate based on genotype estimates
+	out << alleleFrequency;
+
+	//write HW estimates
+	out << MLHWEstimator.estimate(samples, numSamples, epsF, glfConverter);
+
+	//Bayesian estimation
+	if(doBayesian){
+		double MAP = BHWEstimator->estimate(samples, numSamples, glfConverter);
+		out << MAP;
+		out << BHWEstimator->lowerCredibleInterval();
+		out << BHWEstimator->upperCredibleInterval();
+	}
+
+};
+
 void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	if(vcfRead)
 		throw "VCF already read!";
 
 	//read samples
-	TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
 		samples.readSamples(Parameters.getParameterString("samples"), logfile);
 
@@ -380,6 +493,8 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
 	}
 
+	bool writeGenoFreq = Parameters.parameterExists("writeGenoFreq");
+
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreq.txt.gz";
@@ -387,13 +502,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	TOutputFileZipped out(outputName);
 
 	//write header
-	std::vector<std::string> header = {"chr", "pos", "ref", "alt", "numDiploid", "numHaploid", "freqAltHW", "freqGenoRefRef", "freqGenoRefAlt", "freqGenoAltAlt", "freqGenoRef", "freqGenoAlt", "freqAltGF"};
-	if(doBayesian){
-		header.push_back("freqAltHW_MAP");
-		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower");
-		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper");
-	}
-	out.writeHeader(header);
+	out.writeHeader(writeHeaderAlleleFreq(writeGenoFreq, doBayesian, BHWEstimator));
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
@@ -401,26 +510,16 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
     	//print SNP
  		reader.writePosition(out);
 
- 		//write num samples with data
- 		out << reader.genotypeFrequencies()->numDiploid();
- 		out << reader.genotypeFrequencies()->numHaploid();
-
- 		//write HW estimates
- 		out << MLHWEstimator.estimate(storage, epsF, glfConverter);
-
- 		//write genotype frequency estimates
- 		reader.genotypeFrequencies()->writeDiploidFrequencies(out);
- 		reader.genotypeFrequencies()->writeHaploidFrequencies(out);
-
- 		//write frequency estimate based on genotype estimates
- 		out << reader.allelFrequency();
-
- 		//Bayesian estimation
- 		if(doBayesian){
- 			out << BHWEstimator->estimate(storage, glfConverter);
- 			out << BHWEstimator->lowerCredibleInterval();
- 			out << BHWEstimator->upperCredibleInterval();
- 		};
+ 		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
+ 		if(samples.numPopulations() == 0){
+ 			writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.allelFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 		} else {
+ 			TGenotypeFrequencies genoFrequencies;
+ 	 		for(int p=0; p<samples.numPopulations(); p++){
+ 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, epsF);
+ 	 			writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency, &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 	 		}
+ 		}
 
  		//end line
  		out << std::endl;
@@ -442,5 +541,192 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	if(reader.numAcceptedLoci() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
+};
+
+std::vector<std::string> TAlleleFreqEstimator::writeHeaderAlleleFreqComparison(bool writeGenoFreq, TAlleleFreqEstimatorBayes* BHWEstimator){
+	std::vector<std::string> header = {"chr", "pos", "ref", "alt"};
+
+	for(int p=0; p<samples.numPopulations(); p++){
+		std::string name = samples.getPopulationName(p);
+		header.push_back("numDiploid_" + name);
+		header.push_back("numHaploid_" + name);
+
+		header.push_back("freqAltHW_MAP_" + name);
+		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_lower_" + name);
+		header.push_back("freqAltHW_CI" + toString(BHWEstimator->credibleIntervalUsed()) + "_upper_" + name);
+		header.push_back("MCMCAcceptanceRate_" + name);
+	}
+
+    //pairwise comparisons
+	for(int p1=0; p1<(samples.numPopulations()-1); ++p1){
+		for(int p2 = p1+1; p2 < samples.numPopulations(); ++p2){
+			header.push_back("P(f_" + samples.getPopulationName(p1) + "<f_" + samples.getPopulationName(p2) + ")");
+		}
+	}
+	return(header);
+};
+
+
+
+void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator){
+	if(vcfRead)
+		throw "VCF already read!";
+
+	//read samples
+	if(Parameters.parameterExists("samples"))
+		samples.readSamples(Parameters.getParameterString("samples"), logfile);
+
+	//create reader
+	bool saveAlleleFrequencies = true;
+	TPopulationLikelihoodReaderLocus reader(Parameters, logfile, saveAlleleFrequencies);
+	reader.doEstimateGenotypeFrequencies();
+
+	//open vcf file
+	vcfFilename = Parameters.getParameterString("vcf");
+	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
+	reader.openVCF(vcfFilename);
+
+	//match samples
+	if(samples.hasSamples())
+		samples.fillVCFOrder(reader.getSampleVCFNames());
+	 else
+		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+
+	if(samples.numPopulations() < 2){
+		throw "Need to define at least 2 populations in samples file! Use 'task=alleleFreq' to estimate allele frequencies for a single population.";
+	}
+
+	//initialize variables for vcf-file
+	struct timeval start; gettimeofday(&start, NULL);
+	TPopulationLikehoodLocus storage(samples.numSamples());
+
+	//create bayesian allele frequency estimator
+	TAlleleFreqEstimatorBayes* BHWEstimator;
+	BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
+
+	//genotype frequencies estimator
+	TGenotypeFrequencies genoFrequencies;
+
+	//variables for MCMC chains
+	std::vector<double*> mcmcChains;
+	int numIterations = Parameters.getParameterIntWithDefault("iterations", 100000);
+	double frac = Parameters.getParameterDoubleWithDefault("proposalFrac", 3.0);
+	if(numIterations < 1)
+		throw "Cannot run MCMC for less than 1 iteration!";
+	if(frac <= 0.0)
+		throw "proposalFrac must be larger than 0!";
+	logfile->list("Running MCMC for " + toString(numIterations) + " iterations with a propsal width of " + toString(frac) + " times the 90% confidence interval.");
+
+	//output file
+	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp);
+	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
+	TOutputFileZipped out(outputName + "_alleleFreqComparison.txt.gz");
+
+	//write header
+	out.writeHeader(writeHeaderAlleleFreqComparison(Parameters.parameterExists("writeGenoFreq"), BHWEstimator));
+
+    //run through VCF file
+    logfile->startIndent("Parsing VCF file:");
+    while(reader.readDataFromVCF(storage, samples, glfConverter)){
+    	//print SNP
+ 		reader.writePosition(out);
+		logfile->list("Running MCMC's for " + toString(samples.numPopulations()) +" populations at locus " + reader.chr() + ":" + toString(reader.position()));
+
+ 		for(int p=0; p<samples.numPopulations(); p++){
+			//write num samples with data
+			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, Parameters.getParameterDoubleWithDefault("epsF", 0.0000001));
+			out << genoFrequencies.numDiploid();
+			out << genoFrequencies.numHaploid();
+
+			//Bayesian estimation
+			out << BHWEstimator->estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
+			out << BHWEstimator->lowerCredibleInterval();
+			out << BHWEstimator->upperCredibleInterval();
+
+			//store mcmc chain
+			double acceptanceRate = BHWEstimator->runMCMC(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, numIterations, frac);
+			mcmcChains.push_back(BHWEstimator->getMcmcSamples());
+			out << acceptanceRate;
+ 		}
+
+ 		//update for next
+ 		++_numLoci;
+     }
+
+    //end VCF file and report final status
+	vcfRead = true;
+	logfile->endIndent();
+	reader.concludeFilters();
+	if(reader.numAcceptedLoci() < 1)
+		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+	logfile->endIndent();
+
+    //pairwise comparisons
+	for(int p1=0; p1<(samples.numPopulations()-1); ++p1){
+		for(int p2 = p1+1; p2 < samples.numPopulations(); ++p2){
+			logfile->list("Comparing allele frequencies of '" + samples.getPopulationName(p1) + "' and '" + samples.getPopulationName(p2)+ "'");
+
+			int smallerThan = 0;
+			for(int i=0; i<numIterations; ++i){
+				if(mcmcChains[p1][i] < mcmcChains[p2][i]){
+					++smallerThan;
+				}
+			}
+			out << (double) smallerThan / (double) numIterations;
+		}
+	}
+
+	//write MCMC to file?
+	std::string writePop = Parameters.getParameterStringWithDefault("writeMCMC", "");
+	std::vector<std::string> popToWriteMCMC;
+	std::map<std::string, int> writePopMap;
+	TOutputFileZipped outT;
+	if(Parameters.parameterExists("writeMCMC")){
+		std::string tempOut = outputName + "_MCMC.txt.gz";
+		logfile->list("Will write MCMC chains to file '" + tempOut + "'.");
+		TOutputFileZipped outT(tempOut);
+		fillVectorFromString(writePop, popToWriteMCMC, ',');
+
+
+		//fill map
+		if(popToWriteMCMC.size() == 1 && popToWriteMCMC[0] == "all"){
+	 		for(int p=0; p<samples.numPopulations(); p++){
+	 			writePopMap.emplace(samples.getPopulationName(p), 1);
+	 		}
+		} else {
+			for(unsigned int i=0; i<popToWriteMCMC.size(); ++i){
+				if(samples.populationExists(popToWriteMCMC[i]))
+					writePopMap.emplace(popToWriteMCMC[i], 1);
+				else
+					throw "Population '" + popToWriteMCMC[i] + "' does not exist!";
+			}
+		}
+
+		//write header
+		std::vector<std::string> header;
+ 		for(int p=0; p<samples.numPopulations(); p++){
+ 			if(writePopMap.find(samples.getPopulationName(p)) != writePopMap.end()){
+ 				header.push_back(samples.getPopulationName(p));
+ 			}
+ 		}
+ 		outT.writeHeader(header);
+
+		//write to file
+		for(int i=0; i<numIterations; ++i){
+			for(int p1=0; p1<(samples.numPopulations()); ++p1){
+				if(writePopMap.find(samples.getPopulationName(p1)) != writePopMap.end()){
+					outT << mcmcChains[p1][i];
+				}
+			}
+			outT.endLine();
+		}
+		outT.close();
+	}
+
+	//clean up
+	out << std::endl;
+	out.close();
+	delete BHWEstimator;
 };
 
