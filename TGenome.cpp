@@ -725,7 +725,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		writeTmpTables = true;
 		logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file.");
 	}
-	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+	recal::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 
 	//prepare windows
 	TWindow window;
@@ -778,7 +778,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
-	TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
+	recal::TRecalibrationEMEstimator recalObjectEM(params, &alignmentParser.readGroups, logfile, &readGroupMap);
 	recalObjectEM.initializeFromFile(params.getParameterString("recalForLL"));
 
 	//prepare windows
@@ -2480,7 +2480,6 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 	TDistributionOfCounts counts(maxCounts, "readStarts");
 
 	//iterate through windows
-	unsigned int curChr = 0;
 	int curChrLength = 0;
 	unsigned int curPos = 0;
 	int countsAtPos = 0;

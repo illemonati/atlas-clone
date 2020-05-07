@@ -48,7 +48,7 @@ public:
 class TRecalibrationEM:public TRecalibration{
 private:
 	TLog* logfile;
-	TRecalibrationEMModels* models;
+	recal::TRecalibrationEMModels* models;
 	TReadGroupMap* readGroupMap;
 
 	void _initializeRecalibrationParametersFromString(std::string & string);

@@ -34,7 +34,7 @@ TRecalibrationEM::TRecalibrationEM(std::string string, TReadGroups* ReadGroups, 
 	readGroupMap = new TReadGroupMap(ReadGroups);
 
 	//models
-	models = new TRecalibrationEMModels(ReadGroups, readGroupMap, logfile);
+	models = new recal::TRecalibrationEMModels(ReadGroups, readGroupMap, logfile);
 	models->createModels(string);
 };
 

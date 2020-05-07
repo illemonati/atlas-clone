@@ -8,7 +8,7 @@
 #ifndef RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_
 #define RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_
 
-#include "../stringFunctions.h"
+#include "stringFunctions.h"
 #include "TRecalibrationEMAuxiliaryTools.h"
 #include "../TNormalDistribution.h"
 #define ARMA_DONT_PRINT_ERRORS
@@ -22,6 +22,7 @@
 #define RecalModuleFunctionName_probit "probit"
 #define RecalModuleFunctionName_specific "specific"
 
+namespace recal{
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
@@ -229,5 +230,6 @@ public:
 	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
 };
 
+}; //end namespace recal
 
 #endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATEFUNCTION_H_ */

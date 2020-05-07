@@ -8,6 +8,8 @@
 
 #include <TRecalibrationEMCovariate.h>
 
+namespace recal{
+
 //-------------------------------------------
 // TRecalibrationEMCovariate
 //-------------------------------------------
@@ -425,3 +427,5 @@ bool TRecalibrationEMCovariate_MQ::checkParameterRange(std::vector<uint16_t> & u
 	return _function->checkValueRange(usedLengths);
 };
 
+//end namespace recal
+};

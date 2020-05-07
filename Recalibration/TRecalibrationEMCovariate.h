@@ -11,6 +11,8 @@
 #include <memory>
 #include <TRecalibrationEMCovariateFunction.h>
 
+namespace recal{
+
 //define covariate names
 #define RecalCovariateName_none "none"
 #define RecalCovariateName_quality "quality"
@@ -202,5 +204,7 @@ public:
 	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
 
 };
+
+}; //end namespace recal
 
 #endif /* RECALIBRATION_TRECALIBRATIONEMCOVARIATE_H_ */

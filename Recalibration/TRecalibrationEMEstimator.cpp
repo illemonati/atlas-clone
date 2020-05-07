@@ -7,6 +7,8 @@
 
 #include "TRecalibrationEMEstimator.h"
 
+namespace recal{
+
 //---------------------------------------------------------------
 //RecalibrationEMSite
 //---------------------------------------------------------------
@@ -827,4 +829,5 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 */
 
-
+//end name space recal
+};

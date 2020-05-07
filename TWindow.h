@@ -99,8 +99,8 @@ public:
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, const int ploidy, bool printAll);
-	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
+	void addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
+	void addToRecalibrationEM(recal::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 	//callers
 	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);

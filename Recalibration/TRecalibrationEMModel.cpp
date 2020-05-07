@@ -7,6 +7,8 @@
 
 #include <TRecalibrationEMModel.h>
 
+namespace recal{
+
 //--------------------------------------------------------------------
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
@@ -750,6 +752,7 @@ double TRecalibrationEMModels::getSteepestGradient(){
 	return maxF;
 };
 
-
+//end namespace
+};
 
 

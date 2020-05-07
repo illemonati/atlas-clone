@@ -7,6 +7,8 @@
 
 #include "TRecalibrationEMAuxiliaryTools.h"
 
+namespace recal{
+
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
 //--------------------------------------------------------------------
@@ -368,4 +370,7 @@ void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile){
 		if(!readGroupInUse[index][0])
 			logfile->warning("No recal parameters provided for " + readGroups->getName(r) + " (first mate of paired or single-end). Are you using the correct recal file?");
 	}
+};
+
+//end namespace recal
 };

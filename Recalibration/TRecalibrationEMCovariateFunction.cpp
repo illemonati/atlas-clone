@@ -8,6 +8,7 @@
 
 #include <TRecalibrationEMCovariateFunction.h>
 
+namespace recal{
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
@@ -438,4 +439,7 @@ TRecalibrationEMCovariateFunction_specificMap::TRecalibrationEMCovariateFunction
 
 void TRecalibrationEMCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
 	first.add(_firstParameterIndex + _indexMap[val], 1.0);
+};
+
+//end namespace recal
 };

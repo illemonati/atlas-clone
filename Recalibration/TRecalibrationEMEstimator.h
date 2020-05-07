@@ -12,6 +12,7 @@
 #include "TRecalibrationEMAuxiliaryTools.h"
 #include "../TSite.h"
 
+namespace recal{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMSite
@@ -144,5 +145,6 @@ public:
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
 
+}; //end namespace recal
 
 #endif /* TRECALIBRATIONEMESTIMATOR_H_ */

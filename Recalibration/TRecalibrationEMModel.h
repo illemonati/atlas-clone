@@ -12,6 +12,8 @@
 #include "TRecalibrationEMAuxiliaryTools.h"
 #include "TFile.h"
 
+namespace recal{
+
 //--------------------------------------------------------------------
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
@@ -222,5 +224,6 @@ public:
 
 };
 
+}; //end namespace
 
 #endif /* TRECALIBRATIONEMMODEL_H_ */

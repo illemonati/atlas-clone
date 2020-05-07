@@ -16,6 +16,7 @@
 #include "TLog.h"
 #include "../TReadGroups.h"
 
+namespace recal{
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -307,7 +308,8 @@ public:
 	};
 };
 
-
+//end namespace recal
+};
 
 
 #endif /* TRECALIBRATIONEMAUXILIARYTOOLS_H_ */
