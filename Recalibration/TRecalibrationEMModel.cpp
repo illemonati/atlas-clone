@@ -250,7 +250,7 @@ double TRecalibrationEMModel::_calcEpsilon(const double eta){
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TRecalibrationEMModel::getErrorRate(const TBase & base){
+double TRecalibrationEMModel::getErrorRate(const TBaseData & base){
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 

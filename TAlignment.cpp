@@ -181,8 +181,8 @@ void TAlignment::setDistancesFromEnds(){
 			int k = abs(fragmentLen) - (length - softClippedLength[1]);
 			int l = length - 1 - softClippedLength[1];
 			for(int pos=0; pos<length; ++pos){
-				bases[pos].distFrom5Prime = l - pos; //dist from 5'
-				bases[pos].distFrom3Prime = k + pos; //dist from 3'
+				bases[pos].data.distFrom5Prime = l - pos; //dist from 5'
+				bases[pos].data.distFrom3Prime = k + pos; //dist from 3'
 			}
 		} else {
 			//forward (can be either first or second mate, but it's the one that comes first in bam file)
@@ -191,8 +191,8 @@ void TAlignment::setDistancesFromEnds(){
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			for(int pos=0; pos<length; ++pos){
-				bases[pos].distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
-				bases[pos].distFrom3Prime = fragmentLen - 1 - pos + softClippedLength[0]; //dist from 3'
+				bases[pos].data.distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
+				bases[pos].data.distFrom3Prime = fragmentLen - 1 - pos + softClippedLength[0]; //dist from 3'
 			}
 		}
 	} else {
@@ -203,16 +203,16 @@ void TAlignment::setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int pos=0; pos<length; ++pos){
-				bases[pos].distFrom5Prime = l - pos - softClippedLength[1]; //dist from 5'
-				bases[pos].distFrom3Prime = pos - softClippedLength[0]; //dist from 3'
+				bases[pos].data.distFrom5Prime = l - pos - softClippedLength[1]; //dist from 5'
+				bases[pos].data.distFrom3Prime = pos - softClippedLength[0]; //dist from 3'
 			}
 		} else {
 			//not in pair & forward
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int pos=0; pos<length; ++pos){
-				bases[pos].distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
-				bases[pos].distFrom3Prime = l - pos - softClippedLength[1]; //dist from 3'
+				bases[pos].data.distFrom5Prime = pos - softClippedLength[0]; //dist from 5'
+				bases[pos].data.distFrom3Prime = l - pos - softClippedLength[1]; //dist from 3'
 			}
 		}
 	}
@@ -234,10 +234,10 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
 		//set maping quality and whether read is first or second
 		for(int d=0; d<length; ++d){
-			bases[d].mappingQuality = mappingQuality;
-			bases[d].isSecondMate = isSecondMate;
-			bases[d].isReverseStrand = isReverseStrand;
-			bases[d].fragmentLength = fragmentLength;
+			bases[d].data.mappingQuality = mappingQuality;
+			bases[d].data.fragmentLength = fragmentLength;
+			bases[d].setSecondMate(isSecondMate);
+			bases[d].setReverseStrand(isReverseStrand);
 		}
 
 		parsed = true;
@@ -245,9 +245,9 @@ void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 };
 
 void TAlignment::copyDataToBase(TBase & base, const char baseAsChar, const char qualAsChar, TGenotypeMap & genoMap, TQualityMap & qualityMap){
-	base.base = genoMap.getBase(baseAsChar);
-	base.qualityAsPhredInt = qualityMap.qualityToPhredInt(qualAsChar);
-	base.errorRate = qualityMap.phredIntToError(base.qualityAsPhredInt);
+	base.data.base = genoMap.getBase(baseAsChar);
+	base.data.qualityAsPhredInt = qualityMap.qualityToPhredInt(qualAsChar);
+	base.errorRate = qualityMap.phredIntToError(base.data.qualityAsPhredInt);
 };
 
 void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
@@ -274,7 +274,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 				//soft-clipped bases on 5' are before bamAlignment.Position
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
 					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);
-					bases[d].aligned = true;
+					bases[d].setAligned(true);
 					bases[d].alignedPos = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
@@ -290,7 +290,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					++softClippedLength[softClippedEntry];
 
 					//need to initialize quality for quality filter and bases for context
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].aligned = false;
+					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
 					bases[d].alignedPos = -1;
 				}
 				break;
@@ -298,7 +298,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			//for 'I' - insertion: copy bases, but put aligned pos to -1
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(unsigned int i=0; i<op.Length; ++i, ++d){
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].aligned = false;
+					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
 					bases[d].alignedPos = -1;
 					++numInsertions;
 				}
@@ -316,7 +316,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].aligned = false;
+					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
 					bases[d].alignedPos = p;
 				}
 				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
@@ -353,14 +353,14 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){
 		//reverse
 		for(int d=0; d<(length-1); ++d){
-			bases[d].context = genoMap.contextMapFlipped[bases[d+1].base][bases[d].base];
+			bases[d].data.context = genoMap.contextMapFlipped[bases[d+1].data.base][bases[d].data.base];
 		}
-		bases[length-1].context = genoMap.contextMapFlipped[N][bases[length-1].base];
+		bases[length-1].data.context = genoMap.contextMapFlipped[N][bases[length-1].data.base];
 	} else {
 		//forward
-		bases[0].context = genoMap.contextMap[N][bases[0].base];
+		bases[0].data.context = genoMap.contextMap[N][bases[0].data.base];
 		for(int d=1; d<length; ++d)
-			bases[d].context = genoMap.contextMap[bases[d-1].base][bases[d].base];
+			bases[d].data.context = genoMap.contextMap[bases[d-1].data.base][bases[d].data.base];
 	}
 };
 
@@ -369,13 +369,13 @@ void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
 	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	if(!isReverseStrand){ //is forward
 		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbFivePrime(bases[d].distFrom5Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbThreePrime(bases[d].distFrom3Prime);
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbFivePrime(bases[d].data.distFrom5Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbThreePrime(bases[d].data.distFrom3Prime);
 		}
 	} else { //is reverse
 		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbThreePrime(bases[d].distFrom3Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbFivePrime(bases[d].distFrom5Prime);
+			bases[d].PMD_CT = pmdObjects[readGroupId].getProbThreePrime(bases[d].data.distFrom3Prime);
+			bases[d].PMD_GA = pmdObjects[readGroupId].getProbFivePrime(bases[d].data.distFrom5Prime);
 		}
 	}
 };
@@ -386,8 +386,8 @@ void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
 void TAlignment::filterForBaseQualityAsPhredInt(int & minPhredInt, int & maxPhredInt){
 	//set base to N if outside quality filter
 	for(int d=0; d<length; ++d){
-		if(bases[d].qualityAsPhredInt < minPhredInt || bases[d].qualityAsPhredInt > maxPhredInt){
-			bases[d].base = N;
+		if(bases[d].data.qualityAsPhredInt < minPhredInt || bases[d].data.qualityAsPhredInt > maxPhredInt){
+			bases[d].data.base = N;
 		}
 	}
 	changed = true;
@@ -396,8 +396,8 @@ void TAlignment::filterForBaseQualityAsPhredInt(int & minPhredInt, int & maxPhre
 void TAlignment::filterForContext(std::map<BaseContext,int> ignoreTheseContexts){
 	//set base to N if outside quality filter
 	for(int d=0; d<length; ++d){
-		if(ignoreTheseContexts.find(bases[d].context) != ignoreTheseContexts.end()){
-			bases[d].base = N;
+		if(ignoreTheseContexts.find(bases[d].data.context) != ignoreTheseContexts.end()){
+			bases[d].data.base = N;
 			bases[d].errorRate = 1.0;
 		}
 	}
@@ -425,23 +425,23 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 		//distance from 3' is just pos
 		//distance from 5' is len - pos - 1
 		for(int d=0; d<trimmingLength3Prime; ++d)
-			bases[d].base = N;
+			bases[d].data.base = N;
 		for(int d=0; d<trimmingLength5Prime; ++d)
-			bases[length - 1 - d].base = N;
+			bases[length - 1 - d].data.base = N;
 	} else {
 		//distance from 3' is len - pos - 1
 		//distance from 5' is just pos
 		for(int d=0; d<trimmingLength3Prime; ++d)
-			bases[length - 1 - d].base = N;
+			bases[length - 1 - d].data.base = N;
 		for(int d=0; d<trimmingLength5Prime; ++d)
-			bases[d].base = N;
+			bases[d].data.base = N;
 	}
 	changed = true;
 };
 
 void TAlignment::fillReadGroupInfo(int & readGroupID){
 	for(int d=0; d<length; ++d){
-		bases[d].readGroup = readGroupID;
+		bases[d].data.readGroup = readGroupID;
 	}
 };
 
@@ -451,7 +451,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(int d=0; d<length; ++d){
-		bases[d].errorRate = qualityMap.phredIntToIlluminaError(bases[d].qualityAsPhredInt);
+		bases[d].errorRate = qualityMap.phredIntToIlluminaError(bases[d].data.qualityAsPhredInt);
 	}
 	changed = true;
 };
@@ -471,7 +471,7 @@ void TAlignment::downsampleAlignment(double& fraction, TRandomGenerator& randomG
 	for(int d=0; d<length; ++d){
 		double r = randomGenerator.getRand();
 		if(r < fraction){
-			bases[d].base = N;
+			bases[d].data.base = N;
 			bases[d].errorRate = qualMap.qualityToError(0);
 		}
 	}
@@ -492,19 +492,19 @@ void TAlignment::addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap){
 	//check if it is forward or reverse strand!
 	if(!isReverseStrand){ //forward
 		for(int d=0; d<length; ++d){
-			if(bases[d].aligned && bases[d].base != N){
+			if(bases[d].isAligned() && bases[d].data.base != N){
 				ref = genoMap.getBase(referenceSequence[bases[d].alignedPos]);
-				pmdTables.addFromFivePrime(readGroupId, bases[d].distFrom5Prime, ref, bases[d].base);
-				pmdTables.addFromThreePrime(readGroupId, bases[d].distFrom3Prime, ref, bases[d].base);
+				pmdTables.addFromFivePrime(readGroupId, bases[d].data.distFrom5Prime, ref, bases[d].data.base);
+				pmdTables.addFromThreePrime(readGroupId, bases[d].data.distFrom3Prime, ref, bases[d].data.base);
 			}
 		}
 	} else { //reverse
 		for(int d=0; d<length; ++d){
-			if(bases[d].aligned && bases[d].base != N){
+			if(bases[d].isAligned() && bases[d].data.base != N){
 				ref = genoMap.flipBase(referenceSequence[bases[d].alignedPos]);
-				read = genoMap.baseToFlippedBase[bases[d].base];
-				pmdTables.addFromFivePrime(readGroupId, bases[d].distFrom5Prime, ref, read);
-				pmdTables.addFromThreePrime(readGroupId, bases[d].distFrom3Prime, ref, read);
+				read = genoMap.baseToFlippedBase[bases[d].data.base];
+				pmdTables.addFromFivePrime(readGroupId, bases[d].data.distFrom5Prime, ref, read);
+				pmdTables.addFromThreePrime(readGroupId, bases[d].data.distFrom3Prime, ref, read);
 			}
 		}
 	}};
@@ -515,14 +515,14 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	if(!hasReference) throw "Reference was not added!";
 
 	for(int d=0; d<length; ++d){
-		if(bases[d].aligned && bases[d].base != N){
+		if(bases[d].isAligned() && bases[d].data.base != N){
 			//alignment is already recalibrated, just need to add effect of PMD
-			if(bases[d].base == T && referenceSequence[bases[d].alignedPos] == 'C')
+			if(bases[d].data.base == T && referenceSequence[bases[d].alignedPos] == 'C')
 				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(bases[d].base == A && referenceSequence[bases[d].alignedPos] == 'G')
+			else if(bases[d].data.base == A && referenceSequence[bases[d].alignedPos] == 'G')
 				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
 		} else {
-			bases[d].errorRate = qualMap.phredIntToError(bases[d].qualityAsPhredInt);
+			bases[d].errorRate = qualMap.phredIntToError(bases[d].data.qualityAsPhredInt);
 		}
 	}
 
@@ -547,22 +547,22 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 	//go over all bases in read
 	for(int d=0; d<length; ++d){
 		//limit to aligned positions
-		if(bases[d].aligned && bases[d].base != N && referenceSequence[bases[d].alignedPos] != 'N'){
+		if(bases[d].isAligned() && bases[d].data.base != N && referenceSequence[bases[d].alignedPos] != 'N'){
 			//Prepare variables
 			epsThird = bases[d].errorRate / 3.0;
 			fourEpsThird = 4.0 * epsThird;
 
 			//calc likelihoods
 			if(referenceSequence[bases[d].alignedPos] == 'A'){
-				if(bases[d].base == A){
+				if(bases[d].data.base == A){
 					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + bases[d].PMD_GA*pi/3.0*(1.0-fourEpsThird);
 					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
-				else if(bases[d].base == C){ //ok
+				else if(bases[d].data.base == C){ //ok
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - pi*bases[d].PMD_CT*(fourEpsThird-1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == G){
+				else if(bases[d].data.base == G){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird-1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
@@ -572,15 +572,15 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 				}
 			}
 			else if (referenceSequence[bases[d].alignedPos] == 'C'){
-				if(bases[d].base == A){
+				if(bases[d].data.base == A){
 					probPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi + pi*bases[d].PMD_GA*(1.0-fourEpsThird);
 					probNoPMD = bases[d].errorRate + pi - 2.0*bases[d].errorRate*pi;
 				}
-				else if(bases[d].base == C){
+				else if(bases[d].data.base == C){
 					probPMD = 1.0 - pi - bases[d].errorRate + fourEpsThird*pi + (1.0-pi)*bases[d].PMD_CT*(fourEpsThird-1.0);
 					probNoPMD = 1.0 - pi - bases[d].errorRate + fourEpsThird*pi;
 				}
-				else if(bases[d].base == G){
+				else if(bases[d].data.base == G){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + bases[d].PMD_GA*(fourEpsThird*pi - pi);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
@@ -590,15 +590,15 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 				}
 			}
 			else if (referenceSequence[bases[d].alignedPos] == 'G'){
-				if(bases[d].base == A){
+				if(bases[d].data.base == A){
 					probPMD = bases[d].PMD_GA*(3.0-3.0*pi+4.0*bases[d].errorRate+4.0*bases[d].errorRate*pi) + bases[d].errorRate - fourEpsThird*pi + pi;
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == C){
+				else if(bases[d].data.base == C){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(fourEpsThird - 1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == G){
+				else if(bases[d].data.base == G){
 					probPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi + (1.0-pi)*bases[d].PMD_GA*(fourEpsThird-1.0);
 					probNoPMD = 1.0 - bases[d].errorRate - pi + fourEpsThird*pi;
 				}
@@ -608,15 +608,15 @@ double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
 				}
 			}
 			else { //T
-				if(bases[d].base == A){
+				if(bases[d].data.base == A){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi - epsThird*pi*bases[d].PMD_CT + pi*bases[d].PMD_GA*(1.0-bases[d].errorRate);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == C){
+				else if(bases[d].data.base == C){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_CT*(fourEpsThird - 1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
-				else if(bases[d].base == G){
+				else if(bases[d].data.base == G){
 					probPMD = bases[d].errorRate - fourEpsThird*pi + pi + pi*bases[d].PMD_GA*(fourEpsThird - 1.0);
 					probNoPMD = bases[d].errorRate - fourEpsThird*pi + pi;
 				}
@@ -769,7 +769,7 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 		//assume that only bases and quality scores where changed
 		std::string tmpString, tmpString2;
 		for(int d=0; d<length; ++d){
-			tmpString += genoMap.baseToChar[bases[d].base];
+			tmpString += genoMap.baseToChar[bases[d].data.base];
 			tmpString2 += (char) qualMap.errorToQuality(bases[d].errorRate);
 		}
 		bamAlignment.QueryBases = tmpString;
@@ -792,7 +792,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	//print bases
 	std::cout << "SEQ:\t";
 	for(int d=0; d<length; ++d)
-		std::cout << genoMap.getBaseAsChar(bases[d].base);
+		std::cout << genoMap.getBaseAsChar(bases[d].data.base);
 	std::cout << std::endl;
 
 	//print qualities
@@ -805,7 +805,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "POS:\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		if(bases[d].aligned)
+		if(bases[d].isAligned())
 			std::cout << bases[d].alignedPos;
 		else
 			std::cout << "-";
@@ -816,7 +816,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "dist 3':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << bases[d].distFrom3Prime;
+		std::cout << bases[d].data.distFrom3Prime;
 	}
 	std::cout << std::endl;
 
@@ -824,7 +824,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "dist 5':\t";
 	for(int d=0; d<length; ++d){
 		if(d>0) std::cout << ",";
-		std::cout << bases[d].distFrom5Prime;
+		std::cout << bases[d].data.distFrom5Prime;
 	}
 	std::cout << std::endl;
 }

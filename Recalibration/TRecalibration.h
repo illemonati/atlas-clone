@@ -64,10 +64,10 @@ public:
 	void initializeRecalibrationParameters(std::string string);
 
 	inline double getErrorRate(TBase & base){
-		return models->getErrorRate(base);
+		return models->getErrorRate(base.data);
 	};
 	inline int getQuality(TBase & base){
-		double q = models->getErrorRate(base);
+		double q = models->getErrorRate(base.data);
 		return _qualityMap.errorToQuality(q);
 	};
 };

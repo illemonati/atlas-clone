@@ -39,25 +39,25 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 	int k = 0;
 	for(TBase* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
-		data[k].readGroup = ReadGroupMap.getIndex(it->readGroup);
+		data[k].readGroup = ReadGroupMap.getIndex(it->data.readGroup);
 
 		//quality
-		data[k].qualityAsPhredInt = it->qualityAsPhredInt;
+		data[k].qualityAsPhredInt = it->data.qualityAsPhredInt;
 
 		//position
-		data[k].positionFrom5Prime = it->distFrom5Prime;
+		data[k].positionFrom5Prime = it->data.distFrom5Prime;
 
 		//context
-		data[k].context = it->context;
+		data[k].context = it->data.context;
 
 		//fragmentLength
-		data[k].fragmentLength = it->fragmentLength;
+		data[k].fragmentLength = it->data.fragmentLength;
 
 		//mappingQuality
-		data[k].mappingQuality = it->mappingQuality;
+		data[k].mappingQuality = it->data.mappingQuality;
 
 		//isSecond
-		data[k].isSecond = it->isSecondMate;
+		data[k].isSecond = it->isSecondMate();
 
 		//now also store D: D[ref][read]
 		data[k].setD(it->getBaseAsEnum(), it->PMD_CT, it->PMD_GA);
@@ -829,5 +829,5 @@ void TRecalibrationEM::calcQSurface(std::string filename, int numMarginalGridPoi
 
 */
 
-//end name space recal
+//end namespace recal
 };

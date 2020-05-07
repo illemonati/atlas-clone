@@ -2495,7 +2495,6 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 				counts.add(0, curChrLength - curPos);
 			}
 
-			curChr = alignment.chrNumber;
 			curChrLength = alignmentParser.getCurChrLength();
 			curPos = 0;
 		}

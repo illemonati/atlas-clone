@@ -49,7 +49,7 @@ public:
 
 	void add(const TBase & base){
 		uint16_t q = qualMap.errorToPhredInt(base.errorRate);
-		++contextCounts[q][base.context];
+		++contextCounts[q][base.data.context];
 	};
 
 	void writeToFile(const std::string outputFileName){

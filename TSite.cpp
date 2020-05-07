@@ -174,7 +174,7 @@ void TSite::countMates(int* mateCounts){
 	mateCounts[1] = 0;
 
 	for(TBase* it : bases)
-		++mateCounts[it->isSecondMate];
+		++mateCounts[it->isSecondMate()];
 };
 
 void TSite::countFwdRev(int* frCounts){
@@ -182,13 +182,13 @@ void TSite::countFwdRev(int* frCounts){
 	frCounts[1] = 0;
 
 	for(TBase* it : bases)
-		++frCounts[it->isReverseStrand];
+		++frCounts[it->isReverseStrand()];
 };
 
 void TSite::contextStats(int** contextCounts, TQualityMap & qualMap){
 	for(TBase* it : bases){
 		int q = qualMap.errorToPhredInt(it->errorRate);
-		int c = it->context;
+		int c = it->data.context;
 		++contextCounts[q][c];
 	}
 };

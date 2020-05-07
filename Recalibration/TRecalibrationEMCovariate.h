@@ -32,7 +32,7 @@ protected:
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
 
 	//extract
-	virtual uint16_t _extractCovariate(const TBase & base){
+	virtual uint16_t _extractCovariate(const TBaseData & base){
 		throw "No covariate defined for base class TRecalibrationEMCovariate!";
 	};
 	virtual uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
@@ -58,7 +58,7 @@ public:
 	TRecalibrationEMCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
-	double getEtaTerm(const TBase & base){
+	double getEtaTerm(const TBaseData & base){
 		return _function->getEtaTerm( _extractCovariate(base) );
 	};
 	double getEtaTerm(const TRecalibrationEMReadData & data){
@@ -81,7 +81,7 @@ class TRecalibrationEMCovariate_quality:public TRecalibrationEMCovariate{
 private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
-	uint16_t _extractCovariate(const TBase & base){
+	uint16_t _extractCovariate(const TBaseData & base){
 		return base.qualityAsPhredInt;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
@@ -106,7 +106,7 @@ public:
 //-------------------------------------------
 class TRecalibrationEMCovariate_position:public TRecalibrationEMCovariate{
 private:
-	uint16_t _extractCovariate(const TBase & base){
+	uint16_t _extractCovariate(const TBaseData & base){
 		return base.distFrom5Prime;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
@@ -131,7 +131,7 @@ class TRecalibrationEMCovariate_context:public TRecalibrationEMCovariate{
 private:
 	int numContext;
 
-	uint16_t _extractCovariate(const TBase & base){
+	uint16_t _extractCovariate(const TBaseData & base){
 		return base.context;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
@@ -156,7 +156,7 @@ public:
 class TRecalibrationEMCovariate_fragmentLength:public TRecalibrationEMCovariate{
 private:
 
-	uint16_t _extractCovariate(const TBase & base){
+	uint16_t _extractCovariate(const TBaseData & base){
 		return base.fragmentLength;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
@@ -184,7 +184,7 @@ public:
 class TRecalibrationEMCovariate_MQ:public TRecalibrationEMCovariate{
 private:
 
-	uint16_t _extractCovariate(const TBase & base){
+	uint16_t _extractCovariate(const TBaseData & base){
 		return base.mappingQuality;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){

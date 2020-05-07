@@ -492,7 +492,7 @@ void TBQSR_cellPositionRev::init(int ReadGroup, TQualityIndex* QualityIndex, TBQ
 
 float TBQSR_cellPositionRev::getEpsilon(TBase* base, TQualityMap & qualMap){
 	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromPhredInt(qualMap.errorToPhredInt(base->errorRate))].curEstimate;
-	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->data.distFrom5Prime].curEstimate;
 	return  epsilonAlpha;
 }
 
@@ -526,8 +526,8 @@ void TBQSR_cellContext::init(int ReadGroup, TQualityIndex* QualityIndex, TBQSR_c
 
 float TBQSR_cellContext::getEpsilon(TBase* base, TQualityMap & qualMap){
 	float epsilonAlpha = BQSR_cells_readGroup_quality[myReadGroup][qualityIndex->getIndexFromQuality(qualMap.errorToQuality(base->errorRate))].curEstimate;
-	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->distFrom5Prime].curEstimate;
-	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->distFrom3Prime].curEstimate;
+	if(considerPosition) epsilonAlpha *= BQSR_cells_readGroup_position[myReadGroup][base->data.distFrom5Prime].curEstimate;
+	if(considerPositionRev) epsilonAlpha *= BQSR_cells_readGroup_position_rev[myReadGroup][base->data.distFrom3Prime].curEstimate;
 	return  epsilonAlpha;
 };
 
@@ -880,18 +880,18 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupContextTableFromFile(std::strin
 }
 
 double TRecalibrationBQSR::getErrorRate(TBase & base){
-	double q = storage.qualityCells[base.readGroup][qualityIndex->getIndexFromQuality(_qualityMap.errorToQuality(base.errorRate))].curEstimate;
+	double q = storage.qualityCells[base.data.readGroup][qualityIndex->getIndexFromQuality(_qualityMap.errorToQuality(base.errorRate))].curEstimate;
 
 	if(storage.considerPosition){
-		if(base.distFrom5Prime > storage.maxPos)
-			q *= storage.positionCells[base.readGroup][storage.maxPos].curEstimate;
+		if(base.data.distFrom5Prime > storage.maxPos)
+			q *= storage.positionCells[base.data.readGroup][storage.maxPos].curEstimate;
 		else
-			q *= storage.positionCells[base.readGroup][base.distFrom5Prime].curEstimate;
+			q *= storage.positionCells[base.data.readGroup][base.data.distFrom5Prime].curEstimate;
 	}
 
-	if(storage.considerPositionReverse) q *= storage.positionReverseCells[base.readGroup][base.distFrom3Prime].curEstimate;
+	if(storage.considerPositionReverse) q *= storage.positionReverseCells[base.data.readGroup][base.data.distFrom3Prime].curEstimate;
 
-	if(storage.considerContext) q *= storage.contextCells[base.readGroup][base.context].curEstimate;
+	if(storage.considerContext) q *= storage.contextCells[base.data.readGroup][base.data.context].curEstimate;
 	if(q > 1.0) q = 1.0; //make sure the scaling does not lead to errors > 1.0!
 	return q;
 };
@@ -1216,24 +1216,24 @@ void TRecalibrationBQSREstimator::addSite(TSite & site, TQualityMap & qualMap){
 		Base refBase = site.getRefBaseAsEnum();
 		if(!_qualityConverged){
 			for(TBase* it : site.bases){
-				storage.qualityCells[_readGroupMap->getIndex(it->readGroup)][qualityIndex->getIndexFromQuality(qualMap.errorToQuality(it->errorRate))].addBase(it, refBase, qualMap);
+				storage.qualityCells[_readGroupMap->getIndex(it->data.readGroup)][qualityIndex->getIndexFromQuality(qualMap.errorToQuality(it->errorRate))].addBase(it, refBase, qualMap);
 			}
 		}
 		else if(storage.considerPosition && !_positionConverged){
 			for(TBase* it : site.bases){
-				if(it->distFrom5Prime >= storage.maxPos)
+				if(it->data.distFrom5Prime >= storage.maxPos)
 					throw "Position of base is > maxPos specified!";
-				storage.positionCells[_readGroupMap->getIndex(it->readGroup)][it->distFrom5Prime].addBase(it, refBase, qualMap);
+				storage.positionCells[_readGroupMap->getIndex(it->data.readGroup)][it->data.distFrom5Prime].addBase(it, refBase, qualMap);
 			}
 		}
 		else if(storage.considerPositionReverse && !_positionReverseConverged){
 			for(TBase* it : site.bases){
-				if(it->distFrom3Prime >= storage.maxPosReverse) throw "Position of base is > maxPos specified!";
-				storage.positionReverseCells[_readGroupMap->getIndex(it->readGroup)][it->distFrom3Prime].addBase(it, refBase, qualMap);
+				if(it->data.distFrom3Prime >= storage.maxPosReverse) throw "Position of base is > maxPos specified!";
+				storage.positionReverseCells[_readGroupMap->getIndex(it->data.readGroup)][it->data.distFrom3Prime].addBase(it, refBase, qualMap);
 			}
 		} else if(storage.considerContext && !_contextConverged){
 			for(TBase* it : site.bases)
-				storage.contextCells[_readGroupMap->getIndex(it->readGroup)][it->context].addBase(it, refBase, qualMap);
+				storage.contextCells[_readGroupMap->getIndex(it->data.readGroup)][it->data.context].addBase(it, refBase, qualMap);
 		}
 	}
 };

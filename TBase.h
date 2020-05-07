@@ -9,6 +9,7 @@
 #define TBASE_H_
 
 #include "TGenotypeMap.h"
+#include <bitset>
 
 //---------------------------------------------------------------
 //TEmissionProbabilities
@@ -35,67 +36,74 @@ public:
 //---------------------------------------------------------------
 //TBase
 //---------------------------------------------------------------
+//data container with minimal footprint, also used in recal
+class TBaseData{
+private:
+	//flags: isReverseStrand, isSecondMate, isAligned
+	std::bitset<3> flags; //initialized as 0,0,0
 
-class TBase{
 public:
 	Base base;
 	uint8_t qualityAsPhredInt; //Note: original quality as in BAM file, but transformed to phredInt
-	double errorRate;
 	uint16_t distFrom5Prime; //zero based!
-	uint16_t distFrom3Prime; //zero based!
-	double PMD_CT, PMD_GA;
+	uint16_t distFrom3Prime; //zero based!	Do we need it if we also store fragment length?
 	uint16_t readGroup;
-	BaseContext context;
-	bool aligned;  //whether or not base is aligned to ref. Insertions and clipped bases are not aligned
-	uint16_t alignedPos; //takes value -1 when base is not aligned
-	bool isSecondMate; //false for single-end data as well as the first read of paired-end data. true for the second mate of paired-end data.
-	bool isReverseStrand; //TODO: group three bool into one uint8_t to save two bytes.
-	uint8_t mappingQuality;
 	uint16_t fragmentLength;
+	uint8_t mappingQuality;
+	BaseContext context;
 
-	TBase(){
+
+	TBaseData(){
 		base = N;
-		errorRate = -1.0;
 		qualityAsPhredInt = 0;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
-		PMD_CT = -1.0;
-		PMD_GA = -1.0;
 		readGroup = -1;
 		context = cNN;
-		aligned = false;
-		alignedPos = 0;
-		isSecondMate = false;
-		isReverseStrand = false;
 		mappingQuality = 0;
 		fragmentLength = 0;
 	};
 
-	/*
-	TBase(Base & Base, uint8_t & QualityAsPhredInt, double & ErrorRate, int & PosInRead, int & DistFrom5Prime, int & DistFrom3Prime, double & thisPMD_CT, double & thisPMD_GA,  BaseContext & Context, int & ReadGroup, bool & Aligned, uint16_t & AlignedPos, bool & IsSecond, bool & IsReverseStrand, uint8_t & MappingQuality, uint16_t & FragmentLength){
-		base = Base;
-		qualityAsPhredInt = QualityAsPhredInt;
-		errorRate = ErrorRate;
-		distFrom5Prime = DistFrom5Prime;
-		distFrom3Prime = DistFrom3Prime;
-		PMD_CT = thisPMD_CT;
-		PMD_GA = thisPMD_GA;
-		readGroup = ReadGroup;
-		context = Context;
-		aligned = Aligned;
-		alignedPos = AlignedPos;
-		isSecondMate = IsSecond;
-		isReverseStrand = IsReverseStrand;
-		mappingQuality = MappingQuality;
-		fragmentLength = FragmentLength;
-	};
-	*/
+	//set and get flags
+	bool isReverseStrand(){ return flags[0]; };
+	bool isSecondMate(){ return flags[1]; };
+	bool isAligned(){ return flags[2]; };
 
+	void setReverseStrand(const bool status){ flags[0] = status; };
+	void setSecondMate(const bool status){ flags[1] = status; };
+	void setAligned(const bool status){ flags[2] = status; };
+
+};
+
+class TBase{
+public:
+	TBaseData data;
+
+	//tmp variables. Remove to fuse TBase with TBaseData?
+	uint16_t alignedPos; //takes value -1 when base is not aligned
+	double errorRate;
+	double PMD_CT, PMD_GA;
+
+	TBase(){
+		errorRate = -1.0;
+		PMD_CT = -1.0;
+		PMD_GA = -1.0;
+		alignedPos = 0;
+	};
 	~TBase(){};
+
+	bool isReverseStrand(){ return data.isReverseStrand(); };
+	bool isSecondMate(){ return data.isSecondMate(); };
+	bool isAligned(){ return data.isAligned(); };
+
+	void setReverseStrand(const bool status){ data.setReverseStrand(status); };
+	void setSecondMate(const bool status){ data.setSecondMate(status); };
+	void setAligned(const bool status){ data.setAligned(status); };
+
 	void addToEmissionProb(double genotypeLikelihoods[10]);
 	void addToEmissionProbLog(double genotypeLikelihoods[10]);
-	Base getBaseAsEnum(){ return base;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(base, weight); };
+	Base getBaseAsEnum(){ return data.base;};
+	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(data.base, weight); };
 
 };
 

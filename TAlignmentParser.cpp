@@ -1164,13 +1164,15 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 };
 
 void TAlignmentParser::recalibrate(TAlignment & alignment){
+	//TODO: move to TAlignment
+
 	//make sure read is parsed and has reference
 	if(!alignment.parsed) throw "Read was not parsed!";
 
 	if(recalObject->recalibrationChangesQualities()){
 		//recalibrate quality scores
 		for(int d=0; d<alignment.length; ++d){
-			if(alignment.bases[d].aligned && alignment.bases[d].base != N){
+			if(alignment.bases[d].isAligned() && alignment.bases[d].data.base != N){
 				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
 			}
 		}
@@ -1181,20 +1183,22 @@ void TAlignmentParser::recalibrate(TAlignment & alignment){
 };
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables){
+	//TODO: move to TAlignment
 	for(int i=0; i<alignment.length; ++i){
-		if(alignment.bases[i].base != N){
+		if(alignment.bases[i].data.base != N){
 			int newQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
-			QTtables.add(alignment.readGroupId, qualMap.phredIntToQuality(alignment.bases[i].qualityAsPhredInt), newQual);
+			QTtables.add(alignment.readGroupId, qualMap.phredIntToQuality(alignment.bases[i].data.qualityAsPhredInt), newQual);
 		}
 	}
 };
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables){
+	//TODO: move to TAlignment
 	for(int i=0; i<alignment.length; ++i){
-		if(alignment.bases[i].base != N){
+		if(alignment.bases[i].data.base != N){
 			int firstQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
 			double tmp = alignment.bases[i].errorRate;
-			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].qualityAsPhredInt);
+			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].data.qualityAsPhredInt);
 			int secondQual = otherRecalObject->getQuality(alignment.bases[i]);
 			alignment.bases[i].errorRate = tmp;
 			QTtables.add(alignment.readGroupId, firstQual, secondQual);
@@ -1207,13 +1211,13 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 		double likelihood[4];
 		double sum = 0.0;
 		for(int i=0; i<4; ++i){
-			if(bestBase.base == i){
+			if(bestBase.data.base == i){
 				likelihood[i] = 1.0 - bestBase.errorRate;
 			} else {
 				likelihood[i] = bestBase.errorRate / 3.0;
 			}
 
-			if(worstBase.base == i){
+			if(worstBase.data.base == i){
 				likelihood[i] *= 1.0 - worstBase.errorRate;
 			} else {
 				likelihood[i] *= worstBase.errorRate / 3.0;
@@ -1221,7 +1225,7 @@ void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBa
 			sum += likelihood[i];
 
 		}
-		bestBase.errorRate = 1.0 - likelihood[bestBase.base] / sum;
+		bestBase.errorRate = 1.0 - likelihood[bestBase.data.base] / sum;
 	} else {
 		worstBase.errorRate = 1.0;
 //		worstBase.base = N;

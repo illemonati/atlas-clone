@@ -147,7 +147,7 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 
-	double getErrorRate(const TBase & base);
+	double getErrorRate(const TBaseData & base);
 	double getErrorRate(const TRecalibrationEMReadData & data);
 
 	TRecalibrationEMModelCovariateDefinition getCovariateDefinition();
@@ -196,8 +196,8 @@ public:
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
 	};
-	inline double getErrorRate(TBase & base){
-		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate) ].getErrorRate(base);
+	inline double getErrorRate(TBaseData & base){
+		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate()) ].getErrorRate(base);
 	};
 
 	bool hasReadGroupsWithoutModel();

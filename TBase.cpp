@@ -16,7 +16,7 @@ void TBase::addToEmissionProb(double* vec){
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
 
-	if(base == A){
+	if(data.base == A){
 		vec[AA] *= oneMinusError;
 		vec[CC] *= errorOneThird;
 		vec[GG] *= (1.0 - PMD_GA) * errorOneThird + PMD_GA * oneMinusError;
@@ -28,7 +28,7 @@ void TBase::addToEmissionProb(double* vec){
 		double tmp = (PMD_GA * oneMinusError + (2.0 - PMD_GA) * errorOneThird) / 2.0;
 		vec[CG] *= tmp;
 		vec[GT] *= tmp;
-	} else if (base == C){
+	} else if (data.base == C){
 		vec[AA] *= errorOneThird;
 		vec[CC] *= (1.0 - PMD_CT) * oneMinusError + PMD_CT * errorOneThird;
 		vec[GG] *= errorOneThird;
@@ -40,7 +40,7 @@ void TBase::addToEmissionProb(double* vec){
 		vec[AC] *= tmp;
 		vec[CG] *= tmp;
 		vec[CT] *= tmp;
-	} else if (base == G){
+	} else if (data.base == G){
 		vec[AA] *= errorOneThird;
 		vec[CC] *= errorOneThird;
 		vec[GG] *= (1.0 - PMD_GA) * oneMinusError + PMD_GA * errorOneThird;
@@ -52,7 +52,7 @@ void TBase::addToEmissionProb(double* vec){
 		vec[AG] *= tmp;
 		vec[CG] *= tmp;
 		vec[GT] *= tmp;
-	} else if (base == T){
+	} else if (data.base == T){
 		vec[AA] *= errorOneThird;
 		vec[CC] *= (1.0 - PMD_CT) * errorOneThird + PMD_CT * oneMinusError;
 		vec[GG] *= errorOneThird;
@@ -71,7 +71,7 @@ void TBase::addToEmissionProbLog(double vec[10]){
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
 
-	if(base == A){
+	if(data.base == A){
 		vec[AA] += log(oneMinusError);
 		vec[CC] += log(errorOneThird);
 		vec[GG] += log((1.0 - PMD_GA) * errorOneThird + PMD_GA * oneMinusError);
@@ -83,7 +83,7 @@ void TBase::addToEmissionProbLog(double vec[10]){
 		double tmp = log((PMD_GA * oneMinusError + (2.0 - PMD_GA) * errorOneThird) / 2.0);
 		vec[CG] += tmp;
 		vec[GT] += tmp;
-	} else if (base == C){
+	} else if (data.base == C){
 		vec[AA] += log(errorOneThird);
 		vec[CC] += log((1.0 - PMD_CT) * oneMinusError + PMD_CT * errorOneThird);
 		vec[GG] += log(errorOneThird);
@@ -95,7 +95,7 @@ void TBase::addToEmissionProbLog(double vec[10]){
 		vec[AC] += tmp;
 		vec[CG] += tmp;
 		vec[CT] += tmp;
-	} else if (base == G){
+	} else if (data.base == G){
 		vec[AA] += log(errorOneThird);
 		vec[CC] += log(errorOneThird);
 		vec[GG] += log((1.0 - PMD_GA) * oneMinusError + PMD_GA * errorOneThird);
@@ -107,7 +107,7 @@ void TBase::addToEmissionProbLog(double vec[10]){
 		vec[AG] += log(tmp);
 		vec[CG] += log(tmp);
 		vec[GT] += log(tmp);
-	} else if (base == T){
+	} else if (data.base == T){
 		vec[AA] += log(errorOneThird);
 		vec[CC] += log((1.0 - PMD_CT) * errorOneThird + PMD_CT * oneMinusError);
 		vec[GG] += log(errorOneThird);

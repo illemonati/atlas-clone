@@ -685,7 +685,7 @@ void TWindow::fillSites(TAlignment* alignmentIt, TSite* theseSites, const unsign
 	//position in window where first one = 0
 	//p is at first position of read in window
 	for(; p < alignmentIt->length; ++p){
-		if(alignmentIt->bases[p].aligned && alignmentIt->bases[p].base != N){
+		if(alignmentIt->bases[p].isAligned() && alignmentIt->bases[p].data.base != N){
 			unsigned int internalPos = firstPos + alignmentIt->bases[p].alignedPos;
 			//if read extends past window length
 			if(internalPos >= length){
@@ -737,7 +737,7 @@ void TWindow::fillSitesSubset(TAlignment* alignmentIt, TSite* theseSite, std::ma
 	//position in window where first one = 0
 	//p is at first position of read in window
 	for(; p < alignmentIt->length; ++p){
-		if(alignmentIt->bases[p].alignedPos && alignmentIt->bases[p].base != N){
+		if(alignmentIt->bases[p].alignedPos && alignmentIt->bases[p].data.base != N){
 			unsigned int internalPos = firstPos + alignmentIt->bases[p].alignedPos;
 			//if read extends past window length
 			if(internalPos >= length)
