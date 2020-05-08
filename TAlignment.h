@@ -69,7 +69,7 @@ private:
 	void copyDataToBase(TBase & base, const char baseAsChar, const char qualAsChar, TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap);
 	void fillContext(TGenotypeMap & genoMap);
-	void fillPmdProbabilities(TPMD* pmdObjects);
+	void fillPmdProbabilities(TPMDDoubleStrand* pmdObjects);
 
 	//functions to modify data
 	void filterForPrintingBaseQuality(std::string & bases, std::string & qual, int minQualForPrinting, int maxQualForPrinting);
@@ -131,7 +131,7 @@ public:
 
 	void addToPMDTables(TPMDTables & pmdTables, TGenotypeMap & genoMap);
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
-	double calculatePMDS(double & pi, TPMD* pmdObjects);
+	double calculatePMDS(double & pi, TPMDDoubleStrand* pmdObjects);
 	void removeSoftClippedBases(TSoftClippingData & softClippingData);
 	int measureOverlap();
 	int getUsableLength(const int minQual, const int maxQual);

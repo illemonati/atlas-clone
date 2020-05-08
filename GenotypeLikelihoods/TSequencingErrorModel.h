@@ -170,11 +170,12 @@ private:
 
 	void _createModelsFromString(const std::string & s);
 	void _createModelsFromFile(std::string filename);
+	void _addNoRecalModelIfMissing();
 
 	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
-	TSequencingErrorModels(TReadGroups* ReadGroups, TReadGroupMap* readGroupMap, TLog* Logfile);
+	TSequencingErrorModels(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap, TLog* Logfile);
 
 	//general functions to add and remove models
 	//bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);
@@ -187,6 +188,7 @@ public:
 	//add model for recalibration: no dataTable provided
 	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions);
 	void createModels(std::string string);
+	void createEmptyModels();
 
 	//inline TRecalibrationEMModel* operator[](int index){ return &models[index]; };
 	int numModels(){ return models.size(); };
@@ -201,7 +203,6 @@ public:
 	};
 
 	bool hasReadGroupsWithoutModel();
-	void addNoRecalModelIfMissing();
 	void reportReadGroupsNotUsed();
 	void reportReadGroupsConsideredSingleEnd();
 	void warningForMissingReadGroups();

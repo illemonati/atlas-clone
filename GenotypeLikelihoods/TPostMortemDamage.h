@@ -167,33 +167,33 @@ public:
 };
 
 //------------------------------------------------------
-//TPMD
+//TPMDDoubleStrand
 //------------------------------------------------------
-class TPMD{
+class TPMDDoubleStrand{
 private:
 	TPMDFunction* myFunctions[4];
 	bool functionsInitialized[4];
 
 public:
-	TPMD(){
+	TPMDDoubleStrand(){
 		for(int pmdType=0; pmdType<4; ++pmdType){
 			myFunctions[pmdType] = NULL;
 			functionsInitialized[pmdType] = false;
 		}
 	};
 
-	TPMD(TParameters & params, TLog* logfile){
-		TPMD();
+	TPMDDoubleStrand(TParameters & params, TLog* logfile){
+		TPMDDoubleStrand();
 		initialize(params, logfile);
 	};
 
-	TPMD(TPMD & other){initialize(other);};
-	~TPMD(){
+	TPMDDoubleStrand(TPMDDoubleStrand & other){initialize(other);};
+	~TPMDDoubleStrand(){
 		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
 		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
 	};
 	void initialize(TParameters & params, TLog* logfile);
-	void initialize(TPMD & other);
+	void initialize(TPMDDoubleStrand & other);
 	void initializeFunction(std::string pmdString, PMDType type);
 	//for getProb: distance is zero based!!!
 	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
@@ -211,6 +211,31 @@ public:
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 };
+
+//------------------------------------------------------
+//TPostMortemDamage
+//------------------------------------------------------
+class TPostMortemDamage{
+private:
+	TPMDDoubleStrand* pmdObjects;
+	bool hasPMD;
+
+	PMDType getEnumPMDType(std::string pmdType);
+
+public:
+	TPostMortemDamage();
+	void initializeFromFile(TReadGroups & ReadGroups, const std::string filename);
+};
+
+
+
+
+
+
+
+
+
+
 
 
 

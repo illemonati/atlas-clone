@@ -168,7 +168,7 @@ public:
 
 	//PMD
 	bool hasPMD;
-	TPMD* pmdObjects;
+	TPMDDoubleStrand* pmdObjects;
 
 	//construction
 	TAlignmentParser();

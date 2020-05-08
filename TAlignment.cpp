@@ -364,7 +364,7 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 	}
 };
 
-void TAlignment::fillPmdProbabilities(TPMD* pmdObjects){
+void TAlignment::fillPmdProbabilities(TPMDDoubleStrand* pmdObjects){
 	//probabilities of observing changes in BAM file
 	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	if(!isReverseStrand){ //is forward
@@ -530,7 +530,7 @@ void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & q
 	changed = true;
 };
 
-double TAlignment::calculatePMDS(double & pi, TPMD* pmdObjects){
+double TAlignment::calculatePMDS(double & pi, TPMDDoubleStrand* pmdObjects){
 	//make sure read is parsed and has reference
 	if(!parsed) throw "Read was not parsed!";
 	if(!hasReference) throw "Reference was not added!";

@@ -41,7 +41,7 @@ protected:
 	bool qualityTransformInitialized;
 
 	//PMD
-	TPMD pmdObject;
+	TPMDDoubleStrand pmdObject;
 	bool hasPMD;
 
 	//contamination

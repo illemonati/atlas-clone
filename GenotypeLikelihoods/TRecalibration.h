@@ -52,9 +52,6 @@ private:
 	GenotypeLikelihoods::TSequencingErrorModels* models;
 	TReadGroupMap* readGroupMap;
 
-	void _initializeRecalibrationParametersFromString(std::string & string);
-	void _initializeRecalibrationParametersFromFile(std::string filename);
-
 public:
 	TRecalibrationEM(std::string string, TReadGroups* ReadGroups, TLog* Logfile);
 	~TRecalibrationEM(){
@@ -62,7 +59,6 @@ public:
 	};
 
 	bool recalibrationChangesQualities(){ return true; };
-	void initializeRecalibrationParameters(std::string string);
 
 	inline double getErrorRate(TBase & base){
 		return models->getErrorRate(base.data);

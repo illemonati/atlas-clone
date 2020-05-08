@@ -574,6 +574,10 @@ void TSequencingErrorModels::createModels(std::string s){
 	}
 };
 
+void TSequencingErrorModels::createEmptyModels(){
+	_addNoRecalModelIfMissing();
+};
+
 void TSequencingErrorModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions){
 	if(!readGroupIndex.inUse(readGroupId,isSecondMate)){
 		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
@@ -619,7 +623,7 @@ void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	warningForMissingReadGroups();
 	reportReadGroupsConsideredSingleEnd();
-	addNoRecalModelIfMissing();
+	_addNoRecalModelIfMissing();
 };
 
 
@@ -629,7 +633,7 @@ bool TSequencingErrorModels::hasReadGroupsWithoutModel(){
 	return readGroupIndex.hasCasesWithoutIndex();
 };
 
-void TSequencingErrorModels::addNoRecalModelIfMissing(){
+void TSequencingErrorModels::_addNoRecalModelIfMissing(){
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	std::pair<int, bool> missingReadGroupInfo;
 	TSequencingErrorCovariateDefinition empty;

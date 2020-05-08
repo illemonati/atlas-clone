@@ -1057,7 +1057,7 @@ PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
 void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
 	//create an array of TPMD objects for each read group
-	pmdObjects = new TPMD[readGroups.size()];
+	pmdObjects = new TPMDDoubleStrand[readGroups.size()];
 
 	//now fill them!
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){

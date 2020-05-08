@@ -553,7 +553,7 @@ std::string TPMDEmpiric::getString(){
 //------------------------------------------------------
 //TPMD
 //------------------------------------------------------
-void TPMD::initialize(TParameters & params, TLog* logfile){
+void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 	if(params.parameterExists("pmd")){
 		std::string pmdString = params.getParameterString("pmd");
 		logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
@@ -581,7 +581,7 @@ void TPMD::initialize(TParameters & params, TLog* logfile){
 	}
 }
 
-void TPMD::initialize(TPMD & other){
+void TPMDDoubleStrand::initialize(TPMDDoubleStrand & other){
 	for(int i=0; i<2; ++i){
 		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
 		other.myFunctions[i]->getCopy(myFunctions[i]);
@@ -589,7 +589,7 @@ void TPMD::initialize(TPMD & other){
 	}
 }
 
-void TPMD::initializeFunction(std::string pmdString, PMDType type){
+void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]
@@ -651,4 +651,77 @@ void TPMD::initializeFunction(std::string pmdString, PMDType type){
 	}
 	functionsInitialized[type] = true;
 };
+
+//------------------------------------------------------
+//TPostMortemDamage
+//------------------------------------------------------
+TPostMortemDamage::TPostMortemDamage(){
+	hasPMD = false;
+	pmdObjects = NULL;
+};
+
+PMDType TPostMortemDamage::getEnumPMDType(std::string pmdType){
+	if(pmdType == "CT")
+		return pmdCT;
+	else if(pmdType == "GA")
+		return pmdGA;
+	else if(pmdType == "GT")
+		return pmdGT;
+	else if(pmdType == "CA")
+		return pmdCA;
+	else {
+		throw "unknown pmdType: " + pmdType + "!";
+	}
+};
+
+void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::string filename){
+	//create an array of TPMD objects for each read group
+	pmdObjects = new TPMDDoubleStrand[ReadGroups.size()];
+
+	//read from file for each read group
+	std::ifstream file(filename.c_str());
+	if(!file) throw "Failed to open PMD file '" + filename + "'!";
+
+	//parse file that has structure: readGroup PMD(CT) PMD(GA)
+	int lineNum = 0;
+	std::string line;
+	std::vector<std::string> vec;
+	uint16_t readGroupId;
+	while(file.good() && !file.eof()){
+		++lineNum;
+		//skip empty lines or those that start with //
+		std::getline(file, line);
+		line = extractBefore(line, "//");
+		trimString(line);
+		if(!line.empty()){
+			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
+			if(ReadGroups.readGroupExists(vec[0])){ //ignore if it does not exist
+				//get read group and PMD type
+				readGroupId = ReadGroups.find(vec[0]);
+				PMDType pmdType = getEnumPMDType(vec[1]);
+				//initialize functions
+				pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);
+			}
+		}
+	}
+
+	//close file
+	file.close();
+
+	//test if we have a function for all read groups
+	for(uint16_t i=0; i<ReadGroups.size(); ++i){
+		if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + ReadGroups.getName(i) + "' is missing in file '" + filename + "'!";
+		if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + ReadGroups.getName(i) + "' is missing in file '" + filename + "'!";
+	}
+	hasPMD = true;
+};
+
+
+
+
+
+
+
+
 

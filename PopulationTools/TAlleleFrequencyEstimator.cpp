@@ -8,7 +8,7 @@
 #include "TAlleleFrequencyEstimator.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// TAlleleHardyWeinbergFreqEstimator                                                          //
+// TAlleleFreqEstimatorHardyWeinberg                                                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;

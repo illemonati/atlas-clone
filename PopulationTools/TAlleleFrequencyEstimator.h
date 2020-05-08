@@ -42,7 +42,7 @@ public:
 };
 
 //------------------------------------------------
-//TAlleleHardyWeinbergFreqEstimator
+//TAlleleFreqEstimatorHardyWeinberg
 //------------------------------------------------
 class TAlleleFreqEstimatorHardyWeinberg{
 private:
