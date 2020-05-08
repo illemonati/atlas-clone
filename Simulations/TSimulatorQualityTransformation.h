@@ -8,13 +8,13 @@
 #ifndef TSIMULATORQUALITYTRANSFORMATION_H_
 #define TSIMULATORQUALITYTRANSFORMATION_H_
 
-#include "../TBase.h"
+#include "TBase.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
-#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
+#include "TSequencingErrorModel.h"
 
 //-------------------------------
 //TSimulatorQualityDist

@@ -9,12 +9,12 @@
 #define TRecalIBRATION_H_
 
 #include "../bamtools/api/BamReader.h"
-#include "../TSite.h"
+#include "TSite.h"
 #include <omp.h>
 #include "../bamtools/api/SamHeader.h"
 
 #include "../GenotypeLikelihoods/TSequencingErrorModel.h"
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 
 //---------------------------------------------------------------
 //TRecalibration: default = no recalibration

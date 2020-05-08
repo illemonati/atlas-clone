@@ -10,7 +10,7 @@
 
 #include "TParameters.h"
 #include "TLog.h"
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
 //---------------------------

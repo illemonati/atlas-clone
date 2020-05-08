@@ -9,12 +9,12 @@
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
 #include <cstddef>
-#include "../TQualityMap.h"
-#include "../TGenotypeMap.h"
+#include "TQualityMap.h"
+#include "TGenotypeMap.h"
 #include "stringFunctions.h"
-#include "../TBase.h"
+#include "TBase.h"
 #include "TLog.h"
-#include "../TReadGroups.h"
+#include "TReadGroups.h"
 
 namespace GenotypeLikelihoods{
 

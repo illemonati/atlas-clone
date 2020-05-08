@@ -9,8 +9,8 @@
 #define TREADGROUPS_H_
 
 #include "stringFunctions.h"
-#include "bamtools/api/BamReader.h"
-#include "bamtools/api/SamSequenceDictionary.h"
+#include "../bamtools/api/BamReader.h"
+#include "../bamtools/api/SamSequenceDictionary.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include <vector>

@@ -9,10 +9,10 @@
 #define TDISTANCEESTIMATOR_H_
 
 #include "TParameters.h"
-#include "../GLF/TGLF.h"
+#include "TGLF.h"
 #include <math.h>
-#include "../TGenotypeMap.h"
-#include "../TQualityMap.h"
+#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 
 //--------------------------------------------
 //TPhiToGenoMap

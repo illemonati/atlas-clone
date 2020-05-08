@@ -17,7 +17,7 @@
 #include "gzstream.h"
 #include <algorithm>
 #include "TRandomGenerator.h"
-#include "TAllelicDepthCounts.h"
+#include "../TAllelicDepthCounts.h"
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100

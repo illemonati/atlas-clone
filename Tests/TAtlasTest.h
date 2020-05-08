@@ -15,8 +15,8 @@
 #include "../bamtools/api/BamReader.h"
 #include "../bamtools/api/SamHeader.h"
 #include "../bamtools/api/BamAlignment.h"
-#include "../TGenotypeMap.h"
-#include "../TQualityMap.h"
+#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include <vector>
 #include <map>
 //------------------------------------------

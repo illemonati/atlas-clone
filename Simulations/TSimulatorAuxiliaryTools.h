@@ -14,7 +14,7 @@
 #include "../bamtools/api/BamAlignment.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "../TGenotypeMap.h"
+#include "TGenotypeMap.h"
 #include "stringFunctions.h"
 #include "gzstream.h"
 

@@ -17,7 +17,7 @@
 #include <vector>
 #include "TParameters.h"
 #include "stringFunctions.h"
-#include "../TGenotypeMap.h"
+#include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
 #include "../TFastaBuffer.h"
 

@@ -15,7 +15,7 @@
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TVcfFile.h"
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 #include "TGenotypeFrequencies.h"
 #include "../TBed.h"
 

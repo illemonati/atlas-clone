@@ -8,9 +8,9 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
-#include "../GenotypeLikelihoods/auxiliaryTools.h"
-#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
-#include "../TSite.h"
+#include "auxiliaryTools.h"
+#include "TSequencingErrorModel.h"
+#include "TSite.h"
 
 namespace GenotypeLikelihoods{
 

@@ -18,7 +18,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
-#include "../TQualityMap.h"
+#include "TQualityMap.h"
 #include "TFile.h"
 #include "../GLF/TGLF.h"
 #include "../PopulationTools/TGenotypeFrequencies.h"

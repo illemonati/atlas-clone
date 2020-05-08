@@ -10,9 +10,9 @@
 
 #include <math.h>
 #include <TPopulationLikelihoodLocus.h>
-#include "../GLF/TGlfMultiReader.h"
-#include "../TGenotypeMap.h"
-#include "../TQualityMap.h"
+#include "TGlfMultiReader.h"
+#include "TGenotypeMap.h"
+#include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "TGenotypeFrequencies.h"
 

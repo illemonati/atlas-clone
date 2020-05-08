@@ -8,8 +8,8 @@
 #ifndef TGENOTYPEPRIOR_H_
 #define TGENOTYPEPRIOR_H_
 
-#include "TThetaEstimator.h"
-#include "TWindow.h"
+#include "../TThetaEstimator.h"
+#include "../TWindow.h"
 
 //---------------------------------------------------------------------------------
 // TGenotypePrior
