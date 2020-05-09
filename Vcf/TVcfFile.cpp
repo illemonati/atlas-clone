@@ -43,7 +43,7 @@ void TVcfFile_base::openStream(std::string & Filename, bool zipped){
 		fileFormat=extractAfter(temp, '=');
 		trimString(fileFormat);
 		if(fileFormat!="VCFv4.0" && fileFormat!="VCFv4.1" && fileFormat!="VCFv4.2" && fileFormat!="VCFv4.3") throw "VCF file is not in 'VCFv4.0' format!";
-	} else throw "Missing VCF file format specification on first line!";
+	} else throw "Missing VCF file format specification on first line! Is '" + Filename + "' a VCf file?";
 
 	//parse header
 	parseHeaderVCF_4_0();

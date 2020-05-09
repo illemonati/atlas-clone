@@ -47,12 +47,12 @@ public:
 			return true;
 		else
 			return false;
-
 	};
 	bool hasSamples(){ return _hasSamples; };
 	uint32_t numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
 	std::string getPopulationName(int index);
+	uint32_t getPopulationIndex(const std::string name);
 	uint32_t numSamplesInPop(int population){ return numSamplesPerPop[population]; };
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
