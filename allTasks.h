@@ -550,6 +550,16 @@ public:
 	};
 };
 
+class TTask_alleleFreqLikelihoods:public TTask_atlas{
+public:
+	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population allele frequency likelihoods"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
+		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(parameters, randomGenerator);
+	};
+};
+
 class TTask_estimateInbreeding:public TTask_atlas{
 public:
 	TTask_estimateInbreeding(){ _explanation = "Estimating the inbreeding coefficient"; };

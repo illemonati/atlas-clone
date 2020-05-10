@@ -60,6 +60,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("transformCountFormat", new TTask_transformAlleleCountFormat());
 	main.addRegularTask("alleleFreq", new TTask_estimateAlleleFreq());
 	main.addRegularTask("compareAlleleFreq", new TTask_compareAlleleFreq());
+	main.addRegularTask("alleleFreqLikelihoods", new TTask_alleleFreqLikelihoods());
 	main.addRegularTask("inbreeding", new TTask_estimateInbreeding());
 	main.addRegularTask("VCFAssessAllelicBalance", new TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());

@@ -151,7 +151,7 @@ private:
 	struct timeval start;
 
 	//data on loci
-	long _numLoci;
+	//long _numLoci;
 
 	void _openVCF(TParameters & Parameters);
 	void _closeVCF();
@@ -164,7 +164,7 @@ public:
 	TAlleleFreqEstimator(TParameters & Parameters, TLog* logfile);
 	void estimateAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
 	void compareAlleleFreq(TParameters & Parameters, TRandomGenerator* randomGenerator);
-	void fillAlleleFrequencyLikelihoods(std::vector<double> freq, std::vector<double> alleleFreqLikelihoods);
+	void writeAlleleFrequencyLikelihoods(TParameters & Parameters, TRandomGenerator* randomGenerator);
 };
 
 

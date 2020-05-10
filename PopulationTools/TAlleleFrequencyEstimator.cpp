@@ -485,7 +485,6 @@ void TAlleleFreqMCMCOutput::write(std::vector< std::vector<double> > & mcmc, con
 ////////////////////////////////////////////////////////////////////////////////////////////////
 TAlleleFreqEstimator::TAlleleFreqEstimator(TParameters & Parameters, TLog* Logfile){
 	vcfRead = false;
-	_numLoci = 0;
 	logfile = Logfile;
 };
 
@@ -625,7 +624,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		reader.writePosition(out);
 
  		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
- 		if(samples.numPopulations() == 0){
+ 		if(samples.numPopulations() == 1){
  			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.allelFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  		} else {
  			TGenotypeFrequencies genoFrequencies;
@@ -637,9 +636,6 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
  		//end line
  		out << std::endl;
-
- 		//update for next
- 		++_numLoci;
      }
 
     //clean up
@@ -746,9 +742,6 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 		}
  		out << std::endl;
  		logfile->done();
-
- 		//update for next
- 		++_numLoci;
     }
 
 	//close VCF and output file
@@ -756,11 +749,64 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
     _closeVCF();
 };
 
-void TAlleleFreqEstimator::fillAlleleFrequencyLikelihoods(std::vector<double> freq, std::vector<double> alleleFreqLikelihoods){
+void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	//calculating P(D|f) at predefined f
+	//open VCF for reading
+	_openVCF(Parameters);
 
-	//do with HW class
+	//get vector of allele frequencies at which to calculate likelihood
+	int numFreq = Parameters.getParameterIntWithDefault("numFreq", 101);
+	logfile->list("Will calculate allele frequency likelihoods at " + toString(numFreq) + " uniformly spaced frequencies.");
+	double step = 1.0 / (double) (numFreq - 1);
+	std::vector<double> freq(numFreq);
+	std::vector<std::string> header = {"chr", "pos"};
+	for(int i=0; i<numFreq; ++i){
+		freq[i] = i * step;
+		header.push_back("LL_" + toString(freq[i]));
+	}
 
+	//output file
+	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreqLikelihoods";
+	logfile->list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
+
+	std::vector<TOutputFileZipped> out(samples.numPopulations());
+	if(samples.numPopulations() == 1){
+		out[0].open(outputName + ".txt.gz");
+		out[0].writeHeader(header);
+		logfile->list("Will write allele frequency likelihoods to file '" + out[0].name() + "'.");
+	} else {
+		logfile->startIndent("Will write allele frequency likelihoods to files:");
+		for(int p=0; p<samples.numPopulations(); p++){
+			out[p].open(outputName + "_" + samples.getPopulationName(p) + ".txt.gz");
+			out[p].writeHeader(header);
+			logfile->list(out[p].name());
+		}
+		logfile->endIndent();
+	}
+
+	//prepare genotype probability object
+	THardyWeinbergGenotypeProbabilities genoProb;
+
+	//run through VCF file
+	logfile->startIndent("Parsing VCF file:");
+	while(reader.readDataFromVCF(storage, samples, glfConverter)){
+		//calculate and write allele frequency likelihoods for every population
+		for(int p=0; p<samples.numPopulations(); p++){
+			out[p] << reader.chr() << reader.position();
+			for(auto& f : freq){
+				genoProb.set(f);
+				out[p] << genoProb.calcLogLikelihood(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
+			}
+			out[p] << std::endl;
+		}
+	}
+
+	//clean up
+	for(int p=0; p<samples.numPopulations(); p++){
+		out[p].close();
+	}
+	_closeVCF();
 
 };
 
