@@ -42,15 +42,23 @@ void TPopulationSamples::_init(){
 };
 
 std::string TPopulationSamples::getPopulationName(int index){
-	for(std::map<std::string, uint32_t>::iterator it = populations.begin(); it != populations.end(); ++it){
-		if(it->second == index)
-			return it->first;
+	for(auto& it : populations){
+		if(it.second == index)
+			return it.first;
 	}
 	throw "No population with index " + toString(index) + "!";
 };
 
+uint32_t TPopulationSamples::getPopulationIndex(const std::string name){
+	auto it = populations.find(name);
+	if(it==populations.end()){
+		throw "No population with name " + name + "!";
+	}
+	return it->second;
+};
+
 void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
-	logfile->startIndent("Reading samples from file '" + filename + "':");
+	logfile->listFlush("Reading samples from file '" + filename + "' ...");
 
 	//open file
 	std::ifstream file(filename.c_str());
@@ -102,17 +110,26 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 			if(samples.find(vec[0]) != samples.end())
 				throw "Duplicate sample name '" + vec[0] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
 			samples.emplace(vec[0], it->second);
-			logfile->list(vec[0] + " in population " + toString(it->second));
 		}
 	}
 
-	logfile->endIndent();
-
 	//close file
 	file.close();
+	logfile->done();
 
 	//fill sample order by population
 	fillSampleOrder();
+
+	//report assignment
+	logfile->startIndent("Will consider the following populations:");
+	for(auto& pop : populations){
+		logfile->startIndent("Population '" + pop.first + "':");
+		for(size_t s=0; s<numSamplesPerPop[pop.second]; ++s){
+			logfile->list(getNameFromOrderedIndex(startIndexPerPop[pop.second] + s));
+		}
+		logfile->endIndent();
+	}
+	logfile->endIndent();
 };
 
 void TPopulationSamples::fillSampleOrder(){

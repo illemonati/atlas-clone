@@ -331,8 +331,9 @@ void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 			}
 		}
 		in.close();
-	} else
+	} else {
 		params.fillParameterIntoVector("glf", GLFNames, ',');
+	}
 	_openGLFs(logfile);
 };
 
