@@ -453,7 +453,7 @@ void TWindow_base::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubse
 
 };
 
-void TWindow_base::addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile){
+void TWindow_base::addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(unsigned int i=0; i<length; ++i){
 		if(sites[i].hasData){

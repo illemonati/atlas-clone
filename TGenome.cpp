@@ -2540,7 +2540,7 @@ void TGenome::estimatePMD(TParameters & params){
 	//prepare PMD table
 	int maxLengthForInference = params.getParameterIntWithDefault("length", 50);
 	logfile->list("Estimating PMD at the first " + toString(maxLengthForInference) + " positions.");
-	TPMDTables pmdTables(alignmentParser.readGroups, maxLengthForInference, maxReadLength, readGroupMap);
+	GenotypeLikelihoods::TPMDTables pmdTables(alignmentParser.readGroups, maxLengthForInference, maxReadLength, readGroupMap);
 
 	//measure progress and runtime
 	TBamProgressReporter reporter(&alignmentParser, logfile);
@@ -2694,4 +2694,33 @@ void TGenome::contextStats(TParameters & params){
 
     }
 
+
+
+void TGenome::testGenotypeLikelihoods(TParameters & params){
+	//create
+	GenotypeLikelihoods::TGenotypeLikelihoodCalculator glcalc(params, &alignmentParser.readGroups, logfile);
+
+	//prepare windows
+	TWindow window;
+	GenotypeLikelihoods::TGenotypeLikelihoods genolik;
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		//for(int i=0; i<window.length; ++i){
+		for(int i=0; i<3; ++i){
+
+			std::cout << std::endl;
+			std::cout << window.chrName << "\t" << window.start + i + 1 << "\t" << window.sites[i].getBases() << std::endl;
+
+			window.sites[i].calcEmissionProbabilities();
+			glcalc.calculateGenotypeLikelihoods(window.sites[i].bases, genolik);
+
+
+			for(uint8_t g=0; g<10; ++g){
+				std::cout << "\t" <<  alignmentParser.genoMap.getGenotypeString(g) << ": " << window.sites[i].emissionProbabilities[g] << ", " << genolik.at(g);
+			}
+			std::cout << std::endl;
+		}
+	}
+};
 

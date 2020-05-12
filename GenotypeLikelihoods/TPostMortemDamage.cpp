@@ -15,6 +15,8 @@
 
 #include "TPostMortemDamage.h"
 
+namespace GenotypeLikelihoods{
+
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
@@ -499,7 +501,7 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 TPMDSkoglund::TPMDSkoglund(double & Lambda, double & C){
 	lambda = Lambda; c = C;
 };
-double TPMDSkoglund::getProb(int & pos){
+double TPMDSkoglund::getProb(const uint16_t & pos){
 	//Note: distance is zero based!
 	return c + pow(1.0 - lambda, (double) pos) * lambda;
 };
@@ -511,7 +513,7 @@ std::string TPMDSkoglund::getString(){
 TPMDExponential::TPMDExponential(double & A, double & B, double & C){
 	a = A; b = B; c = C;
 }
-double TPMDExponential::getProb(int & pos){
+double TPMDExponential::getProb(const uint16_t & pos){
 	//Note: distance is zero based!
 	return a * exp(- (double) pos * b) + c;
 };
@@ -539,7 +541,7 @@ TPMDEmpiric::TPMDEmpiric(std::vector<double> Probs){
 	last = probs[length-1];
 };
 
-double TPMDEmpiric::getProb(int & pos){
+double TPMDEmpiric::getProb(const uint16_t & pos){
 	if(pos < length) return probs[pos];
 	else return last;
 };
@@ -579,7 +581,7 @@ void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 			logfile->conclude(getFunctionString(pmdGA));
 		} else myFunctions[pmdGA] = new TPMDFunction();
 	}
-}
+};
 
 void TPMDDoubleStrand::initialize(TPMDDoubleStrand & other){
 	for(int i=0; i<2; ++i){
@@ -587,13 +589,13 @@ void TPMDDoubleStrand::initialize(TPMDDoubleStrand & other){
 		other.myFunctions[i]->getCopy(myFunctions[i]);
 		functionsInitialized[i] = true;
 	}
-}
+};
 
 void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	//parse string to get model.  options are
 	// none
 	// Skoglund[lambda,c]
-	// Veeramah[a,b,c]
+	// Exponential[a,b,c]
 	std::string example = "Use either Skoglund[p,c], Exponential[a,b,c] or Empiric[0.2,0.3,...]";
 
 	//check if function was initialized abefore
@@ -652,6 +654,28 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	functionsInitialized[type] = true;
 };
 
+void TPMDDoubleStrand::fillBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods){
+	//no PMD for A and C
+	baseLikelihoods[A] = baseLikelihoodsNoPMD.at(A);
+	baseLikelihoods[T] = baseLikelihoodsNoPMD.at(T);
+
+	//get relevant PMD probabilities
+	double pmdProb_CT, pmdProb_GA;
+	if(!base.isReverseStrand()){
+		pmdProb_CT = myFunctions[pmdCT]->getProb(base.distFrom5Prime);
+		pmdProb_GA = myFunctions[pmdCT]->getProb(base.distFrom3Prime);
+	} else {
+		pmdProb_CT = myFunctions[pmdCT]->getProb(base.distFrom3Prime);
+		pmdProb_GA = myFunctions[pmdCT]->getProb(base.distFrom5Prime);
+	}
+
+	//add PMD
+	baseLikelihoods[C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD.at(C) + pmdProb_CT * baseLikelihoodsNoPMD.at(T);
+	baseLikelihoods[G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD.at(G) + pmdProb_GA * baseLikelihoodsNoPMD.at(A);
+
+	std::cout << "PMD = " << pmdProb_CT << ", " << pmdProb_GA << ": " << baseLikelihoods[A] << "\t" << baseLikelihoods[C] << "\t" << baseLikelihoods[G] << "\t" << baseLikelihoods[T] << std::endl;
+};
+
 //------------------------------------------------------
 //TPostMortemDamage
 //------------------------------------------------------
@@ -674,11 +698,12 @@ PMDType TPostMortemDamage::getEnumPMDType(std::string pmdType){
 	}
 };
 
-void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::string filename){
+void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
 	//create an array of TPMD objects for each read group
 	pmdObjects = new TPMDDoubleStrand[ReadGroups.size()];
 
 	//read from file for each read group
+	logfile->listFlush("Initializing PMD from file '" + filename + "' ...");
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open PMD file '" + filename + "'!";
 
@@ -708,6 +733,7 @@ void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::
 
 	//close file
 	file.close();
+	logfile->done();
 
 	//test if we have a function for all read groups
 	for(uint16_t i=0; i<ReadGroups.size(); ++i){
@@ -717,9 +743,35 @@ void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::
 	hasPMD = true;
 };
 
+void TPostMortemDamage::initialize(TParameters & params, TReadGroups & ReadGroups, TLog* logfile){
+	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
+		//all read groups have the same pmd
+		logfile->startIndent("Initializing one PMD function for all read groups:");
+		pmdObjects = new TPMDDoubleStrand[ReadGroups.size()];
+		pmdObjects[0].initialize(params, logfile);
+		for(size_t i=1; i<ReadGroups.size(); ++i)
+			pmdObjects[i].initialize(pmdObjects[0]);
+		hasPMD = true;
+		logfile->endIndent();
+	} else if(params.parameterExists("pmdFile")){
+		initializeFromFile(ReadGroups, params.getParameterString("pmdFile"), logfile);
+	} else {
+		logfile->list("Assuming there is no PMD in the data.");
+	}
+};
+
+void TPostMortemDamage::calculateBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods){
+	if(hasPMD){
+		pmdObjects[ base.readGroup ].fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+	} else {
+		//just copy
+		baseLikelihoods = baseLikelihoodsNoPMD;
+	}
+};
 
 
 
+}; //end namespace
 
 
 

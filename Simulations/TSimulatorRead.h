@@ -41,7 +41,7 @@ protected:
 	bool qualityTransformInitialized;
 
 	//PMD
-	TPMDDoubleStrand pmdObject;
+	GenotypeLikelihoods::TPMDDoubleStrand pmdObject;
 	bool hasPMD;
 
 	//contamination

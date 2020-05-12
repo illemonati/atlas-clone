@@ -115,7 +115,7 @@ private:
 	bool moveToNextPredefinedWindow(TWindow_base & window);
 	bool moveWindow(TWindow_base & window);
 
-	PMDType getEnumPMDType(std::string pmdType);
+	GenotypeLikelihoods::PMDType getEnumPMDType(std::string pmdType);
 	void initializePostMortemDamage(TParameters & params);
 	void initializeRecalibration(TParameters & params);
 
@@ -168,7 +168,7 @@ public:
 
 	//PMD
 	bool hasPMD;
-	TPMDDoubleStrand* pmdObjects;
+	GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects;
 
 	//construction
 	TAlignmentParser();

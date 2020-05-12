@@ -146,8 +146,8 @@ void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransfor
 };
 
 void TSimulatorSingleEndRead::setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA){
-	pmdObject.initializeFunction(pmdStringCT, pmdCT);
-	pmdObject.initializeFunction(pmdStringGA, pmdGA);
+	pmdObject.initializeFunction(pmdStringCT, GenotypeLikelihoods::pmdCT);
+	pmdObject.initializeFunction(pmdStringGA, GenotypeLikelihoods::pmdGA);
 
 	hasPMD = pmdObject.hasDamage();
 	checkInitialization();
@@ -257,8 +257,8 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 	else throw "Quality transformation not initialized!";
 
 	if(hasPMD){
-		logfile->list("C->T PMD as " + pmdObject.getFunctionString(pmdCT));
-		logfile->list("G->A PMD as " + pmdObject.getFunctionString(pmdGA));
+		logfile->list("C->T PMD as " + pmdObject.getFunctionString(GenotypeLikelihoods::pmdCT));
+		logfile->list("G->A PMD as " + pmdObject.getFunctionString(GenotypeLikelihoods::pmdGA));
 	} else {
 		logfile->list("No PMD.");
 	}

@@ -71,7 +71,7 @@ public:
 
 	}
 	unsigned int depth();
-	int refDepth();
+	unsigned int refDepth();
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	double makePhred(double epsilon){
 		return makePhredByRef(epsilon);

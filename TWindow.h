@@ -95,7 +95,7 @@ public:
 	void addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
-	void addSitesToPMDTable(TPMDTables & pmdTables, TLog* logfile);
+	void addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, const int ploidy, bool printAll);

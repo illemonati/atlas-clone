@@ -201,7 +201,45 @@ TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateD
 }
 
 //--------------------------------------------------------------------
-// TRecalibrationEMModel
+// TSequencingErrorRho
+//--------------------------------------------------------------------
+TSequencingErrorRho::TSequencingErrorRho(){
+	for(int b=0; b<4; ++b){
+		for(int a=0; a<4; ++a){
+			if(a==b){
+				rho[b][a] = 0.0;
+			} else {
+				rho[b][a] = 1.0 / 3.0;
+			}
+		}
+	}
+};
+
+void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseLikelihoods & baseLikelihoods){
+	baseLikelihoods[base] = 1.0 - epsilon;
+	if(base == A){
+		baseLikelihoods[C] = epsilon * rho[A][C];
+		baseLikelihoods[G] = epsilon * rho[A][G];
+		baseLikelihoods[T] = epsilon * rho[A][T];
+	} else if(base == C){
+		baseLikelihoods[A] = epsilon * rho[C][A];
+		baseLikelihoods[G] = epsilon * rho[C][G];
+		baseLikelihoods[T] = epsilon * rho[C][T];
+	} else if(base == G){
+		baseLikelihoods[A] = epsilon * rho[G][A];
+		baseLikelihoods[C] = epsilon * rho[G][C];
+		baseLikelihoods[T] = epsilon * rho[G][T];
+	} else {
+		baseLikelihoods[A] = epsilon * rho[T][A];
+		baseLikelihoods[C] = epsilon * rho[T][C];
+		baseLikelihoods[G] = epsilon * rho[T][G];
+	}
+
+	std::cout << "baselik = " << baseLikelihoods[A] << "\t" << baseLikelihoods[C] << "\t" << baseLikelihoods[G] << "\t" << baseLikelihoods[T] << std::endl;
+};
+
+//--------------------------------------------------------------------
+// TSequencingErrorModel
 //--------------------------------------------------------------------
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile){
 	logfile = Logfile;
@@ -274,6 +312,19 @@ double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data
 	}
 
 	return _calcEpsilon(eta);
+};
+
+void TSequencingErrorModel::fillBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
+	//first calculate epsilon
+	double eta = _covariates.intercept.getEtaTerm();
+	for(const auto & cov : _covariates.covariates){
+		eta += cov->getEtaTerm(base);
+	}
+
+	std::cout << "error = " <<  _calcEpsilon(eta) << std::endl;
+
+	//then calculate base likelihoods
+	rho.fillBaseLikelihoods(base.base, _calcEpsilon(eta), baseLikelihoods);
 };
 
 TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinition(){
@@ -634,11 +685,14 @@ bool TSequencingErrorModels::hasReadGroupsWithoutModel(){
 };
 
 void TSequencingErrorModels::_addNoRecalModelIfMissing(){
+	//create no-recal model: only covariate is quality and beta is 1
+	std::string error; //needed by TSequencingErrorCovariateDefinition to write errors to
+	TSequencingErrorCovariateDefinition noRecal("quality=polynomial[1]", error);
+
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	std::pair<int, bool> missingReadGroupInfo;
-	TSequencingErrorCovariateDefinition empty;
 	while(readGroupIndex.nextNotInUse(missingReadGroupInfo)){
-		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, empty);
+		addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal);
 	}
 };
 

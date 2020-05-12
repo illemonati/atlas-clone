@@ -60,6 +60,8 @@ void TSite::calcEmissionProbabilities(double* vec){
 		for(baseIterator = bases.begin(); baseIterator!=bases.end(); ++baseIterator)
 			(*baseIterator)->addToEmissionProb(vec);
 
+		std::cout << "AA=" << vec[AA] << std::endl;
+
 	} else {
 		//initialize
 		for(int i=0; i<numGenotypes; ++i)
@@ -78,6 +80,8 @@ void TSite::calcEmissionProbabilities(double* vec){
 
 void TSite::calcEmissionProbabilities(){
 	calcEmissionProbabilities(emissionProbabilities);
+
+	std::cout << "AA=" << emissionProbabilities[AA] << std::endl;
 };
 
 std::string TSite::getBases(){
@@ -93,10 +97,10 @@ unsigned int TSite::depth(){
 	return bases.size();
 };
 
-int TSite::refDepth(){
+unsigned int TSite::refDepth(){
 	if(!hasData) return 0;
 	if(referenceBase == 'N') return 0;
-	int counter = 0;
+	unsigned int counter = 0;
 	for(unsigned int i=0; i<bases.size(); ++i){
 		if(getBaseAsChar(bases[i]->getBaseAsEnum()) == referenceBase) ++counter;
 	}

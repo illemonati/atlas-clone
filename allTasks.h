@@ -735,4 +735,15 @@ public:
 	};
 };
 
+class TTask_testGL:public TTask_atlas{
+public:
+	TTask_testGL(){ _explanation = "Debugging genotype likelihoods"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenome genome(logfile, parameters, randomGenerator);
+		genome.testGenotypeLikelihoods(parameters);
+	}
+};
+
+
 #endif /* ALLTASKS_H_ */

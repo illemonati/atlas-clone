@@ -1040,15 +1040,16 @@ void TAlignmentParser::applyWindowFilters(TWindow_base & window){
 //------------------------------
 //initialize PMD and recalibration
 //------------------------------
-PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
+//TODO: move to PMD class
+GenotypeLikelihoods::PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
 	if(pmdType == "CT")
-		return pmdCT;
+		return GenotypeLikelihoods::pmdCT;
 	else if(pmdType == "GA")
-		return pmdGA;
+		return GenotypeLikelihoods::pmdGA;
 	else if(pmdType == "GT")
-		return pmdGT;
+		return GenotypeLikelihoods::pmdGT;
 	else if(pmdType == "CA")
-		return pmdCA;
+		return GenotypeLikelihoods::pmdCA;
 	else {
 		throw "unknown pmdType: " + pmdType + "!";
 	}
@@ -1057,7 +1058,7 @@ PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
 void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
 	//create an array of TPMD objects for each read group
-	pmdObjects = new TPMDDoubleStrand[readGroups.size()];
+	pmdObjects = new GenotypeLikelihoods::TPMDDoubleStrand[readGroups.size()];
 
 	//now fill them!
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
@@ -1092,14 +1093,14 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 					//get read group and PMD type
 					readGroupId = readGroups.find(vec[0]);
 					if(!params.parameterExists("oldPMDFormat")){
-						PMDType pmdType = getEnumPMDType(vec[1]);
+						GenotypeLikelihoods::PMDType pmdType = getEnumPMDType(vec[1]);
 						//initialize functions
 						pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);
 					} else {
 						//initialize functions
-						pmdObjects[readGroupId].initializeFunction(vec[1], pmdCT);
+						pmdObjects[readGroupId].initializeFunction(vec[1], GenotypeLikelihoods::pmdCT);
 					//	logfile->conclude("For read group '" + vec[0] + "', C->T: " + pmdObjects[readGroupId].getFunctionString(pmdCT));
-						pmdObjects[readGroupId].initializeFunction(vec[2], pmdGA);
+						pmdObjects[readGroupId].initializeFunction(vec[2], GenotypeLikelihoods::pmdGA);
 					//	logfile->conclude("For read group '" + vec[0] + "', G->A: " + pmdObjects[readGroupId].getFunctionString(pmdGA));
 					}
 				}
@@ -1111,8 +1112,8 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 
 		//test if we have a function for all read groups
 		for(size_t i=0; i<readGroups.size(); ++i){
-			if(!pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
-			if(!pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+			if(!pmdObjects[i].functionInitialized(GenotypeLikelihoods::pmdCT)) throw "PMD C->T for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
+			if(!pmdObjects[i].functionInitialized(GenotypeLikelihoods::pmdGA)) throw "PMD G->A for read group '" + readGroups.getName(i) + "' is missing in file '" + filename + "'!";
 		}
 		hasPMD = true;
 	} else {
@@ -1120,8 +1121,8 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 		logfile->list("Assuming there is no PMD in the data.");
 		std::string pmdString = "none";
 		for(size_t i=0; i<readGroups.size(); ++i){
-			pmdObjects[i].initializeFunction(pmdString, pmdGA);
-			pmdObjects[i].initializeFunction(pmdString, pmdCT);
+			pmdObjects[i].initializeFunction(pmdString, GenotypeLikelihoods::pmdGA);
+			pmdObjects[i].initializeFunction(pmdString, GenotypeLikelihoods::pmdCT);
 		}
 	}
 	logfile->endIndent();

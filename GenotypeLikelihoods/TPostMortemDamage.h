@@ -12,10 +12,13 @@
 #include "TReadGroups.h"
 #include "TGenotypeMap.h"
 #include "TSite.h"
+#include "auxiliaryTools.h"
 #include <algorithm>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
+
+namespace GenotypeLikelihoods{
 
 enum PMDType {pmdCT=0, pmdGA, pmdGT, pmdCA};
 
@@ -90,7 +93,7 @@ public:
 	virtual void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDFunction();
 	};
-	virtual double getProb(int & pos){
+	virtual double getProb(const uint16_t & pos){
 		return 0.0;
 	};
 	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
@@ -116,7 +119,7 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDSkoglund(lambda, c);
 	};
-	double getProb(int & pos);
+	double getProb(const uint16_t & pos);
 	std::string getString();
 	bool hasDamage(){ return true; };
 };
@@ -140,7 +143,7 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDExponential(a, b, c);
 	};
-	double getProb(int & pos);
+	double getProb(const uint16_t & pos);
 	std::string getString();
 	bool hasDamage(){ return true; };
 };
@@ -161,7 +164,7 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDEmpiric(probs);
 	};
-	double getProb(int & pos);
+	double getProb(const uint16_t & pos);
 	std::string getString();
 	bool hasDamage(){ return true; };
 };
@@ -195,10 +198,12 @@ public:
 	void initialize(TParameters & params, TLog* logfile);
 	void initialize(TPMDDoubleStrand & other);
 	void initializeFunction(std::string pmdString, PMDType type);
-	//for getProb: distance is zero based!!!
-	double getProb(int pos, PMDType type){ return myFunctions[type]->getProb(pos); };
-	double getProbFivePrime(int pos){ return myFunctions[pmdCT]->getProb(pos); };
-	double getProbThreePrime(int pos){ return myFunctions[pmdGA]->getProb(pos); };
+
+	//for getProb: distance is zero based!!! TODO: remove these functions
+	double getProb(const uint16_t pos, PMDType type){ return myFunctions[type]->getProb(pos); };
+	double getProbFivePrime(const uint16_t pos){ return myFunctions[pmdCT]->getProb(pos); };
+	double getProbThreePrime(const uint16_t pos){ return myFunctions[pmdGA]->getProb(pos); };
+
 	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
 	bool functionInitialized(PMDType type){
 		return functionsInitialized[type];
@@ -207,6 +212,7 @@ public:
 	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
 	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
 
+	void fillBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods);
 
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
@@ -221,10 +227,12 @@ private:
 	bool hasPMD;
 
 	PMDType getEnumPMDType(std::string pmdType);
+	void initializeFromFile(TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
 
 public:
 	TPostMortemDamage();
-	void initializeFromFile(TReadGroups & ReadGroups, const std::string filename);
+	void initialize(TParameters & params, TReadGroups & ReadGroups, TLog* logfile);
+	void calculateBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods);
 };
 
 
@@ -236,7 +244,7 @@ public:
 
 
 
-
+}; //end namespace
 
 
 #endif /* TPOSTMORTEMDAMAGE_H_ */

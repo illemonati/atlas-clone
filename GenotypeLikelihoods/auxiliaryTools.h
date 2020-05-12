@@ -15,8 +15,45 @@
 #include "TBase.h"
 #include "TLog.h"
 #include "TReadGroups.h"
+#include <algorithm>
 
 namespace GenotypeLikelihoods{
+
+//--------------------------------------------------------------------
+// TBaseLikelihoods
+//--------------------------------------------------------------------
+class TBaseLikelihoods{
+private:
+	double likelihoods[5];
+
+public:
+	TBaseLikelihoods();
+	void operator=(const TBaseLikelihoods & other);
+	double& operator[](const Base base){ return likelihoods[base];};
+	double at(const Base base) const { return likelihoods[base]; };
+	void reset();
+};
+
+//--------------------------------------------------------------------
+// TGenotypeLikelihoods
+//--------------------------------------------------------------------
+class TGenotypeLikelihoods{
+private:
+	double likelihoods[10];
+
+public:
+	TGenotypeLikelihoods();
+
+	void operator=(const TGenotypeLikelihoods & other);
+	double& operator[](const Genotype genotype){ return likelihoods[genotype]; };
+	double at(const Genotype genotype) const { return likelihoods[genotype]; };
+	double at(const uint8_t genotype) const { return likelihoods[genotype]; };
+	void reset();
+	void set(const double val);
+
+	void fill(const std::vector<TBaseLikelihoods> & bases);
+	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
+};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
@@ -125,6 +162,10 @@ public:
 
 	int index(const int readGroup, const bool isSecondMate){
 		return readGroupIndex[readGroup][isSecondMate];
+	};
+
+	int index(const TBaseData & base){
+		return readGroupIndex[base.readGroup][base.isSecondMate()];
 	};
 
 	int index(const TRecalibrationEMReadData & data){

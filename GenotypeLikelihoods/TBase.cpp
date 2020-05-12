@@ -16,6 +16,10 @@ void TBase::addToEmissionProb(double* vec){
 	double errorOneThird = errorRate / 3.0;
 	double oneMinusError = 1.0 - errorRate;
 
+	std::cout << "epsilon = " << errorRate << ", " << errorOneThird << std::endl;
+	std::cout << "PMD = " << PMD_CT << ", " << PMD_GA << std::endl;
+
+
 	if(data.base == A){
 		vec[AA] *= oneMinusError;
 		vec[CC] *= errorOneThird;
@@ -65,6 +69,8 @@ void TBase::addToEmissionProb(double* vec){
 		vec[CT] *= ((1.0 + PMD_CT) * oneMinusError + (1.0 - PMD_CT) * errorOneThird) / 2.0;
 		vec[GT] *= 0.5 - errorOneThird;
 	}
+
+	std::cout << "AA=" << vec[AA] << std::endl;
 }
 
 void TBase::addToEmissionProbLog(double vec[10]){

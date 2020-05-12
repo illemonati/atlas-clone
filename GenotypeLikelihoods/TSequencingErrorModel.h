@@ -96,6 +96,19 @@ public:
 	TSequencingErrorCovariateDefinition getCovariateDefinition();
 };
 
+
+//--------------------------------------------------------------------
+// TSequencingErrorRho
+//--------------------------------------------------------------------
+class TSequencingErrorRho{
+private:
+	std::array< std::array<double, 4>, 4 > rho;
+
+public:
+	TSequencingErrorRho();
+	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseLikelihoods & baseLikelihoods);
+};
+
 //--------------------------------------------------------------------
 // TSequencingErrorModel
 //--------------------------------------------------------------------
@@ -103,8 +116,9 @@ class TSequencingErrorModel{
 private:
 	TLog* logfile;
 
-	//covariates
+	//parameters: coavraites and rho
 	TSequencingErrorCovariateList _covariates;
+	TSequencingErrorRho rho;
 
 	//Newton Raphson Parameters
 	double _Q, _oldQ;
@@ -147,10 +161,12 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 
+	void fillBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods);
+	TSequencingErrorCovariateDefinition getCovariateDefinition();
+
+	//REMOVE!
 	double getErrorRate(const TBaseData & base);
 	double getErrorRate(const TRecalibrationEMReadData & data);
-
-	TSequencingErrorCovariateDefinition getCovariateDefinition();
 };
 
 //--------------------------------------------------------------------
@@ -198,8 +214,12 @@ public:
 	inline double calcEpsilon(const TRecalibrationEMReadData & data){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
 	};
-	inline double getErrorRate(TBaseData & base){
-		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate()) ].getErrorRate(base);
+	inline double getErrorRate(const TBaseData & base){
+		return models[ readGroupIndex.index(base) ].getErrorRate(base);
+	};
+
+	void calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
+		models[ readGroupIndex.index(base) ].fillBaseLikelihoods(base, baseLikelihoods);
 	};
 
 	bool hasReadGroupsWithoutModel();

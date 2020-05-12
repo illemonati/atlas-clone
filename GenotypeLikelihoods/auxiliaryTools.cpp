@@ -9,6 +9,125 @@
 
 namespace GenotypeLikelihoods{
 
+
+//--------------------------------------------------------------------
+// TBaseLikelihoods (can also be used as haploid genotype likelihoods)
+//--------------------------------------------------------------------
+TBaseLikelihoods::TBaseLikelihoods(){
+	reset();
+};
+
+void TBaseLikelihoods::operator=(const TBaseLikelihoods & other){
+	likelihoods[A] = other.at(A);
+	likelihoods[C] = other.at(C);
+	likelihoods[G] = other.at(G);
+	likelihoods[T] = other.at(T);
+	likelihoods[N] = other.at(N);
+};
+
+void TBaseLikelihoods::reset(){
+	likelihoods[A] = 1.0;
+	likelihoods[C] = 1.0;
+	likelihoods[G] = 1.0;
+	likelihoods[T] = 1.0;
+	likelihoods[N] = 1.0;
+};
+
+//--------------------------------------------------------------------
+// TGenotypeLikelihoods
+//--------------------------------------------------------------------
+TGenotypeLikelihoods::TGenotypeLikelihoods(){
+	reset();
+};
+
+void TGenotypeLikelihoods::operator=(const TGenotypeLikelihoods & other){
+	likelihoods[AA] = other.at(AA);
+	likelihoods[AC] = other.at(AC);
+	likelihoods[AG] = other.at(AG);
+	likelihoods[AT] = other.at(AT);
+	likelihoods[CC] = other.at(CC);
+	likelihoods[CG] = other.at(CG);
+	likelihoods[CT] = other.at(CT);
+	likelihoods[GG] = other.at(GG);
+	likelihoods[GT] = other.at(GT);
+	likelihoods[TT] = other.at(TT);
+};
+
+void TGenotypeLikelihoods::reset(){
+	set(1.0);
+};
+
+void TGenotypeLikelihoods::set(const double val){
+	likelihoods[AA] = val;
+	likelihoods[AC] = val;
+	likelihoods[AG] = val;
+	likelihoods[AT] = val;
+	likelihoods[CC] = val;
+	likelihoods[CG] = val;
+	likelihoods[CT] = val;
+	likelihoods[GG] = val;
+	likelihoods[GT] = val;
+	likelihoods[TT] = val;
+};
+
+
+
+void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases){
+	fill(bases, bases.size());
+};
+
+void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
+	//allows for vector to be longer than what is to be used
+	//do in log if depth is high
+	if(bases.size() > 50){
+		//initialize
+		set(0.0);
+
+		//add to log genotype likelihoods
+		for(size_t i=0; i<size; ++i){
+			likelihoods[AA] += log(bases[i].at(A));
+			likelihoods[AC] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(C));
+			likelihoods[AG] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(G));
+			likelihoods[AT] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(T));
+			likelihoods[CC] += log(bases[i].at(C));
+			likelihoods[CG] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(G));
+			likelihoods[CT] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(T));
+			likelihoods[GG] += log(bases[i].at(G));
+			likelihoods[GT] += log(0.5*bases[i].at(G) + 0.5*bases[i].at(T));
+			likelihoods[TT] += log(bases[i].at(T));
+		}
+
+		//standardize and de-log
+		double max = *std::max_element(&likelihoods[AA], &likelihoods[TT]);
+		likelihoods[AA] = exp(likelihoods[AA] - max);
+		likelihoods[AC] = exp(likelihoods[AC] - max);
+		likelihoods[AG] = exp(likelihoods[AG] - max);
+		likelihoods[AT] = exp(likelihoods[AT] - max);
+		likelihoods[CC] = exp(likelihoods[CC] - max);
+		likelihoods[CG] = exp(likelihoods[CG] - max);
+		likelihoods[CT] = exp(likelihoods[CT] - max);
+		likelihoods[GG] = exp(likelihoods[GG] - max);
+		likelihoods[GT] = exp(likelihoods[GT] - max);
+		likelihoods[TT] = exp(likelihoods[TT] - max);
+	} else { //on natural scale
+		//initialize
+		set(1.0);
+
+		for(size_t i=0; i<size; ++i){
+			likelihoods[AA] *= bases[i].at(A);
+			likelihoods[AC] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(C);
+			likelihoods[AG] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(G);
+			likelihoods[AT] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(T);
+			likelihoods[CC] *= bases[i].at(C);
+			likelihoods[CG] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(G);
+			likelihoods[CT] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(T);
+			likelihoods[GG] *= bases[i].at(G);
+			likelihoods[GT] *= 0.5*bases[i].at(G) + 0.5*bases[i].at(T);
+			likelihoods[TT] *= bases[i].at(T);
+		}
+	}
+};
+
 //--------------------------------------------------------------------
 // TRecalibrationEMReadData
 //--------------------------------------------------------------------

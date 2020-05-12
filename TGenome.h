@@ -26,6 +26,7 @@
 #include "TSoftClipping.h"
 #include "TAllelicDepthCounts.h"
 
+#include "TGenotypeLikelihoodCalculator.h"
 
 //---------------------------------------------------------------
 //TGenome
@@ -110,6 +111,9 @@ public:
 	void simulateGWASData(TParameters & params);
 	void printMateInformationPerSite(TParameters & params);
 	void contextStats(TParameters & params);
+
+
+	void testGenotypeLikelihoods(TParameters & params);
 };
 
 

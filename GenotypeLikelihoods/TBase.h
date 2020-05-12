@@ -65,14 +65,13 @@ public:
 	};
 
 	//set and get flags
-	bool isReverseStrand(){ return flags[0]; };
-	bool isSecondMate(){ return flags[1]; };
-	bool isAligned(){ return flags[2]; };
+	bool isReverseStrand() const { return flags[0]; };
+	bool isSecondMate() const { return flags[1]; };
+	bool isAligned() const { return flags[2]; };
 
 	void setReverseStrand(const bool status){ flags[0] = status; };
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
-
 };
 
 class TBase{
