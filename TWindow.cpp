@@ -110,7 +110,7 @@ void TWindow_base::initSites(long newLength){
 	fractionSitesNoData = -1.0;
 	fractionDepthAtLeastTwo = -1.0;
 	numReadsInWindow = 0;
-}
+};
 
 void TWindow_base::clear(){
 	if(sitesInitialized){
@@ -137,7 +137,7 @@ void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
 		else
 			clear();
 	} else initSites(end - start);
-}
+};
 
 //TODO: what is difference???
 void TWindow_base::move(unsigned int Start, unsigned int End, int ChrNumber, TLog* logfile){
@@ -613,25 +613,27 @@ void TWindow::review(){
 };
 
 void TWindow::cleanUpUsedAlignments(TLog* logfile){
-	//measure time
-	struct timeval t_start, t_end;
-	gettimeofday(&t_start, NULL);
-	logfile->listFlush("Cleaning up data storage ...");
+	if(usedAlignments.size() > 0){
+		//measure time
+		struct timeval t_start, t_end;
+		gettimeofday(&t_start, NULL);
+		logfile->listFlush("Cleaning up data storage ...");
 
-	//go through alignments
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
-			++alignmentIt;
-		} else{
-			(*alignmentIt)->clear();
-			emptyAlignments.push_back(*alignmentIt);
-			alignmentIt = usedAlignments.erase(alignmentIt);
+		//go through alignments
+		for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+			if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
+				++alignmentIt;
+			} else{
+				(*alignmentIt)->clear();
+				emptyAlignments.push_back(*alignmentIt);
+				alignmentIt = usedAlignments.erase(alignmentIt);
+			}
 		}
-	}
 
-	//report
-	gettimeofday(&t_end, NULL);
-	logfile->write(" done (in " , t_end.tv_sec  - t_start.tv_sec, "s)!");
+		//report
+		gettimeofday(&t_end, NULL);
+		logfile->write(" done (in " , t_end.tv_sec  - t_start.tv_sec, "s)!");
+	}
 };
 
 void TWindow::clearAllUsedAlignments(){

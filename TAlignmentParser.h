@@ -49,6 +49,7 @@ private:
 	//counters
 	int totalNumberAlignmentsRead;
 	int64_t sizeOfBamFile;
+	bool hasWindowIndent;
 
 	//read trimming
 	bool trimReads;

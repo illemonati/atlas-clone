@@ -32,6 +32,7 @@ TAlignmentParser::TAlignmentParser(){
 
 	totalNumberAlignmentsRead = 0;
 	sizeOfBamFile = 0;
+	hasWindowIndent = false;
 
 	curReadGroupID = -1;
 
@@ -602,6 +603,10 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 	oldAlignmentMustBeConsidered = false;
 
 	//restart windows
+	if(hasWindowIndent){
+		logfile->removeIndent();
+		hasWindowIndent = false;
+	}
 	previousAlignmentPos = 0;
 	windowNumber = 0;
 
@@ -661,8 +666,6 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 };
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
-	if(window.end > 0) logfile->endIndent();
-
 	//if sites defined
 	int counter = 0;
 	do{
@@ -684,8 +687,6 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 };
 
 bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
-	if(window.end > 0) logfile->endIndent();
-
 	++windowNumber;
 	if(windowNumber >= limitWindows)
 		return false;
@@ -723,14 +724,24 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 				//no more windows left on chr
 				chromosomes.next();
 
-				if(chromosomes.end())
+				if(chromosomes.end()){
+					if(hasWindowIndent){
+						logfile->removeIndent();
+						hasWindowIndent = false;
+					}
 					return false;
+				}
 
 				moveChromosome(window);
 				chrChangedWindow = true;
 
-				if(chromosomes.end())
+				if(chromosomes.end()){
+					if(hasWindowIndent){
+						logfile->removeIndent();
+						hasWindowIndent = false;
+					}
 					return false;
+				}
 				++windowNumber;
 			} else
 				//was able to move to next window on chr
@@ -755,6 +766,10 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 				//did we reach end?
 				if(chromosomes.end() || (indexOfLimitChr != -1 && chromosomes.curIndex() >= indexOfLimitChr)){
 					window.end = 0;
+					if(hasWindowIndent){
+						logfile->removeIndent();
+						hasWindowIndent = false;
+					}
 					return false;
 				}
 				moveChromosome(window);
@@ -766,8 +781,11 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 	}
 
 	//report
+	if(hasWindowIndent) logfile->removeIndent();
 	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
 	logfile->addIndent();
+	hasWindowIndent = true;
+
 	return true;
 };
 
