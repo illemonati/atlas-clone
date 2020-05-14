@@ -624,7 +624,7 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 		} while((numWindowsOnChr < 1 || !chromosomes.curInUse()) && !chromosomes.end());
 
 		//now jump
-		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex());
+		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), logfile);
 		window.chrName = chromosomes.curName();
 		bamReader.Jump(chromosomes.curIndex(), window.start);
 
@@ -644,7 +644,7 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 		if(nextEnd > chromosomes.curLength()){
 			nextEnd = chromosomes.curLength();
 		}
-		window.move(curStart, nextEnd, chromosomes.curIndex());
+		window.move(curStart, nextEnd, chromosomes.curIndex(), logfile);
 		window.chrName = chromosomes.curName();
 	}
 
@@ -661,9 +661,6 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 };
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
-
-	std::cout << "START MOVE" << std::endl;
-
 	if(window.end > 0) logfile->endIndent();
 
 	//if sites defined
@@ -681,11 +678,7 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 	long nextEnd = window.end + windowSize;
 	if(nextEnd > chromosomes.curLength())
 		nextEnd = chromosomes.curLength();
-	window.move(window.end, nextEnd, chromosomes.curIndex());
-
-
-	std::cout << "END MOVE" << std::endl;
-
+	window.move(window.end, nextEnd, chromosomes.curIndex(), logfile);
 
 	return true;
 };
@@ -697,7 +690,7 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
 	if(windowNumber >= limitWindows)
 		return false;
 	if(predefinedWindows->nextWindow()){
-		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex());
+		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), logfile);
 
 		//should we jump or are we already close enough to next window
 		if(previousAlignmentPos > window.start || previousAlignmentPos < window.start - maxReadLength){
@@ -916,24 +909,15 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 //read data in windows
 //---------------------
 bool TAlignmentParser::readDataInNextWindow(TWindow & window){
-	std::cout << "START" << std::endl;
-
 	setParsingToTrue();
-
-	std::cout << "PARSING" << std::endl;
 
 	//move window
 	if(!moveWindow(window)){
 		return false;
 	}
 
-	std::cout << "MOVED WINDOW" << std::endl;
-
 	//read data
 	readAlignmentsIntoWindow(window);
-
-	std::cout << "END" << std::endl;
-
 	return true;
 };
 
@@ -946,6 +930,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	//check if old alignment is to be used.
 	if(oldAlignmentMustBeConsidered){
 		if(bamAlignment.Position >= window.end){
+			logfile->warning("Old alignment is after window!");
 			return;
 		}
 

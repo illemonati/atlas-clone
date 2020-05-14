@@ -68,7 +68,7 @@ public:
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 	void initSites(long newLength);
 	void clear();
-	virtual void move(unsigned int Start, unsigned int End, int chrNumber);
+	virtual void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
 	void addReferenceBaseToSites(BamTools::Fasta & reference);
 	void addReferenceBaseToSites(TSiteSubset* subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
@@ -119,7 +119,7 @@ private:
 	std::vector<TAlignment*> usedAlignments;
 	std::vector<TAlignment*> emptyAlignments;
 
-	void cleanUpUsedAlignments();
+	void cleanUpUsedAlignments(TLog* logfile);
 	void clearAllUsedAlignments();
 
 	//functions to fill sites from alignments
@@ -132,7 +132,7 @@ public:
 	TWindow();
 	~TWindow();
 
-	void move(unsigned int Start, unsigned int End, int chrNumber);
+	void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
 	void review();
 	void printStacks();
 

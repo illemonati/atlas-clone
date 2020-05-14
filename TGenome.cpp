@@ -533,9 +533,14 @@ void TGenome::callGenotypes(TParameters & params){
 				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call using known alleles
+				struct timeval start, end;
+				gettimeofday(&start, NULL);
 				logfile->listFlush("Calling genotypes ...");
+
 				window.callKnwonAlleles(*caller, *alignmentParser.recalObject, subset);
-				logfile->done();
+
+				gettimeofday(&end, NULL);
+				logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 			}
 		}
 	} else {
@@ -548,9 +553,14 @@ void TGenome::callGenotypes(TParameters & params){
 				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call
+				struct timeval start, end;
+				gettimeofday(&start, NULL);
 				logfile->listFlush("Calling genotypes ...");
+
 				window.call(*caller, *alignmentParser.recalObject, reference);
-				logfile->done();
+
+				gettimeofday(&end, NULL);
+				logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 			}
 		}
 	}
