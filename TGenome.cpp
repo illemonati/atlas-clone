@@ -983,18 +983,6 @@ void TGenome::printQualityTransformation(TParameters & params){
 	reporter.printEnd();
 };
 
-void TGenome::reportProgressParsingBamFile(const long & counter, const struct timeval & start){
-	if(counter % 1000000 == 0){
-		reportProgressParsingBamFileNoCheck(counter, start);
-	}
-}
-void TGenome::reportProgressParsingBamFileNoCheck(const long & counter, const struct timeval & start){
-	static struct timeval end;
-	gettimeofday(&end, NULL);
-	float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(counter) + " reads in " + toString(runtime) + " min.");
-}
-
 //---------------------------------------------------
 //BAM manipulation / statistics
 //---------------------------------------------------

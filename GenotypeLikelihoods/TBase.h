@@ -11,27 +11,6 @@
 #include "TGenotypeMap.h"
 #include <bitset>
 
-//---------------------------------------------------------------
-//TEmissionProbabilities
-//---------------------------------------------------------------
-class TEmissionProbabilities{
-public:
-	double emission[10];
-
-	TEmissionProbabilities(){
-		for(int i=0; i<10; ++i) emission[i]=0.0;
-	};
-	void set(Genotype geno, double val){ emission[geno] = val; }
-	double& get(Genotype geno){ return emission[geno]; };
-	double& get(int geno){ return emission[geno]; };
-	void print(){
-		std::cout << "Emissions:";
-		for(int i=0; i<10; ++i){
-			std::cout << " " << emission[i];
-		}
-		std::cout << std::endl;
-	};
-};
 
 //---------------------------------------------------------------
 //TBase

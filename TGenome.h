@@ -81,8 +81,6 @@ public:
 	//other
 	void writeGLF(TParameters & params);
 	void printPileup(TParameters & params);
-	void reportProgressParsingBamFile(const long & counter, const struct timeval & start);
-	void reportProgressParsingBamFileNoCheck(const long & counter, const struct timeval & start);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 	void assessSoftClipping(TParameters & params);
@@ -91,7 +89,6 @@ public:
 	void splitSingleEndReadGroups(TParameters & params);
 	void mergeReadGroups(TParameters & params);
 	void estimatePMD(TParameters & params);
-	float calculatePMDS(int readGroup, char & ref, char & read, double & pmdCT, double & pmdGA, double & errorRate, double & pi, float & probPMD, float & probNoPMD);
 	void runPMDS(TParameters & params);
 	void filterBAM(TParameters & params);
 	void splitMerge(TParameters & params);
@@ -108,11 +105,10 @@ public:
 	void writeDepthPerSite(TParameters & params);
 	void estimateDuplicationCounts(TParameters & params);
 	void createDepthMask(TParameters & params);
-	void simulateGWASData(TParameters & params);
 	void printMateInformationPerSite(TParameters & params);
 	void contextStats(TParameters & params);
 
-
+	//debug stuff
 	void testGenotypeLikelihoods(TParameters & params);
 };
 
