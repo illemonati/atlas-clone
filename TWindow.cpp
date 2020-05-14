@@ -128,6 +128,7 @@ void TWindow_base::clear(){
 };
 
 void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
+	std::cout << "IN MOVE" << std::endl;
 	start = Start;
 	end = End;
 	chrNumber = ChrNumber;
@@ -137,6 +138,7 @@ void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
 		else
 			clear();
 	} else initSites(end - start);
+	std::cout << "IN MOVE2" << std::endl;
 }
 
 //TODO: what is difference???
