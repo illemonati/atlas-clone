@@ -615,6 +615,9 @@ void TWindow::review(){
 };
 
 void TWindow::cleanUpUsedAlignments(){
+
+	std::cout << "START NUM ALIGNMENTS USED = " << usedAlignments.size() << std::endl;
+
 	//now check and move the rest
 	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
@@ -625,6 +628,8 @@ void TWindow::cleanUpUsedAlignments(){
 			alignmentIt = usedAlignments.erase(alignmentIt);
 		}
 	}
+
+	std::cout << "END NUM ALIGNMENTS USED = " << usedAlignments.size() << std::endl;
 };
 
 void TWindow::clearAllUsedAlignments(){

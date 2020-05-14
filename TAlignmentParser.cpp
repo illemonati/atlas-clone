@@ -674,8 +674,6 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 		++counter;
 	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < chromosomes.curLength());
 
-	std::cout << "IN MOVE" << std::endl;
-
 	if(window.end >= chromosomes.curLength() || windowNumber >= limitWindows)
 		return false;
 
