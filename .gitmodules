@@ -1,0 +1,4 @@
+[submodule "commonutilities"]
+	path = commonutilities
+	url = https://bitbucket.org/WegmannLab/commonutilities.git
+	branch = master
