@@ -910,6 +910,8 @@ bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 //read data in windows
 //---------------------
 bool TAlignmentParser::readDataInNextWindow(TWindow & window){
+	std::cout << "START" << std::endl;
+
 	setParsingToTrue();
 
 	//move window
@@ -919,6 +921,8 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 
 	//read data
 	readAlignmentsIntoWindow(window);
+
+	std::cout << "END" << std::endl;
 
 	return true;
 };
