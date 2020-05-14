@@ -914,10 +914,14 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 
 	setParsingToTrue();
 
+	std::cout << "PARSING" << std::endl;
+
 	//move window
 	if(!moveWindow(window)){
 		return false;
 	}
+
+	std::cout << "MOVED WINDOW" << std::endl;
 
 	//read data
 	readAlignmentsIntoWindow(window);
