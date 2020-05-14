@@ -672,8 +672,6 @@ void TPMDDoubleStrand::fillBaseLikelihoods(const TBaseData & base, const TBaseLi
 	//add PMD
 	baseLikelihoods[C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD.at(C) + pmdProb_CT * baseLikelihoodsNoPMD.at(T);
 	baseLikelihoods[G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD.at(G) + pmdProb_GA * baseLikelihoodsNoPMD.at(A);
-
-	std::cout << "PMD = " << pmdProb_CT << ", " << pmdProb_GA << ": " << baseLikelihoods[A] << "\t" << baseLikelihoods[C] << "\t" << baseLikelihoods[G] << "\t" << baseLikelihoods[T] << std::endl;
 };
 
 //------------------------------------------------------

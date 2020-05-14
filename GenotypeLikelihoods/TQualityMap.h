@@ -81,7 +81,7 @@ public:
 		delete[] phredIntToLogErrorMap;
 	};
 
-	double phredIntToError(size_t phredInt){
+	double phredIntToError(std::size_t phredInt){
 		if(phredInt >= minPhredInt)
 			return min;
 		else return phredIntToErrorMap[phredInt];
@@ -109,7 +109,7 @@ public:
 		return phredIntToError(illuminaQualityBins[phredInt + 33]);
 	};
 
-	inline size_t errorToPhredInt(const double & errorRate){
+	inline std::size_t errorToPhredInt(const double & errorRate){
 		return round(errorToPhred(errorRate));
 	};
 
@@ -120,7 +120,7 @@ public:
 			return -10.0 * log10(errorRate);
 	};
 
-	inline size_t errorToQuality(const double & errorRate){
+	inline std::size_t errorToQuality(const double & errorRate){
 		return round(-10.0 * log10(errorRate)) + 33;
 	};
 
