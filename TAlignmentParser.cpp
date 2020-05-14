@@ -662,6 +662,8 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 
 bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 
+	std::cout << "START MOVE" << std::endl;
+
 	if(window.end > 0) logfile->endIndent();
 
 	//if sites defined
@@ -672,6 +674,8 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 		++counter;
 	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < chromosomes.curLength());
 
+	std::cout << "IN MOVE" << std::endl;
+
 	if(window.end >= chromosomes.curLength() || windowNumber >= limitWindows)
 		return false;
 
@@ -680,6 +684,10 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 	if(nextEnd > chromosomes.curLength())
 		nextEnd = chromosomes.curLength();
 	window.move(window.end, nextEnd, chromosomes.curIndex());
+
+
+	std::cout << "END MOVE" << std::endl;
+
 
 	return true;
 };
