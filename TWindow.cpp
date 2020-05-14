@@ -113,6 +113,9 @@ void TWindow_base::initSites(long newLength){
 }
 
 void TWindow_base::clear(){
+
+	std::cout << "START CLEAR" << std::endl;
+
 	if(sitesInitialized){
 		for(unsigned int i=0; i<length; ++i)
 			sites[i].clear();
@@ -125,6 +128,8 @@ void TWindow_base::clear(){
 	numReadsInWindow = 0;
 	referenceBaseAdded = false;
 	passedFilters = false;
+
+	std::cout << "END CLEAR" << std::endl;
 };
 
 void TWindow_base::setCoordinates(long Start, long End, int ChrNumber){
