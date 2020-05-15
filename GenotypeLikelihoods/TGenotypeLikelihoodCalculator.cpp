@@ -18,12 +18,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & param
 	pmd.initialize(params, *readGroups, logfile);
 
 	//initialize sequencing errors
-	errorModels = new TSequencingErrorModels(readGroups, readGroupMap, logfile);
 	if(params.parameterExists("recal")){
-		errorModels->createModels(params.getParameterString("recal"));
+		errorModels.createModels(params.getParameterString("recal"), readGroups, readGroupMap, logfile);
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-		errorModels->createEmptyModels();
 	}
 };
 
@@ -36,7 +34,7 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const std::vect
 
 	//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 	for(size_t i=0; i<bases.size(); ++i){
-		errorModels->calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD);
+		errorModels.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD);
 		pmd.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD, baseLikelihoods[i]);
 	}
 

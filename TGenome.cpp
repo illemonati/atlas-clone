@@ -503,8 +503,10 @@ void TGenome::callGenotypes(TParameters & params){
 	TGenotypePrior* prior;
 	if(caller->usesPrior()){
 		prior = initializeGenotypePrior(params);
-		caller->setPrior(prior->getPointerToPrior());
-	} else prior = new TGenotypePrior();
+	} else {
+		prior = new TGenotypePrior();
+	}
+	caller->setPrior(prior);
 
 	//open output file
 	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
@@ -784,7 +786,6 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 	}
 };
 
-//TODO: remove? Does not currently work.
 void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//create recalibration object
 	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
@@ -806,10 +807,6 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	//clean up memory
 	window.clear();
 	logfile->endIndent();
-
-	//calc likelihood surface
-	//int numMarginalGridPoint = params.getParameterIntWithDefault("numGridPoints", 51);
-	//recalObjectEM.calcLikelihoodSurface(outputName + "_LLsurface.txt", numMarginalGridPoint);
 
 	logfile->list("LL = " + toString(recalObjectEM.calcLL()));
 }

@@ -11,6 +11,64 @@
 #include "../TThetaEstimator.h"
 #include "../TWindow.h"
 
+namespace GenotypeLikelihoods{
+
+
+//--------------------------------------------------------------------
+// TBaseLikelihoods
+//--------------------------------------------------------------------
+class TBaseLikelihoods{
+private:
+	double likelihoods[5];
+
+public:
+	TBaseLikelihoods();
+	void operator=(const TBaseLikelihoods & other);
+	double& operator[](const Base base){ return likelihoods[base];};
+	double at(const Base base) const { return likelihoods[base]; };
+	void reset();
+};
+
+//--------------------------------------------------------------------
+// TGenotypeData
+// base class for likelihoods, prior and posterior
+//--------------------------------------------------------------------
+class TGenotypeData{
+protected:
+	double data[10];
+
+	void _copyFrom(const TGenotypeData & other);
+	void _set(const double val);
+	void _normalize();
+
+public:
+	TGenotypeData(){};
+	virtual ~TGenotypeData(){};
+
+	void operator=(const TGenotypeData & other);
+	double operator[](const Genotype genotype){ return data[genotype]; };
+	double operator[](const uint8_t genotype){ return data[genotype]; };
+	double at(const Genotype genotype) const { return data[genotype]; };
+	double at(const uint8_t genotype) const { return data[genotype]; };
+
+	virtual void reset();
+	void write(TOutputFileZipped & out) const;
+};
+
+
+//--------------------------------------------------------------------
+// TGenotypeLikelihoods
+//--------------------------------------------------------------------
+class TGenotypeLikelihoods:public TGenotypeData{
+public:
+	TGenotypeLikelihoods();
+
+	void operator=(const TGenotypeLikelihoods & other);
+
+	void fill(const std::vector<TBaseLikelihoods> & bases);
+	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
+};
+
 //---------------------------------------------------------------------------------
 // TGenotypePrior
 // An class used to serve genotype priors to Bayesian inferences, such as caller
@@ -29,6 +87,8 @@ public:
 
 	virtual void update(TWindow* window, const std::string chrName, TLog* logfile){};
 	double* getPointerToPrior(){ return genotypePrior; };
+	double operator[](const Genotype genotype){ return genotypePrior[genotype]; };
+	double operator[](const uint8_t genotype){ return genotypePrior[genotype]; };
 };
 
 
@@ -135,7 +195,18 @@ public:
 	};
 };
 
+//--------------------------------------------------------------------
+// TGenotypePosteriorProbabilities
+//--------------------------------------------------------------------
 
+class TGenotypePosteriorProbabilities:public TGenotypeData{
+public:
+	TGenotypePosteriorProbabilities();
+	void reset();
+	void fill(TGenotypeLikelihoods & likelihoods, TGenotypePrior & prior);
+};
+
+}; //end namespace
 
 
 #endif /* TGENOTYPEPRIOR_H_ */

@@ -81,7 +81,7 @@ public:
 		delete[] phredIntToLogErrorMap;
 	};
 
-	double phredIntToError(std::size_t phredInt){
+	double phredIntToError(uint8_t phredInt){
 		if(phredInt >= minPhredInt)
 			return min;
 		else return phredIntToErrorMap[phredInt];

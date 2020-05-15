@@ -34,8 +34,7 @@ TRecalibrationEM::TRecalibrationEM(std::string string, TReadGroups* ReadGroups, 
 	readGroupMap = new TReadGroupMap(ReadGroups);
 
 	//models
-	models = new GenotypeLikelihoods::TSequencingErrorModels(ReadGroups, readGroupMap, logfile);
-	models->createModels(string);
+	models.createModels(string, ReadGroups, readGroupMap, logfile);
 };
 
 

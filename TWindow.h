@@ -24,6 +24,7 @@
 #include "GenotypeLikelihoods/TRecalibration.h"
 #include "GenotypeLikelihoods/TRecalibrationBQSR.h"
 #include "GenotypeLikelihoods/TRecalibrationEMEstimator.h"
+#include "GenotypeLikelihoods/TGenotypeLikelihoodCalculator.h"
 
 //forward declaration to enable copy constructor
 class TWindow;

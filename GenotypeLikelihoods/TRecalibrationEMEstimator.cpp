@@ -299,15 +299,6 @@ double TRecalibrationEMWindow::calcLL(TSequencingErrorModels & models, double* &
 	return LL;
 };
 
-/*
-double TRecalibrationEMWindow::calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon){
-	double Q = 0.0;
-	for(TRecalibrationEMSite* site : sites)
-		Q += site->calcQ(models, tmpEpsilon);
-	return Q;
-};
-*/
-
 void TRecalibrationEMWindow::addToQ(TSequencingErrorModels & models){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToQ(models);
@@ -334,9 +325,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	//read groups
 	_readGroups = ReadGroups;
 	_readGroupMap = ReadGroupMap;
-
-	//models
-	models = new TSequencingErrorModels(_readGroups, _readGroupMap, logfile);
 
 	//recal models
 	logfile->startIndent("Settings regarding the EM algorithm:");
@@ -376,9 +364,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	logfile->endIndent();
 };
 
-void TRecalibrationEMEstimator::initializeFromFile(const std::string string){
-	models->createModels(string);
-};
 
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
@@ -404,10 +389,11 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	//initialize models
 	//-------------------
 	logfile->startIndent("Initializing recalibration models:");
+	models.prepareModelsForEstimation(_readGroups, _readGroupMap, logfile);
 
 	//first initialize from file, if given
 	if(!recalFile.empty()){
-		models->addModelsFromFile(recalFile, &dataTables);
+		models.addModelsFromFile(recalFile, &dataTables);
 	}
 
 	//now add default model for all others and check if existing (from file) match data range
@@ -418,19 +404,19 @@ void TRecalibrationEMEstimator::_initializeModels(){
 		for(int mate = 0; mate < 2; ++mate){
 			TRecalibrationEMDataTable* table = dataTables.getTable(rg, mate);
 			if(table->size() > 0){
-				models->addModel(rg, mate, covariateDefitionForEstimation, table);
+				models.addModel(rg, mate, covariateDefitionForEstimation, table);
 				if(table->size() < minRequiredObservations)
 					++numModelsWithLittleData;
 			} else {
-				if(models->modelExists(rg, mate)){
-					models->removeModel(rg, mate);
+				if(models.modelExists(rg, mate)){
+					models.removeModel(rg, mate);
 				}
 				++numModelsWithoutData;
 			}
 		}
 	}
 	logfile->done();
-	logfile->conclude("Initialized " + toString(models->numModels()) + " models.");
+	logfile->conclude("Initialized " + toString(models.numModels()) + " models.");
 
 	//report warning in case of very little data
 	if(numModelsWithLittleData > 0){
@@ -453,9 +439,13 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	//report read groups without data
 	if(numModelsWithoutData > 0){
 		logfile->startIndent("The following " + toString(numModelsWithoutData) + " read groups do not have data and will not be recalibrated:");
-		models->reportReadGroupsNotUsed();
+		models.reportReadGroupsNotUsed();
 		logfile->endIndent();
 	}
+};
+
+void TRecalibrationEMEstimator::initializeFromFile(const std::string string){
+	models.createModels(string, _readGroups, _readGroupMap, logfile);
 };
 
 void TRecalibrationEMEstimator::performEstimation(std::string outputName, bool & writeTmpTables){
@@ -508,7 +498,7 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 		LL = 0.0;
 		logfile->listFlush("Calculating P(g|d, beta') ...");
 		for(TRecalibrationEMWindow* curWindow : windows)
-			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(*models, tmpEpsilon);
+			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(models, tmpEpsilon);
 		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
 
@@ -554,10 +544,10 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 
 void TRecalibrationEMEstimator::_runNewtonRaphson(){
 	//calculate Q at current location
-	models->setQToZero();
+	models.setQToZero();
 	for(TRecalibrationEMWindow* curWindow : windows)
-		curWindow->addToQ(*models);
-	double curQ = models->curQ();
+		curWindow->addToQ(models);
+	double curQ = models.curQ();
 
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
@@ -566,12 +556,12 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 
 		//fill Jacobin and F: loop over all sites
 		logfile->listFlush("Calculating Jacobian and gradient ...");
-		models->setEMParamsToZero();
+		models.setEMParamsToZero();
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
-			(*curWindow)->addToJacobianAndF(*models, tmpEpsilon);
+			(*curWindow)->addToJacobianAndF(models, tmpEpsilon);
 
 		//now solve J^-1 x F
-		models->solveJxF();
+		models.solveJxF();
 		logfile->done();
 
 		//update params for each read group using backtracking
@@ -580,22 +570,22 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 		int numUpdatedModels = 0;
 		int numUpdatedModels_old;
 
-		while(numUpdatedModels < models->numModels() && lambda > 1.0E-20){
+		while(numUpdatedModels < models.numModels() && lambda > 1.0E-20){
 			//propose move
 			logfile->listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
-			models->proposeNewParameters(lambda);
+			models.proposeNewParameters(lambda);
 
 			//calculate Q at new location
-			models->setQToZero();
+			models.setQToZero();
 			for(TRecalibrationEMWindow* curWindow : windows)
-				curWindow->addToQ(*models);
+				curWindow->addToQ(models);
 
 			//check if we accept or backtrack
 			numUpdatedModels_old = numUpdatedModels;
-			numUpdatedModels = models->acceptProposedParametersBasedOnQ();
-			double Q = models->curQ();
+			numUpdatedModels = models.acceptProposedParametersBasedOnQ();
+			double Q = models.curQ();
 
-			logfile->write(toString(numUpdatedModels) + "/" + toString(models->numModels()) + " models converged.");
+			logfile->write(toString(numUpdatedModels) + "/" + toString(models.numModels()) + " models converged.");
 
 			if(numUpdatedModels > numUpdatedModels_old){
 				logfile->conclude("Q was increased from " + toString(curQ) + " to " + toString(Q));
@@ -607,15 +597,15 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 			--log2_lambda;
 		}
 
-		if(numUpdatedModels < models->numModels()){
+		if(numUpdatedModels < models.numModels()){
 			logfile->conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) + ", aborting Newton-Raphson.");
 		}
 
 		//adjust parameters post estimation
-		models->adjustParametersPostEstimation();
+		models.adjustParametersPostEstimation();
 
 		//get largest gradient (F) to check if we break NR optimization
-		double maxF = models->getSteepestGradient();
+		double maxF = models.getSteepestGradient();
 		logfile->conclude("max(F) = " + toString(maxF));
 		logfile->endIndent();
 		if(maxF < NewtonRaphsonMaxF || numUpdatedModels == 0) break;
@@ -639,7 +629,7 @@ void TRecalibrationEMEstimator::_initializTmpVariablesForEstimation(){
 	}
 
 	//initialize variables in models
-	models->setEMParamsToZero();
+	models.setEMParamsToZero();
 };
 
 void TRecalibrationEMEstimator::addNewWindow(TBaseFrequencies* freqs){
@@ -685,14 +675,14 @@ long TRecalibrationEMEstimator::cumulativeDepth(){
 };
 
 void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string filename){
-	models->writeRecalFile(filename);
+	models.writeRecalFile(filename);
 };
 
 double TRecalibrationEMEstimator::calcLL(){
 	_initializTmpVariablesForEstimation();
 	double LL = 0.0;
 	for(TRecalibrationEMWindow* curWindow : windows)
-		LL += curWindow->calcLL(*models, tmpEpsilon);
+		LL += curWindow->calcLL(models, tmpEpsilon);
 	return LL;
 };
 

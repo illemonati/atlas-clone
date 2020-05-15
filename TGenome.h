@@ -8,6 +8,8 @@
 #ifndef LOCI_H_
 #define LOCI_H_
 
+#include <TGenotypeData.h>
+
 #include "TWindow.h"
 #include "gzstream.h"
 #include "bamtools/api/BamWriter.h"
@@ -15,7 +17,6 @@
 #include "TBed.h"
 #include "TAlignmentParser.h"
 #include "TQualityMap.h"
-#include "TGenotypePrior.h"
 #include "TReadList.h"
 #include <typeinfo>
 #include <map>

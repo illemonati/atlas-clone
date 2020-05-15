@@ -18,6 +18,7 @@
 #include <algorithm>
 #include "TRandomGenerator.h"
 #include "../TAllelicDepthCounts.h"
+#include "auxiliaryTools.h"
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100
@@ -27,23 +28,22 @@
 //---------------------------------------------------------------
 class TSite{
 protected:
-	short int numGenotypes = 10;
-	std::vector<TBase*>::iterator baseIterator;
-
 	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
 
 public:
 	std::vector<TBase*> bases;
 	bool hasData;
-	double emissionProbabilities[10];
 	char referenceBase; //optional
+
+	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
+
 
 	TSite(){
 		hasData = false;
 		referenceBase = 'N';
 	};
 
-	TSite(TSite* other):TSite(){stealFromOther(other);};
+	//TSite(TSite* other):TSite(){stealFromOther(other);};
 	virtual ~TSite(){ clear(); };
 	void clear();
 	void stealFromOther(TSite* other);
@@ -80,20 +80,17 @@ public:
 		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
 		return -10.0 * log10(epsilon);
 	};
-	void calcEmissionProbabilities(double* vec);
-	void calcEmissionProbabilities();
+
 	void calculateP_g(double* genotypeProbabilities, double* P_g);
-	double calculateWeightedSumOfEmissionProbs(double* weights);
 	std::string getBases();
 	std::string getEmissionProbs();
-	double calculateLogLikelihood(double* genotypeProbabilities);
-	void countAlleles(int* alleleCounts);
+
+	void countAlleles(int* alleleCounts) const;
 	void countAllelesForImbalance(TAllelicDepthCounts & counts);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);
-	void printPileup(gz::ogzstream & out);
-	void printPileupToScreen();
+	void printPileup(TOutputFileZipped & out);
 
 	//MLE Callers
 	void calculateDiploidPhredScaledGenotypeLikelihoods(double* phredGLs);

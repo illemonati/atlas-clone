@@ -81,8 +81,6 @@ public:
 	void addToEmissionProb(double genotypeLikelihoods[10]);
 	void addToEmissionProbLog(double genotypeLikelihoods[10]);
 	Base getBaseAsEnum(){ return data.base;};
-	void addToBaseFrequencies(TBaseFrequencies & frequencies, double & weight){ frequencies.add(data.base, weight); };
-
 };
 
 #endif /* TBASE_H_ */

@@ -8,6 +8,8 @@
 
 #include "TCaller.h"
 
+using namespace GenotypeLikelihoods;
+
 /////////////////////////////////////////////////////////
 // TCaller
 /////////////////////////////////////////////////////////
@@ -151,7 +153,7 @@ void TCaller::fillInfoFieldFunctionPointers(){
 
 };
 
-std::string TCaller::getVCFInfoString_DP(TSite & site){
+std::string TCaller::getVCFInfoString_DP(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	return "DP=" + toString(site.bases.size());
 };
 
@@ -197,15 +199,15 @@ void TCaller::fillGenotypeFieldFunctionPointers(){
 	}
 };
 
-std::string TCaller::getVCFGenotypeString_GT(TSite & site){
+std::string TCaller::getVCFGenotypeString_GT(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	return calledGenotype;
 };
 
-std::string TCaller::getVCFGenotypeString_DP(TSite & site){
+std::string TCaller::getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	return toString(site.bases.size());
 };
 
-std::string TCaller::getVCFGenotypeString_AD(TSite & site){
+std::string TCaller::getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	countAlleles(site);
 	std::string ret;
 	if(referenceBase == N) ret = "0";
@@ -220,12 +222,12 @@ std::string TCaller::getVCFGenotypeString_AD(TSite & site){
 //-------------------------------------------------------------------------------------------
 // writing VCF
 //-------------------------------------------------------------------------------------------
-std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(TSite & site)> & vec, TSite & site){
+std::string TCaller::composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genoLikelihoods)> & vec, const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//no info fields?
 	if(vec.empty()) return ".";
 
 	//add first info
-	std::vector<std::string (TCaller::*)(TSite & site)>::iterator it = vec.begin();
+	auto& it = vec.begin();
 	std::string info = (this->*(*it))(site);
 	++it;
 
@@ -246,7 +248,7 @@ void TCaller::writeAlternativeAllelesToVCF(){
 	}
 };
 
-void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & site){
+void TCaller::writeCallToVCF(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//apply filter on alternative alleles
 	if(!_printAltIfHomoRef && (calledGenotype == "0/0" || calledGenotype == "0"))
 		altAlleles.clear();
@@ -262,10 +264,10 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & si
 	vcf << "\t.\t.";
 
 	//write info fields
-	vcf << '\t' << composeVCFString(VCFInfoFunctionsVec, site);
+	vcf << '\t' << composeVCFString(VCFInfoFunctionsVec, site, genoLikelihoods);
 
 	//write genotype fields
-	vcf << '\t' << genotypeFormatString << '\t' << composeVCFString(VCFGenotypeFunctionsVec, site);
+	vcf << '\t' << genotypeFormatString << '\t' << composeVCFString(VCFGenotypeFunctionsVec, site, genoLikelihoods);
 
 	//end with new line
 	vcf << '\n';
@@ -274,7 +276,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, TSite & si
 	clearAfterCall();
 };
 
-void TCaller::writeMissingDataToVCF(TSite & site){
+void TCaller::writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
 		vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0";
 };
@@ -287,22 +289,22 @@ void TCaller::clearAfterCall(){
 //-------------------------------------------------------------------------------------------
 // calling
 //-------------------------------------------------------------------------------------------
-void TCaller::countAlleles(TSite & site){
+void TCaller::countAlleles(const TSite & site){
 	if(!allelesCounted){
 		site.countAlleles(alleleCounts);
 		allelesCounted = true;
 	}
 };
 
-void TCaller::callGenotype(TSite & site){
+void TCaller::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	calledGenotype = "./.";
 };
 
-void TCaller::callGenotypeKnownAlleles(TSite & site){
+void TCaller::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	calledGenotype = "./.";
 };
 
-void TCaller::call(const std::string & chr, const long pos, TSite & site){
+void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//set reference base from site
 	referenceBase = genoMap.getBase(site.referenceBase);
 
@@ -311,14 +313,14 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site){
 		writeMissingDataToVCF(site);
 	else {
 		//call
-		callGenotype(site);
+		callGenotype(site, genoLikelihoods);
 
 		//check if we write
-		writeCallToVCF(chr, pos, site);
+		writeCallToVCF(chr, pos, site, genoLikelihoods);
 	}
 };
 
-void TCaller::call(const std::string & chr, const long pos, TSite & site, char & firstAllele, char & secondAllele){
+void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genoLikelihoods, const char & firstAllele, const char & secondAllele){
 	//check if there is data
 	if(site.hasData){
 		//set reference base from site
@@ -329,10 +331,10 @@ void TCaller::call(const std::string & chr, const long pos, TSite & site, char &
 			altAlleles.push_back(genoMap.getBase(secondAllele));
 		else
 			altAlleles.push_back(genoMap.getBase(firstAllele));
-		callGenotypeKnownAlleles(site);
+		callGenotypeKnownAlleles(site, genoLikelihoods);
 
 		//check if we write
-		writeCallToVCF(chr, pos, site);
+		writeCallToVCF(chr, pos, site, genoLikelihoods);
 
 	} else
 		writeMissingDataToVCF(site);
@@ -390,7 +392,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
 };
 
-void TCallerRandomBase::callGenotype(TSite & site){
+void TCallerRandomBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//randomly pick a base
 	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->getBaseAsEnum();
 
@@ -403,7 +405,7 @@ void TCallerRandomBase::callGenotype(TSite & site){
 	}
 };
 
-void TCallerRandomBase::callGenotypeKnownAlleles(TSite & site){
+void TCallerRandomBase::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//randomly pick a base among known alleles
 	countAlleles(site);
 	double probRef = (double) alleleCounts[referenceBase] / (double) (alleleCounts[referenceBase] + alleleCounts[altAlleles[0]]);
@@ -425,7 +427,7 @@ TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCal
 	filenameExtention = "_majorityBase.vcf";
 };
 
-void TCallerMajorityBase::callGenotype(TSite & site){
+void TCallerMajorityBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//get per allele counts
 	countAlleles(site);
 	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4);
@@ -443,7 +445,7 @@ void TCallerMajorityBase::callGenotype(TSite & site){
 	}
 };
 
-void TCallerMajorityBase::callGenotypeKnownAlleles(TSite & site){
+void TCallerMajorityBase::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//get per allele counts
 	countAlleles(site);
 
@@ -453,7 +455,7 @@ void TCallerMajorityBase::callGenotypeKnownAlleles(TSite & site){
 	} else if(alleleCounts[referenceBase] < alleleCounts[altAlleles[0]]){
 		calledGenotype = "1";
 	} else {
-		//euqal counts: pick at random
+		//equal counts: pick at random
 		if(randomGenerator->getRand() < 0.5)
 			calledGenotype = "0";
 		else
@@ -475,9 +477,9 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	MAP = -1;
 };
 
-void TCallerAllelePresence::fillPosteriors(TSite & site){
+void TCallerAllelePresence::fillPosteriors(TGenotypeLikelihoods & genoLikelihoods){
 	//calculate posterior probabilities
-	site.calculateP_g(genotypePrior, posteriorProb);
+	genoLikelihoods.fillPosterior(genotypePrior, posteriorProb);
 
 	//sum for each base
 	allelePostProb[0] = posteriorProb[AA] + posteriorProb[AC] + posteriorProb[AG] + posteriorProb[AT];
@@ -486,11 +488,11 @@ void TCallerAllelePresence::fillPosteriors(TSite & site){
 	allelePostProb[3] = posteriorProb[AT] + posteriorProb[CT] + posteriorProb[GT] + posteriorProb[TT];
 };
 
-void TCallerAllelePresence::callGenotype(TSite & site){
+void TCallerAllelePresence::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
 
 	//fill posteriors for each allele
-	fillPosteriors(site);
+	fillPosteriors(genoLikelihoods);
 
 	//find MAP
 	MAP = pickIndexWithHighestMetric(allelePostProb, 4);
@@ -508,11 +510,11 @@ void TCallerAllelePresence::callGenotype(TSite & site){
 	}
 };
 
-void TCallerAllelePresence::callGenotypeKnownAlleles(TSite & site){
+void TCallerAllelePresence::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(!priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
 
 	//fill posteriors for each allele
-	fillPosteriors(site);
+	fillPosteriors(genoLikelihoods);
 
 	//find MAP
 	double allelePostProbKnownAlleles[2];
@@ -531,11 +533,11 @@ void TCallerAllelePresence::callGenotypeKnownAlleles(TSite & site){
 	}
 };
 
-std::string TCallerAllelePresence::getVCFGenotypeString_GQ(TSite & site){
+std::string TCallerAllelePresence::getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	return toString(qualMap.errorToPhredInt(1.0 - allelePostProb[MAP]));
 };
 
-std::string TCallerAllelePresence::getVCFGenotypeString_AP(TSite & site){
+std::string TCallerAllelePresence::getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	std::string ret = toString(qualMap.errorToPhredInt(posteriorProb[0]));
 	ret += ',' + toString(qualMap.errorToPhredInt(posteriorProb[1]));
 	ret += ',' + toString(qualMap.errorToPhredInt(posteriorProb[2]));
@@ -749,7 +751,7 @@ template <typename T> std::string TCallerDiploid::getPerGenotypeMetricString(T* 
 	return ret;
 };
 
-void TCallerDiploid::calculateImbalance(TSite & site){
+void TCallerDiploid::calculateImbalance(const TSite & site){
 	if(!imbalanceCalculated){
 		if(!altAlleles.empty()){
 			countAlleles(site);
@@ -786,14 +788,14 @@ void TCallerDiploid::calculateImbalance(TSite & site){
 	}
 };
 
-std::string TCallerDiploid::getVCFGenotypeString_AB(TSite & site){
+std::string TCallerDiploid::getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(altAlleles.empty()) return ".";
 
 	calculateImbalance(site);
 	return AB;
 };
 
-std::string TCallerDiploid::getVCFGenotypeString_AI(TSite & site){
+std::string TCallerDiploid::getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(altAlleles.empty()) return ".";
 
 	calculateImbalance(site);
@@ -813,34 +815,34 @@ TCallerMLE::TCallerMLE(TRandomGenerator* RandomGenerator):TCallerDiploid(RandomG
 	printGenotypeFields("GT,DP,AD,GQ,PL");
 };
 
-void TCallerMLE::callGenotype(TSite & site){
-	callGenotypeFromMetric(site.emissionProbabilities);
+void TCallerMLE::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
+	callGenotypeFromMetric(genoLikelihoods.likelihoods);
 };
 
-void TCallerMLE::callGenotypeKnownAlleles(TSite & site){
-	callGenotypeFromMetricKnownAllelesUpdateIndex(site.emissionProbabilities);
+void TCallerMLE::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
+	callGenotypeFromMetricKnownAllelesUpdateIndex(genoLikelihoods.likelihoods);
 };
 
-std::string TCallerMLE::getVCFGenotypeString_GQ(TSite & site){
-	return toString(qualMap.errorToPhredInt(site.emissionProbabilities[indexOfSecond] / site.emissionProbabilities[indexOfMax]));
+std::string TCallerMLE::getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
+	return toString(qualMap.errorToPhredInt(genoLikelihoods[indexOfSecond] / genoLikelihoods[indexOfMax]));
 };
 
-std::string TCallerMLE::getVCFGenotypeString_GL(TSite & site){
+std::string TCallerMLE::getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//normalize
 	double tmp[10];
-	for(int g=0; g<10; ++g)
-		tmp[g] = log10(site.emissionProbabilities[g] / site.emissionProbabilities[indexOfMax]);
+	for(uint8_t g=0; g<10; ++g)
+		tmp[g] = log10(genoLikelihoods[g] / genoLikelihoods[indexOfMax]);
 
 	//get string
 	return getPerGenotypeMetricString(tmp);
 };
 
-std::string TCallerMLE::getVCFGenotypeString_PL(TSite & site){
+std::string TCallerMLE::getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//normalize
 	int tmp[10];
-	double phredMax = qualMap.errorToPhred(site.emissionProbabilities[indexOfMax]);
-	for(int g=0; g<10; ++g)
-		tmp[g] = (int) round(qualMap.errorToPhred(site.emissionProbabilities[g]) - phredMax);
+	double phredMax = qualMap.errorToPhred(genoLikelihoods[indexOfMax]);
+	for(uint8_t g=0; g<10; ++g)
+		tmp[g] = (int) round(qualMap.errorToPhred(genoLikelihoods[g]) - phredMax);
 
 	//get string
 	return getPerGenotypeMetricString(tmp);
@@ -859,31 +861,31 @@ TCallerBayes::TCallerBayes(TRandomGenerator* RandomGenerator):TCallerDiploid(Ran
 };
 
 
-void TCallerBayes::callGenotype(TSite & site){
+void TCallerBayes::callGenotype(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(!priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
 
 	//calculate posterior probabilities
-	site.calculateP_g(genotypePrior, posteriorProb);
+	genoLikelihoods.fillPosterior(genotypePrior, posteriorProb);
 
 	//call
 	callGenotypeFromMetric(posteriorProb);
 };
 
-void TCallerBayes::callGenotypeKnownAlleles(TSite & site){
+void TCallerBayes::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	if(!priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
 
 	//calculate posterior probabilities
-	site.calculateP_g(genotypePrior, posteriorProb);
+	genoLikelihoods.fillPosterior(genotypePrior, posteriorProb);
 
 	//call
 	callGenotypeFromMetricKnownAllelesUpdateIndex(posteriorProb);
 };
 
-std::string TCallerBayes::getVCFGenotypeString_GQ(TSite & site){
+std::string TCallerBayes::getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	return toString(qualMap.errorToPhredInt(1.0 - posteriorProb[indexOfMax]));
 };
 
-std::string TCallerBayes::getVCFGenotypeString_GP(TSite & site){
+std::string TCallerBayes::getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genoLikelihoods){
 	//phred
 	int tmp[10];
 	for(int g=0; g<10; ++g)

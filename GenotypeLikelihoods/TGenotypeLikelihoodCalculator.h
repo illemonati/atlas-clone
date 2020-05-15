@@ -11,7 +11,7 @@
 #include "TParameters.h"
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
-#include "TSequencingErrorModel.h"
+#include "TSequencingErrorModels.h"
 
 namespace GenotypeLikelihoods{
 
@@ -24,7 +24,7 @@ private:
 
 	TGenotypeDistribution genotypeDistribution;
 	TPostMortemDamage pmd;
-	TSequencingErrorModels* errorModels; //TODO: find a way not to use a pointer
+	TSequencingErrorModels errorModels; //TODO: find a way not to use a pointer
 
 	//temporary storage
 	TGenotypeLikelihoods genotypeLikelihoods;

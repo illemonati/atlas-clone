@@ -9,7 +9,7 @@
 #define TRECALIBRATIONEMESTIMATOR_H_
 
 #include "auxiliaryTools.h"
-#include "TSequencingErrorModel.h"
+#include "TSequencingErrorModels.h"
 #include "TSite.h"
 
 namespace GenotypeLikelihoods{
@@ -26,7 +26,7 @@ private:
 
 	inline void calcEpsilon(TSequencingErrorModels & models, double* & epsilon){
 		for(unsigned int k=0; k<numReads; ++k)
-			epsilon[k] = models.calcEpsilon(data[k]);
+			epsilon[k] = models.getErrorRate(data[k]);
 	};
 
 	inline double calcB(const double & D){
@@ -92,7 +92,7 @@ protected:
 	TLog* logfile;
 	TReadGroups* _readGroups;
 	TReadGroupMap* _readGroupMap;
-	TSequencingErrorModels* models;
+	TSequencingErrorModels models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
 
@@ -117,7 +117,6 @@ protected:
 public:
 	TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap);
 	~TRecalibrationEMEstimator(){
-		delete models;
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;
 		}

@@ -13,7 +13,7 @@
 #include <omp.h>
 #include "../bamtools/api/SamHeader.h"
 
-#include "../GenotypeLikelihoods/TSequencingErrorModel.h"
+#include "TSequencingErrorModels.h"
 #include "TQualityMap.h"
 
 //---------------------------------------------------------------
@@ -49,22 +49,19 @@ public:
 class TRecalibrationEM:public TRecalibration{
 private:
 	TLog* logfile;
-	GenotypeLikelihoods::TSequencingErrorModels* models;
+	GenotypeLikelihoods::TSequencingErrorModels models;
 	TReadGroupMap* readGroupMap;
 
 public:
 	TRecalibrationEM(std::string string, TReadGroups* ReadGroups, TLog* Logfile);
-	~TRecalibrationEM(){
-		delete models;
-	};
 
 	bool recalibrationChangesQualities(){ return true; };
 
 	inline double getErrorRate(TBase & base){
-		return models->getErrorRate(base.data);
+		return models.getErrorRate(base.data);
 	};
 	inline int getQuality(TBase & base){
-		double q = models->getErrorRate(base.data);
+		double q = models.getErrorRate(base.data);
 		return _qualityMap.errorToQuality(q);
 	};
 };

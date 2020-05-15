@@ -635,9 +635,6 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 
 	} else {
 		while(chromosomes.curInUse() == false || skipWindows * windowSize > chromosomes.curLength()){
-//			++chrIterator;
-//			++chrNumber;
-//			chrLength = stringToLong(chrIterator->Length);
 			chromosomes.next();
 		}
 		numWindowsOnChr = ceil(chromosomes.curLength() / (double) windowSize);
@@ -807,7 +804,6 @@ bool TAlignmentParser::readAlignment(){
 		if(bamAlignment.RefID != previousAlignmentChr){
 			previousAlignmentPos = 0;
 			previousAlignmentChr = bamAlignment.RefID;
-//			chrNumber = previousAlignmentChr;
 			chrChangedAlignment = true;
 		} else
 			chrChangedAlignment = false;
@@ -874,6 +870,7 @@ bool TAlignmentParser::applyFilters(){
 };
 
 bool TAlignmentParser::fillAlignment(TAlignment & alignment){
+	//This functions parses an alignment into bases
 	//make sure container is empty
 	alignment.clear();
 

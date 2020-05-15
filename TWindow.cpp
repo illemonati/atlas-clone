@@ -228,6 +228,7 @@ void TWindow_base::estimateBaseFrequencies(){
 
 
 void TWindow_base::calculateEmissionProbabilities(){
+
 	for(unsigned int i=0; i<length; ++i){
 		if(sites[i].hasData)
 			sites[i].calcEmissionProbabilities();
@@ -266,25 +267,18 @@ void TWindow_base::callKnwonAlleles(TCaller & caller, TRecalibration & recalObje
 	}
 };
 
-void TWindow_base::printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData){
+void TWindow_base::printPileup(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData){
 	//print pileup
+	GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
+
 	for(unsigned int i=0; i<length; ++i){
 		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
-			sites[i].calcEmissionProbabilities();
-			out << chrName << "\t" << start + i + 1;
+			GL_calculator.calculateGenotypeLikelihoods(sites->bases, genoLik);
+			out << chrName << start + i + 1;
 			sites[i].printPileup(out);
-			out << "\n";
+			genoLik.write(out);
+			out.endLine();
 		}
-	}
-};
-
-void TWindow_base::printPileupToScreen(TRecalibration* recalObject){
-	//print pileup
-	for(unsigned int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilities();
-		std::cout << chrName << "\t" << start + i + 1;
-		sites[i].printPileupToScreen();
-		std::cout << "\n";
 	}
 };
 

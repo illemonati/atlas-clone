@@ -9,7 +9,7 @@
 #define TRECALIBRATIONEMMODEL_H_
 
 #include "TFile.h"
-#include "../GenotypeLikelihoods/TSequencingErrorCovariate.h"
+#include "TSequencingErrorCovariate.h"
 #include "auxiliaryTools.h"
 
 namespace GenotypeLikelihoods{
@@ -169,81 +169,6 @@ public:
 	double getErrorRate(const TRecalibrationEMReadData & data);
 };
 
-//--------------------------------------------------------------------
-// TSequencingErrorModels
-// Object containing a vector of recal models
-//--------------------------------------------------------------------
-class TSequencingErrorModels{
-private:
-	TLog* logfile;
-	TReadGroups* readGroups;
-	TReadGroupMap* readGroupMap;
-	std::vector<TSequencingErrorModel> models;
-	unsigned int totNumParameters;
-	TRecalibrationEMReadGroupIndex readGroupIndex;
-
-	void _readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs);
-
-	void _createModelsFromString(const std::string & s);
-	void _createModelsFromFile(std::string filename);
-	void _addNoRecalModelIfMissing();
-
-	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
-
-public:
-	TSequencingErrorModels(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap, TLog* Logfile);
-
-	//general functions to add and remove models
-	//bool parseModelString(const std::string & modelString, std::map<std::string, std::string> covariateFunctions, std::string & error);
-	void removeModel(int readGroupId, bool isSecondMate);
-
-	//add model for estimation: dataTable provided
-	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
-	void addModelsFromFile(std::string filename, TRecalibrationEMDataTables* dataTables);
-
-	//add model for recalibration: no dataTable provided
-	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions);
-	void createModels(std::string string);
-	void createEmptyModels();
-
-	//inline TRecalibrationEMModel* operator[](int index){ return &models[index]; };
-	int numModels(){ return models.size(); };
-	bool modelExists(uint16_t readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
-	bool modelExists(TSequencingErrorModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
-
-	inline double calcEpsilon(const TRecalibrationEMReadData & data){
-		return models[ readGroupIndex.index(data) ].getErrorRate(data);
-	};
-	inline double getErrorRate(const TBaseData & base){
-		return models[ readGroupIndex.index(base) ].getErrorRate(base);
-	};
-
-	void calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
-		models[ readGroupIndex.index(base) ].fillBaseLikelihoods(base, baseLikelihoods);
-	};
-
-	bool hasReadGroupsWithoutModel();
-	void reportReadGroupsNotUsed();
-	void reportReadGroupsConsideredSingleEnd();
-	void warningForMissingReadGroups();
-
-	//function to estimate
-	void setEMParamsToZero();
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
-	void setQToZero();
-	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
-	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
-	double curQ();
-	bool solveJxF();
-	void proposeNewParameters(double lambda);
-	void scaleParameters();
-	unsigned int acceptProposedParametersBasedOnQ();
-	void adjustParametersPostEstimation();
-	double getSteepestGradient();
-
-	void writeRecalFile(const std::string filename);
-
-};
 
 }; //end namespace
 
