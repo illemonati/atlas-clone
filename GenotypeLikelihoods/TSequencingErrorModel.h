@@ -11,6 +11,7 @@
 #include "TFile.h"
 #include "TSequencingErrorCovariate.h"
 #include "auxiliaryTools.h"
+#include "TGenotypeData.h"
 
 namespace GenotypeLikelihoods{
 

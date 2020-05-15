@@ -428,7 +428,7 @@ void TGenome::performDownsamplingThetaQC(TParameters & params){
 //------------------------------------------
 //Callers
 //------------------------------------------
-TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
+GenotypeLikelihoods::TGenotypePrior* TGenome::initializeGenotypePrior(TParameters & params){
 	TGenotypePrior* prior;
 	logfile->startIndent("Initializing genotype prior:");
 	//read prior from parameters
@@ -506,7 +506,7 @@ void TGenome::callGenotypes(TParameters & params){
 	} else {
 		prior = new TGenotypePrior();
 	}
-	caller->setPrior(prior);
+	caller->setPrior(prior->getPointerToPrior());
 
 	//open output file
 	std::string sampleName = params.getParameterStringWithDefault("indName", outputName);
@@ -2707,12 +2707,13 @@ void TGenome::testGenotypeLikelihoods(TParameters & params){
 			std::cout << std::endl;
 			std::cout << window.chrName << "\t" << window.start + i + 1 << "\t" << window.sites[i].getBases() << std::endl;
 
-			window.sites[i].calcEmissionProbabilities();
+			//window.sites[i].calcEmissionProbabilities();
 			glcalc.calculateGenotypeLikelihoods(window.sites[i].bases, genolik);
 
 
 			for(uint8_t g=0; g<10; ++g){
-				std::cout << "\t" <<  alignmentParser.genoMap.getGenotypeString(g) << ": " << window.sites[i].emissionProbabilities[g] << ", " << genolik.at(g);
+				//std::cout << "\t" <<  alignmentParser.genoMap.getGenotypeString(g) << ": " << window.sites[i].emissionProbabilities[g] << ", " << genolik.at(g);
+				std::cout << "\t" <<  alignmentParser.genoMap.getGenotypeString(g) << ": "  << ", " << genolik.at(g);
 			}
 			std::cout << std::endl;
 		}

@@ -7,6 +7,8 @@
 
 #include "TWindow.h"
 
+using namespace GenotypeLikelihoods;
+
 //-------------------------------------------------------
 //TWindow_base
 //-------------------------------------------------------
@@ -27,6 +29,7 @@ TWindow_base::TWindow_base(){
 	passedFilters = false;
 };
 
+/*
 TWindow_base::TWindow_base(TWindow_base & other){
 	//initialize coordinates and sites
 	sites = NULL;
@@ -52,6 +55,7 @@ void TWindow_base::stealFromOther(TWindow_base & other){
 	referenceBaseAdded = other.referenceBaseAdded;
 	passedFilters = other.passedFilters;
 };
+*/
 
 TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
 	//initialize coordinates and sites
@@ -226,51 +230,40 @@ void TWindow_base::estimateBaseFrequencies(){
 	baseFreq.normalize();
 };
 
-
-void TWindow_base::calculateEmissionProbabilities(){
-
-	for(unsigned int i=0; i<length; ++i){
-		if(sites[i].hasData)
-			sites[i].calcEmissionProbabilities();
-	}
-};
-
-void TWindow_base::call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference){
+void TWindow_base::call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, BamTools::Fasta & reference){
 	//add reference to sites
 	addReferenceBaseToSites(reference);
 
 	//loop over sites and call
+	GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 	for(unsigned int i=0; i<length; ++i){
-		if(sites[i].hasData)
-			sites[i].calcEmissionProbabilities();
-		caller.call(chrName, start + i, sites[i]);
+		GL_calculator.calculateGenotypeLikelihoods(sites[i].bases, genoLik);
+		caller.call(chrName, start + i, sites[i], genoLik);
 	}
 };
 
-void TWindow_base::callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset){
+void TWindow_base::callKnwonAlleles(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TSiteSubset & subset){
 	//check if we need to process this window
 	if(subset.hasPositionsInWindow(start)){
 		//add reference to sites
 		addReferenceBaseToSites(&subset);
 
 		//now only run over sites listed in that window
+		GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 		std::map<unsigned int,std::pair<char,char> > thesePos = subset.getPositionInWindow(start);
 		for(std::map<unsigned int,std::pair<char,char> >::iterator it = thesePos.begin(); it!=thesePos.end(); ++it){
 			int pos = it->first - start;
-			if(sites[pos].hasData){
-				sites[pos].calcEmissionProbabilities();
+			GL_calculator.calculateGenotypeLikelihoods(sites[pos].bases, genoLik);
 
-				//call
-				caller.call(chrName, start + pos, sites[pos], it->second.first, it->second.second);
-			}
+			//call
+			caller.call(chrName, start + pos, sites[pos], genoLik, it->second.first, it->second.second);
 		}
 	}
 };
 
-void TWindow_base::printPileup(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData){
+void TWindow_base::printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData){
 	//print pileup
-	GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-
+	TGenotypeLikelihoods genoLik;
 	for(unsigned int i=0; i<length; ++i){
 		if((printOnlySitesWithData && sites[i].hasData) || !printOnlySitesWithData){
 			GL_calculator.calculateGenotypeLikelihoods(sites->bases, genoLik);
@@ -457,24 +450,26 @@ void TWindow_base::addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTable
 	logfile->done();
 };
 
-void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer){
+void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator){
 	//assumes that emission probabilities were calculated
+	GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 	for(unsigned int i=0; i<length; ++i){
-		sites[i].calcEmissionProbabilities();
-		thetaDataContainer->add(sites[i]);
+		GL_calculator.calculateGenotypeLikelihoods(sites[i].bases, genoLik);
+		thetaDataContainer->add(sites[i], genoLik);
 	}
 };
 
-void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region){
+void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region){
 	//assumes that emission probabilities were calculated
 	//only add sites from regions
 	if(region.hasPositionsInWindow(start)){
+		GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 		std::vector<unsigned int> thesePos = region.getPositionInWindow(start);
 		for(std::vector<unsigned int>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 			unsigned int pos = *it - start;
 			if(pos < length){
-				sites[pos].calcEmissionProbabilities();
-				thetaDataContainer->add(sites[pos]);
+				GL_calculator.calculateGenotypeLikelihoods(sites[pos].bases, genoLik);
+				thetaDataContainer->add(sites[pos], genoLik);
 			}
 		}
 	}

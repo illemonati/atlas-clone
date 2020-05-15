@@ -32,14 +32,18 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const std::vect
 		baseLikelihoods.resize(bases.size());
 	}
 
-	//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-	for(size_t i=0; i<bases.size(); ++i){
-		errorModels.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD);
-		pmd.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD, baseLikelihoods[i]);
-	}
+	if(bases.empty()){
+		genotypeLikelihoods.reset();
+	} else {
+		//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+		for(size_t i=0; i<bases.size(); ++i){
+			errorModels.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD);
+			pmd.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD, baseLikelihoods[i]);
+		}
 
-	//calculate genotype likelihoods
-	genotypeLikelihoods.fill(baseLikelihoods, bases.size());
+		//calculate genotype likelihoods
+		genotypeLikelihoods.fill(baseLikelihoods, bases.size());
+	}
 };
 
 

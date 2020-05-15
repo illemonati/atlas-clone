@@ -7,28 +7,29 @@
 
 #include "TThetaEstimatorData.h"
 
+using namespace GenotypeLikelihoods;
 
 //-------------------------------------------------------
 //TThetaEstimatorTemporaryFile
 //-------------------------------------------------------
 TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(){
-	init("", 0);
+	init("");
 };
 
-TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename, int numGenotypes){
-	init(Filename, numGenotypes);
+TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename){
+	init(Filename);
 };
 
-void TThetaEstimatorTemporaryFile::init(std::string Filename, int numGenotypes){
+void TThetaEstimatorTemporaryFile::init(std::string Filename){
 	filename = Filename;
 	fp = NULL;
-	sizeOfData = sizeof(double) * numGenotypes;
+	sizeOfData = sizeof(double) * 10;
 
 	isOpen = false;
 	isOpenForReading = false;
 	isOpenForWriting = false;
 	wasWritten = false;
-}
+};
 
 void TThetaEstimatorTemporaryFile::openForWriting(){
 	if(sizeOfData == 0)
@@ -83,15 +84,15 @@ bool TThetaEstimatorTemporaryFile::isEOF(){
 	return gzeof(fp);
 }
 
-void TThetaEstimatorTemporaryFile::save(double* data){
+void TThetaEstimatorTemporaryFile::save(TGenotypeLikelihoods & genoLik){
 	if(!isOpenForWriting) throw "Can not add data to '" + filename + "': file is closed!";
 
-	gzwrite(fp, data, sizeOfData);
+	gzwrite(fp, genoLik.pointerToData(), sizeOfData);
 };
 
-bool TThetaEstimatorTemporaryFile::read(double* data){
+bool TThetaEstimatorTemporaryFile::read(TGenotypeLikelihoods & genoLik){
 	if(!isOpenForReading) throw "Can not read data from '" + filename + "': file is closed!";
-	if(gzread(fp, data, sizeOfData)!=sizeOfData){
+	if(gzread(fp, genoLik.pointerToData(), sizeOfData)!=sizeOfData){
 		//is end-of-file?
 		if(gzeof(fp)) return false;
 
@@ -104,16 +105,13 @@ bool TThetaEstimatorTemporaryFile::read(double* data){
 //-------------------------------------------------------
 //TThetaEstimatorData
 //-------------------------------------------------------
-TThetaEstimatorData::TThetaEstimatorData(int NumGenotypes){
-	numGenotypes = NumGenotypes;
-	pointerToData = NULL;
+TThetaEstimatorData::TThetaEstimatorData(){
 	numSitesCoveredTwiceOrMore = 0;
 	totNumSitesAdded = 0;
 	numSitesWithData = 0;
 	cumulativeDepth = 0.0;
 	sum = 0.0;
 	g = 0;
-	P_g_oneSite = new double[numGenotypes];
 
 	isBootstrapped = false;
 	numBootstrappedSites = false;
@@ -137,7 +135,7 @@ void TThetaEstimatorData::clear(){
 	clearBootstrap();
 };
 
-void TThetaEstimatorData::add(TSite & site){
+void TThetaEstimatorData::add(const TSite & site, TGenotypeLikelihoods & genoLik){
 	//assumes that emission probabilities were calculated!!
 	++totNumSitesAdded;
 
@@ -146,7 +144,7 @@ void TThetaEstimatorData::add(TSite & site){
 		++numSitesWithData;
 		cumulativeDepth += site.depth();
 
-		saveSite(site);
+		saveSite(genoLik);
 
 		//add site to base frequency estimation
 		site.addToBaseFrequencies(initialBaseFreq);
@@ -163,37 +161,25 @@ void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
 		baseFreq[i] = initialBaseFreq[i];
 };
 
-void TThetaEstimatorData::fillP_G(double* & P_G, double* & pGenotype){
+void TThetaEstimatorData::fillP_G(TGenotypeData & P_G, const TGenotypeData & pGenotype){
 	//assumes that pGenotype is set!
-	for(g=0; g<numGenotypes; ++g)
-		P_G[g] = 0.0;
+	P_G.set(0.0);
 
 	//calculate P_g for each site
 	double* d;
 	begin();
 	do{
-		sum = 0.0;
-		d = curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  d[g] * pGenotype[g];
-			sum += P_g_oneSite[g];
-		}
-		for(g=0; g<numGenotypes; ++g)
-			P_G[g] += P_g_oneSite[g] / sum;
-
+		P_g_oneSite.fill(curGenotypeLikelihoods(), pGenotype);
+		P_G.add(P_g_oneSite);
 	} while(next());
 };
 
-double TThetaEstimatorData::calcLogLikelihood(double* & pGenotype){
+double TThetaEstimatorData::calcLogLikelihood(const TGenotypeData & pGenotype){
 	double LL = 0.0;
 	double* d;
 	begin();
 	do{
-		sum = 0.0;
-		d = curGenotypeLikelihoods();
-		for(g=0; g<numGenotypes; ++g)
-			sum +=  d[g] * pGenotype[g];
-		LL += log(sum);
+		LL += log(curGenotypeLikelihoods().weightedSum(pGenotype));
 	} while(next());
 
 	return LL;
@@ -297,22 +283,14 @@ bool TThetaEstimatorData::next(){
 //-------------------------------------------------------
 //TThetaEstimatorDataVector
 //-------------------------------------------------------
-TThetaEstimatorDataVector::TThetaEstimatorDataVector(int NumGenotypes):TThetaEstimatorData(NumGenotypes){};
+TThetaEstimatorDataVector::TThetaEstimatorDataVector():TThetaEstimatorData(){};
 
-void TThetaEstimatorDataVector::saveSite(TSite & site){
+void TThetaEstimatorDataVector::saveSite(TGenotypeLikelihoods & genoLik){
 	//store emission probabilities
-	sites.push_back(new double[10]);
-	pointerToData = *sites.rbegin();
-
-	for(int g=0; g<numGenotypes; ++g){
-		pointerToData[g] = site.emissionProbabilities[g];
-	}
+	sites.emplace_back(genoLik);
 };
 
-
 void TThetaEstimatorDataVector::emptyStorage(){
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt)
-		delete[] (*siteIt);
 	sites.clear();
 };
 
@@ -335,36 +313,25 @@ bool TThetaEstimatorDataVector::isEnd(){
 	return siteIt == sites.end();
 };
 
-double* TThetaEstimatorDataVector::curGenotypeLikelihoods(){
+TGenotypeLikelihoods& TThetaEstimatorDataVector::curGenotypeLikelihoods(){
 	return *siteIt;
 }
 
-void TThetaEstimatorDataVector::fillP_G(double* & P_G, double* & pGenotype){
+void TThetaEstimatorDataVector::fillP_G(TGenotypeData & P_G, const TGenotypeData & pGenotype){
 	//assumes that pGenotype is set!
-	for(g=0; g<numGenotypes; ++g)
-		P_G[g] = 0.0;
+	P_G.set(0.0);
 
 	//calculate P_g for each site
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
-		sum = 0.0;
-		for(g=0; g<numGenotypes; ++g){
-			P_g_oneSite[g] =  (*siteIt)[g] * pGenotype[g];
-			sum += P_g_oneSite[g];
-		}
-		for(g=0; g<numGenotypes; ++g)
-			P_G[g] += P_g_oneSite[g] / sum;
-
+	for(auto& it : sites){
+		P_g_oneSite.fill(it, pGenotype);
+		P_G.add(P_g_oneSite);
 	}
 };
 
-double TThetaEstimatorDataVector::calcLogLikelihood(double* & pGenotype){
+double TThetaEstimatorDataVector::calcLogLikelihood(const TGenotypeData & pGenotype){
 	double LL = 0.0;
-
-	for(siteIt=sites.begin(); siteIt != sites.end(); ++siteIt){
-		sum = 0.0;
-		for(g=0; g<numGenotypes; ++g)
-			sum +=  (*siteIt)[g] * pGenotype[g];
-		LL += log(sum);
+	for(auto& it : sites){
+		LL += log(it.weightedSum(pGenotype));
 	}
 
 	return LL;
@@ -373,20 +340,18 @@ double TThetaEstimatorDataVector::calcLogLikelihood(double* & pGenotype){
 //-------------------------------------------------------
 //TThetaEstimatorDataFile
 //-------------------------------------------------------
-TThetaEstimatorDataFile::TThetaEstimatorDataFile(int NumGenotypes, std::string TmpFileName):TThetaEstimatorData(NumGenotypes){
+TThetaEstimatorDataFile::TThetaEstimatorDataFile(std::string TmpFileName):TThetaEstimatorData(){
 	dataFileName = TmpFileName;
-	sites.init(dataFileName, numGenotypes);
+	sites.init(dataFileName);
 	sites.openForWriting();
-
-	pointerToData = new double[numGenotypes];
 };
 
 void TThetaEstimatorDataFile::emptyStorage(){
 	sites.clean();
 };
 
-void TThetaEstimatorDataFile::saveSite(TSite & site){
-	sites.save(site.emissionProbabilities);
+void TThetaEstimatorDataFile::saveSite(TGenotypeLikelihoods & genoLik){
+	sites.save(genoLik);
 };
 
 void TThetaEstimatorDataFile::readNext(){
@@ -394,7 +359,7 @@ void TThetaEstimatorDataFile::readNext(){
 	if(curSite >= numSitesWithData)
 		readState = false;
 	else
-		readState = sites.read(pointerToData);
+		readState = sites.read(genotypeLikelihoods);
 }
 
 void TThetaEstimatorDataFile::_begin(){
@@ -407,8 +372,8 @@ bool TThetaEstimatorDataFile::isEnd(){
 	return sites.isEOF();
 };
 
-double* TThetaEstimatorDataFile::curGenotypeLikelihoods(){
-	return pointerToData;
+TGenotypeLikelihoods& TThetaEstimatorDataFile::curGenotypeLikelihoods(){
+	return genotypeLikelihoods;
 };
 
 

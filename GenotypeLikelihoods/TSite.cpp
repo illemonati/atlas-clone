@@ -76,19 +76,6 @@ unsigned int TSite::refDepth(){
 	return counter;
 };
 
-//PROBLEM
-void TSite::calculateP_g(double* genotypeProbabilities, double* P_g){
-	//calculate normalized genotype probabilities according to Bayes rule
-	double sum = 0.0;
-	for(int i=0; i<10; ++i){
-		//P_g[i] =  emissionProbabilities[i] * genotypeProbabilities[i];
-		sum += P_g[i];
-	}
-	for(int i=0; i<10; ++i){
-		P_g[i] /= sum;
-	}
-};
-
 void TSite::countAlleles(int* alleleCounts) const{
 	alleleCounts[0] = 0;
 	alleleCounts[1] = 0;

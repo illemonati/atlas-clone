@@ -75,10 +75,6 @@ public:
 	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG();
 	void estimateBaseFrequencies();
-	void calculateEmissionProbabilities();
-	void callMLEGenotype(TRecalibration* recalObject, TRandomGenerator & randomGenerator, gz::ogzstream & out, std::string & chr, bool printAll, bool printRef, bool isVCF, bool gVCF, bool noAltIfHomoRef);
-	void printPileup(TRecalibration* recalObject, gz::ogzstream & out, bool printOnlySitesWithData);
-	void printPileupToScreen(TRecalibration* recalObject);
 	void calcDepth();
 	void calcFracN();
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);
@@ -97,15 +93,16 @@ public:
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile);
-	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer);
-	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TBedReader & region);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, const int ploidy, bool printAll);
-	void addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
+	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
+	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
 	//callers
-	void call(TCaller & caller, TRecalibration & recalObject, BamTools::Fasta & reference);
-	void callKnwonAlleles(TCaller & caller, TRecalibration & recalObject, TSiteSubset & subset);
+	void call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, BamTools::Fasta & reference);
+	void callKnwonAlleles(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TSiteSubset & subset);
+	void printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData);
 
 	//other
 	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);

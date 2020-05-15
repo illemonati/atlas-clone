@@ -22,12 +22,12 @@
 #include <map>
 #include <algorithm>
 
-#include "GenotypeLikelihoods/TRecalibration.h"
+#include "TRecalibration.h"
 #include "TAlignmentMerger.h"
 #include "TSoftClipping.h"
 #include "TAllelicDepthCounts.h"
-
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TGenotypePrior.h"
 
 //---------------------------------------------------------------
 //TGenome

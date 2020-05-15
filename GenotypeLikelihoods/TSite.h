@@ -73,14 +73,6 @@ public:
 	unsigned int depth();
 	unsigned int refDepth();
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
-	double makePhred(double epsilon){
-		return makePhredByRef(epsilon);
-	};
-	double makePhredByRef(double & epsilon){
-		if(epsilon < maxQualToPrintNaturalScale) return maxQualToPrint;
-		return -10.0 * log10(epsilon);
-	};
-
 	void calculateP_g(double* genotypeProbabilities, double* P_g);
 	std::string getBases();
 	std::string getEmissionProbs();

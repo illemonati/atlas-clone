@@ -51,7 +51,11 @@ void TGenotypeData::_copyFrom(const TGenotypeData & other){
 	data[TT] = other.at(TT);
 };
 
-void TGenotypeData::_set(const double val){
+void TGenotypeData::operator=(const TGenotypeData & other){
+	_copyFrom(other);
+};
+
+void TGenotypeData::set(const double val){
 	data[AA] = val;
 	data[AC] = val;
 	data[AG] = val;
@@ -64,27 +68,53 @@ void TGenotypeData::_set(const double val){
 	data[TT] = val;
 };
 
-void TGenotypeData::_normalize(){
-	double sum = data[AA] + data[AC] + data[AG] + data[AT] + data[CC] + data[CG] + data[CT] + data[GG] + data[GT] + data[TT];
-
-	data[AA] = data[AA] / sum;
-	data[AC] = data[AC] / sum;
-	data[AG] = data[AG] / sum;
-	data[AT] = data[AT] / sum;
-	data[CC] = data[CC] / sum;
-	data[CG] = data[CG] / sum;
-	data[CT] = data[CT] / sum;
-	data[GG] = data[GG] / sum;
-	data[GT] = data[GT] / sum;
-	data[TT] = data[TT] / sum;
-};
-
-void TGenotypeData::operator=(const TGenotypeData & other){
-	_copyFrom(other);
-};
-
 void TGenotypeData::reset(){
-	_set(1.0);
+	set(1.0);
+};
+
+void TGenotypeData::add(const TGenotypeData & other){
+	data[AA] += other.at(AA);
+	data[AC] += other.at(AC);
+	data[AG] += other.at(AG);
+	data[AT] += other.at(AT);
+	data[CC] += other.at(CC);
+	data[CG] += other.at(CG);
+	data[CT] += other.at(CT);
+	data[GG] += other.at(GG);
+	data[GT] += other.at(GT);
+	data[TT] += other.at(TT);
+};
+
+double TGenotypeData::sum(){
+	return data[AA] + data[AC] + data[AG] + data[AT] + data[CC] + data[CG] + data[CT] + data[GG] + data[GT] + data[TT];
+};
+
+double TGenotypeData::weightedSum(const TGenotypeData & weights){
+	return data[AA] * weights.at(AA)
+			+ data[AC] * weights.at(AC)
+		   	+ data[AG] * weights.at(AG)
+			+ data[AT] * weights.at(AT)
+			+ data[CC] * weights.at(CC)
+			+ data[CG] * weights.at(CG)
+			+ data[CT] * weights.at(CT)
+			+ data[GG] * weights.at(GG)
+			+ data[GT] * weights.at(GT)
+			+ data[TT] * weights.at(TT);
+};
+
+void TGenotypeData::normalize(){
+	double theSum = sum();
+
+	data[AA] = data[AA] / theSum;
+	data[AC] = data[AC] / theSum;
+	data[AG] = data[AG] / theSum;
+	data[AT] = data[AT] / theSum;
+	data[CC] = data[CC] / theSum;
+	data[CG] = data[CG] / theSum;
+	data[CT] = data[CT] / theSum;
+	data[GG] = data[GG] / theSum;
+	data[GT] = data[GT] / theSum;
+	data[TT] = data[TT] / theSum;
 };
 
 void TGenotypeData::write(TOutputFileZipped & out) const{
@@ -120,7 +150,7 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, con
 	//do in log if depth is high
 	if(bases.size() > 50){
 		//initialize
-		_set(0.0);
+		set(0.0);
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
@@ -150,7 +180,7 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, con
 		data[TT] = exp(data[TT] - max);
 	} else { //on natural scale
 		//initialize
-		_set(1.0);
+		set(1.0);
 
 		for(size_t i=0; i<size; ++i){
 			data[AA] *= bases[i].at(A);
@@ -171,23 +201,23 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, con
 // TGenotypePosteriorProbabilities
 //--------------------------------------------------------------------
 void TGenotypePosteriorProbabilities::reset(){
-	_set(0.1);
+	set(0.1);
 };
 
-void TGenotypePosteriorProbabilities::fill(TGenotypeLikelihoods & likelihoods, TGenotypePrior & prior){
+void TGenotypePosteriorProbabilities::fill(const TGenotypeData & likelihoods, const TGenotypeData & prior){
 	//calculate normalized genotype probabilities according to Bayes rule
-	data[AA] = likelihoods[AA] * prior[AA];
-	data[AC] = likelihoods[AC] * prior[AC];
-	data[AG] = likelihoods[AG] * prior[AG];
-	data[AT] = likelihoods[AT] * prior[AT];
-	data[CC] = likelihoods[CC] * prior[CC];
-	data[CG] = likelihoods[CG] * prior[CG];
-	data[CT] = likelihoods[CT] * prior[CT];
-	data[GG] = likelihoods[GG] * prior[GG];
-	data[GT] = likelihoods[GT] * prior[GT];
-	data[TT] = likelihoods[TT] * prior[TT];
+	data[AA] = likelihoods.at(AA) * prior.at(AA);
+	data[AC] = likelihoods.at(AC) * prior.at(AC);
+	data[AG] = likelihoods.at(AG) * prior.at(AG);
+	data[AT] = likelihoods.at(AT) * prior.at(AT);
+	data[CC] = likelihoods.at(CC) * prior.at(CC);
+	data[CG] = likelihoods.at(CG) * prior.at(CG);
+	data[CT] = likelihoods.at(CT) * prior.at(CT);
+	data[GG] = likelihoods.at(GG) * prior.at(GG);
+	data[GT] = likelihoods.at(GT) * prior.at(GT);
+	data[TT] = likelihoods.at(TT) * prior.at(TT);
 
-	_normalize();
+	normalize();
 };
 
 

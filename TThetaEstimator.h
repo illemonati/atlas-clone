@@ -14,6 +14,9 @@
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 #include "TFile.h"
+#include "TGenotypeData.h"
+
+using namespace GenotypeLikelihoods;
 
 //---------------------------------------------------------------
 //Theta
@@ -81,7 +84,6 @@ protected:
 	bool dataInitialized;
 	bool useTmpFile;
 	std::string tmpFileName;
-	int numGenotypes;
 	TGenotypeMap genoMap;
 
 	//initial theta
@@ -91,15 +93,14 @@ protected:
 
 	//estimation
 	int minSitesWithData;
-	double* pGenotype; //P(g|pi, theta)
+	GenotypeLikelihoods::TGenotypeData pGenotype; //P(g|pi, theta)
 	Theta theta;
 	bool extraVerbose;
 
-	void initTmpStorage();
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
-	void fillPGenotype(double* & pGeno, const double & expTheta, const double* baseFrequencies);
-	void fillPGenotype(double* & pGeno, const Theta & thisTheta);
+	void fillPGenotype(TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies);
+	void fillPGenotype(TGenotypeData & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
@@ -111,12 +112,11 @@ public:
 	virtual ~TThetaEstimator_base(){
 		if(dataInitialized)
 			delete data;
-		delete[] pGenotype;
 	};
 
 	TThetaEstimatorData* pointerToDataContainer(){ return data; };
 
-	void fillPGenotype(double* pGeno){ fillPGenotype(pGeno, theta); };
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno){ fillPGenotype(pGeno, theta); };
 
 };
 
@@ -134,29 +134,23 @@ private:
 	bool estimationSuccessful;
 
 	//tmp vectors
-	double* P_G; // see paper
-	double* P_g_oneSite;
+	TGenotypeData P_G; // see paper
 
-	void initAdditionalTmpStorage();
-	void fillP_G();
-	double calcFisherInfo(double* _pGenotype, double* deriv_pGenotype);
-	bool NRAllParams();
-	void NROnlyTheta();
-	void runEMForTheta();
-	void estimateConfidenceInterval();
+	double _calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype);
+	bool _NRAllParams();
+	void _NROnlyTheta();
+	void _runEMForTheta();
+	void _estimateConfidenceInterval();
 
 public:
 	TThetaEstimator(TParameters & params, TLog* Logfile, TRandomGenerator* randomGenerator);
 	TThetaEstimator(TLog* Logfile, TRandomGenerator* randomGenerator);
 	TThetaEstimator(const TThetaEstimator & other);
 
-	virtual ~TThetaEstimator(){
-		delete[] P_G;
-		delete[] P_g_oneSite;
-	};
+	virtual ~TThetaEstimator(){};
 
 	void clear();
-	void add(TSite & site);
+	void add(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	long sizeWithData(){ return data->sizeWithData();};
 	bool estimateTheta();
 	void setTheta(double Theta);
