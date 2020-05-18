@@ -35,6 +35,7 @@
 class TGenome{
 private:
  	TAlignmentParser alignmentParser;
+ 	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
 	BamTools::Fasta reference;
  	TRandomGenerator* randomGenerator;
 

@@ -220,8 +220,13 @@ void TGenotypePosteriorProbabilities::fill(const TGenotypeData & likelihoods, co
 	normalize();
 };
 
+double TGenotypePosteriorProbabilities::probHomozygous(){
+	return data[AA] + data[CC] + data[GG] + data[TT];
+};
 
-
+double TGenotypePosteriorProbabilities::probHeterozygous(){
+	return 1.0 - data[AA] - data[CC] - data[GG] - data[TT];
+};
 
 }; // end namespace
 

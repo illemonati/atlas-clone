@@ -18,6 +18,7 @@ namespace GenotypeLikelihoods{
 
 class TGenotypeLikelihoodCalculator{
 private:
+	bool initialized;
 	TLog* logfile;
 	TReadGroups* readGroups;
 	TReadGroupMap* readGroupMap; //TODO: find way to only initialize in sequencing error models
@@ -32,8 +33,12 @@ private:
 	TBaseLikelihoods baseLikelihoodsNoPMD;
 
 public:
-
+	TGenotypeLikelihoodCalculator();
 	TGenotypeLikelihoodCalculator(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
+	~TGenotypeLikelihoodCalculator();
+
+	void init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
+
 
 	double getErrorRate(const TBaseData & base);
 	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);

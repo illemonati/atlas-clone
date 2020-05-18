@@ -84,6 +84,8 @@ public:
 	TGenotypePosteriorProbabilities();
 	void reset();
 	void fill(const TGenotypeData & likelihoods, const TGenotypeData & prior);
+	double probHomozygous();
+	double probHeterozygous();
 };
 
 }; //end namespace

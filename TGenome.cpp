@@ -15,16 +15,25 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	randomGenerator = RandomGenerator;
 
 	//initialize alignment parser
-	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
+	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
 	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp. (parameter 'maxReadLength')");
 
-	//maxReadLength must be >=1 but smaller than 65536 as we use uint16_t in TBase.h to sore distances
+	//maxReadLength must be >=1 but smaller than 65536 as we use uint16_t to sore distances
 	if(maxReadLength < 1)
 		throw "Max read length must be at least 1 bp!";
 	if(maxReadLength > 65536)
 		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
 
 	alignmentParser.init(maxReadLength, params, logfile);
+
+	//initialize genotype likelihoods
+	if(params.parameterExists("recal")){
+		genotypeLikelihoodCalculator.init(params, &alignmentParser.readGroups, logfile);
+
+	} else {
+		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+	}
+
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
@@ -79,7 +88,7 @@ bool TGenome::estimateTheta(TThetaEstimator & thetaEstimator, TWindow_base & win
 	//adding sites to estimator
 	logfile->listFlush("Calculating emission probabilities ...");
 	thetaEstimator.clear();
-	window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer());
+	window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
 	logfile->done();
 
 	//estimate Theta
@@ -127,9 +136,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(window.passedFilters || printAll){
-			//measure runtime
-			struct timeval startTime, endTime;
-			gettimeofday(&startTime, NULL);
+			TTimer timer;
 
 			logfile->startIndent("Estimating Theta:");
 			if(estimateTheta(thetaEstimator, window) || printAll){
@@ -138,8 +145,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 			logfile->endIndent();
 
 			//finish
-			gettimeofday(&endTime, NULL);
-			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->list("Total computation time for this window was ", timer.seconds(), "s");
 		} else logfile->list("No relevant positions -> skipping this window.");
 	}
 };
@@ -157,13 +163,13 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOu
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(window.passedFilters){
 			//adding sites to estimator
-			logfile->listFlush("Calculating emission probabilities ...");
+			logfile->listFlushTime("Calculating emission probabilities ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer());
+				window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
-			logfile->done();
+			logfile->doneTime();
 		}
 	}
 	logfile->endIndent();
@@ -188,8 +194,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	logfile->startIndent("Generating " + toString(numBootstraps) + " bootstrap estimates of theta:");
 
 	//measure runtime
-	struct timeval startTime, endTime;
-	gettimeofday(&startTime, NULL);
+	TTimer timer;
 
 	//open output file
 	TOutputFileZipped bootstrapOut;
@@ -215,8 +220,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	}
 
 	//finish
-	gettimeofday(&endTime, NULL);
-	logfile->list("Total computation time for theta bootstrapping was ", round((endTime.tv_sec  - startTime.tv_sec) / 6.0)/10.0, " min");
+	logfile->list("Total computation time for theta bootstrapping was ", timer.minutes());
 	logfile->endIndent();
 };
 
@@ -240,12 +244,11 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 			logfile->startIndent("Calculating likelihood surface for Theta:");
 
 			//measure runtime
-			struct timeval startTime, endTime;
-			gettimeofday(&startTime, NULL);
+			TTimer timer;
 
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
-			window.addSitesToThetaEstimator(estimator.pointerToDataContainer());
+			window.addSitesToThetaEstimator(estimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
 			logfile->done();
 
 			//open file
@@ -264,8 +267,7 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 
 			//finish
 			out.close();
-			gettimeofday(&endTime, NULL);
-			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->list("Total computation time for this window was ", timer.seconds(), "s");
 			logfile->endIndent();
 		}
 	}
@@ -320,14 +322,14 @@ void TGenome::estimateThetaRatio(TParameters & params){
 		region2.setChr(alignmentParser.getCurChrName());
 		if(window.passedFilters){
 			//adding sites to estimator
-			logfile->listFlush("Calculating emission probabilities for sites within defined regions ...");
+			logfile->listFlushTime("Calculating emission probabilities for sites within defined regions ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), region1);
-				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), region2);
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator, region1);
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), alignmentParser.genotypeLikelihoodCalculator, region2);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
-			logfile->done();
+			logfile->doneTime();
 		}
 	}
 	logfile->endIndent();
@@ -535,14 +537,9 @@ void TGenome::callGenotypes(TParameters & params){
 				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call using known alleles
-				struct timeval start, end;
-				gettimeofday(&start, NULL);
-				logfile->listFlush("Calling genotypes ...");
-
-				window.callKnwonAlleles(*caller, *alignmentParser.recalObject, subset);
-
-				gettimeofday(&end, NULL);
-				logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+				logfile->listFlushTime("Calling genotypes ...");
+				window.callKnwonAlleles(*caller, alignmentParser.genotypeLikelihoodCalculator, subset);
+				logfile->doneTime();
 			}
 		}
 	} else {
@@ -555,14 +552,9 @@ void TGenome::callGenotypes(TParameters & params){
 				prior->update(&window, alignmentParser.getCurChrName(), logfile);
 
 				//now call
-				struct timeval start, end;
-				gettimeofday(&start, NULL);
-				logfile->listFlush("Calling genotypes ...");
-
-				window.call(*caller, *alignmentParser.recalObject, reference);
-
-				gettimeofday(&end, NULL);
-				logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
+				logfile->listFlushTime("Calling genotypes ...");
+				window.call(*caller, alignmentParser.genotypeLikelihoodCalculator, reference);
+				logfile->doneTime();
 			}
 		}
 	}
@@ -570,7 +562,7 @@ void TGenome::callGenotypes(TParameters & params){
 	//clean up
 	delete caller;
 	delete prior;
-}
+};
 
 //---------------------------------------------------
 // I/O
@@ -595,10 +587,9 @@ void TGenome::writeGLF(TParameters & params){
 			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurRefId(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
 		} if(window.passedFilters){
 			//write to GLF
-			logfile->listFlush("Adding window to GLF file ...");
-			window.calculateEmissionProbabilities();
-			window.addToGLF(writer, alignmentParser.getCurChrPloidy(), printIfNoData);
-			logfile->done();
+			logfile->listFlushTime("Adding window to GLF file ...");
+			window.addToGLF(writer, alignmentParser.genotypeLikelihoodCalculator, printIfNoData);
+			logfile->doneTime();
 		}
 	}
 	//clean up
@@ -619,21 +610,22 @@ void TGenome::printPileup(TParameters & params){
 	}
 
 	//open output
-	gz::ogzstream out;
 	std::string filename = outputName + "_pileup.txt.gz";
-	out.open(filename.c_str());
-	if(!out) throw "Failed to open output file '" + outputName + "'!";
+	logfile->list("Writing pileup to file '" + filename + "'.");
+	TOutputFileZipped out(filename);
 
 	//write header
 	TGenotypeMap genoMap;
-	out << "Chr\tposition\tref\tdepth\trefDepth\tbases";
+	std::vector<std::string> header = {"Chr", "position", "ref", "depth", "refDepth", "bases"};
 	for(int i=0; i<10; ++i)
-		out << "\tPem(" << genoMap.getGenotypeString(i) << ")";
-	out << "\n";
+		header.push_back("P(D|" + genoMap.getGenotypeString(i) + ")");
+	out.writeHeader(header);
 
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		window.printPileup(alignmentParser.recalObject, out, printOnlySitesWithData);
+		logfile->listFlushTime("Writing pileup ...");
+		window.printPileup(alignmentParser.genotypeLikelihoodCalculator, out, printOnlySitesWithData);
+		logfile->doneTime();
 	}
 
 	//clean up
@@ -672,18 +664,10 @@ void TGenome::generatePSMCInput(TParameters & params){
 				output << '>' << alignmentParser.getCurChrName() << '\n';
 		}
 		if(window.passedFilters){
-			//set base frequencies
-			logfile->listFlush("Calculating emission probabilities ...");
-			window.calculateEmissionProbabilities();
-			window.estimateBaseFrequencies();
-			TBaseFrequencies baseFreq =  window.getBaseFreq();
-			thetaEstimator.setBaseFreq(baseFreq);
-			logfile->done();
-
 			//create PSMC input
-			logfile->listFlush("Estimating heterozygosity status ...");
-			window.generatePSMCInput(thetaEstimator, blockSize, confidence, output, nCharOnLine);
-			logfile->done();
+			logfile->listFlushTime("Estimating heterozygosity status ...");
+			window.generatePSMCInput(thetaEstimator, alignmentParser.genotypeLikelihoodCalculator, blockSize, confidence, output, nCharOnLine);
+			logfile->doneTime();
 		}
 	}
 
@@ -809,75 +793,6 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 	logfile->endIndent();
 
 	logfile->list("LL = " + toString(recalObjectEM.calcLL()));
-}
-
-void TGenome::BQSR(TParameters & params){
-	if(alignmentParser.qualitiesScoresAreRecalibrated())
-		throw "Can not estimate recalibration: quality scores are already recalibrated while reading!";
-
-	//make sure FASTA is open
-	if(!alignmentParser.hasReference) throw "Can not run BQSR recalibration without a provided FASTA reference!";
-
-	//prepare windows
-	TWindow window;
-
-	//create BQSR object
-	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), logfile);
-	TRecalibrationBQSREstimator bqsr(params, logfile, &alignmentParser.readGroups, &readGroupMap);
-
-	if(bqsr.allConverged()){
-		logfile->list("No need to estimate any BQSR cells. Aborting Program.");
-		return;
-	}
-
-	//read in max number of loops allowed
-	int maxNumLoops = params.getParameterIntWithDefault("maxNumLoops", 500);
-
-	//tmp variables
-	bool hasConverged = false;
-	int loopNumber = 0;
-
-	//do we print temporary tables?
-	bool printTmpTables = params.parameterExists("writeTmpTables");
-	if(printTmpTables) logfile->list("Temporary BQSR tables will be written to disk.");
-
-	//do we consider only specific sites?
-	bool invariantSites = false;
-
-	//loop over bam until BQSR converges
-	while(!hasConverged){
-		++loopNumber;
-		logfile->startIndent("Running recalibration loop " + toString(loopNumber) + ":");
-		//loop over all windows
-
-		if(!bqsr.dataHasBeenStored()){
-			logfile->startIndent("Reading data from BAM file:");
-			while(alignmentParser.readDataInNextWindow(window)){
-				if(window.passedFilters){
-					//add the base to BQSR
-					if(invariantSites) window.addSitesToBQSR(bqsr, alignmentParser.subset, logfile, alignmentParser.qualMap);
-					else window.addSitesToBQSR(bqsr, logfile, alignmentParser.qualMap);
-				} else logfile->list("No positions in this window.");
-			}
-			//clean up memory
-			window.clear();
-			logfile->endIndent();
-		}
-
-		//estimate epsilon
-		hasConverged = bqsr.estimateEpsilon(outputName);
-
-		//write results to file
-		if(printTmpTables) bqsr.writeCurrentTmpTable(outputName + "_Loop" + toString(loopNumber));
-
-		logfile->endIndent();
-
-		//check if max num loops is reached
-		if(loopNumber >= maxNumLoops){
-			logfile->write("Reached maximum number of loops (" + toString(maxNumLoops) + "), but BQSR has not yet converged!");
-			break;
-		}
-	}
 };
 
 void TGenome::printQualityDistribution(TParameters & params){

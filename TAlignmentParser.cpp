@@ -99,7 +99,7 @@ TAlignmentParser::TAlignmentParser(){
 	recalObject = NULL;
 };
 
-TAlignmentParser::TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile){
+TAlignmentParser::TAlignmentParser(uint16_t MaxReadLength, TParameters & params, TLog* Logfile){
 	TAlignmentParser();
 
 	init(MaxReadLength, params, Logfile);
@@ -124,33 +124,34 @@ TAlignmentParser::~TAlignmentParser(){
 		ignoredReads.close();
 };
 
-void TAlignmentParser::init(int MaxReadLength, TParameters & params, TLog* Logfile){
+void TAlignmentParser::init(uint16_t MaxReadLength, TParameters & params, TLog* Logfile){
 	logfile = Logfile;
 
 	//BAM file
 	filename = params.getParameterString("bam");
 	bool indexNotRequired = params.parameterExists("indexNotRequired");
-	openBamFile(filename, indexNotRequired);
+	_openBamFile(filename, indexNotRequired);
 
 	//alignments
 	maxReadLength = MaxReadLength;
 	oldAlignment = new TAlignment(maxReadLength);
 	oldAlignmentInitialized = true;
 
-	//initialize
-	initializeReadGroups(params);
-	initializePostMortemDamage(params);
-	initializeRecalibration(params);
-
 	//settings
-	setWindowParameters(params);
-	setParsingLimits(params);
-	setMasks(params);
-	setFilters(params);
-	setChrPloidy(params);
+	_setWindowParameters(params);
+	_setParsingLimits(params);
+	_setMasks(params);
+	_setFilters(params);
+	_setChrPloidy(params);
+
+	//initialize
+	_initializeReadGroups(params);
+	_initializePostMortemDamage(params);
+	initializeRecalibration(params);
+	genotypeLikelihoodCalculator.init(params, &readGroups, logfile);
 };
 
-void TAlignmentParser::openBamFile(std::string filename, bool indexNotRequired){
+void TAlignmentParser::_openBamFile(std::string filename, bool indexNotRequired){
 	//open BAM file
 	logfile->list("Reading data from BAM file '" + filename + "'.");
 	if (!bamReader.Open(filename))
@@ -180,7 +181,7 @@ void TAlignmentParser::setOutName(std::string outputName){
 	outname = outputName;
 }
 
-void TAlignmentParser::setWindowParameters(TParameters & params){
+void TAlignmentParser::_setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")) logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
 	//check if it is a number
@@ -200,22 +201,22 @@ void TAlignmentParser::setWindowParameters(TParameters & params){
 	numWindowsOnChr = 0;
 };
 
-void TAlignmentParser::setFilters(TParameters & params){
-	setWindowFilters(params);
+void TAlignmentParser::_setFilters(TParameters & params){
+	_setWindowFilters(params);
 
 	if(params.parameterExists("keepAllReads")){
 		setFiltersToKeepAll();
 		logfile->list("Will keep all reads. All filters turned off (parameter 'keepAll')");
 	} else {
-		setAlignmentFilters(params);
+		_setAlignmentFilters(params);
 	}
 
-	setSiteFilters(params);
+	_setSiteFilters(params);
 
-	setBaseFilters(params);
+	_setBaseFilters(params);
 };
 
-void TAlignmentParser::setWindowFilters(TParameters & params){
+void TAlignmentParser::_setWindowFilters(TParameters & params){
 	//filter for missing reference
 	maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
 	if(maxMissing > 1.0) throw "maxMissing must be smaller or equal to 1.0!";
@@ -227,7 +228,7 @@ void TAlignmentParser::setWindowFilters(TParameters & params){
 	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxRefN')");
 };
 
-void TAlignmentParser::setAlignmentFilters(TParameters & params){
+void TAlignmentParser::_setAlignmentFilters(TParameters & params){
 	//Mapping quality filter
 	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
 		setMappingQualityFilters(params.getParameterInt("minMQ"), params.getParameterInt("maxMQ"));
@@ -323,7 +324,7 @@ void TAlignmentParser::setContextFilter(std::vector<std::string> contexts){
 	logfile->endIndent();
 };
 
-void TAlignmentParser::setSiteFilters(TParameters & params){
+void TAlignmentParser::_setSiteFilters(TParameters & params){
 	//depth filter
 	readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 1000);
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
@@ -347,7 +348,7 @@ void TAlignmentParser::setSiteFilters(TParameters & params){
 
 };
 
-void TAlignmentParser::setBaseFilters(TParameters & params){
+void TAlignmentParser::_setBaseFilters(TParameters & params){
 	//quality filters
 	setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 93));
 
@@ -402,7 +403,7 @@ void TAlignmentParser::setMappingQualityFilters(int MinMQ, int MaxMQ){
 
 };
 
-void TAlignmentParser::setMasks(TParameters & params){
+void TAlignmentParser::_setMasks(TParameters & params){
 	//normal mask
 	if(params.parameterExists("mask")){
 		if(windowsPredefined) throw "Masking is currently not implemented if windows are predefined from a BED file.";
@@ -475,7 +476,7 @@ void TAlignmentParser::setFragmentLengthFilter(int MinFragmentLength, int MaxFra
 	logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 };
 
-void TAlignmentParser::initializeReadGroups(TParameters & params){
+void TAlignmentParser::_initializeReadGroups(TParameters & params){
 	readGroups.fill(bamHeader);
 
 	//limit readGroups
@@ -487,7 +488,7 @@ void TAlignmentParser::initializeReadGroups(TParameters & params){
 	}
 };
 
-void TAlignmentParser::setParsingLimits(TParameters & params){
+void TAlignmentParser::_setParsingLimits(TParameters & params){
 	//Limit chromosomes
 	if(params.parameterExists("chr")){
 		//parse chromosome names
@@ -519,7 +520,7 @@ void TAlignmentParser::setParsingLimits(TParameters & params){
 	}
 };
 
-void TAlignmentParser::setChrPloidy(TParameters & params){
+void TAlignmentParser::_setChrPloidy(TParameters & params){
 	logfile->list("Chromosomes with no further specifications are assumed to be diploid (parameters 'ploidy' or 'haploid' to change ploidy).");
 	if(params.parameterExists("ploidy")){
 		std::string ploidyFileName = params.getParameterString("ploidy");
@@ -588,17 +589,17 @@ bool TAlignmentParser::getKeepAll(){
 //--------------
 //move genome
 //--------------
-void TAlignmentParser::jumpToEnd(){
+void TAlignmentParser::_jumpToEnd(){
 	chromosomes.jumpToEnd();
 };
 
-void TAlignmentParser::restartChromosomes(TWindow_base & window){
+void TAlignmentParser::_restartChromosomes(TWindow_base & window){
 	chromosomes.begin();
 
-	moveChromosome(window);
+	_moveChromosome(window);
 };
 
-void TAlignmentParser::moveChromosome(TWindow_base & window){
+void TAlignmentParser::_moveChromosome(TWindow_base & window){
 	//jump reader
 	oldAlignmentMustBeConsidered = false;
 
@@ -662,7 +663,7 @@ void TAlignmentParser::moveChromosome(TWindow_base & window){
 	logfile->startNumbering("Parsing chromosome '" + chromosomes.curName() + "':");
 };
 
-bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
+bool TAlignmentParser::_moveToNextWindowOnChr(TWindow_base & window){
 	//if sites defined
 	int counter = 0;
 	do{
@@ -683,7 +684,7 @@ bool TAlignmentParser::moveToNextWindowOnChr(TWindow_base & window){
 	return true;
 };
 
-bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
+bool TAlignmentParser::_moveToNextPredefinedWindow(TWindow_base & window){
 	++windowNumber;
 	if(windowNumber >= limitWindows)
 		return false;
@@ -704,12 +705,12 @@ bool TAlignmentParser::moveToNextPredefinedWindow(TWindow_base & window){
 		return false;
 };
 
-bool TAlignmentParser::moveWindow(TWindow_base & window){
+bool TAlignmentParser::_moveWindow(TWindow_base & window){
 	//returns false when end of genome is reached
 	if(windowsPredefined){
 		//if at beginning of BAM file
 		if(chromosomes.end()){
-			restartChromosomes(window);
+			_restartChromosomes(window);
 
 			if(chromosomes.end())
 				throw "found no predefined windows in BED file! Does file exist?";
@@ -717,7 +718,7 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 
 		} else {
 			//now move coordinates of next window
-			if(!moveToNextPredefinedWindow(window)){
+			if(!_moveToNextPredefinedWindow(window)){
 				//no more windows left on chr
 				chromosomes.next();
 
@@ -729,7 +730,7 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 					return false;
 				}
 
-				moveChromosome(window);
+				_moveChromosome(window);
 				chrChangedWindow = true;
 
 				if(chromosomes.end()){
@@ -748,10 +749,10 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 	} else {
 		//if at beginning of BAM file
 		if(chromosomes.end()){
-			restartChromosomes(window);
+			_restartChromosomes(window);
 			chrChangedWindow = true;
 		} else {
-			if(!moveToNextWindowOnChr(window)){
+			if(!_moveToNextWindowOnChr(window)){
 				//there is no window left on chr
 				chromosomes.next();
 
@@ -769,7 +770,7 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 					}
 					return false;
 				}
-				moveChromosome(window);
+				_moveChromosome(window);
 				chrChangedWindow = true;
 			} else {
 				chrChangedWindow = false;
@@ -789,7 +790,7 @@ bool TAlignmentParser::moveWindow(TWindow_base & window){
 //------------------------------
 //reading alignments
 //------------------------------
-bool TAlignmentParser::readAlignment(){
+bool TAlignmentParser::_readAlignment(){
 	bool filtersPassed = false;
 	do {
 		if(!bamReader.GetNextAlignment(bamAlignment)){
@@ -838,7 +839,7 @@ bool TAlignmentParser::readAlignment(){
 			filtersPassed = false;
 		} else {
 			//apply filters: read group in use and basic QC
-			filtersPassed = applyFilters();
+			filtersPassed = _applyFilters();
 			if(_updateBlacklist && !filtersPassed){
 				addToBlacklist(bamAlignment, "did not pass parser filters");
 			}
@@ -848,7 +849,7 @@ bool TAlignmentParser::readAlignment(){
 	return true;
 };
 
-bool TAlignmentParser::applyFilters(){
+bool TAlignmentParser::_applyFilters(){
 	std::vector<int> clipSizes;
 	std::vector<int> readPositions;
 	std::vector<int> genomePositions;
@@ -869,12 +870,8 @@ bool TAlignmentParser::applyFilters(){
 	return filtersPassed;
 };
 
-bool TAlignmentParser::fillAlignment(TAlignment & alignment){
+bool TAlignmentParser::_fillAlignment(TAlignment & alignment){
 	//This functions parses an alignment into bases
-	//make sure container is empty
-	alignment.clear();
-
-	//fill alignment
 	std::string readGroup;
 	bamAlignment.GetTag("RG", readGroup);
 	int readGroupId = readGroups.find(readGroup);
@@ -883,7 +880,7 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 	if(_parse){
 		//add all info from bamAlignment to bases
-		alignment.parse(genoMap, qualMap);
+		alignment.parse(genoMap, qualMap, *seqErrorModels);
 
 		//check for fragment length filter
 		if(applyFragmentLengthFilter && (alignment.fragmentLength < minFragmentLength || alignment.fragmentLength > maxFragmentLength))
@@ -891,6 +888,7 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 		//add missing information to bases
 		alignment.fillReadGroupInfo(readGroupId);
+
 		alignment.fillPmdProbabilities(pmdObjects);
 
 		if(trimReads)
@@ -899,8 +897,6 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 			alignment.filterForBaseQualityAsPhredInt(minQualityAsPhredInt, maxQualityAsPhredInt);
 		if(applyContextFilter)
 			alignment.filterForContext(ignoreTheseContexts);
-		if(doRecalibration)
-			recalibrate(alignment);
 		if(hasReference)
 			fillReferenceSequence(&fastaBuffer, alignment);
 	}
@@ -914,8 +910,8 @@ bool TAlignmentParser::fillAlignment(TAlignment & alignment){
 
 bool TAlignmentParser::readNextAlignment(TAlignment & alignment){
 	//use this in TGenome for functionalities that don't need windows
-	if(readAlignment()){
-		return fillAlignment(alignment);
+	if(_readAlignment()){
+		return _fillAlignment(alignment);
 	}
 	return false;
 };
@@ -927,16 +923,16 @@ bool TAlignmentParser::readDataInNextWindow(TWindow & window){
 	setParsingToTrue();
 
 	//move window
-	if(!moveWindow(window)){
+	if(!_moveWindow(window)){
 		return false;
 	}
 
 	//read data
-	readAlignmentsIntoWindow(window);
+	_readAlignmentsIntoWindow(window);
 	return true;
 };
 
-void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
+void TAlignmentParser::_readAlignmentsIntoWindow(TWindow & window){
 	//measure runtime
 	struct timeval start, end;
 	gettimeofday(&start, NULL);
@@ -956,10 +952,10 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 
 	//read alignments
 	int counter = 0;
-	while(readAlignment()){
+	while(_readAlignment()){
 		//fill alignment
 		//return false if a post-parsing filer is not passed
-		if(!fillAlignment(*oldAlignment)){
+		if(!_fillAlignment(*oldAlignment)){
 			continue;
 		}
 
@@ -992,7 +988,7 @@ void TAlignmentParser::readAlignmentsIntoWindow(TWindow & window){
 	logfile->write(" done (in " , end.tv_sec  - start.tv_sec, "s)!");
 
 	//apply filters
-	applyWindowFilters(window);
+	_applyWindowFilters(window);
 };
 
 void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator){
@@ -1005,10 +1001,10 @@ void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & so
 	logfile->done();
 
 	//apply filters
-	applyWindowFilters(destination);
+	_applyWindowFilters(destination);
 };
 
-void TAlignmentParser::applyWindowFilters(TWindow_base & window){
+void TAlignmentParser::_applyWindowFilters(TWindow_base & window){
 	window.passedFilters = false;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
@@ -1055,7 +1051,7 @@ void TAlignmentParser::applyWindowFilters(TWindow_base & window){
 //initialize PMD and recalibration
 //------------------------------
 //TODO: move to PMD class
-GenotypeLikelihoods::PMDType TAlignmentParser::getEnumPMDType(std::string pmdType){
+GenotypeLikelihoods::PMDType TAlignmentParser::_getEnumPMDType(std::string pmdType){
 	if(pmdType == "CT")
 		return GenotypeLikelihoods::pmdCT;
 	else if(pmdType == "GA")
@@ -1069,7 +1065,7 @@ GenotypeLikelihoods::PMDType TAlignmentParser::getEnumPMDType(std::string pmdTyp
 	}
 };
 
-void TAlignmentParser::initializePostMortemDamage(TParameters & params){
+void TAlignmentParser::_initializePostMortemDamage(TParameters & params){
 	logfile->startIndent("Initializing Post Mortem Damage (PMD):");
 	//create an array of TPMD objects for each read group
 	pmdObjects = new GenotypeLikelihoods::TPMDDoubleStrand[readGroups.size()];
@@ -1107,7 +1103,7 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 					//get read group and PMD type
 					readGroupId = readGroups.find(vec[0]);
 					if(!params.parameterExists("oldPMDFormat")){
-						GenotypeLikelihoods::PMDType pmdType = getEnumPMDType(vec[1]);
+						GenotypeLikelihoods::PMDType pmdType = _getEnumPMDType(vec[1]);
 						//initialize functions
 						pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);
 					} else {
@@ -1142,29 +1138,13 @@ void TAlignmentParser::initializePostMortemDamage(TParameters & params){
 	logfile->endIndent();
 };
 
+void TAlignmentParser::setRecalibration(GenotypeLikelihoods::TSequencingErrorModels* SeqErrorModels){
+	seqErrorModels = SeqErrorModels;
+	doRecalibration = true;
+};
+
 void TAlignmentParser::initializeRecalibration(TParameters & params){
-	std::string task = params.getParameterString("task");
-	if(params.parameterExists("BQSRQuality")){
-		//initialize quality effect
-		TRecalibrationBQSR* bqsr = new TRecalibrationBQSR(params.getParameterString("BQSRQuality"), logfile, &readGroups);
-
-		//Do we consider the effect of the position in read (cycle)?
-		if(params.parameterExists("BQSRPosition")){
-			bqsr->addPositionEffect(params.getParameterString("BQSRPosition"));
-		}
-
-		if(params.parameterExists("BQSRPositionReverse")){
-			bqsr->addPositionReverseEffect(params.getParameterString("BQSRPositionReverse"));
-		}
-
-		//Do we consider the context (dinucleotide)?
-		if(params.parameterExists("BQSRContext")){
-			bqsr->addContextEffect(params.getParameterString("BQSRContext"));
-		}
-
-		doRecalibration = true;
-
-	} else if(params.parameterExists("recal")){
+	if(params.parameterExists("recal")){
 		recalObject = new TRecalibrationEM(params.getParameterString("recal"), &readGroups, logfile);
 		doRecalibration = true;
 	} else {
@@ -1178,33 +1158,8 @@ void TAlignmentParser::initializeRecalibration(TParameters & params){
 	if(recalObject->_requiresEstimation()) throw "Can not use provided recalibration: estimation is required!";
 };
 
-void TAlignmentParser::recalibrate(TAlignment & alignment){
-	//TODO: move to TAlignment
-
-	//make sure read is parsed and has reference
-	if(!alignment.parsed) throw "Read was not parsed!";
-
-	if(recalObject->recalibrationChangesQualities()){
-		//recalibrate quality scores
-		for(int d=0; d<alignment.length; ++d){
-			if(alignment.bases[d].isAligned() && alignment.bases[d].data.base != N){
-				alignment.bases[d].errorRate = recalObject->getErrorRate(alignment.bases[d]);
-			}
-		}
-
-		alignment.changed = true;
-	} else alignment.changed = false;
-	alignment.recalibrated = true;
-};
-
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables){
-	//TODO: move to TAlignment
-	for(int i=0; i<alignment.length; ++i){
-		if(alignment.bases[i].data.base != N){
-			int newQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
-			QTtables.add(alignment.readGroupId, qualMap.phredIntToQuality(alignment.bases[i].data.qualityAsPhredInt), newQual);
-		}
-	}
+	alignment.addSitesToQualityTransformTable(QTtables);
 };
 
 void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables){
@@ -1213,7 +1168,7 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 		if(alignment.bases[i].data.base != N){
 			int firstQual = qualMap.errorToQuality(alignment.bases[i].errorRate);
 			double tmp = alignment.bases[i].errorRate;
-			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].data.qualityAsPhredInt);
+			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].data.originalQuality_phredInt);
 			int secondQual = otherRecalObject->getQuality(alignment.bases[i]);
 			alignment.bases[i].errorRate = tmp;
 			QTtables.add(alignment.readGroupId, firstQual, secondQual);
@@ -1221,7 +1176,7 @@ void TAlignmentParser::addSitesToQualityTransformTable(TAlignment & alignment, T
 	}
 };
 
-void TAlignmentParser::adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality){
+void TAlignmentParser::_adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality){
 	if(adaptQuality){
 		double likelihood[4];
 		double sum = 0.0;
@@ -1266,9 +1221,9 @@ void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlign
 			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
 				//bases overlap same position in ref -> choose at random which to keep
 				if(keepFwd){
-					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
+					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
-					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
+					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
 				}
 				//increment both counters
 				++fwdP;
@@ -1296,9 +1251,9 @@ void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment,
 			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
 				//bases overlap same position in ref -> choose at random which to keep
 				if(randomGenerator->getRand() < 0.5){
-					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
+					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
-					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
+					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
 				}
 				//increment both counters
 				++fwdP;
@@ -1326,9 +1281,9 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
 				//bases overlap same position in ref -> keep the one with higher quality
 				if(fwdAlignment->bases[fwdP].errorRate < revAlignment->bases[revP].errorRate){
-					adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
+					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
-					adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
+					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
 				}
 				//increment both counters
 				++fwdP;

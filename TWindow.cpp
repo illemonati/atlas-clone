@@ -414,32 +414,6 @@ void TWindow_base::createDepthMask(size_t minDepthForMask, size_t maxDepthForMas
 	}
 };
 
-void TWindow_base::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap){
-	logfile->listFlush("Adding sites to BQSR ...");
-	for(unsigned int i=0; i<length; ++i){
-		if(sites[i].hasData){
-			bqsr.addSite(sites[i], qualMap);
-		}
-	}
-	logfile->done();
-};
-
-void TWindow_base::addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap){
-	logfile->listFlush("Adding sites to BQSR ...");
-	//now only run over sites listed in that window
-	std::map<unsigned int,std::pair<char,char> > thesePos = subset->getPositionInWindow(start);
-	int pos;
-	for(std::map<unsigned int,std::pair<char,char> >::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-		pos = it->first - start;
-		if(sites[pos].hasData){
-			sites[pos].setRefBase(it->second.second);
-			bqsr.addSite(sites[pos], qualMap);
-		}
-	}
-	logfile->done();
-
-};
-
 void TWindow_base::addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile){
 	logfile->listFlush("Adding sites to PMD tables ...");
 	for(unsigned int i=0; i<length; ++i){
@@ -475,29 +449,37 @@ void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContai
 	}
 };
 
-void TWindow_base::addToGLF(TGlfWriter & writer, const int ploidy, bool printAll){
+void TWindow_base::addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll){
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
+	GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 	if(printAll){
 		for(unsigned int i=0; i<length; ++i){
-			writer.writeSite(start + i, sites[i].depth(), 0, sites[i].emissionProbabilities);
+			GL_calculator.calculateGenotypeLikelihoods(sites[i].bases, genoLik);
+			writer.writeSite(start + i, sites[i].depth(), 0, genoLik);
 		}
 	} else {
 		for(unsigned int i=0; i<length; ++i){
 			if(sites[i].hasData){
-				writer.writeSite(start + i, sites[i].depth(), 0, sites[i].emissionProbabilities);
+				GL_calculator.calculateGenotypeLikelihoods(sites[i].bases, genoLik);
+				writer.writeSite(start + i, sites[i].depth(), 0, genoLik);
 			}
 		}
 	}
 };
 
-void TWindow_base::generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
+void TWindow_base::generatePSMCInput(TThetaEstimator & thetaEstimator, TGenotypeLikelihoodCalculator & GL_calculator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine){
 	//calc prior probabilities on Genotypes
-	double* pGenotype = new double[10];
-	estimator.fillPGenotype(pGenotype);
+	TGenotypeData prior;
+	TGenotypePosteriorProbabilities posterior;
+	TGenotypeLikelihoods genoLik;
+	thetaEstimator.fillPGenotype(prior);
+
+	//estimating base frequencies
+	estimateBaseFrequencies();
+	thetaEstimator.setBaseFreq(baseFreq);
 
 	//now call heterozygosity in blocks
 	int nBlocks = length / blockSize;
-	int start;
 	double logPHomo;
 	double logConfidence = log(confidence);
 	double logConfidenceHet = log(1.0 - confidence);
@@ -505,13 +487,14 @@ void TWindow_base::generatePSMCInput(TThetaEstimator & estimator, int & blockSiz
 
 	//loop over blocks
 	for(int b=0; b<nBlocks; ++b){
-		start = b*blockSize;
+		int blockStart = b*blockSize;
 		logPHomo = 0.0;
 
 		for(int i=0; i<blockSize; ++i){
-			if(sites[start + i].hasData){
-				tmp = sites[start + i].calculatePHomozygous(pGenotype);
-				logPHomo += log(tmp);
+			if(sites[blockStart + i].hasData){
+				GL_calculator.calculateGenotypeLikelihoods(sites[blockStart + 1].bases, genoLik);
+				posterior.fill(genoLik, prior);
+				logPHomo += log(posterior.probHomozygous());
 			}
 		}
 
@@ -530,7 +513,6 @@ void TWindow_base::generatePSMCInput(TThetaEstimator & estimator, int & blockSiz
 			out << '\n';
 		} else ++nCharOnLine;
 	}
-	delete[] pGenotype;
 };
 
 void TWindow_base::addToRecalibrationEM(GenotypeLikelihoods::TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap){

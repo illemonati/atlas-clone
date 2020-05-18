@@ -22,7 +22,6 @@
 #include "TDistributionOfCounts.h"
 #include "TRandomGenerator.h"
 #include "GenotypeLikelihoods/TRecalibration.h"
-#include "GenotypeLikelihoods/TRecalibrationBQSR.h"
 #include "GenotypeLikelihoods/TRecalibrationEMEstimator.h"
 #include "GenotypeLikelihoods/TGenotypeLikelihoodCalculator.h"
 
@@ -88,14 +87,12 @@ public:
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);
 
 	//add sites to data structures
-	void addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TLog* logfile, TQualityMap & qualMap);
-	void addSitesToBQSR(TRecalibrationBQSREstimator & bqsr, TSiteSubset* subset, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
 	void addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region);
-	void addToGLF(TGlfWriter & writer, const int ploidy, bool printAll);
+	void addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll);
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
 
@@ -105,7 +102,7 @@ public:
 	void printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData);
 
 	//other
-	void generatePSMCInput(TThetaEstimator & estimator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
+	void generatePSMCInput(TThetaEstimator & estimator, TGenotypeLikelihoodCalculator & GL_calculator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 };
 
 //---------------------------------------------------------------

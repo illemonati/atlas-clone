@@ -115,7 +115,7 @@ void TGlfWriter::newChromosome(const std::string name, const uint16_t refId, con
 	oldPos = 0;
 };
 
-void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods){
+void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
 	//record type
 	//TODO: add reference?
 	write(&recordType1, sizeof(uint8_t));

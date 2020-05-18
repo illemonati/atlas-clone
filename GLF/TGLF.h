@@ -20,6 +20,7 @@
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
 #include "../TFastaBuffer.h"
+#include "TGenotypeData.h"
 
 //----------------------------------------------------
 // TGlfConverter
@@ -215,7 +216,7 @@ public:
 	//open & close streams
 	void open(std::string Filename, std::string Header);
 	void newChromosome(const std::string name, const uint16_t refId, const uint32_t length, const uint8_t ploidy);
-	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, double* genotypeLikelihoods);
+	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
 
 

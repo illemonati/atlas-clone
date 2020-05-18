@@ -83,7 +83,7 @@ private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
 	uint16_t _extractCovariate(const TBaseData & base){
-		return base.qualityAsPhredInt;
+		return base.originalQuality_phredInt;
 	};
 	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
 		return data.qualityAsPhredInt;

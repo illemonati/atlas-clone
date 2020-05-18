@@ -42,7 +42,7 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 		data[k].readGroup = ReadGroupMap.getIndex(it->data.readGroup);
 
 		//quality
-		data[k].qualityAsPhredInt = it->data.qualityAsPhredInt;
+		data[k].qualityAsPhredInt = it->data.originalQuality_phredInt;
 
 		//position
 		data[k].positionFrom5Prime = it->data.distFrom5Prime;

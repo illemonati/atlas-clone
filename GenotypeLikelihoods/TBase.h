@@ -23,7 +23,8 @@ private:
 
 public:
 	Base base;
-	uint8_t qualityAsPhredInt; //Note: original quality as in BAM file, but transformed to phredInt
+	uint8_t originalQuality_phredInt; //original quality as in BAM file, but transformed to phredInt
+	uint8_t recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
 	uint16_t distFrom5Prime; //zero based!
 	uint16_t distFrom3Prime; //zero based!	Do we need it if we also store fragment length?
 	uint16_t readGroup;
@@ -31,10 +32,10 @@ public:
 	uint8_t mappingQuality;
 	BaseContext context;
 
-
 	TBaseData(){
 		base = N;
-		qualityAsPhredInt = 0;
+		originalQuality_phredInt = 0;
+		recalibratedQualityAsPhredInt = 0;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
 		readGroup = -1;
@@ -58,15 +59,15 @@ public:
 	TBaseData data;
 
 	//tmp variables. Remove to fuse TBase with TBaseData?
-	uint16_t alignedPos; //takes value -1 when base is not aligned
-	double errorRate;
-	double PMD_CT, PMD_GA;
+	//uint16_t alignedPos; //takes value -1 when base is not aligned
+	//double errorRate;
+	//double PMD_CT, PMD_GA;
 
 	TBase(){
-		errorRate = -1.0;
-		PMD_CT = -1.0;
-		PMD_GA = -1.0;
-		alignedPos = 0;
+		//errorRate = -1.0;
+		//PMD_CT = -1.0;
+		//PMD_GA = -1.0;
+		//alignedPos = 0;
 	};
 	~TBase(){};
 

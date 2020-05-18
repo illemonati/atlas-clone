@@ -272,18 +272,41 @@ double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & dat
 		return qualMap.phredIntToError(data.qualityAsPhredInt);
 	}
 };
+
 double TSequencingErrorModels::getErrorRate(const TBaseData & base){
 	if(doRecalibration){
 		return models[ readGroupIndex.index(base) ].getErrorRate(base);
 	} else {
-		return qualMap.phredIntToError(base.qualityAsPhredInt);
+		return qualMap.phredIntToError(base.originalQuality_phredInt);
 	}
 };
+
+void TSequencingErrorModels::recalibrate(TBaseData & base){
+	if(doRecalibration){
+		base.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(models[ readGroupIndex.index(base) ].getErrorRate(base));
+	} else {
+		base.recalibratedQualityAsPhredInt = base.originalQuality_phredInt;
+	}
+};
+
+void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length){
+	if(doRecalibration){
+		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0].data) ]
+		for(uint16_t i=0; i<length; ++i){
+			bases[i].data.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(bases[i].data));
+		}
+	} else {
+		for(uint16_t i=0; i<length; ++i){
+			bases[i].data.recalibratedQualityAsPhredInt = bases[i].data.originalQuality_phredInt;
+		}
+	}
+};
+
 void TSequencingErrorModels::calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
 	if(doRecalibration){
 		models[ readGroupIndex.index(base) ].fillBaseLikelihoods(base, baseLikelihoods);
 	} else {
-		defaultRho.fillBaseLikelihoods(base.base, qualMap.phredIntToError(base.qualityAsPhredInt), baseLikelihoods);
+		defaultRho.fillBaseLikelihoods(base.base, qualMap.phredIntToError(base.originalQuality_phredInt), baseLikelihoods);
 	}
 };
 

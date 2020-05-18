@@ -34,7 +34,7 @@ private:
 	bool recalibrated;
 
 	//data
-	unsigned int maxSize;
+	uint16_t maxSize;
 	uint16_t length;
 	uint16_t fragmentLength; //is insert size - deletions + insertions for paired-end; read length - deletions + insertions for single end
 
@@ -48,7 +48,9 @@ private:
 	bool changed;
 
 	//per base data
+	//ToDo: turn into std storage where possible
 	TBase* bases;
+	uint16_t* alignedPosition;
 	int* softClippedLength;
 	char** softClippedBase;
 	char** softClippedQuality;
@@ -81,7 +83,7 @@ public:
 	BamTools::BamAlignment bamAlignment;
 
 	TAlignment();
-	TAlignment(unsigned int MaxSize);
+	TAlignment(uint16_t MaxSize);
 	TAlignment(const TAlignment & Alignment);
 
 	~TAlignment(){
@@ -107,7 +109,7 @@ public:
 	void filterForBaseQualityAsPhredInt(int & minQual, int & maxQual);
 	void filterForContext(std::map<BaseContext,int> ignoreTheseContexts);
 	void clear();
-	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap);
+	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
 	//accessed by TGenome
 	uint16_t readGroupId;
@@ -130,6 +132,7 @@ public:
 	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
 
 	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
+	void addSitesToQualityTransformTable(TQualityTransformTables & QTtables);
 	void recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap);
 	double calculatePMDS(double & pi, GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects);
 	void removeSoftClippedBases(TSoftClippingData & softClippingData);

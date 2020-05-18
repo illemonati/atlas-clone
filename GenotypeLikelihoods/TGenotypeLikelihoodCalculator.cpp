@@ -9,7 +9,28 @@
 
 namespace GenotypeLikelihoods{
 
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
+	initialized = false;
+	logfile = nullptr;
+	readGroups = nullptr;
+	readGroupMap = nullptr;
+};
+
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile){
+	initialized = false;
+	init(params, ReadGroups, Logfile);
+};
+
+TGenotypeLikelihoodCalculator::~TGenotypeLikelihoodCalculator(){
+	if(initialized){
+		delete readGroupMap;
+	}
+};
+
+void TGenotypeLikelihoodCalculator::init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile){
+	if(initialized){
+		throw "TGenotypeLikelihoodCalculator has alre<ady been initialized!";
+	}
 	logfile = Logfile;
 	readGroups = ReadGroups;
 	readGroupMap = new TReadGroupMap(ReadGroups);
@@ -23,6 +44,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & param
 	} else {
 		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
 	}
+	initialized = true;
 };
 
 

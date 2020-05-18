@@ -60,8 +60,7 @@ private:
 	unsigned int windowSize;
 	unsigned int numWindowsOnChr;
 	unsigned int windowNumber;
-
-	unsigned int maxReadLength;
+	uint16_t maxReadLength;
 	double maxMissing;
 	double maxRefN;
 
@@ -94,38 +93,41 @@ private:
 	long limitReads;
 //	bool* useChromosome;
 
+	//recalibration
+	GenotypeLikelihoods::TSequencingErrorModels* seqErrorModels;
+
 	//contructor functions
-	void openBamFile(std::string filename, bool indexNotRequired);
-	void setWindowParameters(TParameters & params);
-	void setFilters(TParameters & params);
-	void setWindowFilters(TParameters & params);
-	void setAlignmentFilters(TParameters & params);
-	void setSiteFilters(TParameters & params);
-	void setBaseFilters(TParameters & params);
-	void setMasks(TParameters & params);
+	void _openBamFile(std::string filename, bool indexNotRequired);
+	void _setWindowParameters(TParameters & params);
+	void _setFilters(TParameters & params);
+	void _setWindowFilters(TParameters & params);
+	void _setAlignmentFilters(TParameters & params);
+	void _setSiteFilters(TParameters & params);
+	void _setBaseFilters(TParameters & params);
+	void _setMasks(TParameters & params);
 //	void initializeSiteSubset(TParameters & params);
-	void initializeReadGroups(TParameters & params);
-	void setParsingLimits(TParameters & params);
-	void setChrPloidy(TParameters & params);
+	void _initializeReadGroups(TParameters & params);
+	void _setParsingLimits(TParameters & params);
+	void _setChrPloidy(TParameters & params);
 
 	//move genome
-	void jumpToEnd();
-	void restartChromosomes(TWindow_base & window);
-	void moveChromosome(TWindow_base & window);
-	bool moveToNextWindowOnChr(TWindow_base & window);
-	bool moveToNextPredefinedWindow(TWindow_base & window);
-	bool moveWindow(TWindow_base & window);
+	void _jumpToEnd();
+	void _restartChromosomes(TWindow_base & window);
+	void _moveChromosome(TWindow_base & window);
+	bool _moveToNextWindowOnChr(TWindow_base & window);
+	bool _moveToNextPredefinedWindow(TWindow_base & window);
+	bool _moveWindow(TWindow_base & window);
 
-	GenotypeLikelihoods::PMDType getEnumPMDType(std::string pmdType);
-	void initializePostMortemDamage(TParameters & params);
-	void initializeRecalibration(TParameters & params);
+	GenotypeLikelihoods::PMDType _getEnumPMDType(std::string pmdType);
+	void _initializePostMortemDamage(TParameters & params);
 
-	bool readAlignment();
-	bool applyFilters();
-	bool fillAlignment(TAlignment & alignment);
-	void readAlignmentsIntoWindow(TWindow & window);
-	void applyWindowFilters(TWindow_base & window);
-	void adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
+	bool _readAlignment();
+	bool _applyFilters();
+	bool _fillAlignment(TAlignment & alignment);
+	void _readAlignmentsIntoWindow(TWindow & window);
+	void _applyWindowFilters(TWindow_base & window);
+	void _recalibrate(TAlignment & alignment);
+	void _adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
 
 public:
 	//alignment: goal is to make this private!
@@ -153,7 +155,6 @@ public:
 	BamTools::BamRegion bamRegion;
  	BamTools::SamHeader bamHeader;
  	TChromosomes chromosomes;
-// 	BamTools::SamSequenceIterator chrIterator;
 
  	//reference
 	bool hasReference;
@@ -173,9 +174,10 @@ public:
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(int MaxReadLength, TParameters & params, TLog* Logfile);
+	TAlignmentParser(uint16_t MaxReadLength, TParameters & params, TLog* Logfile);
 	~TAlignmentParser();
-	void init(int MaxReadLength, TParameters & params, TLog* Logfile);
+	void init(uint16_t MaxReadLength, TParameters & params, TLog* Logfile);
+	void setRecalibration(GenotypeLikelihoods::TSequencingErrorModels* SeqErrorModels);
 
 	//getters
 	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
@@ -291,7 +293,7 @@ public:
 	//functions to read and _parse
 	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
 	void addReference(BamTools::Fasta* reference);
-	void recalibrate(TAlignment & alignment);
+
 
 	//reading data requires windows
 	bool readDataInNextWindow(TWindow & window);
