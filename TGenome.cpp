@@ -14,36 +14,15 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
 
-	//initialize alignment parser
-	maxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
-	logfile->list("Will only consider reads up to " + toString(maxReadLength) + " bp. (parameter 'maxReadLength')");
-
-	//maxReadLength must be >=1 but smaller than 65536 as we use uint16_t to sore distances
-	if(maxReadLength < 1)
-		throw "Max read length must be at least 1 bp!";
-	if(maxReadLength > 65536)
-		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
-
-	alignmentParser.init(maxReadLength, params, logfile);
+	//open bam file
+	bamFile.open(params.getParameterString("bam"), params.getParameterIntWithDefault("maxReadLength", 200), params.parameterExists("indexNotRequired"));
+	logfile->list("Will only consider reads up to " + toString(bamFile.maxReadLength()) + " bp. (parameter 'maxReadLength')");
 
 	//initialize genotype likelihoods
-	if(params.parameterExists("recal")){
-		genotypeLikelihoodCalculator.init(params, &alignmentParser.readGroups, logfile);
+	genotypeLikelihoodCalculator.init(params, &bamFile.readGroups, logfile);
 
-	} else {
-		logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
-	}
-
-
-	//outputname
-	outputName = params.getParameterStringWithDefault("out", "");
-	if(outputName == ""){
-		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
-		outputName = alignmentParser.filename;
-		outputName = extractBeforeLast(outputName, ".");
-	}
-	alignmentParser.setOutName(outputName);
-	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
+	//initialize alignment parser
+	alignmentParser.init(params, logfile);
 
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
@@ -54,17 +33,15 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 		alignmentParser.addReference(&reference);
 	}
 
-	//trimming ends
-	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
-		int trim3 = params.getParameterIntWithDefault("trim3", 0);
-		if(trim3 < 0) throw "trimming distance trim3 must be >= 0!";
-		int trim5 = params.getParameterIntWithDefault("trim5", 0);
-		if(trim5 < 0) throw "trimming distance trim5 must be >= 0!";
-		if(trim3>0 || trim5>0){
-			alignmentParser.setReadTrimming(trim3, trim5);
-			logfile->list("Will trim first " + toString(trim3) + " and " + toString(trim5) + " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
-		}
+	//outputname
+	outputName = params.getParameterStringWithDefault("out", "");
+	if(outputName == ""){
+		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
+		outputName = alignmentParser.filename;
+		outputName = extractBeforeLast(outputName, ".");
 	}
+	alignmentParser.setOutName(outputName);
+	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 };
 
 void TGenome::indexBamFile(std::string & filename){
@@ -797,7 +774,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 
 void TGenome::printQualityDistribution(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 
 	//Assemble quality distribution
@@ -852,7 +829,7 @@ void TGenome::printQualityDistribution(TParameters & params){
 
 void TGenome::printQualityTransformation(TParameters & params){
 	//prepare alignment
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 	int maxPhredInt = params.getParameterIntWithDefault("maxQ", 100);
 
@@ -863,34 +840,23 @@ void TGenome::printQualityTransformation(TParameters & params){
 	TBamProgressReporter reporter(&alignmentParser, logfile);
 
 	//check what we compare
-	bool compareToOtherRecalibration = false;
-	TRecalibration* otherRecalObject;
-	if(alignmentParser.recalibrationType() == "BQSR"){
-		//do we compare to recal or to raw quality scores?
-		if(params.parameterExists("recal")){
-			otherRecalObject = new TRecalibrationEM(params.getParameterString("recal"), &alignmentParser.readGroups, logfile);
-			compareToOtherRecalibration = true;
-		}
-	} else if(alignmentParser.recalibrationType() == "recal"){
-		if(params.parameterExists("recal2")){
-			otherRecalObject = new TRecalibrationEM(params.getParameterString("recal2"), &alignmentParser.readGroups, logfile);
-			compareToOtherRecalibration = true;
-		}
-	}
-	//add alignments to tables
-//	logfile->startIndent();
-	logfile->listFlush("Adding sites to quality transformation tables ...");
-	logfile->done();
+	if(params.parameterExists("recal2")){
+		std::string recalstring = params.getParameterString("recal2");
+		logfile->startIndent("Comparing to alternative recalibration parameters:");
 
-	if(compareToOtherRecalibration){
+		TSequencingErrorModels otherRecalObject;
+		otherRecalObject.createModels(recalstring, &alignmentParser.readGroups, logfile);
+
 		while(alignmentParser.readNextAlignment(alignment)){
 			alignmentParser.addSitesToQualityTransformTable(alignment, otherRecalObject, QTtables);
+
 			//report
 			reporter.printProgress();
 		}
 	} else {
+		logfile->startIndent("Comparing to original qualities:");
 		while(alignmentParser.readNextAlignment(alignment)){
-			alignmentParser.addSitesToQualityTransformTable(alignment, QTtables);
+			alignment.addSitesToQualityTransformTable(QTtables);
 			//report
 			reporter.printProgress();
 		}
@@ -911,7 +877,7 @@ void TGenome::printQualityTransformation(TParameters & params){
 
 void TGenome::recalibrateBamFile(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 
 	//open a bam file for writing
@@ -935,8 +901,6 @@ void TGenome::recalibrateBamFile(TParameters & params){
 
 	//other tmp variables
 	long counter = 0;
-	TGenotypeMap genoMap;
-	TQualityMap qualMap;
 
 	//prepare reporting
 	TBamProgressReporter reporter(&alignmentParser, logfile);
@@ -945,14 +909,14 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	if(withPMD){
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
-			alignment.recalibrateWithPMD(alignmentParser.recalObject, qualMap);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+			alignment.recalibrateWithPMD();
+			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 			reporter.printProgress();
         }
 	} else {
 		while(alignmentParser.readNextAlignment(alignment)){
 			++counter;
-			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 			reporter.printProgress();
 		}
 	}
@@ -977,7 +941,7 @@ void TGenome::binQualityScores(TParameters & params){
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 
 	//other temp variables
@@ -994,7 +958,7 @@ void TGenome::binQualityScores(TParameters & params){
 
 		//update and write (only if alignment qualities could be calculated)
 		alignment.binQualityScores(qualMap);
-		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+		alignment.save(bamWriter, genoMap, qualMap);
 
 		//report
 		reporter.printProgress();
@@ -1012,7 +976,7 @@ void TGenome::assessSoftClipping(TParameters & params){
 	//build table ??
 
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 
 	//limit input / output
 	bool printAll = false;
@@ -1106,11 +1070,11 @@ void TGenome::removeSoftClippedBasesFromReads(TParameters & params){
 
 void TGenome::assessOverlap(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 
 	//initialize table
-	int* counts = new int[maxReadLength]();
+	int* counts = new int[bamFile.maxReadLength()]();
 
 	//other variables
 	float numProperPairs = 0.0;
@@ -1139,7 +1103,7 @@ void TGenome::assessOverlap(TParameters & params){
     reporter.printEnd();
 
 	//write counts to table
-	for(int i=0; i<maxReadLength; ++i){
+	for(int i=0; i < bamFile.maxReadLength(); ++i){
        		out << i << "\t" << counts[i] << "\t" << (float) counts[i] / numProperPairs << "\n";
 	}
 
@@ -1238,7 +1202,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		}
 
 		//write
-		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 
 		//report
 		reporter.printProgress();
@@ -1257,7 +1221,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 
 void TGenome::mergeReadGroups(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 
 	//read read groups and their expected lengths
 	std::string filename = params.getParameterString("readGroups");
@@ -1353,7 +1317,7 @@ void TGenome::mergeReadGroups(TParameters & params){
 		//save as new RG
 		alignment.updateOptionalSamField("RG", newReadGroupObject.getName(readGroupMap[oldId]));
 //		alignment.bamAlignment.EditTag("RG", "Z", newReadGroupObject.getName(readGroupMap[oldId]));
-		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, alignmentParser.qualMap);
+		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 
 		//report
 		reporter.printProgress();
@@ -1489,7 +1453,7 @@ void TGenome::filterBAM(TParameters & params){
 	//soft clipped bases will translated to 'N'
 
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
@@ -1613,7 +1577,7 @@ void TGenome::setMergerSettings(TParameters & params, TAlignmentMerger & merger)
 
 void TGenome::splitMerge(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
@@ -1718,7 +1682,7 @@ void TGenome::splitMerge(TParameters & params){
 
 void TGenome::mergePairedEndReads(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
@@ -1837,7 +1801,7 @@ void TGenome::renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<s
 
 void TGenome::downSampleBamFile(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
 
@@ -1904,11 +1868,11 @@ void TGenome::downSampleBamFile(TParameters & params){
 			} else if(discard[i].isInReadList(alignment.name())){
 				discard[i].removeFromReadList(alignment, "was in list of discarded reads");
 			} else if(keep[i].isInReadList(alignment.name())){
-				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+				alignment.save(*bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 			} else {
 				r = randomGenerator->getRand(); //inside loop to avoid correlation when multiple probs
 				if(r < downSampleProbVector[i]){
-					alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+					alignment.save(*bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 					if(alignment.isProperPair)
 						keep[i].addToReadList(alignment, "passed downsampling");
 				} else {
@@ -1941,7 +1905,7 @@ void TGenome::downSampleBamFile(TParameters & params){
 
 void TGenome::separateReads(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setUpdateBlacklistToTrue();
 	alignmentParser.setWriteBlacklistToFileToTrue();
 
@@ -2006,7 +1970,7 @@ void TGenome::separateReads(TParameters & params){
 		double tmp = fracVector[0];
 		for(int i=0; i<numFrac; ++i){
 			if(r < tmp){
-				alignment.save(bamWriter[i], genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+				alignment.save(*bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 				break;
 			} else {
 				tmp = tmp + fracVector[i+1];
@@ -2032,7 +1996,7 @@ void TGenome::separateReads(TParameters & params){
 
 void TGenome::downSampleReads(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 	alignmentParser.setParsingToTrue();
 
 	//read parameters
@@ -2057,7 +2021,7 @@ void TGenome::downSampleReads(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		alignment.downsampleAlignment(fraction, *randomGenerator, qualMap);
-		alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
+		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 
 		//report
 		reporter.printProgress();
@@ -2072,7 +2036,7 @@ void TGenome::downSampleReads(TParameters & params){
 
 void TGenome::diagnoseBamFile(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 
 	//get max params
 	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
@@ -2383,7 +2347,7 @@ void TGenome::estimateDuplicationCounts(TParameters & params){
 	//now: just how many reads start at the same positions
 
 	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
+	TAlignment alignment(bamFile.maxReadLength());
 
 	//create storage
 	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
@@ -2511,13 +2475,6 @@ void TGenome::runPMDS(TParameters & params){
 	double maxPMDS = params.getParameterDoubleWithDefault("maxPMDS", 10000);
 	logfile->list("Filtering out reads with " + toString(minPMDS) + " > PMDS > " + toString(maxPMDS));
 
-	//prepare reporting
-	logfile->startIndent("Parsing through BAM file:");
-	struct timeval start, end;
-	gettimeofday(&start, NULL);
-	float runtime;
-	long counter = 0, counterF = 0;
-
 	//other tmp
 	TQualityMap qualMap;
 	TGenotypeMap genoMap;
@@ -2530,34 +2487,33 @@ void TGenome::runPMDS(TParameters & params){
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 
+	//measure progress and runtime
+	TBamProgressReporter reporter(&alignmentParser, logfile);
+	long numKept = 0;
+
 	//now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
-		++counter;
-
 		//calc PMD
 		double PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
 
 		//update and write
 		if(PMDS > minPMDS && PMDS < maxPMDS){
 			alignment.updateOptionalSamField("DS", PMDS);
-			alignment.save(bamWriter, genoMap, alignmentParser.minQualForPrinting, alignmentParser.maxQualForPrinting, qualMap);
-		} else ++counterF;
+			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
+			++numKept;
+		}
 
 		//report progress
-		if(counter % 1000000 == 0){
-			gettimeofday(&end, NULL);
-			logfile->list("Analyzed " + toString(counter) + " reads in " + toString((end.tv_sec  - start.tv_sec)/60.0) + " min and filtered out " + toString(counterF) + " of them!");
-		}
+		reporter.printProgress();
 	}
 
 	//close bam writer
 	bamWriter.Close();
 
 	//report
-	gettimeofday(&end, NULL);
-	runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Analyzed " + toString(counter) + " reads in " + toString(runtime) + " min. and filtered out " + toString(counterF) + " of them!");
-
+	reporter.printEndNoEndIndent();
+	logfile->conclude("Kept " + toString(numKept) + " reads");
+	logfile->endIndent();
 };
 
 void TGenome::printMateInformationPerSite(TParameters & params){

@@ -10,14 +10,15 @@
 
 #include <fstream>
 #include "TReadGroups.h"
+#include "TFile.h"
 
 //---------------------------------------------------------------
 //TQualityTable
 //---------------------------------------------------------------
 class TQualityTable{
 private:
-	int maxQ;
-	int maxQPlusOne;
+	int maxPhredInt;
+	int maxPhredIntPlusOne;
 	long* counts;
 	double* freqs;
 	bool initialized;
@@ -27,22 +28,22 @@ private:
 
 public:
 	TQualityTable();
-	TQualityTable(int MaxQ);
+	TQualityTable(int MaxPhredInt);
 	TQualityTable(TQualityTable && other);
 
 	TQualityTable& operator=(TQualityTable && other){
 		if(this != &other){
 			//copy from other
-			maxQ = other.maxQ;
-			maxQPlusOne = other.maxQPlusOne;
+			maxPhredInt = other.maxPhredInt;
+			maxPhredIntPlusOne = other.maxPhredIntPlusOne;
 			counts = other.counts;
 			freqs = other.freqs;
 			initialized = other.initialized;
 			sum = other.sum;
 
 			//set other to default
-			other.maxQ = 0;
-			other.maxQPlusOne = 0;
+			other.maxPhredInt = 0;
+			other.maxPhredIntPlusOne = 0;
 			other.counts = nullptr;
 			other.freqs = nullptr;
 			other.initialized = false;
@@ -54,12 +55,12 @@ public:
 
 	~TQualityTable();
 
-	void init(int MaxQ);
+	void init(int MaxPhredInt);
 	int getMaxQ();
-	void add(const int & qual);
-	void add(int* qual, int & len);
+	void add(const int & phredInt);
+	void add(int* phredInt, int & len);
 	void add(TQualityTable & other);
-	long at(int qual);
+	long at(int phredInt);
 	void calcFrequencies();
 	void write(const std::string & filename);
 };
@@ -69,9 +70,9 @@ public:
 //---------------------------------------------------------------
 class TQualityTransformTable{
 public:
-	int maxQInTable;
-	int maxQInTablePlusOne;
-	double** table; //old qual / new qual
+	int maxPhredInt;
+	int maxPhredIntPlusOne;
+	double** table; //old phredInt / new phredInt
 	bool initialized;
 
 	TQualityTransformTable(int maxPhredIntInTable);
@@ -80,9 +81,9 @@ public:
 	~TQualityTransformTable();
 
 	void initialize(int maxPhredIntInTable);
-	void add(const int oldQuality, const int newQuality);
+	void add(const int oldPhredInt, const int newPhredInt);
 	double size();
-	double printTableReturnRSquared(const std::string filename);
+	double writeTableAndReturnRSquared(const std::string filename);
 };
 
 //---------------------------------------------------------------

@@ -193,7 +193,7 @@ public:
 		delete[] allelicCombinationsMatchingBase;
 	};
 
-	Base getBase(const char base){
+	Base getBase(const char base) const{
 		if(base == 'A') return A;
 		if(base == 'C') return C;
 		if(base == 'G') return G;
@@ -205,7 +205,7 @@ public:
 		return N;
 	};
 
-	Base getBaseOnlyCapitals(const char base){
+	Base getBaseOnlyCapitals(const char base) const{
 		if(base == 'A') return A;
 		if(base == 'C') return C;
 		if(base == 'G') return G;
@@ -213,7 +213,7 @@ public:
 		return N;
 	};
 
-	char getBaseAsChar(Base base){
+	char getBaseAsChar(Base base) const{
 		if(base == A) return 'A';
 		if(base == C) return 'C';
 		if(base == G) return 'G';
@@ -221,7 +221,7 @@ public:
 		return 'N';
 	};
 
-	char getBaseAsChar(int base){
+	char getBaseAsChar(int base) const{
 		if(base == A) return 'A';
 		if(base == C) return 'C';
 		if(base == G) return 'G';
@@ -229,7 +229,7 @@ public:
 		return 'N';
 	};
 
-	Base flipBase(char & base){
+	Base flipBase(char & base) const{
 		if(base == 'A') return T;
 		if(base == 'C') return G;
 		if(base == 'G') return C;
@@ -241,24 +241,24 @@ public:
 		return N;
 	};
 
-	Genotype getGenotype(Base first, Base second){
+	Genotype getGenotype(Base first, Base second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(int first, int second){
+	Genotype getGenotype(int first, int second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(char first, char second){
+	Genotype getGenotype(char first, char second) const{
 		Base Bfirst = getBase(first);
 		Base Bsecond = getBase(second);
 		if(Bfirst < Bsecond) return genotypeMap[Bfirst][Bsecond];
 		else return genotypeMap[Bsecond][Bfirst];
 	};
 
-	std::string getGenotypeString(int num){
+	std::string getGenotypeString(int num) const{
 		if(num==0) return "AA";
 		if(num==1) return "AC";
 		if(num==2) return "AG";
@@ -272,7 +272,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
-	std::string getGenotypeString(Genotype geno){
+	std::string getGenotypeString(Genotype geno) const{
 		if(geno==0) return "AA";
 		if(geno==1) return "AC";
 		if(geno==2) return "AG";
@@ -286,7 +286,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString((int) geno) + "!";
 	};
 
-	std::string getGenotypeStringKnownAlleles(int num, char ref, char alt){
+	std::string getGenotypeStringKnownAlleles(int num, char ref, char alt) const{
 		std::string genotype = "";
 		if(num == 0){
 			genotype += ref;
@@ -315,7 +315,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
-	std::pair<Base,Base> getBasesOfGenotype(int num){
+	std::pair<Base,Base> getBasesOfGenotype(int num) const{
 		if(num==0) return std::pair<Base,Base>(A,A);
 		if(num==1) return std::pair<Base,Base>(A,C);
 		if(num==2) return std::pair<Base,Base>(A,G);
@@ -329,37 +329,37 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	}
 
-	size_t getNumContextsNotN(){
+	size_t getNumContextsNotN() const{
 		return numContextsNotN;
 	};
 
-	size_t getNumContexts(){
+	size_t getNumContexts() const{
 		return numContexts;
 	};
 
-	BaseContext getContext(Base first, Base second){
+	BaseContext getContext(Base first, Base second) const{
 		if(second == N) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(int first, int second){
+	BaseContext getContext(int first, int second) const{
 		if(second > 3) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(char first, char second){
+	BaseContext getContext(char first, char second) const{
 		return getContext(getBase(first), getBase(second));
 	};
 
-	BaseContext getContextReverseRead(char first, char second){
+	BaseContext getContextReverseRead(char first, char second) const{
 		return getContext(flipBase(first), flipBase(second));
 	};
 
-	std::string getContextString(int context){
+	std::string getContextString(int context) const{
 		return getContextString(static_cast<BaseContext>(context));
 	};
 
-	std::string getContextString(BaseContext context){
+	std::string getContextString(BaseContext context) const{
 		if(context == cAA) return "AA";
 		if(context == cAC) return "AC";
 		if(context == cAG) return "AG";
@@ -423,7 +423,7 @@ public:
 		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
 		wasNormalized = false;
 	};
-	void print(){
+	void print() const{
 		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
 	};
 	double& operator[](int pos){

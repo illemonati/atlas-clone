@@ -30,7 +30,6 @@ class TSequencingErrorModels{
 private:
 	TLog* logfile;
 	TReadGroups* readGroups;
-	TQualityMap qualMap;
 	TSequencingErrorRho defaultRho;
 
 	//models
@@ -52,6 +51,7 @@ private:
 	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
+	TQualityMap qualMap; //make available to others
 	TSequencingErrorModels();
 
 	//add model for recalibration: no dataTable provided
@@ -67,7 +67,7 @@ public:
 	int numModels(){ return models.size(); };
 	bool modelExists(uint16_t readGroupId, bool isSecondMate){ return readGroupIndex.inUse(readGroupId, isSecondMate); };
 	bool modelExists(TSequencingErrorModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
-	bool recalibrationChangesQualities(){ return doRecalibration; };
+	bool recalibrationChangesQualities() const{ return doRecalibration; };
 
 	bool hasReadGroupsWithoutModel();
 	void reportReadGroupsNotUsed();
@@ -76,11 +76,12 @@ public:
 
 	//calculate error rates
 	//TODO: deal with fact that there migth be no models. Only return qualities or initialize models?
-	double getErrorRate(const TRecalibrationEMReadData & data);
-	double getErrorRate(const TBaseData & base);
-	void recalibrate(TBaseData & base);
-	void recalibrate(TBase* bases, const uint16_t  length);
-	void calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods);
+	double getErrorRate(const TRecalibrationEMReadData & data) const;
+	double getErrorRate(const TBaseData & base) const;
+	uint8_t getPhredInt(const TBaseData & base) const;
+	void recalibrate(TBaseData & base) const;
+	void recalibrate(TBase* bases, const uint16_t  length) const;
+	void calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods) const;
 
 	//function to estimate
 	void setEMParamsToZero();

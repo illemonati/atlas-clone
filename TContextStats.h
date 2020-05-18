@@ -47,9 +47,8 @@ public:
 		_free();
 	};
 
-	void add(const TBase & base){
-		uint16_t q = qualMap.errorToPhredInt(base.errorRate);
-		++contextCounts[q][base.data.context];
+	void add(const TBaseData & base){
+		++contextCounts[base.recalibratedQualityAsPhredInt][base.context];
 	};
 
 	void writeToFile(const std::string outputFileName){

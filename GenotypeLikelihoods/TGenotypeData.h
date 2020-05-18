@@ -20,7 +20,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 class TBaseLikelihoods{
 private:
-	double likelihoods[5];
+	double likelihoods[4];
 
 public:
 	TBaseLikelihoods();

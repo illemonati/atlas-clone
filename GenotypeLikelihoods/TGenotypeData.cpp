@@ -23,7 +23,6 @@ void TBaseLikelihoods::operator=(const TBaseLikelihoods & other){
 	likelihoods[C] = other.at(C);
 	likelihoods[G] = other.at(G);
 	likelihoods[T] = other.at(T);
-	likelihoods[N] = other.at(N);
 };
 
 void TBaseLikelihoods::reset(){
@@ -31,7 +30,6 @@ void TBaseLikelihoods::reset(){
 	likelihoods[C] = 1.0;
 	likelihoods[G] = 1.0;
 	likelihoods[T] = 1.0;
-	likelihoods[N] = 1.0;
 };
 
 //--------------------------------------------------------------------

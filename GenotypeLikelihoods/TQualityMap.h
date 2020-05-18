@@ -29,7 +29,8 @@ public:
 	uint8_t* illuminaQualityBins;
 	double min;
 	uint8_t minPhredInt;
-	uint16_t sizeQual;
+	uint8_t sizeQual;
+	uint8_t minQuality, maxQuality;
 
 	TQualityMap(){
 		//only up to phred = 255, else always return 255
@@ -38,7 +39,8 @@ public:
 		phredIntToErrorMap = new double[minPhredInt+1];
 		phredIntToLogErrorMap = new double[minPhredInt+1];
 		qualityToErrorMap = new double[sizeQual];
-
+		minQuality = 0;
+		maxQuality = 255;
 
 		//initialize quality <= 0
 		for(uint8_t i=0; i<33; ++i)
@@ -81,58 +83,82 @@ public:
 		delete[] phredIntToLogErrorMap;
 	};
 
-	double phredIntToError(uint8_t phredInt){
+	void setQualityLimits(uint8_t MinQualityForPrinting, uint8_t MaxQualityForPrinting){
+		minQuality = MinQualityForPrinting;
+		maxQuality = MaxQualityForPrinting;
+	};
+
+	//to error
+	double phredIntToError(uint8_t phredInt) const{
 		if(phredInt >= minPhredInt)
 			return min;
 		else return phredIntToErrorMap[phredInt];
 	};
 
-	inline double phredToError(double phred){
+	inline double phredToError(double phred) const{
 		return pow(10.0, -phred/10.0);
 	};
 
-	double qualityToError(int qual){
+	double qualityToError(int qual) const{
 		if(qual < 33)
 			return 1.0;
 		return phredIntToError(qual - 33);
 	};
 
-	uint8_t phredIntToQuality(uint8_t phredInt){
-		return phredInt + 33;
-	};
-
-	uint8_t qualityToPhredInt(uint8_t quality){
-		return quality - 33;
-	};
-
-	double phredIntToIlluminaError(uint8_t phredInt){
+	//to illumina error
+	double phredIntToIlluminaError(uint8_t phredInt) const{
 		return phredIntToError(illuminaQualityBins[phredInt + 33]);
 	};
 
-	inline std::size_t errorToPhredInt(const double & errorRate){
-		return round(errorToPhred(errorRate));
+	//to quality
+	uint8_t phredIntToQuality(uint8_t phredInt) const{
+		uint16_t q = phredInt + 33;
+		if(q > maxQuality)
+			return maxQuality;
+		else if(q < minQuality)
+			return minQuality;
+		else
+			return q;
 	};
 
-	inline double errorToPhred(const double & errorRate){
-		if(errorRate < min)
+	uint8_t errorToQuality(const double & errorRate) const{
+		uint16_t q = round(errorToPhred(errorRate)) + 33;
+		if(q > maxQuality)
+			return maxQuality;
+		else if(q < minQuality)
+			return minQuality;
+		else
+			return q;
+	};
+
+	//to phred and phred int
+	uint8_t qualityToPhredInt(uint8_t quality) const{
+		return quality - 33;
+	};
+
+	inline uint8_t errorToPhredInt(const double & errorRate) const{
+		uint16_t phred = round(errorToPhred(errorRate));
+		if(phred > minPhredInt)
 			return minPhredInt;
 		else
-			return -10.0 * log10(errorRate);
+			return phred;
 	};
 
-	inline std::size_t errorToQuality(const double & errorRate){
-		return round(-10.0 * log10(errorRate)) + 33;
+	inline double errorToPhred(const double & errorRate) const{
+		return -10.0 * log10(errorRate);
 	};
 
-	double& operator[](unsigned int phred){
+/*
+	double& operator[](unsigned int phred) const{
 		//Note: no check on range!
 		return phredIntToErrorMap[phred];
 	};
 
-	double& operator[](uint8_t & phred){
+	double& operator[](uint8_t & phred) const{
 		//Note: no check on range!
 		return phredIntToErrorMap[phred];
 	};
+	*/
 };
 
 

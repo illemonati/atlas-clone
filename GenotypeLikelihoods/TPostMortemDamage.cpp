@@ -768,7 +768,6 @@ void TPostMortemDamage::calculateBaseLikelihoods(const TBaseData & base, const T
 };
 
 
-
 }; //end namespace
 
 

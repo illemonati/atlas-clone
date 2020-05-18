@@ -29,7 +29,6 @@ TAlignment::TAlignment(){
 	parsed = false;
 	changed = false;
 	storageInitialized = false;
-	recalibrated = false;
 	std::string referenceSequence = "";
 	hasReference = false;
 
@@ -46,7 +45,7 @@ TAlignment::TAlignment(){
 TAlignment::TAlignment(uint16_t MaxSize){
 	TAlignment();
 	maxSize = MaxSize;
-	initStorage();
+	_initStorage();
 };
 
 TAlignment::TAlignment(const TAlignment & Alignment){
@@ -54,7 +53,7 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 	//initialize storage
 	maxSize = Alignment.maxSize;
-	initStorage();
+	_initStorage();
 	storageInitialized = true;
 
 	//copy content
@@ -73,7 +72,6 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 	mappingQuality = Alignment.mappingQuality;
 	parsed = Alignment.parsed;
 	changed = Alignment.changed;
-	recalibrated = Alignment.recalibrated;
 	hasReference = Alignment.hasReference;
 	referenceSequence = Alignment.referenceSequence;
 	numInsertions = Alignment.numInsertions;
@@ -105,14 +103,14 @@ TAlignment::TAlignment(const TAlignment & Alignment){
 
 void TAlignment::clear(){
 	position = -1;
-	alignmentName = "empty";
+	alignmentName.clear();
+	length = 0;
 	empty = true;
 	parsed = false;
-	recalibrated = false;
 	changed = false;
 };
 
-void TAlignment::initStorage(){
+void TAlignment::_initStorage(){
 	clear();
 
 	//data
@@ -129,10 +127,9 @@ void TAlignment::initStorage(){
 	softClippedQuality[1] = new char[maxSize];
 
 	storageInitialized = true;
+};
 
-}
-
-void TAlignment::freeStorage(){
+void TAlignment::_freeStorage(){
 	if(storageInitialized){
 		delete[] bases;
 		delete[] softClippedLength;
@@ -151,7 +148,7 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, const uint16_t Read
 	clear();
 
 	//add basic info
-	bamAlignment = BamAlignment;
+	//bamAlignment = BamAlignment; DO WE NEED IT??
 	chrNumber = bamAlignment.RefID;
 	position = bamAlignment.Position;
 	alignmentName = bamAlignment.Name;
@@ -167,11 +164,7 @@ void TAlignment::fill(BamTools::BamAlignment & BamAlignment, const uint16_t Read
 	empty = false;
 };
 
-void TAlignment::setReferenceAdded(){
-	hasReference = true;
-}
-
-void TAlignment::setDistancesFromEnds(){
+void TAlignment::_setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	//is it paired-end?
 	if(isProperPair){
@@ -220,41 +213,38 @@ void TAlignment::setDistancesFromEnds(){
 	}
 };
 
-void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
+void TAlignment::parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
 	if(!parsed){
 		if(!storageInitialized)
 			throw "Alignment storage was not initialized!";
 
 		//first parse bases and qualities
-		parseBasesQualities(genoMap, qualityMap);
+		_parseBasesQualities(genoMap, qualityMap);
 
 		//then update distances from ends
-		setDistancesFromEnds();
+		_setDistancesFromEnds();
 
 		//fill context for each base
-		fillContext(genoMap);
+		_fillContext(genoMap);
 
-		//set maping quality and whether read is first or second
+		//set mapping quality and whether read is first or second
 		for(int d=0; d<length; ++d){
 			bases[d].data.mappingQuality = mappingQuality;
 			bases[d].data.fragmentLength = fragmentLength;
 			bases[d].setSecondMate(isSecondMate);
 			bases[d].setReverseStrand(isReverseStrand);
-			seqErrorModels.recalibrate(bases, length);
 		}
+
+		//recalibrate
+		seqErrorModels.recalibrate(bases, length);
 
 		parsed = true;
 		changed = seqErrorModels.recalibrationChangesQualities();
 	}
 };
 
-void TAlignment::copyDataToBase(TBase & base, const char baseAsChar, const char qualAsChar, TGenotypeMap & genoMap, TQualityMap & qualityMap){
-	base.data.base = genoMap.getBase(baseAsChar);
-	base.data.originalQuality_phredInt = qualityMap.qualityToPhredInt(qualAsChar);
-	base.errorRate = qualityMap.phredIntToError(base.data.originalQuality_phredInt);
-};
+void TAlignment::_parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 
-void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap){
 	// iterate over CigarOps
 	int d = 0; //index regarding data structures and inside read
 	int p = 0; //index regarding reference position (!= k for indels)
@@ -277,7 +267,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 
 				//soft-clipped bases on 5' are before bamAlignment.Position
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);
+					bases[d].data.base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					bases[d].data.originalQuality_phredInt = qualityMap.qualityToPhredInt(bamAlignment.Qualities[d]);
 					bases[d].setAligned(true);
 					alignedPosition[d] = p;
 				}
@@ -294,7 +285,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 					++softClippedLength[softClippedEntry];
 
 					//need to initialize quality for quality filter and bases for context
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
+					bases[d].data.base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					bases[d].data.originalQuality_phredInt = qualityMap.qualityToPhredInt(bamAlignment.Qualities[d]);
 					bases[d].setAligned(false);
 					alignedPosition[d] = -1;
 				}
@@ -303,7 +295,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			//for 'I' - insertion: copy bases, but put aligned pos to -1
 			case (BamTools::Constants::BAM_CIGAR_INS_CHAR)      :
 				for(unsigned int i=0; i<op.Length; ++i, ++d){
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
+					bases[d].data.base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					bases[d].data.originalQuality_phredInt = qualityMap.qualityToPhredInt(bamAlignment.Qualities[d]);
 					bases[d].setAligned(false);
 					alignedPosition[d] = -1;
 					++numInsertions;
@@ -322,7 +315,8 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 			// for 'N' - skipped region: copy but say that bases were not aligned
 			case (BamTools::Constants::BAM_CIGAR_REFSKIP_CHAR) :
 				for(unsigned int i=0; i<op.Length; ++i, ++d, ++p){
-					copyDataToBase(bases[d], bamAlignment.QueryBases[d], bamAlignment.Qualities[d], genoMap, qualityMap);					bases[d].setAligned(false);
+					bases[d].data.base = genoMap.getBase(bamAlignment.QueryBases[d]);
+					bases[d].data.originalQuality_phredInt = qualityMap.qualityToPhredInt(bamAlignment.Qualities[d]);
 					bases[d].setAligned(false);
 					alignedPosition[d] = p;
 				}
@@ -356,7 +350,7 @@ void TAlignment::parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & quali
 	}
 };
 
-void TAlignment::fillContext(TGenotypeMap & genoMap){
+void TAlignment::_fillContext(TGenotypeMap & genoMap){
 	if(isReverseStrand){
 		//reverse
 		for(int d=0; d<(length-1); ++d){
@@ -368,22 +362,6 @@ void TAlignment::fillContext(TGenotypeMap & genoMap){
 		bases[0].data.context = genoMap.contextMap[N][bases[0].data.base];
 		for(int d=1; d<length; ++d)
 			bases[d].data.context = genoMap.contextMap[bases[d-1].data.base][bases[d].data.base];
-	}
-};
-
-void TAlignment::fillPmdProbabilities(GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects){
-	//probabilities of observing changes in BAM file
-	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
-	if(!isReverseStrand){ //is forward
-		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbFivePrime(bases[d].data.distFrom5Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbThreePrime(bases[d].data.distFrom3Prime);
-		}
-	} else { //is reverse
-		for(int d=0; d<length; ++d){
-			bases[d].PMD_CT = pmdObjects[readGroupId].getProbThreePrime(bases[d].data.distFrom3Prime);
-			bases[d].PMD_GA = pmdObjects[readGroupId].getProbFivePrime(bases[d].data.distFrom5Prime);
-		}
 	}
 };
 
@@ -411,21 +389,7 @@ void TAlignment::filterForContext(std::map<BaseContext,int> ignoreTheseContexts)
 	changed = true;
 };
 
-void TAlignment::filterForPrintingBaseQuality(std::string & bases, std::string & qual, int minQualForPrinting, int maxQualForPrinting){
-	//set base to N if outside quality filter
-	std::string::iterator stringItBase = bases.begin();
-	for(std::string::iterator stringIt = qual.begin() ; stringIt < qual.end(); ++stringIt, ++stringItBase){
-		if((int) *stringIt < minQualForPrinting){
-			*stringIt = (char) minQualForPrinting;
-//			*stringItBase = 'N';
-		} else if((int) *stringIt > maxQualForPrinting){
-			*stringIt = (char) maxQualForPrinting;
-//			*stringItBase = 'N';
-		}
-	}
-};
-
-void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime){
+void TAlignment::_trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime){
 	//TODO: should we treat paired-end data differently, i.e. should be consider the 3' end of the fragment?
 	//set base to N at ends of read
 	if(isReverseStrand){
@@ -446,10 +410,16 @@ void TAlignment::trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime
 	changed = true;
 };
 
-void TAlignment::fillReadGroupInfo(int & readGroupID){
+void TAlignment::fillReadGroupInfo(uint16_t & ReadGroupID){
+	readGroupId = ReadGroupID;
 	for(int d=0; d<length; ++d){
-		bases[d].data.readGroup = readGroupID;
+		bases[d].data.readGroup = ReadGroupID;
 	}
+};
+
+void TAlignment::addReference(TFastaBuffer & fasta){
+	fasta.fill(chrNumber, position, lastAlignedPositionWithRespectToRef, referenceSequence);
+	hasReference = true;
 };
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
@@ -528,36 +498,13 @@ void TAlignment::addSitesToQualityTransformTable(TQualityTransformTables & QTtab
 void TAlignment::addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables){
 	for(int i=0; i<length; ++i){
 		if(bases[i].data.base != N){
-			int firstQual = qualMap.errorToQuality(bases[i].errorRate);
-			double tmp = alignment.bases[i].errorRate;
-			alignment.bases[i].errorRate = qualMap.phredIntToError(alignment.bases[i].data.originalQuality_phredInt);
-
-			int secondQual = otherRecalObject->getQuality(alignment.bases[i]);
-			alignment.bases[i].errorRate = tmp;
-
-			QTtables.add(alignment.readGroupId, bases[i].data.recalibratedQualityAsPhredInt, secondQual);
+			QTtables.add(readGroupId, bases[i].data.recalibratedQualityAsPhredInt, otherSeqErrors.getPhredInt(bases[i].data));
 		}
 	}
 };
 
-void TAlignment::recalibrateWithPMD(TRecalibration* recalObject, TQualityMap & qualMap){
-	//make sure read is parsed and has reference
-	if(!parsed) throw "Read was not parsed!";
-	if(!hasReference) throw "Reference was not added!";
-
-	for(int d=0; d<length; ++d){
-		if(bases[d].isAligned() && bases[d].data.base != N){
-			//alignment is already recalibrated, just need to add effect of PMD
-			if(bases[d].data.base == T && referenceSequence[alignedPosition[d].alignedPos] == 'C')
-				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_CT)); //this is mapDamage2, Krishna: qual*(1-pmdCT) + (1-qual)*pmdCT;
-			else if(bases[d].data.base == A && referenceSequence[bases[d].alignedPos] == 'G')
-				bases[d].errorRate = 1.0 - ((1.0 - bases[d].errorRate)*(1.0 - bases[d].PMD_GA)); //this is mapDamage2, Krishna: qual*(1-pmdGA) + (1-qual)*pmdGA;
-		} else {
-			bases[d].errorRate = qualMap.phredIntToError(bases[d].data.originalQuality_phredInt);
-		}
-	}
-
-	recalibrated = true;
+void TAlignment::recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator){
+	GLCalculator.recalibrateWithPMD(bases, length);
 	changed = true;
 };
 
@@ -573,7 +520,7 @@ double TAlignment::calculatePMDS(double & pi, GenotypeLikelihoods::TPMDDoubleStr
 	double fourEpsThird;
 
 	//get PMD probs
-	fillPmdProbabilities(pmdObjects);
+	_fillPmdProbabilities(pmdObjects);
 
 	//go over all bases in read
 	for(int d=0; d<length; ++d){
@@ -757,7 +704,7 @@ void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qual
 	//make sure read is parsed
 	if(!parsed) throw "Read was not parsed!";
 	for(int d=0; d<length; ++d){
-		qualTable.add(qualMap.phredIntToQuality(bases[d].data.recalibratedQualityAsPhredInt));
+		qualTable.add(bases[d].data.recalibratedQualityAsPhredInt);
 	}
 };
 
@@ -770,6 +717,7 @@ void TAlignment::addToContextStats(TContextStats & contextStats){
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
+/*
 void TAlignment::setToSingleEnd(){
 	bamAlignment.Length = bamAlignment.AlignedBases.size();
 	bamAlignment.CigarData.clear();
@@ -783,14 +731,15 @@ void TAlignment::setToSingleEnd(){
 	bamAlignment.MateRefID = -1;
 	bamAlignment.MatePosition = -1;
 	bamAlignment.InsertSize = 0;
-}
+};
+*/
 
 void TAlignment::setIsProperPair(const bool & ok){
 	bamAlignment.SetIsProperPair(ok);
 	isProperPair = false;
 }
 
-void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, int minQualForPrinting, int maxQualForPrinting, TQualityMap & qualMap){
+void TAlignment::save(BamTools::BamWriter & bamWriter, const TGenotypeMap & genoMap, const TQualityMap & qualMap){
 	if(changed){
 		//means that read has been modified.
 
@@ -798,14 +747,11 @@ void TAlignment::save(BamTools::BamWriter & bamWriter, TGenotypeMap & genoMap, i
 		std::string tmpString, tmpString2;
 		for(int d=0; d<length; ++d){
 			tmpString += genoMap.baseToChar[bases[d].data.base];
-			tmpString2 += (char) qualMap.phredIntToQuality(bases[d].data.recalibratedQualityAsPhredInt));
+			tmpString2 += (char) qualMap.phredIntToQuality(bases[d].data.recalibratedQualityAsPhredInt);
 		}
 		bamAlignment.QueryBases = tmpString;
 		bamAlignment.Qualities = tmpString2;
 	}
-
-	//make sure quality are printed within range
-	filterForPrintingBaseQuality(bamAlignment.QueryBases, bamAlignment.Qualities, minQualForPrinting, maxQualForPrinting);
 
 	//now write alignment
 	if(!bamWriter.SaveAlignment(bamAlignment))

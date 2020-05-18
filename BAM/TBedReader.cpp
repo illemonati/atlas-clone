@@ -107,8 +107,7 @@ unsigned int TBedReaderChromosome::size(){
 //-----------------------
 // TBedReader
 //-----------------------
-
-void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile){
+void TBedReader::readFile(const TChromosomes & chromosomeList, unsigned int siteLimit, TLog* logfile){
 	//open file
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
@@ -132,7 +131,7 @@ void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, unsigned 
 		if(vec.size() > 0){
 			if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
 			//get chromosome
-			if(!Sequences.Contains(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
+			if(!chromosomeList.exists(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 			if(vec[0] != curChr){
 				chrIt = chromosomes.find(vec[0]);
 				if(chrIt == chromosomes.end()){
@@ -151,14 +150,12 @@ void TBedReader::readFile(BamTools::SamSequenceDictionary & Sequences, unsigned 
 	delete myStream;
 };
 
-
-
-TBedReader::TBedReader(std::string Filename, const unsigned int & WindowSize, BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile){
+TBedReader::TBedReader(std::string Filename, const unsigned int & WindowSize, const TChromosomes & chromosomeList, unsigned int siteLimit, TLog* logfile){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;
 	curChr = "";
-	readFile(Sequences, siteLimit, logfile);
+	readFile(chromosomeList, siteLimit, logfile);
 };
 
 TBedReader::~TBedReader(){

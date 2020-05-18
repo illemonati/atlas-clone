@@ -19,29 +19,29 @@
 //---------------------------------------------------------------
 TQualityTable::TQualityTable(){
 	initialized = false;
-	maxQ = -1;
-	maxQPlusOne = -1;
+	maxPhredInt = -1;
+	maxPhredIntPlusOne = -1;
 	counts = NULL;
 	freqs = NULL;
 	sum = 0;
 };
 
-TQualityTable::TQualityTable(int MaxQ){
-	init(MaxQ);
+TQualityTable::TQualityTable(int MaxPhredInt){
+	init(MaxPhredInt);
 };
 
-TQualityTable::TQualityTable(TQualityTable && other):maxQ(0),maxQPlusOne(0),counts(nullptr),freqs(nullptr),initialized(false),sum(0){
+TQualityTable::TQualityTable(TQualityTable && other):maxPhredInt(0),maxPhredIntPlusOne(0),counts(nullptr),freqs(nullptr),initialized(false),sum(0){
 	//copy from other
-	maxQ = other.maxQ;
-	maxQPlusOne = other.maxQPlusOne;
+	maxPhredInt = other.maxPhredInt;
+	maxPhredIntPlusOne = other.maxPhredIntPlusOne;
 	counts = other.counts;
 	freqs = other.freqs;
 	initialized = other.initialized;
 	sum = other.sum;
 
 	//set other to default
-	other.maxQ = 0;
-	other.maxQPlusOne = 0;
+	other.maxPhredInt = 0;
+	other.maxPhredIntPlusOne = 0;
 	other.counts = nullptr;
 	other.freqs = nullptr;
 	other.initialized = false;
@@ -49,13 +49,13 @@ TQualityTable::TQualityTable(TQualityTable && other):maxQ(0),maxQPlusOne(0),coun
 };
 
 
-void TQualityTable::init(int MaxQ){
-	maxQ = MaxQ; //Note: quality is phred(error) + 33!
-	maxQPlusOne = maxQ + 1;
-	counts = new long[maxQPlusOne];
-	for(int i=33; i<maxQPlusOne; ++i)
+void TQualityTable::init(int MaxPhredInt){
+	maxPhredInt = MaxPhredInt; //Note: quality is phred(error) + 33!
+	maxPhredIntPlusOne = maxPhredInt + 1;
+	counts = new long[maxPhredIntPlusOne];
+	for(int i=0; i<maxPhredIntPlusOne; ++i)
 		counts[i] = 0;
-	freqs = new double[maxQPlusOne];
+	freqs = new double[maxPhredIntPlusOne];
 	sum = 0;
 	initialized = true;
 };
@@ -69,39 +69,39 @@ TQualityTable::~TQualityTable(){
 
 
 int TQualityTable::getMaxQ(){
-	return maxQ;
+	return maxPhredInt;
 };
 
-void TQualityTable::add(const int & qual){
-	if(qual < maxQPlusOne)
-		++counts[qual];
+void TQualityTable::add(const int & phredInt){
+	if(phredInt < maxPhredIntPlusOne)
+		++counts[phredInt];
 };
 
-void TQualityTable::add(int* qual, int & len){
+void TQualityTable::add(int* phredInt, int & len){
 	for(int i=0; i<len; ++i){
-		if(qual[i] < maxQPlusOne)
-			++counts[qual[i]];
+		if(phredInt[i] < maxPhredIntPlusOne)
+			++counts[phredInt[i]];
 	}
 };
 
 void TQualityTable::add(TQualityTable & other){
 	int otherMaxQ = other.getMaxQ();
-	int m = std::min(maxQ, otherMaxQ) + 1;
+	int m = std::min(maxPhredInt, otherMaxQ) + 1;
 	for(int i=33; i<m; ++i)
 		counts[i] += other.at(i);
 };
 
-long TQualityTable::at(int qual){
-	return counts[qual];
+long TQualityTable::at(int phredInt){
+	return counts[phredInt];
 };
 
 void TQualityTable::calcFrequencies(){
 	sum = 0;
 
-	for(int i=33; i<maxQPlusOne; ++i)
+	for(int i=0; i<maxPhredIntPlusOne; ++i)
 		sum += counts[i];
 
-	for(int i=33; i<maxQPlusOne; ++i)
+	for(int i=0; i<maxPhredIntPlusOne; ++i)
 		freqs[i] = (double) counts[i] / (double) sum;
 };
 
@@ -117,9 +117,9 @@ void TQualityTable::write(const std::string & filename){
 	calcFrequencies();
 
 	double cumulFreq = 0.0;
-	for(int i=33; i<maxQPlusOne; ++i){
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
 		cumulFreq += freqs[i];
-		out << i-33 << "\t" << (char) i << "\t" << counts[i] << "\t" << freqs[i] << "\t" << cumulFreq << "\n";
+		out << i << "\t" << (char) i << "\t" << counts[i] << "\t" << freqs[i] << "\t" << cumulFreq << "\n";
 	}
 };
 
@@ -128,101 +128,96 @@ void TQualityTable::write(const std::string & filename){
 //TQualityTransformTable
 //---------------------------------------------------------------
 
-TQualityTransformTable::TQualityTransformTable(int maxPhredIntInTable){
+TQualityTransformTable::TQualityTransformTable(int MaxPhredInt){
 	initialized = false;
-	initialize(maxPhredIntInTable);
+	initialize(MaxPhredInt);
 };
 
 TQualityTransformTable::TQualityTransformTable(){
 	initialized = false;
-	maxQInTable = 0;
-	maxQInTablePlusOne = 0;
+	maxPhredInt = 0;
+	maxPhredIntPlusOne = 0;
 	table = NULL;
 };
 
 TQualityTransformTable::~TQualityTransformTable(){
-	for(int i=0; i<maxQInTablePlusOne; ++i){
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
 		delete[] table[i];
 	}
 	delete[] table;
 };
 
-void TQualityTransformTable::initialize(int maxPhredIntInTable){
+void TQualityTransformTable::initialize(int MaxPhredInt){
 	if(initialized == true)
 		throw "Quality table already initialized!";
 
-	maxQInTable = maxPhredIntInTable + 33;
-	maxQInTablePlusOne = maxQInTable + 1;
-	table = new double*[maxQInTablePlusOne];
-	for(int i=0; i<maxQInTablePlusOne; ++i){
-		table[i] = new double[maxQInTablePlusOne];
-		for(int j=0; j<maxQInTablePlusOne; ++j){
+	maxPhredInt = MaxPhredInt;
+	maxPhredIntPlusOne = maxPhredInt + 1;
+
+	//initialize table
+	table = new double*[maxPhredIntPlusOne];
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
+		table[i] = new double[maxPhredIntPlusOne];
+		for(int j=0; j<maxPhredIntPlusOne; ++j){
 			table[i][j] = 0;
 		}
 	}
 	initialized = true;
 };
 
-void TQualityTransformTable::add(const int oldQuality, const int newQuality){
-	if(oldQuality < maxQInTable && newQuality < maxQInTable){
-		table[oldQuality][newQuality] += 1.0;
+void TQualityTransformTable::add(const int oldPhredInt, const int newPhredInt){
+	if(oldPhredInt < maxPhredIntPlusOne && newPhredInt < maxPhredIntPlusOne){
+		table[oldPhredInt][newPhredInt] += 1.0;
 	}
 };
 
 double TQualityTransformTable::size(){
 	double size = 0;
-	for(int i=33; i<maxQInTablePlusOne; ++i){
-		for(int j=33; j<maxQInTablePlusOne; ++j){
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
+		for(int j=0; j<maxPhredIntPlusOne; ++j){
 			size += table[i][j];
 		}
 	}
 	return size;
 };
 
-double TQualityTransformTable::printTableReturnRSquared(const std::string filename){
+double TQualityTransformTable::writeTableAndReturnRSquared(const std::string filename){
 	//get total
-	double sum = size();
+	double totSum = size();
 
 	//calculate mean oldQ
 	double meanOldQ = 0.0;
-	for(int i=33; i<maxQInTablePlusOne; ++i){
-		double weight_i = 0.0;
-		for(int j=33; j<maxQInTablePlusOne; ++j){
-			double weight = table[i][j] / sum;
-			weight_i += weight;
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
+		int colSum = 0;
+		for(int j=0; j<maxPhredIntPlusOne; ++j){
+			colSum += table[i][j];
 		}
-		meanOldQ += (double) i * weight_i;
+		meanOldQ += (double) i * (double) colSum;
 	}
+	meanOldQ /= totSum;
 
 	//open file
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open output file '" + filename + "'!";
+	TOutputFilePlain out(filename);
 
 	//print header
-	out << "oldQ/newQ";
-	for(int i=33; i<maxQInTablePlusOne; ++i)
-		out << "\t" << i-33;
-	out << "\n";
+	std::vector<std::string> header = {"oldQ/newQ"};
+	for(int i=0; i<maxPhredIntPlusOne; ++i)
+		header.push_back(toString(i));
 
 	//prepare calculating R squared
 	double SSres = 0.0;
 	double SStot = 0.0;
 
 	//print rows
-	for(int i=33; i<maxQInTablePlusOne; ++i){
-		out << i-33;
-		double meanOldQ = 0.0;
-		for(int j=33; j<maxQInTablePlusOne; ++j){
-			double weight = table[i][j] / sum;
-			out << "\t" << weight;
+	for(int i=0; i<maxPhredIntPlusOne; ++i){
+		out << i;
+		for(int j=33; j<maxPhredIntPlusOne; ++j){
+			double weight = table[i][j] / totSum;
 			SSres += weight * ((double) i - (double) j) * ((double) i - (double) j);
 			SStot += weight * ((double) j - meanOldQ) * ((double) j - meanOldQ);
 		}
-		out << "\n";
+		out.endLine();
 	}
-
-	//close file
-	out.close();
 
 	return((SStot - SSres) / SStot);
 };
@@ -231,28 +226,28 @@ double TQualityTransformTable::printTableReturnRSquared(const std::string filena
 //---------------------------------------------------------------
 //TQualityTransformTables
 //---------------------------------------------------------------
-TQualityTransformTables::TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ){
+TQualityTransformTables::TQualityTransformTables(TReadGroups & ReadGroups, int MaxPhredInt){
 	readGroups = &ReadGroups;
 
-	combinedTable.initialize(MaxQ);
+	combinedTable.initialize(MaxPhredInt);
 	perReadGroupTables = new TQualityTransformTable[readGroups->size()];
 	for(unsigned int i=0; i<readGroups->size(); i++)
-		perReadGroupTables[i].initialize(MaxQ);
+		perReadGroupTables[i].initialize(MaxPhredInt);
 };
 
-void TQualityTransformTables::add(const int readGroup, const int oldQuality, const int newQuality){
-	perReadGroupTables[readGroup].add(oldQuality, newQuality);
-	combinedTable.add(oldQuality, newQuality);
+void TQualityTransformTables::add(const int readGroup, const int oldPhredInt, const int newPhredInt){
+	perReadGroupTables[readGroup].add(oldPhredInt, newPhredInt);
+	combinedTable.add(oldPhredInt, newPhredInt);
 };
 
 void TQualityTransformTables::writeTables(std::string outputName, TLog* logfile){
 	//print tables for read groups
 	for(unsigned int i=0; i<readGroups->size(); ++i){
-		double RSquared = perReadGroupTables[i].printTableReturnRSquared(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
+		double RSquared = perReadGroupTables[i].writeTableAndReturnRSquared(outputName + "_" + readGroups->getName(i) + "_qualityTransformation.txt");
 		logfile->conclude("R squared for read group " + readGroups->getName(i) + " is " + toString(RSquared));
 	}
 
-	double RSquared = combinedTable.printTableReturnRSquared(outputName + "_total_qualityTransformation.txt");
+	double RSquared = combinedTable.writeTableAndReturnRSquared(outputName + "_total_qualityTransformation.txt");
 	logfile->conclude("R squared for total data is " + toString(RSquared));
 
 };

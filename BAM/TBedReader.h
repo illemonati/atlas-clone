@@ -11,11 +11,10 @@
 #include <fstream>
 #include <vector>
 #include <map>
-#include "bamtools/api/SamSequenceDictionary.h"
 #include "stringFunctions.h"
 #include "TLog.h"
 #include "gzstream.h"
-
+#include "TChromosomes.h"
 
 //read sorted bed files window by window
 //store all data in chr / window combinations using vectors
@@ -60,11 +59,11 @@ private:
 	std::string curChr;
 	unsigned int numPositionsAdded;
 
-	void readFile(BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile);
+	void readFile(const TChromosomes & chromosomeList, unsigned int siteLimit, TLog* logfile);
 
 public:
 	std::string filename;
-	TBedReader(std::string Filename, const unsigned int & WindowSize, BamTools::SamSequenceDictionary & Sequences, unsigned int siteLimit, TLog* logfile);
+	TBedReader(std::string Filename, const unsigned int & WindowSize, const TChromosomes & chromosomes, unsigned int siteLimit, TLog* logfile);
 	~TBedReader();
 	void setChr(const std::string & chr);
 	void print();

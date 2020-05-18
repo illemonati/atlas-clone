@@ -265,7 +265,7 @@ void TSequencingErrorModels::warningForMissingReadGroups(){
 //functions to get error rates
 //-------------------------------------------------------
 
-double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data){
+double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data) const{
 	if(doRecalibration){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
 	} else {
@@ -273,27 +273,45 @@ double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & dat
 	}
 };
 
-double TSequencingErrorModels::getErrorRate(const TBaseData & base){
-	if(doRecalibration){
+double TSequencingErrorModels::getErrorRate(const TBaseData & base) const{
+	if(base.base == N){
+		return 1.0;
+	} else if(doRecalibration){
 		return models[ readGroupIndex.index(base) ].getErrorRate(base);
 	} else {
 		return qualMap.phredIntToError(base.originalQuality_phredInt);
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBaseData & base){
-	if(doRecalibration){
+uint8_t TSequencingErrorModels::getPhredInt(const TBaseData & base) const{
+	if(base.base == N){
+		return 0;
+	} else if(doRecalibration){
+		return qualMap.errorToPhredInt( models[ readGroupIndex.index(base) ].getErrorRate(base) );
+	} else {
+		return base.originalQuality_phredInt;
+	}
+};
+
+void TSequencingErrorModels::recalibrate(TBaseData & base) const{
+	if(base.base == N){
+		base.recalibratedQualityAsPhredInt = 0;
+	} else if(doRecalibration){
 		base.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(models[ readGroupIndex.index(base) ].getErrorRate(base));
 	} else {
 		base.recalibratedQualityAsPhredInt = base.originalQuality_phredInt;
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length){
+void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length) const{
 	if(doRecalibration){
-		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0].data) ]
+		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0].data) ];
 		for(uint16_t i=0; i<length; ++i){
-			bases[i].data.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(bases[i].data));
+			if(bases[i].data.base == N){
+				bases[i].data.recalibratedQualityAsPhredInt = 0;
+			} else {
+				bases[i].data.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(bases[i].data));
+			}
 		}
 	} else {
 		for(uint16_t i=0; i<length; ++i){
@@ -302,8 +320,10 @@ void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length){
 	}
 };
 
-void TSequencingErrorModels::calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
-	if(doRecalibration){
+void TSequencingErrorModels::calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods) const{
+	if(base.base == N){
+		baseLikelihoods.reset();
+	} else if(doRecalibration){
 		models[ readGroupIndex.index(base) ].fillBaseLikelihoods(base, baseLikelihoods);
 	} else {
 		defaultRho.fillBaseLikelihoods(base.base, qualMap.phredIntToError(base.originalQuality_phredInt), baseLikelihoods);

@@ -8,12 +8,10 @@
 #ifndef TALIGNMENTPARSER_H_
 #define TALIGNMENTPARSER_H_
 
-#include "bamtools/api/BamReader.h"
+#include "TBamFile.h"
 #include "bamtools/api/BamWriter.h"
-#include "bamtools/api/SamSequenceDictionary.h"
 #include "bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
-#include "TReadGroups.h"
 #include "TLog.h"
 #include "TPostMortemDamage.h"
 #include "TAlignment.h"
@@ -23,6 +21,8 @@
 #include "TChromosomes.h"
 #include "TFastaBuffer.h"
 #include <vector>
+#include "progressTools.h"
+
 
 //-----------------------------------------------------
 //TAlignmentParser
@@ -40,15 +40,11 @@ private:
 	bool _keepSupplementary;
 	bool _parse;
 
-	unsigned int previousAlignmentPos;
-	int previousAlignmentChr; //negative at beginning to trigger a chromosome change
 	TAlignment* oldAlignment;
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
 	//counters
-	int totalNumberAlignmentsRead;
-	int64_t sizeOfBamFile;
 	bool hasWindowIndent;
 
 	//read trimming
@@ -88,13 +84,14 @@ private:
 	//limit chr and windows
 	long limitWindows;
 	int skipWindows;
-	int indexOfLimitChr;
 	bool doLimitReads;
 	long limitReads;
-//	bool* useChromosome;
+
+	//BAM file
+	TBamFile* bamFile;
 
 	//recalibration
-	GenotypeLikelihoods::TSequencingErrorModels* seqErrorModels;
+	GenotypeLikelihoods::TGenotypeLikelihoodCalculator* genotypeLikelihoodCalculator;
 
 	//contructor functions
 	void _openBamFile(std::string filename, bool indexNotRequired);
@@ -104,10 +101,16 @@ private:
 	void _setAlignmentFilters(TParameters & params);
 	void _setSiteFilters(TParameters & params);
 	void _setBaseFilters(TParameters & params);
+	void _setQualityFilters(int MinPhredInt, int MaxPhredInt);
+	void _setMappingQualityFilters(int MinMQ, int MaxMQ);
+	void _setContextFilter(std::vector<std::string> contexts);
+	void _setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
+	void _setAlignmentFiltersToKeepAll();
+	void _setQualityRangeForPrinting(int minQual, int maxQual);
 	void _setMasks(TParameters & params);
 //	void initializeSiteSubset(TParameters & params);
-	void _initializeReadGroups(TParameters & params);
 	void _setParsingLimits(TParameters & params);
+	void _setReadTrimming(TParameters & params);
 	void _setChrPloidy(TParameters & params);
 
 	//move genome
@@ -132,7 +135,6 @@ private:
 public:
 	//alignment: goal is to make this private!
 	int curReadGroupID;
-	int minQualForPrinting, maxQualForPrinting;
 	int minQualityAsPhredInt, maxQualityAsPhredInt;
 	bool doMasking, considerRegions;
 	bool applyDepthFilter;
@@ -142,47 +144,40 @@ public:
 	TSiteSubset* subset = NULL;
  	TReadGroups readGroups;
 
-	BamTools::BamAlignment bamAlignment;
-
 	//maps
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 
-	//BAM file
-	std::string filename;
+	//std::string filename;
 	std::string outname;
-	BamTools::BamReader bamReader;
-	BamTools::BamRegion bamRegion;
- 	BamTools::SamHeader bamHeader;
- 	TChromosomes chromosomes;
+	//BamTools::BamReader bamReader;
+	//BamTools::BamRegion bamRegion;
+ 	//BamTools::SamHeader bamHeader;
+ 	//TChromosomes chromosomes;
 
  	//reference
 	bool hasReference;
-	bool chrChangedAlignment;
 	bool chrChangedWindow;
 	BamTools::Fasta* fastaReference;
 	TFastaBuffer fastaBuffer;
 
  	//recalibration
-	TRecalibration* recalObject;
-	bool doRecalibration;
-	bool recalObjectInitialized;
+	//TRecalibration* recalObject;
+	//bool doRecalibration;
+	//bool recalObjectInitialized;
 
 	//PMD
-	bool hasPMD;
-	GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects;
+	//bool hasPMD;
+	//GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects;
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(uint16_t MaxReadLength, TParameters & params, TLog* Logfile);
+	TAlignmentParser(TParameters & params, TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile);
 	~TAlignmentParser();
-	void init(uint16_t MaxReadLength, TParameters & params, TLog* Logfile);
-	void setRecalibration(GenotypeLikelihoods::TSequencingErrorModels* SeqErrorModels);
+	void init(TParameters & params, TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile);
 
 	//getters
-	bool qualitiesScoresAreRecalibrated(){ return recalObject->recalibrationChangesQualities(); };
 	int numReadGroups(){ return readGroups.size(); };
-	std::string recalibrationType(){ return recalObject->type(); };
 	unsigned int getWindowSize(){return windowSize;};
 	int getMaxPhredInt(){return maxQualityAsPhredInt;};
 	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
@@ -191,34 +186,10 @@ public:
 
 	//setters
 	void setOutName(std::string outputName);
-	void setQualityFilters(int MinPhredInt, int MaxPhredInt);
-	void setMappingQualityFilters(int MinMQ, int MaxMQ);
-	void setQualityRangeForPrinting(int minQual, int maxQual);
-	void setContextFilter(std::vector<std::string> contexts);
-	void setReadTrimming(int trim3Prime, int trim5Prime);
-	void setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
-
-	void setFiltersToKeepAll(){
-		_keepAll = true;
-		_keepDuplicates = true;
-		_filterSoftClips = false;
-		_keepImproperPairs = true;
-		_keepUnmappedReads = true;
-		_keepFailedQC = true;
-		_keepSecondary = true;
-		_keepSupplementary = true;
-		_keepReadsLongerThanInsertSize = true;
-	};
-	void keepDuplicates(){_keepDuplicates = true;};
-	void filterSoftClips(){_filterSoftClips = true;};
-	void keepImproperPairs(){_keepImproperPairs = true;};
-	void keepUnmappedReads(){_keepUnmappedReads = true;};
-	void keepFailedQC(){_keepFailedQC = true;};
-	void keepSecondaryReads(){_keepSecondary = true;};
-	void keepSupplementaryReads(){_keepSupplementary = true;};
-	void keepReadsLongerThanInsertSize(){_keepReadsLongerThanInsertSize = true;};
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
+
+/*
 	std::string chrNumberToName(uint16_t chrNumber);
 	uint32_t calcReferenceLength();
 	std::string getCurChrName();
@@ -226,6 +197,7 @@ public:
 	uint32_t getCurChrLength();
 	uint8_t getCurChrPloidy();
 	bool getKeepAll();
+	*/
 
 	//blacklist
 	void setUpdateBlacklistToTrue(){
@@ -305,7 +277,7 @@ public:
 	//qualityTransformation
 	//void initializeRecalibrationForQualityTransformation(TParameters & params);
 	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TRecalibration* otherRecalObject, TQualityTransformTables & QTtables);
+	void addSitesToQualityTransformTable(TAlignment & alignment, GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
 	void mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
@@ -316,14 +288,13 @@ public:
 //-----------------------------------------------------
 class TBamProgressReporter{
 private:
-	timeval start, end;
+	TTimer timer;
 	TAlignmentParser* parser;
 	TLog* logfile;
 	int progressFrequency;
 	int lastProgressPrinted;
 
 	void _init(int Frequency, TAlignmentParser* Parser, TLog* Logfile);
-	std::string _getRunTime();
 	void _printProgress();
 
 public:
@@ -332,6 +303,7 @@ public:
 
 	void printProgress();
 	void printEnd();
+	void printEndNoEndIndent(); //so that other conclusions can be added
 };
 
 

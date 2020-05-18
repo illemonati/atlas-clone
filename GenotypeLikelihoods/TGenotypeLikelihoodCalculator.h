@@ -25,7 +25,7 @@ private:
 
 	TGenotypeDistribution genotypeDistribution;
 	TPostMortemDamage pmd;
-	TSequencingErrorModels errorModels; //TODO: find a way not to use a pointer
+	TSequencingErrorModels sequencingErrorModels; //TODO: find a way not to use a pointer
 
 	//temporary storage
 	TGenotypeLikelihoods genotypeLikelihoods;
@@ -38,9 +38,17 @@ public:
 	~TGenotypeLikelihoodCalculator();
 
 	void init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
-
+	TSequencingErrorModels& getSequencingErrorModels(){ return sequencingErrorModels; };
 
 	double getErrorRate(const TBaseData & base);
+	double getErrorWithPMD(const TBaseData & base);
+	uint8_t getPhredInt(const TBaseData & base);
+	uint8_t getPhredIntWithPMD(const TBaseData & base);
+	void recalibrate(TBaseData & base);
+	void recalibrateWithPMD(TBaseData & base);
+	void recalibrate(TBase* bases, const uint16_t  length);
+	void recalibrateWithPMD(TBase* bases, const uint16_t  length);
+
 	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);
 };
 

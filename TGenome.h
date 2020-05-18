@@ -34,6 +34,7 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
+	TBamFile bamFile;
  	TAlignmentParser alignmentParser;
  	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
 	BamTools::Fasta reference;
@@ -41,7 +42,6 @@ private:
 
 	TLog* logfile;
 	std::string outputName;
-	int maxReadLength;
 
 	void jumpToEnd();
 
