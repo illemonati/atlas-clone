@@ -37,7 +37,7 @@ private:
 	TBamFile bamFile;
  	TAlignmentParser alignmentParser;
  	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
-	BamTools::Fasta reference;
+	TFastaBuffer reference;
  	TRandomGenerator* randomGenerator;
 
 	TLog* logfile;

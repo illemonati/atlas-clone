@@ -15,14 +15,19 @@
 #include "TLog.h"
 
 
+//---------------------------------------------------------
+// TChromosome
+//---------------------------------------------------------
 class TChromosome{
 public:
+	uint16_t refID;
 	std::string name;
 	uint32_t length;
 	uint8_t ploidy;
 	bool inUse;
 
-	TChromosome(const std::string Name, const uint32_t Length){
+	TChromosome(const uint16_t RefID, const std::string Name, const uint32_t Length){
+		refID = RefID;
 		name = Name;
 		length = Length;
 		ploidy = 2; //default: diploid
@@ -30,18 +35,19 @@ public:
 	};
 };
 
+//---------------------------------------------------------
+// TChromosomes
+//---------------------------------------------------------
+
 class TChromosomes{
 private:
-	std::vector<TChromosome> chromosomes;
+	std::vector<TChromosome> _chromosomes;
+	std::vector<TChromosome>::iterator _curChr;
 
-	std::vector<TChromosome>::iterator curChr;
-	//uint16_t curChrNumber;
-	//uint16_t
-
-	TChromosome& _find(const std::string chrName);
+	TChromosome& _find(const std::string chrName) const;
 
 public:
-	TChromosomes();
+	TChromosomes(){};
 	TChromosomes(BamTools::SamHeader* BamHeader);
 	void readChromosomes(BamTools::SamHeader* BamHeader);
 	void limitChr(const std::string limitName);
@@ -59,17 +65,24 @@ public:
 
 	//getters
 	uint16_t size() const;
-	uint16_t curIndex() const;
 	uint32_t referenceLength() const;
-	uint16_t getIndexFromName(const std::string chrName) const;
+	bool exists(const std::string name) const;
+
+	TChromosome& getChromosome(const std::string chrName);
+	TChromosome& curChromosome();
+
+	uint16_t refID(const std::string chrName) const;
+	uint16_t curRefID() const;
 
 	uint32_t length(const uint16_t index) const;
 	uint32_t curLength() const;
+
 	std::string name(const uint16_t index) const;
 	std::string curName() const;
-	bool exists(const std::string name) const;
+
 	bool inUse(const uint16_t index) const;
 	bool curInUse() const;
+
 	uint8_t ploidy(const uint16_t index) const;
 	uint8_t curPloidy() const;
 };

@@ -58,7 +58,7 @@ public:
 	void stealFromOther(TWindow_base & other);
 	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset* subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	virtual ~TWindow_base();
 
@@ -69,8 +69,8 @@ public:
 	void initSites(long newLength);
 	void clear();
 	virtual void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
-	void addReferenceBaseToSites(BamTools::Fasta & reference);
-	void addReferenceBaseToSites(TSiteSubset* subset);
+	void addReferenceBaseToSites(TFastaBuffer & reference);
+	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(TBedReader* mask, bool inverseMasking);
 	void maskCpG();
 	void estimateBaseFrequencies();
@@ -94,10 +94,10 @@ public:
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region);
 	void addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll);
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset* subset, TQualityMap & qualMap);
+	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset & subset, TQualityMap & qualMap);
 
 	//callers
-	void call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, BamTools::Fasta & reference);
+	void call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TFastaBuffer & reference);
 	void callKnwonAlleles(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TSiteSubset & subset);
 	void printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData);
 
@@ -121,7 +121,7 @@ private:
 	void checkAlignmentForFillingSites(TAlignment* alignmentIt);
 	void setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p);
 	void fillSites(TAlignment* alignmentIt, TSite* theseSites, const unsigned int & readUpToDepth);
-	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::map<unsigned int,std::pair<char,char> > & thesePos, const unsigned int & readUpToDepth);
+	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
 
 public:
 	TWindow();
@@ -135,9 +135,9 @@ public:
 	int fillSites(TSite* theseSites, const unsigned int & readUpToDepth);
 	int fillSitesDownsampling(TSite* theseSites, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
 
-	void fillSitesSubset(TSiteSubset* subset, const unsigned int & readUpToDepth);
-	int fillSitesSubset(TSite* theseSites, TSiteSubset* subset, const unsigned int & readUpToDepth);
-	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset* subset, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
+	void fillSitesSubset(TSiteSubset & subset, const unsigned int & readUpToDepth);
+	int fillSitesSubset(TSite* theseSites, TSiteSubset & subset, const unsigned int & readUpToDepth);
+	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset & subset, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
 };

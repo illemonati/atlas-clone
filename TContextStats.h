@@ -8,9 +8,9 @@
 #ifndef TCONTEXTSTATS_H_
 #define TCONTEXTSTATS_H_
 
+#include <TBase.h>
 #include "TGenotypeMap.h"
 #include "TQualityMap.h"
-#include "TBase.h"
 
 class TContextStats{
 private:
@@ -47,7 +47,7 @@ public:
 		_free();
 	};
 
-	void add(const TBaseData & base){
+	void add(const TBase & base){
 		++contextCounts[base.recalibratedQualityAsPhredInt][base.context];
 	};
 

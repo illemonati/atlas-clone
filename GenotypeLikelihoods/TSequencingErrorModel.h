@@ -107,7 +107,7 @@ private:
 
 public:
 	TSequencingErrorRho();
-	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseLikelihoods & baseLikelihoods);
+	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods);
 };
 
 //--------------------------------------------------------------------
@@ -162,11 +162,11 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 
-	void fillBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods);
+	void fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods);
 	TSequencingErrorCovariateDefinition getCovariateDefinition();
 
 	//REMOVE!
-	double getErrorRate(const TBaseData & base);
+	double getErrorRate(const TBase & base);
 	double getErrorRate(const TRecalibrationEMReadData & data);
 };
 

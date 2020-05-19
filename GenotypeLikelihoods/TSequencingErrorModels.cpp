@@ -273,7 +273,7 @@ double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & dat
 	}
 };
 
-double TSequencingErrorModels::getErrorRate(const TBaseData & base) const{
+double TSequencingErrorModels::getErrorRate(const TBase & base) const{
 	if(base.base == N){
 		return 1.0;
 	} else if(doRecalibration){
@@ -283,7 +283,7 @@ double TSequencingErrorModels::getErrorRate(const TBaseData & base) const{
 	}
 };
 
-uint8_t TSequencingErrorModels::getPhredInt(const TBaseData & base) const{
+uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
 	if(base.base == N){
 		return 0;
 	} else if(doRecalibration){
@@ -293,7 +293,7 @@ uint8_t TSequencingErrorModels::getPhredInt(const TBaseData & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBaseData & base) const{
+void TSequencingErrorModels::recalibrate(TBase & base) const{
 	if(base.base == N){
 		base.recalibratedQualityAsPhredInt = 0;
 	} else if(doRecalibration){
@@ -305,22 +305,22 @@ void TSequencingErrorModels::recalibrate(TBaseData & base) const{
 
 void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length) const{
 	if(doRecalibration){
-		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0].data) ];
+		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
-			if(bases[i].data.base == N){
-				bases[i].data.recalibratedQualityAsPhredInt = 0;
+			if(bases[i].base == N){
+				bases[i].recalibratedQualityAsPhredInt = 0;
 			} else {
-				bases[i].data.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(bases[i].data));
+				bases[i].recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(bases[i]));
 			}
 		}
 	} else {
 		for(uint16_t i=0; i<length; ++i){
-			bases[i].data.recalibratedQualityAsPhredInt = bases[i].data.originalQuality_phredInt;
+			bases[i].recalibratedQualityAsPhredInt = bases[i].originalQuality_phredInt;
 		}
 	}
 };
 
-void TSequencingErrorModels::calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods) const{
+void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
 	if(base.base == N){
 		baseLikelihoods.reset();
 	} else if(doRecalibration){

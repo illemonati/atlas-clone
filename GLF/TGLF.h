@@ -19,8 +19,9 @@
 #include "stringFunctions.h"
 #include "TGenotypeMap.h"
 #include "TRandomGenerator.h"
-#include "../TFastaBuffer.h"
+#include "TFastaBuffer.h"
 #include "TGenotypeData.h"
+#include "TChromosomes.h"
 
 //----------------------------------------------------
 // TGlfConverter
@@ -50,6 +51,7 @@ public:
 //----------------------------------------------------
 //TGlfChromosome
 //struct to store info on chromosome
+//TODO: derive from TChromosome??
 //----------------------------------------------------
 class TGlfChromosome{
 private:
@@ -215,7 +217,7 @@ public:
 
 	//open & close streams
 	void open(std::string Filename, std::string Header);
-	void newChromosome(const std::string name, const uint16_t refId, const uint32_t length, const uint8_t ploidy);
+	void newChromosome(const TChromosome & chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
 

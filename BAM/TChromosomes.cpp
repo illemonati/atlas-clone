@@ -8,31 +8,32 @@
 #include "TChromosomes.h"
 #include "TLog.h"
 
-TChromosomes::TChromosomes(){};
-
+//---------------------------------------------------------
+// TChromosomes
+//---------------------------------------------------------
 TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
 	readChromosomes(BamHeader);
 };
 
 void TChromosomes::readChromosomes(BamTools::SamHeader* BamHeader){
 	//make sure object is empty
-	chromosomes.clear();
+	_chromosomes.clear();
 
 	//copy from BamHeader
 	uint16_t num = 0;
 	for(BamTools::SamSequenceIterator chrIt=BamHeader->Sequences.Begin(); chrIt!=BamHeader->Sequences.End(); ++chrIt, ++num){
-		chromosomes.emplace_back(chrIt->Name, stringToLong(chrIt->Length));
+		_chromosomes.emplace_back(_chromosomes.size(), chrIt->Name, stringToLong(chrIt->Length));
 	}
 
-	curChr = chromosomes.end();
+	_curChr = _chromosomes.end();
 
-	if(chromosomes.empty()){
+	if(_chromosomes.empty()){
 		throw "No chromosomes present in BAM header!";
 	}
 };
 
-TChromosome& TChromosomes::_find(const std::string chrName){
-	for(auto& c : chromosomes){
+TChromosome& TChromosomes::_find(const std::string chrName) const{
+	for(auto& c : _chromosomes){
 		if(c.name == chrName)
 			return c;
 	}
@@ -44,7 +45,7 @@ void TChromosomes::limitChr(const std::string limitName){
 	_find(limitName);
 
 	bool use = true;
-	for(auto& it : chromosomes){
+	for(auto& it : _chromosomes){
 		if(it.name == limitName){
 			use = false;
 		}
@@ -54,7 +55,7 @@ void TChromosomes::limitChr(const std::string limitName){
 
 void TChromosomes::useSpecifiedChr(const std::vector<std::string> & chrNames){
 	//set all chromosomes to false
-	for(auto& c : chromosomes){
+	for(auto& c : _chromosomes){
 		c.inUse = false;
 	}
 
@@ -67,7 +68,7 @@ void TChromosomes::useSpecifiedChr(const std::vector<std::string> & chrNames){
 };
 
 void TChromosomes::writeUsedChromosomes(TLog* logfile){
-	for(auto& it : chromosomes){
+	for(auto& it : _chromosomes){
 		if(it.inUse){
 			logfile->list(it.name);
 		}
@@ -75,8 +76,6 @@ void TChromosomes::writeUsedChromosomes(TLog* logfile){
 
 	logfile->endIndent();
 };
-
-
 
 void TChromosomes::specifyPloidy(std::ifstream & ploidyFile, TLog* logfile){
 	logfile->startIndent("Setting ploidy for following chromosomes to:");
@@ -118,84 +117,95 @@ void TChromosomes::setToHaploid(std::vector<std::string> chrNames, TLog* logfile
 
 //move
 void TChromosomes::begin(){
-	curChr = chromosomes.begin();
+	_curChr = _chromosomes.begin();
 };
 
 bool TChromosomes::next(){
-	++curChr;
-	return curChr != chromosomes.end();
+	++_curChr;
+	return _curChr != _chromosomes.end();
 };
 
 bool TChromosomes::end() const{
-	return curChr == chromosomes.end();
+	return _curChr == _chromosomes.end();
 };
 
 void TChromosomes::jumpToEnd(){
-	curChr = chromosomes.end();
-};
-
-uint32_t TChromosomes::referenceLength() const{
-	int chrNum = 0;
-	long totLength = 0;
-	for(BamTools::SamSequenceIterator chrIterator = bamHeader->Sequences.Begin(); chrIterator!=bamHeader->Sequences.End(); ++chrIterator, ++chrNum)
-	    if(isInUse[chrNum]) totLength += stringToLong(chrIterator->Length);
-	return totLength;
+	_curChr = _chromosomes.end();
 };
 
 //getters
 uint16_t TChromosomes::size() const{
-	return numChromosomes;
+	return _chromosomes.size();
 }
 
-uint16_t TChromosomes::curIndex() const{
-	return curChrNumber;
-};
-
-uint32_t TChromosomes::length(const uint16_t index) const{
-	return lengths[index];
-};
-
-uint32_t TChromosomes::curLength() const{
-	return lengths[curChrNumber];
-};
-
-std::string TChromosomes::curName() const{
-	return names[curChrNumber];
-};
-
-std::string TChromosomes::name(const uint16_t index) const{
-	return names[index];
-};
-
-uint16_t TChromosomes::getIndexFromName(const std::string chrName) const{
-	if(nameMap.find(chrName) != nameMap.end()){
-		return nameMap.find(chrName)->second;
-	} else {
-		throw "Chromosome " + chrName + " was not found in BAM header!";
+uint32_t TChromosomes::referenceLength() const{
+	int chrNum = 0;
+	long totLength = 0;
+	for(auto& c : _chromosomes){
+		if(c.inUse)
+			totLength += c.length;
 	}
+	return totLength;
 };
 
 bool TChromosomes::exists(const std::string chrName) const{
-	if(nameMap.find(chrName) == nameMap.end()){
-		return false;
-	} else {
-		return true;
+	for(auto& c : _chromosomes){
+		if(c.name == chrName)
+			return true;
 	}
+	return false;
 };
 
+TChromosome& TChromosomes::getChromosome(const std::string chrName){
+	return _find(chrName);
+};
+
+TChromosome& TChromosomes::curChromosome(){
+	return *_curChr;
+};
+
+
+uint16_t TChromosomes::refID(const std::string chrName) const{
+	return _find(chrName).refID;
+};
+
+uint16_t TChromosomes::curRefID() const{
+	return _curChr->refID;
+};
+
+
+uint32_t TChromosomes::length(const uint16_t index) const{
+	return _chromosomes[index].length;
+};
+
+uint32_t TChromosomes::curLength() const{
+	return _curChr->length;
+};
+
+
+std::string TChromosomes::name(const uint16_t index) const{
+	return _chromosomes[index].name;
+};
+
+std::string TChromosomes::curName() const{
+	return _curChr->name;
+};
+
+
 bool TChromosomes::inUse(const uint16_t index) const{
-	return isInUse[index];
+	return _chromosomes[index].inUse;
 };
 
 bool TChromosomes::curInUse() const{
-	return isInUse[curChrNumber];
+	return _curChr->inUse;
 };
 
+
 uint8_t TChromosomes::ploidy(const uint16_t index) const{
-	return ploidies[index];
+	return _chromosomes[index].ploidy;
 };
 
 uint8_t TChromosomes::curPloidy() const{
-	return ploidies[curChrNumber];
+	return _curChr->ploidy;
 };
 

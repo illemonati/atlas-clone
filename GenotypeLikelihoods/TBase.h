@@ -16,7 +16,7 @@
 //TBase
 //---------------------------------------------------------------
 //data container with minimal footprint, also used in recal
-class TBaseData{
+class TBase{
 private:
 	//flags: isReverseStrand, isSecondMate, isAligned
 	std::bitset<3> flags; //initialized as 0,0,0
@@ -32,7 +32,7 @@ public:
 	uint8_t mappingQuality;
 	BaseContext context;
 
-	TBaseData(){
+	TBase(){
 		base = N;
 		originalQuality_phredInt = 0;
 		recalibratedQualityAsPhredInt = 0;
@@ -52,36 +52,6 @@ public:
 	void setReverseStrand(const bool status){ flags[0] = status; };
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
-};
-
-class TBase{
-public:
-	TBaseData data;
-
-	//tmp variables. Remove to fuse TBase with TBaseData?
-	//uint16_t alignedPos; //takes value -1 when base is not aligned
-	//double errorRate;
-	//double PMD_CT, PMD_GA;
-
-	TBase(){
-		//errorRate = -1.0;
-		//PMD_CT = -1.0;
-		//PMD_GA = -1.0;
-		//alignedPos = 0;
-	};
-	~TBase(){};
-
-	bool isReverseStrand(){ return data.isReverseStrand(); };
-	bool isSecondMate(){ return data.isSecondMate(); };
-	bool isAligned(){ return data.isAligned(); };
-
-	void setReverseStrand(const bool status){ data.setReverseStrand(status); };
-	void setSecondMate(const bool status){ data.setSecondMate(status); };
-	void setAligned(const bool status){ data.setAligned(status); };
-
-	void addToEmissionProb(double genotypeLikelihoods[10]);
-	void addToEmissionProbLog(double genotypeLikelihoods[10]);
-	Base getBaseAsEnum(){ return data.base;};
 };
 
 #endif /* TBASE_H_ */

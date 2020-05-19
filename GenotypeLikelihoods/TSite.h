@@ -9,11 +9,12 @@
 #define TSITE_H_
 
 #include <math.h>
+#include <TBase.h>
 #include <vector>
 #include "TParameters.h"
 #include "TGenotypeMap.h"
 #include "TQualityMap.h"
-#include "TBase.h"
+#include "TGenotypeData.h"
 #include "gzstream.h"
 #include <algorithm>
 #include "TRandomGenerator.h"
@@ -33,7 +34,7 @@ protected:
 public:
 	std::vector<TBase*> bases;
 	bool hasData;
-	char referenceBase; //optional
+	Base referenceBase; //optional
 
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
@@ -48,34 +49,16 @@ public:
 	void clear();
 	void stealFromOther(TSite* other);
 
-	void add(TBase* base);
-	void setRefBase(char & Base){
-		if(Base == 'A' || Base == 'C' || Base == 'G' || Base == 'T' || Base == 'a' || Base == 'c' || Base == 'g' || Base == 't')
-			referenceBase = Base;
-		else referenceBase = 'N';
+	void add(const TBase * base);
+	void setRefBase(const Base ref){
+		referenceBase = ref;
 	};
-	char getRefBase(){return referenceBase;};
-	Base getRefBaseAsEnum(){
-		if(referenceBase == 'A' || referenceBase == 'a') return A;
-		if(referenceBase == 'C' || referenceBase == 'c') return C;
-		if(referenceBase == 'G' || referenceBase == 'g') return G;
-		if(referenceBase == 'T' || referenceBase == 't') return T;
-		return N;
-	};
-	char getBaseAsChar(Base base){
-		if(base == A) return 'A';
-		if(base == C) return 'C';
-		if(base == G) return 'G';
-		if(base == T) return 'T';
-		return 'N';
-
-	}
-	unsigned int depth();
-	unsigned int refDepth();
+	Base getRefBase() const {return referenceBase;};
+	uint32_t depth();
+	uint32_t refDepth();
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
 	void calculateP_g(double* genotypeProbabilities, double* P_g);
-	std::string getBases();
-	std::string getEmissionProbs();
+	std::string getBases(TGenotypeMap & genoMap);
 
 	void countAlleles(int* alleleCounts) const;
 	void countAllelesForImbalance(TAllelicDepthCounts & counts);

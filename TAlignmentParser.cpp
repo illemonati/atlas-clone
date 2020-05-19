@@ -213,7 +213,7 @@ void TAlignmentParser::_setAlignmentFilters(TParameters & params){
 
 	//Fragment length filter
 	if(params.parameterExists("minFragmentLength") || params.parameterExists("maxFragmentLength")){
-		_setFragmentLengthFilter(params.getParameterInt("minFragmentLength"), params.getParameterInt("maxFragmentLength"));
+		_setFragmentLengthFilter(params);
 	}
 
 	//duplicates
@@ -434,13 +434,15 @@ void TAlignmentParser::_setMasks(TParameters & params){
 	} else considerRegions = false;
 };
 
-void TAlignmentParser::_setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength){
-	if(MinFragmentLength < 0)
-		throw "Min fragment length must be >= 0!";
-	if(maxFragmentLength < 0)
-		throw "Max fragment length must be >= 0!";
+void TAlignmentParser::_setFragmentLengthFilter(TParameters & params){
+	int MinFragmentLength = params.getParameterIntWithDefault("minFragmentLength", 0);
+	int MaxFragmentLength = params.getParameterIntWithDefault("maxFragmentLength", 255);
+	if(MinFragmentLength < 0 || MinFragmentLength > 255)
+		throw "minFragmentLength '" + toString(MinFragmentLength) + "' is outside the accepted range [0,255]!";
+	if(MinFragmentLength < 0 || MinFragmentLength > 255)
+		throw "maxFragmentLength '" + toString(MinFragmentLength) + "' is outside the accepted range [0,255]!";
 	if(MinFragmentLength > MaxFragmentLength)
-		throw "Min fragment length must be <= max fragment length!";
+		throw "minFragmentLength must be <= maxFragmentLength!";
 
 	minFragmentLength = MinFragmentLength;
 	maxFragmentLength = MaxFragmentLength;
@@ -515,10 +517,20 @@ void TAlignmentParser::_setChrPloidy(TParameters & params){
 	}
 };
 
-void TAlignmentParser::addReference(BamTools::Fasta* reference){
+void TAlignmentParser::addReference(TFastaBuffer* FastaBuffer){
 	hasReference = true;
-	fastaReference = reference;
-	fastaBuffer.initialize(reference, windowSize);
+	fastaBuffer = FastaBuffer;
+};
+
+void TAlignmentParser::setUpdateBlacklistToTrue(){
+	_updateBlacklist = true;
+	logfile->list("Storing ignored reads in a blacklist.");
+};
+
+void TAlignmentParser::setWriteBlacklistToFileToTrue(){
+	std::string filename = outname + "_ignoredReads.txt.gz";
+	logfile->list("Writing ignored reads to '" + filename + "'.");
+	blacklist.enableWriting(filename);
 };
 
 /*
@@ -996,7 +1008,7 @@ void TAlignmentParser::_adaptQualityWhenMerging(TBase & bestBase, TBase & worstB
 		}
 		bestBase.errorRate = 1.0 - likelihood[bestBase.data.base] / sum;
 	} else {
-		worstBase.errorRate = 1.0;
+		worstBase.data.recalibratedQualityAsPhredInt = 0.0;
 //		worstBase.base = N;
 	}
 };
@@ -1017,7 +1029,7 @@ void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlign
 		int fwdP = 0;
 		int revP = 0;
 		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
-			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+			if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
 				//bases overlap same position in ref -> choose at random which to keep
 				if(keepFwd){
 					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
@@ -1027,7 +1039,7 @@ void TAlignmentParser::mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlign
 				//increment both counters
 				++fwdP;
 				++revP;
-			} else if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos < revAlignment->position + revAlignment->bases[revP].alignedPos){
+			} else if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] < revAlignment->position + revAlignment->alignedPosition[revP]){
 				++fwdP;
 			} else {
 				++revP;
@@ -1047,7 +1059,7 @@ void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment,
 		int fwdP = 0;
 		int revP = 0;
 		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
-			if(fwdAlignment->position + fwdAlignment->bases[fwdP].alignedPos == revAlignment->position + revAlignment->bases[revP].alignedPos){
+			if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
 				//bases overlap same position in ref -> choose at random which to keep
 				if(randomGenerator->getRand() < 0.5){
 					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
@@ -1079,7 +1091,7 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
 			if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
 				//bases overlap same position in ref -> keep the one with higher quality
-				if(fwdAlignment->bases[fwdP].data.recalibratedQualityAsPhredInt > revAlignment->bases[revP].data.recalibratedQualityAsPhredInt){
+				if(fwdAlignment->bases[fwdP].recalibratedQualityAsPhredInt > revAlignment->bases[revP].recalibratedQualityAsPhredInt){
 					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
 				} else {
 					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);

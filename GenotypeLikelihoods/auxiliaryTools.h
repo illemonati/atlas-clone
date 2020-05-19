@@ -8,12 +8,12 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
+#include <TBase.h>
 #include <TGenotypeData.h>
 #include <cstddef>
 #include "TQualityMap.h"
 #include "TGenotypeMap.h"
 #include "stringFunctions.h"
-#include "TBase.h"
 #include "TLog.h"
 #include "TReadGroups.h"
 #include <algorithm>
@@ -130,7 +130,7 @@ public:
 		return readGroupIndex[readGroup][isSecondMate];
 	};
 
-	int index(const TBaseData & base){
+	int index(const TBase & base){
 		return readGroupIndex[base.readGroup][base.isSecondMate()];
 	};
 

@@ -15,11 +15,11 @@ TRecalibration::TRecalibration(){
 	_type = "none";
 };
 
-double TRecalibration::getErrorRate(TBase & base){
+double TRecalibration::getErrorRate(TBaseOld & base){
 	return base.errorRate;
 };
 
-int TRecalibration::getQuality(TBase & base){
+int TRecalibration::getQuality(TBaseOld & base){
 	return _qualityMap.errorToQuality(base.errorRate);
 };
 

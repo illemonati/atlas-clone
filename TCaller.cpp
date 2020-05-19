@@ -394,7 +394,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->getBaseAsEnum();
+	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->base;
 
 	//decide on alt
 	if(allele == referenceBase){

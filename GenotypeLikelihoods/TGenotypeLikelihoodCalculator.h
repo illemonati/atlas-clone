@@ -12,6 +12,7 @@
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
+#include "TAlignment.h"
 
 namespace GenotypeLikelihoods{
 
@@ -29,8 +30,9 @@ private:
 
 	//temporary storage
 	TGenotypeLikelihoods genotypeLikelihoods;
-	std::vector<TBaseLikelihoods> baseLikelihoods;
-	TBaseLikelihoods baseLikelihoodsNoPMD;
+	std::vector<TBaseData> baseLikelihoods;
+	TBaseData baseLikelihoodsNoPMD;
+	TBaseData tmpBaseData;
 
 public:
 	TGenotypeLikelihoodCalculator();
@@ -40,16 +42,17 @@ public:
 	void init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
 	TSequencingErrorModels& getSequencingErrorModels(){ return sequencingErrorModels; };
 
-	double getErrorRate(const TBaseData & base);
-	double getErrorWithPMD(const TBaseData & base);
-	uint8_t getPhredInt(const TBaseData & base);
-	uint8_t getPhredIntWithPMD(const TBaseData & base);
-	void recalibrate(TBaseData & base);
-	void recalibrateWithPMD(TBaseData & base);
+	double getErrorRate(const TBase & base);
+	double getErrorWithPMD(const TBase & base);
+	uint8_t getPhredInt(const TBase & base);
+	uint8_t getPhredIntWithPMD(const TBase & base);
+	void recalibrate(TBase & base);
+	void recalibrateWithPMD(TBase & base);
 	void recalibrate(TBase* bases, const uint16_t  length);
 	void recalibrateWithPMD(TBase* bases, const uint16_t  length);
 
 	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);
+	double calculatePMDS(const TBase & base, const Base ref, const double pi);
 };
 
 

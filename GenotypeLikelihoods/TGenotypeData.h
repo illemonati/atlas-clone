@@ -18,16 +18,21 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 // TBaseLikelihoods
 //--------------------------------------------------------------------
-class TBaseLikelihoods{
+class TBaseData{
 private:
-	double likelihoods[4];
+	double data[4];
 
 public:
-	TBaseLikelihoods();
-	void operator=(const TBaseLikelihoods & other);
-	double& operator[](const Base base){ return likelihoods[base];};
-	double at(const Base base) const { return likelihoods[base]; };
+	TBaseData();
+	void operator=(const TBaseData & other);
+	double& operator[](const Base base){ return data[base];};
+	double at(const Base base) const { return data[base]; };
+	void set(double val);
+	void set(const Base trueBase, const double error);
 	void reset();
+	double sum();
+	double weightedSum(const TBaseData & weights);
+	void normalize();
 };
 
 //--------------------------------------------------------------------
@@ -71,8 +76,8 @@ public:
 
 	void operator=(const TGenotypeLikelihoods & other);
 
-	void fill(const std::vector<TBaseLikelihoods> & bases);
-	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
+	void fill(const std::vector<TBaseData> & bases);
+	void fill(const std::vector<TBaseData> & bases, const size_t size);
 };
 
 

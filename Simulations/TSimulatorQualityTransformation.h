@@ -8,7 +8,7 @@
 #ifndef TSIMULATORQUALITYTRANSFORMATION_H_
 #define TSIMULATORQUALITYTRANSFORMATION_H_
 
-#include "TBase.h"
+#include <TBase.h>
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "TQualityMap.h"

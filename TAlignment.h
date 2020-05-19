@@ -8,8 +8,8 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
+#include <TBase.h>
 #include "stringFunctions.h"
-#include "TBase.h"
 #include "TPostMortemDamage.h"
 #include "bamtools/api/BamAlignment.h"
 #include "bamtools/utils/bamtools_fasta.h"
@@ -80,7 +80,7 @@ private:
 
 public:
 	bool storageInitialized;
-	//BamTools::BamAlignment bamAlignment;
+	BamTools::BamAlignment bamAlignment;
 
 	TAlignment();
 	TAlignment(uint16_t MaxSize);
@@ -90,7 +90,6 @@ public:
 		_freeStorage();
 	};
 
-	void fill(BamTools::BamAlignment & bamAlignment, const uint16_t ReadGroupId);
 	uint32_t getPosition(){ return position; };
 	uint16_t getParsedLength(){ return length; };
 	uint32_t getBamAlignmentLength(){ return bamAlignment.Length; };
@@ -118,7 +117,6 @@ public:
 	bool isSecondMate;
 	int32_t matePosition;
 	uint32_t chrNumber;
-	int32_t lastPositionPlusOne;
 	int32_t lastAlignedPositionWithRespectToRef;
 	int32_t lastAlignedPos;
 
@@ -133,7 +131,7 @@ public:
 	void addSitesToQualityTransformTable(TQualityTransformTables & QTtables);
 	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
 	void recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
-	double calculatePMDS(double & pi, GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects);
+	double calculatePMDS(double & pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
 	void removeSoftClippedBases(TSoftClippingData & softClippingData);
 	int measureOverlap();
 	int getUsableLength(const int minQual, const int maxQual);

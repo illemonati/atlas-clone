@@ -212,7 +212,7 @@ public:
 	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
 	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
 
-	void fillBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods);
+	void fillBaseLikelihoods(const TBaseData & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
 
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
@@ -232,7 +232,7 @@ private:
 public:
 	TPostMortemDamage();
 	void initialize(TParameters & params, TReadGroups & ReadGroups, TLog* logfile);
-	void calculateBaseLikelihoods(const TBaseData & base, const TBaseLikelihoods & baseLikelihoodsNoPMD, TBaseLikelihoods & baseLikelihoods);
+	void calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
 };
 
 

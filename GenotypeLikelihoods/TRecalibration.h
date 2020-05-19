@@ -36,8 +36,8 @@ public:
 	std::string type(){ return _type; };
 
 	void calcEmissionProbabilities(TSite & site);
-	virtual double getErrorRate(TBase & base);
-	virtual int getQuality(TBase & base);
+	virtual double getErrorRate(TBaseOld & base);
+	virtual int getQuality(TBaseOld & base);
 
 	virtual bool _requiresEstimation(){ return false;};
 };
@@ -57,10 +57,10 @@ public:
 
 	bool recalibrationChangesQualities(){ return true; };
 
-	inline double getErrorRate(TBase & base){
+	inline double getErrorRate(TBaseOld & base){
 		return models.getErrorRate(base.data);
 	};
-	inline int getQuality(TBase & base){
+	inline int getQuality(TBaseOld & base){
 		double q = models.getErrorRate(base.data);
 		return _qualityMap.errorToQuality(q);
 	};

@@ -37,7 +37,7 @@ void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQu
 	numReads = site.bases.size();
 	data = new TRecalibrationEMReadData[numReads];
 	int k = 0;
-	for(TBase* it : site.bases){
+	for(TBaseOld* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
 		data[k].readGroup = ReadGroupMap.getIndex(it->data.readGroup);
 

@@ -14,22 +14,50 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 // TBaseLikelihoods (can also be used as haploid genotype likelihoods)
 //--------------------------------------------------------------------
-TBaseLikelihoods::TBaseLikelihoods(){
+TBaseData::TBaseData(){
 	reset();
 };
 
-void TBaseLikelihoods::operator=(const TBaseLikelihoods & other){
-	likelihoods[A] = other.at(A);
-	likelihoods[C] = other.at(C);
-	likelihoods[G] = other.at(G);
-	likelihoods[T] = other.at(T);
+void TBaseData::operator=(const TBaseData & other){
+	data[A] = other.at(A);
+	data[C] = other.at(C);
+	data[G] = other.at(G);
+	data[T] = other.at(T);
 };
 
-void TBaseLikelihoods::reset(){
-	likelihoods[A] = 1.0;
-	likelihoods[C] = 1.0;
-	likelihoods[G] = 1.0;
-	likelihoods[T] = 1.0;
+void TBaseData::set(double val){
+	data[A] = val;
+	data[G] = val;
+	data[C] = val;
+	data[T] = val;
+};
+
+void TBaseData::set(const Base trueBase, const double error){
+	set(error / 3.0);
+	data[trueBase] = 1.0 - error;
+};
+
+void TBaseData::reset(){
+	set(1.0);
+};
+
+double TBaseData::sum(){
+	return data[A] + data[C] + data[G] + data[T];
+};
+
+double TBaseData::weightedSum(const TBaseData & weights){
+	return   data[A] * weights[A]
+		   + data[C] * weights[C]
+		   + data[G] * weights[G]
+	       + data[T] * weights[T];
+};
+
+void TBaseData::normalize(){
+	double tot = sum();
+	data[A] /= tot;
+	data[C] /= tot;
+	data[G] /= tot;
+	data[T] /= tot;
 };
 
 //--------------------------------------------------------------------
@@ -139,11 +167,11 @@ void TGenotypeLikelihoods::operator=(const TGenotypeLikelihoods & other){
 	_copyFrom(other);
 };
 
-void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases){
+void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases){
 	fill(bases, bases.size());
 };
 
-void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
+void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size_t size){
 	//allows for vector to be longer than what is to be used
 	//do in log if depth is high
 	if(bases.size() > 50){

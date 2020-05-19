@@ -38,8 +38,8 @@ void TSite::stealFromOther(TSite* other){
 };
 */
 
-void TSite::add(TBase* base){
-	bases.push_back(base);
+void TSite::add(const TBase * base){
+	bases.emplace_back(base);
 	hasData = true;
 };
 
@@ -47,59 +47,51 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	if(hasData){
 		static double weight = 1.0 / bases.size();
 		for(auto& b : bases){
-			frequencies.add(b->data.base, weight);
+			frequencies.add(b->base, weight);
 		}
 	}
 };
 
-std::string TSite::getBases(){
+std::string TSite::getBases(TGenotypeMap & genoMap){
 	if(!hasData) return "-";
-	std::string b = "";
+	std::string s = "";
 	for(auto& b : bases){
-		b +=  getBaseAsChar(b->getBaseAsEnum());
+		s +=  genoMap.getBaseAsChar(b->base);
 	}
-	return b;
+	return s;
 };
 
-unsigned int TSite::depth(){
+uint32_t TSite::depth(){
 	if(!hasData) return 0;
 	return bases.size();
 };
 
-unsigned int TSite::refDepth(){
+uint32_t TSite::refDepth(){
 	if(!hasData) return 0;
 	if(referenceBase == 'N') return 0;
-	unsigned int counter = 0;
-	for(unsigned int i=0; i<bases.size(); ++i){
-		if(getBaseAsChar(bases[i]->getBaseAsEnum()) == referenceBase) ++counter;
+	uint32_t counter = 0;
+	for(auto& b : bases){
+		if(b->base == referenceBase)
+			++counter;
 	}
 	return counter;
 };
 
-void TSite::countAlleles(int* alleleCounts) const{
+void TSite::countAlleles(GenotypeLikelihoods::TBaseData & alleleCounts) const{
 	alleleCounts[0] = 0;
 	alleleCounts[1] = 0;
 	alleleCounts[2] = 0;
 	alleleCounts[3] = 0;
 
-	for(TBase* it : bases)
-		++alleleCounts[it->getBaseAsEnum()];
-};
-
-void TSite::countAllelesForImbalance(TAllelicDepthCounts & counts){
-	//calculate and return imbalance
-	int b[4] = {0};
-	for(TBase* it : bases){
-		++b[it->getBaseAsEnum()];
-	}
-	counts.addSite(b[0], b[1], b[2], b[3]);
+	for(auto& b : bases){
+		++alleleCounts[b->base];
 };
 
 void TSite::countMates(int* mateCounts){
 	mateCounts[0] = 0;
 	mateCounts[1] = 0;
 
-	for(TBase* it : bases)
+	for(TBaseOld* it : bases)
 		++mateCounts[it->isSecondMate()];
 };
 
@@ -107,12 +99,12 @@ void TSite::countFwdRev(int* frCounts){
 	frCounts[0] = 0;
 	frCounts[1] = 0;
 
-	for(TBase* it : bases)
+	for(TBaseOld* it : bases)
 		++frCounts[it->isReverseStrand()];
 };
 
 void TSite::contextStats(int** contextCounts, TQualityMap & qualMap){
-	for(TBase* it : bases){
+	for(TBaseOld* it : bases){
 		int q = qualMap.errorToPhredInt(it->errorRate);
 		int c = it->data.context;
 		++contextCounts[q][c];

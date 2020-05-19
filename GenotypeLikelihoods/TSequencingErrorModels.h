@@ -77,11 +77,11 @@ public:
 	//calculate error rates
 	//TODO: deal with fact that there migth be no models. Only return qualities or initialize models?
 	double getErrorRate(const TRecalibrationEMReadData & data) const;
-	double getErrorRate(const TBaseData & base) const;
-	uint8_t getPhredInt(const TBaseData & base) const;
-	void recalibrate(TBaseData & base) const;
+	double getErrorRate(const TBase & base) const;
+	uint8_t getPhredInt(const TBase & base) const;
+	void recalibrate(TBase & base) const;
 	void recalibrate(TBase* bases, const uint16_t  length) const;
-	void calculateBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods) const;
+	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
 
 	//function to estimate
 	void setEMParamsToZero();

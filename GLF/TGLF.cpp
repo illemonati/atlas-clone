@@ -95,18 +95,17 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(const std::string name, const uint16_t refId, const uint32_t length, const uint8_t ploidy){
+void TGlfWriter::newChromosome(const TChromosome & chromosome){
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 
 	//save cur info
-	curChr.update(name, refId, length, ploidy);
+	curChr.update(chromosome.name, chromosome.refID, chromosome.length, chromosome.ploidy);
 
 	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	uint32_t labelLength = curChr.name.size();
-
 	write(&labelLength, sizeof(uint32_t));
-	write(curChr.name.c_str(), name.length() * sizeof(char));
+	write(curChr.name.c_str(), curChr.name.length() * sizeof(char));
 	write(&curChr.refId, sizeof(uint32_t));
 	write(&curChr.length, sizeof(uint32_t));
 	write(&curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized varable" error with valgrind. Why?

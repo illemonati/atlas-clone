@@ -60,6 +60,11 @@ private:
 	double maxMissing;
 	double maxRefN;
 
+ 	//reference
+	bool hasReference;
+	bool chrChangedWindow;
+	TFastaBuffer* fastaBuffer;
+
 	//masks
 	TBedReader* mask;
 
@@ -77,9 +82,14 @@ private:
 	bool useMate[2];
 
 	//blacklist
-	bool _updateBlacklist, _writeBlackList;
+	bool _updateBlacklist;
+	TAlignmentBlacklist blacklist;
+
+	/*
+	bool _writeBlackList;
 	std::map <std::string, int> blacklist;
 	gz::ogzstream ignoredReads;
+	*/
 
 	//limit chr and windows
 	long limitWindows;
@@ -104,7 +114,7 @@ private:
 	void _setQualityFilters(int MinPhredInt, int MaxPhredInt);
 	void _setMappingQualityFilters(int MinMQ, int MaxMQ);
 	void _setContextFilter(std::vector<std::string> contexts);
-	void _setFragmentLengthFilter(int MinFragmentLength, int MaxFragmentLength);
+	void _setFragmentLengthFilter(TParameters & params);
 	void _setAlignmentFiltersToKeepAll();
 	void _setQualityRangeForPrinting(int minQual, int maxQual);
 	void _setMasks(TParameters & params);
@@ -155,12 +165,6 @@ public:
  	//BamTools::SamHeader bamHeader;
  	//TChromosomes chromosomes;
 
- 	//reference
-	bool hasReference;
-	bool chrChangedWindow;
-	BamTools::Fasta* fastaReference;
-	TFastaBuffer fastaBuffer;
-
  	//recalibration
 	//TRecalibration* recalObject;
 	//bool doRecalibration;
@@ -180,8 +184,6 @@ public:
 	int numReadGroups(){ return readGroups.size(); };
 	unsigned int getWindowSize(){return windowSize;};
 	int getMaxPhredInt(){return maxQualityAsPhredInt;};
-	int getNumAlignmentsRead(){ return totalNumberAlignmentsRead; };
-	double getPositionInFile(){ return (double) bamReader.tell() / (double) sizeOfBamFile; };
 	uint32_t getMaxDepth(){ return maxDepth; };
 
 	//setters
@@ -200,71 +202,11 @@ public:
 	*/
 
 	//blacklist
-	void setUpdateBlacklistToTrue(){
-		_updateBlacklist = true;
-		logfile->list("Storing ignored reads in a blacklist");
-	};
-
-	void setWriteBlacklistToFileToTrue(){
-		_writeBlackList = true;
-		std::string ignoredReadsFile = outname + "_ignoredReads.txt.gz";
-		logfile->list("Writing ignored reads to '" + ignoredReadsFile + "'");
-		ignoredReads.open(ignoredReadsFile.c_str());
-		if(!ignoredReads) throw "Failed to open output file '" + ignoredReadsFile + "'!";
-	}
-
-	void addToBlacklist(TAlignment & alignment, const std::string & errorMessage){
-		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
-		blacklist.emplace(alignment.alignmentName, 1);
-		if(_writeBlackList){
-			if(alignment.isReverseStrand){
-				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
-			}
-		}
-	};
-	void addToBlacklist(BamTools::BamAlignment & alignment, const std::string & errorMessage){
-		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
-		blacklist.emplace(alignment.Name, 1);
-		if(_writeBlackList){
-			if(alignment.IsReverseStrand()){
-				ignoredReads << "Read " << alignment.Name << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.Name << ", fwd : " << errorMessage << "\n";
-			}
-		}
-
-	};
-
-	void addToBlacklist(std::string & alignmentName, const std::string & errorMessage){
-		//TODO: should check if read already exists in blackfile (could be case in paired-end data) -> remove
-		blacklist.emplace(alignmentName, 1);
-		if(_writeBlackList){
-			ignoredReads << "Read " << alignmentName << " : " << errorMessage << "\n";
-		}
-	};
-
-	void removeFromBlacklist(TAlignment & alignment, const std::string & errorMessage){
-		blacklist.erase(alignment.alignmentName);
-		if(_writeBlackList){
-			if(alignment.isReverseStrand){
-				ignoredReads << "Read " << alignment.alignmentName << ", rev : " << errorMessage << "\n";
-			} else {
-				ignoredReads << "Read " << alignment.alignmentName << ", fwd : " << errorMessage << "\n";
-			}
-		}
-	};
-
-	bool isInBlacklist(const std::string & alignmentName){
-		if(blacklist.count(alignmentName) > 0)
-			return true;
-		return false;
-	};
+	void setUpdateBlacklistToTrue();
+	void setWriteBlacklistToFileToTrue();
 
 	//functions to read and _parse
-	void checkAndFillAlingment(BamTools::BamAlignment& bamAlignment, TAlignment & alignment);
-	void addReference(BamTools::Fasta* reference);
+	void addReference(TFastaBuffer* FastaBuffer);
 
 
 	//reading data requires windows
@@ -276,8 +218,6 @@ public:
 
 	//qualityTransformation
 	//void initializeRecalibrationForQualityTransformation(TParameters & params);
-	void addSitesToQualityTransformTable(TAlignment & alignment, TQualityTransformTables & QTtables);
-	void addSitesToQualityTransformTable(TAlignment & alignment, GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
 	void mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);

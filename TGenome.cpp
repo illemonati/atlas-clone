@@ -27,17 +27,16 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	//open FASTA reference
 	if(params.parameterExists("fasta")){
 		std::string fastaFile = params.getParameterString("fasta");
-		std::string fastaIndex = fastaFile + ".fai";
-		logfile->list("Reading reference sequence from '" + fastaFile + "'");
-		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+		logfile->list("Reading reference sequence from '" + fastaFile + "'.");
+		reference.initialize(fastaFile);
 		alignmentParser.addReference(&reference);
 	}
 
 	//outputname
 	outputName = params.getParameterStringWithDefault("out", "");
 	if(outputName == ""){
-		//guess from filename. note that the genome has outputName in case we want to have multiple parsers in the future
-		outputName = alignmentParser.filename;
+		//guess from BAM filename.
+		outputName = bamFile.filename();
 		outputName = extractBeforeLast(outputName, ".");
 	}
 	alignmentParser.setOutName(outputName);
@@ -65,7 +64,7 @@ bool TGenome::estimateTheta(TThetaEstimator & thetaEstimator, TWindow_base & win
 	//adding sites to estimator
 	logfile->listFlush("Calculating emission probabilities ...");
 	thetaEstimator.clear();
-	window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
+	window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), genotypeLikelihoodCalculator);
 	logfile->done();
 
 	//estimate Theta
@@ -117,7 +116,7 @@ void TGenome::estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutpu
 
 			logfile->startIndent("Estimating Theta:");
 			if(estimateTheta(thetaEstimator, window) || printAll){
-				out.write(alignmentParser.getCurChrName(), window.start, window.end);
+				out.write(window.chrName, window.start, window.end);
 			}
 			logfile->endIndent();
 
@@ -142,7 +141,7 @@ void TGenome::estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOu
 			//adding sites to estimator
 			logfile->listFlushTime("Calculating emission probabilities ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
+				window.addSitesToThetaEstimator(thetaEstimator.pointerToDataContainer(), genotypeLikelihoodCalculator);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
@@ -225,12 +224,12 @@ void TGenome::calcThetaLikelihoodSurfaces(TParameters & params){
 
 			//adding sites to estimator
 			logfile->listFlush("Calculating emission probabilities ...");
-			window.addSitesToThetaEstimator(estimator.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator);
+			window.addSitesToThetaEstimator(estimator.pointerToDataContainer(), genotypeLikelihoodCalculator);
 			logfile->done();
 
 			//open file
 			gz::ogzstream out;
-			filename = outputName + alignmentParser.getCurChrName() + "_" + toString(window.start) + "_LLsurface.txt";
+			filename = outputName + window.chrName + "_" + toString(window.start) + "_LLsurface.txt";
 			out.open(filename.c_str());
 			if(!out) throw "Failed to open output file '" + outputName + "'!";
 
@@ -270,7 +269,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	} else {
 		logfile->listFlush("Reading regions 1 from BED file '" + regionsFile1 + "' ...");
 	}
-	TBedReader region1(regionsFile1, windowSize, alignmentParser.bamHeader.Sequences, siteLimit,logfile);
+	TBedReader region1(regionsFile1, windowSize, bamFile.chromosomes, siteLimit,logfile);
 	logfile->done();
 
 	//region 2
@@ -284,7 +283,7 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	} else {
 		logfile->listFlush("Reading regions 2 from BED file '" + regionsFile2 + "' ...");
 	}
-	TBedReader region2(regionsFile2, windowSize, alignmentParser.bamHeader.Sequences, siteLimit, logfile);
+	TBedReader region2(regionsFile2, windowSize, bamFile.chromosomes, siteLimit, logfile);
 	logfile->done();
 	logfile->endIndent();
 
@@ -295,14 +294,14 @@ void TGenome::estimateThetaRatio(TParameters & params){
 	logfile->startIndent("Adding sites to data structures:");
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
-		region1.setChr(alignmentParser.getCurChrName());
-		region2.setChr(alignmentParser.getCurChrName());
+		region1.setChr(window.chrName);
+		region2.setChr(window.chrName);
 		if(window.passedFilters){
 			//adding sites to estimator
 			logfile->listFlushTime("Calculating emission probabilities for sites within defined regions ...");
 			try{
-				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), alignmentParser.genotypeLikelihoodCalculator, region1);
-				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), alignmentParser.genotypeLikelihoodCalculator, region2);
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer(), genotypeLikelihoodCalculator, region1);
+				window.addSitesToThetaEstimator(thetaEstimatorRatio.pointerToDataContainer2(), genotypeLikelihoodCalculator, region2);
 			} catch(...){
 				throw "Failed to allocate sufficient memory to store the data for so many sites. Consider reducing the window size, selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 			}
@@ -363,12 +362,13 @@ void TGenome::performDownsamplingThetaQC(TParameters & params){
 	}
 	thetaOut.open(filename, logfile);
 
+	//messure runtime
+	TTimer timer;
+
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window_full)){
 		if(window_full.passedFilters){
-			//measure runtime
-			struct timeval startTime, endTime;
-			gettimeofday(&startTime, NULL);
+			timer.start();
 
 			//estimate on full data
 			if(printFull){
@@ -391,11 +391,10 @@ void TGenome::performDownsamplingThetaQC(TParameters & params){
 			}
 
 			//write output
-			thetaOut.write(alignmentParser.getCurChrName(), window_full.start, window_full.end);
+			thetaOut.write(window_full.chrName, window_full.start, window_full.end);
 
 			//finish
-			gettimeofday(&endTime, NULL);
-			logfile->list("Total computation time for this window was ", endTime.tv_sec  - startTime.tv_sec, "s");
+			logfile->list("Total computation time for this window was ", timer.seconds(), "s");
 			logfile->endIndent();
 		} else logfile->list("No relevant positions -> skipping this window.");
 	}
@@ -443,7 +442,7 @@ GenotypeLikelihoods::TGenotypePrior* TGenome::initializeGenotypePrior(TParameter
 
 void TGenome::callGenotypes(TParameters & params){
 	//make sure FASTA is open
-	if(!alignmentParser.fastaReference) throw "A FASTA reference must be provided to call!";
+	if(!reference.hasReference()) throw "A FASTA reference must be provided to call!";
 
 	//--------------------------
 	//initialize caller
@@ -503,19 +502,19 @@ void TGenome::callGenotypes(TParameters & params){
 		//Limit to sites with known alleles
 		logfile->startIndent("Will limit calls to sites with known alleles:");
 		unsigned int windowSize = alignmentParser.getWindowSize();
-		TSiteSubset subset(params.getParameterString("alleles"), reference, alignmentParser.bamHeader, windowSize, logfile, false);
+		TSiteSubset subset(params.getParameterString("alleles"), windowSize, logfile, false, reference, bamFile.chromosomes);
 		logfile->endIndent();
 
 		while(alignmentParser.readDataInNextWindow(window)){
-			subset.setChr(alignmentParser.getCurChrName());
+			subset.setChr(window.chrName);
 			//read data for current window
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
-				prior->update(&window, alignmentParser.getCurChrName(), logfile);
+				prior->update(&window, logfile);
 
 				//now call using known alleles
 				logfile->listFlushTime("Calling genotypes ...");
-				window.callKnwonAlleles(*caller, alignmentParser.genotypeLikelihoodCalculator, subset);
+				window.callKnwonAlleles(*caller, genotypeLikelihoodCalculator, subset);
 				logfile->doneTime();
 			}
 		}
@@ -526,11 +525,11 @@ void TGenome::callGenotypes(TParameters & params){
 			//read data for current window
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
-				prior->update(&window, alignmentParser.getCurChrName(), logfile);
+				prior->update(&window, logfile);
 
 				//now call
 				logfile->listFlushTime("Calling genotypes ...");
-				window.call(*caller, alignmentParser.genotypeLikelihoodCalculator, reference);
+				window.call(*caller, genotypeLikelihoodCalculator, reference);
 				logfile->doneTime();
 			}
 		}
@@ -561,11 +560,11 @@ void TGenome::writeGLF(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		if(alignmentParser.chrChangedWindow){
-			writer.newChromosome(alignmentParser.getCurChrName(), alignmentParser.getCurRefId(), (uint32_t) alignmentParser.getCurChrLength(), (uint8_t) alignmentParser.getCurChrPloidy());
+			writer.newChromosome(bamFile.chromosomes.curChromosome());
 		} if(window.passedFilters){
 			//write to GLF
 			logfile->listFlushTime("Adding window to GLF file ...");
-			window.addToGLF(writer, alignmentParser.genotypeLikelihoodCalculator, printIfNoData);
+			window.addToGLF(writer, genotypeLikelihoodCalculator, printIfNoData);
 			logfile->doneTime();
 		}
 	}
@@ -601,7 +600,7 @@ void TGenome::printPileup(TParameters & params){
 	//iterate through windows
 	while(alignmentParser.readDataInNextWindow(window)){
 		logfile->listFlushTime("Writing pileup ...");
-		window.printPileup(alignmentParser.genotypeLikelihoodCalculator, out, printOnlySitesWithData);
+		window.printPileup(genotypeLikelihoodCalculator, out, printOnlySitesWithData);
 		logfile->doneTime();
 	}
 
@@ -638,12 +637,12 @@ void TGenome::generatePSMCInput(TParameters & params){
 		//write chromosome to file
 		if(alignmentParser.chrChangedWindow){
 			if(nCharOnLine > 0) output << '\n';
-				output << '>' << alignmentParser.getCurChrName() << '\n';
+				output << '>' << bamFile.chromosomes.curName() << '\n';
 		}
 		if(window.passedFilters){
 			//create PSMC input
 			logfile->listFlushTime("Estimating heterozygosity status ...");
-			window.generatePSMCInput(thetaEstimator, alignmentParser.genotypeLikelihoodCalculator, blockSize, confidence, output, nCharOnLine);
+			window.generatePSMCInput(thetaEstimator, genotypeLikelihoodCalculator, blockSize, confidence, output, nCharOnLine);
 			logfile->doneTime();
 		}
 	}
@@ -673,7 +672,7 @@ void TGenome::createDepthMask(TParameters & params){
 		//read data for current window
 		if(window.passedFilters){
 			logfile->listFlush("Writing sites to mask to output file ...");
-			window.createDepthMask(minDepthForMask, maxDepthForMask, output, alignmentParser.getCurChrName());
+			window.createDepthMask(minDepthForMask, maxDepthForMask, output, window.chrName);
 			logfile->done();
 		}
 	}
@@ -713,11 +712,11 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 		//now parse through windows
 		while(alignmentParser.readDataInNextWindow(window)){
 			//make sure subset is on the correct chromosome
-			subset.setChr(alignmentParser.getCurChrName());
+			subset.setChr(window.chrName);
 
 			//read data for current window
 			if(window.passedFilters && subset.hasPositionsInWindow(window.start))
-				window.addToRecalibrationEM(recalObjectEM, &subset, qualityMap);
+				window.addToRecalibrationEM(recalObjectEM, subset, qualityMap);
 			else logfile->list("No positions in this window.");
 		}
 		logfile->endIndent();
@@ -844,11 +843,11 @@ void TGenome::printQualityTransformation(TParameters & params){
 		std::string recalstring = params.getParameterString("recal2");
 		logfile->startIndent("Comparing to alternative recalibration parameters:");
 
-		TSequencingErrorModels otherRecalObject;
-		otherRecalObject.createModels(recalstring, &alignmentParser.readGroups, logfile);
+		TSequencingErrorModels otherSeqErrorModels;
+		otherSeqErrorModels.createModels(recalstring, &bamFile.readGroups, logfile);
 
 		while(alignmentParser.readNextAlignment(alignment)){
-			alignmentParser.addSitesToQualityTransformTable(alignment, otherRecalObject, QTtables);
+			alignment.addSitesToQualityTransformTable(otherSeqErrorModels, QTtables);
 
 			//report
 			reporter.printProgress();

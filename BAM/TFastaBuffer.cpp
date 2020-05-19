@@ -9,41 +9,50 @@
 #include "TFastaBuffer.h"
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
-	curChr = chr;
-	curStart = pos;
-	curEnd = pos + bufferSize;
-	if(!reference->GetSequence(chr, curStart, curEnd, referenceSequence))
-		throw "Problem reading " + toString(chr) + ":" + toString(curStart) + "-" + toString(curEnd) + " from fasta file!";
+	if(!_hasReference){
+		throw "Can not move reference: no FASTA file provided!";
+	}
+	_curChr = chr;
+	_curStart = pos;
+	_curEnd = pos + _bufferSize;
+	if(!_reference.GetSequence(chr, _curStart, _curEnd, _referenceSequence))
+		throw "Problem reading " + toString(chr) + ":" + toString(_curStart) + "-" + toString(_curEnd) + " from fasta file!";
 };
 
-void TFastaBuffer::initialize(BamTools::Fasta* Reference, const uint32_t BufferSize){
+void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 	if(BufferSize < 1000)
-		bufferSize = 1000;
+		_bufferSize = 1000;
 	else
-		bufferSize = BufferSize;
-	reference = Reference;
-	referenceSequence = "";
-	curStart = -1;
-	curChr = -1;
-	curEnd = -1;
+		_bufferSize = BufferSize;
+
+	//open fasta reference
+	std::string fastaIndex = fastaFile + ".fai";
+	if(!_reference.Open(fastaFile, fastaIndex))
+		throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+
+	//initialize tmp variables
+	_referenceSequence = "";
+	_curStart = -1;
+	_curChr = -1;
+	_curEnd = -1;
 };
 
-void TFastaBuffer::fill(const int & chr, const uint32_t start, const uint32_t end, std::string & ref){
+void TFastaBuffer::fill(const uint16_t & chr, const uint32_t start, const uint32_t end, std::string & ref){
 	//move buffer, if necessary
-	if(chr != curChr || end > curEnd || start < curStart){
-		if(end - start + 1 > bufferSize){
-			bufferSize = end - start + 1;
+	if(chr != _curChr || end > _curEnd || start < _curStart){
+		if(end - start + 1 > _bufferSize){
+			_bufferSize = end - start + 1;
 		}
 		moveTo(chr, start);
 	}
 
 	//now copy to string
-	ref.assign(referenceSequence, start - curStart, end - start + 1);
+	ref.assign(_referenceSequence, start - _curStart, end - start + 1);
 };
 
 char TFastaBuffer::refAt(const int & chr, const int32_t & position){
-	if(chr != curChr || position > curEnd || position < curStart){
+	if(chr != _curChr || position > _curEnd || position < _curStart){
 		moveTo(chr, position);
 	}
-	return referenceSequence[position - curStart];
+	return _referenceSequence[position - _curStart];
 };

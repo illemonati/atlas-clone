@@ -215,7 +215,7 @@ TSequencingErrorRho::TSequencingErrorRho(){
 	}
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseLikelihoods & baseLikelihoods){
+void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods){
 	baseLikelihoods[base] = 1.0 - epsilon;
 	if(base == A){
 		baseLikelihoods[C] = epsilon * rho[A][C];
@@ -314,7 +314,7 @@ double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data
 	return _calcEpsilon(eta);
 };
 
-void TSequencingErrorModel::fillBaseLikelihoods(const TBaseData & base, TBaseLikelihoods & baseLikelihoods){
+void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods){
 	//first calculate epsilon
 	double eta = _covariates.intercept.getEtaTerm();
 	for(const auto & cov : _covariates.covariates){

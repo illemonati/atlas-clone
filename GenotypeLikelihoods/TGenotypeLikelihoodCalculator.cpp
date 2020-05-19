@@ -52,11 +52,11 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, TReadGroups* Read
 };
 
 
-double TGenotypeLikelihoodCalculator::getErrorRate(const TBaseData & base){
+double TGenotypeLikelihoodCalculator::getErrorRate(const TBase & base){
 	return sequencingErrorModels.getErrorRate(base);
 };
 
-double TGenotypeLikelihoodCalculator::getErrorWithPMD(const TBaseData & base){
+double TGenotypeLikelihoodCalculator::getErrorWithPMD(const TBase & base){
 	if(base.base == N){
 		return 1.0;
 	} else {
@@ -69,11 +69,11 @@ double TGenotypeLikelihoodCalculator::getErrorWithPMD(const TBaseData & base){
 	}
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredInt(const TBaseData & base){
+uint8_t TGenotypeLikelihoodCalculator::getPhredInt(const TBase & base){
 	return sequencingErrorModels.getPhredInt(base);
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const TBaseData & base){
+uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const TBase & base){
 	if(base.base == N){
 		return 0;
 	} else {
@@ -81,11 +81,11 @@ uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const TBaseData & base
 	}
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(TBaseData & base){
+void TGenotypeLikelihoodCalculator::recalibrate(TBase & base){
 	sequencingErrorModels.recalibrate(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBaseData & base){
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBase & base){
 	base.recalibratedQualityAsPhredInt = getPhredIntWithPMD(base);
 };
 
@@ -95,7 +95,7 @@ void TGenotypeLikelihoodCalculator::recalibrate(TBase* bases, const uint16_t  le
 
 void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBase* bases, const uint16_t  length){
 	for(uint16_t i=0; i<length; ++i){
-		recalibrateWithPMD(bases[i].data);
+		recalibrateWithPMD(bases[i]);
 	}
 };
 
@@ -110,8 +110,8 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const std::vect
 	} else {
 		//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 		for(size_t i=0; i<bases.size(); ++i){
-			sequencingErrorModels.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD);
-			pmd.calculateBaseLikelihoods(bases[i]->data, baseLikelihoodsNoPMD, baseLikelihoods[i]);
+			sequencingErrorModels.calculateBaseLikelihoods(*bases[i], baseLikelihoodsNoPMD);
+			pmd.calculateBaseLikelihoods(*bases[i], baseLikelihoodsNoPMD, baseLikelihoods[i]);
 		}
 
 		//calculate genotype likelihoods
@@ -119,7 +119,16 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const std::vect
 	}
 };
 
+double TGenotypeLikelihoodCalculator::calculatePMDS(const TBase & base, const Base ref, const double pi){
+	//get base likelihoods
+	sequencingErrorModels.calculateBaseLikelihoods(base, baseLikelihoodsNoPMD);
+	pmd.calculateBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods[0]);
 
+	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
+	tmpBaseData.set(ref, pi);
+
+	return log(baseLikelihoods[0].weightedSum(tmpBaseData) / baseLikelihoodsNoPMD.weightedSum(tmpBaseData));
+};
 
 
 }; //end namespace

@@ -26,7 +26,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(TWindow* window, const std::string chrName, TLog* logfile){};
+	virtual void update(TWindow* window, TLog* logfile){};
 	TGenotypeData* getPointerToPrior(){ return &genotypePrior; };
 	double operator[](const Genotype genotype){ return genotypePrior[genotype]; };
 	double operator[](const uint8_t genotype){ return genotypePrior[genotype]; };
@@ -63,7 +63,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(TWindow* window, const std::string chrName, TLog* logfile){
+	void update(TWindow* window, TLog* logfile){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			window->estimateBaseFrequencies();
@@ -108,7 +108,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(TWindow* window, const std::string chrName, TLog* logfile){
+	void update(TWindow* window, TLog* logfile){
 		logfile->startIndent("Estimating theta for prior:");
 		//clear theta estimator
 		(*thetaEstimator).clear();
