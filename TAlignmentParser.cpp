@@ -205,98 +205,6 @@ void TAlignmentParser::_setWindowFilters(TParameters & params){
 	logfile->list("Will filter out windows with a fraction of 'N' in reference > " + toString(maxMissing) + ". (parameter 'maxRefN')");
 };
 
-void TAlignmentParser::_setAlignmentFilters(TParameters & params){
-	//Mapping quality filter
-	if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-		_setMappingQualityFilters(params.getParameterInt("minMQ"), params.getParameterInt("maxMQ"));
-	}
-
-	//Fragment length filter
-	if(params.parameterExists("minFragmentLength") || params.parameterExists("maxFragmentLength")){
-		_setFragmentLengthFilter(params);
-	}
-
-	//duplicates
-	if(params.parameterExists("keepDuplicates")){
-		_keepDuplicates = true;
-		logfile->list("Will keep duplicate reads. (parameter 'keepDuplicates')");
-	}
-
-	//soft clips
-	if(params.parameterExists("filterSoftClips")){
-		_filterSoftClips = true;
-		logfile->list("Will filter out soft clipped reads. (parameter 'filterSoftClips')");
-	}
-
-	//improper pairs
-	if(params.parameterExists("keepImproperPairs")){
-		_keepImproperPairs = true;
-		logfile->list("Will keep improper pairs. (parameter 'keepImproperPairs')");
-	}
-
-	//unmapped reads
-	if(params.parameterExists("keepUnmappedReads")){
-		_keepUnmappedReads = true;
-		logfile->list("Will keep unmapped reads. (parameter 'keepUnmappedReads')");
-	}
-
-	//failed QC
-	if(params.parameterExists("keepFailedQC")){
-		_keepFailedQC = true;
-		logfile->list("Will keep reads that failed QC. (parameter 'keepFailedQC')");
-	}
-
-	//secondary reads
-	if(params.parameterExists("keepSecondaryReads")){
-		_keepSecondary = true;
-		logfile->list("Will keep secondary reads. (parameter 'keepSecondaryReads')");
-	}
-
-	//supplementary reads
-	if(params.parameterExists("keepSupplementaryReads")){
-		_keepSupplementary = true;
-		logfile->list("Will keep supplementary reads. (parameter 'keepSupplementaryReads')");
-	}
-
-	//fragment length
-	if(params.parameterExists("keepReadsLongerThanFragment")){
-		_keepReadsLongerThanInsertSize = true;
-		logfile->list("Will keep reads that are longer than the fragment size. (parameter 'keepReadsLongerThanFragment')");
-	}
-
-	//strand
-	if(params.parameterExists("keepOnlyFwd")){
-		useStrand[1] = false;
-		logfile->list("Will keep only forward mapping reads. (parameter 'keepOnlyFwd')");
-	}
-	else if(params.parameterExists("keepOnlyRev")){
-		useStrand[0] = false;
-		logfile->list("Will keep only reverse mapping reads. (parameter 'keepOnlyRev')");
-	}
-
-	//mate
-	if(params.parameterExists("keepOnlyFirst")){
-		useMate[1] = false;
-		logfile->list("Will keep only the first mates. (parameter 'keepOnlyFirst')");
-	}
-	else if(params.parameterExists("keepOnlySecond")){
-		useMate[0] = false;
-		logfile->list("Will keep only the second mates. (parameter 'keepOnlySecond')");
-	}
-};
-
-void TAlignmentParser::_setAlignmentFiltersToKeepAll(){
-		_keepAll = true;
-		_keepDuplicates = true;
-		_filterSoftClips = false;
-		_keepImproperPairs = true;
-		_keepUnmappedReads = true;
-		_keepFailedQC = true;
-		_keepSecondary = true;
-		_keepSupplementary = true;
-		_keepReadsLongerThanInsertSize = true;
-	};
-
 void TAlignmentParser::_setContextFilter(std::vector<std::string> contexts){
 	applyContextFilter = true;
 	for(unsigned int i=0; i < contexts.size(); i++){
@@ -370,18 +278,6 @@ void TAlignmentParser::_setQualityRangeForPrinting(int minQual, int maxQual){
 
 	//set in quality map
 	qualMap.setQualityLimits(minQual, maxQual);
-};
-
-void TAlignmentParser::_setMappingQualityFilters(int MinMQ, int MaxMQ){
-	if(MinMQ < 0)
-		throw "minMQ must be >= 0!";
-	if(MaxMQ < MinMQ)
-		throw "maxMQ must be larger than minMQ";
-	applyMQFilter = true;
-	minMQ = MinMQ;
-	maxMQ = MaxMQ;
-	logfile->list("Will filter out reads with mapping quality outside the range [" + toString(minMQ) + ", " + toString(maxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
-
 };
 
 void TAlignmentParser::_setMasks(TParameters & params){
@@ -533,40 +429,7 @@ void TAlignmentParser::setWriteBlacklistToFileToTrue(){
 	blacklist.enableWriting(filename);
 };
 
-/*
-std::string TAlignmentParser::chrNumberToName(uint16_t chrNumber){
-	int counter = 0;
-	for(BamTools::SamSequenceIterator chrIt=bamHeader.Sequences.Begin(); chrIt!=bamHeader.Sequences.End(); ++chrIt, ++counter){
-		if(counter == chrNumber)
-			return chrIt->Name;
-	}
-	throw "chrNumber not in header";
-};
 
-uint32_t TAlignmentParser::calcReferenceLength(){
-    return chromosomes.referenceLength();
-};
-
-std::string TAlignmentParser::getCurChrName(){
-	return chromosomes.curName();
-};
-
-uint16_t TAlignmentParser::getCurRefId(){
-	return chromosomes.curIndex();
-};
-
-uint32_t TAlignmentParser::getCurChrLength(){
-	return chromosomes.curLength();
-};
-
-uint8_t TAlignmentParser::getCurChrPloidy(){
-	return chromosomes.curPloidy();
-};
-
-bool TAlignmentParser::getKeepAll(){
-	return _keepAll;
-}
-*/
 //--------------
 //move genome
 //--------------
@@ -797,16 +660,16 @@ bool TAlignmentParser::_readAlignment(){
 		(deletions in aligned bases are represented as dashes) */
 		if(bamFile->curIsLongerThanInsertSize()){
 			if(_updateBlacklist){
-				addToBlacklist(bamFile->bamAlignment, "longer than insert size (TLEN)");
+				addToBlacklist(bamFile->_curBamAlignment, "longer than insert size (TLEN)");
 			} else {
-				logfile->warning("The following alignment is longer than its insert size: " + bamFile->bamAlignment.Name);
+				logfile->warning("The following alignment is longer than its insert size: " + bamFile->_curBamAlignment.Name);
 			}
 			filtersPassed = false;
 		} else {
 			//apply filters: read group in use and basic QC
 			filtersPassed = bamFile->curPassedQC();
 			if(_updateBlacklist && !filtersPassed){
-				addToBlacklist(bamFile->bamAlignment, "did not pass QC filters");
+				addToBlacklist(bamFile->_curBamAlignment, "did not pass QC filters");
 			}
 		}
 	} while(!filtersPassed);
@@ -895,7 +758,7 @@ void TAlignmentParser::_readAlignmentsIntoWindow(TWindow & window){
 		++counter;
 
 		//check if alignment starts after current window end -> break
-		if(oldAlignment->position >= window.end || oldAlignment->chrNumber != window.chrNumber){
+		if(oldAlignment->position >= window.end || oldAlignment->refID != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
 			break;
 		}

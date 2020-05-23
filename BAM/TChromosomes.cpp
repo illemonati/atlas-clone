@@ -20,7 +20,7 @@ void TChromosomes::readChromosomes(BamTools::SamHeader* BamHeader){
 	_chromosomes.clear();
 
 	//copy from BamHeader
-	uint16_t num = 0;
+	uint32_t num = 0;
 	for(BamTools::SamSequenceIterator chrIt=BamHeader->Sequences.Begin(); chrIt!=BamHeader->Sequences.End(); ++chrIt, ++num){
 		_chromosomes.emplace_back(_chromosomes.size(), chrIt->Name, stringToLong(chrIt->Length));
 	}
@@ -134,7 +134,7 @@ void TChromosomes::jumpToEnd(){
 };
 
 //getters
-uint16_t TChromosomes::size() const{
+uint32_t TChromosomes::size() const{
 	return _chromosomes.size();
 }
 
@@ -165,11 +165,11 @@ TChromosome& TChromosomes::curChromosome(){
 };
 
 
-uint16_t TChromosomes::refID(const std::string chrName) const{
+uint32_t TChromosomes::refID(const std::string chrName) const{
 	return _find(chrName).refID;
 };
 
-uint16_t TChromosomes::curRefID() const{
+uint32_t TChromosomes::curRefID() const{
 	return _curChr->refID;
 };
 

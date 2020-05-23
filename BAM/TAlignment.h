@@ -8,6 +8,7 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
+#include <BAMData.h>
 #include <TBase.h>
 #include "stringFunctions.h"
 #include "TPostMortemDamage.h"
@@ -25,29 +26,45 @@
 class TAlignmentParser;
 
 
-
 //-----------------------------------------------------
 //TAlignment
 //-----------------------------------------------------
 
 class TAlignment{
 private:
+	//Alignment data
+	std::string name;
+	BAM::TSamFlags flags;
+	uint32_t refID;
+	uint32_t position;
+	uint16_t mappingQuality;
+	BAM::TCigar cigar;
+	uint32_t mateRefID;
+	int32_t matePosition;
+	int32_t insertSize_TLEN;
+	std::string sequence;
+	std::string qualities;
+	uint16_t readGroupID;
+
+	int32_t lastAlignedPositionWithRespectToRef;
+	int32_t lastAlignedPos;
+
+
 	//details
-	bool empty;
+
 
 	//data
 	uint16_t maxSize;
 	uint16_t length;
 	uint16_t fragmentLength; //is insert size - deletions + insertions for paired-end; read length - deletions + insertions for single end
 
-	//BamAlignment data
-	std::string alignmentName;
-	int32_t insertSize;
-	uint32_t position;
 
 	//booleans
+	bool storageInitialized;
+	bool empty;
 	bool parsed;
 	bool changed;
+	bool sequenceAndQualitiesChanged;
 
 	//per base data
 	//ToDo: turn into std storage where possible
@@ -69,18 +86,18 @@ private:
 	void _freeStorage();
 
 	//functions to read and parse
+	void _parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void _setDistancesFromEnds();
-	void _parseBasesQualities(TGenotypeMap & genoMap, TQualityMap & qualityMap);
-	void _fillContext(TGenotypeMap & genoMap);
-	void _fillPmdProbabilities(GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects);
+	void _fillContext();
+
+	void _updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 
 	//functions to modify data
 	void _trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
 	void _setReadTrimming(int trim3Prime, int trim5Prime);
 
 public:
-	bool storageInitialized;
-	BamTools::BamAlignment bamAlignment;
+
 
 	TAlignment();
 	TAlignment(uint16_t MaxSize);
@@ -90,11 +107,30 @@ public:
 		_freeStorage();
 	};
 
-	uint32_t getPosition(){ return position; };
-	uint16_t getParsedLength(){ return length; };
-	uint32_t getBamAlignmentLength(){ return bamAlignment.Length; };
-	std::string name(){ return alignmentName; };
-	int32_t getInsertSize(){ return insertSize; };
+	//clear, fill and parse
+	void clear();
+	void fill(const	std::string Name,
+			  const BAM::TSamFlags Flags,
+			  const uint32_t RefID,
+			  const uint32_t Position,
+			  const uint16_t MappingQuality,
+			  const BAM::TCigar Cigar,
+			  const uint32_t MateRefID,
+			  const int32_t MatePosition,
+			  const int32_t InsertSize_TLEN,
+			  const std::string Sequence,
+			  const std::string Qualities,
+			  const uint16_t ReadGroupId);
+	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
+
+
+	//getters
+	std::string getName() const{ return name; };
+	uint32_t getPosition() const{ return position; };
+	uint16_t getParsedLength() const{ return length; };
+	int32_t getInsertSize() const{ return insertSize_TLEN; };
+	std::string getSequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	std::string getQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 
 	//functions to write / print alignment
 	void setIsProperPair(const bool & ok);
@@ -105,26 +141,20 @@ public:
 	//accessed by alignmentParser
 	void filterForBaseQualityAsPhredInt(int & minQual, int & maxQual);
 	void filterForContext(std::map<BaseContext,int> ignoreTheseContexts);
-	void clear();
-	void parse(TGenotypeMap & genoMap, TQualityMap & qualityMap, GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
-	//accessed by TGenome
-	uint16_t readGroupId;
-	bool isReverseStrand;
-	bool isPaired;
-	bool isProperPair;
-	uint16_t mappingQuality;
-	bool isSecondMate;
-	int32_t matePosition;
-	uint32_t chrNumber;
-	int32_t lastAlignedPositionWithRespectToRef;
-	int32_t lastAlignedPos;
+
+
 
 	void fillReadGroupInfo(uint16_t & ReadGroupID);
 	void addReference(TFastaBuffer & fasta);
 	void binQualityScores(TQualityMap & qualityMap);
+
+	/*
+	 * TODO: discuss if needed. Is only used by PMDS and maybe we just do not add that info to the BAM file?
 	void updateOptionalSamField(std::string tag, float value);
 	void updateOptionalSamField(std::string tag, std::string value);
+	*/
+
 	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
 
 	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
@@ -140,6 +170,7 @@ public:
 
 	friend class TAlignmentParser;
 	friend class TWindow;
+	friend class TBamFile;
 
 };
 

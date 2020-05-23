@@ -14,19 +14,18 @@
 #include "stringFunctions.h"
 #include "TLog.h"
 
-
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
 class TChromosome{
 public:
-	uint16_t refID;
+	uint32_t refID;
 	std::string name;
 	uint32_t length;
 	uint8_t ploidy;
 	bool inUse;
 
-	TChromosome(const uint16_t RefID, const std::string Name, const uint32_t Length){
+	TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length){
 		refID = RefID;
 		name = Name;
 		length = Length;
@@ -64,15 +63,15 @@ public:
 	void jumpToBeginningOfLastChr();
 
 	//getters
-	uint16_t size() const;
+	uint32_t size() const;
 	uint32_t referenceLength() const;
 	bool exists(const std::string name) const;
 
 	TChromosome& getChromosome(const std::string chrName);
 	TChromosome& curChromosome();
 
-	uint16_t refID(const std::string chrName) const;
-	uint16_t curRefID() const;
+	uint32_t refID(const std::string chrName) const;
+	uint32_t curRefID() const;
 
 	uint32_t length(const uint16_t index) const;
 	uint32_t curLength() const;

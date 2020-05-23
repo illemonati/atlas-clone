@@ -24,6 +24,7 @@ public:
 	};
 
 	void enableWriting(const std::string filename);
+	void addToBlacklist(const std::string alignmentName, const bool isReverse, const std::string errorMessage);
 	void removeFromBlacklist(const std::string alignmentName, const bool isReverse, const std::string errorMessage);
 	bool isInBlacklist(const std::string & alignmentName);
 };

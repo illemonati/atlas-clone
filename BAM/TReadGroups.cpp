@@ -46,42 +46,42 @@ void TReadGroups::fill(BamTools::SamHeader & bamHeader){
 	_initialized = true;
 };
 
-uint16_t TReadGroups::find(const std::string & name){
-	for(size_t i=0; i<_numGroups; ++i){
+uint16_t TReadGroups::find(const std::string & name) const{
+	for(uint16_t i=0; i<_numGroups; ++i){
 		if(_groups[i].name == name) return i;
 	}
 	throw "Read Group '" + name + "' was not present in header of bam file!";
 };
 
-uint16_t TReadGroups::find(BamTools::BamAlignment & alignment){
+uint16_t TReadGroups::find(BamTools::BamAlignment & alignment) const{
 	std::string tmp;
 	alignment.GetTag("RG", tmp);
 	return find(tmp);
 };
 
-bool TReadGroups::readGroupExists(const std::string & name){
-	for(size_t i=0; i<_numGroups; ++i){
+bool TReadGroups::readGroupExists(const std::string & name) const{
+	for(uint16_t i=0; i<_numGroups; ++i){
 		if(_groups[i].name == name) return true;
 	}
 	return false;
 };
 
-bool TReadGroups::readGroupInUse(const uint16_t & readGroupId){
+bool TReadGroups::readGroupInUse(const uint16_t & readGroupId) const{
 	return _inUse[readGroupId];
 };
 
-bool TReadGroups::readGroupInUse(const std::string name){
+bool TReadGroups::readGroupInUse(const std::string name) const{
 	if(!readGroupExists(name))
 		return false;
 	int readGroupId = find(name);
 	return _inUse[readGroupId];
 };
 
-bool TReadGroups::readGroupInUse(BamTools::BamAlignment & alignment){
+bool TReadGroups::readGroupInUse(BamTools::BamAlignment & alignment) const{
 	return _inUse[find(alignment)];
 };
 
-std::string TReadGroups::getName(uint16_t readGroupId){
+const std::string& TReadGroups::getName(uint16_t readGroupId) const{
 	if(readGroupId < 0 || (size_t) readGroupId >= _numGroups) throw "No read group with number " + toString(readGroupId) + "!";
 	return _groups[readGroupId].name;
 };
@@ -101,7 +101,7 @@ void TReadGroups::filterReadGroups(std::string readGroupList){
 	}
 };
 
-void TReadGroups::printReadgroupsInUse(TLog* logfile){
+void TReadGroups::printReadgroupsInUse(TLog* logfile) const{
 	for(size_t i=0; i < _numGroups; i++){
 		if(_inUse[i])
 			logfile->list(_groups[i].name);

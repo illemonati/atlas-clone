@@ -27,10 +27,10 @@ public:
 	uint8_t recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
 	uint16_t distFrom5Prime; //zero based!
 	uint16_t distFrom3Prime; //zero based!	Do we need it if we also store fragment length?
-	uint16_t readGroup;
+	uint16_t readGroupID;
 	uint16_t fragmentLength;
 	uint8_t mappingQuality;
-	BaseContext context;
+	Base context;
 
 	TBase(){
 		base = N;
@@ -38,8 +38,8 @@ public:
 		recalibratedQualityAsPhredInt = 0;
 		distFrom5Prime = -1;
 		distFrom3Prime = -1;
-		readGroup = -1;
-		context = cNN;
+		readGroupID = -1;
+		context = N;
 		mappingQuality = 0;
 		fragmentLength = 0;
 	};

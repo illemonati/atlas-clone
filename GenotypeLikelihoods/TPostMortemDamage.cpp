@@ -760,7 +760,7 @@ void TPostMortemDamage::initialize(TParameters & params, TReadGroups & ReadGroup
 
 void TPostMortemDamage::calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods){
 	if(hasPMD){
-		pmdObjects[ base.readGroup ].fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+		pmdObjects[ base.readGroupID ].fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;

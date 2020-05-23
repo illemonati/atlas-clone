@@ -592,7 +592,7 @@ void TWindow::cleanUpUsedAlignments(TLog* logfile){
 
 		//go through alignments
 		for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-			if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->chrNumber == chrNumber){
+			if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->refID == chrNumber){
 				++alignmentIt;
 			} else{
 				(*alignmentIt)->clear();
@@ -622,7 +622,7 @@ void TWindow::move(unsigned int Start, unsigned int End, int ChrNumber, TLog* lo
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
 	for(TAlignment* alignmentIt : usedAlignments)
-		std::cout << " " << alignmentIt << " : " << alignmentIt->alignmentName << " pos " << alignmentIt->position;
+		std::cout << " " << alignmentIt << " : " << alignmentIt->name << " pos " << alignmentIt->position;
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
@@ -650,7 +650,7 @@ void TWindow::setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int
 		while(p < alignmentIt->length && (firstPos + alignmentIt->alignedPosition[p]) < 0){
 			++p;
 		} if(p == alignmentIt->length){
-			throw "alignment should be assigned to previous window! Name: " + alignmentIt->alignmentName + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
+			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 		}
 	}
 };

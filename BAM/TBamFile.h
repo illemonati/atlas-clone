@@ -9,17 +9,99 @@
 #define BAM_TBAMFILE_H_
 
 #include "bamtools/api/BamReader.h"
+#include "bamtools/api/BamWriter.h"
 #include "TChromosomes.h"
 #include "TReadGroups.h"
 #include "TAlignment.h"
 #include "TAlignmentBlacklist.h"
+#include "BAMData.h"
 
+//-----------------------------------------------------
+//TBamFileFilter
+//-----------------------------------------------------
+class TBamFileFilter_base{
+protected:
+	bool _keep;
+	uint64_t _counter;
+	std::string _errorString;
+	bool _updateBlacklist;
+	TAlignmentBlacklist* _blacklist;
+
+	void _filterOut(const std::string & alignmentName, const bool & isReverseStrand){
+		++_counter;
+		if(_updateBlacklist){
+			_blacklist->addToBlacklist(alignmentName, isReverseStrand, _errorString);
+		}
+	};
+
+
+public:
+	TBamFileFilter_base(){
+		_counter = 0;
+		_keep = true;
+		_updateBlacklist = false;
+		_blacklist = nullptr;
+	};
+
+	void keep(){
+		_keep = true;
+	};
+
+	void setBlacklist(const TAlignmentBlacklist* Blacklist){
+		_blacklist = Blacklist;
+		_updateBlacklist = true;
+
+	};
+
+};
+class TBamFileFilter:public TBamFileFilter_base{
+public:
+	TBamFileFilter(){};
+
+	void filter(const std::string ErrorString){
+		_keep = false;
+		_errorString = ErrorString;
+	};
+
+	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
+		if(state && !_keep){
+			_filterOut(alignmentName, isReverseStrand);
+			return false;
+		}
+		return true;
+	};
+};
+
+class TBamFileFilterRange:public TBamFileFilter{
+private:
+	uint32_t _min, _max;
+public:
+	TBamFileFilterRange(){
+		_min = 0;
+		_max = UINT32_MAX;
+	};
+
+	void filter(const uint32_t Min, const uint32_t Max, const std::string ErrorString){
+		_keep = false;
+		_min = Min;
+		_max = Max;
+		_errorString = ErrorString;
+	};
+
+	bool pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand){
+		if(!_keep && (value < _min || value > _max)){
+			_filterOut(alignmentName, isReverseStrand);
+		}
+		return true;
+	};
+
+};
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
 class TBamFile{
 private:
-	//BAm file
+	//BAM file
 	std::string _filename;
 	BamTools::BamReader _bamReader;
 	BamTools::BamRegion _bamRegion;
@@ -29,45 +111,55 @@ private:
  	//counters
  	uint64_t _numAlignmentRead;
  	uint64_t _numAlignmentsPassedQC;
+
+ 	//current alignment
+ 	BamTools::BamAlignment _curBamAlignment;
+ 	uint16_t _curReadGroupID;
+ 	BAM::TCigar _curCigar;
  	uint32_t _previousAlignmentPos;
  	int _previousAlignmentChr; //negative at beginning to trigger chr change on first read
  	bool _chrChanged;
- 	uint16_t _curReadGroupID;
 
-	//filters
+ 	//writing
+ 	BamTools::BamWriter bamWriter;
+ 	bool _openForWriting;
+
+	//alignment filters
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
  	bool _keepAll;
- 	bool _keepDuplicates;
- 	bool _filterSoftClips;
- 	bool _keepImproperPairs;
- 	bool _keepUnmappedReads;
- 	bool _keepFailedQC;
- 	bool _keepSecondary;
- 	bool _keepSupplementary;
- 	bool _parse;
 
-	bool applyQualityFilter;
-	bool applyContextFilter;
-	std::map<BaseContext,int> ignoreTheseContexts;
-	size_t readUpToDepth, minDepth, maxDepth;
-	bool applyMQFilter;
-	int minMQ, maxMQ;
-	int minFragmentLength, maxFragmentLength;
-	bool _keepReadsLongerThanInsertSize;
-	bool useStrand[2];
-	bool useMate[2];
+ 	TBamFileFilter _duplicateFilter;
+ 	TBamFileFilter _softClippedFilter;
+ 	TBamFileFilter _improperPairsFilter;
+ 	TBamFileFilter _unmappedFilter;
+ 	TBamFileFilter _failedQCFilter;
+ 	TBamFileFilter _secondaryFilter;
+ 	TBamFileFilter _supplementaryFilter;
+ 	TBamFileFilter _longerThanFragmentFilter;
+ 	TBamFileFilter _readGroupFilter;
+ 	TBamFileFilter _fwdStrandFilter;
+ 	TBamFileFilter _revStrandFilter;
+ 	TBamFileFilter _firstMateFilter;
+ 	TBamFileFilter _secondMateFilter;
+ 	TBamFileFilterRange _mappingQualityFilter;
+ 	TBamFileFilterRange _fragmentLengthfilter;
+
+ 	//base filters -> to parser?
+ 	std::map<BaseContext,int> ignoreTheseContexts;
+
+
 
 	//output filtered reads
 	bool _updateBlacklist;
-	TAlignmentBlacklist* blacklist;
+	TAlignmentBlacklist* _blacklist;
 
 	void _applyFilters();
 
 public:
 	TChromosomes chromosomes;
 	TReadGroups readGroups;
-	BamTools::BamAlignment bamAlignment;
+
 
 	TBamFile();
 
@@ -77,7 +169,7 @@ public:
 	void limitReadGroups(std::string readGroupList, TLog* logfile);
 
 	//reading
-	void open(std::string filename, uint32_t maxReadLength, bool indexNotRequired);
+	void open(const std::string filename, const uint32_t maxReadLength, const bool indexNotRequired);
 	bool readNextAlignment(); //TODO: make private
 	bool readNextAlignmentThatPassesFilters(); //TODO: make private
 	bool readNextAlignment(TAlignment & alignment);
@@ -86,14 +178,21 @@ public:
 	bool jump(int chr, int position);
 	void rewind();
 
+	//writing
+	void openOutput(std::string filename);
+	void writeCurAlignment();
+	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+
 	//getters
 	std::string filename(){ return _filename; };
-	uint32_t curPosition(){ return bamAlignment.Position; };
+	uint32_t curPosition(){ return _curBamAlignment.Position; };
 	uint16_t curReadGroupID(){ return _curReadGroupID; };
 	bool chrChanged(){ return _chrChanged; };
-	bool curIsLongerThanInsertSize();
+	bool curIsLongerThanInsertSize(){
+		return _curBamAlignment.IsPaired() && abs(_curBamAlignment.InsertSize) < _curBamAlignment.AlignedBases.length();
+	};
 	bool curPassedQC(){ return _QCFiltersPassed; };
-	void fill(TAlignment & alignment); //TODO: make private
+	void fill(TAlignment & alignment);
 
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
 	uint16_t maxReadLength(){ return _maxReadLength; };

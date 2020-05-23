@@ -795,7 +795,7 @@ void TGenome::printQualityDistribution(TParameters & params){
     //now parse through bam file and write alignments
 	while(alignmentParser.readNextAlignment(alignment)){
 		//update and write (only if alignment qualities could be calculated)
-		alignment.addToQualityTable(qualDist[alignment.readGroupId], qualMap);
+		alignment.addToQualityTable(qualDist[alignment.readGroupID], qualMap);
 
 		//report
 		reporter.printProgress();
@@ -882,7 +882,7 @@ void TGenome::recalibrateBamFile(TParameters & params){
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_recalibrated.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
+	BamTools::RefVector references = bamFile.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
@@ -1183,7 +1183,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
 		//check if this RG needs to be parsed
-		readGroupId = alignment.readGroupId;
+		readGroupId = alignment.readGroupID;
 
 		singleEndRGIT = singleEndRG.find(readGroupId);
 		if(singleEndRGIT != singleEndRG.end()){
@@ -1487,10 +1487,10 @@ void TGenome::filterBAM(TParameters & params){
 
 	while(alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
-		if(curChr != alignment.chrNumber){
+		if(curChr != alignment.refID){
 			//write all ready currently in storage
 			merger.clear();
-			curChr = alignment.chrNumber;
+			curChr = alignment.refID;
 		}
 
 		//check if first alignment in storage is too far away from current read (after checking for chr change)
@@ -1617,10 +1617,10 @@ void TGenome::splitMerge(TParameters & params){
 	unsigned int curChr = 0;
 	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
-		if(curChr != alignment.chrNumber){
+		if(curChr != alignment.refID){
 			//write all ready currently in storage
 			merger.clear();
-			curChr = alignment.chrNumber;
+			curChr = alignment.refID;
 		}
 
 		//check if first alignment in storage is too far away from current read (after checking for chr change)
@@ -1629,7 +1629,7 @@ void TGenome::splitMerge(TParameters & params){
 
 		//attempt merging of paired reads
 		std::map<int, TReadGroupMaxLength>::iterator RGSettingsIt;
-		RGSettingsIt = RGSettings.find(alignment.readGroupId);
+		RGSettingsIt = RGSettings.find(alignment.readGroupID);
 
 		if(RGSettingsIt != RGSettings.end()){
 
@@ -1716,10 +1716,10 @@ void TGenome::mergePairedEndReads(TParameters & params){
 
 	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
-		if(curChr != alignment.chrNumber){
+		if(curChr != alignment.refID){
 			//write all ready currently in storage
 			merger.clear();
-			curChr = alignment.chrNumber;
+			curChr = alignment.refID;
 		}
 
 		//check if first alignment in storage is too far away from current read (after checking for chr change)
@@ -1727,7 +1727,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
 		merger.writeUpTo(alignment.getPosition());
 
 		//attempt merging of paired reads
-		if(alignment.isPaired && mergeThisReadGroup[alignment.readGroupId]){
+		if(alignment.isPaired && mergeThisReadGroup[alignment.readGroupID]){
 			//Ignore reads in black list
 			if(alignmentParser.isInBlacklist(alignment.name()) || !alignment.isProperPair){
 				merger.addAsImproperPair(alignment);
@@ -2107,18 +2107,18 @@ void TGenome::diagnoseBamFile(TParameters & params){
         //depth
         int length = alignment.getUsableLength(minQuality, maxQuality);
         totalDepth += length;
-        depth[alignment.readGroupId] += length;
+        depth[alignment.readGroupID] += length;
 
         //mapping quality
         if(alignment.mappingQuality > maxMQ)
         	throw "Mapping quality of alignment " + alignment.name() + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
-        ++mappingQuality[alignment.readGroupId][alignment.mappingQuality];
+        ++mappingQuality[alignment.readGroupID][alignment.mappingQuality];
 
         //read length
         if(alignment.getBamAlignmentLength() > maxReadLength)
     	   throw "Read length of alignment " + alignment.name() + " is larger than maxReadLength (" + toString(alignment.getParsedLength()) + ">" + toString(maxReadLength) +")";
 
-        ++readLength[alignment.readGroupId][alignment.getBamAlignmentLength()];
+        ++readLength[alignment.readGroupID][alignment.getBamAlignmentLength()];
 
         //report
         reporter.printProgress();

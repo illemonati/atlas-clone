@@ -61,17 +61,17 @@ public:
 	~TReadGroups();
 
 	void fill(BamTools::SamHeader & bamHeader);
-	uint16_t find(const std::string & name);
-	uint16_t find(BamTools::BamAlignment & alignment);
-	bool readGroupExists(const std::string & name);
-	bool readGroupInUse(const uint16_t & readGroupId);
-	bool readGroupInUse(const std::string name);
-	bool readGroupInUse(BamTools::BamAlignment & alignment);
+	uint16_t find(const std::string & name) const;
+	uint16_t find(BamTools::BamAlignment & alignment) const;
+	bool readGroupExists(const std::string & name) const;
+	bool readGroupInUse(const uint16_t & readGroupId) const;
+	bool readGroupInUse(const std::string name) const;
+	bool readGroupInUse(BamTools::BamAlignment & alignment) const;
 
-	std::string getName(const uint16_t readGroupId);
-	uint16_t size();
+	const std::string& getName (const uint16_t readGroupId) const;
+	uint16_t size() const;
 	void filterReadGroups(std::string readGroupList);
-	void printReadgroupsInUse(TLog* logfile);
+	void printReadgroupsInUse(TLog* logfile) const;
 	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);
 };
 

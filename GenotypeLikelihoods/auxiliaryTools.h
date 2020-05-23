@@ -131,7 +131,7 @@ public:
 	};
 
 	int index(const TBase & base){
-		return readGroupIndex[base.readGroup][base.isSecondMate()];
+		return readGroupIndex[base.readGroupID][base.isSecondMate()];
 	};
 
 	int index(const TRecalibrationEMReadData & data){

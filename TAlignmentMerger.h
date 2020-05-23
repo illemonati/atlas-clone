@@ -63,7 +63,7 @@ public:
 
 class TAlignmentMerger{
 private:
-	std::vector< TAlignmentMergerEntry > alignmentStorage; //bool indicates wheter read is ready for writing
+	std::vector< TAlignmentMergerEntry > alignmentStorage; //bool indicates whether read is ready for writing
 	BamTools::BamWriter* writer;
 	TAlignmentParser* parser;
 
