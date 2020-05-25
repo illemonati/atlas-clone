@@ -16,17 +16,6 @@ TAlignmentParser::TAlignmentParser(){
 	logfile = nullptr;
 	bamFile = nullptr;
 	genotypeLikelihoodCalculator = nullptr;
-	_keepAll = false;
-	_keepDuplicates = false;
-	_filterSoftClips = false;
-	_keepImproperPairs = false;
-	_keepUnmappedReads = false;
-	_keepFailedQC = false;
-	_keepSecondary = false;
-	_keepSupplementary = false;
-	applyFragmentLengthFilter = false;
-	minFragmentLength = -1;
-	maxFragmentLength = -1;
 	_parse = false;
 	oldAlignment = NULL;
 	oldAlignmentInitialized = false;
@@ -39,7 +28,6 @@ TAlignmentParser::TAlignmentParser(){
 	windowNumber = -1;
 	windowSize = 0;
 	numWindowsOnChr = -1;
-	maxReadLength = 0;
 	maxMissing = 1.0;
 	maxRefN = 1.0;
 	windowsPredefined = false;
@@ -52,27 +40,20 @@ TAlignmentParser::TAlignmentParser(){
 	mask = NULL;
 
 	//filters
+	applyQualityFilter = false;
+	minQualityAsPhredInt = 0;
+	maxQualityAsPhredInt = 93;
+	applyContextFilter = false;
+	trimReads = false;
+	trimmingLength3Prime = 0;
+	trimmingLength5Prime = 0;
 	applyDepthFilter = false;
 	readUpToDepth = 10000;
 	minDepth = 0;
 	maxDepth = 10000;
-	applyQualityFilter = false;
-	applyMQFilter = false;
-	applyContextFilter = false;
-	minMQ = 0;
-	maxMQ = 10000;
-	minQualityAsPhredInt = 0;
-	maxQualityAsPhredInt = 93;
-	trimReads = false;
-	trimmingLength3Prime = 0;
-	trimmingLength5Prime = 0;
-	_keepReadsLongerThanInsertSize = false;
-	useStrand[0] = true; useStrand[1] = true;
-	useMate[0] = true; useMate[1] = true;
 
 	//blacklist
 	_updateBlacklist = false;
-	_writeBlackList = false;
 
 	//limit chr and windows
 	limitWindows = -1;
@@ -82,12 +63,11 @@ TAlignmentParser::TAlignmentParser(){
 
 	//reference
 	hasReference = false;
-	fastaReference = NULL;
 	fastaBuffer = NULL;
 	chrChangedWindow = false;
 };
 
-TAlignmentParser::TAlignmentParser(TParameters & params, TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile){
+TAlignmentParser::TAlignmentParser(TParameters & params, BAM::TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile){
 	TAlignmentParser();
 
 	init(params,BamFile, GenotypeLikelihoodCalculator, Logfile);
@@ -114,7 +94,7 @@ void TAlignmentParser::init(TParameters & params, TBamFile * BamFile, GenotypeLi
 	genotypeLikelihoodCalculator = GenotypeLikelihoodCalculator;
 
 	//alignments
-	oldAlignment = new TAlignment(bamFile->maxReadLength());
+	oldAlignment = new TAlignment();
 	oldAlignmentInitialized = true;
 
 	//settings
@@ -125,34 +105,6 @@ void TAlignmentParser::init(TParameters & params, TBamFile * BamFile, GenotypeLi
 	_setFilters(params);
 	_setChrPloidy(params);
 };
-
-/*
-void TAlignmentParser::_openBamFile(std::string filename, bool indexNotRequired){
-	//open BAM file
-	logfile->list("Reading data from BAM file '" + filename + "'.");
-	if (!bamReader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "'!";
-	//load index file
-	if(!bamReader.LocateIndex() && !indexNotRequired)
-		throw "No index file found for BAM file '" + filename + "'!";
-
-	//initialize bam stuff
-	bamHeader = bamReader.GetHeader();
-
-	//initialize chromosomes
-	chromosomes = TChromosomes(&bamHeader);
-
-	//get file size
-	chromosomes.jumpToBeginningOfLastChr();
-	bamReader.Jump(bamHeader.Sequences.Size() - 1, 0);
-	BamTools::BamAlignment bamAlignment;
-	bamReader.GetNextAlignment(bamAlignment);
-	sizeOfBamFile = bamReader.tell();
-	bamReader.Rewind();
-
-	chromosomes.jumpToEnd();
-};
-*/
 
 void TAlignmentParser::setOutName(std::string outputName){
 	outname = outputName;
@@ -166,8 +118,8 @@ void TAlignmentParser::_setWindowParameters(TParameters & params){
 		windowsPredefined = false;
 		windowSize = stringToInt(tmp);
 		logfile->list("Setting window size to " + toString(windowSize) + ". (parameter 'window')");
-		if(windowSize < maxReadLength)
-			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";
+		if(windowSize < bamFile->maxReadLength())
+			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(bamFile->maxReadLength()) + " bp)!";
 	} else {
 		windowsPredefined = true;
 		logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
@@ -179,17 +131,9 @@ void TAlignmentParser::_setWindowParameters(TParameters & params){
 };
 
 void TAlignmentParser::_setFilters(TParameters & params){
+
 	_setWindowFilters(params);
-
-	if(params.parameterExists("keepAllReads")){
-		_setAlignmentFiltersToKeepAll();
-		logfile->list("Will keep all reads. All filters turned off (parameter 'keepAll')");
-	} else {
-		_setAlignmentFilters(params);
-	}
-
 	_setSiteFilters(params);
-
 	_setBaseFilters(params);
 };
 
@@ -247,7 +191,18 @@ void TAlignmentParser::_setSiteFilters(TParameters & params){
 
 void TAlignmentParser::_setBaseFilters(TParameters & params){
 	//quality filters
+
 	_setQualityFilters(params.getParameterIntWithDefault("minQual", 1), params.getParameterIntWithDefault("maxQual", 93));
+
+	minQualityAsPhredInt = MinPhredInt;
+	maxQualityAsPhredInt = MaxPhredInt;
+	if(minQualityAsPhredInt < 0) throw "minQual must be >= 0!";
+	if(maxQualityAsPhredInt < minQualityAsPhredInt) throw "maxQual must be >= minQual!";
+	applyQualityFilter = true;
+
+	logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
+
+
 
 	//quality filters for printing
 	_setQualityRangeForPrinting(params.getParameterIntWithDefault("minOutQual", 0), params.getParameterIntWithDefault("maxOutQual", 93));
@@ -371,13 +326,6 @@ void TAlignmentParser::_setParsingLimits(TParameters & params){
 		logfile->list("Will limit analysis to the first " + toString(limitWindows) + " windows per chromosome. (parameter 'limitWindows')");
 	if(limitWindows <= skipWindows)
 		throw "limitWindows has to be larger than skipWindows!";
-
-	//limit reads
-	if(params.parameterExists("limitReads")){
-		doLimitReads = true;
-		limitReads = params.getParameterLong("limitReads");
-		logfile->list("Will limit analysis to " + toString(limitReads) + " reads.");
-	}
 };
 
 void TAlignmentParser::_setReadTrimming(TParameters & params){
@@ -970,53 +918,3 @@ void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlig
 		}
 	}
 };
-
-//-----------------------------------------------------
-// TBamProgressReporter
-//-----------------------------------------------------
-TBamProgressReporter::TBamProgressReporter(int Frequency, TAlignmentParser* Parser, TLog* Logfile){
-	_init(Frequency, Parser, Logfile);
-};
-
-TBamProgressReporter::TBamProgressReporter(TAlignmentParser* Parser, TLog* Logfile){
-	_init(1000000, Parser, Logfile);
-};
-
-void TBamProgressReporter::_init(int Frequency, TAlignmentParser* Parser, TLog* Logfile){
-	progressFrequency = Frequency;
-	parser = Parser;
-	logfile = Logfile;
-	timer.start();
-	lastProgressPrinted = 0;
-
-	logfile->startIndent("Parsing through BAM file:");
-};
-
-void TBamProgressReporter::_printProgress(){
-	std::string percentOfFile = to_string_with_precision(parser->getPositionInFile() * 100, 2);
-	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
-	logfile->list("Parsed " + millionReads + " million reads (est. " + percentOfFile + "%) in " + timer.minutes() + " min.");
-};
-
-void TBamProgressReporter::printProgress(){
-	if(parser->getNumAlignmentsRead() - lastProgressPrinted >= progressFrequency){
-		_printProgress();
-		lastProgressPrinted = parser->getNumAlignmentsRead();
-	}
-};
-
-void TBamProgressReporter::printEnd(){
-	logfile->list("Reached end of BAM file.");
-	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
-	logfile->conclude("Parsed a total of " + millionReads + " million reads in " + timer.minutes() + " min.");
-	logfile->endIndent();
-};
-
-void TBamProgressReporter::printEndNoEndIndent(){
-	logfile->list("Reached end of BAM file.");
-	std::string millionReads = to_string_with_precision((double) parser->getNumAlignmentsRead() / 1000000.0, 1);
-	logfile->conclude("Parsed a total of " + millionReads + " million reads in " + timer.minutes() + " min.");
-};
-
-
-

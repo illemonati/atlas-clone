@@ -48,8 +48,8 @@ public:
 	uint8_t getPhredIntWithPMD(const TBase & base);
 	void recalibrate(TBase & base);
 	void recalibrateWithPMD(TBase & base);
-	void recalibrate(TBase* bases, const uint16_t  length);
-	void recalibrateWithPMD(TBase* bases, const uint16_t  length);
+	void recalibrate(std::vector<TBase> & bases);
+	void recalibrateWithPMD(std::vector<TBase> & bases);
 
 	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);
 	double calculatePMDS(const TBase & base, const Base ref, const double pi);

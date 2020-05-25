@@ -8,6 +8,8 @@
 
 #include "TFastaBuffer.h"
 
+namespace BAM{
+
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
@@ -50,9 +52,11 @@ void TFastaBuffer::fill(const uint16_t & chr, const uint32_t start, const uint32
 	ref.assign(_referenceSequence, start - _curStart, end - start + 1);
 };
 
-char TFastaBuffer::refAt(const int & chr, const int32_t & position){
+char TFastaBuffer::refAt(const uint16_t & chr, const int32_t & position){
 	if(chr != _curChr || position > _curEnd || position < _curStart){
 		moveTo(chr, position);
 	}
 	return _referenceSequence[position - _curStart];
 };
+
+}; //end namesapce

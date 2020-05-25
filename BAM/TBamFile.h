@@ -8,94 +8,17 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
+#include "BamData.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/BamWriter.h"
 #include "TChromosomes.h"
 #include "TReadGroups.h"
 #include "TAlignment.h"
-#include "TAlignmentBlacklist.h"
-#include "BAMData.h"
+#include "TBamFilter.h"
 
-//-----------------------------------------------------
-//TBamFileFilter
-//-----------------------------------------------------
-class TBamFileFilter_base{
-protected:
-	bool _keep;
-	uint64_t _counter;
-	std::string _errorString;
-	bool _updateBlacklist;
-	TAlignmentBlacklist* _blacklist;
-
-	void _filterOut(const std::string & alignmentName, const bool & isReverseStrand){
-		++_counter;
-		if(_updateBlacklist){
-			_blacklist->addToBlacklist(alignmentName, isReverseStrand, _errorString);
-		}
-	};
+namespace BAM{
 
 
-public:
-	TBamFileFilter_base(){
-		_counter = 0;
-		_keep = true;
-		_updateBlacklist = false;
-		_blacklist = nullptr;
-	};
-
-	void keep(){
-		_keep = true;
-	};
-
-	void setBlacklist(const TAlignmentBlacklist* Blacklist){
-		_blacklist = Blacklist;
-		_updateBlacklist = true;
-
-	};
-
-};
-class TBamFileFilter:public TBamFileFilter_base{
-public:
-	TBamFileFilter(){};
-
-	void filter(const std::string ErrorString){
-		_keep = false;
-		_errorString = ErrorString;
-	};
-
-	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
-		if(state && !_keep){
-			_filterOut(alignmentName, isReverseStrand);
-			return false;
-		}
-		return true;
-	};
-};
-
-class TBamFileFilterRange:public TBamFileFilter{
-private:
-	uint32_t _min, _max;
-public:
-	TBamFileFilterRange(){
-		_min = 0;
-		_max = UINT32_MAX;
-	};
-
-	void filter(const uint32_t Min, const uint32_t Max, const std::string ErrorString){
-		_keep = false;
-		_min = Min;
-		_max = Max;
-		_errorString = ErrorString;
-	};
-
-	bool pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand){
-		if(!_keep && (value < _min || value > _max)){
-			_filterOut(alignmentName, isReverseStrand);
-		}
-		return true;
-	};
-
-};
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
@@ -111,6 +34,8 @@ private:
  	//counters
  	uint64_t _numAlignmentRead;
  	uint64_t _numAlignmentsPassedQC;
+ 	bool _limitNumReads;
+ 	uint64_t _maxNumReadsToRead;
 
  	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
@@ -128,45 +53,47 @@ private:
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
  	bool _keepAll;
-
- 	TBamFileFilter _duplicateFilter;
- 	TBamFileFilter _softClippedFilter;
- 	TBamFileFilter _improperPairsFilter;
- 	TBamFileFilter _unmappedFilter;
- 	TBamFileFilter _failedQCFilter;
- 	TBamFileFilter _secondaryFilter;
- 	TBamFileFilter _supplementaryFilter;
- 	TBamFileFilter _longerThanFragmentFilter;
- 	TBamFileFilter _readGroupFilter;
- 	TBamFileFilter _fwdStrandFilter;
- 	TBamFileFilter _revStrandFilter;
- 	TBamFileFilter _firstMateFilter;
- 	TBamFileFilter _secondMateFilter;
+ 	TBamFileFilterBool _duplicateFilter;
+ 	TBamFileFilterBool _softClippedFilter;
+ 	TBamFileFilterBool _improperPairsFilter;
+ 	TBamFileFilterBool _unmappedFilter;
+ 	TBamFileFilterBool _failedQCFilter;
+ 	TBamFileFilterBool _secondaryFilter;
+ 	TBamFileFilterBool _supplementaryFilter;
+ 	TBamFileFilterBool _longerThanFragmentFilter;
+ 	TBamFileFilterBool _readGroupFilter;
+ 	TBamFileFilterBool _fwdStrandFilter;
+ 	TBamFileFilterBool _revStrandFilter;
+ 	TBamFileFilterBool _firstMateFilter;
+ 	TBamFileFilterBool _secondMateFilter;
  	TBamFileFilterRange _mappingQualityFilter;
  	TBamFileFilterRange _fragmentLengthfilter;
 
- 	//base filters -> to parser?
- 	std::map<BaseContext,int> ignoreTheseContexts;
-
-
+ 	void _applyFilters();
 
 	//output filtered reads
 	bool _updateBlacklist;
 	TAlignmentBlacklist* _blacklist;
 
-	void _applyFilters();
+	//report progress
+	TLog* _logfile;
+	TTimer _timer;
+	uint32_t _progressFrequency;
+	uint64_t _lastProgressPrinted;
+
+	std::string _millionReadsRead(){ return to_string_with_precision((double) _numAlignmentRead / 1000000.0, 1); };
 
 public:
 	TChromosomes chromosomes;
 	TReadGroups readGroups;
 
-
 	TBamFile();
 
 	//filters
 	void setAlignmentFiltersToKeepAll();
-	void setAlignmentFilters(TParameters & params, TLog* logfile);
+	void setFilters(TParameters & params, TLog* logfile);
 	void limitReadGroups(std::string readGroupList, TLog* logfile);
+	void maintainBlacklist(TAlignmentBlacklist* Blacklist);
 
 	//reading
 	void open(const std::string filename, const uint32_t maxReadLength, const bool indexNotRequired);
@@ -174,6 +101,7 @@ public:
 	bool readNextAlignmentThatPassesFilters(); //TODO: make private
 	bool readNextAlignment(TAlignment & alignment);
 	bool readNextAlignmentThatPassesFilters(TAlignment & alignment);
+	void fill(TAlignment & alignment);
 
 	bool jump(int chr, int position);
 	void rewind();
@@ -183,22 +111,28 @@ public:
 	void writeCurAlignment();
 	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 
-	//getters
+	//getters for cur alignment
 	std::string filename(){ return _filename; };
 	uint32_t curPosition(){ return _curBamAlignment.Position; };
 	uint16_t curReadGroupID(){ return _curReadGroupID; };
 	bool chrChanged(){ return _chrChanged; };
-	bool curIsLongerThanInsertSize(){
-		return _curBamAlignment.IsPaired() && abs(_curBamAlignment.InsertSize) < _curBamAlignment.AlignedBases.length();
-	};
 	bool curPassedQC(){ return _QCFiltersPassed; };
-	void fill(TAlignment & alignment);
+	int curUsableLength(const int minQual, const int maxQual);
 
-	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
+	//other getters
 	uint16_t maxReadLength(){ return _maxReadLength; };
+	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
+	double positionInFile(){ return (double) _bamReader.tell() / (double) _fileSize; };
+
+	//progress reporting
+	void printSummary(TLog* Logfile);
+	void startProgressReporting(uint32_t Frequency, TLog* Logfile);
+	void printProgress();
+	void printEnd();
+	void printEndNoEndIndent();
 };
 
-
+}; //end namespace
 
 
 #endif /* BAM_TBAMFILE_H_ */

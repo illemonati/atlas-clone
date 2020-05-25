@@ -8,8 +8,10 @@
 #ifndef TFASTABUFFER_H_
 #define TFASTABUFFER_H_
 
-#include "bamtools/utils/bamtools_fasta.h"
+#include "../bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
+
+namespace BAM{
 
 //-----------------------------------------------------
 //TFastaBuffer
@@ -57,6 +59,6 @@ public:
 	long getCurEnd(){return _curEnd;};
 };
 
-
+}; //end namespace
 
 #endif /* TFASTABUFFER_H_ */

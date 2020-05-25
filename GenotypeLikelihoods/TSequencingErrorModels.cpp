@@ -303,7 +303,7 @@ void TSequencingErrorModels::recalibrate(TBase & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length) const{
+void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
@@ -316,6 +316,23 @@ void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t  length) c
 	} else {
 		for(uint16_t i=0; i<length; ++i){
 			bases[i].recalibratedQualityAsPhredInt = bases[i].originalQuality_phredInt;
+		}
+	}
+};
+
+void TSequencingErrorModels::recalibrate(std::vector<TBase> bases) const{
+	if(doRecalibration){
+		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
+		for(auto& b : bases){
+			if(b.base == N){
+				b.recalibratedQualityAsPhredInt = 0;
+			} else {
+				b.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(model.getErrorRate(b));
+			}
+		}
+	} else {
+		for(auto& b : bases){
+			b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
 		}
 	}
 };

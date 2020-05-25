@@ -127,11 +127,11 @@ public:
     	cigar.emplace_back(Type, Length);
     }
 
-    uint16_t lengthAligned(){ return _lengthAligned; };
-    uint16_t lengthInserted(){ return _lengthInserted; };
-    uint16_t lengthDeleted(){ return _lengthDeleted; };
-    uint16_t lengthSoftClipped(){ return lengthSoftClipped; };
-    uint16_t lengthSequenced(){ return _lengthAligned + _lengthInserted; };
+    uint16_t lengthAligned() const{ return _lengthAligned; };
+    uint16_t lengthInserted() const{ return _lengthInserted; };
+    uint16_t lengthDeleted() const{ return _lengthDeleted; };
+    uint16_t lengthSoftClipped() const{ return lengthSoftClipped; };
+    uint16_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
 };
 
 

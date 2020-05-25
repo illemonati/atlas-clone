@@ -80,7 +80,8 @@ public:
 	double getErrorRate(const TBase & base) const;
 	uint8_t getPhredInt(const TBase & base) const;
 	void recalibrate(TBase & base) const;
-	void recalibrate(TBase* bases, const uint16_t  length) const;
+	void recalibrate(TBase* bases, const uint16_t  length) const; //TODO: remove
+	void recalibrate(std::vector<TBase> bases) const;
 	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
 
 	//function to estimate

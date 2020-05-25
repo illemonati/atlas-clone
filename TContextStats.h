@@ -48,7 +48,9 @@ public:
 	};
 
 	void add(const TBase & base){
-		++contextCounts[base.recalibratedQualityAsPhredInt][base.context];
+		if(base.recalibratedQualityAsPhredInt < maxPhredInt){
+			++contextCounts[base.recalibratedQualityAsPhredInt][genoMap.getContext(base.context, base.base)];
+		}
 	};
 
 	void writeToFile(const std::string outputFileName){

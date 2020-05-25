@@ -773,7 +773,7 @@ void TGenome::calculateLikelihoodErrorCalibrationEM(TParameters & params){
 
 void TGenome::printQualityDistribution(TParameters & params){
 	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
+	TAlignment alignment;
 	alignmentParser.setParsingToTrue();
 
 	//Assemble quality distribution
@@ -1999,12 +1999,13 @@ void TGenome::downSampleReads(TParameters & params){
 	alignmentParser.setParsingToTrue();
 
 	//read parameters
-	double fraction = params.getParameterDoubleWithDefault("prob", 0.1);
-	logfile->list("Each base has a probability of " + toString(fraction)+ " of being masked. (parameter 'prob')");
+	double prob = params.getParameterDoubleWithDefault("prob", 0.1);
+	logfile->list("Will keep bases  with probability " + toString(prob) + ". (parameter 'prob')");
+	if(prob == 1.0) logfile->warning("Probability of 1 will result in identical file!");
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
-	std::string filename = outputName + "_downsampledReads_" + toString(fraction) + ".bam";
+	std::string filename = outputName + "_downsampledReads_" + toString(prob) + ".bam";
 	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
 	logfile->list("Writing results to '" + filename + "'.");
 	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
@@ -2019,7 +2020,7 @@ void TGenome::downSampleReads(TParameters & params){
 
     //now parse through bam file and write alignments
 	while (alignmentParser.readNextAlignment(alignment)){
-		alignment.downsampleAlignment(fraction, *randomGenerator, qualMap);
+		alignment.downsampleAlignment(prob, *randomGenerator, qualMap);
 		alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
 
 		//report

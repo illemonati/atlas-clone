@@ -8,6 +8,8 @@
 #include "TChromosomes.h"
 #include "TLog.h"
 
+namespace BAM{
+
 //---------------------------------------------------------
 // TChromosomes
 //---------------------------------------------------------
@@ -77,7 +79,12 @@ void TChromosomes::writeUsedChromosomes(TLog* logfile){
 	logfile->endIndent();
 };
 
-void TChromosomes::specifyPloidy(std::ifstream & ploidyFile, TLog* logfile){
+void TChromosomes::specifyPloidy(const std::string ploidyFileName, TLog* logfile){
+	std::ifstream ploidyFile(ploidyFileName.c_str());
+	logfile->list("Reading ploidy specification per chromosome from file '" + ploidyFileName + "'.");
+	if(!ploidyFile)
+		throw "Failed to open file '" + ploidyFileName + "'!";
+
 	logfile->startIndent("Setting ploidy for following chromosomes to:");
 	while(ploidyFile.good() && !ploidyFile.eof()){
 		//read line
@@ -209,3 +216,4 @@ uint8_t TChromosomes::curPloidy() const{
 	return _curChr->ploidy;
 };
 
+}; //end namespace

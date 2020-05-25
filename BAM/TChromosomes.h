@@ -14,6 +14,8 @@
 #include "stringFunctions.h"
 #include "TLog.h"
 
+namespace BAM{
+
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
@@ -86,6 +88,6 @@ public:
 	uint8_t curPloidy() const;
 };
 
-
+}; //end namespace
 
 #endif /* TCHROMOSOMES_H_ */

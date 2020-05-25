@@ -8,7 +8,7 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
-#include <BAMData.h>
+#include <BamData.h>
 #include <TBase.h>
 #include "stringFunctions.h"
 #include "TPostMortemDamage.h"
@@ -23,8 +23,7 @@
 #include "TSoftClipping.h"
 #include "TFastaBuffer.h"
 
-class TAlignmentParser;
-
+namespace BAM{
 
 //-----------------------------------------------------
 //TAlignment
@@ -45,67 +44,38 @@ private:
 	std::string sequence;
 	std::string qualities;
 	uint16_t readGroupID;
+	uint16_t fragmentLength;
 
 	int32_t lastAlignedPositionWithRespectToRef;
 	int32_t lastAlignedPos;
-
-
-	//details
-
-
-	//data
-	uint16_t maxSize;
-	uint16_t length;
-	uint16_t fragmentLength; //is insert size - deletions + insertions for paired-end; read length - deletions + insertions for single end
-
+	//uint16_t maxSize;
 
 	//booleans
-	bool storageInitialized;
 	bool empty;
 	bool parsed;
 	bool changed;
 	bool sequenceAndQualitiesChanged;
 
 	//per base data
-	//ToDo: turn into std storage where possible
-	TBase* bases;
-	uint16_t* alignedPosition;
-	int* softClippedLength;
-	char** softClippedBase;
-	char** softClippedQuality;
-	int numInsertions;
-	int numDeletions;
-	uint8_t softClippedEntry; //0 means start, 1 means end of read
+	std::vector<TBase> bases;
+	std::vector<uint16_t> alignedPosition;
+	uint16_t softClippedLength[2];
 
 	//reference
 	bool hasReference;
 	std::string referenceSequence;
-
-	//functions
-	void _initStorage();
-	void _freeStorage();
 
 	//functions to read and parse
 	void _parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void _setDistancesFromEnds();
 	void _fillContext();
 
+	//functions to modify data
 	void _updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 
-	//functions to modify data
-	void _trimRead(int & trimmingLength3Prime, int & trimmingLength5Prime);
-	void _setReadTrimming(int trim3Prime, int trim5Prime);
-
 public:
-
-
 	TAlignment();
-	TAlignment(uint16_t MaxSize);
-	TAlignment(const TAlignment & Alignment);
-
-	~TAlignment(){
-		_freeStorage();
-	};
+	//TAlignment(const TAlignment & Alignment); //TODO: check that copy constructor works automatically. It should!
 
 	//clear, fill and parse
 	void clear();
@@ -122,56 +92,45 @@ public:
 			  const std::string Qualities,
 			  const uint16_t ReadGroupId);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
-
+	void addReference(TFastaBuffer & fasta);
 
 	//getters
 	std::string getName() const{ return name; };
 	uint32_t getPosition() const{ return position; };
-	uint16_t getParsedLength() const{ return length; };
+	uint16_t getParsedLength() const{ return cigar.lengthSequenced(); };
 	int32_t getInsertSize() const{ return insertSize_TLEN; };
 	std::string getSequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 	std::string getQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	double calculatePMDS(const double pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator, const TGenotypeMap & genoMap);
+	int measureOverlap();
 
-	//functions to write / print alignment
-	void setIsProperPair(const bool & ok);
-	void save(BamTools::BamWriter & bamWriter, const TGenotypeMap & genoMap, const TQualityMap & qualMap);
-	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
-	void setAlignmentHasChanged(){ changed = true; };
-
-	//accessed by alignmentParser
-	void filterForBaseQualityAsPhredInt(int & minQual, int & maxQual);
-	void filterForContext(std::map<BaseContext,int> ignoreTheseContexts);
-
-
-
-
-	void fillReadGroupInfo(uint16_t & ReadGroupID);
-	void addReference(TFastaBuffer & fasta);
+	//filters and other functions to modify data
+	void filterForBaseQualityAsPhredInt(const int & minQual, const int & maxQual);
+	void filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap);
+	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
+	void removeSoftClippedBases(TSoftClippingData & softClippingData);
 	void binQualityScores(TQualityMap & qualityMap);
+	void recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
+	void setIsProperPair(const bool & ok);
+	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
+
+	//functions to fill other classes
+	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
+	void addSitesToQualityTransformTable(TQualityTransformTables & QTtables);
+	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
+	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
+	void addToContextStats(TContextStats & contextStats);
+
+	//debug functions
+	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
 
 	/*
 	 * TODO: discuss if needed. Is only used by PMDS and maybe we just do not add that info to the BAM file?
 	void updateOptionalSamField(std::string tag, float value);
 	void updateOptionalSamField(std::string tag, std::string value);
 	*/
-
-	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
-
-	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
-	void addSitesToQualityTransformTable(TQualityTransformTables & QTtables);
-	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
-	void recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
-	double calculatePMDS(double & pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
-	void removeSoftClippedBases(TSoftClippingData & softClippingData);
-	int measureOverlap();
-	int getUsableLength(const int minQual, const int maxQual);
-	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
-	void addToContextStats(TContextStats & contextStats);
-
-	friend class TAlignmentParser;
-	friend class TWindow;
-	friend class TBamFile;
-
 };
+
+}; //end namespace
 
 #endif /* TALIGNMENT_H_ */

@@ -8,12 +8,11 @@
 
 #include "TReadGroups.h"
 
-
+namespace BAM{
 
 //---------------------------------------------------------------
 //TReadGroups
 //---------------------------------------------------------------
-
 TReadGroups::TReadGroups(){
 	_initialized = false;
 	_numGroups = 0;
@@ -130,7 +129,6 @@ int TReadGroups::addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::st
 
 	return(newReadGroupId);
 };
-
 
 //---------------------------------------------------------------
 //TReadGroupMap
@@ -268,3 +266,4 @@ void TReadGroupMap::fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> 
 	}
 };
 
+}; //end namespace

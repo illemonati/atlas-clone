@@ -89,13 +89,13 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBase & base){
 	base.recalibratedQualityAsPhredInt = getPhredIntWithPMD(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(TBase* bases, const uint16_t  length){
-	sequencingErrorModels.recalibrate(bases, length);
+void TGenotypeLikelihoodCalculator::recalibrate(std::vector<TBase> & bases){
+	sequencingErrorModels.recalibrate(bases);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBase* bases, const uint16_t  length){
-	for(uint16_t i=0; i<length; ++i){
-		recalibrateWithPMD(bases[i]);
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<TBase> & bases){
+	for(auto& b : bases){
+		recalibrateWithPMD(b);
 	}
 };
 

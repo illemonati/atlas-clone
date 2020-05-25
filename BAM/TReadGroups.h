@@ -16,6 +16,8 @@
 #include <vector>
 #include <algorithm>
 
+namespace BAM{
+
 //---------------------------------------------------------------
 //TReadGroupMaxLength
 //---------------------------------------------------------------
@@ -47,7 +49,6 @@ public:
 //---------------------------------------------------------------
 //TReadGroups
 //---------------------------------------------------------------
-
 class TReadGroups{
 private:
 	readGroup* _groups;
@@ -105,5 +106,7 @@ public:
 	uint16_t operator[](const uint16_t rg);
 	void fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> & names);
 };
+
+}; //end namespace
 
 #endif /* TREADGROUPS_H_ */

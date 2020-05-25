@@ -30,14 +30,6 @@
 class TAlignmentParser{
 private:
 	TLog* logfile;
-	bool _keepAll;
-	bool _keepDuplicates;
-	bool _filterSoftClips;
-	bool _keepImproperPairs;
-	bool _keepUnmappedReads;
-	bool _keepFailedQC;
-	bool _keepSecondary;
-	bool _keepSupplementary;
 	bool _parse;
 
 	TAlignment* oldAlignment;
@@ -56,7 +48,6 @@ private:
 	unsigned int windowSize;
 	unsigned int numWindowsOnChr;
 	unsigned int windowNumber;
-	uint16_t maxReadLength;
 	double maxMissing;
 	double maxRefN;
 
@@ -70,16 +61,12 @@ private:
 
 	//filters
 	bool applyQualityFilter;
+	uint8_t minQualityAsPhredInt, maxQualityAsPhredInt;
+	int curReadGroupID;
 	bool applyContextFilter;
 	std::map<BaseContext,int> ignoreTheseContexts;
-	size_t readUpToDepth, minDepth, maxDepth;
-	bool applyMQFilter;
-	int minMQ, maxMQ;
-	bool applyFragmentLengthFilter;
-	int minFragmentLength, maxFragmentLength;
-	bool _keepReadsLongerThanInsertSize;
-	bool useStrand[2];
-	bool useMate[2];
+	bool applyDepthFilter;
+	uint32_t readUpToDepth, minDepth, maxDepth;
 
 	//blacklist
 	bool _updateBlacklist;
@@ -98,7 +85,7 @@ private:
 	long limitReads;
 
 	//BAM file
-	TBamFile* bamFile;
+	BAM::TBamFile* bamFile;
 
 	//recalibration
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator* genotypeLikelihoodCalculator;
@@ -144,10 +131,9 @@ private:
 
 public:
 	//alignment: goal is to make this private!
-	int curReadGroupID;
-	int minQualityAsPhredInt, maxQualityAsPhredInt;
+
+
 	bool doMasking, considerRegions;
-	bool applyDepthFilter;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
 	bool sitesProvided;
@@ -158,21 +144,7 @@ public:
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
 
-	//std::string filename;
-	std::string outname;
-	//BamTools::BamReader bamReader;
-	//BamTools::BamRegion bamRegion;
- 	//BamTools::SamHeader bamHeader;
- 	//TChromosomes chromosomes;
-
- 	//recalibration
-	//TRecalibration* recalObject;
-	//bool doRecalibration;
-	//bool recalObjectInitialized;
-
-	//PMD
-	//bool hasPMD;
-	//GenotypeLikelihoods::TPMDDoubleStrand* pmdObjects;
+	//std::string outname;
 
 	//construction
 	TAlignmentParser();
@@ -190,16 +162,6 @@ public:
 	void setOutName(std::string outputName);
 	void setParsingToTrue(){_parse = true;};
 	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
-
-/*
-	std::string chrNumberToName(uint16_t chrNumber);
-	uint32_t calcReferenceLength();
-	std::string getCurChrName();
-	uint16_t getCurRefId();
-	uint32_t getCurChrLength();
-	uint8_t getCurChrPloidy();
-	bool getKeepAll();
-	*/
 
 	//blacklist
 	void setUpdateBlacklistToTrue();
@@ -221,29 +183,6 @@ public:
 	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
 	void mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
 	void mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
-};
-
-//-----------------------------------------------------
-// TBamProgressReporter
-//-----------------------------------------------------
-class TBamProgressReporter{
-private:
-	TTimer timer;
-	TAlignmentParser* parser;
-	TLog* logfile;
-	int progressFrequency;
-	int lastProgressPrinted;
-
-	void _init(int Frequency, TAlignmentParser* Parser, TLog* Logfile);
-	void _printProgress();
-
-public:
-	TBamProgressReporter(int Frequency, TAlignmentParser* Parser, TLog* Logfile);
-	TBamProgressReporter(TAlignmentParser* Parser, TLog* Logfile);
-
-	void printProgress();
-	void printEnd();
-	void printEndNoEndIndent(); //so that other conclusions can be added
 };
 
 

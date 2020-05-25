@@ -7,6 +7,8 @@
 
 #include "TBedReader.h"
 
+namespace BAM{
+
 //-----------------------
 // TBedReaderWindow
 //-----------------------
@@ -198,6 +200,6 @@ unsigned int TBedReader::getNumChromosomes(){
 	return chromosomes.size();
 };
 
-
+}; //end namesapce
 
 

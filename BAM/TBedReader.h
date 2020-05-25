@@ -20,6 +20,8 @@
 //store all data in chr / window combinations using vectors
 //Store all positions 0-based, as in TWindow
 
+namespace BAM{
+
 class TBedReaderWindow{
 public:
 	bool hasData;
@@ -74,5 +76,6 @@ public:
 
 };
 
+}; //end namesapce
 
 #endif /* TBEDREADER_H_ */

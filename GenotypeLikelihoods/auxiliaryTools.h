@@ -130,7 +130,7 @@ public:
 		return readGroupIndex[readGroup][isSecondMate];
 	};
 
-	int index(const TBase & base){
+	int index(const TBase & base) const{
 		return readGroupIndex[base.readGroupID][base.isSecondMate()];
 	};
 
