@@ -55,15 +55,15 @@ public:
 
 class TPMDTables{
 public:
-	TReadGroupMap& readGroupMap;
-	TReadGroups& readGroups;
+	BAM::TReadGroupMap& readGroupMap;
+	BAM::TReadGroups& readGroups;
 	int maxReadLength;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;
 	TPMDTable** reverse;
 
-	TPMDTables(TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap & ReadGroupMapObject);
+	TPMDTables(BAM::TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap & ReadGroupMapObject);
 	~TPMDTables();
 //	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
 	void addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
@@ -212,7 +212,7 @@ public:
 	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
 	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
 
-	void fillBaseLikelihoods(const TBaseData & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
+	void fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
 
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
@@ -227,11 +227,11 @@ private:
 	bool hasPMD;
 
 	PMDType getEnumPMDType(std::string pmdType);
-	void initializeFromFile(TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
+	void initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
 
 public:
 	TPostMortemDamage();
-	void initialize(TParameters & params, TReadGroups & ReadGroups, TLog* logfile);
+	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
 	void calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
 };
 

@@ -93,6 +93,7 @@ public:
 			  const uint16_t ReadGroupId);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 	void addReference(TFastaBuffer & fasta);
+	void setHasChanged(){ changed = true; };
 
 	//getters
 	std::string getName() const{ return name; };

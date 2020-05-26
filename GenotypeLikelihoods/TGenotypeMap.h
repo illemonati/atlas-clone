@@ -193,6 +193,12 @@ public:
 		delete[] allelicCombinationsMatchingBase;
 	};
 
+	bool isValidBase(const char base){
+		if(base == 'A' || base == 'C' || base == 'G' || base == 'T' || base == 'N' || base == 'a' || base == 'c' || base == 'g' || base == 't' || base == 'n')
+			return true;
+		return false;
+	};
+
 	Base getBase(const char base) const{
 		if(base == 'A') return A;
 		if(base == 'C') return C;

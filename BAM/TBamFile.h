@@ -18,6 +18,7 @@
 
 namespace BAM{
 
+//TODO: think about splitting into a reader and writer
 
 //-----------------------------------------------------
 //TBamFile
@@ -52,6 +53,7 @@ private:
 	//alignment filters
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
+ 	TAlignmentBlacklist _blacklist;
  	bool _keepAll;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
@@ -66,14 +68,20 @@ private:
  	TBamFileFilterBool _revStrandFilter;
  	TBamFileFilterBool _firstMateFilter;
  	TBamFileFilterBool _secondMateFilter;
+ 	TBamFileFilterBool _blacklistFilter;
  	TBamFileFilterRange _mappingQualityFilter;
  	TBamFileFilterRange _fragmentLengthfilter;
 
+
+	void _limitChromosomes(TParameters & params, TLog* logfile);
+	void _limitReadGroups(TParameters & params, TLog* logfile);
+	void _setFilters(TParameters & params, TLog* logfile);
+	void _fillChromosomes(TChromosomes & chromosomes);
  	void _applyFilters();
 
 	//output filtered reads
-	bool _updateBlacklist;
-	TAlignmentBlacklist* _blacklist;
+	bool _updateLog;
+	TBamFileLog* _bamLog;
 
 	//report progress
 	TLog* _logfile;
@@ -90,13 +98,12 @@ public:
 	TBamFile();
 
 	//filters
-	void setAlignmentFiltersToKeepAll();
-	void setFilters(TParameters & params, TLog* logfile);
-	void limitReadGroups(std::string readGroupList, TLog* logfile);
-	void maintainBlacklist(TAlignmentBlacklist* Blacklist);
+	void setFiltersAndLimits(TParameters & params, TLog* logfile);
+	void limitReadLength(const int MaxReadLength);
+	void openBamLog(TParameters & params, TLog* logfile);
 
 	//reading
-	void open(const std::string filename, const uint32_t maxReadLength, const bool indexNotRequired);
+	void open(const std::string filename, const bool indexNotRequired);
 	bool readNextAlignment(); //TODO: make private
 	bool readNextAlignmentThatPassesFilters(); //TODO: make private
 	bool readNextAlignment(TAlignment & alignment);
@@ -118,6 +125,7 @@ public:
 	bool chrChanged(){ return _chrChanged; };
 	bool curPassedQC(){ return _QCFiltersPassed; };
 	int curUsableLength(const int minQual, const int maxQual);
+	const TChromosome& curChromosome(){ return chromosomes.curChromosome(); };
 
 	//other getters
 	uint16_t maxReadLength(){ return _maxReadLength; };
@@ -125,6 +133,7 @@ public:
 	double positionInFile(){ return (double) _bamReader.tell() / (double) _fileSize; };
 
 	//progress reporting
+	//TODO: try to make general and include in common utilities
 	void printSummary(TLog* Logfile);
 	void startProgressReporting(uint32_t Frequency, TLog* Logfile);
 	void printProgress();

@@ -5,15 +5,15 @@
  *      Author: phaentu
  */
 
-#ifndef BAM_TALIGNMENTBLACKLIST_H_
-#define BAM_TALIGNMENTBLACKLIST_H_
+#ifndef BAM_TMATEFINDER_H_
+#define BAM_TMATEFINDER_H_
 
 #include <set>
 #include "TFile.h"
 
 namespace BAM{
 
-class TAlignmentBlacklist{
+class TMateFinder{
 private:
 	std::set<std::string> blacklist;
 	TOutputFileZipped out;
@@ -21,7 +21,7 @@ private:
 
 
 public:
-	TAlignmentBlacklist(){
+	TMateFinder(){
 		_write = false;
 	};
 
@@ -33,4 +33,4 @@ public:
 
 }; //end namespace
 
-#endif /* BAM_TALIGNMENTBLACKLIST_H_ */
+#endif /* BAM_TMATEFINDER_H_ */

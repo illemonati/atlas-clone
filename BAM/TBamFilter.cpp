@@ -11,19 +11,32 @@
 namespace BAM{
 
 //-----------------------------------------------------
+//TBamFileLog
+//-----------------------------------------------------
+TBamFileLog::TBamFileLog(const std::string filename){
+	_log.open(filename);
+	//_log.writeHeader({"Alignment", "isSecondMate", "Reason"});
+	_log.noHeader(3); //write no header so it can be used as blacklist
+};
+
+void TBamFileLog::write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
+	_log << alignmentName << isReverseStrand << reason << std::endl;
+};
+
+//-----------------------------------------------------
 //TBamFileFilter_base
 //-----------------------------------------------------
 TBamFileFilter_base::TBamFileFilter_base(){
 	_counter = 0;
 	_keep = true;
-	_updateBlacklist = false;
-	_blacklist = nullptr;
+	_updateLog = false;
+	_log = nullptr;
 };
 
 void TBamFileFilter_base::_filterOut(const std::string & alignmentName, const bool & isReverseStrand){
 	++_counter;
-	if(_updateBlacklist){
-		_blacklist->addToBlacklist(alignmentName, isReverseStrand, _errorString);
+	if(_updateLog){
+		_log->write(alignmentName, isReverseStrand, _reason);
 	}
 };
 
@@ -31,17 +44,23 @@ void TBamFileFilter_base::keep(){
 	_keep = true;
 };
 
-void TBamFileFilter_base::setBlacklist(const TAlignmentBlacklist* Blacklist){
-	_blacklist = Blacklist;
-	_updateBlacklist = true;
+void TBamFileFilter_base::setLog(const TBamFileLog* Log){
+	_log = Log;
+	_updateLog = true;
+};
+
+void TBamFileFilter_base::summary(TLog* logfile){
+	if(!_keep){
+		logfile->list(_reason + ": " + toString(_counter));
+	}
 };
 
 //-----------------------------------------------------
 //TBamFileFilterBool
 //-----------------------------------------------------
-void TBamFileFilterBool::filter(const std::string ErrorString){
+void TBamFileFilterBool::filter(const std::string Reason){
 	_keep = false;
-	_errorString = ErrorString;
+	_reason = Reason;
 };
 
 bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
@@ -60,11 +79,11 @@ TBamFileFilterRange::TBamFileFilterRange(){
 	_max = UINT32_MAX;
 };
 
-void TBamFileFilterRange::filter(const uint32_t Min, const uint32_t Max, const std::string ErrorString){
+void TBamFileFilterRange::filter(const uint32_t Min, const uint32_t Max, const std::string Reason){
 	_keep = false;
 	_min = Min;
 	_max = Max;
-	_errorString = ErrorString;
+	_reason = Reason;
 };
 
 bool TBamFileFilterRange::pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand){
@@ -73,6 +92,34 @@ bool TBamFileFilterRange::pass(const uint32_t value, const std::string & alignme
 	}
 	return true;
 };
+
+//-----------------------------------------------------
+//TAlignmentBlacklist
+//-----------------------------------------------------
+TAlignmentBlacklist::TAlignmentBlacklist(const std::string filename){
+	addFromFile(filename);
+};
+
+void TAlignmentBlacklist::addFromFile(const std::string filename){
+	TInputFile in(filename, false);
+	std::vector<std::string> vec;
+	while(in.read(vec)){
+		add(vec[0]);
+	}
+};
+
+void TAlignmentBlacklist::add(const std::string & alignment){
+	_blacklist.insert(alignment);
+};
+
+void TAlignmentBlacklist::remove(const std::string & alignment){
+	_blacklist.erase(alignment);
+};
+
+bool TAlignmentBlacklist::isInBlacklist(const std::string & alignment){
+	return _blacklist.find(alignment) != _blacklist.end();
+};
+
 
 
 }; //end namespace

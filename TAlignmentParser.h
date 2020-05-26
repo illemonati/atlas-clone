@@ -22,27 +22,63 @@
 #include "TFastaBuffer.h"
 #include <vector>
 #include "progressTools.h"
-
+#include "TSiteSubset.h"
 
 //-----------------------------------------------------
 //TAlignmentParser
 //-----------------------------------------------------
 class TAlignmentParser{
-private:
+protected:
 	TLog* logfile;
-	bool _parse;
+	BAM::TBamFile& bamFile;
+	GenotypeLikelihoods::TGenotypeLikelihoodCalculator& genotypeLikelihoodCalculator;
 
-	TAlignment* oldAlignment;
-	bool oldAlignmentInitialized;
-	bool oldAlignmentMustBeConsidered;
+	//maps
+	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 
-	//counters
-	bool hasWindowIndent;
+ 	//reference
+	bool hasReference;
+	bool chrChangedWindow;
+	BAM::TFastaBuffer* fastaBuffer;
 
 	//read trimming
 	bool trimReads;
 	int trimmingLength3Prime;
 	int trimmingLength5Prime;
+
+	//filters
+	bool applyQualityFilter;
+	uint8_t minQualityAsPhredInt, maxQualityAsPhredInt;
+	bool applyContextFilter;
+	std::map<BaseContext,int> ignoreTheseContexts;
+
+	//functions for initialization
+	void _setReadTrimming(TParameters & params);
+	void _setQualityFilter(TParameters & params);
+	void _setContextFilter(TParameters & params);
+	void _setQualityRangeForPrinting(TParameters & params);
+
+	//functions for reading
+	void _fillAlignment(BAM::TAlignment & alignment);
+
+public:
+	TAlignmentParser(TParameters & params, TLog* logfile, BAM::TBamFile & BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator& GenotypeLikelihoodCalculator);
+
+
+};
+
+//-----------------------------------------------------
+//TAlignmentParserWindows
+//-----------------------------------------------------
+class TAlignmentParserWindows:public TAlignmentParser{
+private:
+	BAM::TAlignment* oldAlignment;
+	bool oldAlignmentInitialized;
+	bool oldAlignmentMustBeConsidered;
+
+	//counters
+	bool hasWindowIndent;
 
 	//window params
 	unsigned int windowSize;
@@ -51,59 +87,30 @@ private:
 	double maxMissing;
 	double maxRefN;
 
- 	//reference
-	bool hasReference;
-	bool chrChangedWindow;
-	TFastaBuffer* fastaBuffer;
-
 	//masks
-	TBedReader* mask;
+	BAM::TBedReader* mask;
 
 	//filters
-	bool applyQualityFilter;
-	uint8_t minQualityAsPhredInt, maxQualityAsPhredInt;
-	int curReadGroupID;
-	bool applyContextFilter;
-	std::map<BaseContext,int> ignoreTheseContexts;
 	bool applyDepthFilter;
 	uint32_t readUpToDepth, minDepth, maxDepth;
 
 	//blacklist
 	bool _updateBlacklist;
-	TAlignmentBlacklist blacklist;
+	BAM::TMateFinder blacklist;
 
-	/*
-	bool _writeBlackList;
-	std::map <std::string, int> blacklist;
-	gz::ogzstream ignoredReads;
-	*/
-
-	//limit chr and windows
+	//limit windows
 	long limitWindows;
 	int skipWindows;
-	bool doLimitReads;
-	long limitReads;
-
-	//BAM file
-	BAM::TBamFile* bamFile;
-
-	//recalibration
-	GenotypeLikelihoods::TGenotypeLikelihoodCalculator* genotypeLikelihoodCalculator;
 
 	//contructor functions
-	void _openBamFile(std::string filename, bool indexNotRequired);
 	void _setWindowParameters(TParameters & params);
-	void _setFilters(TParameters & params);
 	void _setWindowFilters(TParameters & params);
-	void _setAlignmentFilters(TParameters & params);
 	void _setSiteFilters(TParameters & params);
-	void _setBaseFilters(TParameters & params);
-	void _setQualityFilters(int MinPhredInt, int MaxPhredInt);
-	void _setMappingQualityFilters(int MinMQ, int MaxMQ);
-	void _setContextFilter(std::vector<std::string> contexts);
-	void _setFragmentLengthFilter(TParameters & params);
-	void _setAlignmentFiltersToKeepAll();
+
+
+
 	void _setQualityRangeForPrinting(int minQual, int maxQual);
+
 	void _setMasks(TParameters & params);
 //	void initializeSiteSubset(TParameters & params);
 	void _setParsingLimits(TParameters & params);
@@ -123,52 +130,47 @@ private:
 
 	bool _readAlignment();
 	bool _applyFilters();
-	bool _fillAlignment(TAlignment & alignment);
+	bool _fillAlignment(BAM::TAlignment & alignment);
 	void _readAlignmentsIntoWindow(TWindow & window);
 	void _applyWindowFilters(TWindow_base & window);
-	void _recalibrate(TAlignment & alignment);
+	void _recalibrate(BAM::TAlignment & alignment);
 	void _adaptQualityWhenMerging(TBase & bestBase, TBase & worstBase, const bool & adaptQuality);
 
 public:
 	//alignment: goal is to make this private!
-
-
 	bool doMasking, considerRegions;
 	bool windowsPredefined;
 	TBed* predefinedWindows;
 	bool sitesProvided;
-	TSiteSubset* subset = NULL;
- 	TReadGroups readGroups;
+	TSiteSubset* subset;
 
-	//maps
-	TGenotypeMap genoMap;
-	TQualityMap qualMap;
+
 
 	//std::string outname;
 
 	//construction
 	TAlignmentParser();
-	TAlignmentParser(TParameters & params, TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile);
+	TAlignmentParser(TParameters & params, BAM::TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile);
 	~TAlignmentParser();
-	void init(TParameters & params, TBamFile * BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator* GenotypeLikelihoodCalculator, TLog* Logfile);
+
 
 	//getters
-	int numReadGroups(){ return readGroups.size(); };
 	unsigned int getWindowSize(){return windowSize;};
 	int getMaxPhredInt(){return maxQualityAsPhredInt;};
 	uint32_t getMaxDepth(){ return maxDepth; };
 
 	//setters
-	void setOutName(std::string outputName);
 	void setParsingToTrue(){_parse = true;};
-	void fillReferenceSequence(TFastaBuffer* fastaBuffer, TAlignment & alignment);
+
+	void addReference(BAM::TFastaBuffer* FastaBuffer);
+
 
 	//blacklist
 	void setUpdateBlacklistToTrue();
-	void setWriteBlacklistToFileToTrue();
+	void setWriteBlacklistToFileToTrue(const std::string filename);
 
 	//functions to read and _parse
-	void addReference(TFastaBuffer* FastaBuffer);
+
 
 
 	//reading data requires windows
@@ -176,13 +178,16 @@ public:
 	void downsampleWindow(TWindow_base & destination, TWindow & source, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	//reading data only requires alignments
-	bool readNextAlignment(TAlignment & alignment); //to be used to go through bam file alignment by alignment
+	bool readNextAlignment(BAM::TAlignment & alignment); //to be used to go through bam file alignment by alignment
 
 	//qualityTransformation
 	//void initializeRecalibrationForQualityTransformation(TParameters & params);
-	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
-	void mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
-	void mergeAlignedBasesOneRead(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
+
+	//merging
+	//TODO: why are these functions not in the merger?
+	void mergeAlignedBasesBamReads(BAM::TAlignment* fwdAlignment, BAM::TAlignment* revAlignment, bool adaptQuality);
+	void mergeAlignedBasesBamReadsRandom(BAM::TAlignment* fwdAlignment, BAM::TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
+	void mergeAlignedBasesOneRead(BAM::TAlignment* fwdAlignment, BAM::TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator);
 };
 
 

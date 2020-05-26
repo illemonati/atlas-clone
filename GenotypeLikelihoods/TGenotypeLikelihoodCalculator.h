@@ -21,8 +21,8 @@ class TGenotypeLikelihoodCalculator{
 private:
 	bool initialized;
 	TLog* logfile;
-	TReadGroups* readGroups;
-	TReadGroupMap* readGroupMap; //TODO: find way to only initialize in sequencing error models
+	BAM::TReadGroups* readGroups;
+	BAM::TReadGroupMap* readGroupMap; //TODO: find way to only initialize in sequencing error models
 
 	TGenotypeDistribution genotypeDistribution;
 	TPostMortemDamage pmd;
@@ -36,11 +36,11 @@ private:
 
 public:
 	TGenotypeLikelihoodCalculator();
-	TGenotypeLikelihoodCalculator(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
+	TGenotypeLikelihoodCalculator(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile);
 	~TGenotypeLikelihoodCalculator();
 
-	void init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile);
-	TSequencingErrorModels& getSequencingErrorModels(){ return sequencingErrorModels; };
+	void init(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile);
+	const TSequencingErrorModels& getSequencingErrorModels() const{ return sequencingErrorModels; };
 
 	double getErrorRate(const TBase & base);
 	double getErrorWithPMD(const TBase & base);

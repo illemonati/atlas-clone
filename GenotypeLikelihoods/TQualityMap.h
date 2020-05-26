@@ -12,6 +12,7 @@
 #include <cstdint>
 
 
+//TODO: make things private
 
 //---------------------------------------------------------------
 //TQualityMap
@@ -30,6 +31,7 @@ public:
 	double min;
 	uint8_t minPhredInt;
 	uint8_t sizeQual;
+	bool  qualityLimitSet;
 	uint8_t minQuality, maxQuality;
 
 	TQualityMap(){
@@ -39,6 +41,7 @@ public:
 		phredIntToErrorMap = new double[minPhredInt+1];
 		phredIntToLogErrorMap = new double[minPhredInt+1];
 		qualityToErrorMap = new double[sizeQual];
+		qualityLimitSet = false;
 		minQuality = 0;
 		maxQuality = 255;
 
@@ -84,6 +87,7 @@ public:
 	};
 
 	void setQualityLimits(uint8_t MinQualityForPrinting, uint8_t MaxQualityForPrinting){
+		qualityLimitSet = true;
 		minQuality = MinQualityForPrinting;
 		maxQuality = MaxQualityForPrinting;
 	};
@@ -147,18 +151,6 @@ public:
 	inline double errorToPhred(const double & errorRate) const{
 		return -10.0 * log10(errorRate);
 	};
-
-/*
-	double& operator[](unsigned int phred) const{
-		//Note: no check on range!
-		return phredIntToErrorMap[phred];
-	};
-
-	double& operator[](uint8_t & phred) const{
-		//Note: no check on range!
-		return phredIntToErrorMap[phred];
-	};
-	*/
 };
 
 

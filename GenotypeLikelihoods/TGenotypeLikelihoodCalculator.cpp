@@ -16,7 +16,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
 	readGroupMap = nullptr;
 };
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile){
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile){
 	initialized = false;
 	init(params, ReadGroups, Logfile);
 };
@@ -27,13 +27,13 @@ TGenotypeLikelihoodCalculator::~TGenotypeLikelihoodCalculator(){
 	}
 };
 
-void TGenotypeLikelihoodCalculator::init(TParameters & params, TReadGroups* ReadGroups, TLog* Logfile){
+void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile){
 	if(initialized){
 		throw "TGenotypeLikelihoodCalculator has alre<ady been initialized!";
 	}
 	logfile = Logfile;
 	readGroups = ReadGroups;
-	readGroupMap = new TReadGroupMap(ReadGroups);
+	readGroupMap = new BAM::TReadGroupMap(ReadGroups);
 
 	//initialize PMD
 	pmd.initialize(params, *readGroups, logfile);

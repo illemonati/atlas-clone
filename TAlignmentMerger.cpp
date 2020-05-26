@@ -7,6 +7,8 @@
 
 #include "TAlignmentMerger.h"
 
+using namespace BAM;
+
 TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser* Parser, int MaxDistanceBetweenMates){
 	writer = Writer;
 	parser = Parser;
@@ -21,7 +23,7 @@ TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser
 
 void TAlignmentMerger::_writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it){
 	//save the alignment to the bam file
-	it->alignment->save(*writer, parser->genoMap, parser->minQualForPrinting, parser->maxQualForPrinting, parser->qualMap);
+	bamFile.writeAlignment(*(it->alignment), genoMap, qualMap);
 	//delete it->alignment;
 	it = alignmentStorage.erase(it);
 };
@@ -91,7 +93,7 @@ void TAlignmentMerger::checkForMateAndWriteUnmerged(TAlignment & alignment){
 		//no mate found: add to storage
 		alignmentStorage.emplace_back(alignment, false);
 	} else {
-		//mate found, merge!
+		//mate found, ready to write!
 		it->ready = true;
 		alignmentStorage.emplace_back(alignment, true);
 	}
@@ -99,7 +101,7 @@ void TAlignmentMerger::checkForMateAndWriteUnmerged(TAlignment & alignment){
 
 void TAlignmentMerger::addReadyToBeWritten(TAlignment & alignment){
 	if(alignmentStorage.empty()){
-		alignment.save(*writer, parser->genoMap, parser->minQualForPrinting, parser->maxQualForPrinting, parser->qualMap);
+		bamFile.writeAlignment(alignment, genoMap, qualMap);
 	} else {
 		alignmentStorage.emplace_back(alignment, true);
 	}
@@ -153,5 +155,3 @@ void TAlignmentMerger::clear(){
 		}
 	}
 };
-
-

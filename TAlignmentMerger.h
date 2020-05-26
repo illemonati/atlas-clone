@@ -11,6 +11,12 @@
 #include "TReadList.h"
 #include "TAlignmentParser.h"
 
+using namespace BAM;
+
+
+//-----------------------------------------
+// TAlignmentMergerEntry
+//-----------------------------------------
 class TAlignmentMergerEntry{
 private:
 
@@ -23,7 +29,7 @@ public:
 		ready = readyForWriting;
 	};
 
-	TAlignmentMergerEntry(TAlignmentMergerEntry && other):alignment(nullptr),ready(false){
+	TAlignmentMergerEntry(TAlignmentMergerEntry && other){
 		//copy from other
 		alignment = other.alignment;
 		ready = other.ready;
@@ -60,12 +66,18 @@ public:
 	};
 };
 
+typedef std::vector< TAlignmentMergerEntry > TAlignmentStorage;
+typedef std::vector< TAlignmentMergerEntry >::iterator TAlignmentInStorage;
 
+//-----------------------------------------
+// TAlignmentMerger
+//-----------------------------------------
 class TAlignmentMerger{
 private:
-	std::vector< TAlignmentMergerEntry > alignmentStorage; //bool indicates whether read is ready for writing
-	BamTools::BamWriter* writer;
-	TAlignmentParser* parser;
+	TAlignmentStorage alignmentStorage; //bool indicates whether read is ready for writing
+	BAM::TBamFile& bamFile;
+	TQualityMap qualMap;
+	TGenotypeMap genoMap;
 
 	int _maxDistanceBetweenMates;
 	bool _filterOrphans;
@@ -75,10 +87,10 @@ private:
 	bool _allowForLarger;
 	bool _keepHigherQuality;
 
-	void _writeAlignment(std::vector< TAlignmentMergerEntry >::iterator & it);
-	void _addToBlacklist(std::vector< TAlignmentMergerEntry >::iterator & it, std::string error);
+	void _writeAlignment(TAlignmentInStorage & it);
+	void _addToBlacklist(TAlignmentInStorage & it, std::string error);
 	void _writeAllThatAreReady();
-	std::vector< TAlignmentMergerEntry >::iterator _findMate(TAlignment & alignment);
+	TAlignmentInStorage _findMate(TAlignment & alignment);
 
 public:
 	TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser* Parser, int MaxDistanceBetweenMates);

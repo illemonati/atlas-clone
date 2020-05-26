@@ -10,8 +10,8 @@
 
 #include <string>
 #include <vector>
-#include "bamtools/api/BamReader.h"
 #include "stringFunctions.h"
+#include "TParameters.h"
 #include "TLog.h"
 
 namespace BAM{
@@ -46,31 +46,41 @@ private:
 	std::vector<TChromosome>::iterator _curChr;
 
 	TChromosome& _find(const std::string chrName) const;
+	void _setAllNotInUse();
+	void _useSpecifiedChr(const std::vector<std::string> & chrNames);
+	void _useUpTo(const std::string & name);
+	void _specifyPloidy(const std::string & ploidyFileName, TLog* logfile);
+	void _setToHaploid(const std::vector<std::string> & chrNames, TLog* logfile);
+
 
 public:
 	TChromosomes(){};
-	TChromosomes(BamTools::SamHeader* BamHeader);
-	void readChromosomes(BamTools::SamHeader* BamHeader);
+
+	void clear();
+	void appendChromosome(const std::string name, const uint32_t length);
+
+	void limitAndSetPloidy(TParameters & params, TLog* logfile);
+	void limitChr(TParameters & params, TLog* logfile);
+	void setPloidy(TParameters & params, TLog* logfile);
+
 	void limitChr(const std::string limitName);
 	void useSpecifiedChr(const std::vector<std::string> & chrNames);
-	void specifyPloidy(std::ifstream & ploidyFile, TLog* logfile);
-	void setToHaploid(std::vector<std::string> chrNames, TLog* logfile);
 	void writeUsedChromosomes(TLog* logfile);
 
 	//move
 	void begin();
 	bool next();
+	void jumpTo(const uint32_t refId);
 	bool end() const;
 	void jumpToEnd();
-	void jumpToBeginningOfLastChr();
 
 	//getters
 	uint32_t size() const;
 	uint32_t referenceLength() const;
 	bool exists(const std::string name) const;
 
-	TChromosome& getChromosome(const std::string chrName);
-	TChromosome& curChromosome();
+	const TChromosome& getChromosome(const std::string chrName) const;
+	const TChromosome& curChromosome() const;
 
 	uint32_t refID(const std::string chrName) const;
 	uint32_t curRefID() const;

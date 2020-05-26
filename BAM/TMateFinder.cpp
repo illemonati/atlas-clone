@@ -5,17 +5,17 @@
  *      Author: phaentu
  */
 
-#include "TAlignmentBlacklist.h"
+#include <TMateFinder.h>
 
 namespace BAM{
 
-void TAlignmentBlacklist::enableWriting(const std::string filename){
+void TMateFinder::enableWriting(const std::string filename){
 	_write = true;
 	out.open(filename);
 	out.writeHeader({"Alignment", "isSecondMate", "Error"});
 };
 
-void TAlignmentBlacklist::addToBlacklist(const std::string alignmentName, const bool isSecondMate, const std::string errorMessage){
+void TMateFinder::addToBlacklist(const std::string alignmentName, const bool isSecondMate, const std::string errorMessage){
 	//TODO: should check if read already exists in list (could be case in paired-end data) -> remove
 	blacklist.insert(alignmentName);
 	if(_write){
@@ -23,14 +23,14 @@ void TAlignmentBlacklist::addToBlacklist(const std::string alignmentName, const 
 	}
 };
 
-void TAlignmentBlacklist::removeFromBlacklist(const std::string alignmentName, const bool isRisSecondMateverse, const std::string errorMessage){
+void TMateFinder::removeFromBlacklist(const std::string alignmentName, const bool isRisSecondMateverse, const std::string errorMessage){
 	blacklist.erase(alignmentName);
 	if(_write){
 		out << alignmentName << isSecondMate << errorMessage << std::endl;
 	}
 };
 
-bool TAlignmentBlacklist::isInBlacklist(const std::string & alignmentName){
+bool TMateFinder::isInBlacklist(const std::string & alignmentName){
 	return blacklist.find(alignmentName);
 };
 

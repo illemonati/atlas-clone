@@ -276,7 +276,7 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 //getters
 //--------------------------------------
 void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
-	if(sequenceAndQualitiesChanged){
+	if(sequenceAndQualitiesChanged || qualMap.qualityLimitSet){
 		//update according to what is stored in bases
 		sequence.clear();
 		qualities.clear();

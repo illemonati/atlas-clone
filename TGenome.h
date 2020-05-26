@@ -34,10 +34,10 @@
 //---------------------------------------------------------------
 class TGenome{
 private:
-	TBamFile bamFile;
+	BAM::TBamFile bamFile;
  	TAlignmentParser alignmentParser;
  	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
-	TFastaBuffer reference;
+	BAM::TFastaBuffer reference;
  	TRandomGenerator* randomGenerator;
 
 	TLog* logfile;

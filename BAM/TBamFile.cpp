@@ -31,11 +31,12 @@ TBamFile::TBamFile(){
 
 	//set filters to default
 	_QCFiltersPassed = false;
+	_maxReadLength = 65536;
 	_keepAll = false;
 
 	//blacklist
-	_updateBlacklist = false;
-	_blacklist = nullptr;
+	_updateLog = false;
+	_bamLog = nullptr;
 
 	//progress reporting
 	_logfile = nullptr;
@@ -43,16 +44,47 @@ TBamFile::TBamFile(){
 	_lastProgressPrinted = 0;
 };
 
-void TBamFile::limitReadGroups(std::string readGroupList, TLog* logfile){
-	readGroups.filterReadGroups(readGroupList);
-	logfile->startIndent("Will limit analysis to the following read groups:");
-	readGroups.printReadgroupsInUse(logfile);
-	_readGroupFilter.filter("Read group not in use");
-	logfile->endIndent();
+void TBamFile::setFiltersAndLimits(TParameters & params, TLog* logfile){
+	_limitChromosomes(params, logfile);
+	_limitReadGroups(params, logfile);
+	_setFilters(params, logfile);
 };
 
+void TBamFile::_limitReadGroups(TParameters & params, TLog* logfile){
+	if(params.parameterExists("readGroup")){
+		readGroups.filterReadGroups(params.getParameterString("readGroup"));
+		logfile->startIndent("Will limit analysis to the following read groups:");
+		readGroups.printReadgroupsInUse(logfile);
+		logfile->endIndent();
+		_readGroupFilter.filter("Read group not in use");
+	} else {
+		_readGroupFilter.keep();
+	}
+};
 
-void TBamFile::setFilters(TParameters & params, TLog* logfile){
+void TBamFile::limitReadLength(const int MaxReadLength){
+	//set max read length, must be >=1 but smaller than 65536 (uint16_t)
+	if(MaxReadLength < 1)
+		throw "Max read length must be at least 1 bp!";
+	if(MaxReadLength > 65536)
+		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
+	_maxReadLength = MaxReadLength;
+};
+
+void TBamFile::_setFilters(TParameters & params, TLog* logfile){
+	//max read length
+	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
+	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + ". (parameter 'maxReadLength')");
+	limitReadLength(MaxReadLength);
+
+	//number of reads
+	if(params.parameterExists("limitReads")){
+		_maxNumReadsToRead = params.getParameterInt("limitReads");
+		logfile->list("Will limit the analysis to the first " + toString(_maxNumReadsToRead) + " reads in the BAM file.");
+		_limitNumReads = true;
+	}
+
+	//alignment filters
 	logfile->startIndent("Will use the following filters on reads:");
 	if(params.parameterExists("keepAllReads")){
 		_keepAll = true;
@@ -163,6 +195,16 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			logfile->list("Will keep first and second mates. (use 'keepOnlyFirst' or 'keepOnlySecond' to limit)");
 		}
 
+		//blacklist
+		if(params.parameterExists("blacklist")){
+			std::string blaclistFilename = params.getParameterString("blacklist");
+			logfile->list("Will filter out reads present in the file '" + blaclistFilename + "'. (parameter 'blacklist')");
+			_blacklist.addFromFile(blaclistFilename);
+			_blacklistFilter.filter("was in provided blacklist");
+		} else {
+			_blacklistFilter.keep();
+		}
+
 		//Mapping quality filter
 		if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
 			int MinMQ = params.getParameterInt("minMQ", 0);
@@ -201,38 +243,65 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 		}
 	}
 	logfile->endIndent();
+
+	//log filtered reads?
+	openBamLog(params, logfile);
 };
 
-void TBamFile::maintainBlacklist(TAlignmentBlacklist* Blacklist){
-	_blacklist = Blacklist;
-	_updateBlacklist = true;
+void TBamFile::openBamLog(TParameters & params, TLog* logfile){
+	if(params.parameterExists("bamLog") && !_updateLog){
+		std::string logFilename = params.getParameterString("bamLog");
+		if(logFilename.empty()){
+			logFilename = _filename;
+			logFilename = extractBeforeLast(logFilename, ".");
+			logFilename += ".bamlog.txt.gz";
+		}
+		logfile->list("Will all filtered out reads to '" + logFilename + "'.");
+		_bamLog = new TBamFileLog(logFilename);
+		_updateLog = true;
 
-	//_blacklist to filters
-	_duplicateFilter.setBlacklist(_blacklist);
-	_softClippedFilter.setBlacklist(_blacklist);
-	_improperPairsFilter.setBlacklist(_blacklist);
-	_unmappedFilter.setBlacklist(_blacklist);
-	_failedQCFilter.setBlacklist(_blacklist);
-	_secondaryFilter.setBlacklist(_blacklist);
-	_supplementaryFilter.setBlacklist(_blacklist);
-	_longerThanFragmentFilter.setBlacklist(_blacklist);
-	_readGroupFilter.setBlacklist(_blacklist);
-	_fwdStrandFilter.setBlacklist(_blacklist);
-	_revStrandFilter.setBlacklist(_blacklist);
-	_firstMateFilter.setBlacklist(_blacklist);
-	_secondMateFilter.setBlacklist(_blacklist);
-	_mappingQualityFilter.setBlacklist(_blacklist);
-	_fragmentLengthfilter.setBlacklist(_blacklist);
+		//_log to filters
+		_duplicateFilter.setLog(_bamLog);
+		_softClippedFilter.setLog(_bamLog);
+		_improperPairsFilter.setLog(_bamLog);
+		_unmappedFilter.setLog(_bamLog);
+		_failedQCFilter.setLog(_bamLog);
+		_secondaryFilter.setLog(_bamLog);
+		_supplementaryFilter.setLog(_bamLog);
+		_longerThanFragmentFilter.setLog(_bamLog);
+		_readGroupFilter.setLog(_bamLog);
+		_fwdStrandFilter.setLog(_bamLog);
+		_revStrandFilter.setLog(_bamLog);
+		_firstMateFilter.setLog(_bamLog);
+		_secondMateFilter.setLog(_bamLog);
+		_blacklistFilter.setLog(_bamLog);
+		_mappingQualityFilter.setLog(_bamLog);
+		_fragmentLengthfilter.setLog(_bamLog);
+	}
 };
 
+void TBamFile::_fillChromosomes(TChromosomes & chromosomes){
+	if(_bamHeader.Sequences.Size() < 1){
+		throw "No chromosomes present in BAM header!";
+	}
+
+	//make sure object is empty
+	chromosomes.clear();
+
+	//copy from BamHeader
+	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
+		chromosomes.appendChromosome(chrIt->Name, stringToLong(chrIt->Length));
+	}
+};
 
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-void TBamFile::open(const std::string filename, const uint32_t maxReadLength, const bool indexNotRequired){
+void TBamFile::open(const std::string filename, const bool indexNotRequired){
 	//open BAM file
 	if (!_bamReader.Open(filename))
 		throw "Failed to open BAM file '" + filename + "'!";
+
 	//load index file
 	if(!_bamReader.LocateIndex() && !indexNotRequired)
 		throw "No index file found for BAM file '" + filename + "'!";
@@ -240,18 +309,11 @@ void TBamFile::open(const std::string filename, const uint32_t maxReadLength, co
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
 
-	//set max read length, must be >=1 but smaller than 65536 (uint16_t)
-	if(maxReadLength < 1)
-		throw "Max read length must be at least 1 bp!";
-	if(maxReadLength > 65536)
-		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
-	_maxReadLength = maxReadLength;
-
-	//initialize chromosomes
-	chromosomes.readChromosomes(&_bamHeader);
-
 	//initialize read groups
 	readGroups.fill(_bamHeader);
+
+	//initialize chromosomes
+	_fillChromosomes(chromosomes);
 
 	//parse CIGAR
 	_curCigar.clear();
@@ -284,7 +346,8 @@ void TBamFile::_applyFilters(){
 						 && _revStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 
 		//fragment length
 		if(_QCFiltersPassed){
@@ -314,21 +377,39 @@ bool TBamFile::readNextAlignment(){
 		return false;
 	}
 
+	//check if chromosome changed
+	if(_curBamAlignment.RefID != chromosomes.curRefID()){
+		_previousAlignmentPos = 0;
+		_previousAlignmentChr = _curBamAlignment.RefID;
+
+		//advance chromosomes
+		chromosomes.jumpTo(_curBamAlignment.RefID);
+
+		//if not in use: jump to next in use
+		if(!chromosomes.curInUse()){
+			while(!chromosomes.curInUse()){
+				if(!chromosomes.next()){
+					return false;
+				}
+			}
+
+			//jump reader and read first alignment
+			jump(chromosomes.curRefID(), 0);
+			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
+				return false;
+			}
+		}
+		_chrChanged = true;
+	} else {
+		_chrChanged = false;
+	}
+
 	++_numAlignmentRead;
 
 	//check if BAM file is sorted
 	if(_curBamAlignment.Position < _previousAlignmentPos)
 		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPos) + ")";
 	_previousAlignmentPos = _curBamAlignment.Position;
-
-	//check if chromosome changed
-	if(_curBamAlignment.RefID != _previousAlignmentChr){
-		_previousAlignmentPos = 0;
-		_previousAlignmentChr = _curBamAlignment.RefID;
-		_chrChanged = true;
-	} else {
-		_chrChanged = false;
-	}
 
 	//check read length
 	if(_curBamAlignment.AlignedBases.size() > _maxReadLength)
@@ -491,6 +572,7 @@ void TBamFile::printSummary(TLog* Logfile){
 	_revStrandFilter.summary(Logfile);
 	_firstMateFilter.summary(Logfile);
 	_secondMateFilter.summary(Logfile);
+	_blacklistFilter.summary(Logfile);
 	_mappingQualityFilter.summary(Logfile);
 	_fragmentLengthfilter.summary(Logfile);
 

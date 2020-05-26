@@ -15,8 +15,8 @@ TGenome::TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGe
 	randomGenerator = RandomGenerator;
 
 	//open bam file
-	bamFile.open(params.getParameterString("bam"), params.getParameterIntWithDefault("maxReadLength", 200), params.parameterExists("indexNotRequired"));
-	logfile->list("Will only consider reads up to " + toString(bamFile.maxReadLength()) + " bp. (parameter 'maxReadLength')");
+	bamFile.open(params.getParameterString("bam"), params.parameterExists("indexNotRequired"));
+	bamFile.setFiltersAndLimits(params, logfile);
 
 	//initialize genotype likelihoods
 	genotypeLikelihoodCalculator.init(params, &bamFile.readGroups, logfile);
@@ -1448,14 +1448,11 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 };
 
 void TGenome::filterBAM(TParameters & params){
+	//soft clipped bases will translated to 'N' TODO: is this true?
 
-	//soft clipped bases will translated to 'N'
+	//enable blacklist
+	bamFile.maintainBlacklist()
 
-	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
-	alignmentParser.setParsingToTrue();
-	alignmentParser.setUpdateBlacklistToTrue();
-	alignmentParser.setWriteBlacklistToFileToTrue();
 
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
@@ -1702,7 +1699,6 @@ void TGenome::mergePairedEndReads(TParameters & params){
 	findPairedReadGroupsToMergeReads(params, mergeThisReadGroup);
 
 	//create alignment storage
-
 	int maxDist = params.getParameterIntWithDefault("acceptedDistance", 2000);
 	logfile->list("Mates that are farther than " + toString(maxDist) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 	TAlignmentMerger merger(&bamWriter, &alignmentParser, maxDist);
@@ -1714,7 +1710,7 @@ void TGenome::mergePairedEndReads(TParameters & params){
     //now parse through bam file and write alignments
 	unsigned int curChr = 0;
 
-	while (alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
+	while(alignmentParser.readNextAlignment(alignment) && alignmentParser.getNumAlignmentsRead()){
 		//if on new chromosome, empty storage
 		if(curChr != alignment.refID){
 			//write all ready currently in storage

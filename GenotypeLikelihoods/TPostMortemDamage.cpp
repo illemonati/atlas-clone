@@ -407,7 +407,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 //---------------------------------------------------------------
 //TPMDTables
 //---------------------------------------------------------------
-TPMDTables::TPMDTables(TReadGroups &ReadGroups, int maxLengthForInference, int MaxReadLength, TReadGroupMap &ReadGroupMap):readGroupMap(ReadGroupMap),readGroups(ReadGroups){
+TPMDTables::TPMDTables(BAM::TReadGroups &ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap &ReadGroupMap):readGroupMap(ReadGroupMap),readGroups(ReadGroups){
 	readGroups = ReadGroups;
 	maxReadLength = MaxReadLength;
 	readGroupMap = ReadGroupMap;
@@ -654,7 +654,7 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	functionsInitialized[type] = true;
 };
 
-void TPMDDoubleStrand::fillBaseLikelihoods(const TBaseData & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods){
+void TPMDDoubleStrand::fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods){
 	//no PMD for A and C
 	baseLikelihoods[A] = baseLikelihoodsNoPMD.at(A);
 	baseLikelihoods[T] = baseLikelihoodsNoPMD.at(T);
@@ -696,7 +696,7 @@ PMDType TPostMortemDamage::getEnumPMDType(std::string pmdType){
 	}
 };
 
-void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
+void TPostMortemDamage::initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
 	//create an array of TPMD objects for each read group
 	pmdObjects = new TPMDDoubleStrand[ReadGroups.size()];
 
@@ -741,7 +741,7 @@ void TPostMortemDamage::initializeFromFile(TReadGroups & ReadGroups, const std::
 	hasPMD = true;
 };
 
-void TPostMortemDamage::initialize(TParameters & params, TReadGroups & ReadGroups, TLog* logfile){
+void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile){
 	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
 		//all read groups have the same pmd
 		logfile->startIndent("Initializing one PMD function for all read groups:");
