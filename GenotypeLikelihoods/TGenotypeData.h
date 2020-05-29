@@ -24,14 +24,20 @@ private:
 
 public:
 	TBaseData();
+	TBaseData(const double val);
+	TBaseData(const Base trueBase, const double error);
 	void operator=(const TBaseData & other);
+	void operator+=(const TBaseData & other);
+	void operator*=(const TBaseData & other);
 	double& operator[](const Base base){ return data[base];};
 	double at(const Base base) const { return data[base]; };
-	void set(double val);
+
+	void set(const double val);
 	void set(const Base trueBase, const double error);
 	void reset();
-	double sum();
-	double weightedSum(const TBaseData & weights);
+	void add(const TBaseData & other);
+	double sum() const;
+	double weightedSum(const TBaseData & weights) const;
 	void normalize();
 };
 

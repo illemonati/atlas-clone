@@ -18,6 +18,14 @@ TBaseData::TBaseData(){
 	reset();
 };
 
+TBaseData::TBaseData(const double val){
+	set(val);
+};
+
+TBaseData::TBaseData(const Base trueBase, const double error){
+	set(trueBase, error);
+};
+
 void TBaseData::operator=(const TBaseData & other){
 	data[A] = other.at(A);
 	data[C] = other.at(C);
@@ -25,7 +33,21 @@ void TBaseData::operator=(const TBaseData & other){
 	data[T] = other.at(T);
 };
 
-void TBaseData::set(double val){
+void TBaseData::operator+=(const TBaseData & other){
+	data[A] += other.data[A];
+	data[C] += other.data[C];
+	data[G] += other.data[G];
+	data[T] += other.data[T];
+};
+
+void TBaseData::operator*=(const TBaseData & other){
+	data[A] *= other.data[A];
+	data[C] *= other.data[C];
+	data[G] *= other.data[G];
+	data[T] *= other.data[T];
+};
+
+void TBaseData::set(const double val){
 	data[A] = val;
 	data[G] = val;
 	data[C] = val;
@@ -41,11 +63,18 @@ void TBaseData::reset(){
 	set(1.0);
 };
 
-double TBaseData::sum(){
+void TBaseData::add(const TBaseData & other){
+	data[A] += other.data[A];
+	data[C] += other.data[C];
+	data[G] += other.data[G];
+	data[T] += other.data[T];
+};
+
+double TBaseData::sum() const{
 	return data[A] + data[C] + data[G] + data[T];
 };
 
-double TBaseData::weightedSum(const TBaseData & weights){
+double TBaseData::weightedSum(const TBaseData & weights) const{
 	return   data[A] * weights[A]
 		   + data[C] * weights[C]
 		   + data[G] * weights[G]

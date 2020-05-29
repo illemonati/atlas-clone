@@ -8,7 +8,7 @@
 #ifndef BAM_TBAMFILTER_H_
 #define BAM_TBAMFILTER_H_
 
-#include <TMateFinder.h>
+#include <set>
 #include "TLog.h"
 #include "TFile.h"
 
@@ -29,7 +29,7 @@ public:
 //-----------------------------------------------------
 //TBamFileFilter
 //-----------------------------------------------------
-class TBamFileFilter_base{
+class TBamFileFilter{
 protected:
 	bool _keep;
 	uint64_t _counter;
@@ -37,16 +37,17 @@ protected:
 	bool _updateLog;
 	TBamFileLog* _log;
 
-	void _filterOut(const std::string & alignmentName, const bool & isReverseStrand);
-
 public:
-	TBamFileFilter_base();
+	TBamFileFilter();
 	void keep();
+	bool filters() const{ return !_keep; };
+	void setReason(const std::string reason);
 	void setLog(const TBamFileLog* Log);
+	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void summary(TLog* logfile);
 };
 
-class TBamFileFilterBool:public TBamFileFilter_base{
+class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
 	void filter(const std::string Reason);
@@ -75,6 +76,7 @@ public:
 	void addFromFile(const std::string filename);
 	void add(const std::string & alignment);
 	void remove(const std::string & alignment);
+	void clear();
 	bool isInBlacklist(const std::string & alignment);
 };
 

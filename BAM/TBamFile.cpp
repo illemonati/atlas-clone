@@ -248,6 +248,18 @@ void TBamFile::_setFilters(TParameters & params, TLog* logfile){
 	openBamLog(params, logfile);
 };
 
+void TBamFile::curFilterOut(){
+	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand());
+};
+
+void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand){
+	_externalFilter.filterOut(alignmentName, isReverseStrand);
+};
+
+void TBamFile::setExternalFilterReason(const std::string reason){
+	_externalFilter.setReason(reason);
+};
+
 void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 	if(params.parameterExists("bamLog") && !_updateLog){
 		std::string logFilename = params.getParameterString("bamLog");
@@ -277,6 +289,13 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 		_blacklistFilter.setLog(_bamLog);
 		_mappingQualityFilter.setLog(_bamLog);
 		_fragmentLengthfilter.setLog(_bamLog);
+		_externalFilter.setLog(_bamLog);
+	}
+};
+
+void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
+	if(_updateLog){
+		_bamLog->write(alignmentName, isReverseStrand, reason);
 	}
 };
 
@@ -347,7 +366,7 @@ void TBamFile::_applyFilters(){
 						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 
 		//fragment length
 		if(_QCFiltersPassed){
@@ -508,27 +527,27 @@ void TBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoM
 	//create bamAlignment and then write
 	BamTools::BamAlignment _tmpBamAlignment;
 
-	_tmpBamAlignment.Name = alignment.name;
-	_tmpBamAlignment.AlignmentFlag = alignment.flags.asInt();
-	_tmpBamAlignment.RefID = alignment.refID;
-	_tmpBamAlignment.Position = alignment.position;
+	_tmpBamAlignment.Name = alignment._name;
+	_tmpBamAlignment.AlignmentFlag = alignment._flags.asInt();
+	_tmpBamAlignment.RefID = alignment._refID;
+	_tmpBamAlignment.Position = alignment._position;
 
-	_tmpBamAlignment.MapQuality = alignment.mappingQuality;
-	_tmpBamAlignment.MateRefID = alignment.mateRefID;
-	_tmpBamAlignment.MatePosition = alignment.matePosition;
-	_tmpBamAlignment.InsertSize = alignment.insertSize_TLEN;
+	_tmpBamAlignment.MapQuality = alignment._mappingQuality;
+	_tmpBamAlignment.MateRefID = alignment._mateRefID;
+	_tmpBamAlignment.MatePosition = alignment._matePosition;
+	_tmpBamAlignment.InsertSize = alignment._insertSize_TLEN;
 
 	//CIGAR
-	for(auto& it : alignment.cigar){
+	for(auto& it : alignment._cigar){
 		_tmpBamAlignment.CigarData.emplace_back(it.type, it.length);
 	}
 
 	//add sequences and qualities
-	_tmpBamAlignment.QueryBases = alignment.getSequence(genoMap, qualityMap);
-	_tmpBamAlignment.Qualities = alignment.getQualities(genoMap, qualityMap);
+	_tmpBamAlignment.QueryBases = alignment.sequence(genoMap, qualityMap);
+	_tmpBamAlignment.Qualities = alignment.qualities(genoMap, qualityMap);
 
 	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", readGroups.getName(alignment.readGroupID));
+	_tmpBamAlignment.AddTag("RG", "Z", readGroups.getName(alignment._readGroupID));
 
 	//and now write
 	if(!bamWriter.SaveAlignment(_tmpBamAlignment))
@@ -538,7 +557,7 @@ void TBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoM
 //--------------------------------------------------------
 // Getters
 //--------------------------------------------------------
-int TBamFile::curUsableLength(const int minQual, const int maxQual){
+int TBamFile::curUsableLength(const int minQual, const int maxQual) const{
 	int counter = _curBamAlignment.Length;
 	for(int d=0; d<_curBamAlignment.Length; ++d){
 		if(_curBamAlignment.QueryBases.at(d) == N || _curBamAlignment.Qualities.at(d) < minQual || _curBamAlignment.Qualities.at(d) > maxQual){
@@ -552,12 +571,11 @@ int TBamFile::curUsableLength(const int minQual, const int maxQual){
 //-----------------------------------------------------
 // Reporting
 //-----------------------------------------------------
-void TBamFile::printSummary(TLog* Logfile){
-	Logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':")
+void TBamFile::printSummaryNoEndIndent(TLog* Logfile){
+	Logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	Logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
-	Logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC));
-
-	Logfile->startIndent(toString(_numAlignmentRead - _numAlignmentsPassedQC) + " reads were filtered out:");
+	Logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
+	Logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentRead - _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
 
 	_duplicateFilter.summary(Logfile);
 	_softClippedFilter.summary(Logfile);
@@ -575,7 +593,11 @@ void TBamFile::printSummary(TLog* Logfile){
 	_blacklistFilter.summary(Logfile);
 	_mappingQualityFilter.summary(Logfile);
 	_fragmentLengthfilter.summary(Logfile);
+	_externalFilter.summary(Logfile);
+};
 
+void TBamFile::printSummary(TLog* Logfile){
+	printSummaryNoEndIndent(Logfile);
 	Logfile->endIndent();
 	Logfile->endIndent();
 };
@@ -596,7 +618,7 @@ void TBamFile::printProgress(){
 	}
 };
 
-void TBamFile::printEnd(){
+void TBamFile::printEndWithSummary(){
 	printEndNoEndIndent();
 	_logfile->endIndent();
 	printSummary(_logfile);

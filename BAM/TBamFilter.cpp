@@ -26,30 +26,34 @@ void TBamFileLog::write(const std::string & alignmentName, const bool & isRevers
 //-----------------------------------------------------
 //TBamFileFilter_base
 //-----------------------------------------------------
-TBamFileFilter_base::TBamFileFilter_base(){
+TBamFileFilter::TBamFileFilter(){
 	_counter = 0;
 	_keep = true;
 	_updateLog = false;
 	_log = nullptr;
 };
 
-void TBamFileFilter_base::_filterOut(const std::string & alignmentName, const bool & isReverseStrand){
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand){
 	++_counter;
 	if(_updateLog){
 		_log->write(alignmentName, isReverseStrand, _reason);
 	}
 };
 
-void TBamFileFilter_base::keep(){
+void TBamFileFilter::keep(){
 	_keep = true;
 };
 
-void TBamFileFilter_base::setLog(const TBamFileLog* Log){
+void TBamFileFilter::setReason(const std::string reason){
+	_reason = reason;
+};
+
+void TBamFileFilter::setLog(const TBamFileLog* Log){
 	_log = Log;
 	_updateLog = true;
 };
 
-void TBamFileFilter_base::summary(TLog* logfile){
+void TBamFileFilter::summary(TLog* logfile){
 	if(!_keep){
 		logfile->list(_reason + ": " + toString(_counter));
 	}
@@ -65,7 +69,7 @@ void TBamFileFilterBool::filter(const std::string Reason){
 
 bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
 	if(state && !_keep){
-		_filterOut(alignmentName, isReverseStrand);
+		filterOut(alignmentName, isReverseStrand);
 		return false;
 	}
 	return true;
@@ -88,7 +92,8 @@ void TBamFileFilterRange::filter(const uint32_t Min, const uint32_t Max, const s
 
 bool TBamFileFilterRange::pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand){
 	if(!_keep && (value < _min || value > _max)){
-		_filterOut(alignmentName, isReverseStrand);
+		filterOut(alignmentName, isReverseStrand);
+		return false;
 	}
 	return true;
 };
@@ -114,6 +119,10 @@ void TAlignmentBlacklist::add(const std::string & alignment){
 
 void TAlignmentBlacklist::remove(const std::string & alignment){
 	_blacklist.erase(alignment);
+};
+
+void TAlignmentBlacklist::clear(){
+	_blacklist.clear();
 };
 
 bool TAlignmentBlacklist::isInBlacklist(const std::string & alignment){

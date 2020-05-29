@@ -1450,10 +1450,6 @@ void TGenome::findPairedReadGroupsToMergeReads(TParameters & params, std::vector
 void TGenome::filterBAM(TParameters & params){
 	//soft clipped bases will translated to 'N' TODO: is this true?
 
-	//enable blacklist
-	bamFile.maintainBlacklist()
-
-
 	//open a bam file for writing
 	BamTools::BamWriter bamWriter;
 	std::string filename = outputName + "_filtered.bam";
