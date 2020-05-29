@@ -299,17 +299,41 @@ void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isR
 	}
 };
 
-void TBamFile::_fillChromosomes(TChromosomes & chromosomes){
+void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
 	if(_bamHeader.Sequences.Size() < 1){
 		throw "No chromosomes present in BAM header!";
 	}
 
 	//make sure object is empty
-	chromosomes.clear();
+	Chromosomes.clear();
 
 	//copy from BamHeader
 	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
-		chromosomes.appendChromosome(chrIt->Name, stringToLong(chrIt->Length));
+		Chromosomes.appendChromosome(chrIt->Name, stringToLong(chrIt->Length));
+	}
+};
+
+void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
+	//make sure they are empty
+	ReadGroups.clear();
+
+	//now add one by one
+	for(auto it = _bamHeader.ReadGroups.Begin(); it != _bamHeader.ReadGroups.End(); ++it){
+		//add read group
+		TReadGroup& rg = ReadGroups.add(it->ID);
+
+		//now copy rest
+		rg.description = it->Description;
+		rg.flowOrder = it->FlowOrder;
+		rg.keySequence = it->KeySequence;
+		rg.library = it->Library;
+		rg.platformUnit = it->PlatformUnit;
+		rg.predictedInsertSize = it->PredictedInsertSize;
+		rg.productionDate = it->ProductionDate;
+		rg.program = it->Program;
+		rg.sample = it->Sample;
+		rg.sequencingCenter = it->SequencingCenter;
+		rg.sequencingTechnology = it->SequencingTechnology;
 	}
 };
 
@@ -329,7 +353,7 @@ void TBamFile::open(const std::string filename, const bool indexNotRequired){
 	_bamHeader = _bamReader.GetHeader();
 
 	//initialize read groups
-	readGroups.fill(_bamHeader);
+	_fillReadGroups(readGroups);
 
 	//initialize chromosomes
 	_fillChromosomes(chromosomes);
@@ -370,13 +394,7 @@ void TBamFile::_applyFilters(){
 
 		//fragment length
 		if(_QCFiltersPassed){
-			uint32_t fragmentLength;
-			if(_curBamAlignment.IsProperPair()){
-				fragmentLength = abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
-			} else {
-				fragmentLength = _curCigar.lengthSequenced();
-			}
-			_QCFiltersPassed = _fragmentLengthfilter.pass(fragmentLength, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+			_QCFiltersPassed = _fragmentLengthfilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 					        && _longerThanFragmentFilter.pass(_curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
 	}
@@ -437,7 +455,7 @@ bool TBamFile::readNextAlignment(){
 	//store current read group ID
 	std::string readGroup;
 	_curBamAlignment.GetTag("RG", readGroup);
-	_curReadGroupID = readGroups.find(readGroup);
+	_curReadGroupID = readGroups.getId(readGroup);
 
 	//apply filters
 	_applyFilters();
@@ -503,7 +521,35 @@ void TBamFile::rewind(){
 // Functions for writing
 //--------------------------------------------------------
 void TBamFile::openOutput(std::string filename){
+	//construct new header
+	BamTools::SamHeader newHeader(_bamHeader);
+
+	//make sure read groups are OK: copy from readGroup object
+	newHeader.ReadGroups.Clear();
+	for(auto it = readGroups.begin(); it!=readGroups.end(); ++it){
+		BamTools::SamReadGroup newRg(it->name);
+
+		//copy rest
+		newRg.Description = it->description;
+		newRg.FlowOrder = it->flowOrder;
+		newRg.KeySequence = it->keySequence;
+		newRg.Library = it->library;
+		newRg.PlatformUnit = it->platformUnit;
+		newRg.PredictedInsertSize = it->predictedInsertSize;
+		newRg.ProductionDate = it->productionDate;
+		newRg.Program = it->program;
+		newRg.Sample = it->sample;
+		newRg.SequencingCenter = it->sequencingCenter;
+		newRg.SequencingTechnology = it->sequencingTechnology;
+
+		//add to header
+		newHeader.ReadGroups.Add(newRg);
+	}
+
+	//extract references
 	BamTools::RefVector references = _bamReader.GetReferenceData();
+
+	//open file for writing
 	if(!bamWriter.Open(filename, _bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
 	_openForWriting = true;
@@ -557,14 +603,21 @@ void TBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoM
 //--------------------------------------------------------
 // Getters
 //--------------------------------------------------------
-int TBamFile::curUsableLength(const int minQual, const int maxQual) const{
-	int counter = _curBamAlignment.Length;
-	for(int d=0; d<_curBamAlignment.Length; ++d){
-		if(_curBamAlignment.QueryBases.at(d) == N || _curBamAlignment.Qualities.at(d) < minQual || _curBamAlignment.Qualities.at(d) > maxQual){
-			counter -= 1;
+uint16_t TBamFile::curFragmentLength() const{
+	if(_curBamAlignment.IsProperPair()){
+		return abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
+	} else {
+		return _curCigar.lengthSequenced();
+	}
+};
+
+uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
+	uint16_t counter = 0;
+	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
+		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass(_curBamAlignment.AlignedQualities.at(d))){
+			++counter;
 		}
 	}
-
 	return counter;
 };
 

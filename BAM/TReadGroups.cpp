@@ -10,58 +10,122 @@
 
 namespace BAM{
 
+
+//---------------------------------------------------------------
+//TReadGroup
+//---------------------------------------------------------------
+TReadGroup::TReadGroup(const uint16_t ID, const std::string Name){
+	id = ID;
+	name = Name;
+};
+
+TReadGroup::TReadGroup(const TReadGroup & other){
+	id = other.id;
+	description = other.description;
+	flowOrder = other.flowOrder;
+	name = other.name;
+	keySequence = other.keySequence;
+	library = other.library;
+	platformUnit = other.platformUnit;
+	predictedInsertSize = other.predictedInsertSize;
+	productionDate = other.productionDate;
+	program = other.program;
+	sample = other.sample;
+	sequencingCenter = other.sequencingCenter;
+	sequencingTechnology = other.sequencingTechnology;
+};
+
+bool TReadGroup::operator<(const TReadGroup & right){
+	return name < right.name;
+};
+
+bool operator<(const std::string & left, const TReadGroup & right){
+	return left < right.name;
+};
+
+bool operator<(const TReadGroup & left, const std::string & right){
+	return left.name < right;
+};
+
 //---------------------------------------------------------------
 //TReadGroups
 //---------------------------------------------------------------
 TReadGroups::TReadGroups(){
-	_initialized = false;
-	_numGroups = 0;
-	_groups = NULL;
 	_inUse = NULL;
 	_limitReadGroups = false;
 };
 
-TReadGroups::~TReadGroups(){
-	if(_initialized){
-		delete[] _groups;
-		delete[] _inUse;
-	}
+void TReadGroups::clear(){
+	_readGroups.clear();
+	_inUse.clear();
 };
 
-void TReadGroups::fill(BamTools::SamHeader & bamHeader){
-	//empty if filled before
-	if(_initialized) delete[] _groups;
-	//create and fill array
-	_numGroups = bamHeader.ReadGroups.Size();
-	_groups = new readGroup[_numGroups];
-	_inUse = new bool[_numGroups];
-	int i = 0;
-	for(BamTools::SamReadGroupIterator it = bamHeader.ReadGroups.Begin(); it != bamHeader.ReadGroups.End(); ++it, ++i){
-		_groups[i].id = i;
-		_groups[i].name = it->ID;
-		_groups[i].object= &(*it);
-		_inUse[i] = true;
+TReadGroup& TReadGroups::add(const std::string name){
+	auto rg = _readGroups.emplace(_readGroups.size(), name);
+	if(rg.second){
+		_inUse.emplace_back(true);
 	}
-	_initialized = true;
+	return rg.first;
 };
 
-uint16_t TReadGroups::find(const std::string & name) const{
-	for(uint16_t i=0; i<_numGroups; ++i){
-		if(_groups[i].name == name) return i;
+TReadGroup& TReadGroups::addTruncatedOrMergedRG(const std::string Name, const std::string original){
+	//getId original
+	TReadGroup& rg = getReadGroup(original);
+
+	//make sure new name does not yet exist
+	if(readGroupExists(Name)){
+		throw "Can not add truncated or merged read group '" + Name + "': read group already exists!";
 	}
+
+	//make copy
+	TReadGroup newRg(rg);
+
+	//set name and give new id
+	newRg.name = Name;
+	newRg.id = _readGroups.size();
+
+	//add to set and inUse
+	auto r = _readGroups.insert(newRg);
+	if(r.second){
+		_inUse.emplace_back(true);
+	}
+	return r.first;
+};
+
+uint16_t TReadGroups::size() const{
+	return _readGroups.size();
+};
+
+const std::string& TReadGroups::getName(uint16_t readGroupId) const{
+	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
+
+	//search in set
+	for(auto& rg : _readGroups){
+		if(rg.id == readGroupId){
+			return rg.name;
+		}
+	}
+	throw "No read group with number " + toString(readGroupId) + "!"; //shoudl never happen
+};
+
+uint16_t TReadGroups::getId(const std::string & name) const{
+	auto rg = _readGroups.find(name);
+	if(rg != _readGroups.end())
+		return rg->id;
 	throw "Read Group '" + name + "' was not present in header of bam file!";
 };
 
-uint16_t TReadGroups::find(BamTools::BamAlignment & alignment) const{
-	std::string tmp;
-	alignment.GetTag("RG", tmp);
-	return find(tmp);
+TReadGroup& TReadGroups::getReadGroup(const std::string & name){
+	auto rg = _readGroups.find(name);
+	if(rg != _readGroups.end())
+		return rg;
+	throw "Read Group '" + name + "' was not present in header of bam file!";
 };
 
 bool TReadGroups::readGroupExists(const std::string & name) const{
-	for(uint16_t i=0; i<_numGroups; ++i){
-		if(_groups[i].name == name) return true;
-	}
+	auto rg = _readGroups.find(name);
+	if(rg != _readGroups.end())
+			return true;
 	return false;
 };
 
@@ -72,62 +136,40 @@ bool TReadGroups::readGroupInUse(const uint16_t & readGroupId) const{
 bool TReadGroups::readGroupInUse(const std::string name) const{
 	if(!readGroupExists(name))
 		return false;
-	int readGroupId = find(name);
+	uint16_t readGroupId = getId(name);
 	return _inUse[readGroupId];
 };
 
-bool TReadGroups::readGroupInUse(BamTools::BamAlignment & alignment) const{
-	return _inUse[find(alignment)];
-};
-
-const std::string& TReadGroups::getName(uint16_t readGroupId) const{
-	if(readGroupId < 0 || (size_t) readGroupId >= _numGroups) throw "No read group with number " + toString(readGroupId) + "!";
-	return _groups[readGroupId].name;
-};
-
-uint16_t TReadGroups::size(){
-	return _numGroups;
-};
 
 void TReadGroups::filterReadGroups(std::string readGroupList){
 	_limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
 	fillVectorFromString(readGroupList, readGroupsInUse, ',');
-	for(size_t i=0; i < _numGroups; i++){
-		if(std::find(readGroupsInUse.begin(), readGroupsInUse.end(), getName(i)) != readGroupsInUse.end()){
-			_inUse[i] = true;
-		} else _inUse[i] = false;
+
+	//set all to false
+	for(auto& ru : _inUse){
+		ru = false;
+	}
+
+	//set those in list to true
+	for(auto& r : readGroupsInUse){
+		auto& rg = getId(r);
+		_inUse[rg] = true;
 	}
 };
 
 void TReadGroups::printReadgroupsInUse(TLog* logfile) const{
-	for(size_t i=0; i < _numGroups; i++){
-		if(_inUse[i])
-			logfile->list(_groups[i].name);
+	for(auto& rg : _readGroups){
+		if(_inUse[rg.id])
+			logfile->list(rg.name);
 	}
 };
 
-int TReadGroups::addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string origReadGroupName, std::string newReadGroupName){
-	//add a new readgroup for the truncated reads to the header
-	bamHeader.ReadGroups.Add(newReadGroupName);
-	fill(bamHeader);
-	int origReadGroupId = find(origReadGroupName);
-	int newReadGroupId = find(newReadGroupName);
-
-	//copy original tags to truncated read groups
-
-	BamTools::SamReadGroupIterator newRG = bamHeader.ReadGroups.Begin() + newReadGroupId;
-	BamTools::SamReadGroupIterator origRG = bamHeader.ReadGroups.Begin() + origReadGroupId;
-	newRG->Library = origRG->Library;
-	newRG->PlatformUnit = origRG->PlatformUnit;
-	newRG->PredictedInsertSize = origRG->PredictedInsertSize;
-	newRG->ProductionDate = origRG->ProductionDate;
-	newRG->Program = origRG->Program;
-	newRG->Sample = origRG->Sample;
-	newRG->SequencingCenter = origRG->SequencingCenter;
-	newRG->SequencingTechnology = origRG->SequencingTechnology;
-
-	return(newReadGroupId);
+void TReadGroups::fillVectorWithNames(std::vector<std::string> & vec) const{
+	vec.resize(_readGroups.size());
+	for(auto& rg : _readGroups){
+		vec[rg.id] = rg.name;
+	}
 };
 
 //---------------------------------------------------------------
@@ -204,13 +246,13 @@ void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
 	logfile->done();
 
 	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
-	int oldId;
+	uint16_t oldId;
 
 	for(uint16_t rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
 		logfile->startIndent("The following read groups will be combined into one group for parameter estimation:");
 		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
 			logfile->list(*it);
-			oldId = _readGroups->find(*it);
+			oldId = _readGroups->getId(*it);
 			if(_readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
 			_readGroupMap[oldId] = rg;
 		}
@@ -256,7 +298,7 @@ uint16_t TReadGroupMap::getNumReadGroups(){ return _numReadGroups; };
 uint16_t TReadGroupMap::getIndex(const uint16_t rg){ return _readGroupMap[rg]; };
 uint16_t TReadGroupMap::operator[](const uint16_t rg){ return _readGroupMap[rg]; };
 uint16_t TReadGroupMap::getIndex(const std::string readGroupName){
-	uint16_t rg = _readGroups->find(readGroupName);
+	uint16_t rg = _readGroups->getId(readGroupName);
 	return getIndex(rg);
 };
 

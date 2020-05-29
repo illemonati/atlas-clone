@@ -49,7 +49,7 @@ protected:
 
 	//filters
 	bool applyQualityFilter;
-	uint8_t minQualityAsPhredInt, maxQualityAsPhredInt;
+	TQualityFilter qualityFilter;
 	bool applyContextFilter;
 	std::map<BaseContext,int> ignoreTheseContexts;
 

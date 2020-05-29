@@ -37,7 +37,6 @@ TAlignmentInStorage TMateFilter::_findMate(const std::string & name){
 	return _alignmentStorage.end();
 };
 
-
 void TMateFilter::_writeAlignment(TAlignmentInStorage & it){
 	//save the alignment to the bam file
 	_bamFile.writeAlignment(*(it->alignment), genoMap, qualMap);
@@ -176,15 +175,57 @@ void TMateFilter::traverseBAM(const std::string outputName){
 //-----------------------------------------
 // TAlignmentMergerType
 //-----------------------------------------
-TAlignmentMergerType_none::TAlignmentMergerType_none(){
-	_numOverlap = 0;
+uint16_t TAlignmentMergerType::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap){
+	//NOTE: mate is earlier!
+	//deletions and insertions are kept as is. these positions are not compared
+
+	//check if reads overlap
+	if(alignment.position() > mate.lastAlignedPositionWithRespectToRef()){
+		return 0;
+	}
+
+	//prepare (e.g. pick random number
+	uint16_t numOverlap = 0;
+
+	//go through alignments
+	int fwdP = 0; int revP = 0;
+	while(fwdP <= alignment.lastAlingedInternalPos() && revP <= mate.lastAlingedInternalPos()){
+		//make sure we compare at the same position in respect to ref
+		if(!alignment.isAlignedAtInternalPos(fwdP)){
+			++fwdP;
+		} else if(!mate.isAlignedAtInternalPos(revP)){
+			++revP;
+		} else if(alignment.positionInRef(fwdP) < mate.positionInRef(revP)){
+			++fwdP;
+		} else if(alignment.positionInRef(fwdP) > mate.positionInRef(revP)){
+			++revP;
+		} else {
+			//at same position: merge
+			++numOverlap;
+			_mergeBases(alignment.base(fwdP), mate.base(revP), qualMap);
+
+			//advance in both reads
+			++fwdP; ++revP;
+		}
+	}
+
+	//check if alignments changed
+	if(numOverlap > 0){
+		alignment.setHasChanged();
+		mate.setHasChanged();
+	}
+
+	return numOverlap;
 };
 
-void TAlignmentMergerType_none::_prepare(){
-	_numOverlap = 0;
+// TAlignmentMergerType_randomBase
+//---------------------------------
+TAlignmentMergerType_randomBase::TAlignmentMergerType_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality){
+	_randomGenerator = RandomGenerator;
+	_adaptQuality = AdaptQuality;
 };
 
-void TAlignmentMergerType_none::_mergeBases(TBase & bestBase, TBase & worstBase){
+void TAlignmentMergerType_randomBase::_mergeBasesCore(TBase & bestBase, TBase & worstBase, const TQualityMap & qualMap){
 	if(_adaptQuality){
 		GenotypeLikelihoods::TBaseData likelihood(bestBase.base, qualMap.phredIntToError(bestBase.recalibratedQualityAsPhredInt));
 		likelihood *= GenotypeLikelihoods::TBaseData(worstBase.base, qualMap.phredIntToError(worstBase.recalibratedQualityAsPhredInt));
@@ -197,73 +238,54 @@ void TAlignmentMergerType_none::_mergeBases(TBase & bestBase, TBase & worstBase)
 	worstBase.base = N;
 };
 
-void TAlignmentMergerType_none::merge(BAM::TAlignment* alignment, BAM::TAlignment* mate){
-	//NOTE: mate is earlier!
-	//deletions and insertions are kept as is. these positions are not compared
-
-	//prepare (e.g. pcik random number
-	_prepare();
-
-	//go through alignments
-	int fwdP = 0; int revP = 0;
-	while(fwdP <= alignment->lastAlingedInternalPos() && revP <= mate->lastAlingedInternalPos()){
-		//make sure we comapre at the same position in respect to ref
-		if(!alignment->isAlignedAtInternalPos(fwdP)){
-			++fwdP;
-		} else if(!mate->isAlignedAtInternalPos(revP)){
-			++revP;
-		} else if(alignment->positionInRef(fwdP) < mate->positionInRef(revP)){
-			++fwdP;
-		} else if(alignment->positionInRef(fwdP) > mate->positionInRef(revP)){
-			++revP;
-		} else {
-			//at same position: merge
-			if(_merge()){
-				++_numOverlap;
-			}
-			++fwdP; ++revP;
-		}
-
-
-		if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
-			//bases overlap same position in ref -> choose at random which to keep
-			if(keepFwd){
-				_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
-			} else {
-				_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
-			}
-			//increment both counters
-			++fwdP;
-			++revP;
-		} else if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] < revAlignment->position + revAlignment->alignedPosition[revP]){
-			++fwdP;
-		} else {
-			++revP;
-		}
+void TAlignmentMergerType_randomBase::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+	if(_randomGenerator->pickOneOfTwo()){
+		_mergeBasesCore(mate, alignment, qualMap);
+	} else {
+		_mergeBasesCore(alignment, mate, qualMap);
 	}
 };
 
-TAlignmentMergerType_randomRead::TAlignmentMergerType_randomRead(TRandomGenerator* RandomGenerator){
-	_randomGenerator = RandomGenerator;
+// TAlignmentMergerType_randomRead
+//---------------------------------
+TAlignmentMergerType_randomRead::TAlignmentMergerType_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMergerType_randomBase(RandomGenerator, AdaptQuality){
 	_keepMate = false;
 };
 
-void TAlignmentMergerType_randomRead::_prepare(){
-	_numOverlap = 0;
-	_keepMate = _randomGenerator->pickOneOfTwo();
+void TAlignmentMergerType_randomRead::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+	if(_keepMate){
+		_mergeBasesCore(mate, alignment, qualMap);
+	} else {
+		_mergeBasesCore(alignment, mate, qualMap);
+	}
 };
 
+uint16_t TAlignmentMergerType_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap){
+	_keepMate = _randomGenerator->pickOneOfTwo();
+	return TAlignmentMergerType::merge(alignment, mate, qualMap);
+};
 
-bool TAlignmentMergerType_randomRead::_merge(BAM::TAlignment* alignment, BAM::TAlignment* mate){
+// TAlignmentMergerType_highestQuality
+//---------------------------------
+TAlignmentMergerType_highestQuality::TAlignmentMergerType_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMergerType_randomBase(RandomGenerator, AdaptQuality){};
 
+void TAlignmentMergerType_randomRead::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
+		_mergeBasesCore(mate, alignment, qualMap);
+	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){
+		_mergeBasesCore(alignment, mate, qualMap);
+	} else {
+		//pick randomly
+		TAlignmentMergerType_randomBase::_mergeBases(alignment, mate, qualMap);
+	}
 };
 
 //-----------------------------------------
 // TAlignmentMerger
 //-----------------------------------------
 TAlignmentMerger::TAlignmentMerger(BAM::TBamFile& BamFile, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator):TMateFilter(BamFile, params, Logfile){
-	_randomGenerator = RandomGenerator;
-
+	_numReadsMerged = 0;
+	_numBasesMerged = 0;
 
 	//check if keepAllReads is turned on
 	//TODO: what is the basic set of filters needed?
@@ -276,34 +298,34 @@ TAlignmentMerger::TAlignmentMerger(BAM::TBamFile& BamFile, TParameters & params,
 	}
 	*/
 
+	//decide if we update quality score
+	bool adaptQuality;
+	if(params.parameterExists("updateQuality")){
+		adaptQuality = true;
+		logfile->list("Will update quality scores of preferred bases to reflect information from overlapping bases.");
+	} else {
+		adaptQuality = false;
+		logfile->list("Will keep original quality scores of the preferred bases (use updateQuality to update quality scores).");
+	}
+
 	//set merging method
-	//TODO: update wiki to relfect change in names
+	//TODO: update wiki to reflect change in names
 	std::string method = params.getParameterStringWithDefault("mergingMethod", "keepRandomRead");
 	if(method == "none"){
-		_type = none;
+		_merger = std::make_unique<TAlignmentMergerType>();
 		logfile->list("Merging method: no merging.");
 	} else if (method == "randomRead"){
-		_type = randomRead;
+		_merger = std::make_unique<TAlignmentMergerType_randomRead>(RandomGenerator, adaptQuality);
 		logfile->list("Merging method: will keep random read for all overlapping positions");
 	} else if(method == "randomBase"){
-		_type = randomBase;
-		logfile->list("Merging method: will keep random base at each overlapping positios.");
+		_merger = std::make_unique<TAlignmentMergerType_randomBase>(RandomGenerator, adaptQuality);
+		logfile->list("Merging method: will keep random base at each overlapping position.");
 	} else if(method == "highestQuality"){
-		_type = highestQuality;
+		_merger = std::make_unique<TAlignmentMergerType_highestQuality>(RandomGenerator, adaptQuality);
 		logfile->list("Merging method: will keep base with highest quality at overlapping positions.");
 	} else {
 		throw "Unknown merging method " + method + "! Use 'none', 'randomRead', 'randomBase' and 'highestQuality'.";
 	}
-
-	//decide if we update quality score
-	if(params.parameterExists("updateQuality")){
-		_adaptQuality = true;
-		logfile->list("Will update quality scores of prefered bases to reflect information from overlapping bases.");
-	} else {
-		_adaptQuality = false;
-		logfile->list("Will keep original quality scores of the prefered bases (use updateQuality to update quality scores).");
-	}
-
 };
 
 void TAlignmentMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate){
@@ -312,23 +334,10 @@ void TAlignmentMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentInStor
 		mate->setAsNonProperPair();
 	} else {
 		//attempt merging
-		if(_type != none && mate->alignment->lastAlignedPositionWithRespectToRef() >= alignment->position()){
-			//reads overlap: merge
-			switch(_type){
-			case randomRead:
-
-				break;
-			case randomBase:
-
-				break;
-			case highestQuality:
-
-				break;
-			}
-
-			//set alignments have changes
-			alignment->setHasChanged();
-			mate->alignment->setHasChanged();
+		uint16_t overlap = _merger->merge(*alignment, *mate->alignment, qualMap);
+		if(overlap > 0){
+			++_numReadsMerged;
+			_numBasesMerged += overlap;
 		}
 	}
 
@@ -339,118 +348,6 @@ void TAlignmentMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentInStor
 
 
 
-
-void TAlignmentMerger::_mergeRandomRead(BAM::TAlignment* alignment, BAM::TAlignment* mate){
-	//NOTE: mate is earlier!
-	//deletions and insertions are kept as is. these positions are not compared
-
-	//which read to keep
-	bool keepFwd = _randomGenerator->pickOneOfTwo();
-
-	//reads overlap -> check if there are bases overlapping same position in ref
-	//alignedPos is with respect to read
-	int fwdP = 0; int revP = 0;
-	while(fwdP <= alignment->lastAlingedInternalPos() && revP <= mate->lastAlingedInternalPos()){
-
-
-
-		if(!alignment->isAlignedAtInternalPos(fwdP)){
-			++fwdP;
-		} else if(!mate->isAlignedAtInternalPos(revP)){
-			++revP;
-		} else if(alignment->positionInRef(fwdP) < mate->positionInRef(revP)){
-			++fwdP;
-		} else if(alignment->positionInRef(fwdP) > mate->positionInRef(revP)){
-			++revP;
-		} else {
-			//at same position: merge
-
-		}
-
-
-		if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
-			//bases overlap same position in ref -> choose at random which to keep
-			if(keepFwd){
-				_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
-			} else {
-				_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
-			}
-			//increment both counters
-			++fwdP;
-			++revP;
-		} else if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] < revAlignment->position + revAlignment->alignedPosition[revP]){
-			++fwdP;
-		} else {
-			++revP;
-		}
-	}
-}
-}
-
-void TAlignmentParser::mergeAlignedBasesBamReadsRandom(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality, TRandomGenerator* randomGenerator){
-	//deletions and insertions are kept as is. these positions are not compared
-	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
-		fwdAlignment->setAlignmentHasChanged();
-		revAlignment->setAlignmentHasChanged();
-
-		//reads overlap -> check if there are bases overlapping same position in ref
-		//alignedPos is with respect to read
-		int fwdP = 0;
-		int revP = 0;
-		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
-			if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
-				//bases overlap same position in ref -> choose at random which to keep
-				if(randomGenerator->getRand() < 0.5){
-					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
-				} else {
-					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
-				}
-				//increment both counters
-				++fwdP;
-				++revP;
-			} else if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] < revAlignment->position + revAlignment->alignedPosition[revP]){
-				++fwdP;
-			} else {
-				++revP;
-			}
-		}
-	}
-};
-
-void TAlignmentParser::mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality){
-	//deletions and insertions are kept as is. these positions are not compared
-	if(fwdAlignment->lastAlignedPositionWithRespectToRef >= revAlignment->position){
-		fwdAlignment->setAlignmentHasChanged();
-		revAlignment->setAlignmentHasChanged();
-
-		//reads overlap -> check if there are bases overlapping same position in ref
-		//alignedPos is with respect to read
-		int fwdP = 0;
-		int revP = 0;
-		while(fwdP <= fwdAlignment->lastAlignedPos && revP <= revAlignment->lastAlignedPos){
-			if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] == revAlignment->position + revAlignment->alignedPosition[revP]){
-				//bases overlap same position in ref -> keep the one with higher quality
-				if(fwdAlignment->bases[fwdP].recalibratedQualityAsPhredInt > revAlignment->bases[revP].recalibratedQualityAsPhredInt){
-					_adaptQualityWhenMerging(fwdAlignment->bases[fwdP], revAlignment->bases[revP], adaptQuality);
-				} else {
-					_adaptQualityWhenMerging(revAlignment->bases[revP], fwdAlignment->bases[fwdP], adaptQuality);
-				}
-				//increment both counters
-				++fwdP;
-				++revP;
-			} else if(fwdAlignment->position + fwdAlignment->alignedPosition[fwdP] < revAlignment->position + revAlignment->alignedPosition[revP]){
-				++fwdP;
-			} else {
-				++revP;
-			}
-		}
-	}
-};
-
-
-void TMateFilter::mergeBAM(const std::string outputName){
-	_traverseBAM(outputName);
-};
 
 
 TAlignmentMerger::TAlignmentMerger(BamTools::BamWriter* Writer, TAlignmentParser* Parser, int MaxDistanceBetweenMates){

@@ -2027,154 +2027,135 @@ void TGenome::downSampleReads(TParameters & params){
 };
 
 void TGenome::diagnoseBamFile(TParameters & params){
-	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
-
-	//get max params
-	int maxMQ = params.getParameterIntWithDefault("maxMQ", 100);
-	int maxReadLength = params.getParameterIntWithDefault("maxReadLength", 1000);
-
-    //open output files
-    std::ofstream outputDepth;
-    std::string outputFileNameCov = outputName + "_approximateDepth.txt";
-    logfile->list("Writing sequencing depth estimates to '" + outputFileNameCov + "'");
-    outputDepth.open(outputFileNameCov.c_str());
-    if(!outputDepth) throw "Failed to open output file '" + outputFileNameCov + "'!";
-
-    std::ofstream outputMQ;
-    std::string outputFileNameMQ = outputName + "_MQ.txt";
-    logfile->list("Writing MQ histogram to '" + outputFileNameMQ + "'");
-    outputMQ.open(outputFileNameMQ.c_str());
-    if(!outputMQ) throw "Failed to open output file '" + outputFileNameMQ + "'!";
-
-    std::ofstream outputReadLen;
-    std::string outputFileNameRL = outputName + "_readLength.txt";
-    logfile->list("Writing read length histogram to '" + outputFileNameRL + "'");
-    outputReadLen.open(outputFileNameRL.c_str());
-    if(!outputReadLen) throw "Failed to open output file '" + outputFileNameRL + "'!";
-
-    std::ofstream fragmentStats;
-    std::string outputFileNameFL = outputName + "_fragmentStats.txt";
-    logfile->list("Writing fragment length mean and variance to '" + outputFileNameFL + "'");
-    fragmentStats.open(outputFileNameFL.c_str());
-    if(!fragmentStats) throw "Failed to open output file '" + outputFileNameFL + "'!";
+	//settings
+	TQualityFilter qualFilter(params, logfile);
 
     //calculate length of genome
-    double totLength = (double) alignmentParser.calcReferenceLength();
+    double totLengthOfGenome = (double) bamFile.chromosomes.referenceLength();
 
     //other temp variables
-    std::vector<double> depth;
-    double totalDepth = 0.0;
     int numProperPairs = 0;
-    long sumFragLen = 0;
-    long sumSquaredFragLen = 0;
-    int numReadGroups = alignmentParser.readGroups.size();
 
-    long** mappingQuality = new long*[numReadGroups];
-    long** readLength = new long*[numReadGroups];
-    for(int i = 0; i < numReadGroups; ++i){
-    	depth.push_back(0);
-    	mappingQuality[i] = new long[maxMQ + 1]; //+1 for zero bin
-    	readLength[i] = new long[maxReadLength + 1];
-    	for(int j=0; j<100; ++j) mappingQuality[i][j]=0;
-    	for(int j=0; j<500; ++j) readLength[i][j]=0;
-    }
+    //counters
+    TCountVector totalReads(bamFile.readGroups.size());
+    TCountVector passedQC(bamFile.readGroups.size());
+    TCountDistributionVector readLength(bamFile.readGroups.size());
+    TCountDistributionVector usableLength(bamFile.readGroups.size());
+    TCountDistributionVector softClippedLength(bamFile.readGroups.size());
+    TCountDistributionVector mappingQuality(bamFile.readGroups.size());
+    TCountDistributionVector fragmentLength(bamFile.readGroups.size());
 
-	//measure progress and runtime
-	TBamProgressReporter reporter(&alignmentParser, logfile);
+	//now parse through bam file
+	bamFile.startProgressReporting(1000000, logfile);
+	while(bamFile.readNextAlignment()){
+		//get read group
+		uint16_t readGroup = bamFile.curReadGroupID();
+		totalReads.add(readGroup);
 
-    //now parse through bam file and sum number of aligned bases
-	int minQuality = alignmentParser.minQualityAsPhredInt + 33;
-	int maxQuality = alignmentParser.maxQualityAsPhredInt + 33;
-	while (alignmentParser.readNextAlignment(alignment)){
-        //fragment length
-        if(alignment.isProperPair){
-        	if(!alignment.isReverseStrand){
-        		++numProperPairs;
-        		int32_t insSize = alignment.getInsertSize();
-        		sumFragLen += abs(insSize);
-        		sumSquaredFragLen += (insSize * insSize);
-        	}
-        }
+		//passed filters?
+		if(bamFile.curPassedQC()){
+			passedQC.add(readGroup);
 
-        //depth
-        int length = alignment.getUsableLength(minQuality, maxQuality);
-        totalDepth += length;
-        depth[alignment.readGroupID] += length;
+			//add to counters
+			readLength.add(readGroup, bamFile.curCIGAR().lengthRead());
+			usableLength.add(readGroup, bamFile.curUsableAlignedLength(qualFilter));
+			softClippedLength.add(readGroup, bamFile.curCIGAR().lengthSoftClipped());
+			mappingQuality.add(readGroup, bamFile.curMappingQuality());
 
-        //mapping quality
-        if(alignment.mappingQuality > maxMQ)
-        	throw "Mapping quality of alignment " + alignment.name() + " is larger than maxMQ (" + toString(alignment.mappingQuality) + ">" + toString(maxMQ) +")";
-        ++mappingQuality[alignment.readGroupID][alignment.mappingQuality];
+			//fragment length: only for proper pairs and only once
+			if(bamFile.curIsProperPair()){
+				if(!bamFile.curIsReverseStrand()){
+					fragmentLength.add(readGroup, bamFile.curFragmentLength());
+				}
+			}
+		}
 
-        //read length
-        if(alignment.getBamAlignmentLength() > maxReadLength)
-    	   throw "Read length of alignment " + alignment.name() + " is larger than maxReadLength (" + toString(alignment.getParsedLength()) + ">" + toString(maxReadLength) +")";
-
-        ++readLength[alignment.readGroupID][alignment.getBamAlignmentLength()];
-
-        //report
-        reporter.printProgress();
+        //report progress
+        bamFile.printProgress();
     }
 
 	//report end
-	reporter.printEnd();
-	logfile->list("Approximate sequencing depth was estimated at " + toString(totalDepth/totLength));
+	bamFile.printEndWithSummary();
+
+	logfile->list("Approximate sequencing depth was estimated at " + toString((double) usableLength.sum() / (double) totLengthOfGenome));
 
 	//writing output files
-	logfile->listFlush("Writing to output files ...");
+	logfile->startIndent("Writing to output files:");
 
-    //depth
-    outputDepth << "readGroup\tApproximate_depth";
-    outputDepth << "\nallReadGroups\t" << totalDepth/totLength;
-    for(int r=0; r<numReadGroups; ++r){
-        outputDepth << "\n" << alignmentParser.readGroups.getName(r) << "\t" << depth[r]/totLength;
-    }
-    outputDepth << "\n";
+	//writing read group summary
+	std::string filename = outputName + "_diagnostics.txt";
+	logfile->listFlush("Writing general diagnostics to '" + filename + "' ...");
+	TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAligneLength", "approximatDepth", "avgMappingQuality"});
 
-    //MQ
-    long tot;
-    outputMQ << "readGroup\tMapping_quality\tCount";
-    for(int i=0; i<100; ++i){
-    	tot = 0;
-    	for(int r=0; r<numReadGroups; ++r) tot += mappingQuality[r][i];
-		outputMQ << "\nallReadGroups\t" << i << "\t" << tot;
+	//write for combined
+	out << "allReadGroups";
+	out << totalReads.counts() << passedQC.counts() << (double) passedQC.counts() / (double) totalReads.counts();
+	out << readLength.mean() << readLength.max();
+	out << fragmentLength.counts() << fragmentLength.mean();
+	out << softClippedLength.countsLargerZero() << softClippedLength.mean();
+	out << usableLength.mean() << (double) usableLength.sum() / (double) totLengthOfGenome;
+	out << mappingQuality.mean() << std::endl;
 
-    }
-    for(int r=0; r<numReadGroups; ++r){
-        for(int i=0; i<100; ++i){
-            outputMQ << "\n" << alignmentParser.readGroups.getName(r) << "\t" << i << "\t" << mappingQuality[r][i];
-        }
-    }
-    outputMQ << "\n";
+	//write per read group
+	for(uint16_t rg = 0; rg < bamFile.readGroups.size(); ++rg){
+		out << bamFile.readGroups.getName(rg);
+		out << totalReads[rg] << passedQC[rg] << (double) passedQC[rg] / (double) totalReads[rg];
+		out << readLength.mean() << readLength.max();
+		out << fragmentLength[rg].counts() << fragmentLength.mean();
+		out << softClippedLength[rg].countsLargerZero() << softClippedLength[rg].mean();
+		out << usableLength[rg].mean() << (double) usableLength[rg].sum() / (double) totLengthOfGenome;
+		out << mappingQuality[rg].mean() << std::endl;
+	}
+	out.close();
+	logfile->done();
 
-    //RL
-    outputReadLen << "readGroup\tRead_length\tCount";
-    for(int i=0; i<500; ++i){
-    	tot = 0;
-    	for(int r=0; r<numReadGroups; ++r) tot += readLength[r][i];
-		outputReadLen << "\nallReadGroups\t" << i << "\t" << tot;
-    }
-    for(int r=0; r<numReadGroups; ++r){
-        for(int i=0; i<500; ++i){
-            outputReadLen << "\n" << alignmentParser.readGroups.getName(r)<< "\t" << i << "\t" << readLength[r][i];
-        }
-    }
-    outputReadLen << "\n";
+	//writing distributions
+	std::vector<std::string> rgNames;
+	bamFile.readGroups.fillVectorWithNames(rgNames);
 
-    //FL
-    float mean = float(sumFragLen)/float(numProperPairs);
-    float var = float(sumSquaredFragLen) / float(numProperPairs) - (mean*mean);
-    fragmentStats << "mean: " << mean << "\n" << "variance: " << var << "\n";
+    // 1) usableLength
+	std::string filename = outputName + "_approximateDepth.txt";
+	logfile->listFlush("Writing sequencing usableLength estimates to '" + filename + "' ...");
+	TOutputFile out(filename, {"readGroup", "approximatDepth"});
 
+    out << "allReadGroups" << totalDepth/totLengthOfGenome << std::endl;
+	for(int r=0; r<numReadGroups; ++r){
+		out << bamFile.readGroups.getName(r) << usableLength[r].sum() / (double) totLengthOfGenome << std::endl;
+	}
+	out.close();
+	logfile->done();
+
+	// 2) Mapping Quality
+    filename = outputName + "_MQHistogram.txt";
+    logfile->listFlush("Writing MQ histogram to '" + filename + "' ...");
+    out.open(filename, {"readGroup", "mappingQuality", "count"});
+
+    mappingQuality.writeCombined(out, "allReadGroups");
+    mappingQuality.write(out, rgNames);
+
+	out.close();
+	logfile->done();
+
+	// 3) read length
+    filename = outputName + "_readLengthHistorgram.txt";
+    logfile->listFlush("Writing read length histogram to '" + filename + "' ...");
+    out.open(filename, {"readGroup", "readLength", "count"});
+
+    readLength.writeCombined(out, "allreadGroups");
+    readLength.write(out, rgNames);
+
+    out.close();
     logfile->done();
 
-    //clena up
-    outputDepth.close();
-    outputMQ.close();
-    outputReadLen.close();
-    fragmentStats.close();
+    // 4) fragment length
+    filename = outputName + "_fragmentLengthHistogram.txt";
+    logfile->listFlush("Writing fragment length histogram to '" + filename + "' ...");
+    out.open(filename, {"mean", "variance"});
 
+
+    logfile->endIndent(); //end writing output files
+
+    //clean up
     for(int i = 0; i < numReadGroups; ++i){
     	delete[] mappingQuality[i];
     	delete[] readLength[i];

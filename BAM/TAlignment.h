@@ -100,10 +100,11 @@ public:
 	uint32_t position() const{ return _position; };
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
-	bool isAlignedAtInternalPos(uint32_t internalPosition);
-	uint32_t positionInRef(uint32_t internalPosition) const;
+	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
+	uint32_t positionInRef(const uint32_t internalPosition) const;
 	uint16_t parsedLength() const{ return _cigar.lengthSequenced(); };
 	int32_t insertSize() const{ return _insertSize_TLEN; };
+	TBase& base(const uint32_t internalPos){ return _bases[internalPos]; };
 	std::string sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 	std::string qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };

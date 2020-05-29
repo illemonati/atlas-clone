@@ -275,11 +275,11 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 //--------------------------------------
 //getters
 //--------------------------------------
-bool TAlignment::isAlignedAtInternalPos(uint32_t internalPosition){
+bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-uint32_t TAlignment::positionInRef(uint32_t internalPosition) const{
+uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
 	return _position + _alignedPosition[internalPosition];
 };
 

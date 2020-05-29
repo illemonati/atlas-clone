@@ -153,7 +153,71 @@ public:
 	};
 };
 
+//---------------------------------------------------------------
+//TQualityFilter
+//---------------------------------------------------------------
+class TQualityFilter{
+private:
+	uint8_t _minPhredInt, _maxPhredInt;
+	char _minQuality, _maxQuality;
 
+	void _default(){
+		_set(1,93);
+	};
+
+public:
+	TQualityFilter(){
+		_default();
+	};
+
+	TQualityFilter(TParameters & params, TLog* logfile){
+		set(params, logfile);
+	};
+
+	bool set(TParameters & params, TLog* logfile){
+		if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
+			int MinPhredInt = params.getParameterIntWithDefault("minQual", 1);
+			int MaxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
+
+			if(MinPhredInt < 0 || MinPhredInt > 255) throw "minQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
+			if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
+			if(MaxPhredInt < MinPhredInt) throw "maxQual must be >= minQual!";
+
+			_set(MinPhredInt, MaxPhredInt);
+			report(logfile);
+			return true;
+		} else {
+			_default();
+			return false;
+		}
+	};
+
+	void report(TLog* logfile){
+		logfile->list("Will filter out bases with quality outside the range [" + toString(_minPhredInt) + ", " + toString(_maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
+	};
+
+	void _set(const uint8_t MinPhredInt, const uint8_t MaxPhredInt){
+		_minPhredInt = MinPhredInt;
+		_maxPhredInt = MaxPhredInt;
+		_minQuality = _minPhredInt + 33;
+		_maxQuality = _maxPhredInt + 33;
+	};
+
+	uint8_t minPhredInt() const{ return _minPhredInt; };
+	uint8_t maxPhredInt() const{ return _maxPhredInt; };
+
+	bool pass(uint8_t phredInt) const{
+		if(phredInt < _minPhredInt || phredInt > _maxPhredInt)
+			return false;
+		return true;
+	};
+
+	bool pass(char quality) const{
+		if(quality < _minQuality || quality > _maxQuality)
+			return false;
+		return true;
+	};
+};
 
 
 

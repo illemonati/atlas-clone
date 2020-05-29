@@ -21,6 +21,7 @@
 #include <typeinfo>
 #include <map>
 #include <algorithm>
+#include "counters.h"
 
 #include "TRecalibration.h"
 #include "TAlignmentMerger.h"

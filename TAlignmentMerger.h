@@ -11,8 +11,6 @@
 #include "TReadList.h"
 #include "TBamFile.h"
 
-enum AlignmentMergerType : uint8_t {none=0, randomRead, randomBase, highestQuality};
-
 //-----------------------------------------
 // TAlignmentMergerEntry
 //-----------------------------------------
@@ -94,39 +92,56 @@ protected:
 
 public:
 	TMateFilter(BAM::TBamFile& BamFile, TParameters & params, TLog* Logfile);
+	virtual ~TMateFilter(){};
 	void traverseBAM(const std::string outputName);
 };
 
 //-----------------------------------------
 // TAlignmentMergerType
+// base class does not merge
 //-----------------------------------------
-class TAlignmentMergerType_none{
+class TAlignmentMergerType{
 protected:
-	uint16_t _numOverlap;
-	bool _adaptQuality;
-
-	virtual void _prepare();
-	bool TAlignmentMergerType_none::_mergeBases(TBase & bestBase, TBase & worstBase);
+	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){};
 
 public:
-	TAlignmentMergerType_none();
-	~TAlignmentMergerType_none(){};
+	TAlignmentMergerType(){};
+	virtual ~TAlignmentMergerType(){};
 
-	void merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap);
 };
 
-class TAlignmentMergerType_randomRead:public TAlignmentMergerType_none{
+class TAlignmentMergerType_randomBase:public TAlignmentMergerType{
 protected:
 	TRandomGenerator* _randomGenerator;
-	bool _keepMate;
+	bool _adaptQuality;
 
-	virtual void _prepare();
-	virtual bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
+	void _mergeBasesCore(TBase & bestBase, TBase & worstBase, const TQualityMap & qualMap);
+	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
 
 public:
-	TAlignmentMergerType_randomRead(TRandomGenerator* RandomGenerator);
-	~TAlignmentMergerType_randomRead(){};
-	virtual bool merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
+	TAlignmentMergerType_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	virtual ~TAlignmentMergerType_randomBase(){};
+};
+
+class TAlignmentMergerType_randomRead:public TAlignmentMergerType_randomBase{
+private:
+	bool _keepMate;
+
+	void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
+	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
+
+public:
+	TAlignmentMergerType_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap);
+};
+
+class TAlignmentMergerType_highestQuality:public TAlignmentMergerType_randomBase{
+private:
+	void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
+public:
+	TAlignmentMergerType_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 };
 
 //-----------------------------------------
@@ -134,27 +149,18 @@ public:
 //-----------------------------------------
 class TAlignmentMerger:public TMateFilter{
 protected:
-	TRandomGenerator* _randomGenerator;
-	AlignmentMergerType _type;
-
-	bool _adaptQuality;
+	std::unique_ptr<TAlignmentMergerType> _merger;
+	uint64_t _numReadsMerged;
+	uint64_t _numBasesMerged;
 
 	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
 	void _mergeBases(TBase & bestBase, TBase & worstBase);
 
 public:
 	TAlignmentMerger(BAM::TBamFile& BamFile, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	~TAlignmentMerger()
 
 	void mergeBAM(const std::string outputName);
-
-	void addToBeMerged(TAlignment & alignment, TRandomGenerator* randomGenerator);
-	void addToBeSplit(TAlignment & alignment, std::map<int, TReadGroupMaxLength>::iterator singleEndRGIT);
-	void checkForMateAndWriteUnmerged(TAlignment & alignment);
-	void addAsImproperPair(TAlignment & alignment);
-	void addReadyToBeWritten(TAlignment & alignment);
-	void writeUpTo(const int position);
-	void clear();
-
 };
 
 //-----------------------------------------

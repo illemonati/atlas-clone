@@ -132,6 +132,7 @@ public:
     uint16_t lengthDeleted() const{ return _lengthDeleted; };
     uint16_t lengthSoftClipped() const{ return lengthSoftClipped; };
     uint16_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
+    uint16_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClipped; };
 };
 
 

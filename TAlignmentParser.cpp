@@ -45,18 +45,8 @@ void TAlignmentParser::_setReadTrimming(TParameters & params){
 };
 
 void TAlignmentParser::_setQualityFilter(TParameters & params){
-	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
-		int MinPhredInt = params.getParameterIntWithDefault("minQual", 1);
-		int MaxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
-
-		if(MinPhredInt < 0 || MinPhredInt > 255) throw "minQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < MinPhredInt) throw "maxQual must be >= minQual!";
-
-		minQualityAsPhredInt = MinPhredInt;
-		maxQualityAsPhredInt = MaxPhredInt;
+	if(qualityFilter.set(params)){
 		applyQualityFilter = true;
-
 		logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
 	} else {
 		applyQualityFilter = false;

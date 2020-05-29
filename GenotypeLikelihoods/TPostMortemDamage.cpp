@@ -721,7 +721,7 @@ void TPostMortemDamage::initializeFromFile(BAM::TReadGroups & ReadGroups, const 
 			if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			if(ReadGroups.readGroupExists(vec[0])){ //ignore if it does not exist
 				//get read group and PMD type
-				readGroupId = ReadGroups.find(vec[0]);
+				readGroupId = ReadGroups.getId(vec[0]);
 				PMDType pmdType = getEnumPMDType(vec[1]);
 				//initialize functions
 				pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);

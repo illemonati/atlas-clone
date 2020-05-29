@@ -9,12 +9,11 @@
 #define TREADGROUPS_H_
 
 #include "stringFunctions.h"
-#include "../bamtools/api/BamReader.h"
-#include "../bamtools/api/SamSequenceDictionary.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include <vector>
 #include <algorithm>
+#include <set>
 
 namespace BAM{
 
@@ -37,13 +36,31 @@ public:
 };
 
 //---------------------------------------------------------------
-//TReadGroups
+//TReadGroup
 //---------------------------------------------------------------
-struct readGroup{
+class TReadGroup{
 public:
-	std::string name;
-	uint16_t id;
-	BamTools::SamReadGroup* object;
+	uint16_t id; 						//internal ID
+
+    std::string description;            // DS:<Description>
+    std::string flowOrder;              // FO:<FlowOrder>
+    std::string name;                   // ID:<ID>              *Required for valid SAM header*
+    std::string keySequence;            // KS:<KeySequence>
+    std::string library;                // LB:<Library>
+    std::string platformUnit;           // PU:<PlatformUnit>
+    std::string predictedInsertSize;    // PI:<PredictedInsertSize>
+    std::string productionDate;         // DT:<ProductionDate>
+    std::string program;                // PG:<Program>
+    std::string sample;                 // SM:<Sample>
+    std::string sequencingCenter;       // CN:<SequencingCenter>
+    std::string sequencingTechnology;   // PL:<SequencingTechnology>
+
+    TReadGroup(const uint16_t ID, const std::string Name);
+    TReadGroup(const TReadGroup & other);
+    bool operator<(const TReadGroup & right);
+    bool operator<(const std::string & left, const TReadGroup & right);
+    bool operator<(const TReadGroup & left, const std::string & right);
+
 };
 
 //---------------------------------------------------------------
@@ -51,29 +68,34 @@ public:
 //---------------------------------------------------------------
 class TReadGroups{
 private:
-	readGroup* _groups;
-	uint16_t _numGroups;
-	bool _initialized;
+	std::set<TReadGroup, std::less<>> _readGroups;
+	std::vector<bool> _inUse;
 	bool _limitReadGroups;
-	bool* _inUse;
+
 
 public:
 	TReadGroups();
-	~TReadGroups();
+	~TReadGroups(){};
 
-	void fill(BamTools::SamHeader & bamHeader);
-	uint16_t find(const std::string & name) const;
-	uint16_t find(BamTools::BamAlignment & alignment) const;
+	void clear();
+	TReadGroup& add(const std::string name);
+	TReadGroup& addTruncatedOrMergedRG(const std::string Name, const std::string original);
+	uint16_t size() const;
+
+	uint16_t getId(const std::string & name) const;
+	const std::string& getName (const uint16_t readGroupId) const;
+	TReadGroup& getReadGroup(const std::string & name);
 	bool readGroupExists(const std::string & name) const;
 	bool readGroupInUse(const uint16_t & readGroupId) const;
 	bool readGroupInUse(const std::string name) const;
-	bool readGroupInUse(BamTools::BamAlignment & alignment) const;
 
-	const std::string& getName (const uint16_t readGroupId) const;
-	uint16_t size() const;
+	//looping over
+	std::set<TReadGroup, std::less<>>::iterator begin(){ return _readGroups.begin(); };
+	std::set<TReadGroup, std::less<>>::iterator end(){ return _readGroups.end(); };
+
 	void filterReadGroups(std::string readGroupList);
 	void printReadgroupsInUse(TLog* logfile) const;
-	int addTruncatedOrMergedRG(BamTools::SamHeader & bamHeader, std::string oldReadGroupName, std::string newReadGroupName);
+	void fillVectorWithNames(std::vector<std::string> & vec) const;
 };
 
 //--------------------------------------------------------------------------------------

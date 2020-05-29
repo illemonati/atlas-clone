@@ -77,6 +77,7 @@ private:
 	void _limitReadGroups(TParameters & params, TLog* logfile);
 	void _setFilters(TParameters & params, TLog* logfile);
 	void _fillChromosomes(TChromosomes & chromosomes);
+	void _fillReadGroups(TReadGroups & readGroups);
  	void _applyFilters();
 
 	//output filtered reads
@@ -145,12 +146,18 @@ public:
 	const std::string curName() const{ return _curBamAlignment.Name; };
 	uint32_t curPosition() const{ return _curBamAlignment.Position; };
 	const TChromosome& curChromosome() const{ return chromosomes.curChromosome(); };
+	const TCigar& curCIGAR() const{ return _curCigar; };
 	uint16_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };
 	bool curPassedQC() const{ return _QCFiltersPassed; };
-	int curUsableLength(const int minQual, const int maxQual) const;
+	uint16_t curReadLength() const{ return _curCigar.lengthRead(); };
+	uint16_t curUsableSequence() const{ return _curCigar.lengthUsableSequence(); };
+	uint16_t curFragmentLength() const;
+	uint16_t curUsableAlignedLength(TQualityFilter & qualFilter) const;
+	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
 	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
+	bool curIsReverseStrand() const{ return _curBamAlignment.IsReverseStrand(); };
 
 	//other getters
 	std::string filename() const{ return _filename; };
