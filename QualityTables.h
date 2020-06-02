@@ -65,45 +65,5 @@ public:
 	void write(const std::string & filename);
 };
 
-//---------------------------------------------------------------
-//TQualityTransformTable
-//---------------------------------------------------------------
-class TQualityTransformTable{
-public:
-	int maxPhredInt;
-	int maxPhredIntPlusOne;
-	double** table; //old phredInt / new phredInt
-	bool initialized;
-
-	TQualityTransformTable(int maxPhredIntInTable);
-	TQualityTransformTable();
-
-	~TQualityTransformTable();
-
-	void initialize(int maxPhredIntInTable);
-	void add(const int oldPhredInt, const int newPhredInt);
-	double size();
-	double writeTableAndReturnRSquared(const std::string filename);
-};
-
-//---------------------------------------------------------------
-//TQualityTransformTables
-//---------------------------------------------------------------
-class TQualityTransformTables{
-private:
-	TReadGroups* readGroups;
-	TQualityTransformTable* perReadGroupTables;
-	TQualityTransformTable combinedTable;
-
-public:
-	TQualityTransformTables(TReadGroups & ReadGroups, int MaxQ);
-
-	~TQualityTransformTables(){
-		delete[] perReadGroupTables;
-	};
-
-	void add(const int readGroup, const int oldQuality, const int newQuality);
-	void writeTables(std::string outputName, TLog* logfile);
-};
 
 #endif /* QUALITYTABLES_H_ */
