@@ -133,8 +133,8 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	double _calcEpsilon(const double eta);
-	inline double _calcQ(const double & eps, const Base & genotype, TRecalibrationEMReadData & data){
+	double _calcEpsilon(const double eta) const;
+	inline double _calcQ(const double & eps, const Base & genotype, TRecalibrationEMReadData & data) const{
 		double B = 1.33333333333333333333 * data.D[genotype] - 1.0;
 		double P_d_given_g_beta = B * eps - data.D[genotype] + 1.0;
 		return log(P_d_given_g_beta);
@@ -165,9 +165,8 @@ public:
 	void fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods);
 	TSequencingErrorCovariateDefinition getCovariateDefinition();
 
-	//REMOVE!
 	double getErrorRate(const TBase & base);
-	double getErrorRate(const TRecalibrationEMReadData & data);
+	double getErrorRate(const TRecalibrationEMReadData & data); //REMOVE!
 };
 
 

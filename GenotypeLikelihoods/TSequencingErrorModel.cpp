@@ -281,7 +281,7 @@ void TSequencingErrorModel::_initializeDerivatives(){
 	_secondDerivatives.resize(numNonZeroSecondDeriv);
 };
 
-double TSequencingErrorModel::_calcEpsilon(const double eta){
+double TSequencingErrorModel::_calcEpsilon(const double eta) const{
 	if(eta > 23.03){
 		return 0.9999999999;
 	}
@@ -292,7 +292,7 @@ double TSequencingErrorModel::_calcEpsilon(const double eta){
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TSequencingErrorModel::getErrorRate(const TBaseData & base){
+double TSequencingErrorModel::getErrorRate(const TBase & base){
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 

@@ -45,7 +45,7 @@ void TSequencingErrorCovariateFunction::_initializValues(std::vector<std::string
 	}
 };
 
-double TSequencingErrorCovariateFunction::_getAsDouble(const uint16_t val){
+double TSequencingErrorCovariateFunction::_getAsDouble(const uint16_t val) const{
 	if(doTransformation){
 		return transformationMap->get(val);
 	} else {
@@ -145,7 +145,7 @@ void TSequencingErrorCovariateFunction_intercept::addToIntercept(const double va
 	_betas[0] += val;
 };
 
-double TSequencingErrorCovariateFunction_intercept::getIntercept(){
+double TSequencingErrorCovariateFunction_intercept::getIntercept() const{
 	return _betas[0];
 };
 
@@ -351,7 +351,7 @@ void TSequencingErrorCovariateFunction_specific::_init(const uint16_t MaxValue){
 	_initializeBetas();
 };
 
-void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	first.add(_firstParameterIndex + val, 1.0);
 };
 

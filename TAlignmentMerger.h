@@ -9,10 +9,55 @@
 #define TALIGNMENTMERGER_H_
 
 #include "TReadList.h"
-#include "TBamFile.h"
+#include "TGenome.h"
+
+namespace AlignmentSplitMerge{
+
 
 //-----------------------------------------
-// TAlignmentMergerEntry
+// TAlignmentMergerReadGroupSettings
+//-----------------------------------------
+enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
+
+struct TAlignmentMergerReadGroupSetting{
+	uint16_t readGroupId;
+	uint16_t altReadGroupId;
+	ReadGroupType type;
+	uint16_t maxCycles;
+
+	TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles){
+		readGroupId = ReadGroupId;
+		altReadGroupId = readGroupId;
+		type = Type;
+		maxCycles = MaxCycles;
+	};
+
+	bool operator<(const TAlignmentMergerReadGroupSetting & left, const TAlignmentMergerReadGroupSetting & right){ return left.readGroupId < right.readGroupId; };
+	bool operator<(const TAlignmentMergerReadGroupSetting & left, const uint16_t & right){ return left.readGroupId < right; };
+	bool operator<(const uint16_t & left, const TAlignmentMergerReadGroupSetting & right){ return left < right.readGroupId; };
+
+};
+
+class TAlignmentMergerReadGroupSettings{
+private:
+	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
+
+	void _printSummary(TLog* logfile);
+
+public:
+	TAlignmentMergerReadGroupSettings(){};
+
+	void initialize(TParameters & Params, TLog* logfile, BAM::TReadGroups & readGroups);
+	void setAllAsUnchanged(BAM::TReadGroups & readGroups);
+	bool needTruncation() const;
+	bool needsMerging() const;
+	ReadGroupType getType(const uint16_t readGroupId) const;
+	uint16_t getMaxCycles(const uint16_t readGroupId) const;
+	const TAlignmentMergerReadGroupSetting& getSettings(const uint16_t readGroupId) const;
+};
+
+//-----------------------------------------
+// TAlignmentStorage
 //-----------------------------------------
 class TAlignmentMergerEntry{
 private:
@@ -21,97 +66,79 @@ public:
 	BAM::TAlignment* alignment;
 	bool ready;
 
-	TAlignmentMergerEntry(BAM::TAlignment* Alignment, bool readyForWriting){
-		alignment = Alignment;
-		ready = readyForWriting;
-	};
-
-	TAlignmentMergerEntry(TAlignmentMergerEntry && other){
-		//copy from other
-		alignment = other.alignment;
-		ready = other.ready;
-
-		//set other to default
-		other.alignment = nullptr;
-		other.ready = false;
-	};
-
-	TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other){
-		if(this != &other){
-			//free object
-			delete alignment;
-
-			//copy from other
-			alignment = other.alignment;
-			ready = other.ready;
-
-			//set other to default
-			other.alignment = nullptr;
-			other.ready = false;
-		}
-
-		return *this;
-	};
-
-	~TAlignmentMergerEntry(){
-		delete alignment;
-	};
-
-	void setAsNonProperPair(){
-		alignment->setIsProperPair(false);
-		ready = true;
-	};
+	TAlignmentMergerEntry(BAM::TAlignment* Alignment, bool readyForWriting);
+	TAlignmentMergerEntry(TAlignmentMergerEntry && other);
+	TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other);
+	~TAlignmentMergerEntry();
+	void setAsNonProperPair();
 };
 
-typedef std::vector< TAlignmentMergerEntry > TAlignmentStorage;
 typedef std::vector< TAlignmentMergerEntry >::iterator TAlignmentInStorage;
 
+class TAlignmentStorage{
+private:
+	std::vector< TAlignmentMergerEntry > _storage;
+
+public:
+	TAlignmentStorage(){};
+	~TAlignmentStorage();
+
+	bool empty();
+	TAlignmentInStorage& begin();
+	TAlignmentInStorage& end();
+	void emplace_back(BAM::TAlignment* alignment, const bool ready);
+	TAlignmentInStorage& find(const std::string & name);
+	TAlignmentInStorage& erase(TAlignmentInStorage it);
+	void clear();
+};
+
+
+
 //-----------------------------------------
-// TMateFinder
+// TBamFilter
 //-----------------------------------------
-class TMateFilter{
+class TBamFilter:public TGenome_filtered{
 protected:
-	BAM::TBamFile& _bamFile;
-	BAM::TAlignmentBlacklist _blacklist; //used to keep track of filtered out mates
+	TAlignmentMergerReadGroupSettings _rgSettings;
+	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
 	TAlignmentStorage _alignmentStorage;
 
-	TGenotypeMap genoMap;
-	TQualityMap qualMap;
+	BAM::TOutputBamFile _outBam;
 
-	TLog* logfile;
 	uint32_t _maxDistanceBetweenMates;
 	bool _keepOrphans;
 
-	TAlignmentInStorage _findMate(const std::string & name);
+	virtual void _openBamFileForWriting();
 	void _writeAlignment(TAlignmentInStorage & it);
 	void _writeOrFilterAsOrphan(TAlignmentInStorage & it);
 	void _writeAll();
 	void _writeUpTo(const int position);
 
 	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
+	virtual void _handleSingle(BAM::TAlignment* alignment);
 
 public:
-	TMateFilter(BAM::TBamFile& BamFile, TParameters & params, TLog* Logfile);
-	virtual ~TMateFilter(){};
-	void traverseBAM(const std::string outputName);
+	TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	virtual ~TBamFilter(){};
+	virtual void traverseBAM();
 };
 
 //-----------------------------------------
 // TAlignmentMergerType
 // base class does not merge
 //-----------------------------------------
-class TAlignmentMergerType{
+class TAlignmentMerger{
 protected:
 	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){};
 
 public:
-	TAlignmentMergerType(){};
-	virtual ~TAlignmentMergerType(){};
+	TAlignmentMerger(){};
+	virtual ~TAlignmentMerger(){};
 
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap);
+	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap);
 };
 
-class TAlignmentMergerType_randomBase:public TAlignmentMergerType{
+class TAlignmentMerger_randomBase:public TAlignmentMerger{
 protected:
 	TRandomGenerator* _randomGenerator;
 	bool _adaptQuality;
@@ -120,11 +147,11 @@ protected:
 	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
 
 public:
-	TAlignmentMergerType_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
-	virtual ~TAlignmentMergerType_randomBase(){};
+	TAlignmentMerger_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	virtual ~TAlignmentMerger_randomBase(){};
 };
 
-class TAlignmentMergerType_randomRead:public TAlignmentMergerType_randomBase{
+class TAlignmentMerger_randomRead:public TAlignmentMerger_randomBase{
 private:
 	bool _keepMate;
 
@@ -132,49 +159,54 @@ private:
 	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
 
 public:
-	TAlignmentMergerType_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap);
 };
 
-class TAlignmentMergerType_highestQuality:public TAlignmentMergerType_randomBase{
+class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
 private:
 	void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
 public:
-	TAlignmentMergerType_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
-};
-
-//-----------------------------------------
-// TAlignmentMerger
-//-----------------------------------------
-class TAlignmentMerger:public TMateFilter{
-protected:
-	std::unique_ptr<TAlignmentMergerType> _merger;
-	uint64_t _numReadsMerged;
-	uint64_t _numBasesMerged;
-
-	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
-	void _mergeBases(TBase & bestBase, TBase & worstBase);
-
-public:
-	TAlignmentMerger(BAM::TBamFile& BamFile, TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	~TAlignmentMerger()
-
-	void mergeBAM(const std::string outputName);
+	TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 };
 
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-class TAlignmentSplitMerger:public TAlignmentMerger{
+class TAlignmentSplitMerger:public TBamFilter{
 private:
-
+	std::unique_ptr<TAlignmentMerger> _merger;
+	uint64_t _numReadsMerged;
+	uint64_t _numBasesMerged;
+	uint8_t _considerAtMaxUpToDist;
 	bool _allowForLarger;
 
-public:
+	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
 
+	void _initializeMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void _openBamFileForWriting();
+	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
+	void _handleSingle(BAM::TAlignment* alignment);
+
+public:
+	TAlignmentSplitMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 };
 
+//-----------------------------------------
+// TOverlapQuantifier
+//-----------------------------------------
+class TOverlapQuantifier:public TGenome_filtered{
+private:
+	TAlignmentMerger _merger;
+	TAlignmentStorage _alignmentStorage;
+
+public:
+	TOverlapQuantifier(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void quantifyOverlap();
+};
+
+}; //end namespace
 
 #endif /* TALIGNMENTMERGER_H_ */

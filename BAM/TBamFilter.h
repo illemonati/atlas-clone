@@ -66,13 +66,13 @@ public:
 //-----------------------------------------------------
 //TAlignmentBlacklist
 //-----------------------------------------------------
-class TAlignmentBlacklist{
+class TAlignmentList{
 private:
-	std::set<std::string> _blacklist;
+	std::set<std::string> _list;
 
 public:
-	TAlignmentBlacklist(){};
-	TAlignmentBlacklist(const std::string filename);
+	TAlignmentList(){};
+	TAlignmentList(const std::string filename);
 	void addFromFile(const std::string filename);
 	void add(const std::string & alignment);
 	void remove(const std::string & alignment);

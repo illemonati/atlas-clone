@@ -29,17 +29,17 @@ namespace GenotypeLikelihoods{
 class TSequencingErrorModels{
 private:
 	TLog* logfile;
-	TReadGroups* readGroups;
+	BAM::TReadGroups* readGroups;
 	TSequencingErrorRho defaultRho;
 
 	//models
 	bool doRecalibration;
-	TReadGroupMap* readGroupMap;
+	BAM::TReadGroupMap* readGroupMap;
 	std::vector<TSequencingErrorModel> models;
 	TRecalibrationEMReadGroupIndex readGroupIndex;
 	unsigned int totNumParameters;
 
-	void _init(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile);
+	void _init(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 
 	void _readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs);
 
@@ -55,11 +55,11 @@ public:
 	TSequencingErrorModels();
 
 	//add model for recalibration: no dataTable provided
-	void createModels(std::string string, TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile);
-	void createEmptyModels(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile);
+	void createModels(std::string string, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
+	void createEmptyModels(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 
 	//add models for estimation: dataTable provided
-	void prepareModelsForEstimation(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile);
+	void prepareModelsForEstimation(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
 	void addModelsFromFile(std::string filename, TRecalibrationEMDataTables* dataTables);
 	void removeModel(int readGroupId, bool isSecondMate);
@@ -76,13 +76,13 @@ public:
 
 	//calculate error rates
 	//TODO: deal with fact that there migth be no models. Only return qualities or initialize models?
-	double getErrorRate(const TRecalibrationEMReadData & data) const;
-	double getErrorRate(const TBase & base) const;
-	uint8_t getPhredInt(const TBase & base) const;
-	void recalibrate(TBase & base) const;
-	void recalibrate(TBase* bases, const uint16_t  length) const; //TODO: remove
-	void recalibrate(std::vector<TBase> bases) const;
-	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
+	double getErrorRate(const TRecalibrationEMReadData & data);
+	double getErrorRate(const TBase & base);
+	uint8_t getPhredInt(const TBase & base);
+	void recalibrate(TBase & base);
+	void recalibrate(TBase* bases, const uint16_t  length); //TODO: remove
+	void recalibrate(std::vector<TBase> bases);
+	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods);
 
 	//function to estimate
 	void setEMParamsToZero();

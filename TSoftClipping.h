@@ -8,80 +8,49 @@
 #ifndef TSOFTCLIPPING_H_
 #define TSOFTCLIPPING_H_
 
-#include "bamtools/api/BamAlignment.h"
-#include "TFile.h"
+#include "TGenome.h"
 
-//--------------------------------------------------------
-// TSoftClippingData
-//--------------------------------------------------------
-class TSoftClippingData{
-public:
-	bool hasSoftClipping;
-	int alignmentLength;
-	int softClippingLength, softClippingLength_left, softClippingLength_right;
-	int middleLength; //Everything in between softclipped bases
-	std::string softClippingBases_left, softClippingBases_right;
-	std::string middleBases, middleQualities;
-
-	TSoftClippingData(){
-		empty();
-	};
-
-	void empty();
-	void assessSoftClipping(BamTools::BamAlignment bamAlignment);
-};
+//TODO: does using "left" and "right" make sense? Should we not rather use 3' and 5' ends?
 
 //--------------------------------------------------------
 // TSoftClippingStatsFile
 //--------------------------------------------------------
 class TSoftClippingStatsFile{
 private:
-	TOutputFileZipped out;
-	bool printSoftClippedSequences;
-
+	TOutputFile _out;
+	bool _printSequences;
 
 public:
-	TSoftClippingStatsFile(const std::string outputName, bool PrintSoftClippedSequences);
-	void write(const std::string & readName, const int & position, TSoftClippingData & data);
+	TSoftClippingStatsFile(){ _printSequences = false; };
+	TSoftClippingStatsFile(const std::string filename, const bool PrintSequences);
+	void open(const std::string filename, const bool PrintSequences);
+	void write(const BAM::TBamFile & bamFile);
 };
 
 //--------------------------------------------------------
-// TSoftClippingMatrixStorage
+// TAssessSoftClipping
 //--------------------------------------------------------
-class TSoftClippingMatrixStorage{
+class TAssessSoftClipping:public TGenome_filtered{
 private:
-	int** _counts; // [readLength][softClippedLength]
-	bool _allocated;
-	int _maxReadLength;
+	bool _writeAlignments;
+	bool _printAll;
+
+	TSoftClippingStatsFile statFile;
 
 public:
-	TSoftClippingMatrixStorage();
-	TSoftClippingMatrixStorage(int MaxReadLength);
-	~TSoftClippingMatrixStorage(){ clear(); };
-	void allocate(int MaxReadLength);
-	void clear();
-	void empty();
-	void add(int readLength, int softClippedLength);
-	long size();
-	void write(std::string filename);
+	TAssessSoftClipping(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void assess();
 };
 
 //--------------------------------------------------------
-// TSoftClippingMatrix
-// Counts read length and soft clipping length
+// TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TSoftClippingMatrix{
-private:
-	TSoftClippingMatrixStorage _left, _right, _total;
-
+class TRemoveSoftClippedBases:public TGenome_filtered{
 public:
-	TSoftClippingMatrix(int MaxReadLength);
-	~TSoftClippingMatrix(){};
-
-	void clear();
-	void add(const TSoftClippingData & data);
-	void write(const std::string & outputName);
+	TRemoveSoftClippedBases(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void removeSoftclippedBases();
 };
+
 
 
 #endif /* TSOFTCLIPPING_H_ */

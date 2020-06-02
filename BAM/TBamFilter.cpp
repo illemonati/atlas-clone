@@ -101,11 +101,11 @@ bool TBamFileFilterRange::pass(const uint32_t value, const std::string & alignme
 //-----------------------------------------------------
 //TAlignmentBlacklist
 //-----------------------------------------------------
-TAlignmentBlacklist::TAlignmentBlacklist(const std::string filename){
+TAlignmentList::TAlignmentList(const std::string filename){
 	addFromFile(filename);
 };
 
-void TAlignmentBlacklist::addFromFile(const std::string filename){
+void TAlignmentList::addFromFile(const std::string filename){
 	TInputFile in(filename, false);
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -113,20 +113,20 @@ void TAlignmentBlacklist::addFromFile(const std::string filename){
 	}
 };
 
-void TAlignmentBlacklist::add(const std::string & alignment){
-	_blacklist.insert(alignment);
+void TAlignmentList::add(const std::string & alignment){
+	_list.insert(alignment);
 };
 
-void TAlignmentBlacklist::remove(const std::string & alignment){
-	_blacklist.erase(alignment);
+void TAlignmentList::remove(const std::string & alignment){
+	_list.erase(alignment);
 };
 
-void TAlignmentBlacklist::clear(){
-	_blacklist.clear();
+void TAlignmentList::clear(){
+	_list.clear();
 };
 
-bool TAlignmentBlacklist::isInBlacklist(const std::string & alignment){
-	return _blacklist.find(alignment) != _blacklist.end();
+bool TAlignmentList::isInBlacklist(const std::string & alignment){
+	return _list.find(alignment) != _list.end();
 };
 
 

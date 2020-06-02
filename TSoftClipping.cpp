@@ -8,211 +8,171 @@
 #include "TSoftClipping.h"
 
 //------------------------------------------
-// TSoftClippingData
-//------------------------------------------
-void TSoftClippingData::empty(){
-	hasSoftClipping = false;
-	alignmentLength = 0;
-	softClippingLength_left = 0;
-	softClippingLength_right = 0;
-	middleLength = 0;
-	softClippingBases_left.clear();
-	softClippingBases_right.clear();
-	middleBases.clear();
-	middleQualities.clear();
-};
-
-void TSoftClippingData::assessSoftClipping(BamTools::BamAlignment bamAlignment){
-	//count S, not S, S pattern from cigar string
-	empty();
-	bool reachedMiddle = false;
-
-	std::vector<BamTools::CigarOp>::const_iterator cigarIter = bamAlignment.CigarData.begin();
-	std::vector<BamTools::CigarOp>::const_iterator cigarEnd  = bamAlignment.CigarData.end();
-
-	//position in read, i is position in cigar type
-	int p = 0;
-
-	for(; cigarIter != cigarEnd; ++cigarIter ){
-		if(cigarIter->Type == 'D')
-			continue;
-		if(cigarIter->Type == 'S'){
-			if(reachedMiddle){
-				softClippingLength_right += cigarIter->Length;
-				softClippingBases_right.append(bamAlignment.QueryBases, p, cigarIter->Length);
-			} else {
-				softClippingLength_left += cigarIter->Length;
-				softClippingBases_left.append(bamAlignment.QueryBases, p, cigarIter->Length);
-
-			}
-		} else {
-			reachedMiddle = true;
-			middleLength += cigarIter->Length;
-			middleBases.append(bamAlignment.QueryBases, p, cigarIter->Length);
-			middleQualities.append(bamAlignment.Qualities, p, cigarIter->Length);
-		}
-		p += cigarIter->Length;
-	}
-
-	//set other things
-	alignmentLength = bamAlignment.QueryBases.length();
-	softClippingLength = softClippingLength_left + softClippingLength_right;
-	if(softClippingLength_left + softClippingLength_right > 0)
-		hasSoftClipping = true;
-
-
-	//std::cout << "alignment '" << bamAlignment.Name << "':";
-	//std::cout << "Softclipping (" << hasSoftClipping << ") length = " << softClippingLength << " = " << softClippingLength_left << " + " << softClippingLength_right << std::endl;
-};
-
-//------------------------------------------
 // TSoftClippingStatsFile
 //------------------------------------------
-TSoftClippingStatsFile::TSoftClippingStatsFile(const std::string outputName, bool PrintSoftClippedSequences){
-	printSoftClippedSequences = PrintSoftClippedSequences;
+TSoftClippingStatsFile::TSoftClippingStatsFile(const std::string filename, const bool PrintSequences){
+	open(filename, PrintSequences);
+};
+
+void TSoftClippingStatsFile::open(const std::string filename, const bool PrintSequences){
+	_printSequences = PrintSequences;
 
 	//open output file
-	out.open(outputName + "_softClippingStats.txt.gz");
+	_out.open(filename);
 
 	//write header
 	std::vector<std::string> header = {"Read", "position", "nClippedLeft", "nNotClipped", "nClippedRight"};
-	if(printSoftClippedSequences){
+	if(_printSequences){
+		header.push_back("sClippedLeft");
 		header.push_back("sNotClipped");
 		header.push_back("sClippedRight");
 	}
 
-	out.writeHeader(header);
+	_out.writeHeader(header);
 };
 
-void TSoftClippingStatsFile::write(const std::string & readName, const int & position, TSoftClippingData & data){
-	out << readName << position << data.softClippingLength_left << data.middleLength << data.softClippingLength_right;
-	if(printSoftClippedSequences)
-		out << data.softClippingBases_left << data.softClippingBases_right;
-	out << std::endl;
-};
+void TSoftClippingStatsFile::write(const BAM::TBamFile & bamFile){
+	_out << bamFile.curName() << bamFile.curPosition();
+	const BAM::TCigar& cigar = bamFile.curCIGAR();
 
+	_out << cigar.lengthSoftClippedLeft() << cigar.lengthSequenced() << cigar.lengthSoftClippedRight();
+	if(_printSequences){
+		//left
+		if(cigar.lengthSoftClippedLeft() > 0){
+			_out << bamFile.curQuerySequence(0, cigar.lengthSoftClippedLeft());
+		} else {
+			_out << "";
+		}
+
+		//middle
+		_out << bamFile.curQuerySequence(cigar.lengthSoftClippedLeft(), cigar.lengthSequenced());
+
+		//right
+		if(cigar.lengthSoftClippedRight() > 0){
+			_out << bamFile.curQuerySequence(cigar.lengthSoftClippedLeft() + cigar.lengthSequenced(), cigar.lengthSoftClippedRight());
+		} else {
+			_out << "";
+		}
+	}
+	_out << std::endl;
+};
 
 //--------------------------------------------------------
-// TSoftClippingMatrixStorage
+// TAssessSoftClipping
 //--------------------------------------------------------
-TSoftClippingMatrixStorage::TSoftClippingMatrixStorage(){
-	_allocated = false;
-	_maxReadLength = 0;
-	_counts = NULL;
-};
+TAssessSoftClipping::TAssessSoftClipping(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){
+	//limit input / output
+	if(Params.parameterExists("writeReads")){
+		_writeAlignments = true;
+		std::string filename = _outputName + "_softClippingStats.txt.gz";
+		_logfile->list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
-TSoftClippingMatrixStorage::TSoftClippingMatrixStorage(int MaxReadLength){
-	_allocated = false;
-	allocate(MaxReadLength);
-};
-
-void TSoftClippingMatrixStorage::allocate(int MaxReadLength){
-	_maxReadLength = MaxReadLength;
-	if(_allocated) clear();
-	_counts = new int*[_maxReadLength];
-	for(int i=0; i<_maxReadLength; ++i){
-		_counts[i] = new int[i+1];
-	}
-	_allocated = true;
-
-	empty();
-};
-
-void TSoftClippingMatrixStorage::clear(){
-	for(int i=0; i<_maxReadLength; ++i){
-		delete[] _counts[i];
-	}
-	delete[] _counts;
-	_allocated = false;
-};
-
-void TSoftClippingMatrixStorage::empty(){
-	for(int i=0; i<_maxReadLength; ++i){
-		for(int j=0; j<(i+1); ++j){
-			_counts[i][j]=0;
+		//write all reads?
+		if(Params.parameterExists("printAll")){
+			_printAll = true;
+			_logfile->list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
+		} else {
+			_logfile->list("Writing soft clipping stats of soft clipped reads to file. (use 'printAll' to write for all reads)");
 		}
-	}
-};
 
-void TSoftClippingMatrixStorage::add(int readLength, int softClippedLength){
-	++_counts[readLength][softClippedLength];
-};
-
-long TSoftClippingMatrixStorage::size(){
-	long sum = 0;
-	for(int i=0; i<_maxReadLength; ++i){
-		for(int j=0; j<(i+1); ++j){
-			sum += _counts[i][j];
+		bool printSequences = false;
+		if(Params.parameterExists("printSequences")){
+			printSequences = true;
+			_logfile->list("Writing soft clipped bases to file. (parameter 'printSequences')");
+		} else {
+			_logfile->list("Writing only counts of soft clipped bases to file. (use 'printSequences' to also print sequences)");
 		}
+
+		//open file
+		statFile.open(filename, printSequences);
 	}
-	return sum;
 };
 
-void TSoftClippingMatrixStorage::write(std::string filename){
-	//find longest readlength with counts
-	int maxLengthForWriting = 0;
-	for(int i=0; i<_maxReadLength; ++i){
-		for(int j=0; j<(i+1); ++j){
-			if(_counts[i][j] > 0 && i > maxLengthForWriting)
-				maxLengthForWriting = i;
+void TAssessSoftClipping::assess(){
+	//prepare counters
+	TCountDistributionVector left, right, total;
+
+	//now parse through bam file and write alignments
+	_bamFile.startProgressReporting();
+	while(_bamFile.readNextAlignmentThatPassesFilters()){
+		//add to counters
+		const BAM::TCigar& cigar = _bamFile.curCIGAR();
+		left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
+		right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
+		total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft()+cigar.lengthSoftClippedRight());
+
+		//write to file
+		if(cigar.lengthSoftClipped() > 0 || _printAll){
+			statFile.write(_bamFile);
 		}
-	}
-	++maxLengthForWriting;
 
-	//open table file
-	TOutputFilePlain out(filename);
-
-	//write header
-	std::vector<std::string> header = {"readLength"};
-	for(int i=0; i <= maxLengthForWriting; ++i){
-		header.push_back("softClippedLength_" + toString(i));
+		//report progress
+		_bamFile.printProgress();
 	}
-	out.writeHeader(header);
+
+	//report summary of BAM
+	_bamFile.printEndWithSummary();
 
 	//write counts
-	for(int i=1; i < maxLengthForWriting; ++i){
-		out << i;
+	_logfile->startIndent("Writing soft clipping distributions:");
+	std::string filename = _outputName + "_softClippingMatrixLeft.txt";
+	_logfile->listFlush("Writing distribution of soft clipping on left to file '" + filename + "' ...");
+	left.write(filename, "readLength", "sofftclippedLengthLeft");
+	_logfile->done();
 
-		for(int j=0; j<(i+1); ++j){
-			out << _counts[i][j];
+	filename = _outputName + "_softClippingMatrixRight.txt";
+	_logfile->listFlush("Writing distribution of soft clipping on right to file '" + filename + "' ...");
+	left.write(filename, "readLength", "sofftclippedLengthRight");
+	_logfile->done();
+
+	filename = _outputName + "_softClippingMatrixBoth.txt";
+	_logfile->listFlush("Writing distribution of soft clipping on both combined to file '" + filename + "' ...");
+	left.write(filename, "readLength", "sofftclippedLengthBoth");
+	_logfile->done();
+	_logfile->endIndent();
+};
+
+//--------------------------------------------------------
+// TRemoveSoftClippedBases
+//--------------------------------------------------------
+TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){
+
+};
+
+void TRemoveSoftClippedBases::removeSoftclippedBases(){
+	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
+	_logfile->list("Writing reads after soft-clip trimming to file '" + filename + "'.");
+	BAM::TOutputBamFile out(filename, _bamFile);
+
+	//other temp variables
+	BAM::TAlignment alignment;
+
+	//now parse through bam file and write alignments
+	_bamFile.startProgressReporting();
+	while(_bamFile.readNextAlignmentThatPassesFilters()){
+		if(_bamFile.curCIGAR().lengthSoftClipped() > 0){
+			//parse alignment
+			_bamFile.fill(alignment);
+
+			//remove softclipped reads
+			alignment.removeSoftClippedBases();
+
+			//write
+			out.writeAlignment(alignment, _genoMap, _qualMap);
+		} else {
+			_bamFile.writeCurAlignment(out);
 		}
 
-		for(int j=i+1; j <= maxLengthForWriting; ++j){
-			out << "0";
-		}
-
-		out << std::endl;
+		//report progress
+		_bamFile.printProgress();
 	}
+
+	//report summary
+	_bamFile.printEndWithSummary();
+
+	//close bam writer
+	out.close(_logfile);
 };
 
-//--------------------------------------------------------
-// TSoftClippingMatrix
-// Counts read length and soft clipping length
-//--------------------------------------------------------
-TSoftClippingMatrix::TSoftClippingMatrix(int MaxReadLength){
-	//allocate matrices
-	_left.allocate(MaxReadLength);
-	_right.allocate(MaxReadLength);
-	_total.allocate(MaxReadLength);
-};
-
-void TSoftClippingMatrix::clear(){
-	_left.clear();
-	_right.clear();
-	_total.clear();
-};
-
-
-void TSoftClippingMatrix::add(const TSoftClippingData & data){
-	_left.add(data.alignmentLength, data.softClippingLength_left);
-	_right.add(data.alignmentLength, data.softClippingLength_right);
-	_total.add(data.alignmentLength, data.softClippingLength);
-};
-
-void TSoftClippingMatrix::write(const std::string & outputName){
-	_left.write(outputName + "_softClippingMatrixLeft.txt");
-	_right.write(outputName + "_softClippingMatrixRight.txt");
-	_total.write(outputName + "_softClippingMatrixTotal.txt");
-};
 
 

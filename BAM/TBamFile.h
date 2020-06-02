@@ -18,18 +18,20 @@
 
 namespace BAM{
 
-//TODO: think about splitting into a reader and writer
+class TOutputBamFile;
 
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
 class TBamFile{
+	friend class TOutputBamFile;
 private:
 	//BAM file
 	std::string _filename;
 	BamTools::BamReader _bamReader;
 	BamTools::BamRegion _bamRegion;
  	BamTools::SamHeader _bamHeader;
+ 	bool _open;
  	int64_t _fileSize;
 
  	//counters
@@ -46,14 +48,10 @@ private:
  	int _previousAlignmentChr; //negative at beginning to trigger chr change on first read
  	bool _chrChanged;
 
- 	//writing
- 	BamTools::BamWriter bamWriter;
- 	bool _openForWriting;
-
 	//alignment filters
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
- 	TAlignmentBlacklist _blacklist;
+ 	TAlignmentList _blacklist;
  	bool _keepAll;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
@@ -73,9 +71,7 @@ private:
  	TBamFileFilterRange _fragmentLengthfilter;
  	TBamFileFilter _externalFilter;
 
-	void _limitChromosomes(TParameters & params, TLog* logfile);
-	void _limitReadGroups(TParameters & params, TLog* logfile);
-	void _setFilters(TParameters & params, TLog* logfile);
+	void setFilters(TParameters & params, TLog* logfile);
 	void _fillChromosomes(TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
  	void _applyFilters();
@@ -91,15 +87,18 @@ private:
 	uint64_t _lastProgressPrinted;
 
 	std::string _millionReadsRead(){ return to_string_with_precision((double) _numAlignmentRead / 1000000.0, 1); };
+	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
 public:
 	TChromosomes chromosomes;
 	TReadGroups readGroups;
 
 	TBamFile();
+	~TBamFile();
 
 	//filters
-	void setFiltersAndLimits(TParameters & params, TLog* logfile);
+	void setLimits(TParameters & params, TLog* logfile);
+	void setKeepAll();
 	void limitReadLength(const int MaxReadLength);
 	void curFilterOut();
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
@@ -127,7 +126,8 @@ public:
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
-	void open(const std::string filename, const bool indexNotRequired);
+	void open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile);
+	void close();
 	bool readNextAlignment(); //TODO: make private
 	bool readNextAlignmentThatPassesFilters(); //TODO: make private
 	bool readNextAlignment(TAlignment & alignment);
@@ -138,9 +138,7 @@ public:
 	void rewind();
 
 	//writing
-	void openOutput(std::string filename);
-	void writeCurAlignment();
-	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+	void writeCurAlignment(TOutputBamFile & out);
 
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
@@ -158,8 +156,13 @@ public:
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
 	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
 	bool curIsReverseStrand() const{ return _curBamAlignment.IsReverseStrand(); };
+	std::string curQuerySequence(const uint16_t start, const uint16_t length) const;
+
+	//modify cur alignment
+	void curSetNewReadGroup(const uint16_t id);
 
 	//other getters
+	bool isOpen(){ return _open; };
 	std::string filename() const{ return _filename; };
 	uint16_t maxReadLength(){ return _maxReadLength; };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
@@ -167,12 +170,36 @@ public:
 
 	//progress reporting
 	//TODO: try to make general and include in common utilities
-	void printSummaryNoEndIndent(TLog* Logfile);
-	void printSummary(TLog* Logfile);
-	void startProgressReporting(uint32_t Frequency, TLog* Logfile);
+	void printSummaryNoEndIndent();
+	void printSummary();
+	void startProgressReporting(uint32_t Frequency=1000000);
 	void printProgress();
 	void printEndWithSummary();
 	void printEndNoEndIndent();
+};
+
+//-----------------------------------------------------
+//TOutputBamFile
+//----------------------------------------------------
+class TOutputBamFile{
+	friend TBamFile;
+private:
+	TBamFile* _originalBAM;
+ 	std::string _outputFilename;
+ 	BamTools::BamWriter _bamWriter;
+ 	bool _openForWriting;
+
+ 	void _writeAlignment(BamTools::BamAlignment & alignment);
+
+public:
+ 	TOutputBamFile();
+ 	TOutputBamFile(const std::string filename, TBamFile & original);
+ 	~TOutputBamFile();
+
+	void open(const std::string filename, TBamFile & original);
+	void close(TLog* logfile);
+	void closeNoIndex();
+	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 };
 
 }; //end namespace

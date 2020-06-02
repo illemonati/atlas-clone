@@ -13,6 +13,7 @@ namespace BAM{
 //TBamFile
 //-----------------------------------------------------
 TBamFile::TBamFile(){
+	_open = false;
 	_maxReadLength = 200;
 	_fileSize = 0;
 	_numAlignmentRead = 0;
@@ -32,7 +33,7 @@ TBamFile::TBamFile(){
 	//set filters to default
 	_QCFiltersPassed = false;
 	_maxReadLength = 65536;
-	_keepAll = false;
+	_keepAll = true; //by default, keep all reads
 
 	//blacklist
 	_updateLog = false;
@@ -44,13 +45,18 @@ TBamFile::TBamFile(){
 	_lastProgressPrinted = 0;
 };
 
-void TBamFile::setFiltersAndLimits(TParameters & params, TLog* logfile){
-	_limitChromosomes(params, logfile);
-	_limitReadGroups(params, logfile);
-	_setFilters(params, logfile);
-};
+void TBamFile::setLimits(TParameters & params, TLog* logfile){
+	//number of reads
+	if(params.parameterExists("limitReads")){
+		_maxNumReadsToRead = params.getParameterInt("limitReads");
+		logfile->list("Will limit the analysis to the first " + toString(_maxNumReadsToRead) + " reads in the BAM file.");
+		_limitNumReads = true;
+	}
 
-void TBamFile::_limitReadGroups(TParameters & params, TLog* logfile){
+	//limit chromosomes?
+	chromosomes.limitAndSetPloidy(params, logfile);
+
+	//limit read groups
 	if(params.parameterExists("readGroup")){
 		readGroups.filterReadGroups(params.getParameterString("readGroup"));
 		logfile->startIndent("Will limit analysis to the following read groups:");
@@ -64,6 +70,7 @@ void TBamFile::_limitReadGroups(TParameters & params, TLog* logfile){
 
 void TBamFile::limitReadLength(const int MaxReadLength){
 	//set max read length, must be >=1 but smaller than 65536 (uint16_t)
+	//read length is used by windows
 	if(MaxReadLength < 1)
 		throw "Max read length must be at least 1 bp!";
 	if(MaxReadLength > 65536)
@@ -71,24 +78,17 @@ void TBamFile::limitReadLength(const int MaxReadLength){
 	_maxReadLength = MaxReadLength;
 };
 
-void TBamFile::_setFilters(TParameters & params, TLog* logfile){
+void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//max read length
 	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
 	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + ". (parameter 'maxReadLength')");
 	limitReadLength(MaxReadLength);
 
-	//number of reads
-	if(params.parameterExists("limitReads")){
-		_maxNumReadsToRead = params.getParameterInt("limitReads");
-		logfile->list("Will limit the analysis to the first " + toString(_maxNumReadsToRead) + " reads in the BAM file.");
-		_limitNumReads = true;
-	}
-
 	//alignment filters
 	logfile->startIndent("Will use the following filters on reads:");
 	if(params.parameterExists("keepAllReads")){
 		_keepAll = true;
-		logfile->list("Will keep all reads. (parameter 'keepDuplicates', overrules any other QC filter)");
+		logfile->list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter)");
 	} else {
 		_keepAll = false;
 		//duplicates
@@ -340,14 +340,17 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-void TBamFile::open(const std::string filename, const bool indexNotRequired){
+void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile){
+	_logfile = Logfile;
+
 	//open BAM file
-	if (!_bamReader.Open(filename))
+	if (!_bamReader.Open(Filename))
 		throw "Failed to open BAM file '" + filename + "'!";
 
 	//load index file
-	if(!_bamReader.LocateIndex() && !indexNotRequired)
+	if(!_bamReader.LocateIndex() && !IndexNotRequired)
 		throw "No index file found for BAM file '" + filename + "'!";
+	_open = true;
 
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
@@ -370,6 +373,13 @@ void TBamFile::open(const std::string filename, const bool indexNotRequired){
 	_bamReader.GetNextAlignment(bamAlignment);
 	_fileSize = _bamReader.tell();
 	_bamReader.Rewind();
+};
+
+void TBamFile::close(){
+	if(_open){
+		_bamReader.Close();
+		_open = false;
+	}
 };
 
 void TBamFile::_applyFilters(){
@@ -520,30 +530,32 @@ void TBamFile::rewind(){
 //--------------------------------------------------------
 // Functions for writing
 //--------------------------------------------------------
-void TBamFile::openOutput(std::string filename){
+void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::string filename){
 	//construct new header
 	BamTools::SamHeader newHeader(_bamHeader);
 
 	//make sure read groups are OK: copy from readGroup object
 	newHeader.ReadGroups.Clear();
 	for(auto it = readGroups.begin(); it!=readGroups.end(); ++it){
-		BamTools::SamReadGroup newRg(it->name);
+		if(it->writeToHeader){
+			BamTools::SamReadGroup newRg(it->name);
 
-		//copy rest
-		newRg.Description = it->description;
-		newRg.FlowOrder = it->flowOrder;
-		newRg.KeySequence = it->keySequence;
-		newRg.Library = it->library;
-		newRg.PlatformUnit = it->platformUnit;
-		newRg.PredictedInsertSize = it->predictedInsertSize;
-		newRg.ProductionDate = it->productionDate;
-		newRg.Program = it->program;
-		newRg.Sample = it->sample;
-		newRg.SequencingCenter = it->sequencingCenter;
-		newRg.SequencingTechnology = it->sequencingTechnology;
+			//copy rest
+			newRg.Description = it->description;
+			newRg.FlowOrder = it->flowOrder;
+			newRg.KeySequence = it->keySequence;
+			newRg.Library = it->library;
+			newRg.PlatformUnit = it->platformUnit;
+			newRg.PredictedInsertSize = it->predictedInsertSize;
+			newRg.ProductionDate = it->productionDate;
+			newRg.Program = it->program;
+			newRg.Sample = it->sample;
+			newRg.SequencingCenter = it->sequencingCenter;
+			newRg.SequencingTechnology = it->sequencingTechnology;
 
-		//add to header
-		newHeader.ReadGroups.Add(newRg);
+			//add to header
+			newHeader.ReadGroups.Add(newRg);
+		}
 	}
 
 	//extract references
@@ -552,20 +564,171 @@ void TBamFile::openOutput(std::string filename){
 	//open file for writing
 	if(!bamWriter.Open(filename, _bamHeader, references))
 		throw "Failed to open BAM file '" + filename + "'!";
+};
+
+void TBamFile::writeCurAlignment(TOutputBamFile & out){
+	out._writeAlignment(_curBamAlignment);
+};
+
+//--------------------------------------------------------
+// Getters and setters of cur alignment
+//--------------------------------------------------------
+uint16_t TBamFile::curFragmentLength() const{
+	if(_curBamAlignment.IsProperPair()){
+		return abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
+	} else {
+		return _curCigar.lengthSequenced();
+	}
+};
+
+uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
+	uint16_t counter = 0;
+	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
+		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass(_curBamAlignment.AlignedQualities.at(d))){
+			++counter;
+		}
+	}
+	return counter;
+};
+
+void TBamFile::curSetNewReadGroup(const uint16_t id){
+	if(id != _curReadGroupID){
+		_curBamAlignment.EditTag("RG", "Z", readGroups.getName(id));
+	}
+};
+
+std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t length) const{
+	return _curBamAlignment.QueryBases.substr(start, length);
+};
+
+//-----------------------------------------------------
+// Reporting
+//-----------------------------------------------------
+void TBamFile::printSummaryNoEndIndent(){
+	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
+	_logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
+	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
+	_logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentRead - _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
+
+	_duplicateFilter.summary(_logfile);
+	_softClippedFilter.summary(_logfile);
+	_improperPairsFilter.summary(_logfile);
+	_unmappedFilter.summary(_logfile);
+	_failedQCFilter.summary(_logfile);
+	_secondaryFilter.summary(_logfile);
+	_supplementaryFilter.summary(_logfile);
+	_longerThanFragmentFilter.summary(_logfile);
+	_readGroupFilter.summary(_logfile);
+	_fwdStrandFilter.summary(_logfile);
+	_revStrandFilter.summary(_logfile);
+	_firstMateFilter.summary(_logfile);
+	_secondMateFilter.summary(_logfile);
+	_blacklistFilter.summary(_logfile);
+	_mappingQualityFilter.summary(_logfile);
+	_fragmentLengthfilter.summary(_logfile);
+	_externalFilter.summary(_logfile);
+};
+
+void TBamFile::printSummary(){
+	printSummaryNoEndIndent();
+	_logfile->endIndent();
+	_logfile->endIndent();
+};
+
+void TBamFile::startProgressReporting(uint32_t Frequency){
+	if(!open){
+		throw "Can not start progress reporting of BAM file: BAM file not open!";
+	}
+
+	_progressFrequency = Frequency;
+	_lastProgressPrinted = 0;
+	_timer.start();
+
+	_logfile->startIndent("Parsing through BAM file:");
+};
+
+void TBamFile::printProgress(){
+	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + to_string_with_precision(positionInFile() * 100, 2) + "%) in " + _timer.minutes() + " min.");
+		_lastProgressPrinted = _numAlignmentRead;
+	}
+};
+
+void TBamFile::printEndWithSummary(){
+	printEndNoEndIndent();
+	_logfile->endIndent();
+	printSummary();
+};
+
+void TBamFile::printEndNoEndIndent(){
+	_logfile->list("Reached end of BAM file in " + _timer.minutes() + " min.");
+	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.minutes() + " min.");
+};
+
+//-----------------------------------------------------
+//TOutputBamFile
+//----------------------------------------------------
+
+TOutputBamFile::TOutputBamFile(){
+	_openForWriting = false;
+	_originalBAM = nullptr;
+};
+
+TOutputBamFile::TOutputBamFile(const std::string filename, TBamFile & original){
+	open(filename, original);
+};
+
+TOutputBamFile::~TOutputBamFile(){
+	closeNoIndex();
+};
+
+void TOutputBamFile::open(const std::string filename, TBamFile & original){
+	closeNoIndex();
+
+	_originalBAM = &original;
+	_outputFilename = filename;
+	original._openForWriting(_bamWriter, _outputFilename);
 	_openForWriting = true;
 };
 
-void TBamFile::writeCurAlignment(){
+void TOutputBamFile::close(TLog* logfile){
+	if(_openForWriting){
+		_bamWriter.Close();
+
+		logfile->listFlush("Creating index of BAM file '" + _outputFilename + "' ...");
+		BamTools::BamReader reader;
+		if(!reader.Open(_outputFilename))
+			throw "Failed to open BAM file '" + _outputFilename + "' for indexing!";
+
+		// create index for BAM file
+		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+		//close BAM file
+		reader.Close();
+		logfile->done();
+
+		_openForWriting = false;
+	}
+};
+
+void TOutputBamFile::closeNoIndex(){
+	if(_openForWriting){
+		_bamWriter.Close();
+		_openForWriting = false;
+	}
+};
+
+void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
 	if(!_openForWriting){
 		throw "BAM writer is not open!";
 	}
 
 	// write alignment
-	if(!bamWriter.SaveAlignment(_curBamAlignment))
-		throw "Read '" + _curBamAlignment.Name + "' could not be written!";
+	if(!_bamWriter.SaveAlignment(alignment))
+		throw "Read '" + alignment.Name + "' could not be written!";
 };
 
-void TBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
+void TOutputBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	if(!_openForWriting){
 		throw "BAM writer is not open!";
 	}
@@ -593,93 +756,11 @@ void TBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoM
 	_tmpBamAlignment.Qualities = alignment.qualities(genoMap, qualityMap);
 
 	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", readGroups.getName(alignment._readGroupID));
+	_tmpBamAlignment.AddTag("RG", "Z", _originalBAM->readGroups.getName(alignment._readGroupID));
 
 	//and now write
-	if(!bamWriter.SaveAlignment(_tmpBamAlignment))
+	if(!_bamWriter.SaveAlignment(_tmpBamAlignment))
 		throw "Read '" + _tmpBamAlignment.Name + "' could not be written!";
-};
-
-//--------------------------------------------------------
-// Getters
-//--------------------------------------------------------
-uint16_t TBamFile::curFragmentLength() const{
-	if(_curBamAlignment.IsProperPair()){
-		return abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
-	} else {
-		return _curCigar.lengthSequenced();
-	}
-};
-
-uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
-	uint16_t counter = 0;
-	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
-		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass(_curBamAlignment.AlignedQualities.at(d))){
-			++counter;
-		}
-	}
-	return counter;
-};
-
-//-----------------------------------------------------
-// Reporting
-//-----------------------------------------------------
-void TBamFile::printSummaryNoEndIndent(TLog* Logfile){
-	Logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
-	Logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
-	Logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
-	Logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentRead - _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
-
-	_duplicateFilter.summary(Logfile);
-	_softClippedFilter.summary(Logfile);
-	_improperPairsFilter.summary(Logfile);
-	_unmappedFilter.summary(Logfile);
-	_failedQCFilter.summary(Logfile);
-	_secondaryFilter.summary(Logfile);
-	_supplementaryFilter.summary(Logfile);
-	_longerThanFragmentFilter.summary(Logfile);
-	_readGroupFilter.summary(Logfile);
-	_fwdStrandFilter.summary(Logfile);
-	_revStrandFilter.summary(Logfile);
-	_firstMateFilter.summary(Logfile);
-	_secondMateFilter.summary(Logfile);
-	_blacklistFilter.summary(Logfile);
-	_mappingQualityFilter.summary(Logfile);
-	_fragmentLengthfilter.summary(Logfile);
-	_externalFilter.summary(Logfile);
-};
-
-void TBamFile::printSummary(TLog* Logfile){
-	printSummaryNoEndIndent(Logfile);
-	Logfile->endIndent();
-	Logfile->endIndent();
-};
-
-void TBamFile::startProgressReporting(uint32_t Frequency, TLog* Logfile){
-	_logfile = Logfile;
-	_progressFrequency = Frequency;
-	_lastProgressPrinted = 0;
-	_timer.start();
-
-	_logfile->startIndent("Parsing through BAM file:");
-};
-
-void TBamFile::printProgress(){
-	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + to_string_with_precision(positionInFile() * 100, 2) + "%) in " + _timer.minutes() + " min.");
-		_lastProgressPrinted = _numAlignmentRead;
-	}
-};
-
-void TBamFile::printEndWithSummary(){
-	printEndNoEndIndent();
-	_logfile->endIndent();
-	printSummary(_logfile);
-};
-
-void TBamFile::printEndNoEndIndent(){
-	_logfile->list("Reached end of BAM file in " + _timer.minutes() + " min.");
-	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.minutes() + " min.");
 };
 
 }; //end namespace

@@ -14,6 +14,7 @@
 #include <vector>
 #include <algorithm>
 #include <set>
+#include "counters.h"
 
 namespace BAM{
 
@@ -55,8 +56,13 @@ public:
     std::string sequencingCenter;       // CN:<SequencingCenter>
     std::string sequencingTechnology;   // PL:<SequencingTechnology>
 
+    //flags
+    bool inUse; 						//read groups not in use are ignored when reading
+    bool writeToHeader;                 //is false if read group is not in use or replaced by new one
+
     TReadGroup(const uint16_t ID, const std::string Name);
     TReadGroup(const TReadGroup & other);
+    TReadGroup* getPointer(){ return this; };
     bool operator<(const TReadGroup & right);
     bool operator<(const std::string & left, const TReadGroup & right);
     bool operator<(const TReadGroup & left, const std::string & right);
@@ -69,9 +75,10 @@ public:
 class TReadGroups{
 private:
 	std::set<TReadGroup, std::less<>> _readGroups;
-	std::vector<bool> _inUse;
+	std::vector<TReadGroup*> _readGroupsById;
 	bool _limitReadGroups;
 
+	void _fillLookupFromId();
 
 public:
 	TReadGroups();
@@ -79,7 +86,7 @@ public:
 
 	void clear();
 	TReadGroup& add(const std::string name);
-	TReadGroup& addTruncatedOrMergedRG(const std::string Name, const std::string original);
+	TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
 	uint16_t size() const;
 
 	uint16_t getId(const std::string & name) const;
@@ -94,6 +101,8 @@ public:
 	std::set<TReadGroup, std::less<>>::iterator end(){ return _readGroups.end(); };
 
 	void filterReadGroups(std::string readGroupList);
+	void removeFromHeader(const std::string name);
+	void removeFromHeader(const uint16_t readGroupId);
 	void printReadgroupsInUse(TLog* logfile) const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 };

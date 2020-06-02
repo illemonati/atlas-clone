@@ -59,7 +59,6 @@ private:
 	//per base data
 	std::vector<TBase> _bases;
 	std::vector<uint16_t> _alignedPosition;
-	uint16_t _softClippedLength[2];
 
 	//reference
 	bool _hasReference;
@@ -91,9 +90,11 @@ public:
 			  const std::string Sequence,
 			  const std::string Qualities,
 			  const uint16_t ReadGroupId);
+	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 	void addReference(TFastaBuffer & fasta);
 	void setHasChanged(){ _changed = true; };
+	void setReadGroup(const uint16_t readGroupId);
 
 	//getters
 	std::string name() const{ return _name; };
@@ -102,6 +103,7 @@ public:
 	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	uint32_t positionInRef(const uint32_t internalPosition) const;
+	uint16_t readGroupId() const { return _readGroupID; };
 	uint16_t parsedLength() const{ return _cigar.lengthSequenced(); };
 	int32_t insertSize() const{ return _insertSize_TLEN; };
 	TBase& base(const uint32_t internalPos){ return _bases[internalPos]; };
@@ -118,17 +120,17 @@ public:
 	void filterForBaseQualityAsPhredInt(const int & minQual, const int & maxQual);
 	void filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap);
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
-	void removeSoftClippedBases(TSoftClippingData & softClippingData);
+	void removeSoftClippedBases();
 	void binQualityScores(TQualityMap & qualityMap);
 	void recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
 	void setIsProperPair(const bool & ok);
-	void downsampleAlignment(double& fraction, TRandomGenerator& randomGenerator, TQualityMap & qualMap);
+	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 
 	//functions to fill other classes
 	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
-	void addSitesToQualityTransformTable(TQualityTransformTables & QTtables);
-	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables);
-	void addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap);
+	void addSitesToQualityTransformTable(TCountDistributionVector & QTtables);
+	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TCountDistributionVector & QTtables);
+	void addToQualityTable(TCountDistributionVector & qualTable);
 	void addToContextStats(TContextStats & contextStats);
 
 	//debug functions

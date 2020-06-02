@@ -88,35 +88,36 @@ void TAlignment::fill(const	std::string Name,
 	}
 };
 
-void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
-	if(!_parsed){
-		if(!storageInitialized)
-			throw "Alignment storage was not initialized!";
+void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
+	//first parse bases and qualities
+	_parseBasesQualities(genoMap, qualityMap);
 
-		//first parse bases and qualities
-		_parseBasesQualities(genoMap, qualityMap);
+	//then update distances from ends
+	_setDistancesFromEnds();
 
-		//then update distances from ends
-		_setDistancesFromEnds();
+	//fill context for each base
+	_fillContext();
 
-		//fill context for each base
-		_fillContext();
-
-		//set mapping quality and whether read is first or second
-		for(auto& b : _bases){
-			b.readGroupID = _readGroupID;
-			b.mappingQuality = _mappingQuality;
-			b.fragmentLength = _fragmentLength;
-			b.setSecondMate(_flags.isSecondMate());
-			b.setReverseStrand(_flags.isReverseStrand());
-		}
-
-		//recalibrate
-		seqErrorModels.recalibrate(_bases);
-
-		_parsed = true;
-		_changed = seqErrorModels.recalibrationChangesQualities();
+	//set mapping quality and whether read is first or second
+	for(auto& b : _bases){
+		b.readGroupID = _readGroupID;
+		b.mappingQuality = _mappingQuality;
+		b.fragmentLength = _fragmentLength;
+		b.setSecondMate(_flags.isSecondMate());
+		b.setReverseStrand(_flags.isReverseStrand());
 	}
+
+	_parsed = true;
+	_changed = false;
+};
+
+
+void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
+	parse(genoMap, qualityMap);
+
+	//recalibrate
+	seqErrorModels.recalibrate(_bases);
+	_changed = seqErrorModels.recalibrationChangesQualities();
 };
 
 void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
@@ -125,8 +126,6 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 	_alignedPosition.resize(_cigar.lengthSequenced());
 	int d = 0; //index regarding data structures and inside read
 	int p = 0; //index regarding reference position (!= k for indels)
-	uint8_t softClippedEntry = 0; //softclipped bases to be added
-	_softClippedLength[0] = 0; _softClippedLength[1] = 0;
 
 	//loop over cigar operations
 	for(auto& cigarIter : _cigar){
@@ -143,13 +142,11 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 					_bases[d].setAligned(true);
 					_alignedPosition[d] = p;
 				}
-				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			//for 'S' - soft clip: ignore bases, but increase k
 			case ('S') :
 				//add bases to softclipped entries
-				_softClippedLength[softClippedEntry] += cigarIter.length;
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
 					//soft-clipped bases on 5' are before bamAlignment.Position
 					//need to initialize quality for quality filter and bases for context
@@ -168,20 +165,17 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 					_bases[d].setAligned(false);
 					_alignedPosition[d] = -1;
 				}
-				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 
 			// for 'D' - deletion: just add to position
 			case ('D') :
 				p += cigarIter.length;
-				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			// for 'N' - skipped region in reference: only advance reference position
 			case ('N') :
 				p += cigarIter.length;
-				softClippedEntry = 1; //soft clipped bases can now only occur at the end!
 				break;
 
 			// for 'H' or 'P' - hard clip: do nothing as these bases are not present in SEQ
@@ -212,8 +206,8 @@ void TAlignment::_setDistancesFromEnds(){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			int k = abs(_fragmentLength) - (_cigar.lengthSequenced() - _softClippedLength[1]);
-			int l = _cigar.lengthSequenced() - 1 - _softClippedLength[1];
+			int k = abs(_fragmentLength) - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
+			int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
 			for(int pos=0; pos<length; ++pos){
 				_bases[pos].distFrom5Prime = l - pos; //dist from 5'
 				_bases[pos].distFrom3Prime = k + pos; //dist from 3'
@@ -225,8 +219,8 @@ void TAlignment::_setDistancesFromEnds(){
 			//NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			//Luckily, this has only minimal effect since these distances are far from fragment ends
 			for(int pos=0; pos<length; ++pos){
-				_bases[pos].distFrom5Prime = pos - _softClippedLength[0]; //dist from 5'
-				_bases[pos].distFrom3Prime = _fragmentLength - 1 - pos + _softClippedLength[0]; //dist from 3'
+				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft(); //dist from 5'
+				_bases[pos].distFrom3Prime = _fragmentLength - 1 - pos + _cigar.lengthSoftClippedLeft(); //dist from 3'
 			}
 		}
 	} else {
@@ -237,16 +231,16 @@ void TAlignment::_setDistancesFromEnds(){
 			//Hence distance from 3' is just pos
 			//And distance from 5' is just len - pos - 1
 			for(int pos=0; pos<length; ++pos){
-				_bases[pos].distFrom5Prime = l - pos - _softClippedLength[1]; //dist from 5'
-				_bases[pos].distFrom3Prime = pos - _softClippedLength[0]; //dist from 3'
+				_bases[pos].distFrom5Prime = l - pos - _cigar.lengthSoftClippedRight(); //dist from 5'
+				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft(); //dist from 3'
 			}
 		} else {
 			//not in pair & forward
 			//Hence distance from 5' is just pos
 			//And distance from 3' is given by len - pos - 1
 			for(int pos=0; pos<length; ++pos){
-				_bases[pos].distFrom5Prime = pos - _softClippedLength[0]; //dist from 5'
-				_bases[pos].distFrom3Prime = l - pos - _softClippedLength[1]; //dist from 3'
+				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft(); //dist from 5'
+				_bases[pos].distFrom3Prime = l - pos - _cigar.lengthSoftClippedRight(); //dist from 3'
 			}
 		}
 	}
@@ -270,6 +264,11 @@ void TAlignment::_fillContext(){
 void TAlignment::addReference(TFastaBuffer & fasta){
 	fasta.fill(_refID, _position, _lastAlignedPositionWithRespectToRef, _referenceSequence);
 	_hasReference = true;
+};
+
+void TAlignment::setReadGroup(const uint16_t readGroupId){
+	_readGroupID = readGroupId;
+	_changed = true;
 };
 
 //--------------------------------------
@@ -364,6 +363,8 @@ void TAlignment::filterForBaseQualityAsPhredInt(const int & minPhredInt, const i
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}
+
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
@@ -377,6 +378,7 @@ void TAlignment::filterForContext(const std::map<BaseContext,int> & ignoreTheseC
 		}
 	}
 
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
@@ -388,12 +390,13 @@ void TAlignment::trimRead(const int & trimmingLength3Prime, const int & trimming
 		}
 	}
 
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
-void TAlignment::removeSoftClippedBases(TSoftClippingData & softClippingData){
+void TAlignment::removeSoftClippedBases(){
 	//check if there is softclipping
-	if(softClippingData.softClippingLength > 0){
+	if(_cigar.lengthSoftClipped() > 0){
 		auto bIter = _bases.begin();
 		for(auto& cigarIter : _cigar){
 			if(cigarIter.type == 'S'){
@@ -404,9 +407,14 @@ void TAlignment::removeSoftClippedBases(TSoftClippingData & softClippingData){
 				bIter += cigarIter.length;
 			}
 		}
-	}
 
-	_changed = true;
+		//update cigar and length
+		_cigar.removeSoftClips();
+
+		//set has changed
+		_sequenceAndQualitiesChanged = true;
+		_changed = true;
+	}
 };
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
@@ -417,11 +425,14 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	for(auto& b : _bases){
 		b.recalibratedQualityAsPhredInt = qualityMap.phredIntToIlluminaError(b.recalibratedQualityAsPhredInt);
 	}
+
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
 void TAlignment::recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator){
 	GLCalculator.recalibrateWithPMD(_bases);
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
@@ -442,7 +453,7 @@ void TAlignment::updateOptionalSamField(std::string tag, std::string value){
 };
 */
 
-void TAlignment::downsampleAlignment(double& fractionToKeep, TRandomGenerator& randomGenerator, TQualityMap & qualMap){
+void TAlignment::downsampleAlignment(const double fractionToKeep, TRandomGenerator& randomGenerator){
 	for(auto& b : _bases){
 		double r = randomGenerator.getRand();
 		if(r > fractionToKeep){
@@ -450,6 +461,7 @@ void TAlignment::downsampleAlignment(double& fractionToKeep, TRandomGenerator& r
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}
+	_sequenceAndQualitiesChanged = true;
 	_changed = true;
 };
 
@@ -489,27 +501,27 @@ void TAlignment::addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGe
 	}
 };
 
-void TAlignment::addSitesToQualityTransformTable(TQualityTransformTables & QTtables){
+void TAlignment::addSitesToQualityTransformTable(TCountDistributionVector & QTtables){
 	for(auto& b : _bases){
 		if(b.base != N){
-			QTtables.add(_readGroupID, b.originalQuality_phredInt, b.recalibratedQualityAsPhredInt);
+			QTtables.add(b.originalQuality_phredInt, b.recalibratedQualityAsPhredInt);
 		}
 	}
 };
 
-void TAlignment::addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TQualityTransformTables & QTtables){
+void TAlignment::addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TCountDistributionVector & QTtables){
 	for(auto& b : _bases){
 		if(b.base != N){
-			QTtables.add(_readGroupID, b.recalibratedQualityAsPhredInt, otherSeqErrors.getPhredInt(b));
+			QTtables.add(b.recalibratedQualityAsPhredInt, otherSeqErrors.getPhredInt(b));
 		}
 	}
 };
 
-void TAlignment::addToQualityTable(TQualityTable & qualTable, TQualityMap & qualMap){
+void TAlignment::addToQualityTable(TCountDistributionVector & qualTable){
 	//make sure read is parsed
 	if(!_parsed) throw "Read was not parsed!";
 	for(auto& b : _bases){
-		qualTable.add(b.recalibratedQualityAsPhredInt);
+		qualTable.add(_readGroupID, b.recalibratedQualityAsPhredInt);
 	}
 };
 

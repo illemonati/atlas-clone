@@ -105,7 +105,7 @@ void TSequencingErrorModels::removeModel(int readGroupId, bool isSecondMate){
 
 // Functions to add models for estimation: dataTable is provided
 //-------------------------------------------------------------
-void TSequencingErrorModels::prepareModelsForEstimation(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
+void TSequencingErrorModels::prepareModelsForEstimation(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	_init(ReadGroups, ReadGroupMap, Logfile);
 };
 
@@ -161,7 +161,7 @@ void TSequencingErrorModels::addModelsFromFile(const std::string filename, TReca
 
 // Functions to add models for recalibration: no dataTable is provided
 //-------------------------------------------------------------------
-void TSequencingErrorModels::createModels(std::string s, TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
+void TSequencingErrorModels::createModels(std::string s, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	_init(ReadGroups, ReadGroupMap, Logfile);
 
 	//initialize from string or file
@@ -173,7 +173,7 @@ void TSequencingErrorModels::createModels(std::string s, TReadGroups* ReadGroups
 	}
 };
 
-void TSequencingErrorModels::createEmptyModels(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
+void TSequencingErrorModels::createEmptyModels(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	_init(ReadGroups, ReadGroupMap, Logfile);
 	_addNoRecalModelIfMissing();
 };
@@ -265,7 +265,7 @@ void TSequencingErrorModels::warningForMissingReadGroups(){
 //functions to get error rates
 //-------------------------------------------------------
 
-double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data) const{
+double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data){
 	if(doRecalibration){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
 	} else {
@@ -283,7 +283,7 @@ double TSequencingErrorModels::getErrorRate(const TBase & base) const{
 	}
 };
 
-uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
+uint8_t TSequencingErrorModels::getPhredInt(const TBase & base){
 	if(base.base == N){
 		return 0;
 	} else if(doRecalibration){
@@ -293,7 +293,7 @@ uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase & base) const{
+void TSequencingErrorModels::recalibrate(TBase & base){
 	if(base.base == N){
 		base.recalibratedQualityAsPhredInt = 0;
 	} else if(doRecalibration){
@@ -303,7 +303,7 @@ void TSequencingErrorModels::recalibrate(TBase & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length) const{
+void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length){
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
@@ -320,7 +320,7 @@ void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length) co
 	}
 };
 
-void TSequencingErrorModels::recalibrate(std::vector<TBase> bases) const{
+void TSequencingErrorModels::recalibrate(std::vector<TBase> bases){
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(auto& b : bases){
@@ -337,7 +337,7 @@ void TSequencingErrorModels::recalibrate(std::vector<TBase> bases) const{
 	}
 };
 
-void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods){
 	if(base.base == N){
 		baseLikelihoods.reset();
 	} else if(doRecalibration){
@@ -428,7 +428,7 @@ double TSequencingErrorModels::getSteepestGradient(){
 //-------------------------------------------------------------------
 void TSequencingErrorModels::writeRecalFile(const std::string filename){
 	//open file and write header
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 	out.writeHeader({"ReadGroup", "Mate", "Model"});
 
 	//add models

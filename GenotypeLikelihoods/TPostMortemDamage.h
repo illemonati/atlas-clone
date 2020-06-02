@@ -93,12 +93,12 @@ public:
 	virtual void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDFunction();
 	};
-	virtual double getProb(const uint16_t & pos){
+	virtual double getProb(const uint16_t & pos) const{
 		return 0.0;
 	};
-	virtual std::string getString(){ return "P(pmd|pos) = 0.0"; };
-	virtual std::string getFunctionName(){ return functionName; };
-	virtual bool hasDamage(){ return false; };
+	virtual std::string getString() const{ return "P(pmd|pos) = 0.0"; };
+	virtual std::string getFunctionName() const{ return functionName; };
+	virtual bool hasDamage() const{ return false; };
 };
 
 class TPMDSkoglund:public TPMDFunction{
@@ -119,9 +119,9 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDSkoglund(lambda, c);
 	};
-	double getProb(const uint16_t & pos);
-	std::string getString();
-	bool hasDamage(){ return true; };
+	double getProb(const uint16_t & pos) const;
+	std::string getString() const;
+	bool hasDamage() const{ return true; };
 };
 
 class TPMDExponential:public TPMDFunction{
@@ -143,9 +143,9 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDExponential(a, b, c);
 	};
-	double getProb(const uint16_t & pos);
-	std::string getString();
-	bool hasDamage(){ return true; };
+	double getProb(const uint16_t & pos) const;
+	std::string getString() const;
+	bool hasDamage() const{ return true; };
 };
 
 class TPMDEmpiric:public TPMDFunction{
@@ -164,9 +164,9 @@ public:
 	void getCopy(TPMDFunction* & pointer){
 		pointer = new TPMDEmpiric(probs);
 	};
-	double getProb(const uint16_t & pos);
-	std::string getString();
-	bool hasDamage(){ return true; };
+	double getProb(const uint16_t & pos) const;
+	std::string getString() const;
+	bool hasDamage() const{ return true; };
 };
 
 //------------------------------------------------------
@@ -200,19 +200,19 @@ public:
 	void initializeFunction(std::string pmdString, PMDType type);
 
 	//for getProb: distance is zero based!!! TODO: remove these functions
-	double getProb(const uint16_t pos, PMDType type){ return myFunctions[type]->getProb(pos); };
-	double getProbFivePrime(const uint16_t pos){ return myFunctions[pmdCT]->getProb(pos); };
-	double getProbThreePrime(const uint16_t pos){ return myFunctions[pmdGA]->getProb(pos); };
+	double getProb(const uint16_t pos, PMDType type) const{ return myFunctions[type]->getProb(pos); };
+	double getProbFivePrime(const uint16_t pos) const{ return myFunctions[pmdCT]->getProb(pos); };
+	double getProbThreePrime(const uint16_t pos) const{ return myFunctions[pmdGA]->getProb(pos); };
 
-	std::string getFunctionString(PMDType type){ return myFunctions[type]->getString(); };
-	bool functionInitialized(PMDType type){
+	std::string getFunctionString(PMDType type) const{ return myFunctions[type]->getString(); };
+	bool functionInitialized(PMDType type) const{
 		return functionsInitialized[type];
 	};
-	bool hasDamage(){ return myFunctions[pmdCT]->hasDamage() || myFunctions[pmdGA]->hasDamage(); };
-	bool hasDamageCT(){ return myFunctions[pmdCT]->hasDamage(); };
-	bool hasDamageGA(){ return myFunctions[pmdGA]->hasDamage(); };
+	bool hasDamage() const{ return myFunctions[pmdCT]->hasDamage() || myFunctions[pmdGA]->hasDamage(); };
+	bool hasDamageCT() const{ return myFunctions[pmdCT]->hasDamage(); };
+	bool hasDamageGA() const{ return myFunctions[pmdGA]->hasDamage(); };
 
-	void fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
+	void fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
@@ -223,16 +223,17 @@ public:
 //------------------------------------------------------
 class TPostMortemDamage{
 private:
-	TPMDDoubleStrand* pmdObjects;
-	bool hasPMD;
+	std::vector<TPMDDoubleStrand> _pmdObjects;
+	bool _hasPMD;
 
 	PMDType getEnumPMDType(std::string pmdType);
 	void initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
 
 public:
 	TPostMortemDamage();
+	bool hasPMD() const{ return _hasPMD; };
 	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
-	void calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods);
+	void calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 };
 
 

@@ -46,7 +46,7 @@ protected:
 	void _init(const uint16_t FirstParameterIndex);
 	void _initializeBetas();
 	void _initializValues(std::vector<std::string> & values);
-	double _getAsDouble(const uint16_t val);
+	double _getAsDouble(const uint16_t val) const;
 	double _normalizeParameters();
 
 	friend class TSequencingErrorModel;
@@ -86,7 +86,7 @@ public:
 	};
 	virtual void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){};
 	virtual double adjustParametersPostEstimation(){ return 0.0; };
-	std::string getModelString();
+	std::string getModelString() const;
 };
 
 //--------------------------------------------------------------
@@ -105,7 +105,7 @@ public:
 	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 	void setIntercept(const double val);
 	void addToIntercept(const double val);
-	double getIntercept();
+	double getIntercept() const;
 	double getEtaTerm();
 	double getEtaTerm(const uint16_t val);
 	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);

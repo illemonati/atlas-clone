@@ -78,3 +78,32 @@ public:
 
 
 #endif /* TNORMALDISTRIBUTION_H_ */
+void TGenomeWindows::writeGLF(TParameters & params){
+	//print all?
+	bool printIfNoData = params.parameterExists("printAll");
+	if(printIfNoData)
+		_logfile->list("Will print all sites, even those without data. (parameter 'printAll')");
+
+	//open GLF file
+	std::string outputFileName = _outputName + ".glf.gz";
+	_logfile->list("Will write data to GLF file '" + outputFileName + "'");
+	TGlfWriter writer(outputFileName);
+
+	//prepare windows
+	TWindow window;
+
+	//iterate through windows
+	while(alignmentParser.readDataInNextWindow(window)){
+		if(alignmentParser.chrChangedWindow){
+			writer.newChromosome(bamFile.chromosomes.curChromosome());
+		} if(window.passedFilters){
+			//write to GLF
+			_logfile->listFlushTime("Adding window to GLF file ...");
+			window.addToGLF(writer, genotypeLikelihoodCalculator, printIfNoData);
+			_logfile->doneTime();
+		}
+	}
+	//clean up
+	writer.close();
+};
+

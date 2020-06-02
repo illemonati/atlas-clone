@@ -10,6 +10,8 @@
 
 #include "TFile.h"
 
+//TODO: add extra functionalities to commonutiloities::counters
+
 class TDistributionOfCounts{
 private:
 	int maxValue;

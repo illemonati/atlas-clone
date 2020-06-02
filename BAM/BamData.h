@@ -88,11 +88,13 @@ struct CigarOperator {
 
 class TCigar{
 private:
-	std::vector<CigarOperator> cigar;
+	std::vector<CigarOperator> _cigar;
 	uint16_t _lengthAligned;
 	uint16_t _lengthInserted;
 	uint16_t _lengthDeleted;
-	uint16_t _lengthSoftClipped;
+	uint16_t _lengthSoftClippedLeft;
+	uint16_t _lengthSoftClippedRight;
+	bool _addSoftClippedLeft;
 
 public:
 	TCigar(){
@@ -100,39 +102,62 @@ public:
 	};
 
 	void clear(){
-		cigar.clear();
+		_cigar.clear();
 		_lengthAligned = 0;
 		_lengthInserted = 0;
 		_lengthDeleted = 0;
-		_lengthSoftClipped = 0;
+		_lengthSoftClippedLeft = 0;
+		_lengthSoftClippedRight = 0;
+		_addSoftClippedLeft = true;
 	};
 
-	std::vector<CigarOperator>::const_iterator begin() const { return cigar.begin(); }
-	std::vector<CigarOperator>::const_iterator end() const { return cigar.end(); }
+	std::vector<CigarOperator>::const_iterator begin() const { return _cigar.begin(); }
+	std::vector<CigarOperator>::const_iterator end() const { return _cigar.end(); }
 
     void add(const char & Type, const uint32_t & Length){
     	if(Type == 'M' || Type == '=' || Type == 'X'){
     		_lengthAligned += Length;
+    		_addSoftClippedLeft = false;
     	} else if(Type == 'I'){
     		_lengthInserted += Length;
+    		_addSoftClippedLeft = false;
     	} else if(Type =='D'){
     		_lengthDeleted += Length;
+    		_addSoftClippedLeft = false;
     	} else if(Type == 'S'){
-    		_lengthSoftClipped += Length;
+    		if(_addSoftClippedLeft){
+    			_lengthSoftClippedLeft += Length;
+    		} else {
+    			_lengthSoftClippedRight += Length;
+    		}
     	} else if(Type != 'N' && Type != 'H' && Type != 'P'){
     		throw "Unknown CIGAR operation '" + Type + "'!";
     	}
 
     	//add to vector
-    	cigar.emplace_back(Type, Length);
-    }
+    	_cigar.emplace_back(Type, Length);
+    };
+
+    void removeSoftClips(){
+    	for(auto it = _cigar.begin(); it!=_cigar.end(); ++it){
+    		if(it->type == 'S'){
+    			it = _cigar.erase(it);
+    		}
+    	}
+
+    	//update length
+    	_lengthSoftClippedLeft = 0;
+    	_lengthSoftClippedRight = 0;
+    };
 
     uint16_t lengthAligned() const{ return _lengthAligned; };
     uint16_t lengthInserted() const{ return _lengthInserted; };
     uint16_t lengthDeleted() const{ return _lengthDeleted; };
-    uint16_t lengthSoftClipped() const{ return lengthSoftClipped; };
+    uint16_t lengthSoftClippedLeft() const{ return _lengthSoftClippedLeft; };
+    uint16_t lengthSoftClippedRight() const{ return _lengthSoftClippedRight; };
+    uint16_t lengthSoftClipped() const{ return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
     uint16_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
-    uint16_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClipped; };
+    uint16_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
 };
 
 

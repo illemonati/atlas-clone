@@ -25,94 +25,63 @@
 
 #include "TRecalibration.h"
 #include "TAlignmentMerger.h"
-#include "TSoftClipping.h"
 #include "TAllelicDepthCounts.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 
 //---------------------------------------------------------------
-//TGenome
+// TGenome_basic
+// A base class without filters and genotype likelihoods
 //---------------------------------------------------------------
-class TGenome{
-private:
-	BAM::TBamFile bamFile;
- 	TAlignmentParser alignmentParser;
- 	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
-	BAM::TFastaBuffer reference;
- 	TRandomGenerator* randomGenerator;
+class TGenome_basic{
+protected:
+	TLog* _logfile;
+	BAM::TBamFile _bamFile;
+	TRandomGenerator* _randomGenerator;
+	std::string _outputName;
 
-	TLog* logfile;
-	std::string outputName;
-
-	void jumpToEnd();
-
-	TGenotypePrior* initializeGenotypePrior(TParameters & params);
-	void openSiteSubset(TBedReader* subset, std::string filename);
-	void indexBamFile(std::string & filename);
-	bool estimateTheta(TThetaEstimator & thetaEstimator, TWindow_base & window);
-	void mergeAlignedBasesBamReads(TAlignment* fwdAlignment, TAlignment* revAlignment, bool adaptQuality);
-	void findPairedReadGroupsToMergeReads(TParameters & params, std::vector<bool> & pairedReadGroups);
-	void parseSplitMergeReadGroupSettings(TParameters & params, std::map<int, TReadGroupMaxLength> & RGSettings);
-	void setMergerSettings(TParameters & params, TAlignmentMerger & merger);
-	void fillVectorOfDownsamplingProbabilities(std::string prob, std::vector<double> & downSampleProbVector);
-	void renameBAMSIfDouble(std::vector<double> & fracVector, std::vector<std::string> & names);
+	TGenotypeMap _genoMap;
+	TQualityMap _qualMap;
 
 public:
-	TGenome(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TGenome(){};
+	TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
-	//theta estimation
-	bool initThetaEstimatorForCallers(TParameters & params, TThetaEstimator* & thetaEstimator);
-	void estimateTheta(TParameters & params);
-	void estimateThetaWindows(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool printAll);
-	void estimateThetaGenomeWide(TThetaEstimator & thetaEstimator, TThetaOutputFile & out, bool onlyReadData, int numBootstraps);
-	void bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & thetaEstimator);
-	void calcThetaLikelihoodSurfaces(TParameters & params);
-	void estimateThetaRatio(TParameters & params);
-	void performDownsamplingThetaQC(TParameters & params);
+	void mergeReadGroups(TParameters & params);
+};
 
-	//callers
-	void callGenotypes(TParameters & params);
+//---------------------------------------------------------------
+// TGenome_filtered
+// A base class without recalibration but BAM filters enabled
+//---------------------------------------------------------------
+class TGenome_filtered:public TGenome_basic{
+protected:
+public:
+	TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+};
 
-	//recalibration
-	void estimateErrorCalibrationEM(TParameters & params);
-	void calculateLikelihoodErrorCalibrationEM(TParameters & params);
-	void BQSR(TParameters & params);
+
+//---------------------------------------------------------------
+// TGenome_recalibrated
+// A base class with BAM filters and a parsed, recalibrated alignment
+//---------------------------------------------------------------
+class TGenome_recalibrated:public TGenome_filtered{
+protected:
+	BAM::TAlignment _alignment;
+	TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
+
+	void _traverseBAMPassedQC();
+	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_recalibrated!"; };
+
+public:
+	TGenome_recalibrated(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	virtual ~TGenome_recalibrated(){};
+
 	void printQualityDistribution(TParameters & params);
 	void printQualityTransformation(TParameters & params);
 
-	//other
-	void writeGLF(TParameters & params);
-	void printPileup(TParameters & params);
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
-	void assessSoftClipping(TParameters & params);
-	void removeSoftClippedBasesFromReads(TParameters & params);
-	void assessOverlap(TParameters & params);
-	void splitSingleEndReadGroups(TParameters & params);
-	void mergeReadGroups(TParameters & params);
-	void estimatePMD(TParameters & params);
-	void runPMDS(TParameters & params);
-	void filterBAM(TParameters & params);
-	void splitMerge(TParameters & params);
-	void mergePairedEndReads(TParameters & params);
-	void generatePSMCInput(TParameters & params);
-	void downSampleBamFile(TParameters & params);
-	void separateReads(TParameters & params);
-	void downSampleReads(TParameters & params);
-	void diagnoseBamFile(TParameters & params);
-	void allelicDepth(TParameters & params);
-	void writeNonConservedBed(TParameters & params);
-	void estimateApproximateDepthPerWindow(TParameters & params);
-	void estimateDepthPerSite(TParameters & params);
-	void writeDepthPerSite(TParameters & params);
-	void estimateDuplicationCounts(TParameters & params);
-	void createDepthMask(TParameters & params);
-	void printMateInformationPerSite(TParameters & params);
-	void contextStats(TParameters & params);
 
-	//debug stuff
-	void testGenotypeLikelihoods(TParameters & params);
 };
 
 
