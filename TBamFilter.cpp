@@ -275,7 +275,7 @@ void TAlignmentStorage::clear(){
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_recalibrated(Params, Logfile, RandomGenerator){
+TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
 	//max distance between mates
 	_maxDistanceBetweenMates = Params.getParameterIntWithDefault("acceptedDistance", 2000);
 	_logfile->list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");

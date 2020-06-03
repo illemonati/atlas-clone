@@ -9,92 +9,6 @@
 
 
 
-//-----------------------------------------------------
-//TAlignmentParser
-//-----------------------------------------------------
-TAlignmentParser::TAlignmentParser(TParameters & params, TLog* Logfile, BAM::TBamFile & BamFile, GenotypeLikelihoods::TGenotypeLikelihoodCalculator& GenotypeLikelihoodCalculator)
-	: bamFile(BamFile), genotypeLikelihoodCalculator(GenotypeLikelihoodCalculator){
-
-	logfile = Logfile;
-	logfile->startIndent("Settings regarding read parsing:");
-
-	//trimming and filters
-	_setReadTrimming(params);
-	_setQualityFilter(params);
-	_setContextFilter(params);
-	_setQualityRangeForPrinting(params);
-
-	//reference
-	hasReference = false;
-	fastaBuffer = NULL;
-	chrChangedWindow = false;
-};
-
-void TAlignmentParser::_setReadTrimming(TParameters & params){
-	//trimming ends
-	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
-		trimmingLength3Prime = params.getParameterIntWithDefault("trim3", 0);
-		if(trimmingLength3Prime < 0) throw "trimming distance trim3 must be >= 0!";
-		trimmingLength5Prime = params.getParameterIntWithDefault("trim5", 0);
-		if(trimmingLength5Prime < 0) throw "trimming distance trim5 must be >= 0!";
-		if(trimmingLength3Prime > 0 || trimmingLength5Prime > 0){
-			logfile->list("Will trim first " + toString(trimmingLength3Prime) + " and " + toString(trimmingLength5Prime) + " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
-		}
-	}
-	trimReads = true;
-};
-
-void TAlignmentParser::_setQualityFilter(TParameters & params){
-	if(qualityFilter.set(params)){
-		applyQualityFilter = true;
-		logfile->list("Will filter out bases with quality outside the range [" + toString(minQualityAsPhredInt) + ", " + toString(maxQualityAsPhredInt) + "] (parameters 'minQual', 'maxQual')");
-	} else {
-		applyQualityFilter = false;
-	}
-};
-
-void TAlignmentParser::_setContextFilter(TParameters & params){
-	if(params.parameterExists("ignoreContexts")){
-		std::vector<std::string> contexts;
-		fillVectorFromString(params.getParameterString("ignoreContexts"), contexts, ',');
-		logfile->startIndent("Will mask the following contexts (parameter 'maskContext'):");
-		for(auto& c : contexts){
-			if(c.size() != 2 || !genoMap.isValidBase(c[0]) || !genoMap.isValidBase(c[1])){
-				throw "Context " + c + " does not consist of two bases! (parameter 'maskContext')";
-			}
-			//ave context
-			BaseContext co = genoMap.getContext(c[0], c[1]);
-			ignoreTheseContexts.emplace(co, 1);
-			logfile->list(genoMap.getContextString(co));
-		}
-		logfile->endIndent();
-		applyContextFilter = true;
-	} else {
-		applyContextFilter = false;
-	}
-};
-
-void TAlignmentParser::_setQualityRangeForPrinting(TParameters & params){
-	if(params.parameterExists("minOutQual") || params.parameterExists("minOutQual")){
-		int MinPhredInt = params.getParameterIntWithDefault("minOutQual", 0);
-		int MaxPhredInt = params.getParameterIntWithDefault("maxOutQual", 93);
-
-		if(MinPhredInt < 0 || MinPhredInt > 255) throw "minOutQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxOutQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < MinPhredInt) throw "maxOutQual must be >= minOutQual!";
-
-		logfile->list("Will print qualities truncated to [" + toString(MinPhredInt) + ", " + toString(MaxPhredInt) + "] (parameters 'minOutQual', 'maxOutQual')");
-
-		//set in quality map
-		qualMap.setQualityLimits(MinPhredInt, MaxPhredInt);
-	}
-};
-
-void TAlignmentParser::addReference(BAM::TFastaBuffer* FastaBuffer){
-	hasReference = true;
-	fastaBuffer = FastaBuffer;
-};
-
 //------------------------------
 //reading alignments
 //------------------------------
@@ -327,6 +241,7 @@ void TAlignmentParser::setWriteBlacklistToFileToTrue(const std::string filename)
 //--------------
 //move genome
 //--------------
+
 void TAlignmentParser::_jumpToEnd(){
 	bamFile->chromosomes.jumpToEnd();
 };

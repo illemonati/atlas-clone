@@ -13,7 +13,7 @@
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
-class TPMDSCalculator:public TGenome_recalibrated{
+class TPMDSCalculator:public TGenome_parsed{
 private:
 	double _pi, _minPMDS, _maxPMDS;
 	BAM::TOutputBamFile _outBam;

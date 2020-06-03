@@ -118,7 +118,7 @@ public:
 	int measureOverlap();
 
 	//filters and other functions to modify data
-	void filterForBaseQualityAsPhredInt(const int & minQual, const int & maxQual);
+	void filterForBaseQuality(TQualityFilter & qualFilter);
 	void filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap);
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
 	void removeSoftClippedBases();

@@ -18,6 +18,9 @@
 //TQualityMap
 //---------------------------------------------------------------
 class TQualityMap{
+private:
+	bool _binQualities;
+
 public:
 	//IMPORTANT NOMENCLATURE
 	//error is error rate between 0 and 1
@@ -60,6 +63,7 @@ public:
 		min = phredToError(minPhredInt);
 
 		//Create map of illumina quality bins
+		_binQualities = false; //whether or not to bin qualities when printing
 		illuminaQualityBins = new uint8_t[sizeQual];
 		for(uint16_t i=0; i<35; ++i)
 			illuminaQualityBins[i] = 33;
@@ -154,6 +158,24 @@ public:
 
 	inline double errorToPhred(const double & errorRate) const{
 		return -10.0 * log10(errorRate);
+	};
+
+	//function used when writing qualities
+	void adjustQualitiesForWriting(std::string & qualities) const{
+		if(_binQualities){
+			for(auto& q : qualities){
+				q = qualityToIlluminaQuality(q);
+			}
+		}
+		if(qualityLimitSet){
+			for(auto& q : qualities){
+				if(q > maxQuality){
+					q = maxQuality;
+				} else if(q < minQuality){
+					q = minQuality;
+				}
+			}
+		}
 	};
 };
 

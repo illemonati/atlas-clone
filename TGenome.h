@@ -44,6 +44,7 @@ protected:
 	TGenotypeMap _genoMap;
 	TQualityMap _qualMap;
 
+
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
 
 public:
@@ -69,25 +70,109 @@ public:
 
 
 //---------------------------------------------------------------
-// TGenome_recalibrated
+// TGenome_parsed
 // A base class with BAM filters and a parsed, recalibrated alignment
 //---------------------------------------------------------------
-class TGenome_recalibrated:public TGenome_filtered{
+class TGenome_parsed:public TGenome_filtered{
 protected:
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
 
+	//reference
+	BAM::TFastaBuffer _reference;
+	void _openReference(bool required = false);
+
+	//read trimming
+	bool _trimReads;
+	int _trimmingLength3Prime;
+	int _trimmingLength5Prime;
+
+	//filters
+	bool _applyQualityFilter;
+	TQualityFilter _qualityFilter;
+	bool _applyContextFilter;
+	std::map<BaseContext,int> _ignoreTheseContexts;
+
+	//functions for initialization
+	void _setReadTrimming(TParameters & params);
+	void _setQualityFilter(TParameters & params);
+	void _setContextFilter(TParameters & params);
+	void _setQualityRangeForPrinting(TParameters & params);
+
+	void _parseAlignment(BAM::TAlignment & alignment);
 	virtual void _traverseBAMPassedQC();
 public:
-	TGenome_recalibrated(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	virtual ~TGenome_recalibrated(){};
+	TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	virtual ~TGenome_parsed(){};
 
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
 
 };
 
+//---------------------------------------------------------------
+// TGenome_windows
+// A base class to traverse a BAM file in windows
+//---------------------------------------------------------------
+class TGenome_windows:public TGenome_parsed{
+protected:
+	BAM::TAlignment* oldAlignment;
+	bool oldAlignmentInitialized;
+	bool oldAlignmentMustBeConsidered;
 
+	//counters
+	bool hasWindowIndent;
 
+	//window params
+	bool windowsPredefined;
+	TBed* predefinedWindows;
+	unsigned int windowSize;
+	unsigned int numWindowsOnChr;
+	unsigned int windowNumber;
+
+	//window limits
+	long limitWindows;
+	int skipWindows;
+
+	//window filters
+	double maxMissing;
+	double maxRefN;
+
+	//masks
+	bool doMasking, considerRegions;
+	BAM::TBedReader* mask;
+
+	//filters
+	bool applyDepthFilter;
+	uint32_t readUpToDepth, minDepth, maxDepth;
+
+	//contructor functions
+	void _setWindowParameters(TParameters & params);
+	void _setParsingLimits(TParameters & params);
+	void _setWindowFilters(TParameters & params);
+	void _setSiteFilters(TParameters & params);
+	void _setMasks(TParameters & params);
+
+	//functions to traverse BAM in windows
+	TWindow window;
+	void _jumpToEnd();
+	void _restartChromosomes(TWindow_base & window);
+	void _moveChromosome(TWindow_base & window);
+	bool _moveToNextWindowOnChr(TWindow_base & window);
+	bool _moveToNextPredefinedWindow(TWindow_base & window);
+	bool _moveWindow(TWindow_base & window);
+	bool _readAlignment();
+	bool _applyFilters();
+	bool _fillAlignment(BAM::TAlignment & alignment);
+	void _readAlignmentsIntoWindow(TWindow & window);
+	void _applyWindowFilters(TWindow_base & window);
+	void _readAlignmentsIntoWindow(TWindow & window);
+
+	void traverseBAM();
+
+public:
+	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+
+};
 
 #endif /* LOCI_H_ */

@@ -778,12 +778,8 @@ void TOutputBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap &
 	//add read group information
 	_tmpBamAlignment.AddTag("RG", "Z", _originalBAM->readGroups.getName(alignment._readGroupID));
 
-	//do we bin quality scores?
-	if(_binQualities){
-		for(auto& q : _tmpBamAlignment.Qualities){
-			q = qualityMap.qualityToIlluminaQuality(q);
-		}
-	}
+	//adjust qualities for printing
+	qualityMap.adjustQualitiesForWriting(_tmpBamAlignment.Qualities);
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment))

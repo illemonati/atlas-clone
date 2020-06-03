@@ -14,7 +14,7 @@
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-TPMDSCalculator::TPMDSCalculator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_recalibrated(Params, Logfile, RandomGenerator){
+TPMDSCalculator::TPMDSCalculator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
 	//get parameters
 	_pi = Params.getParameterDoubleWithDefault("pi", 0.001);
 	_logfile->list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));

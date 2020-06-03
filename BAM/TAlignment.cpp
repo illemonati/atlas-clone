@@ -355,10 +355,10 @@ int TAlignment::measureOverlap(){
 //--------------------------------------------
 //filters and other functions to modify data
 //--------------------------------------------
-void TAlignment::filterForBaseQualityAsPhredInt(const int & minPhredInt, const int & maxPhredInt){
+void TAlignment::filterForBaseQuality(TQualityFilter & qualFilter){
 	//set base to N if outside quality filter
 	for(auto& b : _bases){
-		if(b.recalibratedQualityAsPhredInt < minPhredInt || b.recalibratedQualityAsPhredInt > maxPhredInt){
+		if(!qualFilter.pass(b.recalibratedQualityAsPhredInt)){
 			b.base = N;
 			b.recalibratedQualityAsPhredInt = 0;
 		}

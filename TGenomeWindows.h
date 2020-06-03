@@ -14,7 +14,7 @@
 //---------------------------------------------------------------
 //TGenomeWindows
 //---------------------------------------------------------------
-class TGenomeWindows:public TGenome_recalibrated{
+class TGenomeWindows:public TGenome_parsed{
 private:
 	BAM::TBamFile bamFile;
  	TAlignmentParser alignmentParser;

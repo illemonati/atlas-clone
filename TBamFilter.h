@@ -97,7 +97,7 @@ public:
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-class TBamFilter:public TGenome_recalibrated{
+class TBamFilter:public TGenome_parsed{
 protected:
 	TAlignmentMergerReadGroupSettings _rgSettings;
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
