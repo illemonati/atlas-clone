@@ -160,6 +160,10 @@ public:
 
 	//modify cur alignment
 	void curSetNewReadGroup(const uint16_t id);
+	void curFilterOut();
+	void curAddSamField();
+	void curAddSamField(const std::string tag, const std::string value);
+	void curAddSamField(const std::string tag, const float value);
 
 	//other getters
 	bool isOpen(){ return _open; };
@@ -188,6 +192,7 @@ private:
  	std::string _outputFilename;
  	BamTools::BamWriter _bamWriter;
  	bool _openForWriting;
+ 	bool _binQualities;  //bin quality scores like illumina
 
  	void _writeAlignment(BamTools::BamAlignment & alignment);
 
@@ -197,6 +202,7 @@ public:
  	~TOutputBamFile();
 
 	void open(const std::string filename, TBamFile & original);
+	void binQualityScoresLikeIllumina(){ _binQualities = true; };
 	void close(TLog* logfile);
 	void closeNoIndex();
 	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);

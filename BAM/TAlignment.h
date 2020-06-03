@@ -112,6 +112,7 @@ public:
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
 	bool isPaired() const{ return _flags.isPaired(); };
 	bool isProperPair() const{ return _flags.isProperPair(); };
+	bool isParsed() const{ return _parsed; };
 
 	double calculatePMDS(const double pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator, const TGenotypeMap & genoMap);
 	int measureOverlap();

@@ -108,7 +108,7 @@ void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & quality
 	}
 
 	_parsed = true;
-	_changed = false;
+	_sequenceAndQualitiesChanged = false;
 };
 
 
@@ -117,7 +117,7 @@ void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & quality
 
 	//recalibrate
 	seqErrorModels.recalibrate(_bases);
-	_changed = seqErrorModels.recalibrationChangesQualities();
+	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
 void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap){

@@ -110,8 +110,12 @@ public:
 	};
 
 	//to illumina error
-	double phredIntToIlluminaError(uint8_t phredInt) const{
-		return phredIntToError(illuminaQualityBins[phredInt + 33]);
+	uint8_t phredIntToIlluminaPhredInt(const uint8_t phredInt) const{
+		return illuminaQualityBins[phredInt + 33] - 33;
+	};
+
+	char qualityToIlluminaQuality(char quality) const{
+		return illuminaQualityBins[quality];
 	};
 
 	//to quality

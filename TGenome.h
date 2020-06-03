@@ -24,10 +24,10 @@
 #include "counters.h"
 
 #include "TRecalibration.h"
-#include "TAlignmentMerger.h"
 #include "TAllelicDepthCounts.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
+#include "TBamFilter.h"
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -36,6 +36,7 @@
 class TGenome_basic{
 protected:
 	TLog* _logfile;
+	TParameters* _params;
 	BAM::TBamFile _bamFile;
 	TRandomGenerator* _randomGenerator;
 	std::string _outputName;
@@ -43,8 +44,11 @@ protected:
 	TGenotypeMap _genoMap;
 	TQualityMap _qualMap;
 
+	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
+
 public:
 	TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	virtual ~TGenome_basic(){};
 
 	void mergeReadGroups(TParameters & params);
 };
@@ -55,6 +59,10 @@ public:
 //---------------------------------------------------------------
 class TGenome_filtered:public TGenome_basic{
 protected:
+
+	virtual void _traverseBAMPassedQC();
+	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_filtered!"; };
+
 public:
 	TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
@@ -67,17 +75,12 @@ public:
 class TGenome_recalibrated:public TGenome_filtered{
 protected:
 	BAM::TAlignment _alignment;
-	TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
+	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
 
-	void _traverseBAMPassedQC();
-	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_recalibrated!"; };
-
+	virtual void _traverseBAMPassedQC();
 public:
 	TGenome_recalibrated(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TGenome_recalibrated(){};
-
-	void printQualityDistribution(TParameters & params);
-	void printQualityTransformation(TParameters & params);
 
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);

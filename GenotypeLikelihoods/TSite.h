@@ -64,7 +64,6 @@ public:
 	void countAllelesForImbalance(TAllelicDepthCounts & counts);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
-	void contextStats(int** contextCounts, TQualityMap & qualMap);
 	void printPileup(TOutputFileZipped & out);
 
 	//MLE Callers

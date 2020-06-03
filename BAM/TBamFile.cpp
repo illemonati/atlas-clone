@@ -591,14 +591,34 @@ uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 	return counter;
 };
 
+std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t length) const{
+	return _curBamAlignment.QueryBases.substr(start, length);
+};
+
 void TBamFile::curSetNewReadGroup(const uint16_t id){
 	if(id != _curReadGroupID){
 		_curBamAlignment.EditTag("RG", "Z", readGroups.getName(id));
 	}
 };
 
-std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t length) const{
-	return _curBamAlignment.QueryBases.substr(start, length);
+void TBamFile::curFilterOut(){
+	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand());
+};
+
+void TBamFile::curAddSamField(const std::string tag, const std::string value){
+	if(_curBamAlignment.HasTag(tag)){
+		_curBamAlignment.EditTag(tag, "Z", value);
+	} else {
+		_curBamAlignment.AddTag(tag, "Z", value);
+	}
+};
+
+void TBamFile::curAddSamField(const std::string tag, const float value){
+	if(_curBamAlignment.HasTag(tag)){
+		_curBamAlignment.EditTag(tag, "f", value);
+	} else {
+		_curBamAlignment.AddTag(tag, "f", value);
+	}
 };
 
 //-----------------------------------------------------
@@ -668,10 +688,10 @@ void TBamFile::printEndNoEndIndent(){
 //-----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
-
 TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_originalBAM = nullptr;
+	_binQualities = false;
 };
 
 TOutputBamFile::TOutputBamFile(const std::string filename, TBamFile & original){
@@ -757,6 +777,13 @@ void TOutputBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap &
 
 	//add read group information
 	_tmpBamAlignment.AddTag("RG", "Z", _originalBAM->readGroups.getName(alignment._readGroupID));
+
+	//do we bin quality scores?
+	if(_binQualities){
+		for(auto& q : _tmpBamAlignment.Qualities){
+			q = qualityMap.qualityToIlluminaQuality(q);
+		}
+	}
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment))

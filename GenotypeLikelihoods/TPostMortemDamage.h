@@ -48,24 +48,27 @@ public:
 	void writeTable(std::ofstream & out, std::string prefix);
 	void writeTableWithCounts(std::ofstream & out, std::string prefix);
 	std::string getPMDString(const Base first, const Base second);
-//	std::string getPMDStringCT();
-//	std::string getPMDStringGA();
 	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, int maxReadLength, TLog* logfile);
 };
 
 class TPMDTables{
-public:
-	BAM::TReadGroupMap& readGroupMap;
-	BAM::TReadGroups& readGroups;
+private:
+	BAM::TReadGroupMap* readGroupMap;
+	BAM::TReadGroups* readGroups;
 	int maxReadLength;
 	int origNumReadGroups;
 	int numReadGroups;
 	TPMDTable** forward;
 	TPMDTable** reverse;
+	bool _initialized;
 
-	TPMDTables(BAM::TReadGroups& ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap & ReadGroupMapObject);
+public:
+	TPMDTables();
+	TPMDTables(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
 	~TPMDTables();
-//	void initializeReadGroupMap(BamTools::SamHeader* bamHeader, TParameters & params, TLog* logfile);
+
+	void initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
+
 	void addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
 	void addFromThreePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
 	void writePMDFile(std::string filename);

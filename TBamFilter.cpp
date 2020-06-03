@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TAlignmentMerger.h"
+#include "TBamFilter.h"
 
 namespace AlignmentSplitMerge{
 
@@ -275,7 +275,7 @@ void TAlignmentStorage::clear(){
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
+TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_recalibrated(Params, Logfile, RandomGenerator){
 	//max distance between mates
 	_maxDistanceBetweenMates = Params.getParameterIntWithDefault("acceptedDistance", 2000);
 	_logfile->list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
@@ -289,14 +289,32 @@ TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* Ra
 		_logfile->list("Will filter out orphaned reads (use 'keepOrphans' to keep them).");
 	}
 
+	//recalibrate BAM?
+	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() || Params.parameterExists("incorporatePMD")){
+		_recalibrate = true;
+		_logfile->list("Will write recalibrated quality scores.");
+		if(Params.parameterExists("incorporatePMD")){
+			_logfile->list("Probability of PMD will be reflected in new quality scores. (paramer 'incorporatePMD')");
+			_incorporatePMD = true;
+			if(!_genotypeLikelihoodCalculator.hasPMD()){
+				throw "No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.";
+			}
+		} else {
+			_incorporatePMD = false;
+			_logfile->list("PMD will not be reflected in the quality scores. (recommended option. Use 'incorporatePMD' to overrule)");
+		}
+	} else {
+		_logfile->list("Will write original quality scores. (provide recalibration parameters to update quality scores)");
+		_recalibrate = false;
+		_incorporatePMD = false;
+	}
+
 	//set all read groups to unchanged
 	_rgSettings.setAllAsUnchanged(_bamFile.readGroups);
 };
 
 void TBamFilter::_openBamFileForWriting(){
-	std::string filename = _outputName + "_filtered.bam";
-	_logfile->list("Writing filtered BAM to file '" + filename + "'.");
-	_outBam.open(filename, _bamFile);
+	TGenome_basic::_openBamForWriting(_outputName + "_filtered.bam", _outBam);
 };
 
 void TBamFilter::_writeAlignment(TAlignmentInStorage & it){
@@ -341,6 +359,20 @@ void TBamFilter::_writeUpTo(const int position){
 	}
 };
 
+BAM::TAlignment* TBamFilter::_parseIntoNewAlignment(){
+	BAM::TAlignment* alignment = new BAM::TAlignment;
+	_bamFile.fill(*alignment);
+	if(_recalibrate){
+		if(_incorporatePMD){
+			alignment->parse(_genoMap, _qualMap);
+			alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
+		} else {
+			alignment->parse(_genoMap, _qualMap, _genotypeLikelihoodCalculator.getSequencingErrorModels());
+		}
+	}
+	return alignment;
+};
+
 void TBamFilter::_handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate){
 	if(!alignment->isProperPair()){
 		//not a proper pair: mark mate as as improper
@@ -377,12 +409,11 @@ void TBamFilter::traverseBAM(){
 		//check if read passed filters
 		if(_bamFile.curPassedQC()){
 			//if single end, unchanged and storage is empty: write directly
-			if(!_bamFile.curIsPaired() && _alignmentStorage.empty() && _rgSettings.getType(_bamFile.curReadGroupID())==unchanged){
+			if(!_recalibrate && !_bamFile.curIsPaired() && _alignmentStorage.empty() && _rgSettings.getType(_bamFile.curReadGroupID())==unchanged){
 				_bamFile.writeCurAlignment(_outBam);
 			} else {
 				//parse alignment
-				BAM::TAlignment* alignment;
-				_bamFile.fill(*alignment);
+				BAM::TAlignment* alignment = _parseIntoNewAlignment();
 
 				//if read is paired, check for mate
 				if(alignment->isPaired()){
@@ -611,19 +642,10 @@ void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog* Logfil
 	} else {
 		throw "Unknown merging method " + method + "! Use 'none', 'randomRead', 'randomBase' and 'highestQuality'.";
 	}
-
-
-	//use recalibrated quality scores for mergin?
-	genotypeLikelihoodCalculator.init(Params, &_bamFile.readGroups, _logfile);
-	if(genotypeLikelihoodCalculator.hasPMD()){
-		_logfile->warning("PMD is given but not relevant for read merging.");
-	}
 };
 
 void TAlignmentSplitMerger::_openBamFileForWriting(){
-	std::string filename = _outputName + "_splitMerged.bam";
-	_logfile->list("Writing splitted / merged BAM to file '" + filename + "'.");
-	_outBam.open(filename, _bamFile);
+	TGenome_basic::_openBamForWriting(_outputName + "_splitMerged.bam", _outBam);
 };
 
 void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate){
@@ -635,9 +657,14 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
 	} else if(type == paired || type == mixed){
-		//attempt merging: need to parse
-		alignment->parse(_genoMap, _qualMap, genotypeLikelihoodCalculator._sequencingErrorModels);
-		mate->alignment->parse(_genoMap, _qualMap, genotypeLikelihoodCalculator.getSequencingErrorModels());
+		//attempt merging: make sure alignments are parsed
+		//Note: if we recalibrate, they were already parsed
+		if(!alignment->isParsed()){
+			alignment->parse(_genoMap, _qualMap);
+		}
+		if(!mate->alignment->isParsed()){
+			mate->alignment->parse(_genoMap, _qualMap);
+		}
 
 		uint16_t overlap = _merger->merge(*alignment, *mate->alignment, _qualMap);
 		if(overlap > 0){
@@ -664,11 +691,6 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 		} else if(alignment->parsedLength() >= settings.maxCycles - _considerAtMaxUpToDist){
 			//add to truncated read group
 			alignment->setReadGroup(settings.altReadGroupId);
-		}
-
-		//recalibrate in case of mixed
-		if(settings.type == mixed && genotypeLikelihoodCalculator.recalibrationChangesQualities()){
-			alignment->parse(_genoMap, _qualMap, genotypeLikelihoodCalculator.getSequencingErrorModels());
 		}
 
 		//add as ready for writing

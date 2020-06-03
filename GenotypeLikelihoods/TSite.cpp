@@ -103,14 +103,6 @@ void TSite::countFwdRev(int* frCounts){
 		++frCounts[it->isReverseStrand()];
 };
 
-void TSite::contextStats(int** contextCounts, TQualityMap & qualMap){
-	for(TBaseOld* it : bases){
-		int q = qualMap.errorToPhredInt(it->errorRate);
-		int c = it->data.context;
-		++contextCounts[q][c];
-	}
-};
-
 void TSite::printPileup(TOutputFileZipped & out){
 	out << referenceBase;
 	out << depth() << refDepth();

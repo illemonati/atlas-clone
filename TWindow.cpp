@@ -391,12 +391,6 @@ void TWindow_base::writeNonConservedBed(std::ofstream & output){
 	}
 };
 
-void TWindow_base::contextStats(int** contextCounts, TQualityMap & qualMap){
-	for(unsigned int i=0; i<length; ++i){
-		sites[i].contextStats(contextCounts, qualMap);
-	}
-};
-
 void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(unsigned int i=0; i<length; ++i){
 		if(sites[i].hasData){

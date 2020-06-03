@@ -14,6 +14,7 @@
 //---------------------------------------------------------------
 TGenome_basic::TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator){
 	_logfile = Logfile;
+	_params = &Params;
 	_randomGenerator = RandomGenerator;
 
 	//open bam file
@@ -31,8 +32,20 @@ TGenome_basic::TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerat
 	_logfile->list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
 };
 
+void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam){
+	_logfile->list("Writing alignments to new BAM to file '" + filename + "'.");
+	outBam.open(filename, _bamFile);
+	if(_params->parameterExists("writeBinnedQualities")){
+		_logfile->list("When writing alignments, quality scores will be Illumina-binned. (parameter 'writeBinnedQualities').");
+		outBam.binQualityScoresLikeIllumina();
+	} else {
+		_logfile->list("Will use the full range of quality scores when writing alignments. (use 'writeBinnedQualities' to bin).");
+	}
+};
+
+//TODO: move to its own class
 void TGenome_basic::mergeReadGroups(TParameters & params){
-	//get reference to declustter coe
+	//get reference to declutter code
 	BAM::TReadGroups& readGroups = _bamFile.readGroups;
 
 	//read read groups to be merged
@@ -99,9 +112,8 @@ void TGenome_basic::mergeReadGroups(TParameters & params){
 	}
 
 	//open a bam file for writing
-	filename = _outputName + "_mergedRG.bam";
-	_logfile->list("Writing new BAM file with merged read groups to file '" + filename + "'.");
-	BAM::TOutputBamFile outBam(filename, _bamFile);
+	BAM::TOutputBamFile outBam;
+	_openBamForWriting(_outputName + "_mergedRG.bam", outBam);
 
 	//now parse through bam file and write alignments
 	_bamFile.startProgressReporting();
@@ -118,6 +130,8 @@ void TGenome_basic::mergeReadGroups(TParameters & params){
 	outBam.close(_logfile);
 };
 
+
+
 //---------------------------------------------------------------
 // TGenome_filtered
 // A base class without genotype likelihoods but BAM filters enabled
@@ -125,6 +139,22 @@ void TGenome_basic::mergeReadGroups(TParameters & params){
 TGenome_filtered::TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
 	_bamFile.setFilters(Params, _logfile);
 };
+
+void TGenome_recalibrated::_traverseBAMPassedQC(){
+	//parse through bam file
+	_bamFile.startProgressReporting();
+	while(_bamFile.readNextAlignmentThatPassesFilters()){
+		//handle alignment by derived classes
+		_handleAlignment();
+
+		//report
+		_bamFile.printProgress();
+	}
+
+	//report
+	_bamFile.printEndWithSummary();
+};
+
 
 //---------------------------------------------------------------
 // TGenome_recalibrated
@@ -152,6 +182,27 @@ void TGenome_recalibrated::_traverseBAMPassedQC(){
 	//report
 	_bamFile.printEndWithSummary();
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -873,103 +924,6 @@ void TGenomeWindows::calculateLikelihoodErrorCalibrationEM(TParameters & params)
 //BAM manipulation / statistics
 //---------------------------------------------------
 
-void TGenomeWindows::recalibrateBamFile(TParameters & params){
-	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
-	alignmentParser.setParsingToTrue();
-
-	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
-	std::string filename = _outputName + "_recalibrated.bam";
-	BamTools::RefVector references = bamFile.bamReader.GetReferenceData();
-	_logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
-
-	//do we also account for PMD?
-	bool withPMD = params.parameterExists("withPMD");
-	if(!withPMD && alignmentParser.hasPMD) _logfile->list("Note: PMD will not be reflected in the quality scores (preferred option when using ATLAS). If you want the quality scores to reflect pmd, use \"withPMD\"!");
-	else if(withPMD && alignmentParser.hasPMD) _logfile->list("Probability of PMD will be reflected in new quality scores");
-	else if(withPMD && !alignmentParser.hasPMD) throw "Probability of PMD is unknown. Provide PMD patterns or remove \"withPMD\"";
-	if(withPMD && !alignmentParser.hasReference) throw "Cannot run recalBAM withPMD without reference!";
-
-//	//should we include reads that don't pass filter?
-//	bool allReads = false;
-//	if(params.parameterExists("allReads")) allReads = true;
-
-	//other tmp variables
-	long counter = 0;
-
-	//prepare reporting
-	TBamProgressReporter reporter(&alignmentParser, _logfile);
-
-    //now parse through bam file and write alignments
-	if(withPMD){
-		while(alignmentParser.readNextAlignment(alignment)){
-			++counter;
-			alignment.recalibrateWithPMD();
-			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
-			reporter.printProgress();
-        }
-	} else {
-		while(alignmentParser.readNextAlignment(alignment)){
-			++counter;
-			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
-			reporter.printProgress();
-		}
-	}
-
-	//close bam writer
-	bamWriter.Close();
-
-	//report
-	reporter.printEnd();
-
-	//create index of new bam file
-	indexBamFile(filename);
-}
-
-void TGenomeWindows::binQualityScores(TParameters & params){
-	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
-	std::string filename = _outputName + "_binnedQualityScores.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
-	_logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
-
-	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
-	alignmentParser.setParsingToTrue();
-
-	//other temp variables
-	TGenotypeMap genoMap;
-	TQualityMap qualMap;
-	long counter = 0;
-
-	//prepare reporting
-	TBamProgressReporter reporter(&alignmentParser, _logfile);
-
-    //now parse through bam file and write alignments
-	while(alignmentParser.readNextAlignment(alignment)){
-		++counter;
-
-		//update and write (only if alignment qualities could be calculated)
-		alignment.binQualityScores(qualMap);
-		alignment.save(bamWriter, genoMap, qualMap);
-
-		//report
-		reporter.printProgress();
-	}
-
-	//close bam writer
-	bamWriter.Close();
-
-	//report
-	reporter.printEnd();
-}
-
-
 void TGenomeWindows::allelicDepth(TParameters & params){
 	//allocate table
 	//std::cout << "maxDepth " << alignmentParser.getMaxDepth() << std::endl;
@@ -1121,179 +1075,7 @@ void TGenomeWindows::writeDepthPerSite(TParameters & params){
 	out.close();
 };
 
-void TGenomeWindows::estimateDuplicationCounts(TParameters & params){
-	//assembles distribution of how often a read is duplicated
-	//now: just how many reads start at the same positions
 
-	//initialize alignment reading
-	TAlignment alignment(bamFile.maxReadLength());
-
-	//create storage
-	int maxCounts = params.getParameterIntWithDefault("maxCount", 20);
-	TDistributionOfCounts counts(maxCounts, "readStarts");
-
-	//iterate through windows
-	int curChrLength = 0;
-	unsigned int curPos = 0;
-	int countsAtPos = 0;
-
-	while (alignmentParser.readNextAlignment(alignment)){
-		if(alignmentParser.chrChangedAlignment){
-			//add last pos with data
-			if(curChrLength > 0){
-				counts.add(countsAtPos);
-				countsAtPos = 0;
-
-				//add all positions until chromosome end to structure
-				counts.add(0, curChrLength - curPos);
-			}
-
-			curChrLength = alignmentParser.getCurChrLength();
-			curPos = 0;
-		}
-
-		if(alignment.getPosition() > curPos){
-			//add last pos with data
-			counts.add(countsAtPos);
-
-			//add zero for all positions until here
-			counts.add(0, alignment.getPosition() - curPos);
-
-			//set counts at current position
-			curPos = alignment.getPosition();
-			countsAtPos = 1;
-		} else if(alignment.getPosition() == curPos){
-			++countsAtPos;
-		} else
-			throw "Bam file is not sorted!";
-	}
-
-	//write output
-	std::string filename = _outputName + "_readStartsPerSite.txt";
-	_logfile->listFlush("Writing distribution of read starts per site to '" + filename + "' ...");
-	counts.writeCounts(filename);
-	_logfile->done();
-};
-
-//---------------------------------------------------
-//PMD
-//---------------------------------------------------
-void TGenomeWindows::estimatePMD(TParameters & params){
-	//make sure FASTA is open
-	if(!alignmentParser.hasReference) throw "Can not estimate PMD without a provided FASTA reference!";
-
-	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
-
-	//prepare maps
-	TReadGroupMap readGroupMap(&alignmentParser.readGroups, params.getParameterString("poolReadGroups", false), _logfile);
-	TGenotypeMap genoMap;
-
-	//prepare PMD table
-	int maxLengthForInference = params.getParameterIntWithDefault("length", 50);
-	_logfile->list("Estimating PMD at the first " + toString(maxLengthForInference) + " positions.");
-	GenotypeLikelihoods::TPMDTables pmdTables(alignmentParser.readGroups, maxLengthForInference, maxReadLength, readGroupMap);
-
-	//measure progress and runtime
-	TBamProgressReporter reporter(&alignmentParser, _logfile);
-
-	//iterate through BAM file
-	while(alignmentParser.readNextAlignment(alignment)){
-		//alignment is only filled if filters are passed
-		alignment.addToPMDTables(pmdTables, genoMap);
-
-		//report
-		reporter.printProgress();
-	}
-	//report
-	reporter.printEnd();
-
-	//print tables and data
-	std::string filename = _outputName + "_PMD_Table.txt";
-	_logfile->listFlush("Writing PMD table to '" + filename + "' ...");
-	pmdTables.writeTable(filename);
-	_logfile->done();
-	filename = _outputName + "_PMD_Table_counts.txt";
-	_logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
-	pmdTables.writeTableWithCounts(filename);
-	_logfile->done();
-	filename = _outputName + "_PMD_input_Empiric.txt";
-	_logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
-	pmdTables.writePMDFile(filename);
-	_logfile->done();
-
-	//estimate exponential model
-	if(!params.parameterExists("onlyEmpiric")){
-		filename = _outputName + "_PMD_input_Exponential.txt";
-		_logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
-		int numNRIterations = params.getParameterIntWithDefault("numNRIterations", 100);
-		double eps = params.getParameterDoubleWithDefault("eps", 0.001);
-		pmdTables.fitExponentialModel(numNRIterations, eps, filename, _logfile);
-		_logfile->done();
-	} else {
-		_logfile->list("Not fitting exponential model due to user specification (parameter 'onlyEmpiric')");
-	}
-};
-
-void TGenomeWindows::runPMDS(TParameters & params){
-	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
-	//write new bam file with PMDS score added
-	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
-
-	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
-
-	if(!alignmentParser.hasReference) throw "Cannot run PMDS without reference!";
-
-	//get parameters
-	double pi = params.getParameterDoubleWithDefault("pi", 0.001);
-	_logfile->list("Running PMDS with rate of polymorphism (pi) = " + toString(pi));
-	double minPMDS = params.getParameterDoubleWithDefault("minPMDS", -10000);
-	double maxPMDS = params.getParameterDoubleWithDefault("maxPMDS", 10000);
-	_logfile->list("Filtering out reads with " + toString(minPMDS) + " > PMDS > " + toString(maxPMDS));
-
-	//other tmp
-	TQualityMap qualMap;
-	TGenotypeMap genoMap;
-
-	//open a bam file for writing
-	BamTools::BamWriter bamWriter;
-	std::string filename = _outputName + "_PMDS.bam";
-	BamTools::RefVector references = alignmentParser.bamReader.GetReferenceData();
-	_logfile->list("Writing results to '" + filename + "'.");
-	if (!bamWriter.Open(filename, alignmentParser.bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
-
-	//measure progress and runtime
-	TBamProgressReporter reporter(&alignmentParser, _logfile);
-	long numKept = 0;
-
-	//now parse through bam file and write alignments
-	while(alignmentParser.readNextAlignment(alignment)){
-		//calc PMD
-		double PMDS = alignment.calculatePMDS(pi, alignmentParser.pmdObjects);
-
-		//update and write
-		if(PMDS > minPMDS && PMDS < maxPMDS){
-			alignment.updateOptionalSamField("DS", PMDS);
-			alignment.save(bamWriter, alignmentParser.genoMap, alignmentParser.qualMap);
-			++numKept;
-		}
-
-		//report progress
-		reporter.printProgress();
-	}
-
-	//close bam writer
-	bamWriter.Close();
-
-	//report
-	reporter.printEndNoEndIndent();
-	_logfile->conclude("Kept " + toString(numKept) + " reads");
-	_logfile->endIndent();
-};
 
 void TGenomeWindows::printMateInformationPerSite(TParameters & params){
 	//open output file
@@ -1318,26 +1100,6 @@ void TGenomeWindows::printMateInformationPerSite(TParameters & params){
 	//clean up
 	out.close();
 };
-
-void TGenomeWindows::contextStats(TParameters & params){
-	//prepare table
-	TContextStats table(alignmentParser.maxQualityAsPhredInt);
-
-	//initialize alignment reading
-	TAlignment alignment(maxReadLength);
-	alignmentParser.setParsingToTrue();
-
-	//now parse through bam file and write alignments
-	while(alignmentParser.readNextAlignment(alignment)){
-
-
-	}
-
-	std::string outputFileName = _outputName + "_contextInformation.txt.gz";
-		_logfile->list("Writing context information to file '" + outputFileName + "'.");
-
-
-    }
 
 
 

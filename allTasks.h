@@ -24,7 +24,7 @@
 #include "TVCFCompare.h"
 #include "TPolymorhicWindowIdentifier.h"
 #include "TBamDiagnoser.h"
-#include "TAlignmentMerger.h"
+#include "TBamFilter.h"
 #include "TGenomeWindows.h"
 
 //---------------------------------------------------------------------------

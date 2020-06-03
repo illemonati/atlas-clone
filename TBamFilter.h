@@ -5,8 +5,8 @@
  *      Author: wegmannd
  */
 
-#ifndef TALIGNMENTMERGER_H_
-#define TALIGNMENTMERGER_H_
+#ifndef TBAMFILTER_H_
+#define TBAMFILTER_H_
 
 #include "TReadList.h"
 #include "TGenome.h"
@@ -97,7 +97,7 @@ public:
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-class TBamFilter:public TGenome_filtered{
+class TBamFilter:public TGenome_recalibrated{
 protected:
 	TAlignmentMergerReadGroupSettings _rgSettings;
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
@@ -106,6 +106,8 @@ protected:
 	BAM::TOutputBamFile _outBam;
 
 	uint32_t _maxDistanceBetweenMates;
+	bool _recalibrate;
+	bool _incorporatePMD;
 	bool _keepOrphans;
 
 	virtual void _openBamFileForWriting();
@@ -114,6 +116,7 @@ protected:
 	void _writeAll();
 	void _writeUpTo(const int position);
 
+	BAM::TAlignment* _parseIntoNewAlignment();
 	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
 	virtual void _handleSingle(BAM::TAlignment* alignment);
 
@@ -182,8 +185,6 @@ private:
 	uint8_t _considerAtMaxUpToDist;
 	bool _allowForLarger;
 
-	TGenotypeLikelihoodCalculator genotypeLikelihoodCalculator;
-
 	void _initializeMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void _openBamFileForWriting();
 	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
@@ -209,4 +210,4 @@ public:
 
 }; //end namespace
 
-#endif /* TALIGNMENTMERGER_H_ */
+#endif /* TBAMFILTER_H_ */
