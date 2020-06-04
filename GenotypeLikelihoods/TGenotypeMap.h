@@ -247,6 +247,10 @@ public:
 		return N;
 	};
 
+	uint16_t getNumGenotypes() const{
+		return numGenotypes;
+	};
+
 	Genotype getGenotype(Base first, Base second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
@@ -264,7 +268,7 @@ public:
 		else return genotypeMap[Bsecond][Bfirst];
 	};
 
-	std::string getGenotypeString(int num) const{
+	std::string getGenotypeString(uint16_t num) const{
 		if(num==0) return "AA";
 		if(num==1) return "AC";
 		if(num==2) return "AG";

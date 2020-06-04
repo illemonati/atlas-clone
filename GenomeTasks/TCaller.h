@@ -8,13 +8,10 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
-#include "TQualityMap.h"
-#include "TRandomGenerator.h"
 #include "gzstream.h"
-#include "TSite.h"
 #include "Vcf/TVCFFields.h"
-#include "TLog.h"
 #include "TGenotypeData.h"
+#include "TGenome.h"
 
 using namespace GenotypeLikelihoods;
 
@@ -102,6 +99,8 @@ public:
 	TCaller(TRandomGenerator* RandomGenerator);
 	virtual ~TCaller();
 
+	std::string name() const{ return callerName; };
+
 	//set which fields to print
 	void printInfoFields(std::vector<std::string> & tags);
 	void printInfoFields(std::string tags);
@@ -109,15 +108,12 @@ public:
 	void printGenotypeFields(std::string tags);
 
 	//open / close vcf file
-	void openVCF(const std::string Filename, const std::string sampleName);
+	void openVCF(const std::string Filename, const std::string sampleName, TLog* logfile);
 	void closeVCF();
 
 	//other output options
-	void setPrintSitesWithNoData(bool print){ _printSitesWithNoData = print; };
-	void setPrintAltIfHomoRef(bool print){ _printAltIfHomoRef = print; };
-	void setAllowTriallelic(bool allowTriallelic){ _allowTriallelicSites = allowTriallelic; };
+	void initializeOutput(TParameters & Params, TLog* Logfile);
 	bool printSitesWithNoData(){ return _printSitesWithNoData; };
-	void reportSettings(TLog* logfile);
 
 	//prior
 	bool usesPrior(){ return _usesPrior; };
@@ -125,8 +121,6 @@ public:
 	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele);
 };
-
-
 
 //------------------------------------------------------
 // TCallerRandomBase
@@ -180,6 +174,7 @@ protected:
 	std::string AB, AI;
 	bool imbalanceCalculated;
 	TGenotypeData tmpGenoData;
+	TBinomPValue _binomP;
 
 	void clearAfterCall();
 	void callGenotypeFromMetric(TGenotypeData & metric);
@@ -224,6 +219,27 @@ private:
 
 public:
 	TCallerBayes(TRandomGenerator* RandomGenerator);
+};
+
+//------------------------------------------------------
+// TCall
+// the class to perform calls based on windows
+//------------------------------------------------------
+class TCall:public TGenome_windows{
+private:
+	TCaller* _caller;
+	TGenotypePrior* _prior;
+	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
+
+	void _initializeGenotypePrior(TParameters & Params);
+	void _call();
+	void _callKnwonAlleles();
+	void _handleWindow();
+
+public:
+	TCall(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	~TCall();
+	void call();
 };
 
 #endif /* TCALLER_H_ */

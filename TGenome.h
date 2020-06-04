@@ -8,22 +8,20 @@
 #ifndef LOCI_H_
 #define LOCI_H_
 
-#include <TGenotypeData.h>
 
-#include "TWindow.h"
-#include "gzstream.h"
-#include "bamtools/api/BamWriter.h"
-#include "TLog.h"
-#include "TBed.h"
-#include "TAlignmentParser.h"
-#include "TQualityMap.h"
-#include "TReadList.h"
 #include <typeinfo>
 #include <map>
 #include <algorithm>
-#include "counters.h"
 
-#include "TRecalibration.h"
+
+#include "TGenotypeData.h"
+#include "TWindow.h"
+#include "gzstream.h"
+#include "TLog.h"
+#include "TBed.h"
+#include "TQualityMap.h"
+#include "TReadList.h"
+
 #include "TAllelicDepthCounts.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
@@ -44,7 +42,6 @@ protected:
 
 	TGenotypeMap _genoMap;
 	TQualityMap _qualMap;
-
 
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
 
@@ -101,7 +98,7 @@ protected:
 	void _setQualityRangeForPrinting(TParameters & params);
 
 	void _parseAlignment(BAM::TAlignment & alignment);
-	virtual void _traverseBAMPassedQC();
+	void _traverseBAMPassedQC();
 public:
 	TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TGenome_parsed(){};
@@ -117,42 +114,41 @@ public:
 //---------------------------------------------------------------
 class TGenome_windows:public TGenome_parsed{
 protected:
-	BAM::TAlignment* oldAlignment;
-	bool oldAlignmentInitialized;
-	bool oldAlignmentMustBeConsidered;
-
 	BAM::TChromosomes& _chromosomes;
 
-	//counters
-	bool hasWindowIndent;
-
 	//window params
-	bool windowsPredefined;
-	TBed* predefinedWindows;
-	unsigned int windowSize;
-	unsigned int numWindowsOnChr;
-	unsigned int windowNumber;
-	bool chrChangedWindow;
+	bool _windowsPredefined;
+	TBed* _predefinedWindows;
+	unsigned int _windowSize;
+	unsigned int _numWindowsOnChr;
+	unsigned int _windowNumber;
+	bool _chrChangedWindow;
 
 	//window limits
-	long limitWindows;
-	int skipWindows;
+	long _limitWindows;
+	int _skipWindows;
 
 	//window filters
-	double maxMissing;
-	double maxRefN;
+	double _maxMissing;
+	double _maxRefN;
 
 	//mask
-	bool doMasking, considerRegions;
-	BAM::TBedReader* mask;
+	bool _doMasking, _considerRegions;
+	BAM::TBedReader* _mask;
 
 	//sites
-	bool sitesProvided;
-	TSiteSubset* subset;
+	std::unique_ptr<TSiteSubset> _subset;
 
 	//filters
-	bool applyDepthFilter;
-	uint32_t readUpToDepth, minDepth, maxDepth;
+	bool _applyDepthFilter;
+	uint32_t _readUpToDepth, _minDepth, _maxDepth;
+
+	//tmp variables
+	BAM::TAlignment* _oldAlignment;
+	bool _oldAlignmentInitialized;
+	bool _oldAlignmentMustBeConsidered;
+	bool _hasWindowIndent;
+	TTimer _windowTimer;
 
 	//contructor functions
 	void _setWindowParameters(TParameters & params);
@@ -160,9 +156,10 @@ protected:
 	void _setWindowFilters(TParameters & params);
 	void _setSiteFilters(TParameters & params);
 	void _setMasks(TParameters & params);
+	void _openSiteSubset(const std::string filename);
 
 	//functions to traverse BAM in windows
-	TWindow window;
+	TWindow _window;
 	void _jumpToEnd();
 	void _restartChromosomes(TWindow_base & window);
 	void _moveChromosome(TWindow_base & window);
@@ -177,7 +174,8 @@ protected:
 	bool _readDataInNextWindow(TWindow & window);
 	void _readAlignmentsIntoWindow(TWindow & window);
 
-	void traverseBAM();
+	void _traverseBAMWindows();
+	virtual void _handleWindow(){ throw "_handleWindow() not implemented for base class TGenome_windows!"; };
 
 public:
 	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);

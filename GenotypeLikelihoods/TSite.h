@@ -57,22 +57,12 @@ public:
 	uint32_t depth();
 	uint32_t refDepth();
 	void addToBaseFrequencies(TBaseFrequencies & frequencies);
-	void calculateP_g(double* genotypeProbabilities, double* P_g);
-	std::string getBases(TGenotypeMap & genoMap);
+	std::string getBases(const TGenotypeMap & genoMap);
 
-	void countAlleles(int* alleleCounts) const;
+	void countAlleles(GenotypeLikelihoods::TBaseData & alleleCounts) const;
 	void countAllelesForImbalance(TAllelicDepthCounts & counts);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
-	void printPileup(TOutputFile & out);
-
-	//MLE Callers
-	void calculateDiploidPhredScaledGenotypeLikelihoods(double* phredGLs);
-	void calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, double & quality, double & maxGenotypeProb, int & MLGenotype);
-	void findSecondMostLikelyGenotype(TRandomGenerator & randomGenerator, double* emissionProbabilitiesPhredScaled, TGenotypeMap & genoMap, int MLGenotype, std::string & genoSecond);
-	void findSecondMostProbableGenotype(TRandomGenerator & randomGenerator, double* postProb, TGenotypeMap & genoMap, int MAPGenotype, std::string & genoSecond);
-	double calculatePHomozygous(double* pGenotype);
-
 };
 
 #endif /* TSITE_H_ */

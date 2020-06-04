@@ -132,7 +132,7 @@ public:
 		thetaEstimator->fillPGenotype(genotypePrior);
 
 		//write results to file
-		out.write(window->chrName, window->start, window->end);
+		out.write(window->_chrName, window->startPos, window->endPos);
 		logfile->endIndent();
 	};
 };

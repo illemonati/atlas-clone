@@ -94,7 +94,6 @@ private:
 	void _readFile(BAM::TFastaBuffer & reference, BAM::TChromosomes & Chromosomes, TLog* logfile);
 
 public:
-
 	TSiteSubset(std::string Filename, uint32_t & WindowSize, TLog* logfile, bool InvariantSites);
 	TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, BAM::TFastaBuffer & reference, BAM::TChromosomes & chromosomes);
 	void setChr(const std::string chr);

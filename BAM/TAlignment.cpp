@@ -283,6 +283,14 @@ uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
 	return _position + _alignedPosition[internalPosition];
 };
 
+uint16_t TAlignment::parsedLength() const{
+	if(_parsed){
+		return _cigar.lengthSequenced();
+	} else {
+		return 0;
+	}
+};
+
 void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
 	if(_sequenceAndQualitiesChanged || qualMap.qualityLimitSet){
 		//update according to what is stored in bases

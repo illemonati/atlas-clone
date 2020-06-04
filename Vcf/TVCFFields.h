@@ -117,14 +117,6 @@ public:
 		for(std::vector<TVCFField*>::iterator it = usedFields.begin(); it != usedFields.end(); ++it)
 			(*it)->writeHeader(_type, vcf);
 	};
-
-	//report VCF fields
-	void reportUsedFields(TLog* logfile){
-		if(numUsed() > 0)
-			logfile->list("Will print these VCF " + _type + " fields: " + getListOfUsedFields(", ") + ".");
-		else
-			logfile->list("Will not print any VCF " + _type + " fields.");
-	};
 };
 
 

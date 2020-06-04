@@ -81,6 +81,15 @@ double TBaseData::weightedSum(const TBaseData & weights) const{
 	       + data[T] * weights[T];
 };
 
+uint8_t TBaseData::numAlleles() const{
+	uint8_t n = 0;
+	if(data[A] > 0) ++n;
+	if(data[C] > 0) ++n;
+	if(data[G] > 0) ++n;
+	if(data[T] > 0) ++n;
+	return n;
+};
+
 void TBaseData::normalize(){
 	double tot = sum();
 	data[A] /= tot;
@@ -172,7 +181,13 @@ void TGenotypeData::normalize(){
 	data[TT] = data[TT] / theSum;
 };
 
-void TGenotypeData::write(TOutputFileZipped & out) const{
+void TGenotypeData::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
+		vec.push_back(genoMap.getGenotypeString(g));
+	}
+};
+
+void TGenotypeData::write(TOutputFile & out) const{
 	out << data[AA];
 	out << data[AC];
 	out << data[AG];
@@ -252,6 +267,12 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 	}
 };
 
+void TGenotypeData::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
+		vec.push_back("P(D|" + genoMap.getGenotypeString(g) + ")");
+	}
+};
+
 //--------------------------------------------------------------------
 // TGenotypePosteriorProbabilities
 //--------------------------------------------------------------------
@@ -282,6 +303,13 @@ double TGenotypePosteriorProbabilities::probHomozygous(){
 double TGenotypePosteriorProbabilities::probHeterozygous(){
 	return 1.0 - data[AA] - data[CC] - data[GG] - data[TT];
 };
+
+void TGenotypePosteriorProbabilities::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
+		vec.push_back("P(" + genoMap.getGenotypeString(g) + "|D)");
+	}
+};
+
 
 }; // end namespace
 

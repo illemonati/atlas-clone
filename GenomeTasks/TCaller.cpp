@@ -87,24 +87,63 @@ void TCaller::printGenotypeFields(std::string tags){
 	printGenotypeFields(vec);
 };
 
-void TCaller::reportSettings(TLog* logfile){
-	//report caller name
-	logfile->list("Will use the " + callerName + ".");
+void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
+	//info fields
+	if(Params.parameterExists("infoFields")){
+		Logfile->listFlush("Parsing VCF info fields ...");
+		printInfoFields(Params.getParameterString("infoFields"));
+		Logfile->done();
+	}
+	if(VCFInfoFields.numUsed() > 0){
+		Logfile->list("Will print these VCF info fields: " + VCFInfoFields.getListOfUsedFields(", ") + ". (parameter 'infoFields')");
+	} else {
+		Logfile->list("Will not print any VCF info fields. (parameter 'infoFields')");
+	}
 
-	//report VCF fields
-	VCFInfoFields.reportUsedFields(logfile);
-	VCFGenotypeFields.reportUsedFields(logfile);
+	//genotype fields
+	if(Params.parameterExists("formatFields")){
+		Logfile->listFlush("Parsing VCF format fields ...");
+		printGenotypeFields(Params.getParameterString("formatFields"));
+		Logfile->done();
+	}
+	if(VCFGenotypeFields.numUsed() > 0){
+		Logfile->list("Will print these VCF format fields: " + VCFGenotypeFields.getListOfUsedFields(", ") + ". (parameter 'formatFields')");
+	} else {
+		Logfile->list("Will not print any VCF format fields. (parameter 'formatFields')");
+	}
 
-	//report whether all sites are printed
-	if(_printSitesWithNoData)
-		logfile->list("Will print all sites, also those without data");
+	//other output options
+	if(Params.parameterExists("printAll")){
+		_printSitesWithNoData = true;
+		Logfile->list("Will print all sites, also those without data. (parameter 'printAll')");
+	} else {
+		_printSitesWithNoData = false;
+		Logfile->list("Will print only sites with data. (use 'printAll' to print all);");
+	}
+
+	if(Params.parameterExists("noAltIfHomoRef")){
+		_printAltIfHomoRef = false;
+		Logfile->list("Will not print an alternative allele if the call is homozygous reference. (parameter 'noAltIfHomoRef')");
+	} else {
+		_printAltIfHomoRef = true;
+		Logfile->list("Will print the most likely alternative allele even if the call is homozygous reference. (use 'noAltIfHomoRef' to suppress)");
+	}
+
+	if(Params.parameterExists("noTriallelic")){
+		_allowTriallelicSites = false;
+		Logfile->list("Will not call genotypes resulting in two alternative alleles. (parameter 'noTriallelic')");
+	} else {
+		_allowTriallelicSites = true;
+		Logfile->list("Will allow for genotypes with two alternative alleles. (use 'noTriallelic' to suppress)");
+	}
 }
 
 //-------------------------------------------------------------------------------------------
 // open / close VCF file, print header
 //-------------------------------------------------------------------------------------------
-void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName){
+void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName, TLog* logfile){
 	filename = FilenameTag  + filenameExtention + ".gz";
+	logfile->list("Writing calls to VCF file '" + filename + "'.");
 	vcf.open(filename.c_str());
 	if(!vcf) throw "Failed to open VCF file '" + filename + "' for writing!";
 	vcfOpen = true;
@@ -760,7 +799,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 					AB = '.'; AI = '.';
 				} else {
 					AB = toString(alleleCounts[referenceBase] / sum);
-					AI = toString(randomGenerator->binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]));
+					AI = toString(_binomP.binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]));
 				}
 			} else {
 				if(genoMap.genotypeToBase[indexOfMax][0] != genoMap.genotypeToBase[indexOfMax][1]){ //is het
@@ -769,7 +808,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]] / sum);
-						AI = toString(randomGenerator->binomPValue(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]], alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]));
+						AI = toString(_binomP.binomPValue(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]], alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]));
 					}
 				} else { // is homo -> do it against the second alternative allele
 					double sum = (double) alleleCounts[altAlleles[0]] + alleleCounts[altAlleles[1]];
@@ -777,7 +816,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(alleleCounts[altAlleles[0]] / sum);
-						AI = toString(randomGenerator->binomPValue(alleleCounts[altAlleles[0]], alleleCounts[altAlleles[1]]));
+						AI = toString(_binomP.binomPValue(alleleCounts[altAlleles[0]], alleleCounts[altAlleles[1]]));
 					}
 				}
 			}
@@ -890,3 +929,141 @@ std::string TCallerBayes::getVCFGenotypeString_GP(const TSite & site, TGenotypeL
 	return getPerGenotypeMetricString(tmpGenoData);
 };
 
+//------------------------------------------------------
+// TCall
+// the class to perform calls based on windows
+//------------------------------------------------------
+TCall::TCall(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
+	//initialize caller
+	_logfile->startIndent("Initializing caller:");
+	std::string method = Params.getParameterStringWithDefault("method", "MLE");
+	if(method == "randomBase"){
+		_caller = new TCallerRandomBase(_randomGenerator);
+	} else if(method == "majorityBase"){
+		_caller = new TCallerMajorityBase(_randomGenerator);
+	} else if(method == "allelePresence"){
+		_caller = new TCallerAllelePresence(_randomGenerator);
+	} else if(method == "MLE"){
+		_caller = new TCallerMLE(_randomGenerator);
+	} else if(method == "Bayesian"){
+		_caller = new TCallerBayes(_randomGenerator);
+	} else if(method == "gVCF"){
+		throw "GVCF NOT YET IMPLEMENTED!";
+		_caller->printSitesWithNoData();
+	} else throw "Unknown calling method '" + method + "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.";
+	_logfile->list("Will use the " + _caller->name() + ".");
+
+	//prior setting
+	if(_caller->usesPrior()){
+		_initializeGenotypePrior(Params);
+	} else {
+		_prior = new TGenotypePrior();
+	}
+	_caller->setPrior(_prior->getPointerToPrior());
+
+	//read output settings
+	_caller->initializeOutput(Params, _logfile);
+
+	//open output file
+	std::string sampleName = Params.getParameterStringWithDefault("indName", _outputName);
+	_logfile->list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
+	_caller->openVCF(_outputName, sampleName, _logfile);
+
+	//limit to sites with known alleles?
+	if(Params.parameterExists("alleles")){
+		_logfile->startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
+		_openSiteSubset("alleles");
+		_logfile->endIndent();
+	} else {
+		_logfile->list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
+		//make sure FASTA is open unless alleles are provided
+		_openReference(true);
+	}
+	_logfile->endIndent();
+};
+
+TCall::~TCall(){
+	delete _caller;
+	delete _prior;
+};
+
+void TCall::_initializeGenotypePrior(TParameters & Params){
+	TGenotypePrior* prior;
+	_logfile->startIndent("Initializing genotype prior:");
+	//read prior from parameters
+	std::string priorMethod = Params.getParameterStringWithDefault("prior", "theta");
+	if(priorMethod == "unif"){
+		prior = new TGenotypePriorUniform();
+		_logfile->list("Will use a uniform prior with equal weights for all genotypes.");
+	} else if(priorMethod == "theta"){
+		if(Params.parameterExists("fixedTheta")){
+			double theta = Params.getParameterDouble("fixedTheta");
+			_logfile->list("Will use a fixed theta = " + toString(theta));
+			bool equalBaseFreq = Params.parameterExists("equalBaseFreq");
+			if(equalBaseFreq)
+				_logfile->list("Will use equal base frequencies.");
+			else
+				_logfile->list("Will estimate base frequencies individually for each window.");
+			prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, _logfile, _randomGenerator);
+		} else {
+			_logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
+			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
+			if(Params.parameterExists("defaultTheta")){
+				double defaultTheta = Params.getParameterDouble("defaultTheta");
+				_logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
+				prior = new TGenotypePriorTheta(Params, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
+			} else
+				prior = new TGenotypePriorTheta(Params, thetaOuputName, _logfile, _randomGenerator);
+		}
+	} else throw "Unknown prior type '" + priorMethod + "'!";
+	_logfile->endIndent();
+};
+
+void TCall::_call(){
+	uint32_t pos = 0;
+	for(auto it = _window.begin(); it != _window.end(); ++it, ++pos){
+		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(it->bases, _genoLik);
+		_caller->call(_window.chrName(), _window.posInRef(pos), *it, _genoLik);
+	}
+};
+
+void TCall::_callKnwonAlleles(){
+	//check if we need to process this window
+	if(_subset->hasPositionsInWindow(_window.startPos)){
+		//add reference to sites
+		_window.addReferenceBaseToSites(*_subset);
+
+		//only run over sites listed in that window
+		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos);
+		for(auto& it : thesePositions){
+			//calculate genotype likelihoods
+			uint32_t internalPos = it.position - _window.startPos;
+			TSite& site = _window.sites[internalPos];
+			site.setRefBase(it.ref);
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site.bases, _genoLik);
+			_caller->call(_window.chrName(), _window.posInRef(internalPos), site, _genoLik, it.ref, it.alt);
+		}
+	}
+};
+
+
+void TCall::_handleWindow(){
+	if(_window.passedFilters || _caller->printSitesWithNoData()){
+		//update genotype prior
+		_prior->update(&_window, _logfile);
+
+		//call
+		_logfile->listFlushTime("Calling genotypes ...");
+		if(_subset){
+			_callKnwonAlleles();
+		} else {
+			_call();
+		}
+		_logfile->doneTime();
+	}
+
+};
+
+void TCall::call(){
+	_traverseBAMWindows();
+};

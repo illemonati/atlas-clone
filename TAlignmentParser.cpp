@@ -286,8 +286,8 @@ void TAlignmentParser::_moveChromosome(TWindow_base & window){
 
 		//now jump
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), logfile);
-		window.chrName = chromosomes.curName();
-		bamFile->jump(chromosomes.curIndex(), window.start);
+		window._chrName = chromosomes.curName();
+		bamFile->jump(chromosomes.curIndex(), window.startPos);
 
 	} else {
 		while(chromosomes.curInUse() == false || skipWindows * windowSize > chromosomes.curLength()){
@@ -303,7 +303,7 @@ void TAlignmentParser::_moveChromosome(TWindow_base & window){
 			nextEnd = chromosomes.curLength();
 		}
 		window.move(curStart, nextEnd, chromosomes.curIndex(), logfile);
-		window.chrName = chromosomes.curName();
+		window._chrName = chromosomes.curName();
 	}
 
 	if(chromosomes.end())
@@ -328,16 +328,16 @@ bool TAlignmentParser::_moveToNextWindowOnChr(TWindow_base & window){
 		//move possible?
 		++windowNumber;
 		++counter;
-	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < chromosomes.curLength());
+	} while(sitesProvided && !subset->hasPositionsInWindow(window.endPos) && window.endPos + window.length * counter < chromosomes.curLength());
 
-	if(window.end >= chromosomes.curLength() || windowNumber >= limitWindows)
+	if(window.endPos >= chromosomes.curLength() || windowNumber >= limitWindows)
 		return false;
 
 	//calculate new end
-	long nextEnd = window.end + windowSize;
+	long nextEnd = window.endPos + windowSize;
 	if(nextEnd > chromosomes.curLength())
 		nextEnd = chromosomes.curLength();
-	window.move(window.end, nextEnd, chromosomes.curIndex(), logfile);
+	window.move(window.endPos, nextEnd, chromosomes.curIndex(), logfile);
 
 	return true;
 };
@@ -353,11 +353,11 @@ bool TAlignmentParser::_moveToNextPredefinedWindow(TWindow_base & window){
 		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), logfile);
 
 		//should we jump or are we already close enough to next window
-		if(bamFile->curPosition() > window.start || bamFile->curPosition() < window.start - maxReadLength){
-			if(window.start < maxReadLength)
+		if(bamFile->curPosition() > window.startPos || bamFile->curPosition() < window.startPos - maxReadLength){
+			if(window.startPos < maxReadLength)
 				bamFile->jump(chromosomes.curIndex(), 0);
 			else{
-				bamFile->jump(chromosomes.curIndex(), window.start - maxReadLength);
+				bamFile->jump(chromosomes.curIndex(), window.startPos - maxReadLength);
 			}
 		}
 		return true;
@@ -372,10 +372,10 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 	//returns false when end of genome is reached
 	if(windowsPredefined){
 		//if at beginning of BAM file
-		if(chromosomes.end()){
+		if(chromosomes.endPos()){
 			_restartChromosomes(window);
 
-			if(chromosomes.end())
+			if(chromosomes.endPos())
 				throw "found no predefined windows in BED file! Does file exist?";
 			chrChangedWindow = true;
 
@@ -385,7 +385,7 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 				//no more windows left on chr
 				chromosomes.next();
 
-				if(chromosomes.end()){
+				if(chromosomes.endPos()){
 					if(hasWindowIndent){
 						logfile->removeIndent();
 						hasWindowIndent = false;
@@ -396,7 +396,7 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 				_moveChromosome(window);
 				chrChangedWindow = true;
 
-				if(chromosomes.end()){
+				if(chromosomes.endPos()){
 					if(hasWindowIndent){
 						logfile->removeIndent();
 						hasWindowIndent = false;
@@ -411,7 +411,7 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 
 	} else {
 		//if at beginning of BAM file
-		if(chromosomes.end()){
+		if(chromosomes.endPos()){
 			_restartChromosomes(window);
 			chrChangedWindow = true;
 		} else {
@@ -420,13 +420,13 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 				chromosomes.next();
 
 				//do we use this chromosome? if not, move on!
-				while(!chromosomes.end() && !chromosomes.curInUse()){
+				while(!chromosomes.endPos() && !chromosomes.curInUse()){
 					chromosomes.next();
 				}
 
 				//did we reach end?
-				if(chromosomes.end()){
-					window.end = 0;
+				if(chromosomes.endPos()){
+					window.endPos = 0;
 					if(hasWindowIndent){
 						logfile->removeIndent();
 						hasWindowIndent = false;
@@ -443,7 +443,7 @@ bool TAlignmentParser::_moveWindow(TWindow_base & window){
 
 	//report
 	if(hasWindowIndent) logfile->removeIndent();
-	logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
+	logfile->number("Window [" + toString(window.startPos) + ", " + toString(window.endPos) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
 	logfile->addIndent();
 	hasWindowIndent = true;
 
@@ -472,13 +472,13 @@ void TAlignmentParser::_readAlignmentsIntoWindow(TWindow & window){
 
 	//check if old alignment is to be used.
 	if(oldAlignmentMustBeConsidered){
-		if(bamFile->curPosition() >= window.end){
+		if(bamFile->curPosition() >= window.endPos){
 			logfile->warning("Old alignment is after window!");
 			return;
 		}
 
 		oldAlignmentMustBeConsidered = false;
-		if(oldAlignment->lastAlignedPositionWithRespectToRef >= window.start)
+		if(oldAlignment->lastAlignedPositionWithRespectToRef >= window.startPos)
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 	}
 
@@ -494,14 +494,14 @@ void TAlignmentParser::_readAlignmentsIntoWindow(TWindow & window){
 		++counter;
 
 		//check if alignment starts after current window end -> break
-		if(oldAlignment->position >= window.end || oldAlignment->refID != window.chrNumber){
+		if(oldAlignment->position >= window.endPos || oldAlignment->refID != window.chrNumber){
 			oldAlignmentMustBeConsidered = true;
 			break;
 		}
 
 		//check if alignment contains part of the window
 		//if read continues outside of window, this is dealt with by window object
-		if(oldAlignment->position >= window.start || oldAlignment->lastAlignedPositionWithRespectToRef >= window.start){
+		if(oldAlignment->position >= window.startPos || oldAlignment->lastAlignedPositionWithRespectToRef >= window.startPos){
 			oldAlignment = window.swapUsedForEmptyAlignment(oldAlignment, maxReadLength);
 		}
 	}

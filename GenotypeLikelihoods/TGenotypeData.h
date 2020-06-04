@@ -38,6 +38,7 @@ public:
 	void add(const TBaseData & other);
 	double sum() const;
 	double weightedSum(const TBaseData & weights) const;
+	uint8_t numAlleles() const;
 	void normalize();
 };
 
@@ -69,6 +70,7 @@ public:
 	double weightedSum(const TGenotypeData & weights);
 	void normalize();
 
+	virtual void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 	void write(TOutputFile & out) const;
 };
 
@@ -84,6 +86,8 @@ public:
 
 	void fill(const std::vector<TBaseData> & bases);
 	void fill(const std::vector<TBaseData> & bases, const size_t size);
+
+	void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 };
 
 
@@ -97,6 +101,8 @@ public:
 	void fill(const TGenotypeData & likelihoods, const TGenotypeData & prior);
 	double probHomozygous();
 	double probHeterozygous();
+
+	void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 };
 
 }; //end namespace

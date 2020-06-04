@@ -52,7 +52,7 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	}
 };
 
-std::string TSite::getBases(TGenotypeMap & genoMap){
+std::string TSite::getBases(const TGenotypeMap & genoMap){
 	if(!hasData) return "-";
 	std::string s = "";
 	for(auto& b : bases){
@@ -85,50 +85,26 @@ void TSite::countAlleles(GenotypeLikelihoods::TBaseData & alleleCounts) const{
 
 	for(auto& b : bases){
 		++alleleCounts[b->base];
+	}
 };
 
 void TSite::countMates(int* mateCounts){
 	mateCounts[0] = 0;
 	mateCounts[1] = 0;
 
-	for(TBaseOld* it : bases)
+	for(auto& it : bases){
 		++mateCounts[it->isSecondMate()];
+	}
 };
 
 void TSite::countFwdRev(int* frCounts){
 	frCounts[0] = 0;
 	frCounts[1] = 0;
 
-	for(TBaseOld* it : bases)
+	for(auto& it : bases){
 		++frCounts[it->isReverseStrand()];
-};
-
-void TSite::printPileup(TOutputFileZipped & out){
-	out << referenceBase;
-	out << depth() << refDepth();
-	out << getBases();
-};
-
-
-//-----------------------------------------------------------------------
-// Genotype likelihoods
-//-----------------------------------------------------------------------
-
-//PROBLEM
-double TSite::calculatePHomozygous(double* pGenotype){
-	//calculate posterior probability for each genotype
-	double postProb[10];
-	double tot = 0.0;
-
-	for(int i=0; i<10; ++i){
-		//postProb[i] = emissionProbabilities[i] * pGenotype[i];
-		tot += postProb[i];
 	}
-
-	//make sum for all homozygous genotypes
-	return (postProb[AA] + postProb[CC] + postProb[GG] + postProb[TT]) / tot;
 };
-
 
 
 
