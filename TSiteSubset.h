@@ -91,12 +91,12 @@ private:
 	std::map<std::string, TSiteSubsetChr>::iterator _findOrCreateChromosome(const std::string chrName);
 	void _checkAlleles(const std::string & chr, const uint32_t & pos, const Base & ref, const Base & alt, const std::string & refAllele, const std::string & altAllele);
 	void _readFile(TLog* logfile);
-	void _readFile(TFastaBuffer & reference, TChromosomes & Chromosomes, TLog* logfile);
+	void _readFile(BAM::TFastaBuffer & reference, BAM::TChromosomes & Chromosomes, TLog* logfile);
 
 public:
 
 	TSiteSubset(std::string Filename, uint32_t & WindowSize, TLog* logfile, bool InvariantSites);
-	TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, TFastaBuffer & reference, TChromosomes & chromosomes);
+	TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, BAM::TFastaBuffer & reference, BAM::TChromosomes & chromosomes);
 	void setChr(const std::string chr);
 	void print();
 	bool hasPositionsInWindow(const unsigned int & windowStart);

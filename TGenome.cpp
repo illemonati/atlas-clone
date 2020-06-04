@@ -194,21 +194,19 @@ void TGenome_parsed::_traverseBAMPassedQC(){
 // TGenome_windows
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
-TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
-
+TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):
+		TGenome_parsed(Params, Logfile, RandomGenerator),
+		_chromosomes(_bamFile.chromosomes){
 	_setWindowParameters(Params);
 	_setParsingLimits(Params);
 	_setWindowFilters(Params);
 	_setMasks(Params);
 	_setSiteFilters(Params);
-
 };
-
-
 
 void TGenome_windows::_setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")){
-		logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
+		_logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	}
 	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
 
@@ -296,7 +294,7 @@ void TGenome_windows::_setMasks(TParameters & params){
 			_logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
 		}
 		_logfile->listFlush("Reading file ...");
-		mask = new BAM::TBedReader(maskFile, windowSize, _bamFile.chromosomes, siteLimit, _logfile);
+		mask = new BAM::TBedReader(maskFile, windowSize, _chromosomes, siteLimit, _logfile);
 		_logfile->done();
 		_logfile->endIndent();
 		//mask->print();
@@ -320,7 +318,7 @@ void TGenome_windows::_setMasks(TParameters & params){
 			_logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
 		}
 		_logfile->listFlush("Reading file ...");
-		mask = new BAM::TBedReader(regionsFile, windowSize, _bamFile.chromosomes, siteLimit, _logfile);
+		mask = new BAM::TBedReader(regionsFile, windowSize, _chromosomes, siteLimit, _logfile);
 		_logfile->done();
 		_logfile->endIndent();
 	} else considerRegions = false;
@@ -328,19 +326,16 @@ void TGenome_windows::_setMasks(TParameters & params){
 
 
 void TGenome_windows::_jumpToEnd(){
-	_bamFile.chromosomes.jumpToEnd();
+	_chromosomes.jumpToEnd();
 };
 
 void TGenome_windows::_restartChromosomes(TWindow_base & window){
-	_bamFile.chromosomes.begin();
+	_chromosomes.begin();
 
 	_moveChromosome(window);
 };
 
 void TGenome_windows::_moveChromosome(TWindow_base & window){
-	//get reference to chromosome to declutter code
-	BAM::TChromosomes& chromosomes = _bamFile.chromosomes;
-
 	//jump reader
 	oldAlignmentMustBeConsidered = false;
 
@@ -354,95 +349,89 @@ void TGenome_windows::_moveChromosome(TWindow_base & window){
 	if(windowsPredefined){
 		//find next used chromosome with windows
 		do {
-			predefinedWindows->setChr(chromosomes.curName());
+			predefinedWindows->setChr(_chromosomes.curName());
 			numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
-			if(numWindowsOnChr < 1 || chromosomes.curInUse() == false){
-				if(chromosomes.curInUse())
-					_logfile->conclude("No windows on chromosome " + chromosomes.curName() + ".");
-				chromosomes.next();
-				if(chromosomes.end()){
+			if(numWindowsOnChr < 1 || _chromosomes.curInUse() == false){
+				if(_chromosomes.curInUse())
+					_logfile->conclude("No windows on chromosome " + _chromosomes.curName() + ".");
+				_chromosomes.next();
+				if(_chromosomes.end()){
 					return;
 				}
 
-				predefinedWindows->setChr(chromosomes.curName());
+				predefinedWindows->setChr(_chromosomes.curName());
 				numWindowsOnChr = predefinedWindows->getNumWindowsOnCurChr();
 			}
-		} while((numWindowsOnChr < 1 || !chromosomes.curInUse()) && !chromosomes.end());
+		} while((numWindowsOnChr < 1 || !_chromosomes.curInUse()) && !_chromosomes.end());
 
 		//now jump
-		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), _logfile);
-		window.chrName = chromosomes.curName();
-		_bamFile.jump(chromosomes.curIndex(), window.start);
+		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), _chromosomes.curRefID(), _logfile);
+		window.chrName = _chromosomes.curName();
+		_bamFile.jump(_chromosomes.curRefID(), window.start);
 
 	} else {
-		while(chromosomes.curInUse() == false || skipWindows * windowSize > chromosomes.curLength()){
-			chromosomes.next();
+		while(_chromosomes.curInUse() == false || skipWindows * windowSize > _chromosomes.curLength()){
+			_chromosomes.next();
 		}
-		numWindowsOnChr = ceil(chromosomes.curLength() / (double) windowSize);
+		numWindowsOnChr = ceil(_chromosomes.curLength() / (double) windowSize);
 
 		uint32_t curStart = skipWindows * windowSize;
-		_bamFile.jump(chromosomes.curIndex(), curStart);
+		_bamFile.jump(_chromosomes.curRefID(), curStart);
 		uint32_t nextEnd = curStart + windowSize;
 
-		if(nextEnd > chromosomes.curLength()){
-			nextEnd = chromosomes.curLength();
+		if(nextEnd > _chromosomes.curLength()){
+			nextEnd = _chromosomes.curLength();
 		}
-		window.move(curStart, nextEnd, chromosomes.curIndex(), _logfile);
-		window.chrName = chromosomes.curName();
+		window.move(curStart, nextEnd, _chromosomes.curRefID(), _logfile);
+		window.chrName = _chromosomes.curName();
 	}
 
-	if(chromosomes.end())
+	if(_chromosomes.end())
 		return;
 
 	//advance mask
-	if(doMasking || considerRegions) mask->setChr(chromosomes.curName());
-	if(sitesProvided) subset->setChr(chromosomes.curName());
+	if(doMasking || considerRegions) mask->setChr(_chromosomes.curName());
+	if(sitesProvided) subset->setChr(_chromosomes.curName());
 
 	//write progress
-	if(chromosomes.curIndex() > 0) _logfile->endIndent();
-	_logfile->startNumbering("Parsing chromosome '" + chromosomes.curName() + "':");
+	if(_chromosomes.curIndex() > 0) _logfile->endIndent();
+	_logfile->startNumbering("Parsing chromosome '" + _chromosomes.curName() + "':");
 };
 
 bool TGenome_windows::_moveToNextWindowOnChr(TWindow_base & window){
-	//get reference to chromosome to declutter code
-	TChromosomes& chromosomes = _bamFile.chromosomes;
-
 	//if sites defined
 	int counter = 0;
 	do{
 		//move possible?
 		++windowNumber;
 		++counter;
-	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < chromosomes.curLength());
+	} while(sitesProvided && !subset->hasPositionsInWindow(window.end) && window.end + window.length * counter < _chromosomes.curLength());
 
-	if(window.end >= chromosomes.curLength() || windowNumber >= limitWindows)
+	if(window.end >= _chromosomes.curLength() || windowNumber >= limitWindows)
 		return false;
 
 	//calculate new end
 	long nextEnd = window.end + windowSize;
-	if(nextEnd > chromosomes.curLength())
-		nextEnd = chromosomes.curLength();
-	window.move(window.end, nextEnd, chromosomes.curIndex(), _logfile);
+	if(nextEnd > _chromosomes.curLength())
+		nextEnd = _chromosomes.curLength();
+	window.move(window.end, nextEnd, _chromosomes.curIndex(), _logfile);
 
 	return true;
 };
 
 bool TGenome_windows::_moveToNextPredefinedWindow(TWindow_base & window){
-	//get reference to chromosome to declutter code
-	TChromosomes& chromosomes = _bamFile.chromosomes;
-
 	++windowNumber;
 	if(windowNumber >= limitWindows)
 		return false;
 	if(predefinedWindows->nextWindow()){
-		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), chromosomes.curIndex(), _logfile);
+		window.move(predefinedWindows->curWindowStart(), predefinedWindows->curWindowEnd(), _chromosomes.curRefID(), _logfile);
 
 		//should we jump or are we already close enough to next window
-		if(_bamFile.curPosition() > window.start || _bamFile.curPosition() < window.start - maxReadLength){
-			if(window.start < maxReadLength)
-				_bamFile.jump(chromosomes.curIndex(), 0);
+		if(_bamFile.curPosition() > window.start || _bamFile.curPosition() < window.start - _bamFile.maxReadLength()){
+			if(window.start < _bamFile.maxReadLength())
+				_bamFile.jump(_chromosomes.curRefID(), 0);
 			else{
-				_bamFile.jump(chromosomes.curIndex(), window.start - maxReadLength);
+				_bamFile.jump(_chromosomes.curRefID(), window.start - _bamFile.maxReadLength());
 			}
 		}
 		return true;
@@ -451,16 +440,13 @@ bool TGenome_windows::_moveToNextPredefinedWindow(TWindow_base & window){
 };
 
 bool TGenome_windows::_moveWindow(TWindow_base & window){
-	//get reference to chromosome to declutter code
-	TChromosomes& chromosomes = _bamFile.chromosomes;
-
 	//returns false when end of genome is reached
 	if(windowsPredefined){
 		//if at beginning of BAM file
-		if(chromosomes.end()){
+		if(_chromosomes.end()){
 			_restartChromosomes(window);
 
-			if(chromosomes.end())
+			if(_chromosomes.end())
 				throw "found no predefined windows in BED file! Does file exist?";
 			chrChangedWindow = true;
 
@@ -468,9 +454,9 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 			//now move coordinates of next window
 			if(!_moveToNextPredefinedWindow(window)){
 				//no more windows left on chr
-				chromosomes.next();
+				_chromosomes.next();
 
-				if(chromosomes.end()){
+				if(_chromosomes.end()){
 					if(hasWindowIndent){
 						_logfile->removeIndent();
 						hasWindowIndent = false;
@@ -481,7 +467,7 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 				_moveChromosome(window);
 				chrChangedWindow = true;
 
-				if(chromosomes.end()){
+				if(_chromosomes.end()){
 					if(hasWindowIndent){
 						_logfile->removeIndent();
 						hasWindowIndent = false;
@@ -496,21 +482,21 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 
 	} else {
 		//if at beginning of BAM file
-		if(chromosomes.end()){
+		if(_chromosomes.end()){
 			_restartChromosomes(window);
 			chrChangedWindow = true;
 		} else {
 			if(!_moveToNextWindowOnChr(window)){
 				//there is no window left on chr
-				chromosomes.next();
+				_chromosomes.next();
 
 				//do we use this chromosome? if not, move on!
-				while(!chromosomes.end() && !chromosomes.curInUse()){
-					chromosomes.next();
+				while(!_chromosomes.end() && !_chromosomes.curInUse()){
+					_chromosomes.next();
 				}
 
 				//did we reach end?
-				if(chromosomes.end()){
+				if(_chromosomes.end()){
 					window.end = 0;
 					if(hasWindowIndent){
 						_logfile->removeIndent();
@@ -528,7 +514,7 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 
 	//report
 	if(hasWindowIndent) _logfile->removeIndent();
-	_logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + chromosomes.curName() + "':");
+	_logfile->number("Window [" + toString(window.start) + ", " + toString(window.end) + ") of " + toString(numWindowsOnChr) + " on '" + _chromosomes.curName() + "':");
 	_logfile->addIndent();
 	hasWindowIndent = true;
 
@@ -538,9 +524,7 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 //---------------------
 //read data in windows
 //---------------------
-bool TGenome_windows::readDataInNextWindow(TWindow & window){
-	setParsingToTrue();
-
+bool TGenome_windows::_readDataInNextWindow(TWindow & window){
 	//move window
 	if(!_moveWindow(window)){
 		return false;

@@ -64,7 +64,7 @@ public:
 	void countAllelesForImbalance(TAllelicDepthCounts & counts);
 	void countMates(int* mateCounts);
 	void countFwdRev(int* frCounts);
-	void printPileup(TOutputFileZipped & out);
+	void printPileup(TOutputFile & out);
 
 	//MLE Callers
 	void calculateDiploidPhredScaledGenotypeLikelihoods(double* phredGLs);

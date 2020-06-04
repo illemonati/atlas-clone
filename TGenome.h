@@ -28,6 +28,7 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "TBamFilter.h"
+#include "TBamFile.h"
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -120,6 +121,8 @@ protected:
 	bool oldAlignmentInitialized;
 	bool oldAlignmentMustBeConsidered;
 
+	BAM::TChromosomes& _chromosomes;
+
 	//counters
 	bool hasWindowIndent;
 
@@ -129,6 +132,7 @@ protected:
 	unsigned int windowSize;
 	unsigned int numWindowsOnChr;
 	unsigned int windowNumber;
+	bool chrChangedWindow;
 
 	//window limits
 	long limitWindows;
@@ -138,9 +142,13 @@ protected:
 	double maxMissing;
 	double maxRefN;
 
-	//masks
+	//mask
 	bool doMasking, considerRegions;
 	BAM::TBedReader* mask;
+
+	//sites
+	bool sitesProvided;
+	TSiteSubset* subset;
 
 	//filters
 	bool applyDepthFilter;
@@ -166,6 +174,7 @@ protected:
 	bool _fillAlignment(BAM::TAlignment & alignment);
 	void _readAlignmentsIntoWindow(TWindow & window);
 	void _applyWindowFilters(TWindow_base & window);
+	bool _readDataInNextWindow(TWindow & window);
 	void _readAlignmentsIntoWindow(TWindow & window);
 
 	void traverseBAM();

@@ -279,6 +279,7 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 };
 
 uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
+	//only makes sense if position is aligned!
 	return _position + _alignedPosition[internalPosition];
 };
 

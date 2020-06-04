@@ -147,7 +147,7 @@ void TWindow_base::move(unsigned int Start, unsigned int End, int ChrNumber, TLo
 	setCoordinates(Start, End, ChrNumber);
 };
 
-void TWindow_base::addReferenceBaseToSites(TFastaBuffer & reference){
+void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 	if(!referenceBaseAdded){
 		int stop = end - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
@@ -174,7 +174,7 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	}
 };
 
-void TWindow_base::applyMask(TBedReader* mask, bool doInverseMasking){
+void TWindow_base::applyMask(BAM::TBedReader* mask, bool doInverseMasking){
 	unsigned int first = 0;
 	if(doInverseMasking){
 		if(mask->hasPositionsInWindow(start)){
@@ -229,7 +229,7 @@ void TWindow_base::estimateBaseFrequencies(){
 	baseFreq.normalize();
 };
 
-void TWindow_base::call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TFastaBuffer & reference){
+void TWindow_base::call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, BAM::TFastaBuffer & reference){
 	//add reference to sites
 	addReferenceBaseToSites(reference);
 
@@ -263,7 +263,7 @@ void TWindow_base::callKnwonAlleles(TCaller & caller, TGenotypeLikelihoodCalcula
 	}
 };
 
-void TWindow_base::printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData){
+void TWindow_base::printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFile & out, bool printOnlySitesWithData){
 	//print pileup
 	TGenotypeLikelihoods genoLik;
 	for(unsigned int i=0; i<length; ++i){
@@ -336,7 +336,7 @@ void TWindow_base::printDepthPerSite(gz::ogzstream & out, const std::string & ch
 	}
 };
 
-void TWindow_base::printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr){
+void TWindow_base::printMateInformationPerSite(TOutputFile & out, const std::string & chr){
 	int* alleleCounts = new int[4];
 	int* mateCounts = new int[2];
 	int* frCounts = new int[2];
@@ -429,7 +429,7 @@ void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContai
 	}
 };
 
-void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region){
+void TWindow_base::addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, BAM::TBedReader & region){
 	//assumes that emission probabilities were calculated
 	//only add sites from regions
 	if(region.hasPositionsInWindow(start)){
@@ -542,27 +542,27 @@ TWindow::TWindow():TWindow_base(){};
 
 TWindow::~TWindow(){
 	//delete alignments
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
+	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
 		delete *alignmentIt;
 	usedAlignments.clear();
 
-	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
 		delete *alignmentIt;
 	emptyAlignments.clear();
 
 };
 
-TAlignment* TWindow::swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength){
+BAM::TAlignment* TWindow::swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment){
 	//save used alignment on proper stack
 	usedAlignments.push_back(usedAlignment);
 
 	//return empty alignment, either from stack or create new
 	if(emptyAlignments.size() > 0){
-		TAlignment* alignment = *(emptyAlignments.rbegin());
+		BAM::TAlignment* alignment = *(emptyAlignments.rbegin());
 		emptyAlignments.pop_back();
 		return alignment;
 	} else {
-		TAlignment* alignment = new TAlignment(maxReadLength);
+		BAM::TAlignment* alignment = new BAM::TAlignment();
 		return alignment;
 	}
 };
@@ -585,8 +585,8 @@ void TWindow::cleanUpUsedAlignments(TLog* logfile){
 		logfile->listFlushTime("Cleaning up data storage ...");
 
 		//go through alignments
-		for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-			if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->refID == chrNumber){
+		for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+			if((*alignmentIt)->position < end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= start && (*alignmentIt)->refID() == chrNumber){
 				++alignmentIt;
 			} else{
 				(*alignmentIt)->clear();
@@ -601,7 +601,7 @@ void TWindow::cleanUpUsedAlignments(TLog* logfile){
 };
 
 void TWindow::clearAllUsedAlignments(){
-	for(std::vector<TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
+	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
 		(*alignmentIt)->clear();
 		emptyAlignments.push_back(*alignmentIt);
 		alignmentIt = usedAlignments.erase(alignmentIt);
@@ -615,24 +615,24 @@ void TWindow::move(unsigned int Start, unsigned int End, int ChrNumber, TLog* lo
 
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
-	for(TAlignment* alignmentIt : usedAlignments)
+	for(BAM::TAlignment* alignmentIt : usedAlignments)
 		std::cout << " " << alignmentIt << " : " << alignmentIt->name << " pos " << alignmentIt->position;
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
-	for(std::vector<TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
+	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
 		std::cout << " " << *alignmentIt;
 	std::cout << std::endl;
 };
 
-void TWindow::checkAlignmentForFillingSites(TAlignment* alignmentIt){
+void TWindow::checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt){
 	//check if alignment start is inside window
 	if(alignmentIt->position >= end){
 		throw "alignment should be assigned to next window!";
 	}
 };
 
-void TWindow::setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p){
+void TWindow::setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p){
 	//genomic position of alignment as seen from window perspective
 	firstPos = alignmentIt->position - start;
 
@@ -641,9 +641,9 @@ void TWindow::setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int
 
 	//is the beginning of the read part of previous window? increase starting p for adding bases!
 	if(firstPos < 0){
-		while(p < alignmentIt->length && (firstPos + alignmentIt->alignedPosition[p]) < 0){
+		while(p < alignmentIt->parsedLength() && (firstPos + alignmentIt->alignedPosition[p]) < 0){
 			++p;
-		} if(p == alignmentIt->length){
+		} if(p == alignmentIt->parsedLength()){
 			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name + ". In window " + toString(start) + "-" + toString(end) + ". with position " + toString(alignmentIt->position);
 		}
 	}

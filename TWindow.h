@@ -38,6 +38,7 @@ protected:
 
 	void setCoordinates(long Start, long End, int ChrNumber);
 
+	//TODO: make as much as possible private
 public:
 	unsigned int start;
 	unsigned int end; //end NOT included in window!
@@ -65,13 +66,13 @@ public:
 	//getters
 	TBaseFrequencies getBaseFreq(){return baseFreq;};
 
-	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
+	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 	void initSites(long newLength);
 	void clear();
 	virtual void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
-	void addReferenceBaseToSites(TFastaBuffer & reference);
+	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
-	void applyMask(TBedReader* mask, bool inverseMasking);
+	void applyMask(BAM::TBedReader* mask, bool inverseMasking);
 	void maskCpG();
 	void estimateBaseFrequencies();
 	void calcDepth();
@@ -79,26 +80,23 @@ public:
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);
 	void countDepthPerSite(TDistributionOfCounts & counts);
 	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
-	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
+	void printMateInformationPerSite(TOutputFile & out, const std::string & chr);
 	void countAlleles(TAllelicDepthCounts & counts);
 	void writeNonConservedBed(std::ofstream & output);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);
 
 	//add sites to data structures
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
-	void addSitesToQualityTransformTable(TRecalibration* recalObject, TRecalibration* otherRecalObject, std::vector<TQualityTransformTable*> & QTtables, TLog* logfile, TQualityMap & qualMap);
-	void addSitesToPMDTable(GenotypeLikelihoods::TPMDTables & pmdTables, TLog* logfile);
 	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator);
-	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, TBedReader & region);
+	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, BAM::TBedReader & region);
 	void addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll);
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
 	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset & subset, TQualityMap & qualMap);
 
 	//callers
-	void call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TFastaBuffer & reference);
+	void call(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, BAM::TFastaBuffer & reference);
 	void callKnwonAlleles(TCaller & caller, TGenotypeLikelihoodCalculator & GL_calculator, TSiteSubset & subset);
-	void printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFileZipped & out, bool printOnlySitesWithData);
+	void printPileup(TGenotypeLikelihoodCalculator & GL_calculator, TOutputFile & out, bool printOnlySitesWithData);
 
 	//other
 	void generatePSMCInput(TThetaEstimator & estimator, TGenotypeLikelihoodCalculator & GL_calculator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
@@ -110,17 +108,17 @@ public:
 class TWindow:public TWindow_base{
 private:
 	//alignment stacks
-	std::vector<TAlignment*> usedAlignments;
-	std::vector<TAlignment*> emptyAlignments;
+	std::vector<BAM::TAlignment*> usedAlignments;
+	std::vector<BAM::TAlignment*> emptyAlignments;
 
 	void cleanUpUsedAlignments(TLog* logfile);
 	void clearAllUsedAlignments();
 
 	//functions to fill sites from alignments
-	void checkAlignmentForFillingSites(TAlignment* alignmentIt);
-	void setFirstPositionWithinWindow(TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p);
-	void fillSites(TAlignment* alignmentIt, TSite* theseSites, const unsigned int & readUpToDepth);
-	void fillSitesSubset(TAlignment* alignmentIt, TSite* theseSites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
+	void checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt);
+	void setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, unsigned int & firstPos, unsigned int & p);
+	void fillSites(BAM::TAlignment* alignmentIt, TSite* theseSites, const unsigned int & readUpToDepth);
+	void fillSitesSubset(BAM::TAlignment* alignmentIt, TSite* theseSites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
 
 public:
 	TWindow();
@@ -138,7 +136,7 @@ public:
 	int fillSitesSubset(TSite* theseSites, TSiteSubset & subset, const unsigned int & readUpToDepth);
 	int fillSitesSubsetDownsampling(TSite* theseSites, TSiteSubset & subset, const unsigned int & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator);
 
-	TAlignment* swapUsedForEmptyAlignment(TAlignment* usedAlignment, const unsigned int & maxReadLength);
+	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment, const unsigned int & maxReadLength);
 };
 
 

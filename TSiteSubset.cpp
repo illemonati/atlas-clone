@@ -173,7 +173,7 @@ void TSiteSubset::_readFile(TLog* logfile){
 	logfile->conclude("Parsed " + toString(size()) + " sites on " + toString(_chromosomes.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(TFastaBuffer & reference, TChromosomes & Chromosomes, TLog* logfile){ //version that checks witth fasta reference
+void TSiteSubset::_readFile(BAM::TFastaBuffer & reference, BAM::TChromosomes & Chromosomes, TLog* logfile){ //version that checks witth fasta reference
 	logfile->listFlushTime("Reading sites to be used from '" + _filename + "' ...");
 	//open file
 	std::ifstream sitesFile(_filename.c_str());
@@ -186,7 +186,7 @@ void TSiteSubset::_readFile(TFastaBuffer & reference, TChromosomes & Chromosomes
 
 	//report conflicts with fasta file
 	bool conflictsFound = false;
-	TOutputFileZipped conflicts;
+	TOutputFile conflicts;
 
 	//read file
 	while(sitesFile.good() && !sitesFile.eof()){
@@ -215,7 +215,7 @@ void TSiteSubset::_readFile(TFastaBuffer & reference, TChromosomes & Chromosomes
 			if(trueRef != ref && trueRef != alt){
 				//conflict with fasta
 				if(!conflictsFound){
-					conflicts.open(_filename + ".conflicts");
+					conflicts.open(_filename + ".conflicts.gz");
 					conflicts.writeHeader({"chr", "position", "reference", "allele1", "allele2"});
 				}
 				conflicts << c->first << pos+1 << genoMap.getBaseAsChar(trueRef) << genoMap.getBaseAsChar(ref) << genoMap.getBaseAsChar(alt) << std::endl;
@@ -247,7 +247,7 @@ TSiteSubset::TSiteSubset(std::string Filename, uint32_t & WindowSize, TLog* logf
 	curChrIt = _chromosomes.end();
 };
 
-TSiteSubset::TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, TFastaBuffer & Reference, TChromosomes & Chromosomes){
+TSiteSubset::TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, BAM::TFastaBuffer & Reference, BAM::TChromosomes & Chromosomes){
 	_filename = Filename;
 	_windowSize = WindowSize;
 	_storesInvariantSites = InvariantSites;

@@ -99,6 +99,7 @@ public:
 	//getters
 	std::string name() const{ return _name; };
 	uint32_t position() const{ return _position; };
+	uint32_t refID() const{ return _refID; };
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;

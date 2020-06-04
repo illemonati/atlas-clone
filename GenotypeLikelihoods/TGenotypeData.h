@@ -69,7 +69,7 @@ public:
 	double weightedSum(const TGenotypeData & weights);
 	void normalize();
 
-	void write(TOutputFileZipped & out) const;
+	void write(TOutputFile & out) const;
 };
 
 
