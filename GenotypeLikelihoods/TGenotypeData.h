@@ -14,13 +14,56 @@
 
 namespace GenotypeLikelihoods{
 
+/*
+//---------------------------------------------------------------
+//TBaseFrequencies
+//---------------------------------------------------------------
+class TBaseFrequencies{
+public:
+	double freq[4];
+	bool wasNormalized;
+
+	TBaseFrequencies(){
+		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
+	};
+	void add(Base B, double & weight){
+		freq[B] += weight;
+	};
+	void addNoRef(Base B, double weight){
+		freq[B] += weight;
+	};
+	void normalize(){
+		if(!wasNormalized){
+			double sum = 0.0;
+			for(int i = 0; i < 4; ++i) sum += freq[i];
+			sum += 4.0;
+			for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
+			wasNormalized = true;
+		}
+	};
+	void setEqualBaseFreq(){
+		for(int i = 0; i < 4; ++i) freq[i] = 0.25;
+	};
+	void clear(){
+		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
+		wasNormalized = false;
+	};
+	void print() const{
+		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
+	};
+	double& operator[](int pos){
+		return freq[pos];
+	};
+};
+*/
 
 //--------------------------------------------------------------------
-// TBaseLikelihoods
+// TBaseData
 //--------------------------------------------------------------------
 class TBaseData{
 private:
-	double data[4];
+	double _data[4];
 
 public:
 	TBaseData();
@@ -29,17 +72,35 @@ public:
 	void operator=(const TBaseData & other);
 	void operator+=(const TBaseData & other);
 	void operator*=(const TBaseData & other);
-	double& operator[](const Base base){ return data[base];};
-	double at(const Base base) const { return data[base]; };
+	double& operator[](const Base base){ return _data[base];};
+	double at(const Base base) const { return _data[base]; };
 
 	void set(const double val);
 	void set(const Base trueBase, const double error);
 	void reset();
 	void add(const TBaseData & other);
+	void add(const Base base, const double value);
 	double sum() const;
 	double weightedSum(const TBaseData & weights) const;
-	uint8_t numAlleles() const;
 	void normalize();
+};
+
+//--------------------------------------------------------------------
+// TBaseCounts
+//TODO:: merge with base frequencies?
+//--------------------------------------------------------------------
+class TBaseCounts{
+private:
+	uint32_t _counts[5];
+public:
+	TBaseCounts();
+
+	void reset();
+	uint32_t& operator[](const Base base){ return _counts[base]; };
+	void add(const Base base){ ++_counts[base]; };
+	uint32_t size() const;
+	uint8_t numAlleles() const;
+	void fillFrequencies(TBaseData & freq);
 };
 
 //--------------------------------------------------------------------
@@ -48,7 +109,7 @@ public:
 //--------------------------------------------------------------------
 class TGenotypeData{
 protected:
-	double data[10];
+	double _data[10];
 
 	void _copyFrom(const TGenotypeData & other);
 
@@ -57,11 +118,11 @@ public:
 	virtual ~TGenotypeData(){};
 
 	void operator=(const TGenotypeData & other);
-	double& operator[](const Genotype genotype){ return data[genotype]; };
-	double& operator[](const uint8_t genotype){ return data[genotype]; };
-	double at(const Genotype genotype) const { return data[genotype]; };
-	double at(const uint8_t genotype) const { return data[genotype]; };
-	double* pointerToData(){ return data; };
+	double& operator[](const Genotype genotype){ return _data[genotype]; };
+	double& operator[](const uint8_t genotype){ return _data[genotype]; };
+	double at(const Genotype genotype) const { return _data[genotype]; };
+	double at(const uint8_t genotype) const { return _data[genotype]; };
+	double* pointerToData(){ return _data; };
 
 	void set(const double val);
 	virtual void reset();

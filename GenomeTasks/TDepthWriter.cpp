@@ -5,104 +5,42 @@
  *      Author: wegmannd
  */
 
+#include "TDepthWriter.h"
 
+//----------------------------------------
+// TDepthWriter
+//----------------------------------------
+TDepthWriter::TDepthWriter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
 
-
-
-void TGenomeWindows::estimateApproximateDepthPerWindow(TParameters & params){
-	//open output file
-	std::ofstream output;
-	std::string outputFileName = _outputName + "_depthPerWindow.txt";
-	_logfile->list("Writing sequencing depth estimates to '" + outputFileName + "'");
-	output.open(outputFileName.c_str());
-	if(!output) throw "Failed to open output file '" + outputFileName + "'!";
-	int nCharOnLine = 0;
-
-	//write header
-	output << "chr\tstart\tend\tdepth" << std::endl;
-
-	//prepare windows
-	TWindow window;
-
-	//iterate through windows
-	while(alignmentParser.readDataInNextWindow(window)){
-		//write chromosome to file
-		if(window.passedFilters){
-			//write to file
-			_logfile->listFlush("Writing sequencing depth estimates to file ...");
-			if(window.depth == -1.0) output << alignmentParser.getCurChrName() << "\t" << window.start << "\t" << window.end << "\t" << "0" << "\n";
-			else output << alignmentParser.getCurChrName() << "\t" << window.start << "\t" << window.end << "\t" << window.depth << "\n";
-			_logfile->done();
-		}
-	}
-
-	//clean up
-	if(nCharOnLine > 0) output << '\n';
-	output.close();
 };
 
-void TGenomeWindows::estimateDepthPerSite(TParameters & params){
-	//initialize count object
-	int maxDepth = params.getParameterIntWithDefault("maxDepth", 20);
-	TDistributionOfCounts counts(maxDepth, "depth");
+void TDepthWriter::_handleWindow(){
+	_logfile->listFlush("Writing sequencing depth estimates to file ...");
+	_window.writeCoordinates(_out);
+	_out <<  _window.depth() << std::endl;
+	_logfile->done();
 
-	//prepare windows
-	TWindow window;
-
-	//iterate through windows
-	while(alignmentParser.readDataInNextWindow(window)){
-		//write chromosome to file
-		if(window.passedFilters){
-			_logfile->listFlush("Adding depth to table ...");
-			window.countDepthPerSite(counts);
-			_logfile->done();
-		}
+	_logfile->listFlush("Adding per site depth to distribution ...");
+	for(auto& s : _window){
+		_distPerSite.add(s.depth());
 	}
-
-	//write
-	std::string filename = _outputName + "_distDepthPerSite.txt";
-	_logfile->listFlush("Writing depth distribution to '" + filename + "' ...");
-	counts.writeCounts(filename);
-	_logfile->done();
-
-	filename = _outputName + "_cumulativeDepthPerSite.txt";
-	_logfile->listFlush("Writing normalized cumulative depth distribution to '" + filename + "' ...");
-	counts.writeNormalizedCumulativeCounts(filename);
-	_logfile->done();
-
-	filename = _outputName + "_quantilesDepthPerSite.txt";
-	_logfile->listFlush("Writing quantiles of depth distribution '" + filename + "' ...");
-	counts.writeQuantiles(filename);
 	_logfile->done();
 };
 
-void TGenomeWindows::writeDepthPerSite(TParameters & params){
-	gz::ogzstream out;
+void TDepthWriter::writeDepth(){
+	std::string filename = _outputName + "_depthPerWindow.txt.gz";
+	_logfile->list("Writing per window depth estimates to '" + filename + "'.");
+	_out.open(filename, {"chr", "start", "end", "depth"});
 
-	std::string outputFileName = _outputName + "_depthPerSite.txt.gz";
-	_logfile->list("Writing per site depth to '" + outputFileName + "'");
+	_traverseBAMWindows();
 
-	out.open(outputFileName.c_str());
-	if(!out) throw "Failed to open output file '" + outputFileName + "'!";
-
-	//write header
-	out << "chr\tpos\tdepth" << std::endl;
-
-	//prepare windows
-	TWindow window;
-
-	//iterate through windows
-	while(alignmentParser.readDataInNextWindow(window)){
-		//write chromosome to file
-		if(window.passedFilters){
-			_logfile->listFlush("Writing depth per site ...");
-			window.printDepthPerSite(out, alignmentParser.getCurChrName());
-			_logfile->done();
-		}
-	}
-
-	//clean up
-	out.close();
+	//write distribution
+	filename = _outputName + "_depthPerSiteHistogram.txt";
+	_logfile->list("Writing depth per site distribution to file '" + filename + "' ...");
+	_distPerSite.write(filename, "depth");
 };
+
+
+
 
 

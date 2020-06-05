@@ -12,7 +12,7 @@ namespace GenotypeLikelihoods{
 //Note: for speed, all loops are unrolled
 
 //--------------------------------------------------------------------
-// TBaseLikelihoods (can also be used as haploid genotype likelihoods)
+// TBaseData (can also be used as haploid genotype likelihoods)
 //--------------------------------------------------------------------
 TBaseData::TBaseData(){
 	reset();
@@ -27,36 +27,36 @@ TBaseData::TBaseData(const Base trueBase, const double error){
 };
 
 void TBaseData::operator=(const TBaseData & other){
-	data[A] = other.at(A);
-	data[C] = other.at(C);
-	data[G] = other.at(G);
-	data[T] = other.at(T);
+	_data[A] = other.at(A);
+	_data[C] = other.at(C);
+	_data[G] = other.at(G);
+	_data[T] = other.at(T);
 };
 
 void TBaseData::operator+=(const TBaseData & other){
-	data[A] += other.data[A];
-	data[C] += other.data[C];
-	data[G] += other.data[G];
-	data[T] += other.data[T];
+	_data[A] += other._data[A];
+	_data[C] += other._data[C];
+	_data[G] += other._data[G];
+	_data[T] += other._data[T];
 };
 
 void TBaseData::operator*=(const TBaseData & other){
-	data[A] *= other.data[A];
-	data[C] *= other.data[C];
-	data[G] *= other.data[G];
-	data[T] *= other.data[T];
+	_data[A] *= other._data[A];
+	_data[C] *= other._data[C];
+	_data[G] *= other._data[G];
+	_data[T] *= other._data[T];
 };
 
 void TBaseData::set(const double val){
-	data[A] = val;
-	data[G] = val;
-	data[C] = val;
-	data[T] = val;
+	_data[A] = val;
+	_data[G] = val;
+	_data[C] = val;
+	_data[T] = val;
 };
 
 void TBaseData::set(const Base trueBase, const double error){
 	set(error / 3.0);
-	data[trueBase] = 1.0 - error;
+	_data[trueBase] = 1.0 - error;
 };
 
 void TBaseData::reset(){
@@ -64,38 +64,77 @@ void TBaseData::reset(){
 };
 
 void TBaseData::add(const TBaseData & other){
-	data[A] += other.data[A];
-	data[C] += other.data[C];
-	data[G] += other.data[G];
-	data[T] += other.data[T];
+	_data[A] += other._data[A];
+	_data[C] += other._data[C];
+	_data[G] += other._data[G];
+	_data[T] += other._data[T];
+};
+
+void TBaseData::add(const Base base, const double value){
+	_data[base] += value;
 };
 
 double TBaseData::sum() const{
-	return data[A] + data[C] + data[G] + data[T];
+	return _data[A] + _data[C] + _data[G] + _data[T];
 };
 
 double TBaseData::weightedSum(const TBaseData & weights) const{
-	return   data[A] * weights[A]
-		   + data[C] * weights[C]
-		   + data[G] * weights[G]
-	       + data[T] * weights[T];
-};
-
-uint8_t TBaseData::numAlleles() const{
-	uint8_t n = 0;
-	if(data[A] > 0) ++n;
-	if(data[C] > 0) ++n;
-	if(data[G] > 0) ++n;
-	if(data[T] > 0) ++n;
-	return n;
+	return   _data[A] * weights[A]
+		   + _data[C] * weights[C]
+		   + _data[G] * weights[G]
+	       + _data[T] * weights[T];
 };
 
 void TBaseData::normalize(){
 	double tot = sum();
-	data[A] /= tot;
-	data[C] /= tot;
-	data[G] /= tot;
-	data[T] /= tot;
+	_data[A] /= tot;
+	_data[C] /= tot;
+	_data[G] /= tot;
+	_data[T] /= tot;
+};
+
+//--------------------------------------------------------------------
+// TBaseCounts
+//--------------------------------------------------------------------
+TBaseCounts::TBaseCounts(){
+	reset();
+};
+
+void TBaseCounts::reset(){
+	_counts[A] = 0;
+	_counts[C] = 0;
+	_counts[G] = 0;
+	_counts[T] = 0;
+	_counts[N] = 0;
+};
+
+uint32_t& TBaseCounts::operator[](const Base base){
+	return _counts[base];
+};
+
+void TBaseCounts::add(const Base base){
+	++_counts[base];
+};
+
+uint32_t TBaseCounts::size() const{
+	return _counts[A] + _counts[C] + _counts[G] + _counts[T] + _counts[N];
+};
+
+uint8_t TBaseCounts::numAlleles() const{
+	uint8_t n = 0;
+	if(_counts[A] > 0) ++n;
+	if(_counts[C] > 0) ++n;
+	if(_counts[G] > 0) ++n;
+	if(_counts[T] > 0) ++n;
+	return n;
+};
+
+void TBaseCounts::fillFrequencies(TBaseData & freq){
+	double tot = size() - _counts[N];
+	freq[A] = _counts[A] / tot;
+	freq[C] = _counts[C] / tot;
+	freq[G] = _counts[G] / tot;
+	freq[T] = _counts[T] / tot;
 };
 
 //--------------------------------------------------------------------
@@ -103,16 +142,16 @@ void TBaseData::normalize(){
 //--------------------------------------------------------------------
 
 void TGenotypeData::_copyFrom(const TGenotypeData & other){
-	data[AA] = other.at(AA);
-	data[AC] = other.at(AC);
-	data[AG] = other.at(AG);
-	data[AT] = other.at(AT);
-	data[CC] = other.at(CC);
-	data[CG] = other.at(CG);
-	data[CT] = other.at(CT);
-	data[GG] = other.at(GG);
-	data[GT] = other.at(GT);
-	data[TT] = other.at(TT);
+	_data[AA] = other.at(AA);
+	_data[AC] = other.at(AC);
+	_data[AG] = other.at(AG);
+	_data[AT] = other.at(AT);
+	_data[CC] = other.at(CC);
+	_data[CG] = other.at(CG);
+	_data[CT] = other.at(CT);
+	_data[GG] = other.at(GG);
+	_data[GT] = other.at(GT);
+	_data[TT] = other.at(TT);
 };
 
 void TGenotypeData::operator=(const TGenotypeData & other){
@@ -120,16 +159,16 @@ void TGenotypeData::operator=(const TGenotypeData & other){
 };
 
 void TGenotypeData::set(const double val){
-	data[AA] = val;
-	data[AC] = val;
-	data[AG] = val;
-	data[AT] = val;
-	data[CC] = val;
-	data[CG] = val;
-	data[CT] = val;
-	data[GG] = val;
-	data[GT] = val;
-	data[TT] = val;
+	_data[AA] = val;
+	_data[AC] = val;
+	_data[AG] = val;
+	_data[AT] = val;
+	_data[CC] = val;
+	_data[CG] = val;
+	_data[CT] = val;
+	_data[GG] = val;
+	_data[GT] = val;
+	_data[TT] = val;
 };
 
 void TGenotypeData::reset(){
@@ -137,48 +176,48 @@ void TGenotypeData::reset(){
 };
 
 void TGenotypeData::add(const TGenotypeData & other){
-	data[AA] += other.at(AA);
-	data[AC] += other.at(AC);
-	data[AG] += other.at(AG);
-	data[AT] += other.at(AT);
-	data[CC] += other.at(CC);
-	data[CG] += other.at(CG);
-	data[CT] += other.at(CT);
-	data[GG] += other.at(GG);
-	data[GT] += other.at(GT);
-	data[TT] += other.at(TT);
+	_data[AA] += other.at(AA);
+	_data[AC] += other.at(AC);
+	_data[AG] += other.at(AG);
+	_data[AT] += other.at(AT);
+	_data[CC] += other.at(CC);
+	_data[CG] += other.at(CG);
+	_data[CT] += other.at(CT);
+	_data[GG] += other.at(GG);
+	_data[GT] += other.at(GT);
+	_data[TT] += other.at(TT);
 };
 
 double TGenotypeData::sum(){
-	return data[AA] + data[AC] + data[AG] + data[AT] + data[CC] + data[CG] + data[CT] + data[GG] + data[GT] + data[TT];
+	return _data[AA] + _data[AC] + _data[AG] + _data[AT] + _data[CC] + _data[CG] + _data[CT] + _data[GG] + _data[GT] + _data[TT];
 };
 
 double TGenotypeData::weightedSum(const TGenotypeData & weights){
-	return data[AA] * weights.at(AA)
-			+ data[AC] * weights.at(AC)
-		   	+ data[AG] * weights.at(AG)
-			+ data[AT] * weights.at(AT)
-			+ data[CC] * weights.at(CC)
-			+ data[CG] * weights.at(CG)
-			+ data[CT] * weights.at(CT)
-			+ data[GG] * weights.at(GG)
-			+ data[GT] * weights.at(GT)
-			+ data[TT] * weights.at(TT);
+	return _data[AA] * weights.at(AA)
+			+ _data[AC] * weights.at(AC)
+		   	+ _data[AG] * weights.at(AG)
+			+ _data[AT] * weights.at(AT)
+			+ _data[CC] * weights.at(CC)
+			+ _data[CG] * weights.at(CG)
+			+ _data[CT] * weights.at(CT)
+			+ _data[GG] * weights.at(GG)
+			+ _data[GT] * weights.at(GT)
+			+ _data[TT] * weights.at(TT);
 };
 
 void TGenotypeData::normalize(){
 	double theSum = sum();
 
-	data[AA] = data[AA] / theSum;
-	data[AC] = data[AC] / theSum;
-	data[AG] = data[AG] / theSum;
-	data[AT] = data[AT] / theSum;
-	data[CC] = data[CC] / theSum;
-	data[CG] = data[CG] / theSum;
-	data[CT] = data[CT] / theSum;
-	data[GG] = data[GG] / theSum;
-	data[GT] = data[GT] / theSum;
-	data[TT] = data[TT] / theSum;
+	_data[AA] = _data[AA] / theSum;
+	_data[AC] = _data[AC] / theSum;
+	_data[AG] = _data[AG] / theSum;
+	_data[AT] = _data[AT] / theSum;
+	_data[CC] = _data[CC] / theSum;
+	_data[CG] = _data[CG] / theSum;
+	_data[CT] = _data[CT] / theSum;
+	_data[GG] = _data[GG] / theSum;
+	_data[GT] = _data[GT] / theSum;
+	_data[TT] = _data[TT] / theSum;
 };
 
 void TGenotypeData::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
@@ -188,16 +227,16 @@ void TGenotypeData::addNames(std::vector<std::string> & vec, const TGenotypeMap 
 };
 
 void TGenotypeData::write(TOutputFile & out) const{
-	out << data[AA];
-	out << data[AC];
-	out << data[AG];
-	out << data[AT];
-	out << data[CC];
-	out << data[CG];
-	out << data[CT];
-	out << data[GG];
-	out << data[GT];
-	out << data[TT];
+	out << _data[AA];
+	out << _data[AC];
+	out << _data[AG];
+	out << _data[AT];
+	out << _data[CC];
+	out << _data[CG];
+	out << _data[CT];
+	out << _data[GG];
+	out << _data[GT];
+	out << _data[TT];
 };
 
 //--------------------------------------------------------------------
@@ -224,45 +263,45 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			data[AA] += log(bases[i].at(A));
-			data[AC] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(C));
-			data[AG] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(G));
-			data[AT] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(T));
-			data[CC] += log(bases[i].at(C));
-			data[CG] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(G));
-			data[CT] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(T));
-			data[GG] += log(bases[i].at(G));
-			data[GT] += log(0.5*bases[i].at(G) + 0.5*bases[i].at(T));
-			data[TT] += log(bases[i].at(T));
+			_data[AA] += log(bases[i].at(A));
+			_data[AC] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(C));
+			_data[AG] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(G));
+			_data[AT] += log(0.5*bases[i].at(A) + 0.5*bases[i].at(T));
+			_data[CC] += log(bases[i].at(C));
+			_data[CG] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(G));
+			_data[CT] += log(0.5*bases[i].at(C) + 0.5*bases[i].at(T));
+			_data[GG] += log(bases[i].at(G));
+			_data[GT] += log(0.5*bases[i].at(G) + 0.5*bases[i].at(T));
+			_data[TT] += log(bases[i].at(T));
 		}
 
 		//standardize and de-log
-		double max = *std::max_element(&data[AA], &data[TT]);
-		data[AA] = exp(data[AA] - max);
-		data[AC] = exp(data[AC] - max);
-		data[AG] = exp(data[AG] - max);
-		data[AT] = exp(data[AT] - max);
-		data[CC] = exp(data[CC] - max);
-		data[CG] = exp(data[CG] - max);
-		data[CT] = exp(data[CT] - max);
-		data[GG] = exp(data[GG] - max);
-		data[GT] = exp(data[GT] - max);
-		data[TT] = exp(data[TT] - max);
+		double max = *std::max_element(&_data[AA], &_data[TT]);
+		_data[AA] = exp(_data[AA] - max);
+		_data[AC] = exp(_data[AC] - max);
+		_data[AG] = exp(_data[AG] - max);
+		_data[AT] = exp(_data[AT] - max);
+		_data[CC] = exp(_data[CC] - max);
+		_data[CG] = exp(_data[CG] - max);
+		_data[CT] = exp(_data[CT] - max);
+		_data[GG] = exp(_data[GG] - max);
+		_data[GT] = exp(_data[GT] - max);
+		_data[TT] = exp(_data[TT] - max);
 	} else { //on natural scale
 		//initialize
 		set(1.0);
 
 		for(size_t i=0; i<size; ++i){
-			data[AA] *= bases[i].at(A);
-			data[AC] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(C);
-			data[AG] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(G);
-			data[AT] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(T);
-			data[CC] *= bases[i].at(C);
-			data[CG] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(G);
-			data[CT] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(T);
-			data[GG] *= bases[i].at(G);
-			data[GT] *= 0.5*bases[i].at(G) + 0.5*bases[i].at(T);
-			data[TT] *= bases[i].at(T);
+			_data[AA] *= bases[i].at(A);
+			_data[AC] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(C);
+			_data[AG] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(G);
+			_data[AT] *= 0.5*bases[i].at(A) + 0.5*bases[i].at(T);
+			_data[CC] *= bases[i].at(C);
+			_data[CG] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(G);
+			_data[CT] *= 0.5*bases[i].at(C) + 0.5*bases[i].at(T);
+			_data[GG] *= bases[i].at(G);
+			_data[GT] *= 0.5*bases[i].at(G) + 0.5*bases[i].at(T);
+			_data[TT] *= bases[i].at(T);
 		}
 	}
 };
@@ -282,26 +321,26 @@ void TGenotypePosteriorProbabilities::reset(){
 
 void TGenotypePosteriorProbabilities::fill(const TGenotypeData & likelihoods, const TGenotypeData & prior){
 	//calculate normalized genotype probabilities according to Bayes rule
-	data[AA] = likelihoods.at(AA) * prior.at(AA);
-	data[AC] = likelihoods.at(AC) * prior.at(AC);
-	data[AG] = likelihoods.at(AG) * prior.at(AG);
-	data[AT] = likelihoods.at(AT) * prior.at(AT);
-	data[CC] = likelihoods.at(CC) * prior.at(CC);
-	data[CG] = likelihoods.at(CG) * prior.at(CG);
-	data[CT] = likelihoods.at(CT) * prior.at(CT);
-	data[GG] = likelihoods.at(GG) * prior.at(GG);
-	data[GT] = likelihoods.at(GT) * prior.at(GT);
-	data[TT] = likelihoods.at(TT) * prior.at(TT);
+	_data[AA] = likelihoods.at(AA) * prior.at(AA);
+	_data[AC] = likelihoods.at(AC) * prior.at(AC);
+	_data[AG] = likelihoods.at(AG) * prior.at(AG);
+	_data[AT] = likelihoods.at(AT) * prior.at(AT);
+	_data[CC] = likelihoods.at(CC) * prior.at(CC);
+	_data[CG] = likelihoods.at(CG) * prior.at(CG);
+	_data[CT] = likelihoods.at(CT) * prior.at(CT);
+	_data[GG] = likelihoods.at(GG) * prior.at(GG);
+	_data[GT] = likelihoods.at(GT) * prior.at(GT);
+	_data[TT] = likelihoods.at(TT) * prior.at(TT);
 
 	normalize();
 };
 
 double TGenotypePosteriorProbabilities::probHomozygous(){
-	return data[AA] + data[CC] + data[GG] + data[TT];
+	return _data[AA] + _data[CC] + _data[GG] + _data[TT];
 };
 
 double TGenotypePosteriorProbabilities::probHeterozygous(){
-	return 1.0 - data[AA] - data[CC] - data[GG] - data[TT];
+	return 1.0 - _data[AA] - _data[CC] - _data[GG] - _data[TT];
 };
 
 void TGenotypePosteriorProbabilities::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{

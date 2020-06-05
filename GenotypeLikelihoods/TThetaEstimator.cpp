@@ -7,7 +7,7 @@
 
 #include "TThetaEstimator.h"
 
-
+namespace GenotypeLikelihoods{
 
 //---------------------------------------------------------------
 //TThetaEstimator_base
@@ -101,9 +101,9 @@ void TThetaEstimator_base::fillPGenotype(TGenotypeData & pGeno, const double & e
 	}
 };
 
-void TThetaEstimator_base::fillPGenotype(TGenotypeData & pGeno, const Theta & thisTheta){
+void TThetaEstimator_base::fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const Theta & thisTheta){
 	fillPGenotype(pGeno, thisTheta.expTheta, thisTheta.baseFreq);
-}
+};
 
 void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag){
 	logfile->listFlush("Estimating initial parameters" + tag + " ...");
@@ -227,7 +227,7 @@ void TThetaEstimator::clear(){
 	estimationSuccessful = false;
 };
 
-void TThetaEstimator::add(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+void TThetaEstimator::add(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
 	data->add(site, genotypeLikelihoods);
 };
 
@@ -488,7 +488,7 @@ void TThetaEstimator::setTheta(double Theta){
 	theta.setTheta(Theta);
 }
 
-void TThetaEstimator::setBaseFreq(TBaseFrequencies & BaseFreq){
+void TThetaEstimator::setBaseFreq(GenotypeLikelihoods::TBaseData & BaseFreq){
 	for(int i=0; i<4; ++i)
 		theta.baseFreq[i] = BaseFreq[i];
 }
@@ -505,37 +505,38 @@ void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string
 	header.push_back(prefix + "LL");
 }
 
-void TThetaEstimator::writeestimateFrequenciesAndTheta(TOutputFile* out){
+void TThetaEstimator::writeEstimateFrequenciesAndTheta(TOutputFile & out){
 	if(estimationSuccessful){
 		//base frequencies
 		for(int i=0; i<4; ++i)
-			*out << theta.baseFreq[i];
+			out << theta.baseFreq[i];
 
 		//theta estimates
-		*out << theta.theta;
-		*out	<< theta.theta - theta.thetaConfidence;
-		*out	<< theta.theta + theta.thetaConfidence;
-		*out	<< theta.LL;
+		out << theta.theta;
+		out	<< theta.theta - theta.thetaConfidence;
+		out	<< theta.theta + theta.thetaConfidence;
+		out	<< theta.LL;
 	} else {
 		//frequencies
-		*out << "-" << "-" << "-" << "-";
+		out << "-" << "-" << "-" << "-";
 
 		//theta estimates
-		*out << "-" << "-" << "-" << "-";
+		out << "-" << "-" << "-" << "-";
 	}
 };
 
-void TThetaEstimator::writeResultsToFile(TOutputFile* out){
+void TThetaEstimator::writeResultsToFile(TOutputFile & out){
 	//number of sites
 	data->writeSite(out);
 
 	//estimated params
-	writeestimateFrequenciesAndTheta(out);
+	writeEstimateFrequenciesAndTheta(out);
 };
 
-void TThetaEstimator::calcLikelihoodSurface(gz::ogzstream & out, int & steps){
+void TThetaEstimator::calcLikelihoodSurface(TOutputFile & out, const uint32_t & steps){
 	//write header
-	out << "log10(theta)\ttheta\tLL\n";
+	out.writeHeader({"log10(theta)", "theta", "LL"});
+	out.setPrecision(12);
 
 	//calculate likelihood surface
 	double minLogTheta = -5.0;
@@ -551,11 +552,11 @@ void TThetaEstimator::calcLikelihoodSurface(gz::ogzstream & out, int & steps){
 		theta.LL = data->calcLogLikelihood(pGenotype);
 
 		//write results
-		out << std::setprecision(12) << theta.logTheta << "\t" << theta.theta << "\t" << theta.LL << "\n";
+		out << theta.logTheta << theta.theta << theta.LL << std::endl;
 	}
 };
 
-void TThetaEstimator::bootstrapTheta(TOutputFile* out){
+void TThetaEstimator::bootstrapTheta(){
 	logfile->listFlush("Bootstrapping sites ...");
 
 	data->bootstrap(*randomGenerator);
@@ -563,9 +564,6 @@ void TThetaEstimator::bootstrapTheta(TOutputFile* out){
 
 	//estimate theta
 	estimateTheta();
-
-	//write results
-	writeResultsToFile(out);
 
 	//clean up
 	data->clearBootstrap();
@@ -798,3 +796,4 @@ void TThetaEstimatorRatio::oneMCMCIteration(){
 	numAcceptedBaseFreq2 += updateBaseFrequencies(data2, theta2, sdProposalKernelBaseFreq2);
 };
 
+}; //end namespace

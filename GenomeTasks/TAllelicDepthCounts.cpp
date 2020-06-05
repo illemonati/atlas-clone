@@ -75,9 +75,9 @@ void TAllelicDepthCounts::_freeStorage(){
 };
 
 
-void TAllelicDepthCounts::addSite(uint32_t numA, uint32_t numC, uint32_t numG, uint32_t numT){
-	if(numA < _size && numC < _size && numG < _size && numT < _size)
-		++_counts[numA][numC][numG][numT];
+void TAllelicDepthCounts::addSite(const std::vector<uint32_t> & alleleCounts){
+	if(alleleCounts[A] < _size && alleleCounts[C] < _size && alleleCounts[G] < _size && alleleCounts[T] < _size)
+		++_counts[alleleCounts[A]][alleleCounts[C]][alleleCounts[G]][alleleCounts[T]];
 };
 
 
@@ -145,7 +145,6 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 	}
 };
 
-
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
@@ -166,11 +165,13 @@ TAllelicDepth::TAllelicDepth(TParameters & Params, TLog* Logfile, TRandomGenerat
 };
 
 void TAllelicDepth::_handleWindow(){
-	if(_window.passedFilters){
-		_logfile->listFlushTime("Adding imbalance values to table ...");
-		_window.countAlleles(_counts);
-		_logfile->doneTime();
+	_logfile->listFlushTime("Adding sites to allelic depth table ...");
+	std::vector<uint32_t> alleleCounts
+	for(auto& s : _window){
+		s.countAlleles(alleleCounts);
+		_counts.addSite(alleleCounts);
 	}
+	_logfile->doneTime();
 };
 
 void TAllelicDepth::quantifyAlleleicDepth(){

@@ -8,11 +8,11 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
+#include <TBedReaderWindows.h>
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
 #include "TThetaEstimator.h"
-#include "TBedReader.h"
 #include "TSiteSubset.h"
 #include "TPostMortemDamage.h"
 #include "GLF/TGLF.h"
@@ -34,14 +34,22 @@ class TWindow;
 //---------------------------------------------------------------
 class TWindow_base{
 protected:
-
+	std::vector<GenotypeLikelihoods::TSite> _sites;
 
 	std::string _chrName;
 
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
 
-	void setCoordinates(long Start, long End, int ChrNumber);
+	//depth
+	bool _depthCalculated;
+	double _depth, _fractionSitesNoData, _fractionDepthAtLeastTwo, _fractionRefIsN;
+	uint32_t _numSitesWithData;
+	void _calcDepth();
+
+	bool _passedFilters;
+
+	void _setCoordinates(long Start, long End, int ChrNumber);
 
 	//TODO: make as much as possible private
 public:
@@ -50,14 +58,9 @@ public:
 	unsigned int length;
 	unsigned int chrNumber;
 
-	std::vector<TSite> sites;
+
 	bool sitesInitialized;
 	unsigned int numReadsInWindow;
-	double depth, fractionSitesNoData, fractionDepthAtLeastTwo;
-	double fractionRefIsN;
-	unsigned int numSitesWithData;
-	bool passedFilters;
-	TBaseFrequencies baseFreq;
 
 	TWindow_base();
 	TWindow_base(TWindow_base & other);
@@ -69,10 +72,19 @@ public:
 	virtual ~TWindow_base();
 
 	//getters
+	GenotypeLikelihoods::TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
 	uint32_t posInRef(uint32_t internalPos) const{ return startPos + internalPos; };
-	TBaseFrequencies getBaseFreq(){return baseFreq;};
+	double depth();
+	double fractionSitesNoData();
+	double fractionDepthAtLeastTwo();
+	uint32_t numSitesWithData();
+	double fractionRefIsN();
+	void dataSummary(TLog* Logfile);
+	bool filter(const double maxFracMissing, const double maxRefN, TLog* Logfile);
+	bool passedFilters() const{ return _passedFilters; };
 
+	void writeCoordinates(TOutputFile & out);
 
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 	void initSites(long newLength);
@@ -80,32 +92,20 @@ public:
 	virtual void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
-	void applyMask(BAM::TBedReader* mask, bool inverseMasking);
+	void applyMask(BAM::TBedReaderWindows* mask, bool inverseMasking);
 	void maskCpG();
-	void estimateBaseFrequencies();
-	void calcDepth();
-	void calcFracN();
-	void calcDepthPerSite(long * siteDepth, size_t maxCov);
-	void countDepthPerSite(TDistributionOfCounts & counts);
-	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
+	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq);
+
 	void countAlleles(TAllelicDepthCounts & counts);
 	void writeNonConservedBed(std::ofstream & output);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
-	void createDepthMask(size_t minDepth, size_t maxDepth, std::ofstream & outputMaskFile, const std::string & chr);
 
 	//loop over sites
-	std::vector<TSite>::iterator begin(){ return sites.begin(); };
-	std::vector<TSite>::iterator end(){ return sites.end(); };
+	std::vector<GenotypeLikelihoods::TSite>::iterator begin(){ return _sites.begin(); };
+	std::vector<GenotypeLikelihoods::TSite>::iterator end(){ return _sites.end(); };
 
 	//add sites to data structures
-	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator);
-	void addSitesToThetaEstimator(TThetaEstimatorData* thetaDataContainer, TGenotypeLikelihoodCalculator & GL_calculator, BAM::TBedReader & region);
 	void addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll);
-	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TQualityMap & qualMap);
-	void addToRecalibrationEM(TRecalibrationEMEstimator & recalObject, TSiteSubset & subset, TQualityMap & qualMap);
-
-	//other
-	void generatePSMCInput(TThetaEstimator & estimator, TGenotypeLikelihoodCalculator & GL_calculator, int & blockSize, double & confidence, std::ofstream & out, int & nCharOnLine);
 };
 
 //---------------------------------------------------------------

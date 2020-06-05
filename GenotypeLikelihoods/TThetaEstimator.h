@@ -15,8 +15,10 @@
 #include <armadillo>
 #include "TFile.h"
 #include "TGenotypeData.h"
+#include "TLog.h"
+#include "TParameters.h"
 
-using namespace GenotypeLikelihoods;
+namespace GenotypeLikelihoods{
 
 //---------------------------------------------------------------
 //Theta
@@ -99,8 +101,8 @@ protected:
 
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
-	void fillPGenotype(TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies);
-	void fillPGenotype(TGenotypeData & pGeno, const Theta & thisTheta);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
@@ -134,9 +136,9 @@ private:
 	bool estimationSuccessful;
 
 	//tmp vectors
-	TGenotypeData P_G; // see paper
+	GenotypeLikelihoods::TGenotypeData P_G; // see paper
 
-	double _calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype);
+	double _calcFisherInfo(const GenotypeLikelihoods::TGenotypeData & _pGenotype, const GenotypeLikelihoods::TGenotypeData deriv_pGenotype);
 	bool _NRAllParams();
 	void _NROnlyTheta();
 	void _runEMForTheta();
@@ -150,16 +152,16 @@ public:
 	virtual ~TThetaEstimator(){};
 
 	void clear();
-	void add(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void add(const TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 	long sizeWithData(){ return data->sizeWithData();};
 	bool estimateTheta();
 	void setTheta(double Theta);
-	void setBaseFreq(TBaseFrequencies & BaseFreq);
+	void setBaseFreq(GenotypeLikelihoods::TBaseData & BaseFreq);
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
-	void writeestimateFrequenciesAndTheta(TOutputFile* out);
-	void writeResultsToFile(TOutputFile* out);
-	void calcLikelihoodSurface(gz::ogzstream & out, int & steps);
-	void bootstrapTheta(TOutputFile* out);
+	void writeEstimateFrequenciesAndTheta(TOutputFile & out);
+	void writeResultsToFile(TOutputFile & out);
+	void calcLikelihoodSurface(TOutputFile & out, const uint32_t & steps);
+	void bootstrapTheta();
 };
 
 //---------------------------------------------------------------
@@ -217,7 +219,7 @@ public:
 //---------------------------------------------------------------
 class TThetaOutputFile{
 protected:
-	TOutputFileZipped out;
+	TOutputFile out;
 	std::vector<TThetaEstimator*> thetaEstimators;
 	std::vector<std::string> prefixes;
 
@@ -233,7 +235,7 @@ protected:
 
 	void writeEstimates(){
 		for(TThetaEstimator* est: thetaEstimators){
-			est->writeResultsToFile(&out);
+			est->writeResultsToFile(out);
 		}
 		out << std::endl;
 	};
@@ -267,6 +269,7 @@ public:
 		logfile->list("Will write theta estimates to file '" + Filename + "'.");
 		out.open(Filename);
 		writeHeader();
+		out.setPrecision(9);
 	};
 
 	void open(TThetaEstimator* Estimator, const std::string Filename, TLog* logfile){
@@ -289,5 +292,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* TTHETAESTIMATOR_H_ */

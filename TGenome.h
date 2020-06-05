@@ -58,7 +58,6 @@ public:
 //---------------------------------------------------------------
 class TGenome_filtered:public TGenome_basic{
 protected:
-
 	virtual void _traverseBAMPassedQC();
 	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_filtered!"; };
 
@@ -75,6 +74,7 @@ class TGenome_parsed:public TGenome_filtered{
 protected:
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
+	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
 	//reference
 	BAM::TFastaBuffer _reference;
@@ -105,7 +105,6 @@ public:
 
 	void recalibrateBamFile(TParameters & params);
 	void binQualityScores(TParameters & params);
-
 };
 
 //---------------------------------------------------------------
@@ -118,7 +117,7 @@ protected:
 
 	//window params
 	bool _windowsPredefined;
-	TBed* _predefinedWindows;
+	BAM::TBed* _predefinedWindows;
 	unsigned int _windowSize;
 	unsigned int _numWindowsOnChr;
 	unsigned int _windowNumber;
@@ -134,7 +133,7 @@ protected:
 
 	//mask
 	bool _doMasking, _considerRegions;
-	BAM::TBedReader* _mask;
+	BAM::TBedReaderWindows* _mask;
 
 	//sites
 	std::unique_ptr<TSiteSubset> _subset;
@@ -179,7 +178,6 @@ protected:
 
 public:
 	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
-
 };
 
 #endif /* LOCI_H_ */

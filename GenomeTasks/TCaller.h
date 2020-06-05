@@ -229,7 +229,6 @@ class TCall:public TGenome_windows{
 private:
 	TCaller* _caller;
 	TGenotypePrior* _prior;
-	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
 	void _initializeGenotypePrior(TParameters & Params);
 	void _call();

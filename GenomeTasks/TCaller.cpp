@@ -1038,7 +1038,7 @@ void TCall::_callKnwonAlleles(){
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
 			uint32_t internalPos = it.position - _window.startPos;
-			TSite& site = _window.sites[internalPos];
+			TSite& site = _window._sites[internalPos];
 			site.setRefBase(it.ref);
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site.bases, _genoLik);
 			_caller->call(_window.chrName(), _window.posInRef(internalPos), site, _genoLik, it.ref, it.alt);
@@ -1048,7 +1048,7 @@ void TCall::_callKnwonAlleles(){
 
 
 void TCall::_handleWindow(){
-	if(_window.passedFilters || _caller->printSitesWithNoData()){
+	if(_window._passedFilters || _caller->printSitesWithNoData()){
 		//update genotype prior
 		_prior->update(&_window, _logfile);
 

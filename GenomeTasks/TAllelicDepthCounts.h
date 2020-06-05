@@ -33,7 +33,7 @@ public:
 
 	void resize(const uint32_t MaxAllelicDepth);
 	void clear();
-	void addSite(uint32_t numA, uint32_t numC, uint32_t numG, uint32_t numT);
+	void addSite(const std::vector<uint32_t> & alleleCounts);
 	void addSiteZeroDepth();
 	void write(const std::string filename, bool printEmpty);
 };

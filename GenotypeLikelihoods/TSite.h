@@ -8,21 +8,16 @@
 #ifndef TSITE_H_
 #define TSITE_H_
 
-#include <math.h>
 #include <TBase.h>
 #include <vector>
-#include "TParameters.h"
 #include "TGenotypeMap.h"
-#include "TQualityMap.h"
 #include "TGenotypeData.h"
-#include "gzstream.h"
-#include <algorithm>
-#include "TRandomGenerator.h"
-#include "../TAllelicDepthCounts.h"
-#include "auxiliaryTools.h"
+
+namespace GenotypeLikelihoods{
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100
+
 
 //---------------------------------------------------------------
 //TSite
@@ -47,22 +42,21 @@ public:
 	//TSite(TSite* other):TSite(){stealFromOther(other);};
 	virtual ~TSite(){ clear(); };
 	void clear();
-	void stealFromOther(TSite* other);
+	//void stealFromOther(TSite* other);
 
 	void add(const TBase * base);
-	void setRefBase(const Base ref){
-		referenceBase = ref;
-	};
+	void setRefBase(const Base ref){ referenceBase = ref; };
 	Base getRefBase() const {return referenceBase;};
-	uint32_t depth();
-	uint32_t refDepth();
-	void addToBaseFrequencies(TBaseFrequencies & frequencies);
-	std::string getBases(const TGenotypeMap & genoMap);
+	void addToBaseFrequencies(TBaseData & frequencies) const;
+	std::string getBases(const TGenotypeMap & genoMap) const;
+	uint32_t depth() const;
+	uint32_t refDepth() const;
 
-	void countAlleles(GenotypeLikelihoods::TBaseData & alleleCounts) const;
-	void countAllelesForImbalance(TAllelicDepthCounts & counts);
-	void countMates(int* mateCounts);
-	void countFwdRev(int* frCounts);
+	void countAlleles(TBaseCounts & alleleCounts) const;
+	void countMates(int* mateCounts) const;
+	void countFwdRev(int* frCounts) const;
 };
+
+}; //end namespace
 
 #endif /* TSITE_H_ */

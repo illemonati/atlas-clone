@@ -23,20 +23,23 @@ TRecalibrationEMSite::~TRecalibrationEMSite(){
 		delete[] data;
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
 	trueBase = N;
 	_save(site, ReadGroupMap, qualiMap);
 };
 
-TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase){
+TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase){
 	trueBase = TrueBase;
 	_save(site, ReadGroupMap, qualiMap);
 };
 
-void TRecalibrationEMSite::_save(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
+void TRecalibrationEMSite::_save(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
 	numReads = site.bases.size();
 	data = new TRecalibrationEMReadData[numReads];
 	int k = 0;
+
+	REPLACE WITH JUST TBASE!!!
+
 	for(TBaseOld* it : site.bases){
 		//read group. Note: also encodes whether it is first or second mate
 		data[k].readGroup = ReadGroupMap.getIndex(it->data.readGroup);
@@ -233,9 +236,12 @@ void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, do
 //---------------------------------------------------------------
 //TRecalibrationEMWindow
 //---------------------------------------------------------------
-TRecalibrationEMWindow::TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, TReadGroupMap* ReadGroupMap){
-	freqs = new double[4];
-	for(int i=0; i<4; ++i) freqs[i] = (*baseFreqs)[i];
+TRecalibrationEMWindow::TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM::TReadGroupMap* ReadGroupMap){
+	freqs[A] = baseFreqs.at(A);
+	freqs[C] = baseFreqs.at(C);
+	freqs[G] = baseFreqs.at(G);
+	freqs[T] = baseFreqs.at(T);
+
 	readGroupMapObject = ReadGroupMap;
 }
 
@@ -316,7 +322,7 @@ void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
 //---------------------------------------------------------------
 //TRecalibrationEMEstimator
 //---------------------------------------------------------------
-TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap){
+TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap){
 	logfile = Logfile;
 	tmpEpsilon = NULL;
 	tmpEpsilonInitialized = false;
@@ -358,9 +364,9 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TReadGr
 	equalBaseFrequencies = true;
 	if(args.parameterExists("estimateBaseFrequencies")){
 		equalBaseFrequencies = false;
-		logfile->list("Will estimate the base frequencies.");
+		logfile->list("Will estimate the base frequencies. (parameter ''estimateBaseFrequencies)");
 	} else if(equalBaseFrequencies)
-		logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. Use parameter 'estimateBaseFrequencies' to estimate them.");
+		logfile->list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to estimate them)");
 	logfile->endIndent();
 };
 
@@ -632,11 +638,13 @@ void TRecalibrationEMEstimator::_initializTmpVariablesForEstimation(){
 	models.setEMParamsToZero();
 };
 
-void TRecalibrationEMEstimator::addNewWindow(TBaseFrequencies* freqs){
+void TRecalibrationEMEstimator::addNewWindow(const TBaseData & freqs){
 	windows.push_back(new TRecalibrationEMWindow(freqs, _readGroupMap));
 	//set iterator
 	curWindow = windows.end(); --curWindow;
-	if(equalBaseFrequencies) (*curWindow)->setEuqalBaseFrequencies();
+	if(equalBaseFrequencies){
+		(*curWindow)->setEuqalBaseFrequencies();
+	}
 };
 
 void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap){

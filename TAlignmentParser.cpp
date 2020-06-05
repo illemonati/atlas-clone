@@ -184,7 +184,7 @@ void TAlignmentParser::_setMasks(TParameters & params){
 			logfile->startIndent("Will mask all sites listed in BED file '" + maskFile + "':");
 		}
 		logfile->listFlush("Reading file ...");
-		mask = new BAM::TBedReader(maskFile, windowSize, bamFile->chromosomes, siteLimit, logfile);
+		mask = new BAM::TBedReaderWindows(maskFile, windowSize, bamFile->chromosomes, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 		//mask->print();
@@ -208,7 +208,7 @@ void TAlignmentParser::_setMasks(TParameters & params){
 			logfile->startIndent("Will limit analysis to all regions listed in BED file '" + regionsFile + "' (parameter 'regions'):");
 		}
 		logfile->listFlush("Reading file ...");
-		mask = new BAM::TBedReader(regionsFile, windowSize, bamFile->chromosomes, siteLimit, logfile);
+		mask = new BAM::TBedReaderWindows(regionsFile, windowSize, bamFile->chromosomes, siteLimit, logfile);
 		logfile->done();
 		logfile->endIndent();
 	} else considerRegions = false;
@@ -536,7 +536,7 @@ void TAlignmentParser::downsampleWindow(TWindow_base & destination, TWindow & so
 };
 
 void TAlignmentParser::_applyWindowFilters(TWindow_base & window){
-	window.passedFilters = false;
+	window._passedFilters = false;
 	if(window.numReadsInWindow > 0){
 		//apply masks and filters
 		if(doMasking){
@@ -554,14 +554,14 @@ void TAlignmentParser::_applyWindowFilters(TWindow_base & window){
 		}
 
 		//calc sequencing depth
-		window.calcDepth();
+		window._calcDepth();
 
 		//report
 		logfile->conclude("read data from " + toString(window.numReadsInWindow) + " reads.");
-		logfile->conclude("sequencing depth is " + toString(window.depth));
-		logfile->conclude(toString(window.fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
-		logfile->conclude(toString(window.fractionSitesNoData * 100) + "% of all sites have no data");
-		if(window.fractionSitesNoData > maxMissing){
+		logfile->conclude("sequencing depth is " + toString(window._depth));
+		logfile->conclude(toString(window._fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice");
+		logfile->conclude(toString(window._fractionSitesNoData * 100) + "% of all sites have no data");
+		if(window._fractionSitesNoData > maxMissing){
 			logfile->conclude("Level of missing data > threshold of " + toString(maxMissing) + " -> skipping this window");
 			return;
 		}
@@ -572,7 +572,7 @@ void TAlignmentParser::_applyWindowFilters(TWindow_base & window){
 				return;
 			}
 		}
-		window.passedFilters = true;
+		window._passedFilters = true;
 	} else {
 		logfile->conclude("No data in this window.");
 	}

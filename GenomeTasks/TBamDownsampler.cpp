@@ -62,24 +62,7 @@ TBamDownsampler_base::TBamDownsampler_base(TParameters & Params, TLog* Logfile, 
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
 	//read downsampling rates
-	std::string probString = Params.getParameterString("prob");
-
-	if(!stringContainsOnly(probString, "-0123456789.,")){
-		throw "Wrong format on probability list: use floating point numbers delimited by commas (e.g. 0.1,0.2,0.5).";
-	}
-
-	fillVectorFromString(probString, _probs, ',');
-
-	//make sure it is sorted
-	std::sort(_probs.begin(), _probs.end());
-	std::reverse(_probs.begin(), _probs.end());
-
-	//check if all numbers are within (0,1]
-	for(double it: _probs){
-		if(it <= 0.0 || it > 1.0){
-			throw "All downsampling probabilities must be within (0,1.0], which is not the case for " + toString(it) + "!";
-		}
-	}
+	Params.fillParameterIntoProbabilityVector("prob", _probs, ',');
 
 	//get unique names
 	std::map <double, int> fracNames;

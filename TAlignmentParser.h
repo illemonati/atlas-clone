@@ -8,6 +8,7 @@
 #ifndef TALIGNMENTPARSER_H_
 #define TALIGNMENTPARSER_H_
 
+#include <TBedReaderWindows.h>
 #include "TBamFile.h"
 #include "bamtools/api/BamWriter.h"
 #include "bamtools/utils/bamtools_fasta.h"
@@ -17,7 +18,6 @@
 #include "TAlignment.h"
 #include "TWindow.h"
 #include "TBed.h"
-#include "TBedReader.h"
 #include "TChromosomes.h"
 #include "TFastaBuffer.h"
 #include <vector>
@@ -88,7 +88,7 @@ private:
 	double maxRefN;
 
 	//masks
-	BAM::TBedReader* mask;
+	BAM::TBedReaderWindows* mask;
 
 	//filters
 	bool applyDepthFilter;

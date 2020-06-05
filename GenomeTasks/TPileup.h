@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+//TODO: add flags so users can choose what to write
+
 //---------------------------------
 // TPileup
 //---------------------------------
@@ -20,7 +22,6 @@ private:
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseData _alleleCounts;
-	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 	int _counts[2];
 
 	void _handleWindow();

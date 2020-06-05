@@ -8,6 +8,23 @@
 #ifndef GENOMETASKS_TDEPTHWRITER_H_
 #define GENOMETASKS_TDEPTHWRITER_H_
 
+#include "TGenome.h"
+
+//----------------------------------------
+// TDepthWriter
+//----------------------------------------
+class TDepthWriter:public TGenome_windows{
+private:
+	TOutputFile _out;
+	TCountDistribution _distPerSite;
+
+	void _handleWindow();
+
+public:
+	TDepthWriter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void writeDepth();
+};
+
 
 
 

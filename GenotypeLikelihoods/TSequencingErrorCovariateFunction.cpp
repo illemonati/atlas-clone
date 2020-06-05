@@ -97,7 +97,7 @@ void TSequencingErrorCovariateFunction::proposeNewParameters(const arma::mat & J
 	}
 };
 
-std::string TSequencingErrorCovariateFunction::getModelString(){
+std::string TSequencingErrorCovariateFunction::getModelString() const{
 	std::string s = _moduleName + "[";
 	for(size_t i=0; i<_numParameters; ++i){
 		if(i>0){
@@ -264,7 +264,7 @@ void TRecalibrationEMCovariateFunction_probit::_freeTmpStorage(){
 void TRecalibrationEMCovariateFunction_probit::_fillTmpStorage(){
 	for(uint16_t q = 0; q <= _maxValue; ++q){
 		double z = _betas[1] + _betas[2] * (double) q;
-		_cumulDens_Phi[q] = _normalDist.cumulativeDensity(z);
+		_cumulDens_Phi[q] = _normalDist.cumulativeDistrFunction(z);
 		_normalDens_phi[q] = _normalDist.density(z);
 		_eta[q] = _cumulDens_Phi[q] * _betas[0];
 		_normalDens_q[q] = _normalDens_phi[q] * (double) q;
@@ -351,7 +351,7 @@ void TSequencingErrorCovariateFunction_specific::_init(const uint16_t MaxValue){
 	_initializeBetas();
 };
 
-void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
 	first.add(_firstParameterIndex + val, 1.0);
 };
 

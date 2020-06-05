@@ -7,6 +7,8 @@
 
 #include "TSite.h"
 
+namespace GenotypeLikelihoods{
+
 //-------------------------------------------------------
 //TSite
 //-------------------------------------------------------
@@ -43,7 +45,7 @@ void TSite::add(const TBase * base){
 	hasData = true;
 };
 
-void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
+void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
 	if(hasData){
 		static double weight = 1.0 / bases.size();
 		for(auto& b : bases){
@@ -52,7 +54,7 @@ void TSite::addToBaseFrequencies(TBaseFrequencies & frequencies){
 	}
 };
 
-std::string TSite::getBases(const TGenotypeMap & genoMap){
+std::string TSite::getBases(const TGenotypeMap & genoMap) const{
 	if(!hasData) return "-";
 	std::string s = "";
 	for(auto& b : bases){
@@ -61,12 +63,12 @@ std::string TSite::getBases(const TGenotypeMap & genoMap){
 	return s;
 };
 
-uint32_t TSite::depth(){
+uint32_t TSite::depth() const{
 	if(!hasData) return 0;
 	return bases.size();
 };
 
-uint32_t TSite::refDepth(){
+uint32_t TSite::refDepth() const{
 	if(!hasData) return 0;
 	if(referenceBase == 'N') return 0;
 	uint32_t counter = 0;
@@ -77,18 +79,14 @@ uint32_t TSite::refDepth(){
 	return counter;
 };
 
-void TSite::countAlleles(GenotypeLikelihoods::TBaseData & alleleCounts) const{
-	alleleCounts[0] = 0;
-	alleleCounts[1] = 0;
-	alleleCounts[2] = 0;
-	alleleCounts[3] = 0;
-
+void TSite::countAlleles(TBaseCounts & alleleCounts) const{
+	alleleCounts.reset();
 	for(auto& b : bases){
-		++alleleCounts[b->base];
+		alleleCounts.add(b->base);
 	}
 };
 
-void TSite::countMates(int* mateCounts){
+void TSite::countMates(int* mateCounts) const{
 	mateCounts[0] = 0;
 	mateCounts[1] = 0;
 
@@ -97,7 +95,7 @@ void TSite::countMates(int* mateCounts){
 	}
 };
 
-void TSite::countFwdRev(int* frCounts){
+void TSite::countFwdRev(int* frCounts) const{
 	frCounts[0] = 0;
 	frCounts[1] = 0;
 
@@ -107,7 +105,7 @@ void TSite::countFwdRev(int* frCounts){
 };
 
 
-
+}; //end namespace
 
 
 

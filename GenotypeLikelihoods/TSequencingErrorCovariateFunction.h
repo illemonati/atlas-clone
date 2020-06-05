@@ -12,6 +12,7 @@
 
 #include "../TNormalDistribution.h"
 #include "auxiliaryTools.h"
+#include "mathFunctions.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
@@ -137,7 +138,7 @@ public:
 class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
 protected:
 	unsigned int _maxValue;
-	TNormalDistribution _normalDist;
+	TNormalDistr _normalDist;
 	uint16_t _secondParameterIndex;
 	uint16_t _thirdParameterIndex;
 

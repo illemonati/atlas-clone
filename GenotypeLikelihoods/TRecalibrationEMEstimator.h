@@ -33,7 +33,7 @@ private:
 		return 1.33333333333333333333 * D - 1.0;
 	};
 
-	void _save(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
+	void _save(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
 	void _addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon);
 	void _addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* & epsilon);
 
@@ -42,8 +42,8 @@ public:
 
 	TRecalibrationEMSite();
 	~TRecalibrationEMSite();
-	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
-	TRecalibrationEMSite(TSite & site, TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
+	TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
+	TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);
 	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon);
@@ -58,10 +58,10 @@ public:
 class TRecalibrationEMWindow{
 public:
 	std::vector<TRecalibrationEMSite*> sites;
-	double* freqs; //base frequencies
-	TReadGroupMap* readGroupMapObject;
+	double freqs[4]; //base frequencies
+	BAM::TReadGroupMap* readGroupMapObject;
 
-	TRecalibrationEMWindow(TBaseFrequencies* baseFreqs, TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM::TReadGroupMap* ReadGroupMap);
 	virtual ~TRecalibrationEMWindow(){
 		delete[] freqs;
 		for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
@@ -90,8 +90,8 @@ public:
 class TRecalibrationEMEstimator{
 protected:
 	TLog* logfile;
-	TReadGroups* _readGroups;
-	TReadGroupMap* _readGroupMap;
+	BAM::TReadGroups* _readGroups;
+	BAM::TReadGroupMap* _readGroupMap;
 	TSequencingErrorModels models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
@@ -115,7 +115,7 @@ protected:
 	void _initializTmpVariablesForEstimation();
 
 public:
-	TRecalibrationEMEstimator(TParameters & args, TReadGroups* ReadGroups, TLog* Logfile, TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap);
 	~TRecalibrationEMEstimator(){
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow){
 			delete *curWindow;
@@ -126,7 +126,7 @@ public:
 	};
 
 	//functions to add data
-	void addNewWindow(TBaseFrequencies* freqs);
+	void addNewWindow(const TBaseData & freqs);
 	void addSite(TSite & site, TQualityMap & qualiMap);
 	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
 	long numSites();
