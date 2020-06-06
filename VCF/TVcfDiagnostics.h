@@ -13,15 +13,17 @@
 #include "TParameters.h"
 #include <iostream>
 #include <fstream>
-#include "TVcfFile.h"
 #include "TRandomGenerator.h"
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
 #include "TQualityMap.h"
 #include "TFile.h"
-#include "../GLF/TGLF.h"
-#include "../PopulationTools/TGenotypeFrequencies.h"
+#include "TGLF.h"
+#include "TGenotypeFrequencies.h"
+#include "TVcfFile.h"
+
+namespace VCF{
 
 class TGenotype{
 	public:
@@ -133,7 +135,41 @@ public:
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_VCFDiagnostics:public TTask{
+public:
+	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
 
+	void run(TParameters & Parameters, TLog* Logfile){
+		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
+		VcfDiagnoser.assessAllelicImbalance(Parameters);
+	};
+};
+
+class TTask_VCFToInvariantBed:public TTask{
+public:
+	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
+		VcfDiagnoser.vcfToInvariantBed();
+	};
+};
+
+class TTask_VCFFixInt:public TTask{
+public:
+	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
+		VcfDiagnoser.fixIntAsFloat();
+	};
+};
+
+
+}; //end namespace
 
 
 #endif /* TVCFDIAGNOSTICS_H_ */

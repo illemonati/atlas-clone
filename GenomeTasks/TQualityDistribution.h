@@ -9,6 +9,7 @@
 #define TQUALITYDISTRIBUTION_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -22,7 +23,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityDistribution(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TQualityDistribution(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void compileQualityDistribution();
 };
 
@@ -39,9 +40,33 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityTransformation(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TQualityTransformation(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void compileQualityTransformation();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_qualityDist:public TTask{
+public:
+	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TQualityDistribution qualDist(Parameters, Logfile, _randomGenerator);
+		qualDist.compileQualityDistribution();
+	};
+};
+
+class TTask_qualityTransformation:public TTask{
+public:
+	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TQualityTransformation transformer(Parameters, Logfile, _randomGenerator);
+		transformer.compileQualityTransformation();
+	};
+};
+
 
 }; // end namespace
 

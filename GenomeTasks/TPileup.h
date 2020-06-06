@@ -9,6 +9,7 @@
 #define GENOMETASKS_TPILEUP_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -30,9 +31,23 @@ private:
 
 
 public:
-	TPileup(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void printPileup();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_pileup:public TTask{
+public:
+	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TPileup pileup(Parameters, Logfile, _randomGenerator);
+		pileup.printPileup();
+	};
+};
+
 
 }; // end namespace
 

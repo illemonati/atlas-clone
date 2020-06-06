@@ -147,8 +147,6 @@ public:
 	bool estimatePhiWithEM(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2);
 };
 
-
-
 //--------------------------------------------
 //TDistanceEstimator
 //--------------------------------------------
@@ -192,6 +190,19 @@ public:
 	void printGLF(TParameters & params);
 	void estimateDistances(TParameters & params);
 
+};
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_estimateDist:public TTask{
+public:
+	TTask_estimateDist(){ _explanation = "Estimating the genetic distance between individuals"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TDistanceEstimator distEst(Logfile, Parameters);
+		distEst.estimateDistances(Parameters);
+	};
 };
 
 

@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "TRecalibrationEMEstimator.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -25,7 +26,7 @@ private:
 	void _handleWindow();
 
 public:
-	TEstimateRecalibration_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateRecalibration_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 
@@ -37,7 +38,7 @@ private:
 	bool _writeTmpTables;
 
 public:
-	TEstimateRecalibration(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateRecalibration(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateRecalibration();
 };
 
@@ -46,9 +47,40 @@ public:
 //-----------------------------------------------------------
 class TEstimateRecalibrationLL:public TEstimateRecalibration_base{
 public:
-	TEstimateRecalibrationLL(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateRecalibrationLL(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void calculateRecalibrationLL();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_recal:public TTask{
+public:
+	TTask_recal(){
+		_explanation = "Estimating error re-calibration parameters";
+		_citations.insert("Kousathanas et al. (2017) Genetics");
+	};
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateRecalibration estimnator(Parameters, Logfile, _randomGenerator);
+		estimnator.estimateRecalibration();
+	};
+};
+
+class TTask_recalLL:public TTask{
+public:
+	TTask_recalLL(){
+		_explanation = "Calculating LL for error re-calibration function";
+		_citations.insert("Kousathanas et al. (2017) Genetics");
+	};
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateRecalibrationLL estimator(Parameters, Logfile, _randomGenerator);
+		estimator.calculateRecalibrationLL();
+	};
+};
+
+
 
 }; // end namespace
 

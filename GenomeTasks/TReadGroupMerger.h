@@ -9,6 +9,7 @@
 #define GENOMETASKS_TREADGROUPMERGER_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -20,8 +21,21 @@ private:
 	std::vector<uint16_t> readGroupMap;
 
 public:
-	TReadGroupMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void mergeReadGroups();
+};
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_mergeReadGroups:public TTask{
+public:
+	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TReadGroupMerger readGroupMerger(Parameters, Logfile, _randomGenerator);
+		readGroupMerger.mergeReadGroups();
+	};
 };
 
 }; // end namespace

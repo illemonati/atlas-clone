@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "TThetaEstimator.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -25,7 +26,7 @@ protected:
 	void _addSites();
 
 public:
-	TEstimateTheta_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateTheta_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //-----------------------------------
@@ -39,7 +40,7 @@ private:
 	void _handleWindow();
 
 public:
-	TEstimateTheta(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateTheta(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateTheta();
 };
 
@@ -55,7 +56,7 @@ private:
 	void _bootstrapThetaEstimation();
 	void _handleWindow();
 public:
-	TEstimateThetaGenomeWide(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaGenomeWide(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateThetaGenomeWide();
 };
 
@@ -69,7 +70,7 @@ private:
 	void _bootstrapThetaEstimation();
 	void _handleWindow();
 public:
-	TEstimateThetaLLSurface(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaLLSurface(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateThetaLLSurface();
 };
 
@@ -87,7 +88,7 @@ private:
 
 	void _handleWindow();
 public:
-	TEstimateThetaDownsamplingQC(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void runQC();
 };
 
@@ -101,14 +102,72 @@ private:
 	BAM::TBedReaderWindows* _region2;
 
 
-	void _initializeRegion(TParameters & Params, BAM::TBedReaderWindows* region, const char num);
+	void _initializeRegion(TParameters & Parameters, BAM::TBedReaderWindows* region, const char num);
 	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBedReaderWindows & regions);
 	void _handleWindow();
 
 public:
-	TEstimateThetaRatio(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateThetaRation();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TThetaTask:public TTask{
+	TThetaTask(){ _citations.insert("Kousathanas et al. (2017) Genetics"); };
+};
+
+class TTask_estimateTheta:public TThetaTask{
+public:
+	TTask_estimateTheta(){ _explanation = "Estimating heterozygosity (theta) per window"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateTheta estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimateTheta();
+	};
+};
+
+class TTask_estimateThetaGenomeWide:public TThetaTask{
+public:
+	TTask_estimateThetaGenomeWide(){ _explanation = "Estimating heterozygosity (theta) genome-wide"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateThetaGenomeWide estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimateThetaGenomeWide();
+	};
+};
+
+class TTask_thetaLLSurface:public TThetaTask{
+public:
+	TTask_thetaLLSurface(){	_explanation = "Calculating the theta LL surface for each window"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateThetaLLSurface estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimateThetaLLSurface();
+	};
+};
+
+class TTask_downsamplingThetaQC:public TThetaTask{
+public:
+	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateThetaDownsamplingQC estimator(Parameters, Logfile, _randomGenerator);
+		estimator.runQC();
+	};
+};
+
+class TTask_estimateThetaRatio:public TThetaTask{
+public:
+	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TEstimateThetaRatio estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimateThetaRation();
+	};
+};
+
 
 }; // end namespace
 

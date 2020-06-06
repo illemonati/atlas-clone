@@ -9,9 +9,10 @@
 #define TCALLER_H_
 
 #include "gzstream.h"
-#include "Vcf/TVCFFields.h"
 #include "TGenotypeData.h"
 #include "TGenome.h"
+#include "TTask.h"
+#include "../VCF/TVCFFields.h"
 
 namespace GenomeTasks{
 
@@ -114,7 +115,7 @@ public:
 	void closeVCF();
 
 	//other output options
-	void initializeOutput(TParameters & Params, TLog* Logfile);
+	void initializeOutput(TParameters & Parameters, TLog* Logfile);
 	bool printSitesWithNoData(){ return _printSitesWithNoData; };
 
 	//prior
@@ -232,16 +233,30 @@ private:
 	TCaller* _caller;
 	TGenotypePrior* _prior;
 
-	void _initializeGenotypePrior(TParameters & Params);
+	void _initializeGenotypePrior(TParameters & Parameters);
 	void _call();
 	void _callKnwonAlleles();
 	void _handleWindow();
 
 public:
-	TCall(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	~TCall();
 	void call();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_call:public TTask{
+public:
+	TTask_call(){ _explanation = "Calling genotypes"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TCall caller(Parameters, Logfile, _randomGenerator);
+		caller.call();
+	};
+};
+
 
 }; // end namespace
 

@@ -62,15 +62,15 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile & bamFile){
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){
+TAssessSoftClipping::TAssessSoftClipping(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
 	//limit input / output
-	if(Params.parameterExists("writeReads")){
+	if(Parameters.parameterExists("writeReads")){
 		_writeAlignments = true;
 		std::string filename = _outputName + "_softClippingStats.txt.gz";
 		_logfile->list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
 		//write all reads?
-		if(Params.parameterExists("printAll")){
+		if(Parameters.parameterExists("printAll")){
 			_printAll = true;
 			_logfile->list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
 		} else {
@@ -78,7 +78,7 @@ TAssessSoftClipping::TAssessSoftClipping(TParameters & Params, TLog* Logfile, TR
 		}
 
 		bool printSequences = false;
-		if(Params.parameterExists("printSequences")){
+		if(Parameters.parameterExists("printSequences")){
 			printSequences = true;
 			_logfile->list("Writing soft clipped bases to file. (parameter 'printSequences')");
 		} else {
@@ -137,7 +137,7 @@ void TAssessSoftClipping::assess(){
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){
+TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
 
 };
 

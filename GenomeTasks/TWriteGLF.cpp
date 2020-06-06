@@ -13,8 +13,8 @@ namespace GenomeTasks{
 //-------------------------------------------
 // TGLFWriter
 //-------------------------------------------
-TWriteGLF::TWriteGLF(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
-	if(Params.parameterExists("printAll")){
+TWriteGLF::TWriteGLF(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+	if(Parameters.parameterExists("printAll")){
 		_printAll = true;
 		_logfile->list("Will write all sites, even those without data. (parameter 'printAll')");
 	} else {

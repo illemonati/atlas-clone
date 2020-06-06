@@ -11,9 +11,14 @@
 #include "TGenotypeMap.h"
 #include "TLog.h"
 #include "TParameters.h"
-#include "TVcfFile.h"
 #include "TFile.h"
+#include "TVcfFile.h"
 
+namespace VCF{
+
+//--------------------------------------------------------------
+// TGenotypeComparisonTable
+//--------------------------------------------------------------
 class TGenotypeComparisonTable{
 private:
 	int** counts;
@@ -45,6 +50,9 @@ public:
 	void write(const std::string filename, TGenotypeMap & genoMap);
 };
 
+//--------------------------------------------------------------
+// TVCFComapreVCF
+//--------------------------------------------------------------
 class TVCFComapreVCF{
 private:
 	int sampleIndex;
@@ -76,6 +84,9 @@ public:
 	bool chrParsed(const std::string chr);
 };
 
+//--------------------------------------------------------------
+// TVCFCompare
+//--------------------------------------------------------------
 class TVCFCompare{
 private:
 	TLog* logfile;
@@ -92,7 +103,20 @@ public:
 	void compareVCFFiles(TParameters & parameters);
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_VCFCompare:public TTask{
+public:
+	TTask_VCFCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TVCFCompare compare(Logfile);
+		compare.compareVCFFiles(Parameters);
+	};
+};
 
 
+}; //end namespace
 
 #endif /* VCF_TVCFCOMPARE_H_ */

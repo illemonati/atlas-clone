@@ -14,12 +14,12 @@ namespace GenomeTasks{
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-TPMDSCalculator::TPMDSCalculator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
+TPMDSCalculator::TPMDSCalculator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//get parameters
-	_pi = Params.getParameterDoubleWithDefault("pi", 0.001);
+	_pi = Parameters.getParameterDoubleWithDefault("pi", 0.001);
 	_logfile->list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
-	_minPMDS = Params.getParameterDoubleWithDefault("minPMDS", -10000);
-	_maxPMDS = Params.getParameterDoubleWithDefault("maxPMDS", 10000);
+	_minPMDS = Parameters.getParameterDoubleWithDefault("minPMDS", -10000);
+	_maxPMDS = Parameters.getParameterDoubleWithDefault("maxPMDS", 10000);
 	_logfile->list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
 };
 
@@ -38,7 +38,7 @@ void TPMDSCalculator::_handleAlignment(){
 	}
 };
 
-void TPMDSCalculator::estimatePMDS(){
+void TPMDSCalculator::calculatePMDS(){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
 	//write new bam file with PMDS score added
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)

@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "TThetaEstimator.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -34,9 +35,23 @@ private:
 
 	void _handleWindow();
 public:
-	TPSMCInput(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void createPSMCInput();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_PSMC:public TTask{
+public:
+	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TPSMCInput psmc(Parameters, Logfile, _randomGenerator);
+		psmc.createPSMCInput();
+	};
+};
+
 
 }; // end namespace
 

@@ -58,13 +58,13 @@ void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & 
 //-----------------------------------------
 // TBamDownsampler_base
 //-----------------------------------------
-TBamDownsampler_base::TBamDownsampler_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
+TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 
 };
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
 	//read downsampling rates
-	Params.fillParameterIntoProbabilityVector("prob", _probs, ',');
+	Parameters.fillParameterIntoProbabilityVector("prob", _probs, ',');
 
 	//get unique names
 	std::map <double, int> fracNames;
@@ -83,7 +83,7 @@ void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & 
 //-----------------------------------------
 // TBamDownsampler
 //-----------------------------------------
-TBamDownsampler::TBamDownsampler(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Params, Logfile, RandomGenerator){
+TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
 	//read downsampling rates
 	_readVectorOfDownsamplingProbabilities(Params);
 
@@ -123,7 +123,7 @@ void TBamDownsampler::downsample(){
 //-----------------------------------------
 // TBamReadDownsampler
 //-----------------------------------------
-TBamReadDownsampler::TBamReadDownsampler(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler(Params, Logfile, RandomGenerator){
+TBamReadDownsampler::TBamReadDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler(Parameters, Logfile, RandomGenerator){
 
 };
 
@@ -150,7 +150,7 @@ void TBamReadDownsampler::downsample(){
 //-----------------------------------------
 // TBamSeparator
 //-----------------------------------------
-TBamSeparator::TBamSeparator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Params, Logfile, RandomGenerator){
+TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
 	//read downsampling rates
 	_readVectorOfDownsamplingProbabilities(Params);
 

@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-TQualityDistribution::TQualityDistribution(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
+TQualityDistribution::TQualityDistribution(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 
 };
 
@@ -46,10 +46,10 @@ void TQualityDistribution::compileQualityDistribution(){
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-TQualityTransformation::TQualityTransformation(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
+TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//check what we compare
-	if(Params.parameterExists("recal2")){
-		std::string recalstring = Params.getParameterString("recal2");
+	if(Parameters.parameterExists("recal2")){
+		std::string recalstring = Parameters.getParameterString("recal2");
 		_logfile->startIndent("Comparing recalibrated qualities to those recalibrated with altermative parameters:");
 		_otherSeqErrors.createModels(recalstring, _bamFile.readGroups, _logfile);
 

@@ -9,6 +9,7 @@
 #define GENOMETASKS_TCREATEBEDMASK_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -20,7 +21,7 @@ protected:
 	BAM::TBed _bed;
 	uint32_t _minDepthForMask;
 public:
-	TCreateBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //--------------------------------------
@@ -32,7 +33,7 @@ private:
 
 	void _handleWindow();
 public:
-	TCreateDepthBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void createDepthMask();
 };
 
@@ -46,9 +47,34 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateConservedBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateConservedBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void createConservedMask();
 };
+
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_createDepthMask:public TTask{
+public:
+	TTask_createDepthMask(){ _explanation = "Creating depth mask BED file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TCreateDepthBedMask depthMask(Parameters, Logfile, _randomGenerator);
+		depthMask.createDepthMask();
+	};
+};
+
+class TTask_createNonRefMask:public TTask{
+public:
+	TTask_createNonRefMask(){ _explanation = "Creating mask BED file with sites with non-reference alleles"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TCreateConservedBedMask conservedMask(Parameters, Logfile, _randomGenerator);
+		conservedMask.createConservedMask();
+	};
+};
+
 
 }; // end namespace
 

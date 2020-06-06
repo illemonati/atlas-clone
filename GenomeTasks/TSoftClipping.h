@@ -9,6 +9,7 @@
 #define TSOFTCLIPPING_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -40,7 +41,7 @@ private:
 	TSoftClippingStatsFile statFile;
 
 public:
-	TAssessSoftClipping(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TAssessSoftClipping(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void assess();
 };
 
@@ -49,11 +50,33 @@ public:
 //--------------------------------------------------------
 class TRemoveSoftClippedBases:public TGenome_filtered{
 public:
-	TRemoveSoftClippedBases(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void removeSoftclippedBases();
 };
 
-}; // end namespace
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_assessSoftClipping:public TTask{
+public:
+	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAssessSoftClipping assessor(Parameters, Logfile, _randomGenerator);
+		assessor.assess();
+	};
+};
+
+class TTask_removeSoftClippedBasesFromReads:public TTask{
+public:
+	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TRemoveSoftClippedBases remover(Parameters, Logfile, _randomGenerator);
+		remover.removeSoftclippedBases();
+	};
+};
+
+}; // end namespace
 
 #endif /* TSOFTCLIPPING_H_ */

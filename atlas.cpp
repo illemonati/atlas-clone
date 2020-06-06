@@ -6,7 +6,6 @@
  */
 
 #include "TMain.h"
-#include "allTasks.h"
 #include "Tests/TAtlasTest.h"
 #include "TAtlasTestFilter.h"
 #include "TAtlasTestMergePairs.h"
@@ -14,8 +13,14 @@
 #include "TAtlasTestRecalibration.h"
 #include "TVcfTest.h"
 
+//includes for tasks
+
+
+
 void addTaks(TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
+
+	//BAM
 	main.addRegularTask("splitRGByLength", new TTask_splitRGbyLength());
 	main.addRegularTask("mergeRG", new TTask_mergeReadGroups());
 	main.addRegularTask("pileup", new TTask_pileup());
@@ -48,7 +53,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("qualityTransformation", new TTask_qualityTransformation());
 	main.addRegularTask("binQualityScores", new TTask_binQualityScores());
 	main.addRegularTask("call", new TTask_call());
-	main.addRegularTask("theta", new TTask_estimateTheta());
+	main.addRegularTask("theta", new TTask_estimateTheta()); -> new task for genome wide!!
 	main.addRegularTask("thetaRatio", new TTask_estimateThetaRatio());
 	main.addRegularTask("thetaQC", new TTask_downsamplingThetaQC());
 	main.addRegularTask("GLF", new TTask_GLF());
@@ -71,7 +76,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("VCFCompare", new TTask_VCFCompare());
 	main.addRegularTask("simulate", new TTask_simulate());
 
-	//debug tasks
+	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
 	main.addDebugTask("recalLL", new TTask_recalLL());
 	main.addDebugTask("inbreedingLikelihood", new TTask_inbreedingLikelihood());
 	main.addDebugTask("thetaLLSurface", new TTask_thetaLLSurface());

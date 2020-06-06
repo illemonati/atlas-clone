@@ -8,12 +8,17 @@
 #include "stringFunctions.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "TPopulationLikelihoods.h"
+#include "TGenotypeFrequencies.h"
+#include "TGLF.h"
+#include "TBed.h"
 #include "TVcfFile.h"
-#include "../PopulationTools/TPopulationLikelihoods.h"
-#include "../PopulationTools/TGenotypeFrequencies.h"
-#include "../GLF/TGLF.h"
-#include "../TBed.h"
 
+namespace VCF{
+
+//------------------------------------------
+// TVcfConverter
+//------------------------------------------
 class TVcfConverter {
 protected:
     std::string _outname;
@@ -28,13 +33,16 @@ protected:
     void readOutputName(TParameters & Params);
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
-    ~TVcfConverter();
+    virtual ~TVcfConverter();
     void readVcfAndWriteFile(TParameters & Params);
 };
 
+//------------------------------------------
+// TVcfToBeagle
+//------------------------------------------
 class TVcfToBeagle : protected TVcfConverter {
 private:
-    TOutputFileZipped * beagleFile;
+    TOutputFile * beagleFile;
     std::map<char, int> baseToNumber;
     // beagle
     void writeHeader() override;
@@ -49,10 +57,13 @@ public:
     void vcfToBeagle(TParameters & Params);
 };
 
+//------------------------------------------
+// TVcfToLFMM
+//------------------------------------------
 class TVcfToLFMM : protected TVcfConverter {
 protected:
-    TOutputFilePlain * lfmmFile;
-    TOutputFilePlain * lociNamesFile;
+    TOutputFile * lfmmFile;
+    TOutputFile * lociNamesFile;
     std::vector<std::string> loci_names;
 
     void writeHeader() override;
@@ -78,6 +89,9 @@ public:
     ~TVcfToLFMM();
 };
 
+//------------------------------------------
+// TVcfToLFMMCalledGeno
+//------------------------------------------
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
     void writeData(TPopulationLikehoodLocus & data) override ;
@@ -90,6 +104,9 @@ public:
     void vcfToLFMM(TParameters & Params);
 };
 
+//------------------------------------------
+// TVcfToLFMMPostGeno
+//------------------------------------------
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
     void writeData(TPopulationLikehoodLocus & data) override ;
@@ -104,9 +121,12 @@ public:
 
 };
 
+//------------------------------------------
+// TVcfToPosFile
+//------------------------------------------
 class TVcfToPosFile : public TVcfConverter {
 private:
-    TOutputFilePlain * posFile;
+    TOutputFile * posFile;
     // beagle
     void writeHeader() override;
     void writeRefAndAlt();
@@ -120,10 +140,13 @@ public:
     void vcfToPosFile(TParameters & Params);
 };
 
+//------------------------------------------
+// TVcfToGenotypeTruthSetFile
+//------------------------------------------
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
-    TBed ** bedFiles;
-    TOutputFilePlain * genFile;
+    BAM::TBed ** bedFiles;
+    TOutputFile * genFile;
 
     int minDistanceToPreviousLocus;
     long positionPreviousLocus;
@@ -146,6 +169,9 @@ public:
     void vcfToGenotypeTruthSetFile(TParameters & Params);
 };
 
+//------------------------------------------
+// TVcfToVcf
+//------------------------------------------
 class TVcfToVcf: public TVcfConverter {
 private:
 	void writeRefAndAlt();
@@ -156,5 +182,61 @@ public:
 	TVcfToVcf(TParameters &Params, TLog *Logfile);
 	virtual ~TVcfToVcf(){};
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_VCFToBeagle:public TTask{
+public:
+	TTask_VCFToBeagle(){ _explanation = "Converting a VCF file to Beagle format"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TVcfToBeagle VcfToBeagle(Parameters, Logfile);
+        VcfToBeagle.vcfToBeagle(Parameters);
+	};
+};
+
+class TTask_VCFToLFMM:public TTask{
+public:
+    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };
+
+    void run(TParameters & Parameters, TLog* Logfile){
+        std::string output = Parameters.getParameterString("geno");
+        if (output == "postGeno"){
+            TVcfToLFMMPostGeno vcfToLFMMPostGeno(Parameters, Logfile);
+            vcfToLFMMPostGeno.vcfToLFMM(Parameters);
+        }
+        else if (output == "calledGeno"){
+            TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Parameters, Logfile);
+            vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
+        }
+        else {
+            throw std::runtime_error("Unknown LFMM format '" + output + "'! Please choose either 'postGeno' or 'calledGeno'.");
+        }
+    };
+};
+
+class TTask_VCFToPosFile:public TTask{
+public:
+    TTask_VCFToPosFile(){ _explanation = "Converting a VCF file to posfile format (STITCH input)"; };
+
+    void run(TParameters & Parameters, TLog* Logfile){
+        TVcfToPosFile VcfToPosFile(Parameters, Logfile);
+        VcfToPosFile.vcfToPosFile(Parameters);
+    };
+};
+
+class TTask_VCFToGenotypeTruthSetFile:public TTask{
+public:
+    TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
+
+    void run(TParameters & Parameters, TLog* Logfile){
+        TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Parameters, Logfile);
+        VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(Parameters);
+    };
+};
+
+
+}; //end namespace
 
 #endif //ATLAS_TVCFCONVERTER_H

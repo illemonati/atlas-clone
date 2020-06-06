@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include <map>
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -51,9 +52,23 @@ private:
 	void _handleWindow();
 
 public:
-	TAllelicDepth(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TAllelicDepth(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void quantifyAlleleicDepth();
 };
+
+//-------------------------------------------
+// TTask_allelicDepth
+//-------------------------------------------
+class TTask_allelicDepth:public TTask{
+public:
+	TTask_allelicDepth(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAllelicDepth allelicDepth(Parameters, Logfile, _randomGenerator);
+		allelicDepth.quantifyAlleleicDepth();
+	}
+};
+
 
 }; // end namespace
 

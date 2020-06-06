@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "TFile.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -26,11 +27,25 @@ private:
 	void _writeHistogram(const TCountDistributionVector & distVec, const std::string header, const std::string name);
 
 public:
-	TBamDiagnoser(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 	void diagnose();
 
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_BAMDiagnostics:public TTask{
+public:
+	TTask_BAMDiagnostics(){ _explanation = "Printing pileup from BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TBamDiagnoser diagnoser(Parameters, Logfile, _randomGenerator);
+		diagnoser.diagnose();
+	};
+};
+
 
 }; // end namespace
 

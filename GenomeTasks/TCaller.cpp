@@ -89,11 +89,11 @@ void TCaller::printGenotypeFields(std::string tags){
 	printGenotypeFields(vec);
 };
 
-void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
+void TCaller::initializeOutput(TParameters & Parameters, TLog* Logfile){
 	//info fields
-	if(Params.parameterExists("infoFields")){
+	if(Parameters.parameterExists("infoFields")){
 		Logfile->listFlush("Parsing VCF info fields ...");
-		printInfoFields(Params.getParameterString("infoFields"));
+		printInfoFields(Parameters.getParameterString("infoFields"));
 		Logfile->done();
 	}
 	if(VCFInfoFields.numUsed() > 0){
@@ -103,9 +103,9 @@ void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
 	}
 
 	//genotype fields
-	if(Params.parameterExists("formatFields")){
+	if(Parameters.parameterExists("formatFields")){
 		Logfile->listFlush("Parsing VCF format fields ...");
-		printGenotypeFields(Params.getParameterString("formatFields"));
+		printGenotypeFields(Parameters.getParameterString("formatFields"));
 		Logfile->done();
 	}
 	if(VCFGenotypeFields.numUsed() > 0){
@@ -115,7 +115,7 @@ void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
 	}
 
 	//other output options
-	if(Params.parameterExists("printAll")){
+	if(Parameters.parameterExists("printAll")){
 		_printSitesWithNoData = true;
 		Logfile->list("Will print all sites, also those without data. (parameter 'printAll')");
 	} else {
@@ -123,7 +123,7 @@ void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
 		Logfile->list("Will print only sites with data. (use 'printAll' to print all);");
 	}
 
-	if(Params.parameterExists("noAltIfHomoRef")){
+	if(Parameters.parameterExists("noAltIfHomoRef")){
 		_printAltIfHomoRef = false;
 		Logfile->list("Will not print an alternative allele if the call is homozygous reference. (parameter 'noAltIfHomoRef')");
 	} else {
@@ -131,7 +131,7 @@ void TCaller::initializeOutput(TParameters & Params, TLog* Logfile){
 		Logfile->list("Will print the most likely alternative allele even if the call is homozygous reference. (use 'noAltIfHomoRef' to suppress)");
 	}
 
-	if(Params.parameterExists("noTriallelic")){
+	if(Parameters.parameterExists("noTriallelic")){
 		_allowTriallelicSites = false;
 		Logfile->list("Will not call genotypes resulting in two alternative alleles. (parameter 'noTriallelic')");
 	} else {
@@ -935,10 +935,10 @@ std::string TCallerBayes::getVCFGenotypeString_GP(const TSite & site, TGenotypeL
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-TCall::TCall(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
+TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	//initialize caller
 	_logfile->startIndent("Initializing caller:");
-	std::string method = Params.getParameterStringWithDefault("method", "MLE");
+	std::string method = Parameters.getParameterStringWithDefault("method", "MLE");
 	if(method == "randomBase"){
 		_caller = new TCallerRandomBase(_randomGenerator);
 	} else if(method == "majorityBase"){
@@ -957,22 +957,22 @@ TCall::TCall(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenera
 
 	//prior setting
 	if(_caller->usesPrior()){
-		_initializeGenotypePrior(Params);
+		_initializeGenotypePrior(Parameters);
 	} else {
 		_prior = new TGenotypePrior();
 	}
 	_caller->setPrior(_prior->getPointerToPrior());
 
 	//read output settings
-	_caller->initializeOutput(Params, _logfile);
+	_caller->initializeOutput(Parameters, _logfile);
 
 	//open output file
-	std::string sampleName = Params.getParameterStringWithDefault("indName", _outputName);
+	std::string sampleName = Parameters.getParameterStringWithDefault("indName", _outputName);
 	_logfile->list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
 	_caller->openVCF(_outputName, sampleName, _logfile);
 
 	//limit to sites with known alleles?
-	if(Params.parameterExists("alleles")){
+	if(Parameters.parameterExists("alleles")){
 		_logfile->startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
 		_openSiteSubset("alleles");
 		_logfile->endIndent();
@@ -989,19 +989,19 @@ TCall::~TCall(){
 	delete _prior;
 };
 
-void TCall::_initializeGenotypePrior(TParameters & Params){
+void TCall::_initializeGenotypePrior(TParameters & Parameters){
 	TGenotypePrior* prior;
 	_logfile->startIndent("Initializing genotype prior:");
 	//read prior from parameters
-	std::string priorMethod = Params.getParameterStringWithDefault("prior", "theta");
+	std::string priorMethod = Parameters.getParameterStringWithDefault("prior", "theta");
 	if(priorMethod == "unif"){
 		prior = new TGenotypePriorUniform();
 		_logfile->list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
-		if(Params.parameterExists("fixedTheta")){
-			double theta = Params.getParameterDouble("fixedTheta");
+		if(Parameters.parameterExists("fixedTheta")){
+			double theta = Parameters.getParameterDouble("fixedTheta");
 			_logfile->list("Will use a fixed theta = " + toString(theta));
-			bool equalBaseFreq = Params.parameterExists("equalBaseFreq");
+			bool equalBaseFreq = Parameters.parameterExists("equalBaseFreq");
 			if(equalBaseFreq)
 				_logfile->list("Will use equal base frequencies.");
 			else
@@ -1010,12 +1010,12 @@ void TCall::_initializeGenotypePrior(TParameters & Params){
 		} else {
 			_logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
-			if(Params.parameterExists("defaultTheta")){
-				double defaultTheta = Params.getParameterDouble("defaultTheta");
+			if(Parameters.parameterExists("defaultTheta")){
+				double defaultTheta = Parameters.getParameterDouble("defaultTheta");
 				_logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				prior = new TGenotypePriorTheta(Params, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
+				prior = new TGenotypePriorTheta(Parameters, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
 			} else
-				prior = new TGenotypePriorTheta(Params, thetaOuputName, _logfile, _randomGenerator);
+				prior = new TGenotypePriorTheta(Parameters, thetaOuputName, _logfile, _randomGenerator);
 		}
 	} else throw "Unknown prior type '" + priorMethod + "'!";
 	_logfile->endIndent();

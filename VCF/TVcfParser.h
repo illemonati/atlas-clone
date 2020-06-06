@@ -15,6 +15,8 @@
 #include <fstream>
 #include <math.h>
 
+namespace VCF{
+
 //TODO: use header info to check entries
 
 enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};
@@ -249,5 +251,7 @@ public:
 	void writeFormatHeader(std::ostream &  out);
 	void writeLine(TVcfLine & line, std::ostream & out);
 };
+
+}; //end namespace
 
 #endif /* TVCFPARSER_H_ */

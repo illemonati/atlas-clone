@@ -7,6 +7,8 @@
 
 #include "TVCFCompare.h"
 
+namespace VCF{
+
 //--------------------------------------------------------------
 // TGenotypeComparisonTable
 //--------------------------------------------------------------
@@ -438,29 +440,4 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	logfile->done();
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}; //end namespace

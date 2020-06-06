@@ -94,6 +94,20 @@ public:
 	void estimateMajorMinor(TParameters & params);
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_majorMinor:public TTask{
+public:
+	TTask_majorMinor(){
+		_citations.insert("Skotte et al. (2012) Genetic Epidemiology");
+		_explanation = "Estimating major and minor alles"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TMajorMinor majorMinor(Logfile, Parameters, _randomGenerator);
+		majorMinor.estimateMajorMinor(Parameters);
+	};
+};
 
 
 #endif /* TMAJORMINOR_H_ */

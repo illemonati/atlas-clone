@@ -22,6 +22,7 @@
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TChromosomes.h"
+#include "TTask.h"
 
 //----------------------------------------------------
 // TGlfConverter
@@ -298,6 +299,21 @@ public:
 	void printChr();
 	void printSite();
 	void printToEnd();
+};
+
+
+//------------------------------------------------
+// Tasks
+//------------------------------------------------
+class TTask_printGLF:public TTask{
+public:
+	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		std::string glf = parameters.getParameterString("glf");
+		TGlfReader reader(glf);
+		reader.printToEnd();
+	};
 };
 
 

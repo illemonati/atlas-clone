@@ -2,16 +2,15 @@
 // Created by caduffm on 2/24/20.
 //
 
-#include <TPopulationLikelihoods.h>
 #include "TVcfConverter.h"
 
+#include <TPopulationLikelihoods.h>
 
-/***************************************
- * 									   *
- * 			 TVcfConverter			   *
- * 									   *
- ***************************************/
+namespace VCF{
 
+//------------------------------------------
+// TVcfConverter
+//------------------------------------------
 TVcfConverter::TVcfConverter(TLog * Logfile, TParameters & Params){
     logfile = Logfile;
     reader = nullptr;
@@ -82,11 +81,9 @@ void TVcfConverter::writeData(TPopulationLikehoodLocus & data){
     // because every daughter class will write output in different format
 }
 
-/***************************************
- * 									   *
- * 			 Vcf to Beagle			   *
- * 									   *
- ***************************************/
+//------------------------------------------
+// TVcfToBeagle
+//------------------------------------------
 TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
     beagleFile = nullptr;
     baseToNumber['A'] = 0;
@@ -144,12 +141,10 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     // clean up
     beagleFile->close();
 }
-/***************************************
- * 									   *
- *    Vcf to LFMM                      *
- * 									   *
- ***************************************/
 
+//------------------------------------------
+// TVcfToLFMM
+//------------------------------------------
 TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfile, Params){
     lfmmFile = nullptr;
     lociNamesFile = nullptr;
@@ -189,12 +184,9 @@ void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
     writeLociNames();
 }
 
-/***************************************
- * 									   *
- *    Vcf to LFMM (called genotypes)   *
- * 									   *
- ***************************************/
-
+//------------------------------------------
+// TVcfToLFMMCalledGeno
+//------------------------------------------
 TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the called genotype for each locus.");
 }
@@ -233,12 +225,9 @@ void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
     lociNamesFile->close();
 }
 
-/***************************************
- * 									   *
- * 	Vcf to LFMM (posterior genotype)   *
- * 									   *
- ***************************************/
-
+//------------------------------------------
+// TVcfToLFMMPostGeno
+//------------------------------------------
 TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the mean posterior genotype for each locus.");
 }
@@ -295,12 +284,9 @@ float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & da
     return meanPostGeno;
 }
 
-/***************************************
- * 									   *
- * 	Vcf to posfile (STITCH)            *
- * 									   *
- ***************************************/
-
+//------------------------------------------
+// TVcfToPosFile
+//------------------------------------------
 TVcfToPosFile::TVcfToPosFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
     // posFile is needed as input for STITCH
     // format:
@@ -347,12 +333,9 @@ void TVcfToPosFile::vcfToPosFile(TParameters & Params){
     posFile->close();
 }
 
-/***************************************
- * 									   *
- * Vcf to genotype truth set (STITCH)  *
- * 									   *
- ***************************************/
-
+//------------------------------------------
+// TVcfToGenotypeTruthSetFile
+//------------------------------------------
 TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
     // produces genotype truth set (genfile) for STITCH and bed files for samples
     // idea: first locus -> find 0-n samples that have depth higher than minDepth
@@ -528,13 +511,9 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     genFile->close();
 }
 
-/***************************************
- * 					*
- * 	Vcf to Vcf (filter, convert,...)*
- * 					*
- ***************************************/
-
-
+//------------------------------------------
+// TVcfToVcf
+//------------------------------------------
 TVcfToVcf::TVcfToVcf(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params){
 	//open output file
 	std::string filename = _outname + (std::string) "_filtered.vcf.gz";
@@ -550,3 +529,5 @@ void TVcfToVcf::writeData(TPopulationLikehoodLocus & data){
 void TVcfToVcf::writeHeader(){
 	reader->writeUnknownHeader();
 };
+
+}; //end namespace

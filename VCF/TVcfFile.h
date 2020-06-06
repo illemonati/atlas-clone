@@ -12,11 +12,13 @@
 #include <map>
 #include <iostream>
 #include <fstream>
-#include "TVcfParser.h"
 #include <algorithm>
 #include "TLog.h"
 #include "gzstream.h"
 #include "TGenotypeMap.h"
+#include "TVcfParser.h"
+
+namespace VCF{
 
 typedef void (TVcfParser::*pt2Function)(TVcfLine &);
 //---------------------------------------------------------------------------------------------------------
@@ -163,5 +165,6 @@ public:
 	}
 };
 
+}; //end namespace
 
 #endif /* TVCFFILE_H_ */

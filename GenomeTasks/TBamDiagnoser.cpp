@@ -10,9 +10,9 @@
 
 namespace GenomeTasks{
 
-TBamDiagnoser::TBamDiagnoser(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
+TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 	//settings
-	qualFilter.set(Params, _logfile);
+	qualFilter.set(Parameters, _logfile);
 	_bamFile.readGroups.fillVectorWithNames(_readGroupNames);
 };
 

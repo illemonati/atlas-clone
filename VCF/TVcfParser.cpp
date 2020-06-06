@@ -5,6 +5,9 @@
  *      Author: wegmannd
  */
 #include "TVcfParser.h"
+
+namespace VCF{
+
 //--------------------------------------------------------------------
 TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 	init();
@@ -1043,7 +1046,7 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	out << std::endl;
 }
 
-
+}; //end namespace
 
 
 

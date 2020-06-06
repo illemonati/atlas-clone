@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "TPostMortemDamage.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -29,9 +30,23 @@ private:
 	void _handleAlignment();
 
 public:
-	TPMDEstimator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	~TPMDEstimator();
 	void estimatePMD();
+};
+
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_estimatePMD:public TTask{
+public:
+	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TPMDEstimator estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimatePMD();
+	};
 };
 
 }; // end namespace

@@ -7,7 +7,7 @@
 
 #include "TBamFilter.h"
 
-namespace AlignmentSplitMerge{
+namespace GenomeTasks{
 
 
 //-----------------------------------------

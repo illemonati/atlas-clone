@@ -10,9 +10,9 @@
 
 #include "TReadList.h"
 #include "TGenome.h"
+#include "TTask.h"
 
-namespace AlignmentSplitMerge{
-
+namespace GenomeTasks{
 
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
@@ -206,6 +206,40 @@ private:
 public:
 	TOverlapQuantifier(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void quantifyOverlap();
+};
+
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_filterBAM:public TTask{
+public:
+	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TBamFilter filter(Parameters, Logfile, _randomGenerator);
+		filter.traverseBAM();
+	};
+};
+
+class TTask_splitMerge:public TTask{
+public:
+	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlignmentSplitMerger splitMerger(Parameters, Logfile, _randomGenerator);
+		splitMerger.traverseBAM();
+	};
+};
+
+class TTask_overlapQuantifier:public TTask{
+public:
+	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TOverlapQuantifier overlapQuantifier(Parameters, Logfile, _randomGenerator);
+		overlapQuantifier.quantifyOverlap();
+	};
 };
 
 }; //end namespace

@@ -13,12 +13,12 @@ namespace GenomeTasks{
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
-	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !Params.parameterExists("rerecalibrate"))
+TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !Parameters.parameterExists("rerecalibrate"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument 'rerecalibrate' to overwrite this error)";
 
 	//limit to sites with known alleles?
-	if(Params.parameterExists("alleles")){
+	if(Parameters.parameterExists("alleles")){
 		_logfile->startIndent("Will limit analysis to sites with known alleles (parameter 'alleles'):");
 		_openSiteSubset("alleles");
 		_logfile->endIndent();
@@ -27,8 +27,8 @@ TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Params, T
 	}
 
 	//initialize maps
-	if(Params.parameterExists("poolReadGroups")){
-		std::string poolReadGroupsFile = Params.getParameterString("poolReadGroups");
+	if(Parameters.parameterExists("poolReadGroups")){
+		std::string poolReadGroupsFile = Parameters.getParameterString("poolReadGroups");
 		_logfile->startIndent("Will pool read groups (parameter 'poolReadGroups'):");
 		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile.readGroups), poolReadGroupsFile, _logfile);
 		_logfile->endIndent();
@@ -38,7 +38,7 @@ TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Params, T
 	}
 
 	//initialize recal estimator
-	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Params, _bamFile.readGroups, _logfile, _readGroupMap);
+	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Parameters, _bamFile.readGroups, _logfile, _readGroupMap);
 };
 
 void TEstimateRecalibration_base::_handleWindow(){
@@ -66,9 +66,9 @@ void TEstimateRecalibration_base::_handleWindow(){
 //-----------------------------------------------------------
 // TEstimateRecalibration
 //-----------------------------------------------------------
-TEstimateRecalibration::TEstimateRecalibration(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateRecalibration_base(Params, Logfile, RandomGenerator){
+TEstimateRecalibration::TEstimateRecalibration(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateRecalibration_base(Parameters, Logfile, RandomGenerator){
 	//write tmp tables?
-	if(Params.parameterExists("writeTmpTables")){
+	if(Parameters.parameterExists("writeTmpTables")){
 		_writeTmpTables = true;
 		_logfile->list("Will write intermediate estimates of EM and Newton-Raphson to file. (parameter 'writeTmpTables')");
 	} else {
@@ -88,7 +88,7 @@ void TEstimateRecalibration::estimateRecalibration(){
 //-----------------------------------------------------------
 // TEstimateRecalibrationLL
 //-----------------------------------------------------------
-TEstimateRecalibrationLL::TEstimateRecalibrationLL(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateRecalibration_base(Params, Logfile, RandomGenerator){};
+TEstimateRecalibrationLL::TEstimateRecalibrationLL(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateRecalibration_base(Parameters, Logfile, RandomGenerator){};
 
 void TEstimateRecalibrationLL::calculateRecalibrationLL(){
 	//read data

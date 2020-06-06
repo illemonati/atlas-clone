@@ -12,23 +12,23 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
-TPMDEstimator::TPMDEstimator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
+TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//prepare maps
-	_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroups, Params.getParameterString("poolReadGroups", false), _logfile);
+	_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroups, Parameters.getParameterString("poolReadGroups", false), _logfile);
 
 	//prepare PMD table
-	_maxLengthForInference = Params.getParameterIntWithDefault("length", 50);
+	_maxLengthForInference = Parameters.getParameterIntWithDefault("length", 50);
 	_logfile->list("Estimating PMD at the first " + toString(_maxLengthForInference) + " positions.");
 
-	if(Params.parameterExists("onlyEmpiric")){
+	if(Parameters.parameterExists("onlyEmpiric")){
 		_logfile->list("Not fitting exponential models. (parameter 'onlyEmpiric')");
 		_estimateExponential = false;
 	} else {
 
 		_logfile->startIndent("Will estimate exponential PMD models: (use 'onlyEmpiric' to turn off)");
-		_eps = Params.getParameterDoubleWithDefault("eps", 0.001);
+		_eps = Parameters.getParameterDoubleWithDefault("eps", 0.001);
 		_logfile->list("Will conider the Newton-Raphson algorithm to have converged if the likelihood difference < " + toString(_eps) + ". (parameter 'eps')");
-		_numNRIterations = Params.getParameterIntWithDefault("numNRIterations", 100);
+		_numNRIterations = Parameters.getParameterIntWithDefault("numNRIterations", 100);
 		_logfile->list("Will run up to " + toString(_numNRIterations) + " Newton-Raphson iterations. (parameter 'numNRIterations)");
 		_logfile->endIndent();
 		_estimateExponential = true;

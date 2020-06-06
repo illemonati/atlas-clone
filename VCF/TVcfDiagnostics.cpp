@@ -4,11 +4,14 @@
  *  Created on: Jun 15, 2011
  *      Author: wegmannd
  */
+#include "TVcfDiagnostics.h"
+
 #include <algorithm>
 #include <typeinfo>
 #include <sstream>
 #include "gzstream.h"
-#include "TVcfDiagnostics.h"
+
+namespace VCF{
 
 //---------------------------------------------------
 //TAnnotator
@@ -370,3 +373,5 @@ void VcfDiagnostics::fixIntAsFloat(){
 	}
 	logfile->endIndent();
 };
+
+}; //end namespace

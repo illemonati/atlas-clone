@@ -9,11 +9,11 @@
 
 namespace GenomeTasks{
 
-TReadGroupMerger::TReadGroupMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
+TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 	BAM::TReadGroups& readGroups = _bamFile.readGroups;
 
 	//read read groups to be merged
-	std::string filename = Params.getParameterString("readGroups");
+	std::string filename = Parameters.getParameterString("readGroups");
 	_logfile->startIndent("Reading read groups to be merged from file '" + filename + "':");
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "!";

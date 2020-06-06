@@ -12,9 +12,9 @@ namespace GenomeTasks{
 //-----------------------------------
 // TEstimateTheta_base
 //-----------------------------------
-TEstimateTheta_base::TEstimateTheta_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):
-	TGenome_windows(Params, Logfile, RandomGenerator),
-	_thetaEstimator(Params, Logfile, RandomGenerator){
+TEstimateTheta_base::TEstimateTheta_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):
+	TGenome_windows(Parameters, Logfile, RandomGenerator),
+	_thetaEstimator(Parameters, Logfile, RandomGenerator){
 
 };
 
@@ -34,14 +34,14 @@ void TEstimateTheta_base::_addSites(){
 //-----------------------------------
 // TEstimateTheta
 //-----------------------------------
-TEstimateTheta::TEstimateTheta(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Params, Logfile, RandomGenerator){
+TEstimateTheta::TEstimateTheta(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
 	//open output file
 	std::string filename = _outputName + "_thetaPerWindow.txt.gz";
 	_thetaOut.open(&_thetaEstimator, filename, _logfile);
 	_logfile->list("Will write theta estimates to file '" + filename + "'.");
 
 	//print all windows?
-	if(Params.parameterExists("printAll")){
+	if(Parameters.parameterExists("printAll")){
 		_printAll = true;
 		_logfile->list("Will print all windows, also those for which no estimation was possible. (parameter 'printAl')");
 	} else {
@@ -73,7 +73,7 @@ void TEstimateTheta::estimateTheta(){
 //-----------------------------------
 // TEstimateThetaGenomeWide
 //-----------------------------------
-TEstimateThetaGenomeWide::TEstimateThetaGenomeWide(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Params, Logfile, RandomGenerator){
+TEstimateThetaGenomeWide::TEstimateThetaGenomeWide(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
 	if(_considerRegions){
 		_logfile->list("Estimating theta at specific sites. (parameter 'regions')");
 	} else {
@@ -81,14 +81,14 @@ TEstimateThetaGenomeWide::TEstimateThetaGenomeWide(TParameters & Params, TLog* L
 	}
 
 	//bootstraps
-	_numBootstraps = Params.getParameterIntWithDefault("bootstraps", 0);
+	_numBootstraps = Parameters.getParameterIntWithDefault("bootstraps", 0);
 	if(_numBootstraps > 0){
 		_logfile->list("Will estimate theta fpr ", _numBootstraps, " bootstrap replicates. (parameter 'bootstraps')");
 	} else {
 		_logfile->list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
 	}
 
-	if(Params.parameterExists("onlyBootstrap")){
+	if(Parameters.parameterExists("onlyBootstrap")){
 		_onlyBootstraps = true;
 		_logfile->list("Will only ...");
 	} else {
@@ -157,8 +157,8 @@ void TEstimateThetaGenomeWide::estimateThetaGenomeWide(){
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-TEstimateThetaLLSurface::TEstimateThetaLLSurface(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Params, Logfile, RandomGenerator){
-	_steps = Params.getParameterIntWithDefault("steps", 100);
+TEstimateThetaLLSurface::TEstimateThetaLLSurface(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
+	_steps = Parameters.getParameterIntWithDefault("steps", 100);
 	_logfile->list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if(_steps < 2){
 		throw "Th enumber of steps must be >= 2!";
@@ -192,9 +192,9 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface(){
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Params, Logfile, RandomGenerator){
+TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
 	//parse downsampling parameters
-	Params.fillParameterIntoProbabilityVectorWithDefault("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
+	Parameters.fillParameterIntoProbabilityVectorWithDefault("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
 
 	//report probabilities
 	_logfile->list("Will estimate theta after downsampling reads with probabilities " + concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
@@ -280,20 +280,20 @@ void TEstimateThetaDownsamplingQC::runQC(){
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
+TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	//read the two regions to be used
 	_logfile->startIndent("Reading regions:");
-	_initializeRegion(Params, _region1, '1');
-	_initializeRegion(Params, _region1, '2');
+	_initializeRegion(Parameters, _region1, '1');
+	_initializeRegion(Parameters, _region1, '2');
 };
 
-void TEstimateThetaRatio::_initializeRegion(TParameters & Params, BAM::TBedReaderWindows* region, const char num){
+void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBedReaderWindows* region, const char num){
 	_logfile->startIndent("Region " + num + ":");
-	std::string regionsFile = Params.getParameterString("regions" + num);
+	std::string regionsFile = Parameters.getParameterString("regions" + num);
 	_logfile->list("Will read regions from file '" + regionsFile  + ". (parameter 'region" + num + "')");
 	uint32_t siteLimit = 0;
-	if(Params.parameterExists("siteLimit" + num)){
-		siteLimit = Params.getParameterInt("siteLimit" + num);
+	if(Parameters.parameterExists("siteLimit" + num)){
+		siteLimit = Parameters.getParameterInt("siteLimit" + num);
 		_logfile->list("Will only consider the first ", siteLimit, " sites. (parameter 'siteLimit" + num + "')");
 		if(siteLimit < 10)
 			throw "Site limit cannot be smaller than 10!";

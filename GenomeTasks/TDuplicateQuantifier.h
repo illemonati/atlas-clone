@@ -11,13 +11,14 @@
 
 #include "TGenome.h"
 #include "counters.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-class TDuplicateQuantifyer:public TGenome_filtered{
+class TDuplicateQuantifier:public TGenome_filtered{
 private:
 	TCountDistributionVector _countsPerReadGroup;
 	TCountDistribution _countsCombined;
@@ -30,9 +31,23 @@ private:
 	void _handleAlignments();
 
 public:
-	TDuplicateQuantifyer(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void estimateDuplicationCounts();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_duplicationQuantifier:public TTask{
+public:
+	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TDuplicateQuantifier duplicationQuantifier(Parameters, Logfile, _randomGenerator);
+		duplicationQuantifier.estimateDuplicationCounts();
+	};
+};
+
 
 }; // end namespace
 

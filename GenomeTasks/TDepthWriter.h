@@ -9,6 +9,7 @@
 #define GENOMETASKS_TDEPTHWRITER_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -23,8 +24,22 @@ private:
 	void _handleWindow();
 
 public:
-	TDepthWriter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TDepthWriter(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void writeDepth();
+};
+
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_depthWriter:public TTask{
+public:
+	TTask_depthWriter(){ _explanation = "Estimating the distribution fo depth amogn sites and writing depth per window"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TDepthWriter depthWriter(Parameters, Logfile, _randomGenerator);
+		depthWriter.writeDepth();
+	};
 };
 
 }; // end namespace

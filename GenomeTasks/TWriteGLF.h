@@ -10,11 +10,12 @@
 
 #include "TGenome.h"
 #include "TGLF.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
 //-------------------------------------------
-// TWriter
+// TWriteGLF
 //-------------------------------------------
 class TWriteGLF:public TGenome_windows{
 private:
@@ -23,10 +24,22 @@ private:
 	void _handleWindow();
 
 public:
-	TWriteGLF(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TWriteGLF(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void writeGLF();
 };
 
+//-------------------------------------------
+// Tasks
+//-------------------------------------------
+class TTask_writeGLF:public TTask{
+public:
+	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TWriteGLF writer(Parameters, Logfile, _randomGenerator);
+		writer.writeGLF();
+	}
+};
 
 }; //end namespace
 

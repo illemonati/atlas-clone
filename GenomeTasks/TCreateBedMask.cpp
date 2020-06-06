@@ -12,23 +12,23 @@ namespace GenomeTasks{
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
-TCreateBedMask::TCreateBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
-	_minDepthForMask = Params.getParameterInt("minDepthForMask");
+TCreateBedMask::TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+	_minDepthForMask = Parameters.getParameterInt("minDepthForMask");
 };
 
 
 //--------------------------------------
 // TCreateDepthBedMask
 //--------------------------------------
-TCreateDepthBedMask::TCreateDepthBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Params, Logfile, RandomGenerator){
-	_maxDepthForMask = Params.getParameterInt("maxDepthForMask");
+TCreateDepthBedMask::TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
+	_maxDepthForMask = Parameters.getParameterInt("maxDepthForMask");
 	_logfile->list("Will create a mask for all sites with outside the range [" + toString(_minDepthForMask) + ", " + toString(_maxDepthForMask) + "].");
 
 	if(_maxDepthForMask < _minDepthForMask){
 		throw "maxDepthForMask must be > minDepthForMask!";
 	}
 
-	if(Params.parameterExists("maxDepth") || Params.parameterExists("minDepth"))
+	if(Parameters.parameterExists("maxDepth") || Parameters.parameterExists("minDepth"))
 		throw "Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!";
 };
 
@@ -55,7 +55,7 @@ void TCreateDepthBedMask::createDepthMask(){
 //--------------------------------------
 // TCreateConservedBedMask
 //--------------------------------------
-TCreateConservedBedMask::TCreateConservedBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Params, Logfile, RandomGenerator){
+TCreateConservedBedMask::TCreateConservedBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
 	_logfile->list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which a single allele is observed (invariant).");
 
 	if(_minDepthForMask < 2){

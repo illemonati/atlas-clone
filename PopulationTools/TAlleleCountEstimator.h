@@ -75,6 +75,38 @@ public:
 	void transformFormat(TParameters & params);
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_estimateAlleleCounts:public TTask{
+public:
+	TTask_estimateAlleleCounts(){ _explanation = "Estimating population allele counts"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
+		alleleCountEst.estimateAlleleCounts(Parameters, _randomGenerator);
+	};
+};
+
+class TTask_writeAlleleFrequencyLikelihoods:public TTask{
+public:
+	TTask_writeAlleleFrequencyLikelihoods(){ _explanation = "Writing allele frequency likelihoods (ALF)"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
+		alleleCountEst.writeAlleleFrequencyLikelihoods(Parameters);
+	};
+};
+
+class TTask_transformAlleleCountFormat:public TTask{
+public:
+	TTask_transformAlleleCountFormat(){ _explanation = "Transforming allele counts file format"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
+		alleleCountEst.transformFormat(Parameters);
+	};
+};
 
 #endif /* TALLELECOUNTESTIMATOR_H_ */
 

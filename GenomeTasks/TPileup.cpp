@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //---------------------------------
 // TPileup
 //---------------------------------
-TPileup::TPileup(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Params, Logfile, RandomGenerator){
+TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	//open output file
 	std::string filename = _outputName + "_pileup.txt.gz";
 	_logfile->list("Writing pileup to file '" + filename + "'.");
@@ -23,7 +23,7 @@ TPileup::TPileup(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGe
 	_genoLik.addNames(header, _genoMap);
 	out.writeHeader(header);
 
-	if(Params.parameterExists("printAll")){
+	if(Parameters.parameterExists("printAll")){
 		printOnlySitesWithData = true;
 		_logfile->list("Will all sites, including those without data. (parameter 'printAll')");
 	} else {

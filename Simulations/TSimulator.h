@@ -198,4 +198,34 @@ public:
 };
 
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_simulate:public TTask_atlas{
+public:
+	TTask_simulate(){ _explanation = "Generating simulations"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		//initialize simulator
+		TSimulator* simulator;
+		std::string method = Parameters.getParameterStringWithDefault("type", "one");
+		if(method == "one")
+			simulator = new TSimulatorOneIndividual(Logfile, Parameters, _randomGenerator);
+		else if(method == "pair")
+			simulator = new TSimulatorPairOfIndividuals(Logfile, Parameters, _randomGenerator);
+		else if(method == "SFS")
+			simulator = new TSimulatorSFS(Logfile, Parameters, _randomGenerator);
+		else if(method == "HW")
+			simulator = new TSimulatorHardyWeinberg(Logfile, Parameters, _randomGenerator);
+		else throw "Unknown simulation method '" + method + "'!";
+
+		//now run simulations
+		simulator->runSimulations();
+
+		//clean up
+		delete simulator;
+	};
+};
+
+
 #endif /* TSIMULATOR_H_ */

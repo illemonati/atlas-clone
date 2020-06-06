@@ -6,19 +6,19 @@
  */
 
 
-#include <TDuplicateQuantifyer.h>
+#include <TDuplicateQuantifier.h>
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-TDuplicateQuantifyer::TDuplicateQuantifyer(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator){
+TDuplicateQuantifier::TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator){
 	_curChrLength = 0;
 	_curPos = 0;
 };
 
-void TDuplicateQuantifyer::_addCurCounts(const uint32_t nextPos){
+void TDuplicateQuantifier::_addCurCounts(const uint32_t nextPos){
 	//add current counts and zero for all positions until nextPos
 	uint32_t steps = nextPos - _curPos - 1;
 	uint32_t sum = 0;
@@ -31,7 +31,7 @@ void TDuplicateQuantifyer::_addCurCounts(const uint32_t nextPos){
 	_countsCombined.add(sum, steps);
 };
 
-void TDuplicateQuantifyer::_handleAlignments(){
+void TDuplicateQuantifier::_handleAlignments(){
 	if(_bamFile.chrChanged()){
 		//write last
 	}
@@ -57,7 +57,7 @@ void TDuplicateQuantifyer::_handleAlignments(){
 	}
 };
 
-void TDuplicateQuantifyer::estimateDuplicationCounts(){
+void TDuplicateQuantifier::estimateDuplicationCounts(){
 	//assembles distribution of how often a read is duplicated
 	//now: just how many reads start at the same positions
 	_curChrLength = 0;

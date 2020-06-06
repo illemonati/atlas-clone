@@ -48,8 +48,6 @@ protected:
 public:
 	TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TGenome_basic(){};
-
-	void mergeReadGroups(TParameters & params);
 };
 
 //---------------------------------------------------------------
@@ -102,9 +100,6 @@ protected:
 public:
 	TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TGenome_parsed(){};
-
-	void recalibrateBamFile(TParameters & params);
-	void binQualityScores(TParameters & params);
 };
 
 //---------------------------------------------------------------

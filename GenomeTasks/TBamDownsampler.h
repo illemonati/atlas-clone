@@ -9,6 +9,7 @@
 #define TBAMDOWNSAMPLER_H_
 
 #include "TGenome.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 
@@ -43,10 +44,10 @@ private:
 	std::vector<double> _probs;
 	std::vector<std::string> _names;
 
-	void _readVectorOfDownsamplingProbabilities(TParameters & Params);
+	void _readVectorOfDownsamplingProbabilities(TParameters & Parameters,;
 
 public:
-	TBamDownsampler_base(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamDownsampler_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 
@@ -57,7 +58,7 @@ class TBamDownsampler:public TBamDownsampler_base{
 protected:
 	std::vector<TBamSample> _bamSamples;
 public:
-	TBamDownsampler(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TBamDownsampler(){};
 
 	virtual void downsample();
@@ -70,7 +71,7 @@ class TBamReadDownsampler:TBamDownsampler{
 private:
 
 public:
-	TBamReadDownsampler(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamReadDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 	void downsample();
 };
@@ -83,10 +84,46 @@ private:
 	std::vector<double> _cumulProbs;
 
 public:
-	TBamSeparator(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 	void separate();
 };
+
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_downsample:public TTask{
+public:
+	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TBamDownsampler downsampler(Parameters, Logfile, _randomGenerator);
+		downsampler.downsample();
+	};
+};
+
+class TTask_downSampleReads:public TTask{
+public:
+	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TBamReadDownsampler downsampler(Parameters, Logfile, _randomGenerator);
+		downsampler.downsample();
+	};
+};
+
+class TTask_separateReads:public TTask{
+public:
+	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TBamSeparator separator(Parameters, Logfile, _randomGenerator);
+		separator.separate();
+	};
+};
+
+
+
 
 }; // end namespace
 

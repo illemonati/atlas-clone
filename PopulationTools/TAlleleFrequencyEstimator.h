@@ -167,6 +167,38 @@ public:
 	void writeAlleleFrequencyLikelihoods(TParameters & Parameters, TRandomGenerator* randomGenerator);
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_estimateAlleleFreq:public TTask{
+public:
+	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
+		alleleFreqEstimator.estimateAlleleFreq(Parameters, _randomGenerator);
+	};
+};
+
+class TTask_compareAlleleFreq:public TTask{
+public:
+	TTask_compareAlleleFreq(){_explanation = "Pairwise comparison of population allele frequencies"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
+		alleleFreqEstimator.compareAlleleFreq(Parameters, _randomGenerator);
+	};
+};
+
+class TTask_alleleFreqLikelihoods:public TTask{
+public:
+	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population likelihoods under Hardy-Weinberg at specific frequencies"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
+		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(Parameters, _randomGenerator);
+	};
+};
 
 
 #endif /* POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_ */

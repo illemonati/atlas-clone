@@ -14,10 +14,10 @@
 #include "stringFunctions.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "TVcfFile.h"
 #include "TQualityMap.h"
 #include "TGenotypeFrequencies.h"
 #include "../TBed.h"
+#include "../VCF/TVcfFile.h"
 
 //------------------------------------------------
 //TPopulationSamples

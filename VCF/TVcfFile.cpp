@@ -7,6 +7,8 @@
 
 #include "TVcfFile.h"
 
+namespace VCF{
+
 //--------------------------------------------------------------------
 TVcfFile_base::TVcfFile_base(std::string & Filename, bool zipped){
 	filename = Filename;
@@ -396,5 +398,5 @@ double TVcfFileSingleLine::sampleDepth(unsigned int sample){
 	else return -1;
 }
 
-
+}; //end namespace
 

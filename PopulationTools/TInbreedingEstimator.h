@@ -230,6 +230,43 @@ public:
 	void writeLikelihoodForDebuggingF(TParameters & params);
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_estimateInbreeding:public TTask{
+public:
+	TTask_estimateInbreeding(){
+		_explanation = "Estimating the inbreeding coefficient";
+		_citations.insert("Burger et al. (2020) Current Biology");
+	};
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile);
+		inbreedingEstimator.runEstimation(Parameters);
+	};
+};
+
+class TTask_inbreedingLikelihood:public TTask{
+public:
+	TTask_inbreedingLikelihood(){
+		_explanation = "Estimating likelihood surfaces for the inbreeding model";
+		_citations.insert("Burger et al. (2020) Current Biology");
+	};
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile);
+			if(Parameters.parameterExists("llGamma"))
+				inbreedingEstimator.writeLikelihoodForDebuggingGamma(Parameters);
+	//			if(parameters->parameterExists("llBeta"))
+	//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(parameters);
+			else if(Parameters.parameterExists("llP"))
+				inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(Parameters);
+			else if(Parameters.parameterExists("llF"))
+				inbreedingEstimator.writeLikelihoodForDebuggingF(Parameters);
+			else
+				throw "define parameter for which to calculate likelihood surface!";
+	};
+};
 
 
 #endif /* TINBREEDINGESTIMATOR_H_ */

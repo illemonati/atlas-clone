@@ -12,6 +12,8 @@
 #include "gzstream.h"
 #include "TLog.h"
 
+namespace VCF{
+
 //------------------------------------------------------
 // TVCFField
 //------------------------------------------------------
@@ -147,7 +149,6 @@ public:
 	};
 };
 
-
-
+}; //end namespace
 
 #endif /* TVCFFIELDS_H_ */
