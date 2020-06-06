@@ -7,6 +7,8 @@
 
 #include "TEstimateTheta.h"
 
+namespace GenomeTasks{
+
 //-----------------------------------
 // TEstimateTheta_base
 //-----------------------------------
@@ -16,7 +18,7 @@ TEstimateTheta_base::TEstimateTheta_base(TParameters & Params, TLog* Logfile, TR
 
 };
 
-void TEstimateTheta_base::_addSites(TWindow_base & window, TThetaEstimator & thetaEstimator){
+void TEstimateTheta_base::_addSites(TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator){
 	_logfile->listFlushTime("Calculating genotype likelihoods ...");
 	for(auto& s : window){
 		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s.bases, _genoLik);
@@ -302,7 +304,7 @@ void TEstimateThetaRatio::_initializeRegion(TParameters & Params, BAM::TBedReade
 	_logfile->done();
 };
 
-void TEstimateThetaRatio::_addSites(TThetaEstimatorData & data, BAM::TBedReaderWindows & regions){
+void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBedReaderWindows & regions){
 	if(regions.hasPositionsInWindow(_window.startPos)){
 		GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 		std::vector<uint32_t> thesePos = regions.getPositionInWindow(_window.startPos);
@@ -336,3 +338,4 @@ void TEstimateThetaRatio::estimateThetaRation(){
 	_thetaEstimatorRatio.estimateRatio(_outputName);
 };
 
+}; // end namespace

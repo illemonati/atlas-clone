@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //--------------------------------------
 // TReadGroupMerger
 //--------------------------------------
@@ -22,5 +24,6 @@ public:
 	void mergeReadGroups();
 };
 
+}; // end namespace
 
 #endif /* GENOMETASKS_TREADGROUPMERGER_H_ */

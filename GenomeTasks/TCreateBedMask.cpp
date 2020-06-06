@@ -7,6 +7,8 @@
 
 #include "TCreateBedMask.h"
 
+namespace GenomeTasks{
+
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
@@ -83,3 +85,5 @@ void TCreateConservedBedMask::createConservedMask(){
 	_bed.write(filename);
 	_logfile->done();
 };
+
+}; // end namespace

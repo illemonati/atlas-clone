@@ -7,6 +7,8 @@
 
 #include "TPileup.h"
 
+namespace GenomeTasks{
+
 //---------------------------------
 // TPileup
 //---------------------------------
@@ -67,4 +69,4 @@ void TPileup::printPileup(){
 	_traverseBAMWindows();
 };
 
-
+}; // end namespace

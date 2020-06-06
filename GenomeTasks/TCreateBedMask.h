@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------
@@ -42,11 +44,12 @@ private:
 	void _handleWindow();
 
 	//tmp variables
-	TBaseCounts _baseCounts;
+	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
 	TCreateConservedBedMask(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void createConservedMask();
 };
 
+}; // end namespace
 
 #endif /* GENOMETASKS_TCREATEBEDMASK_H_ */

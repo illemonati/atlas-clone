@@ -8,6 +8,8 @@
 
 #include "TBamDiagnoser.h"
 
+namespace GenomeTasks{
+
 TBamDiagnoser::TBamDiagnoser(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
 	//settings
 	qualFilter.set(Params, _logfile);
@@ -116,3 +118,4 @@ void TBamDiagnoser::diagnose(){
     _logfile->endIndent(); //end writing output files
 };
 
+}; // end namespace

@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
@@ -25,7 +27,7 @@ public:
 	void writeDepth();
 };
 
-
+}; // end namespace
 
 
 

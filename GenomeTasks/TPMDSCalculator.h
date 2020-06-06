@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
@@ -25,6 +27,7 @@ public:
 	void estimatePMDS();
 };
 
+}; // end namespace
 
 
 #endif /* GENOMETASKS_TPMDSCALCULATOR_H_ */

@@ -11,6 +11,8 @@
 #include "TGenome.h"
 #include "TPostMortemDamage.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
@@ -32,5 +34,6 @@ public:
 	void estimatePMD();
 };
 
+}; // end namespace
 
 #endif /* GENOMETASKS_TPMDESTIMATOR_H_ */

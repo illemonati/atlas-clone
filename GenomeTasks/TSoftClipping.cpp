@@ -7,6 +7,8 @@
 
 #include "TSoftClipping.h"
 
+namespace GenomeTasks{
+
 //------------------------------------------
 // TSoftClippingStatsFile
 //------------------------------------------
@@ -174,5 +176,5 @@ void TRemoveSoftClippedBases::removeSoftclippedBases(){
 	out.close(_logfile);
 };
 
-
+}; // end namespace
 

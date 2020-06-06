@@ -97,6 +97,8 @@ public:
 
 	void reset();
 	uint32_t& operator[](const Base base){ return _counts[base]; };
+	uint32_t& operator[](const uint8_t base){ return _counts[base]; };
+	uint32_t* pointerToCounts(){ return &_counts; };
 	void add(const Base base){ ++_counts[base]; };
 	uint32_t size() const;
 	uint8_t numAlleles() const;

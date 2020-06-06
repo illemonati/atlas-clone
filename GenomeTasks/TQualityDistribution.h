@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
@@ -41,7 +43,7 @@ public:
 	void compileQualityTransformation();
 };
 
-
+}; // end namespace
 
 
 #endif /* TQUALITYDISTRIBUTION_H_ */

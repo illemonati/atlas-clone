@@ -7,6 +7,8 @@
 
 #include "TAllelicDepthCounts.h"
 
+namespace GenomeTasks{
+
 TAllelicDepthCounts::TAllelicDepthCounts(){
 	_initialized = false;
 	_maxAllelicDepth = 0;
@@ -184,4 +186,4 @@ void TAllelicDepth::quantifyAlleleicDepth(){
 	_logfile->done();
 };
 
-
+}; // end namespace

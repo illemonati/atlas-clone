@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //TODO: does using "left" and "right" make sense? Should we not rather use 3' and 5' ends?
 
 //--------------------------------------------------------
@@ -51,6 +53,7 @@ public:
 	void removeSoftclippedBases();
 };
 
+}; // end namespace
 
 
 #endif /* TSOFTCLIPPING_H_ */

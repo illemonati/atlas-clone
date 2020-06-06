@@ -11,6 +11,8 @@
 #include "TGenome.h"
 #include "TFile.h"
 
+namespace GenomeTasks{
+
 //-------------------------------------------
 // TBamDiagnoser
 // A class to get basic characteristics of a BAM file
@@ -30,6 +32,6 @@ public:
 
 };
 
-
+}; // end namespace
 
 #endif /* TBAMDIAGNOSER_H_ */

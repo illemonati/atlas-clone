@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
 
 //-----------------------------------------
 // TBamSample
@@ -87,5 +88,6 @@ public:
 	void separate();
 };
 
+}; // end namespace
 
 #endif /* TBAMDOWNSAMPLER_H_ */

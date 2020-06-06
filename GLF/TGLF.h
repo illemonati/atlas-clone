@@ -216,8 +216,9 @@ public:
 	};
 
 	//open & close streams
+	void open(std::string Filename);
 	void open(std::string Filename, std::string Header);
-	void newChromosome(const TChromosome & chromosome);
+	void newChromosome(const BAM::TChromosome & chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
 

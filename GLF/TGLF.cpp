@@ -80,6 +80,10 @@ void TGlfWriter::writeHeader(){
 };
 
 //PUBLIC
+void TGlfWriter::open(std::string Filename){
+	open(Filename, "");
+};
+
 void TGlfWriter::open(std::string Filename, std::string Header){
 	filename = Filename;
 	gzfp = NULL;
@@ -95,7 +99,7 @@ void TGlfWriter::open(std::string Filename, std::string Header){
 	writeHeader();
 };
 
-void TGlfWriter::newChromosome(const TChromosome & chromosome){
+void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
 	if(curChr.name != "")
 		write(&zero8, sizeof(uint8_t));
 

@@ -7,6 +7,8 @@
 
 #include "TDepthWriter.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
@@ -41,6 +43,6 @@ void TDepthWriter::writeDepth(){
 };
 
 
-
+}; // end namespace
 
 

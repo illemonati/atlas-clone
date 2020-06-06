@@ -8,6 +8,8 @@
 
 #include <TEstimateRecalibration.h>
 
+namespace GenomeTasks{
+
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
@@ -96,4 +98,4 @@ void TEstimateRecalibrationLL::calculateRecalibrationLL(){
 	_logfile->list("LL = " + toString(recalObjectEM->calcLL()));
 };
 
-
+}; // end namespace

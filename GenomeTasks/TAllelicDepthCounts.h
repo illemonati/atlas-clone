@@ -11,6 +11,8 @@
 #include "TGenome.h"
 #include <map>
 
+namespace GenomeTasks{
+
 //------------------------------------------
 // TAllelicDepthCounts
 //------------------------------------------
@@ -53,7 +55,6 @@ public:
 	void quantifyAlleleicDepth();
 };
 
-
-
+}; // end namespace
 
 #endif /* TALLELICDEPTHCOUNTS_H_ */

@@ -8,6 +8,8 @@
 
 #include "TCaller.h"
 
+namespace GenomeTasks{
+
 using namespace GenotypeLikelihoods;
 
 /////////////////////////////////////////////////////////
@@ -469,14 +471,14 @@ TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCal
 void TCallerMajorityBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//get per allele counts
 	countAlleles(site);
-	int majorityIndex = pickIndexWithHighestMetric(alleleCounts, 4);
+	int majorityIndex = pickIndexWithHighestMetric(alleleCounts.pointerToCounts(), 4);
 
 	//decide on alt
 	if(majorityIndex == referenceBase){
 		calledGenotype = "0";
 
 		//find second most common as alternative allele
-		int second = pickIndexWithSecondHighestMetric(alleleCounts, 4, majorityIndex);
+		int second = pickIndexWithSecondHighestMetric(alleleCounts.pointerToCounts(), 4, majorityIndex);
 		altAlleles.push_back(second);
 	} else {
 		altAlleles.push_back(majorityIndex);
@@ -1067,3 +1069,5 @@ void TCall::_handleWindow(){
 void TCall::call(){
 	_traverseBAMWindows();
 };
+
+}; // end namespace

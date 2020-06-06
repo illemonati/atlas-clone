@@ -7,6 +7,7 @@
 
 #include "TQualityDistribution.h"
 
+namespace GenomeTasks{
 
 //-----------------------------------
 // TQualityDistribution
@@ -101,3 +102,5 @@ void TQualityTransformation::compileQualityTransformation(){
 	_logfile->conclude("R squared for total data is " + toString(combined.RSquared()) + ".");
 
 };
+
+}; // end namespace

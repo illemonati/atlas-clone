@@ -12,6 +12,8 @@
 #include "TGenome.h"
 #include "counters.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
@@ -32,5 +34,6 @@ public:
 	void estimateDuplicationCounts();
 };
 
+}; // end namespace
 
 #endif /* TDUPLICATIONQUANTIFYER_H_ */

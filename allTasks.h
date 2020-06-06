@@ -61,7 +61,7 @@ public:
 	TTask_splitRGbyLength(){ _explanation = "Splitting single end read groups in a BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.splitSingleEndReadGroups(parameters);
 	};
 };
@@ -71,7 +71,7 @@ public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.mergeReadGroups(parameters);
 	};
 };
@@ -84,7 +84,7 @@ public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.printPileup(parameters);
 	};
 };
@@ -94,7 +94,7 @@ public:
 	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TBamDiagnoser diagnoser(logfile, parameters, randomGenerator);
+		TBamDiagnoser diagnoser(logfile, parameters, _randomGenerator);
 		diagnoser.diagnose();
 	};
 };
@@ -104,7 +104,7 @@ public:
 	TTask_assessReadOverlap(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.assessOverlap(parameters);
 	};
 };
@@ -114,7 +114,7 @@ public:
 	TTask_mergeReads(){ _explanation = "Merging paired-end reads in BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TAlignmentMerger merger(parameters, logfile, randomGenerator);
+		TAlignmentMerger merger(parameters, logfile, _randomGenerator);
 		merger.traverseBAM();
 	};
 };
@@ -124,7 +124,7 @@ public:
 	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.splitMerge(parameters);
 	};
 };
@@ -134,7 +134,7 @@ public:
 	TTask_assessDuplication(){ _explanation = "Quantifying read duplication"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateDuplicationCounts(parameters);
 	};
 };
@@ -144,7 +144,7 @@ public:
 	TTask_mateInfo(){ _explanation = "Writing read information per site"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.printMateInformationPerSite(parameters);
 	};
 };
@@ -154,7 +154,7 @@ public:
 	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.assessSoftClipping(parameters);
 	};
 };
@@ -164,7 +164,7 @@ public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.removeSoftClippedBasesFromReads(parameters);
 	};
 };
@@ -174,7 +174,7 @@ public:
 	TTask_contextStats(){ _explanation = "Writing context statistics to file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.contextStats(parameters);
 	};
 };
@@ -184,7 +184,7 @@ public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TBamFilter filter(parameters, logfile, randomGenerator);
+		TBamFilter filter(parameters, logfile, _randomGenerator);
 		filter.traverseBAM();
 	};
 };
@@ -197,7 +197,7 @@ public:
 	TTask_writeDepthPerWindow(){ _explanation = "Estimating depth per window"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateApproximateDepthPerWindow(parameters);
 	};
 };
@@ -207,7 +207,7 @@ public:
 	TTask_depthPerSiteDist(){ _explanation = "Estimating depth per site distribution"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateDepthPerSite(parameters);
 	};
 };
@@ -217,7 +217,7 @@ public:
 	TTask_writeDepthPerSite(){ _explanation = "Writing sequencing depth for each site"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.writeDepthPerSite(parameters);
 	};
 };
@@ -227,7 +227,7 @@ public:
 	TTask_createDepthMask(){ _explanation = "Creating depth mask BED file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.createDepthMask(parameters);
 	};
 };
@@ -237,7 +237,7 @@ public:
 	TTask_createNonRefMask(){ _explanation = "Creating mask BED file with sites with non-reference alleles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.writeNonConservedBed(parameters);
 	};
 };
@@ -247,7 +247,7 @@ public:
 	TTask_allelicDepth(){ _explanation = "Estimating allelic depth distribution"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.allelicDepth(parameters);
 	};
 };
@@ -257,7 +257,7 @@ public:
 	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.downSampleBamFile(parameters);
 	};
 };
@@ -267,7 +267,7 @@ public:
 	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.separateReads(parameters);
 	};
 };
@@ -277,7 +277,7 @@ public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.downSampleReads(parameters);
 	};
 };
@@ -290,7 +290,7 @@ public:
 	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimatePMD(parameters);
 	};
 };
@@ -303,7 +303,7 @@ public:
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.runPMDS(parameters);
 	};
 };
@@ -313,7 +313,7 @@ public:
 	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.generatePSMCInput(parameters);
 	};
 };
@@ -329,7 +329,7 @@ public:
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateErrorCalibrationEM(parameters);
 	};
 };
@@ -339,7 +339,7 @@ public:
 	TTask_recalLL(){ _explanation = "Calculating LL for error re-calibration function"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.calculateLikelihoodErrorCalibrationEM(parameters);
 	};
 };
@@ -352,7 +352,7 @@ public:
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.BQSR(parameters);
 	};
 };
@@ -362,7 +362,7 @@ public:
 	TTask_recalBAM(){ _explanation = "Recalibrating quality scores in a BAM file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.recalibrateBamFile(parameters);
 	};
 };
@@ -372,7 +372,7 @@ public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.printQualityDistribution(parameters);
 	};
 };
@@ -382,7 +382,7 @@ public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.printQualityTransformation(parameters);
 	};
 };
@@ -392,7 +392,7 @@ public:
 	TTask_binQualityScores(){ _explanation = "Binning quality scores"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.binQualityScores(parameters);
 	};
 };
@@ -405,7 +405,7 @@ public:
 	TTask_call(){ _explanation = "Calling genotypes"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.callGenotypes(parameters);
 	};
 };
@@ -421,7 +421,7 @@ public:
 	};
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateTheta(parameters);
 	};
 };
@@ -431,7 +431,7 @@ public:
 	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.estimateThetaRatio(parameters);
 	};
 };
@@ -441,7 +441,7 @@ public:
 	TTask_thetaLLSurface(){ _explanation = "Calculating the theta LL surface for each window"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.calcThetaLikelihoodSurfaces(parameters);
 	};
 };
@@ -451,7 +451,7 @@ public:
 	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.performDownsamplingThetaQC(parameters);
 	};
 };
@@ -464,7 +464,7 @@ public:
 	TTask_GLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.writeGLF(parameters);
 	}
 };
@@ -487,7 +487,7 @@ public:
 		_explanation = "Estimating major and minor alles"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TMajorMinor majorMinor(logfile, parameters, randomGenerator);
+		TMajorMinor majorMinor(logfile, parameters, _randomGenerator);
 		majorMinor.estimateMajorMinor(parameters);
 	};
 };
@@ -508,7 +508,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleCountEstimator alleleCountEst(parameters, logfile);
-		alleleCountEst.estimateAlleleCounts(parameters, randomGenerator);
+		alleleCountEst.estimateAlleleCounts(parameters, _randomGenerator);
 	};
 };
 
@@ -538,7 +538,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
-		alleleFreqEstimator.estimateAlleleFreq(parameters, randomGenerator);
+		alleleFreqEstimator.estimateAlleleFreq(parameters, _randomGenerator);
 	};
 };
 
@@ -548,7 +548,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
-		alleleFreqEstimator.compareAlleleFreq(parameters, randomGenerator);
+		alleleFreqEstimator.compareAlleleFreq(parameters, _randomGenerator);
 	};
 };
 
@@ -558,7 +558,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TAlleleFreqEstimator alleleFreqEstimator(parameters, logfile);
-		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(parameters, randomGenerator);
+		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(parameters, _randomGenerator);
 	};
 };
 
@@ -597,7 +597,7 @@ public:
 
 	void run(TParameters & parameters, TLog* logfile){
 		TPolymorhicWindowIdentifier identifier(parameters, logfile);
-		identifier.identifyPolymorphicWindows(parameters, randomGenerator);
+		identifier.identifyPolymorphicWindows(parameters, _randomGenerator);
 	}
 };
 //---------------------------------------------------------------------------
@@ -614,13 +614,13 @@ public:
 		TSimulator* simulator;
 		std::string method = parameters.getParameterStringWithDefault("type", "one");
 		if(method == "one")
-			simulator = new TSimulatorOneIndividual(logfile, parameters, randomGenerator);
+			simulator = new TSimulatorOneIndividual(logfile, parameters, _randomGenerator);
 		else if(method == "pair")
-			simulator = new TSimulatorPairOfIndividuals(logfile, parameters, randomGenerator);
+			simulator = new TSimulatorPairOfIndividuals(logfile, parameters, _randomGenerator);
 		else if(method == "SFS")
-			simulator = new TSimulatorSFS(logfile, parameters, randomGenerator);
+			simulator = new TSimulatorSFS(logfile, parameters, _randomGenerator);
 		else if(method == "HW")
-			simulator = new TSimulatorHardyWeinberg(logfile, parameters, randomGenerator);
+			simulator = new TSimulatorHardyWeinberg(logfile, parameters, _randomGenerator);
 		else throw "Unknown simulation method '" + method + "'!";
 
 		//now run simulations
@@ -742,7 +742,7 @@ public:
 	TTask_testGL(){ _explanation = "Debugging genotype likelihoods"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, randomGenerator);
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
 		genome.testGenotypeLikelihoods(parameters);
 	}
 };

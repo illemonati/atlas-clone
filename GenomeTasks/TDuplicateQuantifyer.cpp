@@ -8,6 +8,8 @@
 
 #include <TDuplicateQuantifyer.h>
 
+namespace GenomeTasks{
+
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
@@ -77,3 +79,5 @@ void TDuplicateQuantifyer::estimateDuplicationCounts(){
 	_countsPerReadGroup.write(out, readGroupNames);
 	_logfile->done();
 };
+
+}; // end namespace

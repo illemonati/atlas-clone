@@ -7,6 +7,7 @@
 
 #include "TPMDEstimator.h"
 
+namespace GenomeTasks{
 
 //----------------------------------------
 // TPMDEstimator.h
@@ -70,3 +71,5 @@ void TPMDEstimator::estimatePMD(){
 		_logfile->done();
 	}
 };
+
+}; // end namespace

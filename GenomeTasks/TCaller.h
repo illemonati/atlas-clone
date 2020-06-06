@@ -13,6 +13,8 @@
 #include "TGenotypeData.h"
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 using namespace GenotypeLikelihoods;
 
 //------------------------------------------------------
@@ -49,7 +51,7 @@ protected:
 	std::vector<int> genotypesWithHighestMetric;
 	int referenceBase;
 	std::vector<int> altAlleles; //order of Base enums: A, C, G, T, N
-	int alleleCounts[4];
+	TBaseCounts alleleCounts;
 	bool allelesCounted;
 
 	//genotype prior
@@ -240,5 +242,7 @@ public:
 	~TCall();
 	void call();
 };
+
+}; // end namespace
 
 #endif /* TCALLER_H_ */

@@ -7,6 +7,8 @@
 
 #include "TBamDownsampler.h"
 
+namespace GenomeTasks{
+
 //-----------------------------------------
 // TBamSample
 //-----------------------------------------
@@ -223,10 +225,4 @@ void TBamSeparator::separate(){
 	}
 };
 
-
-
-
-
-
-
-
+}; // end namespace

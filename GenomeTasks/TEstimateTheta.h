@@ -11,6 +11,7 @@
 #include "TGenome.h"
 #include "TThetaEstimator.h"
 
+namespace GenomeTasks{
 
 //-----------------------------------
 // TEstimateTheta_base
@@ -20,7 +21,7 @@ protected:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
 
-	void _addSites(TWindow_base & window, TThetaEstimator & thetaEstimator);
+	void _addSites(TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator);
 	void _addSites();
 
 public:
@@ -109,4 +110,7 @@ public:
 	void estimateThetaRation();
 };
 
+}; // end namespace
+
 #endif /* GENOMETASKS_TESTIMATETHETA_H_ */
+

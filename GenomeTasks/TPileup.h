@@ -10,6 +10,8 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
+
 //TODO: add flags so users can choose what to write
 
 //---------------------------------
@@ -32,6 +34,6 @@ public:
 	void printPileup();
 };
 
-
+}; // end namespace
 
 #endif /* GENOMETASKS_TPILEUP_H_ */

@@ -11,6 +11,8 @@
 #include "TGenome.h"
 #include "TThetaEstimator.h"
 
+namespace GenomeTasks{
+
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
@@ -36,6 +38,6 @@ public:
 	void createPSMCInput();
 };
 
-
+}; // end namespace
 
 #endif /* GENOMETASKS_TPSMCINPUT_H_ */

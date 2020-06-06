@@ -8,7 +8,7 @@
 
 #include "TPMDSCalculator.h"
 
-
+namespace GenomeTasks{
 
 //----------------------------------------------
 // TPMDSCalculator
@@ -54,3 +54,4 @@ void TPMDSCalculator::estimatePMDS(){
 	_outBam.close(_logfile);
 };
 
+}; // end namespace

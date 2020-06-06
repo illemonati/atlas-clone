@@ -7,6 +7,8 @@
 
 #include "TReadGroupMerger.h"
 
+namespace GenomeTasks{
+
 TReadGroupMerger::TReadGroupMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
 	BAM::TReadGroups& readGroups = _bamFile.readGroups;
 
@@ -94,3 +96,4 @@ void TReadGroupMerger::mergeReadGroups(){
 	outBam.close(_logfile);
 };
 
+}; // end namespace

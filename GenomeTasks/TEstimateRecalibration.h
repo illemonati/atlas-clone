@@ -11,6 +11,7 @@
 #include "TGenome.h"
 #include "TRecalibrationEMEstimator.h"
 
+namespace GenomeTasks{
 
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
@@ -49,6 +50,6 @@ public:
 	void calculateRecalibrationLL();
 };
 
-
+}; // end namespace
 
 #endif /* GENOMETASKS_TESTIMATERECALIBRATION_H_ */

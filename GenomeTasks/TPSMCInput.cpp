@@ -7,6 +7,7 @@
 
 #include "TPSMCInput.h"
 
+namespace GenomeTasks{
 
 //----------------------------------------
 // TPSMCInput
@@ -86,4 +87,6 @@ void TPSMCInput::createPSMCInput(){
 	if(_nCharOnLine > 0) _out << '\n';
 	_out.close();
 };
+
+}; // end namespace
 
