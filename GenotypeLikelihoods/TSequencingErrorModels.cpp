@@ -22,7 +22,7 @@ TSequencingErrorModels::TSequencingErrorModels(){
 	doRecalibration = false;
 };
 
-void TSequencingErrorModels::_init(TReadGroups* ReadGroups,  TReadGroupMap* ReadGroupMap, TLog* Logfile){
+void TSequencingErrorModels::_init(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	if(doRecalibration)
 		throw "TSequencingErrorModels already initialized!";
 	readGroups = ReadGroups;
@@ -229,7 +229,7 @@ void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 
 // functions for reporting / writing
 //-------------------------------------------------------------------
-bool TSequencingErrorModels::hasReadGroupsWithoutModel(){
+bool TSequencingErrorModels::hasReadGroupsWithoutModel() const{
 	return readGroupIndex.hasCasesWithoutIndex();
 };
 
@@ -245,11 +245,11 @@ void TSequencingErrorModels::_addNoRecalModelIfMissing(){
 	}
 };
 
-void TSequencingErrorModels::reportReadGroupsNotUsed(){
+void TSequencingErrorModels::reportReadGroupsNotUsed() const{
 	readGroupIndex.reportReadGroupsNotUsed(logfile);
 };
 
-void TSequencingErrorModels::reportReadGroupsConsideredSingleEnd(){
+void TSequencingErrorModels::reportReadGroupsConsideredSingleEnd() const{
 	if(readGroupIndex.hasCasesWithoutSecondMate()){
 		logfile->startIndent("Will assume the following read groups to be single end (no recalibration provided for second mate):");
 		readGroupIndex.reportReadGroupsConsideredSingleEnd(logfile);
@@ -257,7 +257,7 @@ void TSequencingErrorModels::reportReadGroupsConsideredSingleEnd(){
 	}
 };
 
-void TSequencingErrorModels::warningForMissingReadGroups(){
+void TSequencingErrorModels::warningForMissingReadGroups() const{
 	readGroupIndex.warningForMissingReadGroups(logfile);
 };
 
@@ -265,7 +265,7 @@ void TSequencingErrorModels::warningForMissingReadGroups(){
 //functions to get error rates
 //-------------------------------------------------------
 
-double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data){
+double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data) const{
 	if(doRecalibration){
 		return models[ readGroupIndex.index(data) ].getErrorRate(data);
 	} else {
@@ -283,7 +283,7 @@ double TSequencingErrorModels::getErrorRate(const TBase & base) const{
 	}
 };
 
-uint8_t TSequencingErrorModels::getPhredInt(const TBase & base){
+uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
 	if(base.base == N){
 		return 0;
 	} else if(doRecalibration){
@@ -293,7 +293,7 @@ uint8_t TSequencingErrorModels::getPhredInt(const TBase & base){
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase & base){
+void TSequencingErrorModels::recalibrate(TBase & base) const{
 	if(base.base == N){
 		base.recalibratedQualityAsPhredInt = 0;
 	} else if(doRecalibration){
@@ -303,7 +303,7 @@ void TSequencingErrorModels::recalibrate(TBase & base){
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length){
+void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases, const uint16_t length) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
@@ -320,7 +320,7 @@ void TSequencingErrorModels::recalibrate(TBase* bases, const uint16_t length){
 	}
 };
 
-void TSequencingErrorModels::recalibrate(std::vector<TBase> bases){
+void TSequencingErrorModels::recalibrate(std::vector<TBase> bases) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(auto& b : bases){
@@ -337,7 +337,7 @@ void TSequencingErrorModels::recalibrate(std::vector<TBase> bases){
 	}
 };
 
-void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods){
+void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
 	if(base.base == N){
 		baseLikelihoods.reset();
 	} else if(doRecalibration){
@@ -426,7 +426,7 @@ double TSequencingErrorModels::getSteepestGradient(){
 
 // functions to write file
 //-------------------------------------------------------------------
-void TSequencingErrorModels::writeRecalFile(const std::string filename){
+void TSequencingErrorModels::writeRecalFile(const std::string filename) const{
 	//open file and write header
 	TOutputFile out(filename);
 	out.writeHeader({"ReadGroup", "Mate", "Model"});
@@ -443,7 +443,7 @@ void TSequencingErrorModels::writeRecalFile(const std::string filename){
 	}
 };
 
-void TSequencingErrorModels::_writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate){
+void TSequencingErrorModels::_writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate) const{
 	if(readGroupIndex.inUse(readGroup, isSecondMate)){
 		out << readGroupName;
 		if(isSecondMate) out << "second";

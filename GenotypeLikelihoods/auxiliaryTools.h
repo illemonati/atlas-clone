@@ -95,8 +95,8 @@ public:
 //--------------------------------------------------------------------------------------
 class TRecalibrationEMReadGroupIndex{
 private:
-	TReadGroups* readGroups;
-	TReadGroupMap* readGroupMap;
+	BAM::TReadGroups* readGroups;
+	BAM::TReadGroupMap* readGroupMap;
 	bool initialized;
 	int** readGroupIndex;
 	bool** readGroupInUse;
@@ -111,10 +111,10 @@ private:
 
 public:
 	TRecalibrationEMReadGroupIndex();
-	TRecalibrationEMReadGroupIndex(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMReadGroupIndex(BAM::TReadGroups* ReadGroups, BAM::TReadGroupMap* ReadGroupMap);
 	~TRecalibrationEMReadGroupIndex();
 
-	void initialize(TReadGroups* ReadGroups, TReadGroupMap* ReadGroupMap);
+	void initialize(BAM::TReadGroups* ReadGroups, BAM::TReadGroupMap* ReadGroupMap);
 	int numReadGroups(){ return _numReadGroups; };
 
 	void setAllAsUsed();
@@ -122,11 +122,11 @@ public:
 	int setAsUsed(int readGroup, bool isSecondMate);
 	void setAsNotUsed(int readGroup, bool isSecondMate);
 
-	bool inUse(const int readGroup, const bool isSecondMate){
+	bool inUse(const int readGroup, const bool isSecondMate) const{
 		return readGroupInUse[readGroup][isSecondMate];
 	};
 
-	int index(const int readGroup, const bool isSecondMate){
+	int index(const int readGroup, const bool isSecondMate) const{
 		return readGroupIndex[readGroup][isSecondMate];
 	};
 
@@ -134,17 +134,17 @@ public:
 		return readGroupIndex[base.readGroupID][base.isSecondMate()];
 	};
 
-	int index(const TRecalibrationEMReadData & data){
+	int index(const TRecalibrationEMReadData & data) const{
 		return readGroupIndex[data.readGroup][data.isSecond];
 	};
 
 	//std::string name(int readGroup, bool isSecondMate);
-	bool nextNotInUse(std::pair<int, bool> & pair);
-	bool hasCasesWithoutIndex();
-	bool hasCasesWithoutSecondMate();
-	void reportReadGroupsNotUsed(TLog* logfile);
-	void reportReadGroupsConsideredSingleEnd(TLog* logfile);
-	void warningForMissingReadGroups(TLog* logfile);
+	bool nextNotInUse(std::pair<int, bool> & pair) const;
+	bool hasCasesWithoutIndex() const;
+	bool hasCasesWithoutSecondMate() const;
+	void reportReadGroupsNotUsed(TLog* logfile) const;
+	void reportReadGroupsConsideredSingleEnd(TLog* logfile) const;
+	void warningForMissingReadGroups(TLog* logfile) const;
 };
 
 //--------------------------------------------------------------

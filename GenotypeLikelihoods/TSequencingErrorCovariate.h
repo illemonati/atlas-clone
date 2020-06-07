@@ -156,7 +156,6 @@ public:
 
 class TSequencingErrorCovariate_fragmentLength:public TSequencingErrorCovariate{
 private:
-
 	uint16_t _extractCovariate(const TBase & base){
 		return base.fragmentLength;
 	};
@@ -184,7 +183,6 @@ public:
 
 class TSequencingErrorCovariate_mappingQuality:public TSequencingErrorCovariate{
 private:
-
 	uint16_t _extractCovariate(const TBase & base){
 		return base.mappingQuality;
 	};

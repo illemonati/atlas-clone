@@ -48,7 +48,7 @@ private:
 	void _addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions);
 	void _addNoRecalModelIfMissing();
 
-	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
+	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate) const;
 
 public:
 	TQualityMap qualMap; //make available to others
@@ -69,20 +69,19 @@ public:
 	bool modelExists(TSequencingErrorModelDefinition & def){ return readGroupIndex.inUse(def.readGroupId, def.isSecondMate); };
 	bool recalibrationChangesQualities() const{ return doRecalibration; };
 
-	bool hasReadGroupsWithoutModel();
-	void reportReadGroupsNotUsed();
-	void reportReadGroupsConsideredSingleEnd();
-	void warningForMissingReadGroups();
+	bool hasReadGroupsWithoutModel() const;
+	void reportReadGroupsNotUsed() const;
+	void reportReadGroupsConsideredSingleEnd() const;
+	void warningForMissingReadGroups() const;
 
 	//calculate error rates
-	//TODO: deal with fact that there migth be no models. Only return qualities or initialize models?
-	double getErrorRate(const TRecalibrationEMReadData & data);
-	double getErrorRate(const TBase & base);
-	uint8_t getPhredInt(const TBase & base);
-	void recalibrate(TBase & base);
-	void recalibrate(TBase* bases, const uint16_t  length); //TODO: remove
-	void recalibrate(std::vector<TBase> bases);
-	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods);
+	double getErrorRate(const TRecalibrationEMReadData & data) const;
+	double getErrorRate(const TBase & base) const;
+	uint8_t getPhredInt(const TBase & base) const;
+	void recalibrate(TBase & base) const;
+	void recalibrate(std::vector<TBase> & bases, const uint16_t  length) const; //TODO: remove
+	void recalibrate(std::vector<TBase> & bases) const;
+	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
 
 	//function to estimate
 	void setEMParamsToZero();
@@ -98,8 +97,7 @@ public:
 	void adjustParametersPostEstimation();
 	double getSteepestGradient();
 
-	void writeRecalFile(const std::string filename);
-
+	void writeRecalFile(const std::string filename) const;
 };
 
 }; //end namespace

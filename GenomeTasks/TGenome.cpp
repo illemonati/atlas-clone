@@ -7,6 +7,7 @@
 
 #include "TGenome.h"
 
+namespace GenomeTasks{
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -270,6 +271,17 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		_applyDepthFilter = false;
 		_minDepth = 0;
 		_maxDepth = _readUpToDepth;
+		_logfile->list("Will keep sites regardless of depth. (use 'minDepth' or 'maxDepth' to filter)");
+	}
+
+	//CpG filter
+	if(params.parameterExists("filterCpG")){
+		_filterCpG = true;
+		_logfile->list("Will filter out CpG sites. (parameter 'filterCpG')");
+		_openReference(true);
+	} else {
+		_filterCpG = false;
+		_logfile->list("Will keep CpG sites. (use 'filterCpG' to remove)");
 	}
 };
 
@@ -604,7 +616,7 @@ void TGenome_windows::_readAlignmentsIntoWindow(TWindow & window){
 
 void TGenome_windows::_applyWindowFilters(TWindow_base & window){
 	window._passedFilters = false;
-	if(window.numReadsInWindow > 0){
+	if(window._numReadsInWindow > 0){
 		//apply masks and filters
 		if(_doMasking){
 			_logfile->listFlush("Masking sites ...");
@@ -614,8 +626,14 @@ void TGenome_windows::_applyWindowFilters(TWindow_base & window){
 			_logfile->listFlush("Masking sites outside regions ...");
 			window.applyMask(_mask, _considerRegions);
 			_logfile->done();
-		} if(_applyDepthFilter){
+		}
+
+		//filter sites
+		if(_applyDepthFilter){
 			window.applyDepthFilter(_minDepth, _maxDepth);
+		}
+		if(_filterCpG){
+			window.maskCpG(_reference);
 		}
 
 		//report
@@ -645,3 +663,4 @@ void TGenome_windows::_traverseBAMWindows(){
 	}
 };
 
+}; //end namespace

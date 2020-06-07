@@ -42,7 +42,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	std::string tmp = readBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
-	TOutputFileZipped out(outputName);
+	TOutputFile out(outputName);
 
 	//write header
 	std::vector<std::string> header = {"chr", "start", "end", "numWithData", "numMono", "numPoly"};

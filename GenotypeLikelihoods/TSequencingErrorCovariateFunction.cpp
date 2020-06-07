@@ -149,7 +149,7 @@ double TSequencingErrorCovariateFunction_intercept::getIntercept() const{
 	return _betas[0];
 };
 
-double TSequencingErrorCovariateFunction_intercept::getEtaTerm(){
+double TSequencingErrorCovariateFunction_intercept::getEtaTerm() const{
 	return _betas[0];
 };
 
@@ -157,7 +157,7 @@ double TSequencingErrorCovariateFunction_intercept::getEtaTerm(const uint16_t va
 	return _betas[0];
 };
 
-void TSequencingErrorCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	first.add(_firstParameterIndex, 1.0);
 };
 
@@ -187,7 +187,7 @@ TSequencingErrorCovariateFunction_polynomial::TSequencingErrorCovariateFunction_
 	_initializValues(values);
 };
 
-double TSequencingErrorCovariateFunction_polynomial::getEtaTerm(const uint16_t val){
+double TSequencingErrorCovariateFunction_polynomial::getEtaTerm(const uint16_t val) const{
 	double valAsDouble = _getAsDouble(val);
 	double tmp = valAsDouble;
 	double sum = _betas[0] * tmp;
@@ -199,7 +199,7 @@ double TSequencingErrorCovariateFunction_polynomial::getEtaTerm(const uint16_t v
 	return sum;
 };
 
-void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	double valAsDouble = _getAsDouble(val);
 	double tmp = valAsDouble;
 	first.add(_firstParameterIndex, tmp);
@@ -212,6 +212,19 @@ void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_probit
 //--------------------------------------------------------------
+TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, const uint16_t q){
+	double z = betas[1] + betas[2] * (double) q;
+	_cumulDens_Phi[q] = TNormalDistr::cumulativeDistrFunction(z);
+	_normalDens_phi[q] = TNormalDistr::density(z);
+	_eta[q] = _cumulDens_Phi[q] * betas[0];
+	_normalDens_q[q] = _normalDens_phi[q] * (double) q;
+	_normalDens_Beta1[q] = _normalDens_phi[q] * betas[0];
+	_normalDens_Beta1_q[q] = _normalDens_Beta1[q] * (double) q;
+	_normalDens_Beta1_z[q] = _normalDens_Beta1[q] * z;
+	_normalDens_Beta1_q_z[q] = _normalDens_Beta1_q[q] * z;
+	_normalDens_Beta1_q2_z[q] = _normalDens_Beta1_q_z[q] * (double) q;
+};
+
 void TRecalibrationEMCovariateFunction_probit::_init(const uint16_t MaxValue){
 	_moduleName = SequencingErrorCovariateFunction_probit;
 	_numParameters = 3;
@@ -222,67 +235,18 @@ void TRecalibrationEMCovariateFunction_probit::_init(const uint16_t MaxValue){
 	_thirdParameterIndex = _firstParameterIndex + 2;
 
 	//prepare tmp storage for phi and Phi
-	_tmpStorageInitialized = false;
-	if(MaxValue < 1)
-		_maxValue = 128;
-	else {
-		_maxValue = MaxValue;
+	if(MaxValue < 1){
+		MaxValue = 128;
 	}
-
-	_allocateTmpStorage();
-	_fillTmpStorage();
+	_expandTmpStorage(MaxValue);
 };
 
-void TRecalibrationEMCovariateFunction_probit::_allocateTmpStorage(){
-	_freeTmpStorage();
-
-	_cumulDens_Phi = new double[_maxValue + 1];
-	_normalDens_phi = new double[_maxValue + 1];
-	_eta = new double[_maxValue + 1];
-	_normalDens_q = new double[_maxValue + 1];
-	_normalDens_Beta1 = new double[_maxValue + 1];
-	_normalDens_Beta1_q = new double[_maxValue + 1];
-	_normalDens_Beta1_z = new double[_maxValue + 1];
-	_normalDens_Beta1_q_z = new double[_maxValue + 1];
-	_normalDens_Beta1_q2_z = new double[_maxValue + 1];
-};
-
-void TRecalibrationEMCovariateFunction_probit::_freeTmpStorage(){
-	if(_tmpStorageInitialized){
-		delete[] _cumulDens_Phi;
-		delete[] _normalDens_phi;
-		delete[] _eta;
-		delete[] _normalDens_q;
-		delete[] _normalDens_Beta1;
-		delete[] _normalDens_Beta1_q;
-		delete[] _normalDens_Beta1_z;
-		delete[] _normalDens_Beta1_q_z;
-		delete[] _normalDens_Beta1_q2_z;
+void TRecalibrationEMCovariateFunction_probit::_expandTmpStorage(const uint16_t MaxValue) const{
+	for(uint16_t q = _maxValue + 1; q <= MaxValue; ++q){
+		_tmpStorage.emplace_back(_betas, q);
 	}
-};
-
-void TRecalibrationEMCovariateFunction_probit::_fillTmpStorage(){
-	for(uint16_t q = 0; q <= _maxValue; ++q){
-		double z = _betas[1] + _betas[2] * (double) q;
-		_cumulDens_Phi[q] = _normalDist.cumulativeDistrFunction(z);
-		_normalDens_phi[q] = _normalDist.density(z);
-		_eta[q] = _cumulDens_Phi[q] * _betas[0];
-		_normalDens_q[q] = _normalDens_phi[q] * (double) q;
-		_normalDens_Beta1[q] = _normalDens_phi[q] * _betas[0];
-		_normalDens_Beta1_q[q] = _normalDens_Beta1[q] * (double) q;
-		_normalDens_Beta1_z[q] = _normalDens_Beta1[q] * z;
-		_normalDens_Beta1_q_z[q] = _normalDens_Beta1_q[q] * z;
-		_normalDens_Beta1_q2_z[q] = _normalDens_Beta1_q_z[q] * (double) q;
-	}
-};
-
-void TRecalibrationEMCovariateFunction_probit::_expandTmpStorage(const uint16_t MaxValue){
-	_freeTmpStorage();
 	_maxValue = MaxValue;
-	_allocateTmpStorage();
-	_fillTmpStorage();
 };
-
 
 TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, const uint16_t MaxValue):TSequencingErrorCovariateFunction(FirstParameterIndex){
 	_init(MaxValue);
@@ -293,32 +257,31 @@ TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_prob
 	_initializValues(values);
 };
 
-double TRecalibrationEMCovariateFunction_probit::getEtaTerm(const uint16_t val){
+double TRecalibrationEMCovariateFunction_probit::getEtaTerm(const uint16_t val) const{
 	if(val > _maxValue){
 		_expandTmpStorage(val);
 	}
 
-	return _eta[val];
+	return _tmpStorage[val]._eta;
 };
 
-void TRecalibrationEMCovariateFunction_probit::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TRecalibrationEMCovariateFunction_probit::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	if(val > _maxValue){
 		_expandTmpStorage(val);
 	}
 
 	//first derivatives for each parameter
-	first.add(_firstParameterIndex, _cumulDens_Phi[val]);
-	first.add(_secondParameterIndex, _normalDens_Beta1[val]);
-	first.add(_thirdParameterIndex, _normalDens_Beta1_q[val]);
+	first.add(_firstParameterIndex, _tmpStorage[val]._cumulDens_Phi);
+	first.add(_secondParameterIndex, _tmpStorage[val]._normalDens_Beta1);
+	first.add(_thirdParameterIndex, _tmpStorage[val]._normalDens_Beta1_q);
 
 	//add second derivatives
-	second.add(_secondParameterIndex, _secondParameterIndex, -_normalDens_Beta1_z[val]);
-	second.add(_thirdParameterIndex, _thirdParameterIndex, -_normalDens_Beta1_q2_z[val]);
+	second.add(_secondParameterIndex, _secondParameterIndex, - _tmpStorage[val]._normalDens_Beta1_z);
+	second.add(_thirdParameterIndex, _thirdParameterIndex, - _tmpStorage[val]._normalDens_Beta1_q2_z);
 
-	second.add(_firstParameterIndex, _secondParameterIndex, _normalDens_phi[val]);
-	second.add(_firstParameterIndex, _thirdParameterIndex, _normalDens_q[val]);
-	second.add(_secondParameterIndex, _thirdParameterIndex, -_normalDens_Beta1_q_z[val]);
-
+	second.add(_firstParameterIndex, _secondParameterIndex, _tmpStorage[val]._normalDens_phi);
+	second.add(_firstParameterIndex, _thirdParameterIndex, _tmpStorage[val]._normalDens_q);
+	second.add(_secondParameterIndex, _thirdParameterIndex, - _tmpStorage[val]._normalDens_Beta1_q_z);
 };
 
 
@@ -351,7 +314,7 @@ void TSequencingErrorCovariateFunction_specific::_init(const uint16_t MaxValue){
 	_initializeBetas();
 };
 
-void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	first.add(_firstParameterIndex + val, 1.0);
 };
 
@@ -437,7 +400,7 @@ TSequencingErrorCovariateFunction_specificMap::TSequencingErrorCovariateFunction
 	}
 };
 
-void TSequencingErrorCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	first.add(_firstParameterIndex + _indexMap[val], 1.0);
 };
 

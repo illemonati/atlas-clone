@@ -23,9 +23,25 @@ TPMDSCalculator::TPMDSCalculator(TParameters & Parameters, TLog* Logfile, TRando
 	_logfile->list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
 };
 
+double TPMDSCalculator::_calculatePMDS(){
+	//calculate PMDS (is in log)
+	double PMDS = 0.0;
+	uint16_t d = 0;
+	for(auto& b : _alignment){
+		//limit to aligned positions
+		Base ref = _genoMap.getBase(_alignment.referenceAtInternalPos(d));
+		if(b.isAligned() && b.base != N && ref != N){
+			PMDS +=  _genotypeLikelihoodCalculator.calculateLogPMDS(b, ref, _pi);
+		}
+		++d;
+	}
+
+	return PMDS;
+};
+
 void TPMDSCalculator::_handleAlignment(){
 	//calc PMD
-	double PMDS = _alignment.calculatePMDS(_pi, _genotypeLikelihoodCalculator, _genoMap);
+	double PMDS = _calculatePMDS();
 
 	//filter
 	if(PMDS < _minPMDS || PMDS < _maxPMDS){
@@ -38,7 +54,7 @@ void TPMDSCalculator::_handleAlignment(){
 	}
 };
 
-void TPMDSCalculator::calculatePMDS(){
+void TPMDSCalculator::calculateLogPMDS(){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
 	//write new bam file with PMDS score added
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)

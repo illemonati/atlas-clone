@@ -9,8 +9,6 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
 #include "stringFunctions.h"
-
-#include "../TNormalDistribution.h"
 #include "auxiliaryTools.h"
 #include "mathFunctions.h"
 #define ARMA_DONT_PRINT_ERRORS
@@ -77,7 +75,7 @@ public:
 		transformationMap = pointerToTransformationMap;
 	};
 
-	virtual double getEtaTerm(const uint16_t val){
+	virtual double getEtaTerm(const uint16_t val) const{
 		return 0.0;
 	};
 	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
@@ -85,7 +83,7 @@ public:
 		for(unsigned int i=0; i<_numParameters; ++i)
 			_betas[i] = _oldBetas[i];
 	};
-	virtual void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){};
+	virtual void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{};
 	virtual double adjustParametersPostEstimation(){ return 0.0; };
 	std::string getModelString() const;
 };
@@ -107,10 +105,10 @@ public:
 	void setIntercept(const double val);
 	void addToIntercept(const double val);
 	double getIntercept() const;
-	double getEtaTerm();
-	double getEtaTerm(const uint16_t val);
-	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
+	double getEtaTerm() const;
+	double getEtaTerm(const uint16_t val) const;
+	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 };
 
 //--------------------------------------------------------------
@@ -127,50 +125,48 @@ public:
 	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order);
 	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
-	double getEtaTerm(const uint16_t val);
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
+	double getEtaTerm(const uint16_t val) const;
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 };
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_probit
 // A polynomial function
 //--------------------------------------------------------------
+class TProbitTmpStorage{
+public:
+	double _cumulDens_Phi;
+	double _normalDens_phi;
+	double _eta;
+	double _normalDens_q;
+	double _normalDens_Beta1;
+	double _normalDens_Beta1_q;
+	double _normalDens_Beta1_z;
+	double _normalDens_Beta1_q_z;
+	double _normalDens_Beta1_q2_z;
+
+	TProbitTmpStorage(const std::vector<double> & betas, const uint16_t q);
+};
+
 class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
 protected:
 	unsigned int _maxValue;
-	TNormalDistr _normalDist;
 	uint16_t _secondParameterIndex;
 	uint16_t _thirdParameterIndex;
 
 	//tmp storage
-	//TODO: make for all thing needed!
-	double* _cumulDens_Phi;
-	double* _normalDens_phi;
-	double* _eta;
-	double* _normalDens_q;
-	double* _normalDens_Beta1;
-	double* _normalDens_Beta1_q;
-	double* _normalDens_Beta1_z;
-	double* _normalDens_Beta1_q_z;
-	double* _normalDens_Beta1_q2_z;
-
-	bool _tmpStorageInitialized;
+	mutable std::vector<TProbitTmpStorage> _tmpStorage;
 
 	void _init(const uint16_t Maxvalue);
-	void _allocateTmpStorage();
-	void _freeTmpStorage();
-	void _fillTmpStorage();
-	void _expandTmpStorage(const uint16_t MaxValue);
+	void _expandTmpStorage(const uint16_t MaxValue) const;
 
 public:
 	TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, uint16_t MaxValue);
 	TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
-	~TRecalibrationEMCovariateFunction_probit(){ _freeTmpStorage(); };
 
-	double getEtaTerm(const uint16_t val);
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
+	double getEtaTerm(const uint16_t val) const;
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 };
-
 
 //--------------------------------------------------------------
 // TSequencingErrorCovariateFunction_specific
@@ -186,16 +182,16 @@ public:
 	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, const uint16_t MaxValue);
 	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
-	bool checkValueRange(const uint16_t val){
+	bool checkValueRange(const uint16_t val) const{
 		if(val > _maxValue)
 			return false;
 		return true;
 	};
 
-	double getEtaTerm(const uint16_t val){
+	double getEtaTerm(const uint16_t val) const{
 		return _betas[val];
 	};
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
 };
 
@@ -225,10 +221,10 @@ public:
 		return true;
 	};
 
-	double getEtaTerm(const uint16_t val){
+	double getEtaTerm(const uint16_t val) const{
 		return _betas[ _indexMap[val] ];
 	};
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second);
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
 };
 

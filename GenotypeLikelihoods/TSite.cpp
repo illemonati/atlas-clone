@@ -63,6 +63,15 @@ std::string TSite::getBases(const TGenotypeMap & genoMap) const{
 	return s;
 };
 
+std::string TSite::getQualities(const TQualityMap & qualMap) const{
+	if(!hasData) return "-";
+	std::string s = "";
+	for(auto& b : bases){
+		s +=  (char) qualMap.phredIntToQuality(b->recalibratedQualityAsPhredInt);
+	}
+	return s;
+};
+
 uint32_t TSite::depth() const{
 	if(!hasData) return 0;
 	return bases.size();

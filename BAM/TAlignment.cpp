@@ -278,6 +278,11 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 	return _alignedPosition[internalPosition] >= 0;
 };
 
+char TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const{
+	//Note: does not check if reference exists!
+	return _referenceSequence[_alignedPosition[internalPosition]];
+};
+
 uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
 	//only makes sense if position is aligned!
 	return _position + _alignedPosition[internalPosition];
@@ -314,51 +319,6 @@ std::string TAlignment::sequence(const TGenotypeMap & genoMap, const TQualityMap
 std::string TAlignment::qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
 	_updateSequenceAndQualities(genoMap, qualMap);
 	return _qualities;
-};
-
-double TAlignment::calculatePMDS(const double pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator, const TGenotypeMap & genoMap){
-	//make sure read is parsed and has reference
-	if(!_parsed) throw "Read was not parsed!";
-	if(!_hasReference) throw "Reference was not added!";
-
-	//calcukate PMDS (is in log)
-	double PMDS = 0.0;
-	for(size_t d=0; d<_bases.size(); ++d){
-		//limit to aligned positions
-		if(_bases[d].isAligned() && _bases[d].base != N && _referenceSequence[_alignedPosition[d]] != 'N'){
-			Base ref = genoMap.getBase(_referenceSequence[_alignedPosition[d]]);
-			PMDS +=  GLCalculator.calculatePMDS(_bases[d], ref, pi);
-		}
-	}
-
-	return PMDS;
-};
-
-int TAlignment::measureOverlap(){
-	//TODO: check that it works! What is the purpos eof only doing this on reverse reads? Would probably be better to have this work for all reads and then only call it on correct reads?
-	//make sure read is parsed
-	if(!_parsed) throw "Read was not parsed!";
-
-	if(_flags.isProperPair()){
-		if(!_flags.isReverseStrand()){
-			int k = _cigar.lengthSequenced() - 1;
-			while(!_bases[k].isAligned())
-				--k;
-			int endPos = _position + _alignedPosition[k];
-			int overlap = endPos - _matePosition;
-
-			if(overlap < 0)
-				//there is no overlap
-				return 0;
-			else
-				return overlap;
-		} else
-			//not relevant
-			return -1;
-
-	} else
-		//not relevant
-		return -1;
 };
 
 //--------------------------------------------
@@ -432,7 +392,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 
 	//bin quality scores as done by Illumina
 	for(auto& b : _bases){
-		b.recalibratedQualityAsPhredInt = qualityMap.phredIntToIlluminaError(b.recalibratedQualityAsPhredInt);
+		b.recalibratedQualityAsPhredInt = qualityMap.phredIntToIlluminaPhredInt(b.recalibratedQualityAsPhredInt);
 	}
 
 	_sequenceAndQualitiesChanged = true;
@@ -472,72 +432,6 @@ void TAlignment::downsampleAlignment(const double fractionToKeep, TRandomGenerat
 	}
 	_sequenceAndQualitiesChanged = true;
 	_changed = true;
-};
-
-//--------------------------------------
-//functions to fill other classes
-//--------------------------------------
-void TAlignment::addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap){
-	//make sure read is parsed and has reference
-	if(!_parsed) throw "Read was not parsed!";
-	if(!_hasReference) throw "Reference was not added!";
-
-	//tmp variables
-	Base ref, read;
-
-	//check if it is forward or reverse strand!
-	if(!_flags.isReverseStrand()){ //forward
-		int d = 0;
-		for(auto& b : _bases){
-			if(b.isAligned() && b.base != N){
-				ref = genoMap.getBase(_referenceSequence[_alignedPosition[d]]);
-				pmdTables.addFromFivePrime(_readGroupID, b.distFrom5Prime, ref, b.base);
-				pmdTables.addFromThreePrime(_readGroupID, b.distFrom3Prime, ref, b.base);
-			}
-			++d;
-		}
-	} else { //reverse
-		int d = 0;
-		for(auto& b : _bases){
-			if(b.isAligned() && b.base != N){
-				ref = genoMap.flipBase(_referenceSequence[_alignedPosition[d]]);
-				read = genoMap.baseToFlippedBase[b.base];
-				pmdTables.addFromFivePrime(_readGroupID, b.distFrom5Prime, ref, read);
-				pmdTables.addFromThreePrime(_readGroupID, b.distFrom3Prime, ref, read);
-			}
-			++d;
-		}
-	}
-};
-
-void TAlignment::addSitesToQualityTransformTable(TCountDistributionVector & QTtables){
-	for(auto& b : _bases){
-		if(b.base != N){
-			QTtables.add(b.originalQuality_phredInt, b.recalibratedQualityAsPhredInt);
-		}
-	}
-};
-
-void TAlignment::addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TCountDistributionVector & QTtables){
-	for(auto& b : _bases){
-		if(b.base != N){
-			QTtables.add(b.recalibratedQualityAsPhredInt, otherSeqErrors.getPhredInt(b));
-		}
-	}
-};
-
-void TAlignment::addToQualityTable(TCountDistributionVector & qualTable){
-	//make sure read is parsed
-	if(!_parsed) throw "Read was not parsed!";
-	for(auto& b : _bases){
-		qualTable.add(_readGroupID, b.recalibratedQualityAsPhredInt);
-	}
-};
-
-void TAlignment::addToContextStats(TContextStats & contextStats){
-	for(auto& b : _bases){
-		contextStats.add(b);
-	}
 };
 
 //--------------------------------------------

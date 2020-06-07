@@ -6,13 +6,12 @@
  */
 
 #ifndef LOCI_H_
-#define LOCI_H_
+#define GENOME_H_
 
 
 #include <typeinfo>
 #include <map>
 #include <algorithm>
-
 
 #include "TGenotypeData.h"
 #include "TWindow.h"
@@ -21,12 +20,11 @@
 #include "TBed.h"
 #include "TQualityMap.h"
 #include "TReadList.h"
-
-#include "TAllelicDepthCounts.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
-#include "TBamFilter.h"
 #include "TBamFile.h"
+
+namespace GenomeTasks{
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -133,9 +131,10 @@ protected:
 	//sites
 	std::unique_ptr<TSiteSubset> _subset;
 
-	//filters
+	//site filters
 	bool _applyDepthFilter;
 	uint32_t _readUpToDepth, _minDepth, _maxDepth;
+	bool _filterCpG;
 
 	//tmp variables
 	BAM::TAlignment* _oldAlignment;
@@ -175,4 +174,6 @@ public:
 	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
-#endif /* LOCI_H_ */
+}; //end namespace
+
+#endif /* GENOME_H_ */

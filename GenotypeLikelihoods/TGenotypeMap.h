@@ -219,7 +219,7 @@ public:
 		return N;
 	};
 
-	char getBaseAsChar(Base base) const{
+	char getBaseAsChar(const Base base) const{
 		if(base == A) return 'A';
 		if(base == C) return 'C';
 		if(base == G) return 'G';
@@ -227,7 +227,7 @@ public:
 		return 'N';
 	};
 
-	char getBaseAsChar(int base) const{
+	char getBaseAsChar(const uint8_t base) const{
 		if(base == A) return 'A';
 		if(base == C) return 'C';
 		if(base == G) return 'G';
@@ -235,7 +235,7 @@ public:
 		return 'N';
 	};
 
-	Base flipBase(char & base) const{
+	Base flipBase(const char base) const{
 		if(base == 'A') return T;
 		if(base == 'C') return G;
 		if(base == 'G') return C;
@@ -251,24 +251,24 @@ public:
 		return numGenotypes;
 	};
 
-	Genotype getGenotype(Base first, Base second) const{
+	Genotype getGenotype(const Base first, const Base second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(int first, int second) const{
+	Genotype getGenotype(const uint8_t first, const uint8_t second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(char first, char second) const{
+	Genotype getGenotype(const char first, const char second) const{
 		Base Bfirst = getBase(first);
 		Base Bsecond = getBase(second);
 		if(Bfirst < Bsecond) return genotypeMap[Bfirst][Bsecond];
 		else return genotypeMap[Bsecond][Bfirst];
 	};
 
-	std::string getGenotypeString(uint16_t num) const{
+	std::string getGenotypeString(const uint8_t num) const{
 		if(num==0) return "AA";
 		if(num==1) return "AC";
 		if(num==2) return "AG";
@@ -282,7 +282,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
-	std::string getGenotypeString(Genotype geno) const{
+	std::string getGenotypeString(const Genotype geno) const{
 		if(geno==0) return "AA";
 		if(geno==1) return "AC";
 		if(geno==2) return "AG";
@@ -296,7 +296,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString((int) geno) + "!";
 	};
 
-	std::string getGenotypeStringKnownAlleles(int num, char ref, char alt) const{
+	std::string getGenotypeStringKnownAlleles(const uint8_t num, const char ref, const char alt) const{
 		std::string genotype = "";
 		if(num == 0){
 			genotype += ref;
@@ -325,7 +325,7 @@ public:
 		throw "GenotypeMap: Unknown genotype with number " + toString(num) + "!";
 	};
 
-	std::pair<Base,Base> getBasesOfGenotype(int num) const{
+	std::pair<Base,Base> getBasesOfGenotype(const uint8_t num) const{
 		if(num==0) return std::pair<Base,Base>(A,A);
 		if(num==1) return std::pair<Base,Base>(A,C);
 		if(num==2) return std::pair<Base,Base>(A,G);
@@ -347,25 +347,25 @@ public:
 		return numContexts;
 	};
 
-	BaseContext getContext(Base first, Base second) const{
+	BaseContext getContext(const Base first, const Base second) const{
 		if(second == N) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(int first, int second) const{
+	BaseContext getContext(const uint8_t first, const uint8_t second) const{
 		if(second > 3) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(char first, char second) const{
+	BaseContext getContext(const char first, const char second) const{
 		return getContext(getBase(first), getBase(second));
 	};
 
-	BaseContext getContextReverseRead(char first, char second) const{
+	BaseContext getContextReverseRead(const char first, const char second) const{
 		return getContext(flipBase(first), flipBase(second));
 	};
 
-	std::string getContextString(int context) const{
+	std::string getContextString(const uint8_t context) const{
 		return getContextString(static_cast<BaseContext>(context));
 	};
 
@@ -396,6 +396,12 @@ public:
 		if(context == cTN) return "NT";
 		if(context == cAN) return "NA";
 		else return "NN";
+	};
+
+	void addContextNames(std::vector<std::string> & vec){
+		for(uint8_t c=0; c<numContexts; ++c){
+			vec.push_back(getContextString(c));
+		}
 	};
 };
 

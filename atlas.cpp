@@ -6,6 +6,17 @@
  */
 
 #include "TMain.h"
+
+
+//BAM
+#include "TBamFilter.h"
+#include "TReadGroupMerger.h"
+#include "TPileup.h"
+#include "TBamDiagnoser.h"
+#include "TDuplicateQuantifier.h"
+#include "TSoftClipping.h"
+
+//tests
 #include "Tests/TAtlasTest.h"
 #include "TAtlasTestFilter.h"
 #include "TAtlasTestMergePairs.h"
@@ -13,7 +24,7 @@
 #include "TAtlasTestRecalibration.h"
 #include "TVcfTest.h"
 
-//includes for tasks
+
 
 
 
@@ -21,19 +32,27 @@ void addTaks(TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
 
 	//BAM
-	main.addRegularTask("splitRGByLength", new TTask_splitRGbyLength());
-	main.addRegularTask("mergeRG", new TTask_mergeReadGroups());
-	main.addRegularTask("pileup", new TTask_pileup());
-	main.addRegularTask("BAMDiagnostics", new TTask_BAMDiagnostics());
-	main.addRegularTask("readOverlap", new TTask_assessReadOverlap());
-	main.addRegularTask("mergeReads", new TTask_mergeReads());
-	main.addRegularTask("splitMerge", new TTask_splitMerge());
-	main.addRegularTask("duplication", new TTask_assessDuplication());
-	main.addRegularTask("writeReadInfoPerSite", new TTask_mateInfo());
+	main.addRegularTask("filter", new GenomeTasks::TTask_filterBAM());
+	main.addRegularTask("splitMerge", new GenomeTasks::TTask_splitMerge());
+	main.addRegularTask("mergeRG", new GenomeTasks::TTask_mergeReadGroups());
+	main.addRegularTask("pileup", new GenomeTasks::TTask_pileup());
+	main.addRegularTask("BAMDiagnostics", new GenomeTasks::TTask_BAMDiagnostics());
+	main.addRegularTask("readOverlap", new GenomeTasks::TTask_overlapQuantifier());
+	main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
+
 	main.addRegularTask("assessSoftClipping", new TTask_assessSoftClipping());
-	main.addRegularTask("contextStats", new TTask_contextStats());
 	main.addRegularTask("removeSoftClippedBases", new TTask_removeSoftClippedBasesFromReads());
-	main.addRegularTask("filter", new TTask_filterBAM());
+	main.addRegularTask("qualityDist", new TTask_qualityDist());
+	main.addRegularTask("qualityTransformation", new TTask_qualityTransformation());
+
+	//Population tools
+
+
+
+
+
+	main.addRegularTask("contextStats", new TTask_contextStats());
+
 	main.addRegularTask("writeDepthPerWindow", new TTask_writeDepthPerWindow());
 	main.addRegularTask("depthPerSiteDist", new TTask_depthPerSiteDist());
 	main.addRegularTask("writeDepthPerSite", new TTask_writeDepthPerSite());
@@ -47,11 +66,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("PMDS", new TTask_PMDS());
 	main.addRegularTask("PSMC", new TTask_PSMC());
 	main.addRegularTask("recal", new TTask_recal());
-	main.addRegularTask("BQSR", new TTask_BQSR());
-	main.addRegularTask("BAMUpdateQualities", new TTask_recalBAM());
-	main.addRegularTask("qualityDist", new TTask_qualityDist());
-	main.addRegularTask("qualityTransformation", new TTask_qualityTransformation());
-	main.addRegularTask("binQualityScores", new TTask_binQualityScores());
+
 	main.addRegularTask("call", new TTask_call());
 	main.addRegularTask("theta", new TTask_estimateTheta()); -> new task for genome wide!!
 	main.addRegularTask("thetaRatio", new TTask_estimateThetaRatio());

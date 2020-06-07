@@ -113,7 +113,7 @@ void TSequencingErrorCovariateList::_clear(){
 	intercept.setIntercept(0.0);
 };
 
-void TSequencingErrorCovariateList::_createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariateList::createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
@@ -147,7 +147,7 @@ void TSequencingErrorCovariateList::_createCovariatesAndIntercept(TSequencingErr
 	_storePointersToCovariateFunctions();
 };
 
-void TSequencingErrorCovariateList::_createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap){
+void TSequencingErrorCovariateList::createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap){
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept};
 	intercept.initialize(0, vec);
@@ -191,7 +191,7 @@ void TSequencingErrorCovariateList::_storePointersToCovariateFunctions(){
 	}
 };
 
-TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateDefinition(){
+TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateDefinition() const{
 	TSequencingErrorCovariateDefinition def;
 	def.setIntercept(intercept.getIntercept());
 	for(const auto & cov : covariates){
@@ -215,7 +215,7 @@ TSequencingErrorRho::TSequencingErrorRho(){
 	}
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods){
+void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const{
 	baseLikelihoods[base] = 1.0 - epsilon;
 	if(base == A){
 		baseLikelihoods[C] = epsilon * rho[A][C];
@@ -234,8 +234,6 @@ void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsi
 		baseLikelihoods[C] = epsilon * rho[T][C];
 		baseLikelihoods[G] = epsilon * rho[T][G];
 	}
-
-	std::cout << "baselik = " << baseLikelihoods[A] << "\t" << baseLikelihoods[C] << "\t" << baseLikelihoods[G] << "\t" << baseLikelihoods[T] << std::endl;
 };
 
 //--------------------------------------------------------------------
@@ -246,7 +244,7 @@ TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition
 	setEMParamsToZero();
 
 	//create covariates
-	_covariates._createCovariatesAndIntercept(covariateMap);
+	_covariates.createCovariatesAndIntercept(covariateMap);
 };
 
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
@@ -254,7 +252,7 @@ TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition
 	setEMParamsToZero();
 
 	//create covariates
-	_covariates._createCovariatesAndIntercept(covariateMap, dataTable);
+	_covariates.createCovariatesAndIntercept(covariateMap, dataTable);
 };
 
 bool TSequencingErrorModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
@@ -292,7 +290,7 @@ double TSequencingErrorModel::_calcEpsilon(const double eta) const{
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TSequencingErrorModel::getErrorRate(const TBase & base){
+double TSequencingErrorModel::getErrorRate(const TBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -303,7 +301,7 @@ double TSequencingErrorModel::getErrorRate(const TBase & base){
 	return _calcEpsilon(eta);
 };
 
-double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data){
+double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -314,7 +312,7 @@ double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data
 	return _calcEpsilon(eta);
 };
 
-void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods){
+void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
 	//first calculate epsilon
 	double eta = _covariates.intercept.getEtaTerm();
 	for(const auto & cov : _covariates.covariates){
@@ -327,7 +325,7 @@ void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & 
 	rho.fillBaseLikelihoods(base.base, _calcEpsilon(eta), baseLikelihoods);
 };
 
-TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinition(){
+TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinition() const{
 	return _covariates.getCovariateDefinition();
 };
 

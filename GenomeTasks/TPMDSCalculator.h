@@ -21,6 +21,7 @@ private:
 	double _pi, _minPMDS, _maxPMDS;
 	BAM::TOutputBamFile _outBam;
 
+	double _calculatePMDS();
 	void _handleAlignment();
 
 public:

@@ -17,7 +17,9 @@ TQualityDistribution::TQualityDistribution(TParameters & Parameters, TLog* Logfi
 };
 
 void TQualityDistribution::_handleAlignment(){
-	_alignment.addToQualityTable(_qualDist);
+	for(auto& b : _alignment){
+		_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt);
+	}
 };
 
 void TQualityDistribution::compileQualityDistribution(){
@@ -66,9 +68,17 @@ TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* L
 
 void TQualityTransformation::_handleAlignment(){
 	if(_compareToOtherSeqErrors){
-		_alignment.addSitesToQualityTransformTable(_otherSeqErrors, _transformations[_alignment.readGroupId()]);
+		for(auto& b : _alignment){
+			if(b.base != N){
+				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt, _otherSeqErrors.getPhredInt(b));
+			}
+		}
 	} else {
-		_alignment.addSitesToQualityTransformTable(_transformations[_alignment.readGroupId()]);
+		for(auto& b : _alignment){
+			if(b.base != N){
+				_transformations[_alignment.readGroupId()].add(b.originalQuality_phredInt, b.recalibratedQualityAsPhredInt);
+			}
+		}
 	}
 };
 

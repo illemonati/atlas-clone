@@ -24,12 +24,20 @@ private:
 	bool printOnlySitesWithData;
 
 	//tmp variables
-	GenotypeLikelihoods::TBaseData _alleleCounts;
+	GenotypeLikelihoods::TBaseCounts _alleleCounts;
 	int _counts[2];
 
+	//what to print?
+	bool _printDepth;
+	bool _printBases;
+	bool _printQualities;
+	bool _printAlleles;
+	bool _printMates;
+	bool _printStrand;
+	bool _printLikelihoods;
+
+	void _parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation);
 	void _handleWindow();
-
-
 public:
 	TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void printPileup();

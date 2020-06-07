@@ -11,6 +11,7 @@
 namespace BAM{
 
 void TFastaBuffer::moveTo(const int & chr, const int32_t & pos){
+	//NOTE: bamtools was modified to append N in case pos < 0 or pos+length > is beyond chromosome. This is the expected behavior in ATLAS and must be preserved!
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
 	}

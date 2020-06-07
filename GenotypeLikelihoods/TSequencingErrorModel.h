@@ -92,9 +92,9 @@ public:
 	TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other);
 	TSequencingErrorCovariateList& operator=(TSequencingErrorCovariateList&& other);
 
-	void _createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
-	void _createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap);
-	TSequencingErrorCovariateDefinition getCovariateDefinition();
+	void createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
+	void createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap);
+	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 };
 
 
@@ -107,7 +107,7 @@ private:
 
 public:
 	TSequencingErrorRho();
-	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods);
+	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const;
 };
 
 //--------------------------------------------------------------------
@@ -162,11 +162,11 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 
-	void fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods);
-	TSequencingErrorCovariateDefinition getCovariateDefinition();
+	void fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
+	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 
-	double getErrorRate(const TBase & base);
-	double getErrorRate(const TRecalibrationEMReadData & data); //REMOVE!
+	double getErrorRate(const TBase & base) const;
+	double getErrorRate(const TRecalibrationEMReadData & data) const; //TODO: REMOVE!
 };
 
 

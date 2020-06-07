@@ -45,17 +45,18 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	double getErrorRate(const TBase & base) const;
-	double getErrorWithPMD(const TBase & base) const;
-	uint8_t getPhredInt(const TBase & base) const;
-	uint8_t getPhredIntWithPMD(const TBase & base) const;
-	void recalibrate(TBase & base) const;
-	void recalibrateWithPMD(TBase & base) const;
-	void recalibrate(std::vector<TBase> & bases) const;
-	void recalibrateWithPMD(std::vector<TBase> & bases) const;
+	//Note: the following functions are not const because TSequencingErrorModels has internal tmp storage that may change upon error rate calculation
+	double getErrorRate(const TBase & base);
+	double getErrorWithPMD(const TBase & base);
+	uint8_t getPhredInt(const TBase & base);
+	uint8_t getPhredIntWithPMD(const TBase & base);
+	void recalibrate(TBase & base);
+	void recalibrateWithPMD(TBase & base);
+	void recalibrate(std::vector<TBase> & bases);
+	void recalibrateWithPMD(std::vector<TBase> & bases);
 
-	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods) const;
-	double calculatePMDS(const TBase & base, const Base ref, const double pi) const;
+	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);
+	double calculateLogPMDS(const TBase & base, const Base ref, const double pi); //TODO: move to PMDS class?
 };
 
 

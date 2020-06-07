@@ -103,6 +103,7 @@ public:
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
+	char referenceAtInternalPos(const uint32_t internalPosition) const;
 	uint32_t positionInRef(const uint32_t internalPosition) const;
 	uint16_t readGroupId() const { return _readGroupID; };
 	uint16_t parsedLength() const{ return _cigar.lengthSequenced(); };
@@ -115,8 +116,9 @@ public:
 	bool isProperPair() const{ return _flags.isProperPair(); };
 	bool isParsed() const{ return _parsed; };
 
-	double calculatePMDS(const double pi, GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator, const TGenotypeMap & genoMap);
-	int measureOverlap();
+	//looping
+	std::vector<TBase>::iterator begin(){ return _bases.begin(); };
+	std::vector<TBase>::iterator end(){ return _bases.end(); };
 
 	//filters and other functions to modify data
 	void filterForBaseQuality(TQualityFilter & qualFilter);
@@ -128,21 +130,8 @@ public:
 	void setIsProperPair(const bool & ok);
 	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 
-	//functions to fill other classes
-	void addToPMDTables(GenotypeLikelihoods::TPMDTables & pmdTables, TGenotypeMap & genoMap);
-	void addSitesToQualityTransformTable(TCountDistributionVector & QTtables);
-	void addSitesToQualityTransformTable(GenotypeLikelihoods::TSequencingErrorModels & otherSeqErrors, TCountDistributionVector & QTtables);
-	void addToQualityTable(TCountDistributionVector & qualTable);
-	void addToContextStats(TContextStats & contextStats);
-
 	//debug functions
 	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
-
-	/*
-	 * TODO: discuss if needed. Is only used by PMDS and maybe we just do not add that info to the BAM file?
-	void updateOptionalSamField(std::string tag, float value);
-	void updateOptionalSamField(std::string tag, std::string value);
-	*/
 };
 
 }; //end namespace

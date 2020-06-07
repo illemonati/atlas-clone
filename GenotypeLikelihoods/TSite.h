@@ -10,6 +10,7 @@
 
 #include <TBase.h>
 #include <vector>
+#include "TQualityMap.h"
 #include "TGenotypeMap.h"
 #include "TGenotypeData.h"
 
@@ -49,6 +50,7 @@ public:
 	Base getRefBase() const {return referenceBase;};
 	void addToBaseFrequencies(TBaseData & frequencies) const;
 	std::string getBases(const TGenotypeMap & genoMap) const;
+	std::string getQualities(const TQualityMap & qualMap) const;
 	uint32_t depth() const;
 	uint32_t refDepth() const;
 

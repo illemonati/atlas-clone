@@ -20,6 +20,9 @@ class TCreateBedMask:public TGenome_windows{
 protected:
 	BAM::TBed _bed;
 	uint32_t _minDepthForMask;
+
+	void _createMask(const std::string fileTag);
+
 public:
 	TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
@@ -40,38 +43,70 @@ public:
 //--------------------------------------
 // TCreateConservedBedMask
 //--------------------------------------
-class TCreateConservedBedMask:public TCreateBedMask{
+class TCreateInvariantBedMask:public TCreateBedMask{
 private:
 	void _handleWindow();
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateConservedBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	void createConservedMask();
+	TCreateInvariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void createInvariantMask();
+};
+
+//--------------------------------------
+// TCreateVariantBedMask
+//--------------------------------------
+class TCreateVariantBedMask:public TCreateBedMask{
+private:
+	void _handleWindow();
+
+	//tmp variables
+	GenotypeLikelihoods::TBaseCounts _baseCounts;
+public:
+	TCreateVariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void createVariantMask();
+};
+
+//--------------------------------------
+// TCreateNonRefBedMask
+//--------------------------------------
+class TCreateNonRefBedMask:public TCreateBedMask{
+private:
+	void _handleWindow();
+
+	//tmp variables
+	GenotypeLikelihoods::TBaseCounts _baseCounts;
+public:
+	TCreateNonRefBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void createVariantMask();
 };
 
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_createDepthMask:public TTask{
+class TTask_createMask:public TTask{
 public:
-	TTask_createDepthMask(){ _explanation = "Creating depth mask BED file"; };
+	TTask_createMask(){ _explanation = "Creating a mask BED file"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TCreateDepthBedMask depthMask(Parameters, Logfile, _randomGenerator);
-		depthMask.createDepthMask();
-	};
-};
 
-class TTask_createNonRefMask:public TTask{
-public:
-	TTask_createNonRefMask(){ _explanation = "Creating mask BED file with sites with non-reference alleles"; };
+		//which mask?
+		std::string mask = Parameters.getParameterString("mask");
+		if(mask == "depth"){
+			TCreateDepthBedMask depthMask(Parameters, Logfile, _randomGenerator);
+			depthMask.createDepthMask();
+		} else if(mask == "nonRef"){
 
-	void run(TParameters & Parameters, TLog* Logfile){
-		TCreateConservedBedMask conservedMask(Parameters, Logfile, _randomGenerator);
-		conservedMask.createConservedMask();
+		} else if(mask == "invariant"){
+			TCreateInvariantBedMask conservedMask(Parameters, Logfile, _randomGenerator);
+			conservedMask.createInvariantMask();
+		} else if(mask == "variant"){
+
+		} else {
+			throw "Unknown mask '" + mask + "'! Valid types are 'depth', 'invariant', 'nonRef' and 'polymorphic'";
+		}
 	};
 };
 

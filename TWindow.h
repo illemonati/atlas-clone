@@ -8,21 +8,13 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
-#include <TBedReaderWindows.h>
+#include "TBedReaderWindows.h"
 #include "TLog.h"
-#include "TParameters.h"
-#include "TReadGroups.h"
-#include "TThetaEstimator.h"
 #include "TSiteSubset.h"
-#include "TPostMortemDamage.h"
-#include "GLF/TGLF.h"
 #include "TAlignment.h"
 #include "TQualityMap.h"
-#include "TDistributionOfCounts.h"
 #include "TRandomGenerator.h"
-#include "GenotypeLikelihoods/TRecalibration.h"
-#include "GenotypeLikelihoods/TRecalibrationEMEstimator.h"
-#include "GenotypeLikelihoods/TGenotypeLikelihoodCalculator.h"
+#include "TGenotypeLikelihoodCalculator.h"
 
 #include <vector>
 
@@ -35,7 +27,8 @@ class TWindow;
 class TWindow_base{
 protected:
 	std::vector<GenotypeLikelihoods::TSite> _sites;
-
+	uint32_t _numReadsInWindow;
+	uint32_t _refId;
 	std::string _chrName;
 
 	TGenotypeMap genoMap;
@@ -49,27 +42,22 @@ protected:
 
 	bool _passedFilters;
 
-	void _setCoordinates(long Start, long End, int ChrNumber);
+	void _setCoordinates(long Start, long End, int RefId);
 
 	//TODO: make as much as possible private
 public:
 	unsigned int startPos;
 	unsigned int endPos; //end NOT included in window!
 	unsigned int length;
-	unsigned int chrNumber;
-
-
-	bool sitesInitialized;
-	unsigned int numReadsInWindow;
 
 	TWindow_base();
 	TWindow_base(TWindow_base & other);
+	virtual ~TWindow_base();
+
 	void stealFromOther(TWindow_base & other);
 	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
-
-	virtual ~TWindow_base();
 
 	//getters
 	GenotypeLikelihoods::TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
@@ -84,8 +72,6 @@ public:
 	bool filter(const double maxFracMissing, const double maxRefN, TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
 
-	void writeCoordinates(TOutputFile & out);
-
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 	void initSites(long newLength);
 	void clear();
@@ -93,25 +79,22 @@ public:
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(BAM::TBedReaderWindows* mask, bool inverseMasking);
-	void maskCpG();
+	void maskCpG(BAM::TFastaBuffer & reference);
 	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq);
-
-	void countAlleles(TAllelicDepthCounts & counts);
-	void writeNonConservedBed(std::ofstream & output);
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
 	//loop over sites
 	std::vector<GenotypeLikelihoods::TSite>::iterator begin(){ return _sites.begin(); };
 	std::vector<GenotypeLikelihoods::TSite>::iterator end(){ return _sites.end(); };
 
-	//add sites to data structures
-	void addToGLF(TGlfWriter & writer, TGenotypeLikelihoodCalculator & GL_calculator, bool printAll);
+	void writeCoordinates(TOutputFile & out);
 };
 
 //---------------------------------------------------------------
 //TWindow
 //---------------------------------------------------------------
 class TWindow:public TWindow_base{
+friend class TWindow_base;
 private:
 	//alignment stacks
 	std::vector<BAM::TAlignment*> usedAlignments;
@@ -123,24 +106,26 @@ private:
 	//functions to fill sites from alignments
 	void _checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt);
 	void _setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, uint16_t & p);
-	void _fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, const unsigned int & readUpToDepth);
-	void _fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
+
+	void _fillSites(BAM::TAlignment* alignmentIt, std::vector<GenotypeLikelihoods::TSite> & sites, const unsigned int & readUpToDepth);
+	void _fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<GenotypeLikelihoods::TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
+
+	void _fillSites(std::vector<GenotypeLikelihoods::TSite> & sites, const uint32_t & readUpToDepth);
+	int _fillSitesDownsampling(std::vector<GenotypeLikelihoods::TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+
+	void _fillSitesSubset(std::vector<GenotypeLikelihoods::TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
+	int _fillSitesSubsetDownsampling(std::vector<GenotypeLikelihoods::TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 public:
 	TWindow();
 	~TWindow();
 
-	void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
+	void move(unsigned int Start, unsigned int End, int RefId, TLog* logfile);
 	void review();
 	void printStacks();
 
 	void fillSites(const uint32_t & readUpToDepth);
-	void fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth);
-	int fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
-
 	void fillSitesSubset(TSiteSubset & subset, const uint32_t & readUpToDepth);
-	void fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
-	int fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 };

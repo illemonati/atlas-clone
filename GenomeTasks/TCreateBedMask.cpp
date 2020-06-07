@@ -16,13 +16,24 @@ TCreateBedMask::TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomG
 	_minDepthForMask = Parameters.getParameterInt("minDepthForMask");
 };
 
+void TCreateBedMask::_createMask(const std::string fileTag){
+	_traverseBAMWindows();
+
+	//write mask
+	std::string filename = _outputName + "_minDepth"+ toString(_minDepthForMask) + "_" + fileTag + ".bed";
+	_logfile->listFlush("Writing mask to BED file '" + filename + "' ...");
+
+	_bed.write(filename);
+	_logfile->done();
+};
+
 
 //--------------------------------------
 // TCreateDepthBedMask
 //--------------------------------------
 TCreateDepthBedMask::TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
 	_maxDepthForMask = Parameters.getParameterInt("maxDepthForMask");
-	_logfile->list("Will create a mask for all sites with outside the range [" + toString(_minDepthForMask) + ", " + toString(_maxDepthForMask) + "].");
+	_logfile->list("Will create a mask for all sites with depth outside the range [" + toString(_minDepthForMask) + ", " + toString(_maxDepthForMask) + "].");
 
 	if(_maxDepthForMask < _minDepthForMask){
 		throw "maxDepthForMask must be > minDepthForMask!";
@@ -42,28 +53,21 @@ void TCreateDepthBedMask::_handleWindow(){
 };
 
 void TCreateDepthBedMask::createDepthMask(){
-	_traverseBAMWindows();
-
-	//write mask
-	std::string filename = _outputName + "_minDepth"+ toString(_minDepthForMask) + "_maxDepth" + toString(_maxDepthForMask) + "_depthMask.bed";
-	_logfile->listFlush("Writing mask to BED file '" + filename + "' ...");
-
-	_bed.write(filename);
-	_logfile->done();
+	_createMask("maxDepth" + toString(_maxDepthForMask) + "_depthMask.bed");
 };
 
 //--------------------------------------
-// TCreateConservedBedMask
+// TCreateInvariantBedMask
 //--------------------------------------
-TCreateConservedBedMask::TCreateConservedBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
-	_logfile->list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which a single allele is observed (invariant).");
+TCreateInvariantBedMask::TCreateInvariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
+	_logfile->list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which a single allele was observed (invariant).");
 
 	if(_minDepthForMask < 2){
-		throw "maxDepthForMask must be >= 2!";
+		throw "minDepthForMask must be >= 2 to assess variant / invariant status!";
 	}
 };
 
-void TCreateConservedBedMask::_handleWindow(){
+void TCreateInvariantBedMask::_handleWindow(){
 	uint32_t p = 0;
 	for(auto s = _window.begin(); s!=_window.end(); ++s){
 		if(s->depth() >= _minDepthForMask){
@@ -75,15 +79,63 @@ void TCreateConservedBedMask::_handleWindow(){
 	}
 };
 
-void TCreateConservedBedMask::createConservedMask(){
-	_traverseBAMWindows();
+void TCreateInvariantBedMask::createInvariantMask(){
+	_createMask("_invariantMask.bed");
+};
 
-	//write mask
-	std::string filename = _outputName + "_minDepth"+ toString(_minDepthForMask) + "_invariantMask.bed";
-	_logfile->listFlush("Writing mask to BED file '" + filename + "' ...");
+//--------------------------------------
+// TCreateVariantBedMask
+//--------------------------------------
+TCreateVariantBedMask::TCreateVariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
+	_logfile->list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which multiple alleles were observed (variant).");
 
-	_bed.write(filename);
-	_logfile->done();
+	if(_minDepthForMask < 2){
+		throw "minDepthForMask must be >= 2 to assess variant / invariant status!";
+	}
+};
+
+void TCreateVariantBedMask::_handleWindow(){
+	uint32_t p = 0;
+	for(auto s = _window.begin(); s!=_window.end(); ++s){
+		if(s->depth() >= _minDepthForMask){
+			s->countAlleles(_baseCounts);
+			if(_baseCounts.numAlleles() > 1){
+				_bed.addSite(_window.posInRef(p));
+			}
+		}
+	}
+};
+
+void TCreateVariantBedMask::createVariantMask(){
+	_createMask("_variantMask.bed");
+};
+
+//--------------------------------------
+// TCreateNonRefBedMask
+//--------------------------------------
+TCreateNonRefBedMask::TCreateNonRefBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
+	_logfile->list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which at least one non-ref allele was observed.");
+
+	if(_minDepthForMask < 1){
+		throw "maxDepthForMask must be > 1 to check for ref / non-ref status!";
+	}
+
+	_openReference(true);
+};
+
+void TCreateNonRefBedMask::_handleWindow(){
+	uint32_t p = 0;
+	for(auto s = _window.begin(); s!=_window.end(); ++s){
+		if(s->depth() >= _minDepthForMask){
+			if(s->refDepth() < s->depth()){
+				_bed.addSite(_window.posInRef(p));
+			}
+		}
+	}
+};
+
+void TCreateNonRefBedMask::createVariantMask(){
+	_createMask("_nonRefMask.bed");
 };
 
 }; // end namespace
