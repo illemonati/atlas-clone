@@ -17,7 +17,7 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include <vector>
 
-namespace GenomeTasks{
+namespace GenotypeLikelihoods{
 
 //forward declaration to enable copy constructor
 class TWindow;
@@ -27,7 +27,7 @@ class TWindow;
 //---------------------------------------------------------------
 class TWindow_base{
 protected:
-	std::vector<GenotypeLikelihoods::TSite> _sites;
+	std::vector<TSite> _sites;
 	uint32_t _numReadsInWindow;
 	uint32_t _refId;
 	std::string _chrName;
@@ -61,7 +61,7 @@ public:
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 	//getters
-	GenotypeLikelihoods::TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
+	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
 	uint32_t refId() const{ return _refId; };
 	uint32_t posInRef(uint32_t internalPos) const{ return startPos + internalPos; };
@@ -82,12 +82,14 @@ public:
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(BAM::TBedReaderWindows* mask, bool inverseMasking);
 	void maskCpG(BAM::TFastaBuffer & reference);
-	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq);
+	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
 	//loop over sites
-	std::vector<GenotypeLikelihoods::TSite>::iterator begin(){ return _sites.begin(); };
-	std::vector<GenotypeLikelihoods::TSite>::iterator end(){ return _sites.end(); };
+	std::vector<TSite>::iterator begin(){ return _sites.begin(); };
+	std::vector<TSite>::iterator end(){ return _sites.end(); };
+	std::vector<TSite>::const_iterator cbegin() const{ return _sites.cbegin(); };
+	std::vector<TSite>::const_iterator cend() const{ return _sites.cend(); };
 
 	void writeCoordinates(TOutputFile & out);
 };
@@ -109,14 +111,14 @@ private:
 	void _checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt);
 	void _setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, uint16_t & p);
 
-	void _fillSites(BAM::TAlignment* alignmentIt, std::vector<GenotypeLikelihoods::TSite> & sites, const unsigned int & readUpToDepth);
-	void _fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<GenotypeLikelihoods::TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
+	void _fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, const unsigned int & readUpToDepth);
+	void _fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
 
-	void _fillSites(std::vector<GenotypeLikelihoods::TSite> & sites, const uint32_t & readUpToDepth);
-	int _fillSitesDownsampling(std::vector<GenotypeLikelihoods::TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void _fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
-	void _fillSitesSubset(std::vector<GenotypeLikelihoods::TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<GenotypeLikelihoods::TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
 public:
 	TWindow();

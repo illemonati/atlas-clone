@@ -89,8 +89,8 @@ void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & pa
 
 void TThetaEstimator_base::fillPGenotype(TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies){
 	//assumes that base frequencies are set!
-	static int i;
-	static int j;
+	static uint8_t i;
+	static uint8_t j;
 	for(i=0; i<4; ++i){
 		//homozygous genotypes
 		pGeno[genoMap.getGenotype(i,i)] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
@@ -231,6 +231,15 @@ void TThetaEstimator::add(const GenotypeLikelihoods::TSite & site, GenotypeLikel
 	data->add(site, genotypeLikelihoods);
 };
 
+void TThetaEstimator::add(const TWindow & window, const TGenotypeLikelihoodCalculator & glCalculator){
+	TGenotypeLikelihoods genoLik;
+	for(auto it = window.cbegin(); it != window.cend(); ++it){
+		const TSite& s = *(*it);
+		glCalculator.calculateGenotypeLikelihoods(s, genoLik);
+		add(s, genoLik);
+	}
+};
+
 double TThetaEstimator::_calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype){
 //sum Ri over all sites
 	double FisherInfo = 0.0;
@@ -268,7 +277,7 @@ bool TThetaEstimator::_NRAllParams(){
 		//i) calculate F (Note: index is zero based!)
 		F(4) = data->sizeWithData();
 		F(5) = 0.0;
-		for(int k=0; k<4; ++k){
+		for(uint8_t k=0; k<4; ++k){
 			Genotype geno = genoMap.getGenotype(k, k);
 			double tmpSum = 0.0;
 			for(int l=0; l<4; ++l){
@@ -286,7 +295,7 @@ bool TThetaEstimator::_NRAllParams(){
 		Jacobian.zeros();
 		double tmpSum = 0.0;
 		double tmp[4];
-		for(int k=0; k<4; ++k){
+		for(uint8_t k=0; k<4; ++k){
 			tmp[k] = P_G[genoMap.getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
 			tmpSum += tmp[k];
 		}
@@ -340,13 +349,13 @@ void TThetaEstimator::_NROnlyTheta(){
 	for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 		//i) calculate F() (Note: index is zero based!)
 		double F = data->sizeWithData();
-		for(int k=0; k<4; ++k){
+		for(uint8_t k=0; k<4; ++k){
 			Genotype geno = genoMap.getGenotype(k, k);
 			F -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
 		}
 		//ii) fill Jacobian (Note: index is zero based!)
 		double Jacobian = 0.0;
-		for(int k=0; k<4; ++k){
+		for(uint8_t k=0; k<4; ++k){
 			double tmpSum = P_G[genoMap.getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
 			Jacobian += tmpSum * (1.0 - baseFreq[k]);
 		}
@@ -434,11 +443,11 @@ void TThetaEstimator::_estimateConfidenceInterval(){
 	//calclate d/dtheta P(g|theta, pi)
 	TGenotypeData deriv_pGenotype;
 
-	for(int k=0; k<4; ++k){
+	for(uint8_t k=0; k<4; ++k){
 		//homozygous genotype
 		deriv_pGenotype[genoMap.getGenotype(k, k)] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
 		//heterozygous genotypes
-		for(int l=k+1; l<4; ++l){
+		for(uint8_t l=k+1; l<4; ++l){
 			deriv_pGenotype[genoMap.getGenotype(k, l)] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
 		}
 	}
@@ -484,11 +493,11 @@ bool TThetaEstimator::estimateTheta(){
 	return true;
 }
 
-void TThetaEstimator::setTheta(double Theta){
+void TThetaEstimator::setTheta(const double Theta){
 	theta.setTheta(Theta);
 }
 
-void TThetaEstimator::setBaseFreq(GenotypeLikelihoods::TBaseData & BaseFreq){
+void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq){
 	for(int i=0; i<4; ++i)
 		theta.baseFreq[i] = BaseFreq[i];
 }

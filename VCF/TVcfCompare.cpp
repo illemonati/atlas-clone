@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TVCFCompare.h"
+#include "TVcfCompare.h"
 
 namespace VCF{
 
@@ -93,7 +93,7 @@ void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
 //write
 void TGenotypeComparisonTable::write(const std::string filename, TGenotypeMap & genoMap){
 	//open output file
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 
 	//write header
 	std::vector<std::string> header = {"vcf1/vcf2"};

@@ -277,7 +277,7 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	}
 };
 
-void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq){
+void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
 	//estimate initial base frequencies
 	baseFreq.set(0.0);
 	for(auto& s : _sites){

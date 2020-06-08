@@ -27,11 +27,11 @@ class TSite{
 protected:
 	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
 
-public:
 	std::vector<TBase*> bases;
 	bool hasData;
 	Base referenceBase; //optional
 
+public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
 
@@ -45,18 +45,28 @@ public:
 	void clear();
 	//void stealFromOther(TSite* other);
 
+	const TBase& at(size_t i) const{ return *bases[i]; };
+	TBase& operator[](size_t i){ return *bases[i]; };
+
 	void add(const TBase * base);
 	void setRefBase(const Base ref){ referenceBase = ref; };
 	Base getRefBase() const {return referenceBase;};
 	void addToBaseFrequencies(TBaseData & frequencies) const;
 	std::string getBases(const TGenotypeMap & genoMap) const;
 	std::string getQualities(const TQualityMap & qualMap) const;
+	bool empty() const{ return bases.empty(); };
 	uint32_t depth() const;
 	uint32_t refDepth() const;
 
 	void countAlleles(TBaseCounts & alleleCounts) const;
 	void countMates(int* mateCounts) const;
 	void countFwdRev(int* frCounts) const;
+
+	//loop
+	std::vector<TBase*>::iterator begin(){ return bases.begin(); };
+	std::vector<TBase*>::iterator end(){ return bases.end(); };
+	std::vector<TBase*>::const_iterator begin() const{ return bases.begin(); };
+	std::vector<TBase*>::const_iterator end() const{ return bases.end(); };
 };
 
 }; //end namespace

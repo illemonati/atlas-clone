@@ -128,7 +128,7 @@ protected:
 	BAM::TBedReaderWindows* _mask;
 
 	//sites
-	std::unique_ptr<TSiteSubset> _subset;
+	std::unique_ptr<GenotypeLikelihoods::TSiteSubset> _subset;
 
 	//site filters
 	bool _applyDepthFilter;
@@ -151,20 +151,20 @@ protected:
 	void _openSiteSubset(const std::string filename);
 
 	//functions to traverse BAM in windows
-	TWindow _window;
+	GenotypeLikelihoods::TWindow _window;
 	void _jumpToEnd();
-	void _restartChromosomes(TWindow_base & window);
-	void _moveChromosome(TWindow_base & window);
-	bool _moveToNextWindowOnChr(TWindow_base & window);
-	bool _moveToNextPredefinedWindow(TWindow_base & window);
-	bool _moveWindow(TWindow_base & window);
+	void _restartChromosomes(GenotypeLikelihoods::TWindow_base & window);
+	void _moveChromosome(GenotypeLikelihoods::TWindow_base & window);
+	bool _moveToNextWindowOnChr(GenotypeLikelihoods::TWindow_base & window);
+	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base & window);
+	bool _moveWindow(GenotypeLikelihoods::TWindow_base & window);
 	bool _readAlignment();
 	bool _applyFilters();
 	bool _fillAlignment(BAM::TAlignment & alignment);
-	void _readAlignmentsIntoWindow(TWindow & window);
-	void _applyWindowFilters(TWindow_base & window);
-	bool _readDataInNextWindow(TWindow & window);
-	void _readAlignmentsIntoWindow(TWindow & window);
+	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window);
+	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base & window);
+	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow & window);
+	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window);
 
 	void _traverseBAMWindows();
 	virtual void _handleWindow(){ throw "_handleWindow() not implemented for base class TGenome_windows!"; };

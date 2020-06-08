@@ -26,7 +26,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(TWindow* window, TLog* logfile){};
+	virtual void update(const TWindow & window, TLog* logfile){};
 	TGenotypeData* getPointerToPrior(){ return &genotypePrior; };
 	double operator[](const Genotype genotype){ return genotypePrior[genotype]; };
 	double operator[](const uint8_t genotype){ return genotypePrior[genotype]; };
@@ -52,8 +52,7 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if(equalBaseFreq){
-			GenotypeLikelihoods::TBaseData freq;
-			freq.set(0.25);
+			GenotypeLikelihoods::TBaseData freq(0.25);
 			thetaEstimator->setBaseFreq(freq);
 		}
 		thetaEstimator->fillPGenotype(genotypePrior);
@@ -63,13 +62,14 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(GenomeTasks::TWindow* window, TLog* logfile){
+	void update(const TWindow & window, TLog* logfile){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
-			window->estimateBaseFrequencies();
-			thetaEstimator->setBaseFreq(window->baseFreq);
+			GenotypeLikelihoods::TBaseData freq;
+			window.estimateBaseFrequencies(freq);
+			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
-			logfile->conclude("Estimated base frequencies: " + toString(window->baseFreq.freq[0])+ ", " + toString(window->baseFreq.freq[1]) + ", " + toString(window->baseFreq.freq[2]) + ", " + toString(window->baseFreq.freq[3]));
+			logfile->conclude("Estimated base frequencies: " + toString(freq[A])+ ", " + toString(freq[C]) + ", " + toString(freq[G]) + ", " + toString(freq[T]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};
@@ -108,21 +108,20 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(TWindow* window, TLog* logfile){
+	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
 		logfile->startIndent("Estimating theta for prior:");
 		//clear theta estimator
 		(*thetaEstimator).clear();
 
 		//adding sites to estimator
-		window->addSitesToThetaEstimator(thetaEstimator->pointerToDataContainer());
+		thetaEstimator->add(window, glCalculator);
 
 		//estimate Theta
 		if(!thetaEstimator->estimateTheta()){
 			if(hasDefaultTheta){
 				logfile->conclude("Will use a default theta of " + toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
-				TBaseFrequencies freq;
-				freq.setEqualBaseFreq();
+				GenotypeLikelihoods::TBaseData freq(0.25);
 				thetaEstimator->setBaseFreq(freq);
 			} else
 				throw "Please increase window size or provide a default theta!";

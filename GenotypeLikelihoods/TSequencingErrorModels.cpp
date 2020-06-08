@@ -320,7 +320,7 @@ void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases, const uint1
 	}
 };
 
-void TSequencingErrorModels::recalibrate(std::vector<TBase> bases) const{
+void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(auto& b : bases){

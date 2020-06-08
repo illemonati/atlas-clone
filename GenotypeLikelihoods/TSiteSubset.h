@@ -20,7 +20,7 @@
 #include "TFile.h"
 
 
-namespace GenomeTasks{
+namespace GenotypeLikelihoods{
 
 //-----------------------------------------
 // A class to store site per window used for masking and filtering

@@ -319,8 +319,6 @@ void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & 
 		eta += cov->getEtaTerm(base);
 	}
 
-	std::cout << "error = " <<  _calcEpsilon(eta) << std::endl;
-
 	//then calculate base likelihoods
 	rho.fillBaseLikelihoods(base.base, _calcEpsilon(eta), baseLikelihoods);
 };

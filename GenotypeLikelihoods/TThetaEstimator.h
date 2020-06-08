@@ -17,6 +17,7 @@
 #include "TGenotypeData.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "TWindow.h"
 
 namespace GenotypeLikelihoods{
 
@@ -40,28 +41,28 @@ struct Theta{
 		delete[] baseFreq;
 	};
 
-	void setTheta(double val){
+	void setTheta(const double val){
 		theta = val;
 		expTheta = exp(-theta);
 		logTheta = log(theta);
 		LL = -9e100;
 	};
 
-	void setExpTheta(double val){
+	void setExpTheta(const double val){
 		expTheta = val;
 		theta = -log(val);
 		logTheta = log(theta);
 		LL = -9e100;
 	};
 
-	void setLogTheta(double val){
+	void setLogTheta(const double val){
 		logTheta = val;
 		theta = exp(val);
 		expTheta = exp(-theta);
 		LL = -9e100;
 	};
 
-	void setLogTheta(double & val, double & newLL){
+	void setLogTheta(const double & val, const double & newLL){
 		logTheta = val;
 		theta = exp(val);
 		expTheta = exp(-theta);
@@ -138,7 +139,7 @@ private:
 	//tmp vectors
 	GenotypeLikelihoods::TGenotypeData P_G; // see paper
 
-	double _calcFisherInfo(const GenotypeLikelihoods::TGenotypeData & _pGenotype, const GenotypeLikelihoods::TGenotypeData deriv_pGenotype);
+	double _calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype);
 	bool _NRAllParams();
 	void _NROnlyTheta();
 	void _runEMForTheta();
@@ -153,10 +154,11 @@ public:
 
 	void clear();
 	void add(const TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	void add(const TWindow & window, const TGenotypeLikelihoodCalculator & glCalculator);
 	long sizeWithData(){ return data->sizeWithData();};
 	bool estimateTheta();
-	void setTheta(double Theta);
-	void setBaseFreq(GenotypeLikelihoods::TBaseData & BaseFreq);
+	void setTheta(const double Theta);
+	void setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq);
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
 	void writeEstimateFrequenciesAndTheta(TOutputFile & out);
 	void writeResultsToFile(TOutputFile & out);

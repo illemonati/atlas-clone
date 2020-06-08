@@ -28,11 +28,11 @@ private:
 	TPostMortemDamage _pmd;
 	TSequencingErrorModels _sequencingErrorModels; //TODO: find a way not to use a pointer
 
-	//temporary storage
-	TGenotypeLikelihoods _genotypeLikelihoods;
-	std::vector<TBaseData> _baseLikelihoods;
-	TBaseData _baseLikelihoodsNoPMD;
-	TBaseData _tmpBaseData;
+	//temporary storage: all are mutable
+	mutable TGenotypeLikelihoods _genotypeLikelihoods;
+	mutable std::vector<TBaseData> _baseLikelihoods;
+	mutable TBaseData _baseLikelihoodsNoPMD;
+	mutable TBaseData _tmpBaseData;
 
 public:
 	TGenotypeLikelihoodCalculator();
@@ -45,18 +45,17 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	//Note: the following functions are not const because TSequencingErrorModels has internal tmp storage that may change upon error rate calculation
-	double getErrorRate(const TBase & base);
-	double getErrorWithPMD(const TBase & base);
-	uint8_t getPhredInt(const TBase & base);
-	uint8_t getPhredIntWithPMD(const TBase & base);
-	void recalibrate(TBase & base);
-	void recalibrateWithPMD(TBase & base);
-	void recalibrate(std::vector<TBase> & bases);
-	void recalibrateWithPMD(std::vector<TBase> & bases);
+	double getErrorRate(const TBase & base) const;
+	double getErrorWithPMD(const TBase & base) const;
+	uint8_t getPhredInt(const TBase & base) const;
+	uint8_t getPhredIntWithPMD(const TBase & base) const;
+	void recalibrate(TBase & base) const;
+	void recalibrateWithPMD(TBase & base) const;
+	void recalibrate(std::vector<TBase> & bases) const;
+	void recalibrateWithPMD(std::vector<TBase> & bases) const;
 
-	void calculateGenotypeLikelihoods(const std::vector<TBase*> bases, TGenotypeLikelihoods & genotypeLikelihoods);
-	double calculateLogPMDS(const TBase & base, const Base ref, const double pi); //TODO: move to PMDS class?
+	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;
+	double calculateLogPMDS(const TBase & base, const Base ref, const double pi) const; //TODO: move to PMDS class?
 };
 
 

@@ -1013,7 +1013,9 @@ void TCall::_callKnwonAlleles(){
 void TCall::_handleWindow(){
 	if(_window._passedFilters || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(&_window, _logfile);
+		GenotypeLikelihoods::TBaseData freq;
+		_window.estimateBaseFrequencies(freq);
+		_prior->update(freq, _logfile);
 
 		//call
 		_logfile->listFlushTime("Calling genotypes ...");
@@ -1024,7 +1026,6 @@ void TCall::_handleWindow(){
 		}
 		_logfile->doneTime();
 	}
-
 };
 
 void TCall::call(){

@@ -7,7 +7,7 @@
 
 #include "TSiteSubset.h"
 
-namespace GenomeTasks{
+namespace GenotypeLikelihoods{
 
 //-------------------------------------------------
 // TSiteSubsetSite

@@ -18,7 +18,9 @@ TQualityDistribution::TQualityDistribution(TParameters & Parameters, TLog* Logfi
 
 void TQualityDistribution::_handleAlignment(){
 	for(auto& b : _alignment){
-		_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt);
+		if(b.base != N){
+			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt);
+		}
 	}
 };
 

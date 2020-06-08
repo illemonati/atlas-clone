@@ -64,7 +64,7 @@ TGenome_filtered::TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomG
 	_bamFile.setFilters(Params, _logfile);
 };
 
-void TGenome_parsed::_traverseBAMPassedQC(){
+void TGenome_filtered::_traverseBAMPassedQC(){
 	//parse through bam file
 	_bamFile.startProgressReporting();
 	while(_bamFile.readNextAlignmentThatPassesFilters()){
@@ -343,20 +343,20 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 	if(_considerRegions) throw "Site subsets (parameter '" + paramName + "') and regions (parameter 'regions') can not be used at the same time!";
 	if(_doMasking) throw "Site subsets (parameter '" + paramName + "') and masks (parameter 'mask') can not be used at the same time!";
 
-	_subset = std::make_unique<TSiteSubset>(filename, _windowSize, _logfile, false, _reference, _bamFile.chromosomes);
+	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _windowSize, _logfile, false, _reference, _bamFile.chromosomes);
 };
 
 void TGenome_windows::_jumpToEnd(){
 	_chromosomes.jumpToEnd();
 };
 
-void TGenome_windows::_restartChromosomes(TWindow_base & window){
+void TGenome_windows::_restartChromosomes(GenotypeLikelihoods::TWindow_base & window){
 	_chromosomes.begin();
 
 	_moveChromosome(window);
 };
 
-void TGenome_windows::_moveChromosome(TWindow_base & window){
+void TGenome_windows::_moveChromosome(GenotypeLikelihoods::TWindow_base & window){
 	//jump reader
 	_oldAlignmentMustBeConsidered = false;
 
@@ -419,7 +419,7 @@ void TGenome_windows::_moveChromosome(TWindow_base & window){
 	_logfile->startNumbering("Parsing chromosome '" + _chromosomes.curName() + "':");
 };
 
-bool TGenome_windows::_moveToNextWindowOnChr(TWindow_base & window){
+bool TGenome_windows::_moveToNextWindowOnChr(GenotypeLikelihoods::TWindow_base & window){
 	//if sites defined
 	int counter = 0;
 	do{
@@ -440,7 +440,7 @@ bool TGenome_windows::_moveToNextWindowOnChr(TWindow_base & window){
 	return true;
 };
 
-bool TGenome_windows::_moveToNextPredefinedWindow(TWindow_base & window){
+bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base & window){
 	++_windowNumber;
 	if(_windowNumber >= _limitWindows)
 		return false;
@@ -460,7 +460,7 @@ bool TGenome_windows::_moveToNextPredefinedWindow(TWindow_base & window){
 		return false;
 };
 
-bool TGenome_windows::_moveWindow(TWindow_base & window){
+bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow_base & window){
 	//returns false when end of genome is reached
 	if(_windowsPredefined){
 		//if at beginning of BAM file
@@ -545,7 +545,7 @@ bool TGenome_windows::_moveWindow(TWindow_base & window){
 //---------------------
 //read data in windows
 //---------------------
-bool TGenome_windows::_readDataInNextWindow(TWindow & window){
+bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow & window){
 	_windowTimer.start();
 
 	//move window
@@ -558,7 +558,7 @@ bool TGenome_windows::_readDataInNextWindow(TWindow & window){
 	return true;
 };
 
-void TGenome_windows::_readAlignmentsIntoWindow(TWindow & window){
+void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window){
 	//measure runtime
 	_logfile->listFlushTime("Reading data ...");
 
@@ -614,7 +614,7 @@ void TGenome_windows::_readAlignmentsIntoWindow(TWindow & window){
 	_applyWindowFilters(window);
 };
 
-void TGenome_windows::_applyWindowFilters(TWindow_base & window){
+void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & window){
 	window._passedFilters = false;
 	if(window._numReadsInWindow > 0){
 		//apply masks and filters

@@ -485,7 +485,7 @@ bool TBamFile::readNextAlignmentThatPassesFilters(){
 
 void TBamFile::fill(TAlignment & alignment) const{
 	alignment.fill(_curBamAlignment.Name,
-				   BAM::TSamFlags(_curBamAlignment.AlignmentFlag),
+				   TSamFlags(_curBamAlignment.AlignmentFlag),
 				   _curBamAlignment.RefID,
 				   _curBamAlignment.Position,
 				   _curBamAlignment.MapQuality,
