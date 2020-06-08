@@ -8,8 +8,8 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 
-#include "../TThetaEstimator.h"
-#include "../TWindow.h"
+#include "TThetaEstimator.h"
+#include "TWindow.h"
 
 namespace GenotypeLikelihoods{
 
@@ -52,8 +52,8 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if(equalBaseFreq){
-			TBaseFrequencies freq;
-			freq.setEqualBaseFreq();
+			GenotypeLikelihoods::TBaseData freq;
+			freq.set(0.25);
 			thetaEstimator->setBaseFreq(freq);
 		}
 		thetaEstimator->fillPGenotype(genotypePrior);
