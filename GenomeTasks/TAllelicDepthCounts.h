@@ -29,7 +29,6 @@ private:
 	void _freeStorage();
 
 public:
-
 	TAllelicDepthCounts();
 	TAllelicDepthCounts(const uint32_t MaxAllelicDepth);
 	~TAllelicDepthCounts();

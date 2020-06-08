@@ -129,7 +129,7 @@ void TGenotypeComparisonTable::write(const std::string filename, TGenotypeMap & 
 //--------------------------------------------------------------
 // TVCFComapreVCF
 //--------------------------------------------------------------
-TVCFComapreVCF::TVCFComapreVCF(){
+TVcfComapreVCF::TVcfComapreVCF(){
 	sampleIndex = 0;
 	vcfFile = nullptr;
 	vcfFileOpen = false;
@@ -137,7 +137,7 @@ TVCFComapreVCF::TVCFComapreVCF(){
 	minQual = 0.0;
 };
 
-TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile){
+TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile){
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
@@ -170,7 +170,7 @@ TVCFComapreVCF::TVCFComapreVCF(std::string & filename, std::string & sampleName,
 	minQual = 0.0;
 };
 
-TVCFComapreVCF::TVCFComapreVCF(TVCFComapreVCF&& other){
+TVcfComapreVCF::TVcfComapreVCF(TVcfComapreVCF&& other){
 	sampleIndex = other.sampleIndex;
 	other.sampleIndex = 0;
 
@@ -190,7 +190,7 @@ TVCFComapreVCF::TVCFComapreVCF(TVCFComapreVCF&& other){
 	other.parsedChromosomes.clear();
 };
 
-TVCFComapreVCF& TVCFComapreVCF::operator=(TVCFComapreVCF&& other){
+TVcfComapreVCF& TVcfComapreVCF::operator=(TVcfComapreVCF&& other){
 	 if(this != &other){
 		delete vcfFile;
 		sampleIndex = other.sampleIndex;
@@ -215,12 +215,12 @@ TVCFComapreVCF& TVCFComapreVCF::operator=(TVCFComapreVCF&& other){
 	 return *this;
 };
 
-TVCFComapreVCF::~TVCFComapreVCF(){
+TVcfComapreVCF::~TVcfComapreVCF(){
 	if(vcfFileOpen)
 		delete vcfFile;
 };
 
-void TVCFComapreVCF::next(){
+void TVcfComapreVCF::next(){
 	vcfFile->next();
 	if(!vcfFile->eof){
 		//store chr if new
@@ -242,23 +242,23 @@ void TVCFComapreVCF::next(){
 	}
 };
 
-void TVCFComapreVCF::setFilters(const int MinDepth, const double MinQual){
+void TVcfComapreVCF::setFilters(const int MinDepth, const double MinQual){
 	minDepth = MinDepth;
 	minQual = MinQual;
 };
 
-bool TVCFComapreVCF::chrParsed(const std::string chr){
+bool TVcfComapreVCF::chrParsed(const std::string chr){
 	return std::find(parsedChromosomes.begin(), parsedChromosomes.end(), chr) != parsedChromosomes.end();
 };
 
 //--------------------------------------------------------------
 // TVCFCompare
 //--------------------------------------------------------------
-TVCFCompare::TVCFCompare(TLog* Logfile){
+TVcfCompare::TVcfCompare(TLog* Logfile){
 	logfile = Logfile;
 };
 
-void TVCFCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int sample){
+void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int sample){
 	if(!vcfFiles[sample].isMissing()){
 		if(vcfFiles[sample].isDiploid()){
 			counts.addOtherMissing(sample, vcfFiles[sample].genotype(genoMap));
@@ -268,7 +268,7 @@ void TVCFCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int
 	}
 };
 
-void TVCFCompare::compareVCFFiles(TParameters & parameters){
+void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	//open vcf files
 	logfile->startIndent("Open VCF files to compare:");
 	std::vector<std::string> fileNames;
@@ -311,7 +311,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	}
 
 	//set filters in VCF files
-	for(TVCFComapreVCF& it : vcfFiles){
+	for(TVcfComapreVCF& it : vcfFiles){
 		it.setFilters(minDepth, minQual);
 	}
 

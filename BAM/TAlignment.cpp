@@ -15,25 +15,17 @@ TAlignment::TAlignment(){
 	_refID = 0;
 	_readGroupID = 0;
 	_position = 0;
+	_fragmentLength = 0;
 	_matePosition = 0;
+	_mateRefID = 0;
 	_insertSize_TLEN = 0;
 	_mappingQuality = 0;
 	_parsed = false;
 	_changed = false;
-	std::string referenceSequence = "";
+	_sequenceAndQualitiesChanged = false;
 	_hasReference = false;
-
 	_lastAlignedPos = 0;
 	_lastAlignedPositionWithRespectToRef = 0;
-
-	_alignedPosition = nullptr;
-
-	/*
-	softClippedEntry = 0;
-	softClippedLength = NULL;
-	softClippedBase = NULL;
-	softClippedQuality = NULL;
-	*/
 };
 
 void TAlignment::clear(){

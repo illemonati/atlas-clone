@@ -16,6 +16,8 @@
 #include "TSimulatorReadLength.h"
 #include "TSequencingErrorModel.h"
 
+namespace Simulations{
+
 //-------------------------------
 //TSimulatorQualityDist
 //-------------------------------
@@ -211,5 +213,6 @@ struct TSimulatorQualityTransformParameters{
 
 };
 
+}; //end namespace
 
 #endif /* TSIMULATORQUALITYTRANSFORMATION_H_ */

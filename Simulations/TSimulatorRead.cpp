@@ -7,6 +7,8 @@
 
 #include "TSimulatorRead.h"
 
+namespace Simulations{
+
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
@@ -421,4 +423,4 @@ void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos, TSimul
 	}
 };
 
-
+}; // end namespace

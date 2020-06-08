@@ -9,6 +9,8 @@
 
 using namespace GenotypeLikelihoods;
 
+namespace GenomeTasks{
+
 //-------------------------------------------------------
 //TWindow_base
 //-------------------------------------------------------
@@ -528,3 +530,5 @@ int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubse
 	}
 	return counter;
 };
+
+}; //end namespace

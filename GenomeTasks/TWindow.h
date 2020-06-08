@@ -15,8 +15,9 @@
 #include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "TGenotypeLikelihoodCalculator.h"
-
 #include <vector>
+
+namespace GenomeTasks{
 
 //forward declaration to enable copy constructor
 class TWindow;
@@ -62,6 +63,7 @@ public:
 	//getters
 	GenotypeLikelihoods::TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
+	uint32_t refId() const{ return _refId; };
 	uint32_t posInRef(uint32_t internalPos) const{ return startPos + internalPos; };
 	double depth();
 	double fractionSitesNoData();
@@ -130,6 +132,6 @@ public:
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 };
 
-
+}; //end namespace
 
 #endif /* TWINDOW_H_ */

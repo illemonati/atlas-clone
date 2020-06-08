@@ -17,11 +17,11 @@ TVcfConverter::TVcfConverter(TLog * Logfile, TParameters & Params){
 
     //open output file name (has to be done before readVcfAndWriteFile)
     readOutputName(Params);
-}
+};
 
 TVcfConverter::~TVcfConverter(){
     delete reader;
-}
+};
 
 void TVcfConverter::readOutputName(TParameters & Params){
     //create out file
@@ -30,7 +30,7 @@ void TVcfConverter::readOutputName(TParameters & Params){
     _outname = Params.getParameterStringWithDefault("out", tmp);
 
     logfile->list("Writing output files with prefix '" + _outname + "'.");
-}
+};
 
 void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     //read samples
@@ -60,26 +60,26 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     logfile->list("Parsing VCF file...");
     while(reader->readDataFromVCF(data, samples, glfConverter)){
         writeData(data);
-    }
+    };
 
     // end of vcf file reached
     reader->concludeFilters();
-}
+};
 
 void TVcfConverter::writeHeader(){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
-}
+};
 
 void TVcfConverter::initOutputFiles(){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
-}
+};
 
 void TVcfConverter::writeData(TPopulationLikehoodLocus & data){
     // will be overwritten by respective function in daughter class
     // because every daughter class will write output in different format
-}
+};
 
 //------------------------------------------
 // TVcfToBeagle
@@ -90,15 +90,15 @@ TVcfToBeagle::TVcfToBeagle(TParameters &Params, TLog *Logfile) : TVcfConverter(L
     baseToNumber['C'] = 1;
     baseToNumber['G'] = 2;
     baseToNumber['T'] = 3;
-}
+};
 
 TVcfToBeagle::~TVcfToBeagle() {
     delete beagleFile;
-}
+};
 
 void TVcfToBeagle::initOutputFiles(){
-    beagleFile = new TOutputFileZipped(_outname + ".beagle.gz");
-}
+    beagleFile = new TOutputFile(_outname + ".beagle.gz");
+};
 
 void TVcfToBeagle::writeHeader(){
     //header string
@@ -108,15 +108,15 @@ void TVcfToBeagle::writeHeader(){
             header.push_back(samples.getNameFromOrderedIndex(s));
     }
     beagleFile->writeHeader(header);
-}
+};
 
 void TVcfToBeagle::writePosition(){
     (*beagleFile) << reader->chr() + "_" + toString(reader->position());
-}
+};
 
 void TVcfToBeagle::writeRefAndAlt(){
     (*beagleFile) << baseToNumber.find(reader->refAllele())->second << baseToNumber.find(reader->altAllele())->second;
-}
+};
 
 void TVcfToBeagle::writeData(TPopulationLikehoodLocus & data){
     writePosition();
@@ -129,10 +129,10 @@ void TVcfToBeagle::writeData(TPopulationLikehoodLocus & data){
             (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
         else
             (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
-    }
+    };
 
     beagleFile->endLine();
-}
+};
 
 void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     // read Vcf and write output
@@ -140,7 +140,7 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
 
     // clean up
     beagleFile->close();
-}
+};
 
 //------------------------------------------
 // TVcfToLFMM
@@ -148,59 +148,59 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
 TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfile, Params){
     lfmmFile = nullptr;
     lociNamesFile = nullptr;
-}
+};
 
 TVcfToLFMM::~TVcfToLFMM(){
     lfmmFile->close();
     lociNamesFile->close();
     delete lociNamesFile;
     delete lfmmFile;
-}
+};
 
 void TVcfToLFMM::writeHeader(){
     // empty header
-}
+};
 
 void TVcfToLFMM::initOutputFiles() {
-    lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
-    lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
-}
+    lfmmFile = new TOutputFile(_outname + ".lfmm");
+    lociNamesFile = new TOutputFile(_outname + ".lfmm.kept_loci");
+};
 
 void TVcfToLFMM::storeLocusNames(){
     loci_names.emplace_back( reader->chr() + ":" + toString(reader->position()));
-}
+};
 
 void TVcfToLFMM::writeLociNames(){
     lociNamesFile->noHeader(loci_names.size());
     for (auto it = loci_names.begin(); it < loci_names.end(); it++)
         *(lociNamesFile) << *it;
     lociNamesFile->endLine();
-}
+};
 
 void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
     // read Vcf and store output
     readVcfAndWriteFile(Params);
 
     writeLociNames();
-}
+};
 
 //------------------------------------------
 // TVcfToLFMMCalledGeno
 //------------------------------------------
 TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the called genotype for each locus.");
-}
+};
 
 TVcfToLFMMCalledGeno::~TVcfToLFMMCalledGeno(){
     for (auto it = genotypes.begin(); it < genotypes.end(); it++)
         delete [] *it;
-}
+};
 
 void TVcfToLFMMCalledGeno::writeData(TPopulationLikehoodLocus & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storeCalledGenotypes();
     storeLocusNames();
-}
+};
 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
     auto * calledGeno = new uint8_t[samples.numSamples()];
@@ -211,7 +211,7 @@ void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
          // if locus was haploid -> is just 0 or 1 -> no need to treat in special way
     }
     genotypes.emplace_back(calledGeno);
-}
+};
 
 void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
     prepareAndReadVcf(Params);
@@ -223,19 +223,19 @@ void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
     // clean up
     lfmmFile->close();
     lociNamesFile->close();
-}
+};
 
 //------------------------------------------
 // TVcfToLFMMPostGeno
 //------------------------------------------
 TVcfToLFMMPostGeno::TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile) : TVcfToLFMM(Logfile, Params) {
     logfile->list("Will store the mean posterior genotype for each locus.");
-}
+};
 
 TVcfToLFMMPostGeno::~TVcfToLFMMPostGeno(){
     for (auto it = genotypes.begin(); it < genotypes.end(); it++)
         delete [] *it;
-}
+};
 
 void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
     prepareAndReadVcf(Params);
@@ -247,13 +247,13 @@ void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
     // clean up
     lfmmFile->close();
     lociNamesFile->close();
-}
+};
 
 void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storePosteriorGenotypes(data);
     storeLocusNames();
-}
+};
 
 void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data){
     auto * meanPostGenoForOneLocus = new float[samples.numSamples()];
@@ -261,7 +261,7 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
         meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
     }
     genotypes.emplace_back(meanPostGenoForOneLocus);
-}
+};
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i){
     if (data[i].isMissing)
@@ -282,7 +282,7 @@ float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & da
     // take mean
     auto meanPostGeno = static_cast<float>(postG0 * 0. + postG1 * 1. + postG2 * 2.);
     return meanPostGeno;
-}
+};
 
 //------------------------------------------
 // TVcfToPosFile
@@ -296,34 +296,34 @@ TVcfToPosFile::TVcfToPosFile(TParameters &Params, TLog *Logfile) : TVcfConverter
     //   - one row per SNP
     // Idea: one posfile per chromosome -> use option keepChromosomes
     posFile = nullptr;
-}
+};
 
 TVcfToPosFile::~TVcfToPosFile() {
     delete posFile;
-}
+};
 
 void TVcfToPosFile::writeHeader(){
     //no header
     posFile->noHeader(4);
-}
+};
 
 void TVcfToPosFile::initOutputFiles() {
-    posFile = new TOutputFilePlain(_outname + ".pos");
-}
+    posFile = new TOutputFile(_outname + ".pos");
+};
 
 void TVcfToPosFile::writePosition(){
     (*posFile) << reader->chr() << reader->position();
-}
+};
 
 void TVcfToPosFile::writeRefAndAlt(){
     (*posFile) << reader->refAllele() << reader->altAllele();
-}
+};
 
 void TVcfToPosFile::writeData(TPopulationLikehoodLocus & data){
     writePosition();
     writeRefAndAlt();
     posFile->endLine();
-}
+};
 
 void TVcfToPosFile::vcfToPosFile(TParameters & Params){
     // read Vcf and write output
@@ -331,7 +331,7 @@ void TVcfToPosFile::vcfToPosFile(TParameters & Params){
 
     // clean up
     posFile->close();
-}
+};
 
 //------------------------------------------
 // TVcfToGenotypeTruthSetFile
@@ -358,14 +358,14 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     minDistanceToPreviousLocus = 0;
     numSamplesPerLocus = 0;
     curChr = "";
-}
+};
 
 TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
     delete genFile;
     for(uint32_t s = 0; s < samples.numSamples(); s++)
         delete bedFiles[s];
     delete [] bedFiles;
-}
+};
 
 void TVcfToGenotypeTruthSetFile::writeHeader(){
     //header string
@@ -374,22 +374,22 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
         header.push_back(samples.getNameFromOrderedIndex(s));
     }
     genFile->writeHeader(header);
-}
+};
 
 void TVcfToGenotypeTruthSetFile::initOutputFiles() {
-    genFile = new TOutputFilePlain(_outname + ".gen");
+    genFile = new TOutputFile(_outname + ".gen");
     // initialize bed files (we now know how many samples there are)
-    bedFiles = new TBed * [samples.numSamples()];
+    bedFiles = new BAM::TBed * [samples.numSamples()];
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
-        bedFiles[s] = new TBed;
-    }
+        bedFiles[s] = new BAM::TBed;
+    };
 
     // check if minNumSamplesWithData-Filter of TPopulationLikelihoods is zero
     // (even if all samples have missing data, we still need to keep the locus, because otherwise
     // positions in posfile and genfile do not match)
     if (reader->getMinNumSamplesWithData() != 0)
         throw std::runtime_error("Parameter 'minSamplesWithData' must be 0 for this task! Please specify 'minSamplesWithData=0'.");
-}
+};
 
 void TVcfToGenotypeTruthSetFile::mapIndividualsToDepth(std::vector<uint32_t> &samplesToKeep) {
     std::map< double, std::vector<uint32_t>, std::greater<double> > depthVsSampleIndexMap; // use depth as key in map -> automatically sorted in descending order
@@ -405,7 +405,7 @@ void TVcfToGenotypeTruthSetFile::mapIndividualsToDepth(std::vector<uint32_t> &sa
         }
     }
     filterIndividualsWithHighestDepth(samplesToKeep, depthVsSampleIndexMap);
-}
+};
 
 void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<double> > & depthVsSampleIndexMap){
     // only keep top numSamplesPerLocus
@@ -419,7 +419,7 @@ void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<u
             c++;
         }
     }
-}
+};
 
 void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
     std::vector<uint32_t> samplesToKeep;
@@ -448,7 +448,7 @@ void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & da
         writeToGenFile(samplesToKeep);
         // no need to write to bed file
     }
-}
+};
 
 void TVcfToGenotypeTruthSetFile::writeToGenFile(const std::vector<uint32_t> & samplesToKeep){
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
@@ -460,7 +460,7 @@ void TVcfToGenotypeTruthSetFile::writeToGenFile(const std::vector<uint32_t> & sa
             (*genFile) << "NA";
     }
     genFile->endLine();
-}
+};
 
 void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & samplesToKeep){
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
@@ -470,7 +470,7 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
             bedFiles[s]->addSite(reader->position());
     }
     positionPreviousLocus = reader->position();
-}
+};
 
 void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
     if (curChr != reader->chr()){ // new chromosome
@@ -481,11 +481,11 @@ void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
         resetDistance();
     }
     filterIndividuals(data);
-}
+};
 
 void TVcfToGenotypeTruthSetFile::resetDistance() {
     positionPreviousLocus = -minDistanceToPreviousLocus - 1; // for first locus on chromosome
-}
+};
 
 void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     // read params
@@ -505,11 +505,11 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
         if (stringContains(sample_name, '/'))
             sample_name = stringReplace("/", "_", sample_name);
         bedFiles[s]->write(_outname + "_" + sample_name + ".bed");
-    }
+    };
 
     // clean up
     genFile->close();
-}
+};
 
 //------------------------------------------
 // TVcfToVcf

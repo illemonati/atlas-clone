@@ -11,7 +11,7 @@
 #include "TGenome.h"
 #include "counters.h"
 
-namespace GenomeTask{
+namespace GenomeTasks{
 
 //----------------------------------------------
 // TContextQuantifier
@@ -26,6 +26,18 @@ public:
 	void quantifyContexts();
 };
 
+//--------------------------------------
+// Tasks
+//--------------------------------------
+class TTask_quantifyContext:public TTask{
+public:
+	TTask_quantifyContext(){ _explanation = "Writing context statistics to file"; };
+
+	void run(TParameters & Parameters, TLog* Logfile){
+		TContextQuantifier quantifier(Parameters, Logfile, _randomGenerator);
+		quantifier.quantifyContexts();
+	};
+};
 
 }; //end namespace
 

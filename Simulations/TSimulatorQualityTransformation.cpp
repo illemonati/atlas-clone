@@ -8,6 +8,7 @@
 
 #include "TSimulatorQualityTransformation.h"
 
+namespace Simulations{
 
 //----------------------------------
 //TSimulatorQualityDist
@@ -528,3 +529,4 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 	}
 };
 
+}; //end namespace

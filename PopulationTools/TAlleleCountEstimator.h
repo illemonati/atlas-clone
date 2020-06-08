@@ -88,9 +88,9 @@ public:
 	};
 };
 
-class TTask_writeAlleleFrequencyLikelihoods:public TTask{
+class TTask_writeAlleleCountLikelihoods:public TTask{
 public:
-	TTask_writeAlleleFrequencyLikelihoods(){ _explanation = "Writing allele frequency likelihoods (ALF)"; };
+	TTask_writeAlleleCountLikelihoods(){ _explanation = "Writing sample allele count likelihoods"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);

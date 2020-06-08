@@ -7,7 +7,6 @@
 
 #include "TMain.h"
 
-
 //BAM
 #include "TBamFilter.h"
 #include "TReadGroupMerger.h"
@@ -15,6 +14,38 @@
 #include "TBamDiagnoser.h"
 #include "TDuplicateQuantifier.h"
 #include "TSoftClipping.h"
+#include "TQualityDistribution.h"
+#include "TContextQuantifer.h"
+#include "TPMDEstimator.h"
+#include "TPMDSCalculator.h"
+
+//window
+#include "TEstimateRecalibration.h"
+#include "TDepthWriter.h"
+#include "TCreateBedMask.h"
+#include "TAllelicDepthCounts.h"
+#include "TBamDownsampler.h"
+#include "TPSMCInput.h"
+#include "TCaller.h"
+#include "TEstimateTheta.h"
+#include "TWriteGLF.h"
+
+//population tools
+#include "TGLF.h"
+#include "TMajorMinor.h"
+#include "TDistanceEstimator.h"
+#include "TAlleleCountEstimator.h"
+#include "TAlleleFrequencyEstimator.h"
+#include "TInbreedingEstimator.h"
+#include "TPolymorhicWindowIdentifier.h"
+
+//VCF
+#include "TVcfCompare.h"
+#include "TVcfDiagnostics.h"
+#include "TVcfConverter.h"
+
+//simulations
+#include "TSimulator.h"
 
 //tests
 #include "Tests/TAtlasTest.h"
@@ -24,81 +55,71 @@
 #include "TAtlasTestRecalibration.h"
 #include "TVcfTest.h"
 
-
-
-
-
 void addTaks(TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
 
 	//BAM
-	main.addRegularTask("filter", new GenomeTasks::TTask_filterBAM());
+	main.addRegularTask("filterBAM", new GenomeTasks::TTask_filterBAM());
 	main.addRegularTask("splitMerge", new GenomeTasks::TTask_splitMerge());
 	main.addRegularTask("mergeRG", new GenomeTasks::TTask_mergeReadGroups());
 	main.addRegularTask("pileup", new GenomeTasks::TTask_pileup());
 	main.addRegularTask("BAMDiagnostics", new GenomeTasks::TTask_BAMDiagnostics());
 	main.addRegularTask("readOverlap", new GenomeTasks::TTask_overlapQuantifier());
 	main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
+	main.addRegularTask("assessSoftClipping", new GenomeTasks::TTask_assessSoftClipping());
+	main.addRegularTask("removeSoftClippedBases", new GenomeTasks::TTask_removeSoftClippedBasesFromReads());
+	main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
+	main.addRegularTask("qualityTransformation", new GenomeTasks::TTask_qualityTransformation());
+	main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
+	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
+	main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
+	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
+	main.addRegularTask("PMD", new GenomeTasks::TTask_estimatePMD());
+	main.addRegularTask("PMDS", new GenomeTasks::TTask_PMDS());
 
-	main.addRegularTask("assessSoftClipping", new TTask_assessSoftClipping());
-	main.addRegularTask("removeSoftClippedBases", new TTask_removeSoftClippedBasesFromReads());
-	main.addRegularTask("qualityDist", new TTask_qualityDist());
-	main.addRegularTask("qualityTransformation", new TTask_qualityTransformation());
+	//window tasks
+	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
+	main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
+	main.addRegularTask("createMask", new GenomeTasks::TTask_createMask());
+	main.addRegularTask("allelicDepth", new GenomeTasks::TTask_allelicDepth());
+	main.addRegularTask("PSMC", new GenomeTasks::TTask_PSMC());
+	main.addRegularTask("call", new GenomeTasks::TTask_call());
+	main.addRegularTask("theta", new GenomeTasks::TTask_estimateTheta());
+	main.addRegularTask("thetaGenomeWide", new GenomeTasks::TTask_estimateThetaGenomeWide());
+	main.addRegularTask("thetaRatio", new GenomeTasks::TTask_estimateThetaRatio());
+	main.addRegularTask("thetaQC", new GenomeTasks::TTask_downsamplingThetaQC());
+	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
 
 	//Population tools
-
-
-
-
-
-	main.addRegularTask("contextStats", new TTask_contextStats());
-
-	main.addRegularTask("writeDepthPerWindow", new TTask_writeDepthPerWindow());
-	main.addRegularTask("depthPerSiteDist", new TTask_depthPerSiteDist());
-	main.addRegularTask("writeDepthPerSite", new TTask_writeDepthPerSite());
-	main.addRegularTask("createDepthMask", new TTask_createDepthMask());
-	main.addRegularTask("createNonRefMask", new TTask_createNonRefMask());
-	main.addRegularTask("allelicDepth", new TTask_allelicDepth());
-	main.addRegularTask("downsample", new TTask_downsample());
-	main.addRegularTask("separateReads", new TTask_separateReads());
-	main.addRegularTask("downsampleReads", new TTask_downSampleReads());
-	main.addRegularTask("PMD", new TTask_estimatePMD());
-	main.addRegularTask("PMDS", new TTask_PMDS());
-	main.addRegularTask("PSMC", new TTask_PSMC());
-	main.addRegularTask("recal", new TTask_recal());
-
-	main.addRegularTask("call", new TTask_call());
-	main.addRegularTask("theta", new TTask_estimateTheta()); -> new task for genome wide!!
-	main.addRegularTask("thetaRatio", new TTask_estimateThetaRatio());
-	main.addRegularTask("thetaQC", new TTask_downsamplingThetaQC());
-	main.addRegularTask("GLF", new TTask_GLF());
 	main.addRegularTask("printGLF", new TTask_printGLF());
 	main.addRegularTask("majorMinor", new TTask_majorMinor());
 	main.addRegularTask("geneticDist", new TTask_estimateDist());
 	main.addRegularTask("alleleCounts", new TTask_estimateAlleleCounts());
-	main.addRegularTask("transformCountFormat", new TTask_transformAlleleCountFormat());
+	main.addRegularTask("alleleCountLikelihoods", new TTask_writeAlleleCountLikelihoods);
+	main.addRegularTask("transformAlleleCountFormat", new TTask_transformAlleleCountFormat());
 	main.addRegularTask("alleleFreq", new TTask_estimateAlleleFreq());
 	main.addRegularTask("compareAlleleFreq", new TTask_compareAlleleFreq());
 	main.addRegularTask("alleleFreqLikelihoods", new TTask_alleleFreqLikelihoods());
 	main.addRegularTask("inbreeding", new TTask_estimateInbreeding());
-	main.addRegularTask("VCFAssessAllelicBalance", new TTask_VCFDiagnostics());
-	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());
-	main.addRegularTask("VCFToBeagle", new TTask_VCFToBeagle());
-    main.addRegularTask("VCFToLFMM", new TTask_VCFToLFMM());
-    main.addRegularTask("VCFToPosFile", new TTask_VCFToPosFile());
-    main.addRegularTask("VCFToGenotypeTruthSetFile", new TTask_VCFToGenotypeTruthSetFile());
-    main.addRegularTask("VCFFixInt", new TTask_VCFFixInt());
-	main.addRegularTask("VCFCompare", new TTask_VCFCompare());
-	main.addRegularTask("simulate", new TTask_simulate());
+	main.addRegularTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
+
+	//VCF
+	main.addRegularTask("VCFDiagnositics", new VCF::TTask_VCFDiagnostics());
+	main.addRegularTask("VCFToInvariantBed", new VCF::TTask_VCFToInvariantBed());
+	main.addRegularTask("convertVCF", new VCF::TTask_VcfConverter());
+    main.addRegularTask("VCFFixInt", new VCF::TTask_VCFFixInt());
+	main.addRegularTask("VCFCompare", new VCF::TTask_VcfCompare());
+
+	//simulations
+	main.addRegularTask("simulate", new Simulations::TTask_simulate());
 
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
-	main.addDebugTask("recalLL", new TTask_recalLL());
+	main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
+	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
 	main.addDebugTask("inbreedingLikelihood", new TTask_inbreedingLikelihood());
-	main.addDebugTask("thetaLLSurface", new TTask_thetaLLSurface());
-	main.addDebugTask("alleleFrequencyLikelihoods", new TTask_writeAlleleFrequencyLikelihoods);
-	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
-	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
-	main.addDebugTask("testGL", new TTask_testGL());
+
+	//main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
+
 };
 
 void addTests(TMain & main){
@@ -118,7 +139,7 @@ void addTests(TMain & main){
 	main.addTest("filter", new TAtlasTest_filter());
 
     // Use testing.addTestSuite to add a test suite (= a combination of tests)
-//    main.addTestSuite("exampleSuite", {"example", "empty"});
+    // main.addTestSuite("exampleSuite", {"example", "empty"});
 
 	//test suite "all"
 	main.addTestSuite("all", {"pileup", "allelicDepth", "recalSimulation", "BQSRSimulation",
@@ -126,6 +147,7 @@ void addTests(TMain & main){
 			"theta", "invariantBed", "mergePairs", "splitMerge", "filter"
 	});
 
+	//TODO: add suits for VCF, BAM, PopTools etc.
 };
 
 //---------------------------------------------------------------------------
@@ -143,3 +165,87 @@ int main(int argc, char* argv[]){
 	return main.run(argc, argv);
 };
 
+
+//---------------------------------------------------------------------------
+// Currently Missing TASKS
+//---------------------------------------------------------------------------
+
+/*
+
+class TTask_splitRGbyLength:public TTask_atlas{ -> splitmerger
+public:
+	TTask_splitRGbyLength(){ _explanation = "Splitting single end read groups in a BAM file"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.splitSingleEndReadGroups(parameters);
+	};
+};
+
+class TTask_mateInfo:public TTask_atlas{ -> pileup
+public:
+	TTask_mateInfo(){ _explanation = "Writing read information per site"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.printMateInformationPerSite(parameters);
+	};
+};
+
+class TTask_writeDepthPerSite:public TTask_atlas{ -> pileup
+public:
+	TTask_writeDepthPerSite(){ _explanation = "Writing sequencing depth for each site"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.writeDepthPerSite(parameters);
+	};
+};
+
+
+class TTask_BQSR:public TTask_atlas{ -> suppress?
+public:
+	TTask_BQSR(){
+		_explanation = "Estimating BQSR error re-calibration parameters";
+		_citations.push_back("Hofmanova et al. (2016) PNAS");
+	};
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.BQSR(parameters);
+	};
+};
+
+class TTask_binQualityScores:public TTask_atlas{ -> a feature of all BAM writing functions, e.g. BamFilter
+public:
+	TTask_binQualityScores(){ _explanation = "Binning quality scores"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.binQualityScores(parameters);
+	};
+};
+
+
+class TTask_recalBAM:public TTask_atlas{ -> feature of all BAM writing functions that parse, e.g. BamFilter
+public:
+	TTask_recalBAM(){ _explanation = "Recalibrating quality scores in a BAM file"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TGenomeWindows genome(logfile, parameters, _randomGenerator);
+		genome.recalibrateBamFile(parameters);
+	};
+};
+
+class TTask_testBED:public TTask_atlas{ ->should be a proper integration test
+public:
+	TTask_testBED(){ _explanation = "Testing BED files"; };
+
+	void run(TParameters & parameters, TLog* logfile){
+		TBed bed;
+		bed.test();
+	};
+};
+
+
+*/

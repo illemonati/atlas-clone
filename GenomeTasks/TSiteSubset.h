@@ -19,8 +19,17 @@
 #include "TGenotypeMap.h"
 #include "TFile.h"
 
-//store sites 0-based!
 
+namespace GenomeTasks{
+
+//-----------------------------------------
+// A class to store site per window used for masking and filtering
+// Positions are 0-based
+//-----------------------------------------
+
+//-----------------------------------------------
+// TSiteSubsetSite
+//-----------------------------------------------
 class TSiteSubsetSite{
 public:
 	uint32_t position;
@@ -42,6 +51,9 @@ public:
 	};
 };
 
+//-----------------------------------------------
+// TSiteSubsetWindow
+//-----------------------------------------------
 class TSiteSubsetWindow{
 private:
 	uint32_t _start, _end;
@@ -56,6 +68,9 @@ public:
 	size_t size();
 };
 
+//-----------------------------------------------
+// TSiteSubsetChr
+//-----------------------------------------------
 class TSiteSubsetChr{
 private:
 	std::map<uint32_t, TSiteSubsetWindow>::iterator _findWindow(const unsigned int & pos);
@@ -79,6 +94,9 @@ public:
 	size_t size();
 };
 
+//-----------------------------------------------
+// TSiteSubset
+//-----------------------------------------------
 class TSiteSubset{
 private:
 	std::string _filename;
@@ -103,5 +121,6 @@ public:
 	size_t size();
 };
 
+}; //end namespace
 
 #endif /* TSITESUBSET_H_ */

@@ -192,7 +192,7 @@ public:
 
 class TTask_alleleFreqLikelihoods:public TTask{
 public:
-	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population likelihoods under Hardy-Weinberg at specific frequencies"; };
+	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population allele frequency likelihoods under Hardy-Weinberg"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);

@@ -8,19 +8,11 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
-#include <BamData.h>
-#include <TBase.h>
+#include "BamData.h"
+#include "TBase.h"
 #include "stringFunctions.h"
-#include "TPostMortemDamage.h"
-#include "bamtools/api/BamAlignment.h"
-#include "bamtools/utils/bamtools_fasta.h"
-#include "bamtools/api/BamWriter.h"
-
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TQualityMap.h"
-#include "QualityTables.h"
-#include "TContextStats.h"
-#include "TSoftClipping.h"
 #include "TFastaBuffer.h"
 
 namespace BAM{
@@ -33,11 +25,11 @@ class TAlignment{
 private:
 	//Alignment data
 	std::string _name;
-	BAM::TSamFlags _flags;
+	TSamFlags _flags;
 	uint32_t _refID;
 	uint32_t _position;
 	uint16_t _mappingQuality;
-	BAM::TCigar _cigar;
+	TCigar _cigar;
 	uint32_t _mateRefID;
 	int32_t _matePosition;
 	int32_t _insertSize_TLEN;
@@ -79,11 +71,11 @@ public:
 	//clear, fill and parse
 	void clear();
 	void fill(const	std::string Name,
-			  const BAM::TSamFlags Flags,
+			  const TSamFlags Flags,
 			  const uint32_t RefID,
 			  const uint32_t Position,
 			  const uint16_t MappingQuality,
-			  const BAM::TCigar Cigar,
+			  const TCigar Cigar,
 			  const uint32_t MateRefID,
 			  const int32_t MatePosition,
 			  const int32_t InsertSize_TLEN,

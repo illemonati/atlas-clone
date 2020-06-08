@@ -63,7 +63,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(TWindow* window, TLog* logfile){
+	void update(GenomeTasks::TWindow* window, TLog* logfile){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			window->estimateBaseFrequencies();

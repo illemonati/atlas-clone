@@ -7,6 +7,8 @@
 
 #include "TSimulator.h"
 
+namespace Simulations{
+
 //---------------------------------------------------
 //TSimulator
 //---------------------------------------------------
@@ -1728,3 +1730,5 @@ void TSimulator::simulatePooledData(int sampleSize, SFS & sfs, std::string outna
 	delete[] altFreq;
 }
 */
+
+}; //end namespace

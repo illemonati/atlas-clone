@@ -53,7 +53,7 @@ public:
 //--------------------------------------------------------------
 // TVCFComapreVCF
 //--------------------------------------------------------------
-class TVCFComapreVCF{
+class TVcfComapreVCF{
 private:
 	int sampleIndex;
 	std::vector<std::string> parsedChromosomes;
@@ -64,11 +64,11 @@ private:
 	double minQual;
 
 public:
-	TVCFComapreVCF();
-	TVCFComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
-	TVCFComapreVCF(TVCFComapreVCF&& other);
-	TVCFComapreVCF& operator=(TVCFComapreVCF&& other);
-	~TVCFComapreVCF();
+	TVcfComapreVCF();
+	TVcfComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
+	TVcfComapreVCF(TVcfComapreVCF&& other);
+	TVcfComapreVCF& operator=(TVcfComapreVCF&& other);
+	~TVcfComapreVCF();
 
 
 	void next();
@@ -87,18 +87,18 @@ public:
 //--------------------------------------------------------------
 // TVCFCompare
 //--------------------------------------------------------------
-class TVCFCompare{
+class TVcfCompare{
 private:
 	TLog* logfile;
 	TGenotypeMap genoMap;
 
-	std::vector<TVCFComapreVCF> vcfFiles;
+	std::vector<TVcfComapreVCF> vcfFiles;
 
 	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
 
 public:
-	TVCFCompare(TLog* Logfile);
-	~TVCFCompare(){};
+	TVcfCompare(TLog* Logfile);
+	~TVcfCompare(){};
 
 	void compareVCFFiles(TParameters & parameters);
 };
@@ -106,12 +106,12 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VCFCompare:public TTask{
+class TTask_VcfCompare:public TTask{
 public:
-	TTask_VCFCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
+	TTask_VcfCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TVCFCompare compare(Logfile);
+		TVcfCompare compare(Logfile);
 		compare.compareVCFFiles(Parameters);
 	};
 };

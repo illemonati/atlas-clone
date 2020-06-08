@@ -7,6 +7,7 @@
 
 #include "TSimulatorReadLength.h"
 
+namespace Simulations{
 
 //---------------------------------------------------------
 //TSimulatorReadLength
@@ -210,3 +211,5 @@ void TSimulatorReadLengthGammaMode::printDetails(TLog* logfile){
 	if(probAcceptance() < 0.9)
 		logfile->warning("The chosen distribution will only result in " + toString(probAcceptance()) + " of draws being accepted.");
 };
+
+}; //end namespace

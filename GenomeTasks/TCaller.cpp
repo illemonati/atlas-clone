@@ -50,14 +50,14 @@ TCaller::~TCaller(){
 //-------------------------------------------------------------------------------------------
 // Output settings
 //-------------------------------------------------------------------------------------------
-void TCaller::setAcceptableFields(TVCFFieldVector* fields, std::string tags){
+void TCaller::setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags){
 	std::vector<std::string> vec;
 	fillVectorFromStringAnySkipEmpty(tags, vec, ",");
 	for(std::vector<std::string>::iterator it = vec.begin(); it != vec.end(); ++it)
 		fields->acceptField(*it);
 };
 
-void TCaller::printField(TVCFFieldVector* fields, std::string tag){
+void TCaller::printField(VCF::TVCFFieldVector* fields, std::string tag){
 	if(!fields->useField(tag))
 		throw "VCF " +  fields->type() + " field '" + tag + "' can not be printed by the " + callerName +"!";
 };
@@ -254,8 +254,8 @@ std::string TCaller::getVCFGenotypeString_AD(const TSite & site, TGenotypeLikeli
 	if(referenceBase == N) ret = "0";
 	else ret = toString(alleleCounts[referenceBase]);
 
-	for(std::vector<int>::iterator it = altAlleles.begin(); it != altAlleles.end(); ++it)
-		ret += ',' + toString(alleleCounts[*it]);
+	for(auto& a : altAlleles)
+		ret += ',' + toString(alleleCounts[a]);
 	return ret;
 };
 
@@ -381,45 +381,6 @@ void TCaller::call(const std::string & chr, const long pos, const TSite & site, 
 		writeMissingDataToVCF(site);
 };
 
-template <typename T> int TCaller::pickIndexWithHighestMetric(T* metric, const int size){
-	//find maximum
-	double maxMetric = 0.0;
-	for(int i=0; i<size; ++i){
-		if(metric[i] > maxMetric)
-			maxMetric = metric[i];
-	}
-
-	//get vec of all index at maximum
-	std::vector<int> vec;
-	for(int i=0; i<size; ++i){
-		if(metric[i] == maxMetric)
-			vec.push_back(i);
-	}
-
-	//return random index among those at max
-	return vec[randomGenerator->pickOne(vec.size())];
-};
-
-template <typename T> int TCaller::pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex){
-	//find maximum
-	double max = 0.0;
-	for(int i=0; i<size; ++i){
-		if(i != excludeIndex && metric[i] > max)
-			max = metric[i];
-	}
-
-	//get vec of all index at maximum
-	std::vector<int> vec;
-	for(int i=0; i<size; ++i){
-		if(i != excludeIndex && metric[i] == max)
-			vec.push_back(i);
-	}
-
-	//return random index among those at max
-	return vec[randomGenerator->pickOne(vec.size())];
-};
-
-
 /////////////////////////////////////////////////////////
 // TCallerRandomBase
 /////////////////////////////////////////////////////////
@@ -435,7 +396,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->base;
+	Base allele = site.bases[randomGenerator->pickOne(site.bases.size())]->base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -471,17 +432,17 @@ TCallerMajorityBase::TCallerMajorityBase(TRandomGenerator* RandomGenerator):TCal
 void TCallerMajorityBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//get per allele counts
 	countAlleles(site);
-	int majorityIndex = pickIndexWithHighestMetric(alleleCounts.pointerToCounts(), 4);
+	uint8_t majorityIndex = pickIndexWithHighestMetric(alleleCounts.pointerToCounts(), 4);
 
 	//decide on alt
 	if(majorityIndex == referenceBase){
 		calledGenotype = "0";
 
 		//find second most common as alternative allele
-		int second = pickIndexWithSecondHighestMetric(alleleCounts.pointerToCounts(), 4, majorityIndex);
-		altAlleles.push_back(second);
+		uint8_t second = pickIndexWithSecondHighestMetric(alleleCounts.pointerToCounts(), 4, majorityIndex);
+		altAlleles.push_back(genoMap.getBase(second));
 	} else {
-		altAlleles.push_back(majorityIndex);
+		altAlleles.push_back(genoMap.getBase(majorityIndex));
 		calledGenotype = "1";
 	}
 };
@@ -536,15 +497,15 @@ void TCallerAllelePresence::callGenotype(const TSite & site, TGenotypeLikelihood
 	fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	MAP = pickIndexWithHighestMetric(allelePostProb, 4);
+	MAP = genoMap.getBase(pickIndexWithHighestMetric(allelePostProb, 4));
 
 	//decide on alt
 	if(MAP == referenceBase){
 		calledGenotype = "0";
 
 		//find second most common as alternative allele
-		int second = pickIndexWithSecondHighestMetric(allelePostProb, 4, MAP);
-		altAlleles.push_back(second);
+		uint8_t second = pickIndexWithSecondHighestMetric(allelePostProb, 4, MAP);
+		altAlleles.push_back(genoMap.getBase(second));
 	} else {
 		altAlleles.push_back(MAP);
 		calledGenotype = "1";

@@ -18,6 +18,8 @@
 #include "stringFunctions.h"
 #include "gzstream.h"
 
+namespace Simulations{
+
 //---------------------------------------------------------
 //TSimulatorChromosome
 //---------------------------------------------------------
@@ -270,5 +272,6 @@ public:
 	void write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome);
 };
 
+}; //end namespace
 
 #endif /* TSIMULATORAUXILIARYTOOLS_H_ */

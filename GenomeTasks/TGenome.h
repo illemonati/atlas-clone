@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#ifndef LOCI_H_
+#ifndef GENOME_H_
 #define GENOME_H_
 
 
@@ -19,7 +19,6 @@
 #include "TLog.h"
 #include "TBed.h"
 #include "TQualityMap.h"
-#include "TReadList.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "TBamFile.h"

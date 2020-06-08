@@ -586,7 +586,7 @@ void TGenome_windows::_readAlignmentsIntoWindow(TWindow & window){
 		++counter;
 
 		//check if alignment starts after current window end -> break
-		if(_oldAlignment->position >= window.endPos || _oldAlignment->refID != window.chrNumber){
+		if(_oldAlignment->position >= window.endPos || _oldAlignment->refID != window.refId()){
 			_oldAlignmentMustBeConsidered = true;
 			break;
 		}

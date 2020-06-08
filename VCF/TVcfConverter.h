@@ -172,6 +172,7 @@ public:
 //------------------------------------------
 // TVcfToVcf
 //------------------------------------------
+//TODO: finish VCfToVCf converter for filtering
 class TVcfToVcf: public TVcfConverter {
 private:
 	void writeRefAndAlt();
@@ -186,56 +187,46 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VCFToBeagle:public TTask{
+class TTask_VcfConverter:public TTask{
 public:
-	TTask_VCFToBeagle(){ _explanation = "Converting a VCF file to Beagle format"; };
+	TTask_VcfConverter(){ _explanation = "Converting a VCF file to other formats"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TVcfToBeagle VcfToBeagle(Parameters, Logfile);
-        VcfToBeagle.vcfToBeagle(Parameters);
+		std::string format = Parameters.getParameterString("format");
+
+		if(format == "beagle"){
+			Logfile->startIndent("Converting a VCF to Beagle format (parameter 'format'):");
+			TVcfToBeagle VcfToBeagle(Parameters, Logfile);
+			VcfToBeagle.vcfToBeagle(Parameters);
+		} else if(format == "LFMM"){
+			Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
+
+			//posterior or calls?
+			std::string genoType = Parameters.getParameterStringWithDefault("genotypes", "calls");
+			if(genoType == "posterior"){
+				TVcfToLFMMPostGeno vcfToLFMMPostGeno(Parameters, Logfile);
+				vcfToLFMMPostGeno.vcfToLFMM(Parameters);
+			} else if(genoType == "calls"){
+				TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Parameters, Logfile);
+				vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
+			} else {
+				throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
+			}
+		} else if(format == "posFile"){
+			Logfile->startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
+			TVcfToPosFile VcfToPosFile(Parameters, Logfile);
+			VcfToPosFile.vcfToPosFile(Parameters);
+		} else if(format == "truthSet"){
+			Logfile->startIndent("Converting a VCF file to genotype truth set format (parameter 'format'):");
+			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Parameters, Logfile);
+			VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(Parameters);
+		} else {
+			throw "Unknown format '" + format + "'! Use either 'beagle', 'LFMM', 'posFile' or 'truthSet'.";
+		}
+		Logfile->endIndent();
 	};
+
 };
-
-class TTask_VCFToLFMM:public TTask{
-public:
-    TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };
-
-    void run(TParameters & Parameters, TLog* Logfile){
-        std::string output = Parameters.getParameterString("geno");
-        if (output == "postGeno"){
-            TVcfToLFMMPostGeno vcfToLFMMPostGeno(Parameters, Logfile);
-            vcfToLFMMPostGeno.vcfToLFMM(Parameters);
-        }
-        else if (output == "calledGeno"){
-            TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Parameters, Logfile);
-            vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
-        }
-        else {
-            throw std::runtime_error("Unknown LFMM format '" + output + "'! Please choose either 'postGeno' or 'calledGeno'.");
-        }
-    };
-};
-
-class TTask_VCFToPosFile:public TTask{
-public:
-    TTask_VCFToPosFile(){ _explanation = "Converting a VCF file to posfile format (STITCH input)"; };
-
-    void run(TParameters & Parameters, TLog* Logfile){
-        TVcfToPosFile VcfToPosFile(Parameters, Logfile);
-        VcfToPosFile.vcfToPosFile(Parameters);
-    };
-};
-
-class TTask_VCFToGenotypeTruthSetFile:public TTask{
-public:
-    TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
-
-    void run(TParameters & Parameters, TLog* Logfile){
-        TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Parameters, Logfile);
-        VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(Parameters);
-    };
-};
-
 
 }; //end namespace
 

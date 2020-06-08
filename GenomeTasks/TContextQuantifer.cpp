@@ -7,7 +7,7 @@
 
 #include "TContextQuantifer.h"
 
-namespace GenomeTask{
+namespace GenomeTasks{
 
 //----------------------------------------------
 // TContextQuantifier

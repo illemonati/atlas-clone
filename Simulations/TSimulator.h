@@ -17,6 +17,9 @@
 #include "TSimulatorQualityTransformation.h"
 #include "TSimulatorRead.h"
 #include "TFile.h"
+#include "TTask.h"
+
+namespace Simulations{
 
 //---------------------------------------------------------
 //TSimulator
@@ -182,7 +185,7 @@ private:
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
 	bool writeTrueAlleleFreq;
-	TOutputFileZipped trueFreqFile;
+	TOutputFile trueFreqFile;
 
 	void fillCumulGenoProb(const double & f);
 	void simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref);
@@ -201,7 +204,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_simulate:public TTask_atlas{
+class TTask_simulate:public TTask{
 public:
 	TTask_simulate(){ _explanation = "Generating simulations"; };
 
@@ -227,5 +230,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* TSIMULATOR_H_ */

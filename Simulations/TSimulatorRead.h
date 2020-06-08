@@ -15,6 +15,7 @@
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
 
+namespace Simulations{
 
 //-------------------------------
 //TSimulatorSingleEndRead
@@ -115,5 +116,6 @@ public:
 	void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile);
 };
 
+}; //end namespace
 
 #endif /* TSIMULATORREAD_H_ */

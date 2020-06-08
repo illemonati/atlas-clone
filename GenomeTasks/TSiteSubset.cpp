@@ -7,6 +7,8 @@
 
 #include "TSiteSubset.h"
 
+namespace GenomeTasks{
+
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
@@ -290,4 +292,4 @@ size_t TSiteSubset::size(){
 	return size;
 };
 
-
+}; //end namespace

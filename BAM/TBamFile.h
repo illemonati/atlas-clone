@@ -128,11 +128,11 @@ public:
 	//reading
 	void open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile);
 	void close();
-	bool readNextAlignment(); //TODO: make private
-	bool readNextAlignmentThatPassesFilters(); //TODO: make private
+	bool readNextAlignment();
+	bool readNextAlignmentThatPassesFilters();
 	bool readNextAlignment(TAlignment & alignment);
 	bool readNextAlignmentThatPassesFilters(TAlignment & alignment);
-	void fill(TAlignment & alignment);
+	void fill(TAlignment & alignment) const;
 
 	bool jump(int chr, int position);
 	void rewind();

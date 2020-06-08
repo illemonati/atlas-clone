@@ -9,6 +9,7 @@
 
 #include "TSimulatorAuxiliaryTools.h"
 
+namespace Simulations{
 
 //---------------------------------------------------
 //TSimulatorReference
@@ -527,3 +528,5 @@ void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes
 	if(invariantStart < chromosome.length)
 		invariantSitesFile << chromosome.name << "\t" << invariantStart << "\t" << chromosome.length << "\n";
 };
+
+}; //end namespace

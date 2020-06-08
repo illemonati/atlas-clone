@@ -12,6 +12,7 @@
 #include "TRandomGenerator.h"
 #include "TLog.h"
 
+namespace Simulations{
 
 //---------------------------------------------------------
 //TSimulatorReadLength
@@ -76,6 +77,6 @@ public:
 	void printDetails(TLog* logfile);
 };
 
-
+}; //end namespace
 
 #endif /* TSIMULATORREADLENGTH_H_ */

@@ -62,8 +62,8 @@ public:
 	};
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TEstimateRecalibration estimnator(Parameters, Logfile, _randomGenerator);
-		estimnator.estimateRecalibration();
+		TEstimateRecalibration estimator(Parameters, Logfile, _randomGenerator);
+		estimator.estimateRecalibration();
 	};
 };
 

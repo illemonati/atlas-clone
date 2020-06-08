@@ -12,7 +12,7 @@
 #include "TGenotypeData.h"
 #include "TGenome.h"
 #include "TTask.h"
-#include "../VCF/TVCFFields.h"
+#include "TVCFFields.h"
 
 namespace GenomeTasks{
 
@@ -31,8 +31,8 @@ protected:
 	//lookup stuff
 	TGenotypeMap genoMap;
 	TQualityMap qualMap;
-	TVCFInfoFields VCFInfoFields;
-	TVCFGenotypeFields VCFGenotypeFields;
+	VCF::TVCFInfoFields VCFInfoFields;
+	VCF::TVCFGenotypeFields VCFGenotypeFields;
 	TRandomGenerator* randomGenerator;
 
 	//output choices
@@ -49,9 +49,9 @@ protected:
 
 	//temp variables for calling
 	std::string calledGenotype;
-	std::vector<int> genotypesWithHighestMetric;
-	int referenceBase;
-	std::vector<int> altAlleles; //order of Base enums: A, C, G, T, N
+	std::vector<Base> genotypesWithHighestMetric;
+	Base referenceBase;
+	std::vector<Base> altAlleles; //order of Base enums: A, C, G, T, N
 	TBaseCounts alleleCounts;
 	bool allelesCounted;
 
@@ -61,8 +61,8 @@ protected:
 	bool priorSet;
 
 	//functions regarding VCF file
-	void setAcceptableFields(TVCFFieldVector* fields, std::string tags);
-	void printField(TVCFFieldVector* fields, std::string tag);
+	void setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags);
+	void printField(VCF::TVCFFieldVector* fields, std::string tag);
 	void writeVCFHeader(const std::string & sampleName);
 
 	//function to write info fields
@@ -95,8 +95,44 @@ protected:
 	void countAlleles(const TSite & site);
 	virtual void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	template <typename T> int pickIndexWithHighestMetric(T* metric, const int size);
-	template <typename T> int pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex);
+
+	template <typename T> uint8_t TCaller::pickIndexWithHighestMetric(T* metric, const uint8_t size){
+		//find maximum
+		double maxMetric = 0.0;
+		for(uint8_t i=0; i<size; ++i){
+			if(metric[i] > maxMetric)
+				maxMetric = metric[i];
+		}
+
+		//get vec of all index at maximum
+		std::vector<uint8_t> vec;
+		for(uint8_t i=0; i<size; ++i){
+			if(metric[i] == maxMetric)
+				vec.push_back(i);
+		}
+
+		//return random index among those at max
+		return vec[randomGenerator->pickOne(vec.size())];
+	};
+
+	template <typename T> uint8_t TCaller::pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
+		//find maximum
+		double max = 0.0;
+		for(uint8_t i=0; i<size; ++i){
+			if(i != excludeIndex && metric[i] > max)
+				max = metric[i];
+		}
+
+		//get vec of all index at maximum
+		std::vector<uint8_t> vec;
+		for(uint8_t i=0; i<size; ++i){
+			if(i != excludeIndex && metric[i] == max)
+				vec.push_back(i);
+		}
+
+		//return random index among those at max
+		return vec[randomGenerator->pickOne(vec.size())];
+	};
 
 public:
 	TCaller(TRandomGenerator* RandomGenerator);
@@ -156,7 +192,7 @@ class TCallerAllelePresence:public TCaller{
 private:
 	TGenotypePosteriorProbabilities posterior;
 	double allelePostProb[4];
-	int MAP;
+	Base MAP;
 
 	void fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
 	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
