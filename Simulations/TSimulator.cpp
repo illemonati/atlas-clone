@@ -613,7 +613,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		for(int i=0; i<numRG; ++i){
 			name = "SimReadGroup" + toString(i+1);
 			readGroupNames.push_back(name);
-			logfile->startIndent("Initializing readgroup '" + name + "':");
+			logfile->startIndent("Initializing read group '" + name + "':");
 			initializeReadGroup(readLengthMap.begin()->second, name, i+1, maxPrintQual);
 			readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
 			readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);

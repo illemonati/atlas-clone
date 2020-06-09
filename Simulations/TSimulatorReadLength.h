@@ -30,7 +30,7 @@ public:
 	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLength();
 
-	virtual void sample(int & readLength, int & fragmentLength);
+	virtual void sample(uint16_t & readLength, uint16_t & fragmentLength);
 	virtual int max(){return meanLength;};
 	virtual double mean(){return meanLength;};
 	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
@@ -61,7 +61,7 @@ public:
 			delete[] positionProbs;
 		}
 	};
-	void sample(int & readLength, int & fragmentLength);
+	void sample(uint16_t & readLength, uint16_t & fragmentLength);
 	virtual int max(){return _maxPlusOne - 1;};
 	virtual double mean(){return meanLength;};
 	virtual void printDetails(TLog* logfile);

@@ -41,20 +41,22 @@ public:
 //---------------------------------------------------------------
 class TReadGroup{
 public:
-	uint16_t id; 						//internal ID
+	uint16_t id; //internal ID
 
-    std::string description;            // DS:<Description>
-    std::string flowOrder;              // FO:<FlowOrder>
-    std::string name;                   // ID:<ID>              *Required for valid SAM header*
-    std::string keySequence;            // KS:<KeySequence>
-    std::string library;                // LB:<Library>
-    std::string platformUnit;           // PU:<PlatformUnit>
-    std::string predictedInsertSize;    // PI:<PredictedInsertSize>
-    std::string productionDate;         // DT:<ProductionDate>
-    std::string program;                // PG:<Program>
-    std::string sample;                 // SM:<Sample>
-    std::string sequencingCenter;       // CN:<SequencingCenter>
-    std::string sequencingTechnology;   // PL:<SequencingTechnology>
+	std::string name_ID;
+	std::string barcodeSequence_BC;
+	std::string sequencingCenter_CN;
+	std::string description_DS;
+	std::string productionDate_DT;
+	std::string flowOrder_FO;
+	std::string keySequence_KS;
+    std::string library_LB;
+    std::string program_PG;
+    std::string predictedInsertSize_PI;
+    std::string sequencingTechnology_PL;
+    std::string platformModel_PM;
+    std::string platformUnit_PU;
+    std::string sample_SM;
 
     //flags
     bool inUse; 						//read groups not in use are ignored when reading
@@ -63,10 +65,11 @@ public:
     TReadGroup(const uint16_t ID, const std::string Name);
     TReadGroup(const TReadGroup & other);
     TReadGroup* getPointer(){ return this; };
+    std::string compileSamHeader() const;
+
     bool operator<(const TReadGroup & right);
     bool operator<(const std::string & left, const TReadGroup & right);
     bool operator<(const TReadGroup & left, const std::string & right);
-
 };
 
 //---------------------------------------------------------------
@@ -105,6 +108,7 @@ public:
 	void removeFromHeader(const uint16_t readGroupId);
 	void printReadgroupsInUse(TLog* logfile) const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
+	std::string compileSamHeader() const;
 };
 
 //--------------------------------------------------------------------------------------

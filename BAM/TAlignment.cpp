@@ -12,12 +12,8 @@ namespace BAM{
 TAlignment::TAlignment(){
 	//details
 	_empty = true;
-	_refID = 0;
 	_readGroupID = 0;
-	_position = 0;
 	_fragmentLength = 0;
-	_matePosition = 0;
-	_mateRefID = 0;
 	_insertSize_TLEN = 0;
 	_mappingQuality = 0;
 	_parsed = false;
@@ -29,9 +25,10 @@ TAlignment::TAlignment(){
 };
 
 void TAlignment::clear(){
-	_position = -1;
+	_genoPos.clear();
 	_name.clear();
 	_cigar.clear();
+	_mateGenoPos.clear();
 	_empty = true;
 	_parsed = false;
 	_changed = false;
@@ -48,7 +45,7 @@ void TAlignment::fill(const	std::string Name,
 		  const uint16_t MappingQuality,
 		  const BAM::TCigar Cigar,
 		  const uint32_t MateRefID,
-		  const int32_t MatePosition,
+		  const uint32_t MatePosition,
 		  const int32_t InsertSize_TLEN,
 		  const std::string Sequence,
 		  const std::string Qualities,
@@ -60,12 +57,10 @@ void TAlignment::fill(const	std::string Name,
 	//copy data
 	_name = Name;
 	_flags = Flags;
-	_refID = RefID;
-	_position = Position;
+	_genoPos.update(RefID, Position);
 	_mappingQuality = MappingQuality;
 	_cigar = Cigar;
-	_mateRefID = MateRefID;
-	_matePosition = MatePosition;
+	_mateGenoPos.update(MateRefID, MatePosition);
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence = Sequence;
 	_qualities = Qualities;
@@ -184,7 +179,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 	//calculate relevant fragment length
 
 	//update length and last aligned position
-	_lastAlignedPositionWithRespectToRef = _position + p - 1;
+	_lastAlignedPositionWithRespectToRef = position() + p - 1;
 	_lastAlignedPos = p - 1; //why -1? -> same reason as above
 };
 
@@ -258,6 +253,15 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 	_hasReference = true;
 };
 
+void TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities){
+	if(Cigar.lengthSequenced() != Sequence.length() || Cigar.lengthSequenced() != Qualities.length()){
+		throw "Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!";
+	}
+	_cigar = Cigar;
+	_sequence = Sequence;
+	_qualities = Qualities;
+};
+
 void TAlignment::setReadGroup(const uint16_t readGroupId){
 	_readGroupID = readGroupId;
 	_changed = true;
@@ -288,8 +292,8 @@ uint16_t TAlignment::parsedLength() const{
 	}
 };
 
-void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
-	if(_sequenceAndQualitiesChanged || qualMap.qualityLimitSet){
+void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
+	if(_sequenceAndQualitiesChanged){
 		//update according to what is stored in bases
 		_sequence.clear();
 		_qualities.clear();
@@ -303,12 +307,12 @@ void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const
 	}
 };
 
-std::string TAlignment::sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
+std::string TAlignment::sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
 	_updateSequenceAndQualities(genoMap, qualMap);
 	return _sequence;
 };
 
-std::string TAlignment::qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
+std::string TAlignment::qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
 	_updateSequenceAndQualities(genoMap, qualMap);
 	return _qualities;
 };

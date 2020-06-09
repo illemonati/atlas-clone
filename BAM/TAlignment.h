@@ -14,6 +14,7 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TQualityMap.h"
 #include "TFastaBuffer.h"
+#include "TRandomGenerator.h"
 
 namespace BAM{
 
@@ -26,27 +27,25 @@ private:
 	//Alignment data
 	std::string _name;
 	TSamFlags _flags;
-	uint32_t _refID;
-	uint32_t _position;
+	BAM::TGenomePosition _genoPos;
 	uint16_t _mappingQuality;
 	TCigar _cigar;
-	uint32_t _mateRefID;
-	int32_t _matePosition;
+	BAM::TGenomePosition _mateGenoPos;
 	int32_t _insertSize_TLEN;
-	std::string _sequence;
-	std::string _qualities;
 	uint16_t _readGroupID;
 	uint16_t _fragmentLength;
-
 	int32_t _lastAlignedPositionWithRespectToRef;
 	int32_t _lastAlignedPos;
-	//uint16_t maxSize;
 
 	//booleans
 	bool _empty;
 	bool _parsed;
 	bool _changed;
-	bool _sequenceAndQualitiesChanged;
+
+	//sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
+	mutable std::string _sequence;
+	mutable std::string _qualities;
+	mutable bool _sequenceAndQualitiesChanged;
 
 	//per base data
 	std::vector<TBase> _bases;
@@ -62,7 +61,7 @@ private:
 	void _fillContext();
 
 	//functions to modify data
-	void _updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	void _updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 
 public:
 	TAlignment();
@@ -77,21 +76,31 @@ public:
 			  const uint16_t MappingQuality,
 			  const TCigar Cigar,
 			  const uint32_t MateRefID,
-			  const int32_t MatePosition,
+			  const uint32_t MatePosition,
 			  const int32_t InsertSize_TLEN,
 			  const std::string Sequence,
 			  const std::string Qualities,
 			  const uint16_t ReadGroupId);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
+
+	//setters
 	void addReference(TFastaBuffer & fasta);
 	void setHasChanged(){ _changed = true; };
+	void setName(const std::string Name){ _name = Name; };
+	void setGenomicPosition(const uint32_t RefID, const uint32_t Position){ _genoPos.update(RefID, Position); };
+	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
+	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenoPos.update(RefID, Position); };
+	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
+	void setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities);
 	void setReadGroup(const uint16_t readGroupId);
+	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
 
 	//getters
 	std::string name() const{ return _name; };
-	uint32_t position() const{ return _position; };
-	uint32_t refID() const{ return _refID; };
+	uint32_t position() const{ return _genoPos.position(); };
+	uint32_t refID() const{ return _genoPos._refID; };
+	const BAM::TGenomePosition& genomicPosition() const{ return _genoPos; };
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
@@ -101,8 +110,8 @@ public:
 	uint16_t parsedLength() const{ return _cigar.lengthSequenced(); };
 	int32_t insertSize() const{ return _insertSize_TLEN; };
 	TBase& base(const uint32_t internalPos){ return _bases[internalPos]; };
-	std::string sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
-	std::string qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	std::string sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	std::string qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
 	bool isPaired() const{ return _flags.isPaired(); };
 	bool isProperPair() const{ return _flags.isProperPair(); };
@@ -111,6 +120,12 @@ public:
 	//looping
 	std::vector<TBase>::iterator begin(){ return _bases.begin(); };
 	std::vector<TBase>::iterator end(){ return _bases.end(); };
+	friend bool operator<(const TAlignment & other){
+		return this->_genoPos < other._genoPos;
+	};
+	friend bool operator<(const BAM::TGenomePosition & other){
+		return this->_genoPos < other;
+	};
 
 	//filters and other functions to modify data
 	void filterForBaseQuality(TQualityFilter & qualFilter);

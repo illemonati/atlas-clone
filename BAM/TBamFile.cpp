@@ -299,6 +299,29 @@ void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isR
 	}
 };
 
+void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
+	SamHeader.set(_bamHeader.Version, _bamHeader.SortOrder, _bamHeader.GroupOrder, "none");
+
+	//add programs
+	for(auto it = _bamHeader.Programs.Begin(); it != _bamHeader.Programs.End(); ++it){
+		SamHeader.addProgram(it->ID, it->Name, it->CommandLine, "", it->Version);
+	}
+
+	//add links among programs
+	for(auto it = _bamHeader.Programs.Begin(); it != _bamHeader.Programs.End(); ++it){
+		if(it->HasPreviousProgramID()){
+			SamHeader.addPreviousProgramInChain(it->ID, it->PreviousProgramID);
+		}
+	}
+
+	//add comments
+	for(auto& c : _bamHeader.Comments){
+		SamHeader.addComment(c);
+	}
+
+	_bamHeader.Sequences
+};
+
 void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
 	if(_bamHeader.Sequences.Size() < 1){
 		throw "No chromosomes present in BAM header!";
@@ -323,17 +346,17 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 		TReadGroup& rg = ReadGroups.add(it->ID);
 
 		//now copy rest
-		rg.description = it->Description;
-		rg.flowOrder = it->FlowOrder;
-		rg.keySequence = it->KeySequence;
-		rg.library = it->Library;
-		rg.platformUnit = it->PlatformUnit;
-		rg.predictedInsertSize = it->PredictedInsertSize;
-		rg.productionDate = it->ProductionDate;
-		rg.program = it->Program;
-		rg.sample = it->Sample;
-		rg.sequencingCenter = it->SequencingCenter;
-		rg.sequencingTechnology = it->SequencingTechnology;
+		rg.description_DS = it->Description;
+		rg.flowOrder_FO = it->FlowOrder;
+		rg.KS = it->KeySequence;
+		rg.library_LB = it->Library;
+		rg.platformUnit_PU = it->PlatformUnit;
+		rg.predictedInsertSize_PI = it->PredictedInsertSize;
+		rg.productionDate_DT = it->ProductionDate;
+		rg.program_PG = it->Program;
+		rg.sample_SM = it->Sample;
+		rg.sequencingCenter_CN = it->SequencingCenter;
+		rg.sequencingTechnology_PL = it->SequencingTechnology;
 	}
 };
 
@@ -354,6 +377,8 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
+
+	_fillSamHeader(samHeader);
 
 	//initialize read groups
 	_fillReadGroups(readGroups);
@@ -538,20 +563,20 @@ void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::strin
 	newHeader.ReadGroups.Clear();
 	for(auto it = readGroups.begin(); it!=readGroups.end(); ++it){
 		if(it->writeToHeader){
-			BamTools::SamReadGroup newRg(it->name);
+			BamTools::SamReadGroup newRg(it->name_ID);
 
 			//copy rest
-			newRg.Description = it->description;
-			newRg.FlowOrder = it->flowOrder;
-			newRg.KeySequence = it->keySequence;
-			newRg.Library = it->library;
-			newRg.PlatformUnit = it->platformUnit;
-			newRg.PredictedInsertSize = it->predictedInsertSize;
-			newRg.ProductionDate = it->productionDate;
-			newRg.Program = it->program;
-			newRg.Sample = it->sample;
-			newRg.SequencingCenter = it->sequencingCenter;
-			newRg.SequencingTechnology = it->sequencingTechnology;
+			newRg.Description = it->description_DS;
+			newRg.FlowOrder = it->flowOrder_FO;
+			newRg.KeySequence = it->keySequence_KS;
+			newRg.Library = it->library_LB;
+			newRg.PlatformUnit = it->platformUnit_PU;
+			newRg.PredictedInsertSize = it->predictedInsertSize_PI;
+			newRg.ProductionDate = it->productionDate_DT;
+			newRg.Program = it->program_PG;
+			newRg.Sample = it->sample_SM;
+			newRg.SequencingCenter = it->sequencingCenter_CN;
+			newRg.SequencingTechnology = it->sequencingTechnology_PL;
 
 			//add to header
 			newHeader.ReadGroups.Add(newRg);
@@ -683,107 +708,6 @@ void TBamFile::printEndWithSummary(){
 void TBamFile::printEndNoEndIndent(){
 	_logfile->list("Reached end of BAM file in " + _timer.minutes() + " min.");
 	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.minutes() + " min.");
-};
-
-//-----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
-TOutputBamFile::TOutputBamFile(){
-	_openForWriting = false;
-	_originalBAM = nullptr;
-	_binQualities = false;
-};
-
-TOutputBamFile::TOutputBamFile(const std::string filename, TBamFile & original){
-	open(filename, original);
-};
-
-TOutputBamFile::~TOutputBamFile(){
-	closeNoIndex();
-};
-
-void TOutputBamFile::open(const std::string filename, TBamFile & original){
-	closeNoIndex();
-
-	_originalBAM = &original;
-	_outputFilename = filename;
-	original._openForWriting(_bamWriter, _outputFilename);
-	_openForWriting = true;
-};
-
-void TOutputBamFile::close(TLog* logfile){
-	if(_openForWriting){
-		_bamWriter.Close();
-
-		logfile->listFlush("Creating index of BAM file '" + _outputFilename + "' ...");
-		BamTools::BamReader reader;
-		if(!reader.Open(_outputFilename))
-			throw "Failed to open BAM file '" + _outputFilename + "' for indexing!";
-
-		// create index for BAM file
-		reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-		//close BAM file
-		reader.Close();
-		logfile->done();
-
-		_openForWriting = false;
-	}
-};
-
-void TOutputBamFile::closeNoIndex(){
-	if(_openForWriting){
-		_bamWriter.Close();
-		_openForWriting = false;
-	}
-};
-
-void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
-	if(!_openForWriting){
-		throw "BAM writer is not open!";
-	}
-
-	// write alignment
-	if(!_bamWriter.SaveAlignment(alignment))
-		throw "Read '" + alignment.Name + "' could not be written!";
-};
-
-void TOutputBamFile::writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
-	if(!_openForWriting){
-		throw "BAM writer is not open!";
-	}
-
-	//create bamAlignment and then write
-	BamTools::BamAlignment _tmpBamAlignment;
-
-	_tmpBamAlignment.Name = alignment._name;
-	_tmpBamAlignment.AlignmentFlag = alignment._flags.asInt();
-	_tmpBamAlignment.RefID = alignment._refID;
-	_tmpBamAlignment.Position = alignment._position;
-
-	_tmpBamAlignment.MapQuality = alignment._mappingQuality;
-	_tmpBamAlignment.MateRefID = alignment._mateRefID;
-	_tmpBamAlignment.MatePosition = alignment._matePosition;
-	_tmpBamAlignment.InsertSize = alignment._insertSize_TLEN;
-
-	//CIGAR
-	for(auto& it : alignment._cigar){
-		_tmpBamAlignment.CigarData.emplace_back(it.type, it.length);
-	}
-
-	//add sequences and qualities
-	_tmpBamAlignment.QueryBases = alignment.sequence(genoMap, qualityMap);
-	_tmpBamAlignment.Qualities = alignment.qualities(genoMap, qualityMap);
-
-	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", _originalBAM->readGroups.getName(alignment._readGroupID));
-
-	//adjust qualities for printing
-	qualityMap.adjustQualitiesForWriting(_tmpBamAlignment.Qualities);
-
-	//and now write
-	if(!_bamWriter.SaveAlignment(_tmpBamAlignment))
-		throw "Read '" + _tmpBamAlignment.Name + "' could not be written!";
 };
 
 }; //end namespace

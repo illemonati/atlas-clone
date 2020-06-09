@@ -16,40 +16,98 @@ namespace BAM{
 //---------------------------------------------------------------
 TReadGroup::TReadGroup(const uint16_t ID, const std::string Name){
 	id = ID;
-	name = Name;
+	name_ID = Name;
 	inUse = true;
 	writeToHeader = true;
 };
 
 TReadGroup::TReadGroup(const TReadGroup & other){
 	id = other.id;
-	description = other.description;
-	flowOrder = other.flowOrder;
-	name = other.name;
-	keySequence = other.keySequence;
-	library = other.library;
-	platformUnit = other.platformUnit;
-	predictedInsertSize = other.predictedInsertSize;
-	productionDate = other.productionDate;
-	program = other.program;
-	sample = other.sample;
-	sequencingCenter = other.sequencingCenter;
-	sequencingTechnology = other.sequencingTechnology;
+	description_DS = other.description_DS;
+	flowOrder_FO = other.flowOrder_FO;
+	name_ID = other.name_ID;
+	KS = other.KS;
+	library_LB = other.library_LB;
+	platformUnit_PU = other.platformUnit_PU;
+	predictedInsertSize_PI = other.predictedInsertSize_PI;
+	productionDate_DT = other.productionDate_DT;
+	program_PG = other.program_PG;
+	sample_SM = other.sample_SM;
+	sequencingCenter_CN = other.sequencingCenter_CN;
+	sequencingTechnology_PL = other.sequencingTechnology_PL;
 
 	inUse = true;
 	writeToHeader = true;
 };
 
+std::string TReadGroup::compileSamHeader() const{
+	std::string header = "@RG\tID:" + name_ID;
+
+	if(!barcodeSequence_BC.empty()){
+		header += "\tBC:" + barcodeSequence_BC;
+	}
+
+	if(!sequencingCenter_CN.empty()){
+		header += "\tCN:" + sequencingCenter_CN;
+	}
+
+	if(!description_DS.empty()){
+		header += "\tDS:" + description_DS;
+	}
+
+	if(!productionDate_DT.empty()){
+		header += "\tDT:" + productionDate_DT;
+	}
+
+	if(!flowOrder_FO.empty()){
+		header += "\tFO:" + flowOrder_FO;
+	}
+
+	if(!KS.empty()){
+		header += "\tKS:" + KS;
+	}
+
+	if(!library_LB.empty()){
+		header += "\tLB:" + library_LB;
+	}
+
+	if(!program_PG.empty()){
+		header += "\tPG:" + program_PG;
+	}
+
+	if(!predictedInsertSize_PI.empty()){
+		header += "\tPI:" + predictedInsertSize_PI;
+	}
+
+	if(!sequencingTechnology_PL.empty()){
+		header += "\tPL:" + sequencingTechnology_PL;
+	}
+
+	if(!platformModel_PM.empty()){
+		header += "\tPM:" + platformModel_PM;
+	}
+
+	if(!platformUnit_PU.empty()){
+		header += "\tPU:" + platformUnit_PU;
+	}
+
+	if(!sample_SM.empty()){
+		header += "\tSM:" + sample_SM;
+	}
+
+	return header;
+};
+
 bool TReadGroup::operator<(const TReadGroup & right){
-	return name < right.name;
+	return name_ID < right.name_ID;
 };
 
 bool operator<(const std::string & left, const TReadGroup & right){
-	return left < right.name;
+	return left < right.name_ID;
 };
 
 bool operator<(const TReadGroup & left, const std::string & right){
-	return left.name < right;
+	return left.name_ID < right;
 };
 
 //---------------------------------------------------------------
@@ -92,7 +150,7 @@ TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const std::str
 	TReadGroup newRg(rg);
 
 	//set name and give new id
-	newRg.name = Name;
+	newRg.name_ID = Name;
 	newRg.id = _readGroups.size();
 
 	//add to set and inUse
@@ -111,7 +169,7 @@ uint16_t TReadGroups::size() const{
 const std::string& TReadGroups::getName(uint16_t readGroupId) const{
 	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
 
-	return _readGroupsById[readGroupId]->name;
+	return _readGroupsById[readGroupId]->name_ID;
 };
 
 uint16_t TReadGroups::getId(const std::string & name) const{
@@ -182,15 +240,19 @@ void TReadGroups::removeFromHeader(const uint16_t readGroupId){
 void TReadGroups::printReadgroupsInUse(TLog* logfile) const{
 	for(auto& rg : _readGroups){
 		if(rg.inUse)
-			logfile->list(rg.name);
+			logfile->list(rg.name_ID);
 	}
 };
 
 void TReadGroups::fillVectorWithNames(std::vector<std::string> & vec) const{
 	vec.resize(_readGroups.size());
 	for(auto& rg : _readGroups){
-		vec[rg.id] = rg.name;
+		vec[rg.id] = rg.name_ID;
 	}
+};
+
+std::string TReadGroups::compileSamHeader() const{
+
 };
 
 //---------------------------------------------------------------

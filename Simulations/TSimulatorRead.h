@@ -29,7 +29,6 @@ protected:
 	int readXPos, readYPos;
 	bool isInitialized;
 
-
 	//read length
 	TSimulatorReadLength* readLengthDist;
 	bool readLengthInitialized;
@@ -54,15 +53,17 @@ protected:
 	TQualityMap qualityMap;
 
 	//alignment
-	BamTools::BamAlignment bamAlignment;
+	BAM::TCigar _cigar;
+	BAM::TSamFlags _flags;
+	BAM::TAlignment _alignment;
 	Base* bases;
 	int* phredIntQualities;
 
 	//general functions
-	void simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
-	void applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength);
-	std::string getNextReadName();
-	void fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities);
+	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
+	void _applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength);
+	std::string _getNextReadName();
+	void _fillAlignmentDetails(BAM::TAlignment & alignment, const uint16_t Length, const Base* theBases, const int* thePhredIntQualities);
 
 public:
 
@@ -88,7 +89,7 @@ public:
 		return readLengthDist->max();
 	};
 
-	void setRefId(int refId){bamAlignment.RefID = refId; };
+	void setRefId(int refId){ _alignment.s refId; };
 	virtual void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
 
 	void printDetails(TLog* logfile);

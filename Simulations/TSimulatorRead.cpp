@@ -38,10 +38,8 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int 
 
 	//initialize bamAlignment
 	_name = readGroupName;
-	bamAlignment.AddTag("RG", "Z", _name);
-	bamAlignment.MapQuality = 50;
-	bamAlignment.SetIsPrimaryAlignment(true);
-	bamAlignment.SetIsReverseStrand(false);
+	_alignment.setReadGroup(readGroupNumber);
+	_alignment.setMappingQuality(50);
 	readNamePrefix = "ATL:0:A:1:" + toString(readGroupNumber) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	readXPos = 1;
 	readYPos = 1;
@@ -155,7 +153,7 @@ void TSimulatorSingleEndRead::setPMD(const std::string & pmdStringCT, const std:
 	checkInitialization();
 };
 
-void TSimulatorSingleEndRead::applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength){
+void TSimulatorSingleEndRead::_applyPMD(Base* _bases, const uint16_t readLength, int & fragmentLength){
 	if(hasPMD){
 		if(alignment.IsReverseStrand()){
 			for(int p=0; p<alignment.Length; ++p){
@@ -195,7 +193,7 @@ void TSimulatorSingleEndRead::setContamination(double rate, TSimulatorReference*
 		isContaminated = false;
 };
 
-std::string TSimulatorSingleEndRead::getNextReadName(){
+std::string TSimulatorSingleEndRead::_getNextReadName(){
 	++readXPos;
 	if(readXPos == 65536){
 		++readYPos;
@@ -204,43 +202,46 @@ std::string TSimulatorSingleEndRead::getNextReadName(){
 	return readNamePrefix + toString(readXPos) + ":" + toString(readYPos);
 };
 
-void TSimulatorSingleEndRead::fillAlignmentDetails(BamTools::BamAlignment & alignment, const Base* theBases, const int* thePhredIntQualities){
-	alignment.CigarData.clear();
-	alignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
-	alignment.QueryBases = "";
-	alignment.Qualities = "";
+void TSimulatorSingleEndRead::_fillAlignmentDetails(BAM::TAlignment & alignment, const uint16_t Length, const Base* theBases, const int* thePhredIntQualities){
+	_cigar.clear();
+	_cigar.add('M', Length);
+
+	std::string queryBases, qualities;
 
 	//copy bases and qualities
-	for(int p=0; p<bamAlignment.Length; ++p){
-		alignment.QueryBases += genoMap.baseToChar[theBases[p]];
-		alignment.Qualities += (char) (std::min(thePhredIntQualities[p], maxPrintPhredInt) + 33);
+	for(int p=0; p<Length; ++p){
+		queryBases += genoMap.baseToChar[theBases[p]];
+		qualities += (char) (std::min(thePhredIntQualities[p], maxPrintPhredInt) + 33);
 	}
+
+	alignment.setSequenceQualities(_cigar, queryBases, qualities);
 };
 
 void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length
-	int fragmentLength;
-	readLengthDist->sample(bamAlignment.Length, fragmentLength);
+	uint16_t readLength, fragmentLength;
+	readLengthDist->sample(readLength, fragmentLength);
 
 	//fill bam alignment
-	bamAlignment.Position = pos;
-	bamAlignment.SetIsReverseStrand( randomGenerator->getRand() < 0.5);
-	bamAlignment.Name = getNextReadName();
+	_alignment.setPosition(pos);
+	bool isReverse = randomGenerator->getRand() < 0.5;
+	_alignment.setIsReverseStrand(isReverse);
+	_alignment.setName(_getNextReadName());
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
-		memcpy(bases, contaminationSource->getPointerToRef() + pos, bamAlignment.Length);
+		memcpy(bases, contaminationSource->getPointerToRef() + pos, readLength);
 	else
-		memcpy(bases, haplotype + pos, bamAlignment.Length);
+		memcpy(bases, haplotype + pos, readLength);
 
 	//apply PMD
-	applyPMD(bases, bamAlignment, fragmentLength);
+	_applyPMD(bases, bamAlignment, fragmentLength);
 
 	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, bamAlignment.Length, bamAlignment.IsReverseStrand());
+	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, isReverse);
 
 	//add to alignment and save
-	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
+	_fillAlignmentDetails(_alignment, readLength, bases, phredIntQualities);
 	bamFile.saveAlignment(bamAlignment);
 };
 
@@ -346,8 +347,11 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 
 	// Fill FIRST mate
 	//------------------
+
+	_alignment.fill(_getNextReadName(), flags, refId, pos, MQ, cigar, mateRefID, MatePos, insertSize, Sequence, Qualities, readGroup);
+
 	bamAlignment.Position = pos;
-	bamAlignment.Name = getNextReadName();
+	bamAlignment.Name = _getNextReadName();
 	bamAlignment.Length = readLength;
 	bamAlignment.InsertSize = fragmentLength;
 
@@ -357,13 +361,13 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 		memcpy(bases, haplotype + pos, readLength);
 
 	//apply PMD
-	applyPMD(bases, bamAlignment, fragmentLength);
+	_applyPMD(bases, bamAlignment, fragmentLength);
 
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, false);
 
 	//add to alignment and save
-	fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
+	_fillAlignmentDetails(bamAlignment, bases, phredIntQualities);
 	bamFile.saveAlignment(bamAlignment);
 
 	// Fill SECOND mate
@@ -394,13 +398,13 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimu
 		memcpy(bases, haplotype + secondMate->Position, readLength);
 
 	//apply PMD
-	applyPMD(bases, *secondMate, fragmentLength);
+	_applyPMD(bases, *secondMate, fragmentLength);
 
 	//simulate qualities and errors
 	qualityTransform_secondMate->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, true);
 
 	//add to alignment
-	fillAlignmentDetails(*secondMate, bases, phredIntQualities);
+	_fillAlignmentDetails(*secondMate, bases, phredIntQualities);
 
 	//write if it starts at same position as first, and keep for writing later otherwiese
 	if(secondMate->Position == pos){

@@ -43,7 +43,7 @@ TSimulatorReadLength::~TSimulatorReadLength(){
 		delete[] positionProbs;
 }
 
-void TSimulatorReadLength::sample(int & readLength, int & fragmentLength){
+void TSimulatorReadLength::sample(uint16_t & readLength, uint16_t & fragmentLength){
 	fragmentLength = meanLength;
 	readLength = meanLength;
 };
@@ -167,7 +167,7 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 		logfile->warning("This readLength distribution results in "+ toString(gammaCumulDensity[_min]*100) + "% discarded fragments because they are smaller than the minimum read length! Choose different parameters to reduce run time.");
 }
 
-void TSimulatorReadLengthGamma::sample(int & readLength, int & fragmentLength){
+void TSimulatorReadLengthGamma::sample(uint16_t & readLength, uint16_t & fragmentLength){
 	fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
 	while(fragmentLength < _min){
 		fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));

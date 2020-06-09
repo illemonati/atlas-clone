@@ -10,8 +10,9 @@
 
 #include <bitset>
 #include <vector>
-
-namespace BAM{
+#include <set>
+#include "TReadGroups.h"
+#include "TChromosomes.h"
 
 //-----------------------------------------------------
 //TSamFlags
@@ -22,8 +23,8 @@ namespace BAM{
 class TSamFlags{
 private:
 	std::bitset<16> flags;
+
 public:
-	TSamFlags(){};
 	TSamFlags(const uint16_t Flags){
 		flags = std::bitset<16>(Flags);
 	};
@@ -101,54 +102,11 @@ public:
 		clear();
 	};
 
-	void clear(){
-		_cigar.clear();
-		_lengthAligned = 0;
-		_lengthInserted = 0;
-		_lengthDeleted = 0;
-		_lengthSoftClippedLeft = 0;
-		_lengthSoftClippedRight = 0;
-		_addSoftClippedLeft = true;
-	};
-
+	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const { return _cigar.end(); }
-
-    void add(const char & Type, const uint32_t & Length){
-    	if(Type == 'M' || Type == '=' || Type == 'X'){
-    		_lengthAligned += Length;
-    		_addSoftClippedLeft = false;
-    	} else if(Type == 'I'){
-    		_lengthInserted += Length;
-    		_addSoftClippedLeft = false;
-    	} else if(Type =='D'){
-    		_lengthDeleted += Length;
-    		_addSoftClippedLeft = false;
-    	} else if(Type == 'S'){
-    		if(_addSoftClippedLeft){
-    			_lengthSoftClippedLeft += Length;
-    		} else {
-    			_lengthSoftClippedRight += Length;
-    		}
-    	} else if(Type != 'N' && Type != 'H' && Type != 'P'){
-    		throw "Unknown CIGAR operation '" + Type + "'!";
-    	}
-
-    	//add to vector
-    	_cigar.emplace_back(Type, Length);
-    };
-
-    void removeSoftClips(){
-    	for(auto it = _cigar.begin(); it!=_cigar.end(); ++it){
-    		if(it->type == 'S'){
-    			it = _cigar.erase(it);
-    		}
-    	}
-
-    	//update length
-    	_lengthSoftClippedLeft = 0;
-    	_lengthSoftClippedRight = 0;
-    };
+    void add(const char & Type, const uint32_t & Length);
+    void removeSoftClips();
 
     uint16_t lengthAligned() const{ return _lengthAligned; };
     uint16_t lengthInserted() const{ return _lengthInserted; };
@@ -159,6 +117,111 @@ public:
     uint16_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
     uint16_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
 };
+
+//-----------------------------------------------------
+//TSamHeader
+//A class to store, access and manipulate the SAM header
+// does currently not store SG (chromosomes) and RG (ReadGroups) tags. These are store in their own class
+//-----------------------------------------------------
+
+//---------------------------------
+// TSamHeader_HD
+// Stores the HD line
+//---------------------------------
+class TSamHeader_HD{
+private:
+	std::string _version_VN;
+	std::string _sortOrder_SO;
+	std::string _grouping_GO;
+	std::string _subSorting_SS;
+
+public:
+	TSamHeader_HD(){
+		_version_VN = "1.6";
+		_sortOrder_SO = "unknown";
+		_grouping_GO = "none";
+		_subSorting_SS = "";
+	};
+
+	void setVersion(const std::string Version){ _version_VN = Version; };
+	void setSortOrder(const std::string SortOrder);
+	void setGrouping(const std::string Grouping);
+	void setSubSorting(const std::string SubSorting){ _subSorting_SS = SubSorting; };
+
+	//getters
+	std::string version() const{ return _version_VN; };
+	std::string sortOrder() const{ return _sortOrder_SO; };
+	std::string grouping() const{ return _grouping_GO; };
+	std::string subSorting() const{ return _subSorting_SS; };
+
+	std::string compileSamHeader() const;
+};
+
+//---------------------------------
+// TSamProgram
+// Stores programs used
+//---------------------------------
+class TSamProgram{
+private:
+	std::string _ID;
+	mutable std::string _name_PN;
+	mutable std::string _commandLine_CL;
+
+	mutable bool _hasPrevious;
+	mutable const TSamProgram* _previous_PP; //nullpointer indicates
+	mutable bool _hasNext;
+	mutable const TSamProgram* _next_PP; //nullpointer indicates
+	mutable std::string _description_DS;
+	mutable std::string _version_VN;
+
+public:
+	TSamProgram(const std::string ID, const std::string Name);
+	TSamProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
+	void addPrevious(const TSamProgram & Previous) const;
+	void addNext(const TSamProgram & Next) const;
+	std::string compileSamHeader() const;
+
+	friend bool operator<(const TSamProgram & other) const{
+		return this->_ID < other->_ID;
+	};
+	friend bool operator<(const std::string & other) const{
+		return this->_ID < other;
+	};
+	friend bool operator<(const std::string & left, const TSamProgram & right) const{
+	    return left < right._ID;
+	};
+	friend bool operator<(const TSamProgram & left, const std::string & right) const{
+	  	return left._ID < right;
+	};
+};
+
+
+//---------------------------------
+// TSamHeader
+// main class to interact with
+//---------------------------------
+class TSamHeader{
+private:
+	TSamHeader_HD _HD;
+	std::set<TSamProgram, std::less<>> _programs_PG;
+	std::vector<std::string> _comments_CO;
+
+public:
+	TSamHeader(){};
+	TSamHeader(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting=""){
+		set(Version, SortOrder, Grouping, SubSorting);
+	};
+
+	//add info
+	void set(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting="");
+	void addProgram(const std::string ID, const std::string Name);
+	void addProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
+	void addPreviousProgramInChain(const std::string ID, const std::string previousID);
+	void addComment(const std::string Comment){ _comments_CO.push_back(Comment); };
+	std::string compileSamHeader(const TReadGroups & ReadGroups) const;
+	std::string compileSamHeader(const TReadGroups & ReadGroups, const TChromosomes & Chromosomes) const;
+};
+
 
 
 }; //end namespace

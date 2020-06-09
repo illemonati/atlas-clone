@@ -43,7 +43,7 @@ private:
  	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
  	uint16_t _curReadGroupID;
- 	BAM::TCigar _curCigar;
+ 	TCigar _curCigar;
  	uint32_t _previousAlignmentPos;
  	int _previousAlignmentChr; //negative at beginning to trigger chr change on first read
  	bool _chrChanged;
@@ -72,6 +72,7 @@ private:
  	TBamFileFilter _externalFilter;
 
 	void setFilters(TParameters & params, TLog* logfile);
+	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
  	void _applyFilters();
@@ -89,9 +90,12 @@ private:
 	std::string _millionReadsRead(){ return to_string_with_precision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
+
+
 public:
 	TChromosomes chromosomes;
 	TReadGroups readGroups;
+	TSamHeader samHeader;
 
 	TBamFile();
 	~TBamFile();
@@ -127,6 +131,7 @@ public:
 
 	//reading
 	void open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile);
+	bool isOpen() const{ return _open; };
 	void close();
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
@@ -182,31 +187,6 @@ public:
 	void printEndNoEndIndent();
 };
 
-//-----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
-class TOutputBamFile{
-	friend TBamFile;
-private:
-	TBamFile* _originalBAM;
- 	std::string _outputFilename;
- 	BamTools::BamWriter _bamWriter;
- 	bool _openForWriting;
- 	bool _binQualities;  //bin quality scores like illumina
-
- 	void _writeAlignment(BamTools::BamAlignment & alignment);
-
-public:
- 	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, TBamFile & original);
- 	~TOutputBamFile();
-
-	void open(const std::string filename, TBamFile & original);
-	void binQualityScoresLikeIllumina(){ _binQualities = true; };
-	void close(TLog* logfile);
-	void closeNoIndex();
-	void writeAlignment(TAlignment & alignment, const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
-};
 
 }; //end namespace
 

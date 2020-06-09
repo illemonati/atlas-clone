@@ -11,6 +11,40 @@
 namespace BAM{
 
 //---------------------------------------------------------
+// TChromosome
+//---------------------------------------------------------
+std::string TChromosome::compileSamHeader() const{
+	std::string header = "@SQ\tSN:" + name + "\tLN:" + length;
+
+	if(!alternateLocus.empty()){
+		header += "\tAH:" + alternateLocus;
+	}
+	if(!alternativeNames.empty()){
+		header += "\tAN:" + alternativeNames;
+	}
+	if(!assemblyIdentifier.empty()){
+		header += "\tAS:" + assemblyIdentifier;
+	}
+	if(!description.empty()){
+		header += "\tDS:" + description;
+	}
+	if(!MD5.empty()){
+		header += "\tM5:" + MD5;
+	}
+	if(!species.empty()){
+		header += "\tSP:" + species;
+	}
+	if(!topology.empty()){
+		header += "\tTP:" + topology;
+	}
+	if(!uri.empty()){
+		header += "\tUR:" + uri;
+	}
+
+	return header + "\n";
+};
+
+//---------------------------------------------------------
 // TChromosomes
 //---------------------------------------------------------
 void TChromosomes::clear(){
@@ -224,8 +258,8 @@ uint32_t TChromosomes::curRefID() const{
 };
 
 
-uint32_t TChromosomes::length(const uint16_t index) const{
-	return _chromosomes[index].length;
+uint32_t TChromosomes::length(const uint32_t RefID) const{
+	return _chromosomes[RefID].length;
 };
 
 uint32_t TChromosomes::curLength() const{
@@ -233,8 +267,8 @@ uint32_t TChromosomes::curLength() const{
 };
 
 
-std::string TChromosomes::name(const uint16_t index) const{
-	return _chromosomes[index].name;
+std::string TChromosomes::name(const uint32_t RefID) const{
+	return _chromosomes[RefID].name;
 };
 
 std::string TChromosomes::curName() const{
@@ -242,8 +276,8 @@ std::string TChromosomes::curName() const{
 };
 
 
-bool TChromosomes::inUse(const uint16_t index) const{
-	return _chromosomes[index].inUse;
+bool TChromosomes::inUse(const uint32_t RefID) const{
+	return _chromosomes[RefID].inUse;
 };
 
 bool TChromosomes::curInUse() const{
@@ -251,12 +285,20 @@ bool TChromosomes::curInUse() const{
 };
 
 
-uint8_t TChromosomes::ploidy(const uint16_t index) const{
-	return _chromosomes[index].ploidy;
+uint8_t TChromosomes::ploidy(const uint32_t RefID) const{
+	return _chromosomes[RefID].ploidy;
 };
 
 uint8_t TChromosomes::curPloidy() const{
 	return _curChr->ploidy;
+};
+
+std::string TChromosomes::compileSamHeader() const{
+	std::string header;
+	for(auto& c : _chromosomes){
+		header += c.compileSamHeader();
+	}
+	return header;
 };
 
 }; //end namespace

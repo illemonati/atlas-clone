@@ -149,96 +149,75 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 //---------------------------------------------------
 //TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes){
-	if(hasLogfile) logfile->listFlush("Opening BAM file '" + Filename + "' ...");
+void TSimulatorBamFile::open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
+	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
-	if(isOpen)
+	if(_outBam.isOpen())
 		throw "A BAM file is already open for writing!";
 
-	filename = Filename;
-
-	if(chromosomes.size() < 1)
+	if(Chromosomes.size() < 1)
 		throw "Can not open a BAM file without specified chromosomes!";
 
-	BamTools::SamHeader header("");
-	header.Version = "1.4";
-	header.GroupOrder = "none";
-	header.SortOrder = "coordinate";
-
-	//add read group names
-	for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it)
-		header.ReadGroups.Add(*it + "\tPU:UNKNOWN\tLB:UNKNOWN\tSM:Sim1\tCN:UNKNOWN\tPL:ILLUMINA");
-
-	for(std::vector<TSimulatorChromosome>::iterator chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
-		references.push_back(BamTools::RefData(chrIt->name, chrIt->length));
-		header.Sequences.Add(BamTools::SamSequence(chrIt->name, chrIt->length));
+	//create header, read group and chromosome objects
+	BAM::TSamHeader header("1.6", "coordinate", "none");
+	BAM::TChromosomes chr;
+	for(auto it = Chromosomes.cbegin(); it != Chromosomes.cend(); ++it){
+		chr.appendChromosome(it->name, it->length);
+	}
+	BAM::TReadGroups readGroups;
+	for(auto it = ReadGroupNames.cbegin(); it != ReadGroupNames.cend(); ++it){
+		BAM::TReadGroup& rg = readGroups.add(*it);
+		rg.sequencingCenter_CN = __GLOBAL_APPLICATION_NAME__ + " " + __GLOBAL_APPLICATION_VERSION__;
+		rg.description_DS = "Simulated with commit " + __GLOBAL_APPLICATION_COMMIT__;
+		rg.sample_SM = SampleName;
+		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	if (!bamWriter.Open(filename, header, references))
-		throw "Failed to open BAM file '" + filename + "'!";
-	isOpen = true;
-	if(hasLogfile) logfile->done();
-}
+	_outBam.open(Filename, header, chr, readGroups);
 
-void TSimulatorBamFile::close(){
-	if(isOpen){
-		bamWriter.Close();
-
-		//now generate bam index
-		indexBamFile();
-	}
-	references.clear();
-	isOpen = false;
-}
-
-void TSimulatorBamFile::indexBamFile(){
-	if(hasLogfile) logfile->listFlush("Creating index of BAM file '" + filename + "' ...");
-	BamTools::BamReader reader;
-	if(!reader.Open(filename))
-		throw "Failed to open BAM file '" + filename + "' for indexing!";
-
-	// create index for BAM file
-	reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-	//close BAM file
-	reader.Close();
-	if(hasLogfile) logfile->done();
+	Logfile->done();
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(int NumFiles, std::string outname, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
-	numFiles = NumFiles;
-	logfile = Logfile;
-	if(numFiles < 1) throw "Can not open less than one BAM file!";
-	files = new TSimulatorBamFile[numFiles];
+TSimulatorBamFile::~TSimulatorBamFile(){
+	_outBam.closeNoIndex();
+};
+
+void TSimulatorBamFile::close(TLog* Logfile){
+	_outBam.close(Logfile);
+};
+
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
+	if(NumFiles < 1) throw "Can not open less than one BAM file!";
+	_logfile = Logfile;
+	_files.resize(NumFiles);
 
 	//open BAM files
-	if(numFiles == 1){
-		files[0].setLogfile(logfile);
-		files[0].open(outname + ".bam", readGroupNames, chromosomes);
+	if(_files.size() == 1){
+		_files[0].open(Outname + ".bam", "Ind1", ReadGroupNames, Chromosomes, Logfile);
 	} else {
-		logfile->startIndent("Opening " + toString(numFiles) + " BAM files:");
-		for(int i=0; i<numFiles; ++i){
-			files[i].setLogfile(logfile);
-			files[i].open(outname + "_ind" + toString(i+1) + ".bam", readGroupNames, chromosomes);
+		Logfile->startIndent("Opening " + toString(_files.size()) + " BAM files:");
+		for(int i=0; i<_files.size(); ++i){
+			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroupNames, Chromosomes, Logfile);
 		}
-		logfile->endIndent();
+		Logfile->endIndent();
 	}
 };
 
 TSimulatorBamFiles::~TSimulatorBamFiles(){
-	delete[] files;
+	delete[] _files;
 };
 
 void TSimulatorBamFiles::close(){
-	logfile->startIndent("Indexing BAM files:");
-	for(int i=0; i<numFiles; ++i)
-		files[i].close();
-	logfile->endIndent();
+	_logfile->startIndent("Indexing BAM files:");
+	for(auto& f : _files){
+		f.close(_logfile);
+	}
+	_logfile->endIndent();
 };
 
-TSimulatorBamFile& TSimulatorBamFiles::operator[](int i){
-	if(i >= numFiles) throw "BAM files " + toString(i) + " does not exist!";
-	return files[i];
+TSimulatorBamFile& TSimulatorBamFiles::operator[](size_t i){
+	if(i >= _files.size()) throw "BAM file " + toString(i) + " does not exist!";
+	return _files[i];
 };
 
 //---------------------------------------------------------

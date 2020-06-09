@@ -24,6 +24,7 @@ private:
 	BamTools::Fasta _reference;
 	uint32_t _bufferSize;
 	std::string _referenceSequence;
+	BAM::TGenomePosition _curPosition;
 	int _curChr;
 	long _curStart, _curEnd;
 	bool _hasReference;

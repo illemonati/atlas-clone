@@ -8,15 +8,13 @@
 #ifndef TSIMULATORAUXILIARYTOOLS_H_
 #define TSIMULATORAUXILIARYTOOLS_H_
 
-#include "../bamtools/api/BamReader.h"
-#include "../bamtools/api/BamWriter.h"
-#include "../bamtools/api/SamHeader.h"
-#include "../bamtools/api/BamAlignment.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "TGenotypeMap.h"
 #include "stringFunctions.h"
 #include "gzstream.h"
+#include "TBamFile.h"
+#include "globalConstants.h"
 
 namespace Simulations{
 
@@ -88,56 +86,34 @@ public:
 //---------------------------------------------------------
 class TSimulatorBamFile{
 private:
-	bool isOpen;
-	std::string filename;
-	BamTools::RefVector references;
-	BamTools::BamWriter bamWriter;
-	TLog* logfile;
-	bool hasLogfile;
-
-	void init(){
-		logfile = NULL;
-		filename = "";
-		isOpen = false;
-		hasLogfile = true;
-	};
+	BAM::TOutputBamFile _outBam;
 
 public:
-	TSimulatorBamFile(){
-		init();
+	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
+		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile);
 	};
+	~TSimulatorBamFile();
 
-	TSimulatorBamFile(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile){
-		init();
-		logfile = Logfile;
-		hasLogfile = true;
-		open(Filename, readGroupNames, chromosomes);
-	};
-	~TSimulatorBamFile(){
-		close();
-	};
+	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile);
 
-	void setLogfile(TLog* Logfile){ logfile = Logfile; hasLogfile = true; };
-	void open(std::string Filename, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes);
 	bool saveAlignment(const BamTools::BamAlignment & bamAlignment){
 		return bamWriter.SaveAlignment(bamAlignment);
 	};
-	void close();
+	void close(TLog* Logfile);
 	void indexBamFile();
 };
 
 class TSimulatorBamFiles{
 private:
-	TLog* logfile;
-	int numFiles;
-	TSimulatorBamFile* files;
+	std::vector<TSimulatorBamFile> _files;
+	TLog* _logfile;
 
 public:
-	TSimulatorBamFiles(int NumFiles, std::string outname, std::vector<std::string> & readGroupNames, std::vector<TSimulatorChromosome> & chromosomes, TLog* Logfile);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile);
 	~TSimulatorBamFiles();
 
 	void close();
-	TSimulatorBamFile& operator[](int i);
+	TSimulatorBamFile& operator[](size_t i);
 };
 
 //---------------------------------------------------------
