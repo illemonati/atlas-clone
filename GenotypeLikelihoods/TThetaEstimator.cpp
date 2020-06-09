@@ -93,10 +93,10 @@ void TThetaEstimator_base::fillPGenotype(TGenotypeData & pGeno, const double & e
 	static uint8_t j;
 	for(i=0; i<4; ++i){
 		//homozygous genotypes
-		pGeno[genoMap.getGenotype(i,i)] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
+		pGeno[genoMap.toGenotype(i,i)] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
 		//heterozygous genotypes
 		for(j=i+1; j<4; ++j){
-			pGeno[genoMap.getGenotype(i,j)] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
+			pGeno[genoMap.toGenotype(i,j)] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
 		}
 	}
 };
@@ -278,11 +278,11 @@ bool TThetaEstimator::_NRAllParams(){
 		F(4) = data->sizeWithData();
 		F(5) = 0.0;
 		for(uint8_t k=0; k<4; ++k){
-			Genotype geno = genoMap.getGenotype(k, k);
+			Genotype geno = genoMap.toGenotype(k, k);
 			double tmpSum = 0.0;
 			for(int l=0; l<4; ++l){
 				if(l != k){
-					tmpSum += P_G[genoMap.getGenotype(k, l)];
+					tmpSum += P_G[genoMap.toGenotype(k, l)];
 				}
 			}
 			F(k) = P_G[geno] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
@@ -296,7 +296,7 @@ bool TThetaEstimator::_NRAllParams(){
 		double tmpSum = 0.0;
 		double tmp[4];
 		for(uint8_t k=0; k<4; ++k){
-			tmp[k] = P_G[genoMap.getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+			tmp[k] = P_G[genoMap.toGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
 			tmpSum += tmp[k];
 		}
 
@@ -350,13 +350,13 @@ void TThetaEstimator::_NROnlyTheta(){
 		//i) calculate F() (Note: index is zero based!)
 		double F = data->sizeWithData();
 		for(uint8_t k=0; k<4; ++k){
-			Genotype geno = genoMap.getGenotype(k, k);
+			Genotype geno = genoMap.toGenotype(k, k);
 			F -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
 		}
 		//ii) fill Jacobian (Note: index is zero based!)
 		double Jacobian = 0.0;
 		for(uint8_t k=0; k<4; ++k){
-			double tmpSum = P_G[genoMap.getGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+			double tmpSum = P_G[genoMap.toGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
 			Jacobian += tmpSum * (1.0 - baseFreq[k]);
 		}
 
@@ -445,10 +445,10 @@ void TThetaEstimator::_estimateConfidenceInterval(){
 
 	for(uint8_t k=0; k<4; ++k){
 		//homozygous genotype
-		deriv_pGenotype[genoMap.getGenotype(k, k)] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
+		deriv_pGenotype[genoMap.toGenotype(k, k)] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
 		//heterozygous genotypes
 		for(uint8_t l=k+1; l<4; ++l){
-			deriv_pGenotype[genoMap.getGenotype(k, l)] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
+			deriv_pGenotype[genoMap.toGenotype(k, l)] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
 		}
 	}
 

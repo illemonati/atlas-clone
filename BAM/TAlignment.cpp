@@ -25,10 +25,11 @@ TAlignment::TAlignment(){
 };
 
 void TAlignment::clear(){
-	_genoPos.clear();
+	_genomicPosition.clear();
 	_name.clear();
 	_cigar.clear();
-	_mateGenoPos.clear();
+	_mateGenomicPosition.clear();
+	_lastAlignedPositionWithRespectToRef.clear();
 	_empty = true;
 	_parsed = false;
 	_changed = false;
@@ -39,11 +40,11 @@ void TAlignment::clear(){
 //--------------------------------------
 //function used by TBamFile to fill alignment
 void TAlignment::fill(const	std::string Name,
-		  const BAM::TSamFlags Flags,
+		  const TSamFlags Flags,
 		  const uint32_t RefID,
 		  const uint32_t Position,
 		  const uint16_t MappingQuality,
-		  const BAM::TCigar Cigar,
+		  const TCigar Cigar,
 		  const uint32_t MateRefID,
 		  const uint32_t MatePosition,
 		  const int32_t InsertSize_TLEN,
@@ -57,10 +58,10 @@ void TAlignment::fill(const	std::string Name,
 	//copy data
 	_name = Name;
 	_flags = Flags;
-	_genoPos.update(RefID, Position);
+	_genomicPosition.update(RefID, Position);
 	_mappingQuality = MappingQuality;
 	_cigar = Cigar;
-	_mateGenoPos.update(MateRefID, MatePosition);
+	_mateGenomicPosition.update(MateRefID, MatePosition);
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence = Sequence;
 	_qualities = Qualities;
@@ -124,7 +125,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 			case ('X') :
 				//soft-clipped bases on 5' are before bamAlignment.Position
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d, ++p){
-					_bases[d].base = genoMap.getBase(_sequence[d]);
+					_bases[d].base = genoMap.toBase(_sequence[d]);
 					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
 					_bases[d].setAligned(true);
 					_alignedPosition[d] = p;
@@ -137,7 +138,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
 					//soft-clipped bases on 5' are before bamAlignment.Position
 					//need to initialize quality for quality filter and bases for context
-					_bases[d].base = genoMap.getBase(_sequence[d]);
+					_bases[d].base = genoMap.toBase(_sequence[d]);
 					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
 					_bases[d].setAligned(false);
 					_alignedPosition[d] = -1;
@@ -147,7 +148,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 			//for 'I' - insertion: copy bases, but put aligned pos to -1
 			case ('I')      :
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
-					_bases[d].base = genoMap.getBase(_sequence[d]);
+					_bases[d].base = genoMap.toBase(_sequence[d]);
 					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
 					_bases[d].setAligned(false);
 					_alignedPosition[d] = -1;
@@ -179,7 +180,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 	//calculate relevant fragment length
 
 	//update length and last aligned position
-	_lastAlignedPositionWithRespectToRef = position() + p - 1;
+	_lastAlignedPositionWithRespectToRef = _genomicPosition + (p - 1);
 	_lastAlignedPos = p - 1; //why -1? -> same reason as above
 };
 
@@ -249,7 +250,7 @@ void TAlignment::_fillContext(){
 };
 
 void TAlignment::addReference(TFastaBuffer & fasta){
-	fasta.fill(_refID, _position, _lastAlignedPositionWithRespectToRef, _referenceSequence);
+	fasta.fill(_genomicPosition, _lastAlignedPositionWithRespectToRef, _referenceSequence);
 	_hasReference = true;
 };
 
@@ -281,7 +282,7 @@ char TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const{
 
 uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
 	//only makes sense if position is aligned!
-	return _position + _alignedPosition[internalPosition];
+	return position() + _alignedPosition[internalPosition];
 };
 
 uint16_t TAlignment::parsedLength() const{
@@ -336,7 +337,7 @@ void TAlignment::filterForBaseQuality(TQualityFilter & qualFilter){
 void TAlignment::filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap){
 	//set base to N if outside quality filter
 	for(auto& b : _bases){
-		BaseContext c = genoMap.getContext(b.base, b.context);
+		BaseContext c = genoMap.toContext(b.base, b.context);
 		if(ignoreTheseContexts.find(c) != ignoreTheseContexts.end()){
 			b.base = N;
 			b.recalibratedQualityAsPhredInt = 0;

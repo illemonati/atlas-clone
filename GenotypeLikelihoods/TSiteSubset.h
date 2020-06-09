@@ -18,7 +18,7 @@
 #include "TChromosomes.h"
 #include "TGenotypeMap.h"
 #include "TFile.h"
-
+#include "TGenomePosition.h"
 
 namespace GenotypeLikelihoods{
 
@@ -31,67 +31,30 @@ namespace GenotypeLikelihoods{
 // TSiteSubsetSite
 //-----------------------------------------------
 class TSiteSubsetSite{
-public:
-	uint32_t position;
-	Base ref;
-	Base alt;
+private:
+	BAM::TGenomePosition _genomicPosition;
+	Base _ref, _alt;
 
-	TSiteSubsetSite(const uint32_t Position, const Base Ref, const Base Alt);
-	void print() const;
+public:
+	TSiteSubsetSite(const BAM::TGenomePosition Position, const Base Ref, const Base Alt);
+	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
+	void write(TOutputFile & out) const;
+
+	uint32_t refID() const{ return _genomicPosition.refId(); };
+	uint32_t position() const{ return _genomicPosition.position(); };
+	Base ref() const{ return _ref; };
+	Base alt() const{ return _alt; };
 
 	//operators: needed for sorting and finding
 	bool operator ==(const TSiteSubsetSite & other) const{
-		return position == other.position;
+		return _genomicPosition == other._genomicPosition;
 	};
-	bool operator <(const TSiteSubsetSite & other) const{
-		return position < other.position;
+	bool operator<(const TSiteSubsetSite & other) const{
+		return _genomicPosition < other._genomicPosition;
 	};
-	bool operator <(const uint32_t & pos) const{
-		return position < pos;
+	bool operator<(const BAM::TGenomePosition pos) const{
+		return _genomicPosition < pos;
 	};
-};
-
-//-----------------------------------------------
-// TSiteSubsetWindow
-//-----------------------------------------------
-class TSiteSubsetWindow{
-private:
-	uint32_t _start, _end;
-	std::set<TSiteSubsetSite> _positions; //stores reference and alternative allele
-
-public:
-	TSiteSubsetWindow(uint32_t Start, uint32_t End);
-	~TSiteSubsetWindow();
-
-	void addPosition(const uint32_t Position, const Base Ref, const Base Alt);
-	void print();
-	size_t size();
-};
-
-//-----------------------------------------------
-// TSiteSubsetChr
-//-----------------------------------------------
-class TSiteSubsetChr{
-private:
-	std::map<uint32_t, TSiteSubsetWindow>::iterator _findWindow(const unsigned int & pos);
-	std::map<uint32_t, TSiteSubsetWindow>::iterator _findOrCreateWindow(const unsigned int & pos);
-
-public:
-	std::map<uint32_t, TSiteSubsetWindow> windows;
-	uint32_t windowSize;
-
-	TSiteSubsetChr(unsigned int & WindowSize);
-	~TSiteSubsetChr();
-
-	void addPosition(const uint32_t Position, const Base Ref, const Base Alt);
-
-	void addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites);
-	bool addPosition(std::vector<std::string> & tmp, const std::string & chr, const char refBase, std::string & error, const bool invariantSites);
-
-	void print(const std::string chrName);
-	bool hasPositionsInWindow(const unsigned int & windowStart);
-	std::set<TSiteSubsetSite>& getPositionInWindow(const unsigned int & windowStart);
-	size_t size();
 };
 
 //-----------------------------------------------
@@ -99,25 +62,23 @@ public:
 //-----------------------------------------------
 class TSiteSubset{
 private:
-	std::string _filename;
-	std::map<std::string, TSiteSubsetChr> _chromosomes;
-	std::map<std::string, TSiteSubsetChr>::iterator curChrIt;
+	std::set<uint32_t> _refIDUsed;
+	std::set<TSiteSubsetSite, std::less<>> _sites;
+
 	std::vector<TSiteSubsetSite> empty; //an empty vector to be returned in case there are no positions
-	uint32_t _windowSize;
 	bool _storesInvariantSites;
 
-	std::map<std::string, TSiteSubsetChr>::iterator _findOrCreateChromosome(const std::string chrName);
 	void _checkAlleles(const std::string & chr, const uint32_t & pos, const Base & ref, const Base & alt, const std::string & refAllele, const std::string & altAllele);
-	void _readFile(TLog* logfile);
-	void _readFile(BAM::TFastaBuffer & reference, BAM::TChromosomes & Chromosomes, TLog* logfile);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, BAM::TFastaBuffer & Reference);
 
 public:
-	TSiteSubset(std::string Filename, uint32_t & WindowSize, TLog* logfile, bool InvariantSites);
-	TSiteSubset(std::string Filename, uint32_t WindowSize, TLog* logfile, bool InvariantSites, BAM::TFastaBuffer & reference, BAM::TChromosomes & chromosomes);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
 	void setChr(const std::string chr);
-	void print();
-	bool hasPositionsInWindow(const unsigned int & windowStart);
-	std::set<TSiteSubsetSite>& getPositionInWindow(const unsigned int & windowStart);
+	void write(const std::string Filename) const;
+	bool hasPositionsInWindow(const BAM::TGenomePosition & Start, const BAM::TGenomePosition & End) const;
+	std::set<TSiteSubsetSite> getPositionInWindow(const BAM::TGenomePosition & Start, const BAM::TGenomePosition & End) const;
 	size_t size();
 };
 

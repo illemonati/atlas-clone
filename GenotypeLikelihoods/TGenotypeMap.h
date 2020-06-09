@@ -199,7 +199,7 @@ public:
 		return false;
 	};
 
-	Base getBase(const char base) const{
+	Base toBase(const char base) const{
 		if(base == 'A') return A;
 		if(base == 'C') return C;
 		if(base == 'G') return G;
@@ -251,19 +251,19 @@ public:
 		return numGenotypes;
 	};
 
-	Genotype getGenotype(const Base first, const Base second) const{
+	Genotype toGenotype(const Base first, const Base second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(const uint8_t first, const uint8_t second) const{
+	Genotype toGenotype(const uint8_t first, const uint8_t second) const{
 		if(first < second) return genotypeMap[first][second];
 		else return genotypeMap[second][first];
 	};
 
-	Genotype getGenotype(const char first, const char second) const{
-		Base Bfirst = getBase(first);
-		Base Bsecond = getBase(second);
+	Genotype toGenotype(const char first, const char second) const{
+		Base Bfirst = toBase(first);
+		Base Bsecond = toBase(second);
 		if(Bfirst < Bsecond) return genotypeMap[Bfirst][Bsecond];
 		else return genotypeMap[Bsecond][Bfirst];
 	};
@@ -309,8 +309,8 @@ public:
 			return genotype;
 		}
 		else if(num == 1){
-			Base refBase = getBase(ref);
-			Base altBase = getBase(alt);
+			Base refBase = toBase(ref);
+			Base altBase = toBase(alt);
 			if(refBase > altBase){
 				genotype += alt;
 				genotype += ref;
@@ -347,22 +347,22 @@ public:
 		return numContexts;
 	};
 
-	BaseContext getContext(const Base first, const Base second) const{
+	BaseContext toContext(const Base first, const Base second) const{
 		if(second == N) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(const uint8_t first, const uint8_t second) const{
+	BaseContext toContext(const uint8_t first, const uint8_t second) const{
 		if(second > 3) throw "Context not defined with second base = N!";
 		return contextMap[first][second];
 	};
 
-	BaseContext getContext(const char first, const char second) const{
-		return getContext(getBase(first), getBase(second));
+	BaseContext toContext(const char first, const char second) const{
+		return toContext(toBase(first), toBase(second));
 	};
 
 	BaseContext getContextReverseRead(const char first, const char second) const{
-		return getContext(flipBase(first), flipBase(second));
+		return toContext(flipBase(first), flipBase(second));
 	};
 
 	std::string getContextString(const uint8_t context) const{

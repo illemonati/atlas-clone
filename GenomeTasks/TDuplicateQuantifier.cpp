@@ -62,8 +62,8 @@ void TDuplicateQuantifier::estimateDuplicationCounts(){
 	//now: just how many reads start at the same positions
 	_curChrLength = 0;
 	_curPos = 0;
-	_countsPerReadGroup.resize(_bamFile.readGroups.size());
-	_countsAtPos.resize(_bamFile.readGroups.size());
+	_countsPerReadGroup.resize(_bamFile._readGroups.size());
+	_countsAtPos.resize(_bamFile._readGroups.size());
 
 	//iterate through BAM file
 	_traverseBAMPassedQC();
@@ -75,7 +75,7 @@ void TDuplicateQuantifier::estimateDuplicationCounts(){
 	_countsCombined.write(out, "allReadGroups");
 
 	std::vector<std::string> readGroupNames;
-	_bamFile.readGroups.fillVectorWithNames(readGroupNames);
+	_bamFile._readGroups.fillVectorWithNames(readGroupNames);
 	_countsPerReadGroup.write(out, readGroupNames);
 	_logfile->done();
 };

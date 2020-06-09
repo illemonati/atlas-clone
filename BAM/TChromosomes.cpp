@@ -293,6 +293,22 @@ uint8_t TChromosomes::curPloidy() const{
 	return _curChr->ploidy;
 };
 
+const TGenomePosition& TChromosomes::chrStart(const uint32_t RefID) const{
+	return _chromosomes[RefID].chrStart;
+};
+
+const TGenomePosition& TChromosomes::curChrStart() const{
+	return _curChr->chrStart;
+};
+
+const TGenomePosition& TChromosomes::chrEnd(const uint32_t RefID) const{
+	return _chromosomes[RefID].chrEnd;
+};
+
+const TGenomePosition& TChromosomes::curChrEnd() const{
+	return _curChr->chrEnd;
+};
+
 std::string TChromosomes::compileSamHeader() const{
 	std::string header;
 	for(auto& c : _chromosomes){

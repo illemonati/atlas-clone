@@ -10,21 +10,6 @@
 namespace BAM{
 
 
-//----------------------------------------------------
-//TFutureAlignments
-//----------------------------------------------------
-bool TFutureAlignments::operator<(const TFutureAlignments & other) const{
-	//are they on the same chromosome?
-	if(this->_refID < other._refID){
-		return true;
-	} else if(this->_refID > other._refID){
-		return false;
-	} else {
-		//on same chromosome: check posotion
-		return this->_position < other._position;
-	}
-};
-
 //-----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
@@ -32,18 +17,19 @@ TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
 	_genoMap = nullptr;
-	_qualityMap ) nullptr;
+	_qualityMap = nullptr;
 };
 
-TOutputBamFile::TOutputBamFile(const std::string filename, TBamFile & original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
-	open(filename, original, GenoMap, QualityMap);
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+	_openForWriting = false;
+	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
 };
 
 TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
 };
 
-void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups,  TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
 	closeNoIndex();
 
 	_outputFilename = Filename;
@@ -68,8 +54,8 @@ void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header,
 	_openForWriting = true;
 };
 
-void TOutputBamFile::open(const std::string Filename, TBamFile & Original,  TGenotypeMap* GenoMap, TQualityMap* QualityMap){
-	open(Filename, Original.samHeader, Original.chromosomes, Original.readGroups, GenoMap, QualityMap);
+void TOutputBamFile::open(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
 };
 
 void TOutputBamFile::close(TLog* logfile){
@@ -122,13 +108,15 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 
 	_tmpBamAlignment.Name = alignment._name;
 	_tmpBamAlignment.AlignmentFlag = alignment._flags.asInt();
-	_tmpBamAlignment.RefID = alignment._refID;
-	_tmpBamAlignment.Position = alignment._position;
-
-	_tmpBamAlignment.MapQuality = alignment._mappingQuality;
-	_tmpBamAlignment.MateRefID = alignment._mateRefID;
-	_tmpBamAlignment.MatePosition = alignment._matePosition;
+	_tmpBamAlignment.RefID = alignment.refID();
+	_tmpBamAlignment.Position = alignment.position();
 	_tmpBamAlignment.InsertSize = alignment._insertSize_TLEN;
+	_tmpBamAlignment.MapQuality = alignment._mappingQuality;
+
+	if(alignment.isPaired()){
+		_tmpBamAlignment.MateRefID = alignment.mateRefID();
+		_tmpBamAlignment.MatePosition = alignment.matePosition();
+	}
 
 	//CIGAR
 	for(auto& it : alignment._cigar){
@@ -148,13 +136,20 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 		throw "Read '" + _tmpBamAlignment.Name + "' could not be written!";
 };
 
-void TOutputBamFile::_writeUpTo(const TAli{
-	for()
-}
-
 void TOutputBamFile::writeAlignment(const TAlignment & alignment){
-	//check if we need to write past
+	auto it = _futureAlignments.begin();
+	if(it != _futureAlignments.end()){
+		//write alignments BEFORE alignment to write next
+		while(it != _futureAlignments.end() && *it < alignment){
+			_writeAlignment(*it);
+		}
 
+		//remove written alignments
+		_futureAlignments.erase(_futureAlignments.begin(), it);
+	}
+
+	//write next alignment
+	_writeAlignment(alignment);
 };
 
 }; //end namespace

@@ -347,7 +347,7 @@ void TCaller::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods 
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
-	referenceBase = genoMap.getBase(site.referenceBase);
+	referenceBase = genoMap.toBase(site.referenceBase);
 
 	//check if there is data
 	if(!site.hasData || (referenceBase == N && !_allowTriallelicSites))
@@ -365,13 +365,13 @@ void TCaller::call(const std::string & chr, const long pos, const TSite & site, 
 	//check if there is data
 	if(site.hasData){
 		//set reference base from site
-		referenceBase = genoMap.getBase(site.referenceBase);
+		referenceBase = genoMap.toBase(site.referenceBase);
 
 		//call
-		if(referenceBase == genoMap.getBase(firstAllele))
-			altAlleles.push_back(genoMap.getBase(secondAllele));
+		if(referenceBase == genoMap.toBase(firstAllele))
+			altAlleles.push_back(genoMap.toBase(secondAllele));
 		else
-			altAlleles.push_back(genoMap.getBase(firstAllele));
+			altAlleles.push_back(genoMap.toBase(firstAllele));
 		callGenotypeKnownAlleles(site, genotypeLikelihoods);
 
 		//check if we write
@@ -440,9 +440,9 @@ void TCallerMajorityBase::callGenotype(const TSite & site, TGenotypeLikelihoods 
 
 		//find second most common as alternative allele
 		uint8_t second = pickIndexWithSecondHighestMetric(alleleCounts.pointerToCounts(), 4, majorityIndex);
-		altAlleles.push_back(genoMap.getBase(second));
+		altAlleles.push_back(genoMap.toBase(second));
 	} else {
-		altAlleles.push_back(genoMap.getBase(majorityIndex));
+		altAlleles.push_back(genoMap.toBase(majorityIndex));
 		calledGenotype = "1";
 	}
 };
@@ -497,7 +497,7 @@ void TCallerAllelePresence::callGenotype(const TSite & site, TGenotypeLikelihood
 	fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	MAP = genoMap.getBase(pickIndexWithHighestMetric(allelePostProb, 4));
+	MAP = genoMap.toBase(pickIndexWithHighestMetric(allelePostProb, 4));
 
 	//decide on alt
 	if(MAP == referenceBase){
@@ -505,7 +505,7 @@ void TCallerAllelePresence::callGenotype(const TSite & site, TGenotypeLikelihood
 
 		//find second most common as alternative allele
 		uint8_t second = pickIndexWithSecondHighestMetric(allelePostProb, 4, MAP);
-		altAlleles.push_back(genoMap.getBase(second));
+		altAlleles.push_back(genoMap.toBase(second));
 	} else {
 		altAlleles.push_back(MAP);
 		calledGenotype = "1";
@@ -602,7 +602,7 @@ void TCallerDiploid::callGenotypeFromMetric(TGenotypeData & metric){
 					//int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 
 					//only use second alternative allele in case het genotype with reference is less likely
-					if(referenceBase == N || (metric[genoMap.getGenotype(referenceBase, genoMap.genotypeToBase[indexOfMax][0])] < metric[indexOfSecond] && metric[genoMap.getGenotype(referenceBase, referenceBase)] < metric[indexOfSecond])){
+					if(referenceBase == N || (metric[genoMap.toGenotype(referenceBase, genoMap.genotypeToBase[indexOfMax][0])] < metric[indexOfSecond] && metric[genoMap.toGenotype(referenceBase, referenceBase)] < metric[indexOfSecond])){
 						if(genoMap.genotypeToBase[indexOfSecond][0] == referenceBase || genoMap.genotypeToBase[indexOfSecond][0] == altAlleles[0])
 							altAlleles.push_back(genoMap.genotypeToBase[indexOfSecond][1]);
 						else if(genoMap.genotypeToBase[indexOfSecond][1] == referenceBase || genoMap.genotypeToBase[indexOfSecond][1] == altAlleles[0])
@@ -656,9 +656,9 @@ void TCallerDiploid::callGenotypeFromMetric(TGenotypeData & metric){
 
 void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric, std::vector<int> & indeces){
 	//get genotypes
-	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
-	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
-	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
+	int homRef = genoMap.toGenotype(referenceBase, referenceBase);
+	int het = genoMap.toGenotype(referenceBase, altAlleles[0]);
+	int homAlt = genoMap.toGenotype(altAlleles[0], altAlleles[0]);
 
 	//find max
 	double max = metric.at(homRef);
@@ -688,9 +688,9 @@ void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 	gt.push_back("1/1");
 
 	//get genotypes
-	int homRef = genoMap.getGenotype(referenceBase, referenceBase);
-	int het = genoMap.getGenotype(referenceBase, altAlleles[0]);
-	int homAlt = genoMap.getGenotype(altAlleles[0], altAlleles[0]);
+	int homRef = genoMap.toGenotype(referenceBase, referenceBase);
+	int het = genoMap.toGenotype(referenceBase, altAlleles[0]);
+	int homAlt = genoMap.toGenotype(altAlleles[0], altAlleles[0]);
 
 	int indecesKnownAlleleGenotypes[3];
 	indecesKnownAlleleGenotypes[0] = homRef;
@@ -985,26 +985,26 @@ void TCall::_initializeGenotypePrior(TParameters & Parameters){
 void TCall::_call(){
 	uint32_t pos = 0;
 	for(auto it = _window.begin(); it != _window.end(); ++it, ++pos){
-		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(it->bases, _genoLik);
+		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(*it, _genoLik);
 		_caller->call(_window.chrName(), _window.posInRef(pos), *it, _genoLik);
 	}
 };
 
 void TCall::_callKnwonAlleles(){
 	//check if we need to process this window
-	if(_subset->hasPositionsInWindow(_window.startPos)){
+	if(_subset->hasPositionsInWindow(_window.startPos(), _window.endPos())){
 		//add reference to sites
 		_window.addReferenceBaseToSites(*_subset);
 
 		//only run over sites listed in that window
-		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos);
+		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos(), _window.endPos());
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
-			uint32_t internalPos = it.position - _window.startPos;
+			uint32_t internalPos = it.position() - _window.startPos;
 			TSite& site = _window._sites[internalPos];
-			site.setRefBase(it.ref);
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site.bases, _genoLik);
-			_caller->call(_window.chrName(), _window.posInRef(internalPos), site, _genoLik, it.ref, it.alt);
+			site.setRefBase(it._ref);
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
+			_caller->call(_window.chrName(), _window.posInRef(internalPos), site, _genoLik, it.ref(), it.alt());
 		}
 	}
 };
@@ -1015,7 +1015,7 @@ void TCall::_handleWindow(){
 		//update genotype prior
 		GenotypeLikelihoods::TBaseData freq;
 		_window.estimateBaseFrequencies(freq);
-		_prior->update(freq, _logfile);
+		_prior->update(_window, _logfile);
 
 		//call
 		_logfile->listFlushTime("Calling genotypes ...");

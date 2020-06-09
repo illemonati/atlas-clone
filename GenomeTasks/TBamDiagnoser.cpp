@@ -13,7 +13,7 @@ namespace GenomeTasks{
 TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 	//settings
 	qualFilter.set(Parameters, _logfile);
-	_bamFile.readGroups.fillVectorWithNames(_readGroupNames);
+	_bamFile._readGroups.fillVectorWithNames(_readGroupNames);
 };
 
 void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, const std::string header, const std::string name){
@@ -31,16 +31,16 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, co
 
 void TBamDiagnoser::diagnose(){
     //calculate length of genome
-    double totLengthOfGenome = (double) _bamFile.chromosomes.referenceLength();
+    double totLengthOfGenome = (double) _bamFile._chromosomes.referenceLength();
 
     //initialize counters
-    TCountVector totalReads(_bamFile.readGroups.size());
-    TCountVector passedQC(_bamFile.readGroups.size());
-    TCountDistributionVector readLength(_bamFile.readGroups.size());
-    TCountDistributionVector usableLength(_bamFile.readGroups.size());
-    TCountDistributionVector softClippedLength(_bamFile.readGroups.size());
-    TCountDistributionVector mappingQuality(_bamFile.readGroups.size());
-    TCountDistributionVector fragmentLength(_bamFile.readGroups.size());
+    TCountVector totalReads(_bamFile._readGroups.size());
+    TCountVector passedQC(_bamFile._readGroups.size());
+    TCountDistributionVector readLength(_bamFile._readGroups.size());
+    TCountDistributionVector usableLength(_bamFile._readGroups.size());
+    TCountDistributionVector softClippedLength(_bamFile._readGroups.size());
+    TCountDistributionVector mappingQuality(_bamFile._readGroups.size());
+    TCountDistributionVector fragmentLength(_bamFile._readGroups.size());
 
 	//now parse through bam file
 	_bamFile.startProgressReporting();
@@ -94,8 +94,8 @@ void TBamDiagnoser::diagnose(){
 	out << mappingQuality.mean() << std::endl;
 
 	//write per read group
-	for(uint16_t rg = 0; rg < _bamFile.readGroups.size(); ++rg){
-		out << _bamFile.readGroups.getName(rg);
+	for(uint16_t rg = 0; rg < _bamFile._readGroups.size(); ++rg){
+		out << _bamFile._readGroups.getName(rg);
 		out << totalReads[rg] << passedQC[rg] << (double) passedQC[rg] / (double) totalReads[rg];
 		out << readLength.mean() << readLength.max();
 		out << fragmentLength[rg].§counts() << fragmentLength.mean();

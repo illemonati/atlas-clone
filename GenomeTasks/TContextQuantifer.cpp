@@ -18,7 +18,7 @@ TContextQuantifier::TContextQuantifier(TParameters & Parameters, TLog* Logfile, 
 
 void TContextQuantifier::_handleAlignment(){
 	for(auto& b : _alignment){
-		_contextCounts.add(b.recalibratedQualityAsPhredInt, _genoMap.getContext(b.context, b.base));
+		_contextCounts.add(b.recalibratedQualityAsPhredInt, _genoMap.toContext(b.context, b.base));
 	}
 };
 

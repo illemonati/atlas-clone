@@ -8,17 +8,13 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
-#include "BamData.h"
 #include "bamtools/api/BamReader.h"
 #include "bamtools/api/BamWriter.h"
-#include "TChromosomes.h"
-#include "TReadGroups.h"
-#include "TAlignment.h"
+
+#include "TOutputBam.h"
 #include "TBamFilter.h"
 
 namespace BAM{
-
-class TOutputBamFile;
 
 //-----------------------------------------------------
 //TBamFile
@@ -33,6 +29,11 @@ private:
  	BamTools::SamHeader _bamHeader;
  	bool _open;
  	int64_t _fileSize;
+
+ 	//header
+ 	TChromosomes _chromosomes;
+ 	TReadGroups _readGroups;
+ 	TSamHeader _samHeader;
 
  	//counters
  	uint64_t _numAlignmentRead;
@@ -90,15 +91,14 @@ private:
 	std::string _millionReadsRead(){ return to_string_with_precision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
-
-
 public:
-	TChromosomes chromosomes;
-	TReadGroups readGroups;
-	TSamHeader samHeader;
-
 	TBamFile();
 	~TBamFile();
+
+	//access header info
+	const TChromosomes& chromosomes() const{ return _chromosomes; };
+	const TReadGroups& readGroups() const { return _readGroups; };
+	const TSamHeader& samHeader() const{ return _samHeader; };
 
 	//filters
 	void setLimits(TParameters & params, TLog* logfile);
@@ -139,7 +139,7 @@ public:
 	bool readNextAlignmentThatPassesFilters(TAlignment & alignment);
 	void fill(TAlignment & alignment) const;
 
-	bool jump(int chr, int position);
+	bool jump(const TGenomePosition Position);
 	void rewind();
 
 	//writing
@@ -148,7 +148,7 @@ public:
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
 	uint32_t curPosition() const{ return _curBamAlignment.Position; };
-	const TChromosome& curChromosome() const{ return chromosomes.curChromosome(); };
+	const TChromosome& curChromosome() const{ return _chromosomes.curChromosome(); };
 	const TCigar& curCIGAR() const{ return _curCigar; };
 	uint16_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };

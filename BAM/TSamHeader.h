@@ -8,11 +8,22 @@
 #ifndef BAM_TSAMHEADER_H_
 #define BAM_TSAMHEADER_H_
 
+#include "stringFunctions.h"
 #include "TReadGroups.h"
 #include "TChromosomes.h"
 
 namespace BAM{
 
+//-----------------------------------------------------
+//TSamHeader
+//A class to store, access and manipulate the SAM header
+// does currently not store SG (chromosomes) and RG (ReadGroups) tags. These are store in their own class
+//-----------------------------------------------------
+
+//---------------------------------
+// TSamHeader_HD
+// Stores the HD line
+//---------------------------------
 class TSamHeader_HD{
 private:
 	std::string _version_VN;
@@ -29,71 +40,84 @@ public:
 	};
 
 	void setVersion(const std::string Version){ _version_VN = Version; };
-	void setSortOrder(const std::string SortOrder){
-		//check if valid
-		if(SortOrder == "unknown" || SortOrder == "unsorted" || SortOrder == "queryname" || SortOrder == "coordinate"){
-			_sortOrder_SO = SortOrder;
-		} else {
-			throw "Unknow BAM sort order '" + SortOrder + "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.";
-		}
-	};
-	void setGrouping(const std::string Grouping){
-		//check if valid
-		if(Grouping == "none" || Grouping == "query" || Grouping == "reference"){
-			_grouping_GO = Grouping;
-		} else {
-			throw "Unknow BAM grouping '" + Grouping + "'! Must be either 'none', 'query', or 'reference'.";
-		}
-	};
-	void setSubSorting(const std::string SubSorting){
-		_subSorting_SS = SubSorting;
-	};
+	void setSortOrder(const std::string SortOrder);
+	void setGrouping(const std::string Grouping);
+	void setSubSorting(const std::string SubSorting){ _subSorting_SS = SubSorting; };
 
 	//getters
 	std::string version() const{ return _version_VN; };
 	std::string sortOrder() const{ return _sortOrder_SO; };
 	std::string grouping() const{ return _grouping_GO; };
 	std::string subSorting() const{ return _subSorting_SS; };
+
+	std::string compileSamHeader() const;
 };
 
+//---------------------------------
+// TSamProgram
+// Stores programs used
+//---------------------------------
+class TSamProgram{
+private:
+	std::string _ID;
+	mutable std::string _name_PN;
+	mutable std::string _commandLine_CL;
+
+	mutable bool _hasPrevious;
+	mutable const TSamProgram* _previous_PP; //nullpointer indicates
+	mutable bool _hasNext;
+	mutable const TSamProgram* _next_PP; //nullpointer indicates
+	mutable std::string _description_DS;
+	mutable std::string _version_VN;
+
+public:
+	TSamProgram(const std::string ID, const std::string Name);
+	TSamProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
+	void addPrevious(const TSamProgram & Previous) const;
+	void addNext(const TSamProgram & Next) const;
+	std::string compileSamHeader() const;
+
+	friend bool operator<(const TSamProgram & other) const{
+		return this->_ID < other->_ID;
+	};
+	friend bool operator<(const std::string & other) const{
+		return this->_ID < other;
+	};
+	friend bool operator<(const std::string & left, const TSamProgram & right) const{
+	    return left < right._ID;
+	};
+	friend bool operator<(const TSamProgram & left, const std::string & right) const{
+	  	return left._ID < right;
+	};
+};
+
+//---------------------------------
+// TSamHeader
+// main class to interact with
+//---------------------------------
 class TSamHeader{
 private:
 	TSamHeader_HD _HD;
-
-	TReadGroups& _readGroups_RG;
-	TChromosomes& _chromosomes_SQ;
-
-	//programs and comments are currently nor parsed
-	//TODO: add parsing of these
-	std::vector<std::string> _programs_PG;
+	std::set<TSamProgram, std::less<>> _programs_PG;
 	std::vector<std::string> _comments_CO;
 
 public:
-	TSamHeader(TChromosomes & Chromosomes, TReadGroups & ReadGroups);
+	TSamHeader(){};
+	TSamHeader(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting=""){
+		set(Version, SortOrder, Grouping, SubSorting);
+	};
 
 	//add info
-	void set(const std::string Version,
-			 const std::string SortOrder,
-			 const std::string Grouping,
-			 const std::string SubSorting){
-		_HD.setVersion(Version);
-		_HD.setSortOrder(SortOrder);
-		_HD.setGrouping(Grouping);
-		_HD.setSubSorting(SubSorting);
-	};
-
-	void addProgram(const std::string Program){
-		_programs_PG.push_back(Program);
-	};
-
-	void addComment(const std::string Comment){
-		_comments_CO.push_back(Comment);
-	};
-
+	void set(const std::string Version, const std::string SortOrder, const std::string Grouping, const std::string SubSorting="");
+	void addProgram(const std::string ID, const std::string Name);
+	void addProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
+	void addPreviousProgramInChain(const std::string ID, const std::string previousID);
+	void addComment(const std::string Comment){ _comments_CO.push_back(Comment); };
+	std::string compileSamHeader(const TReadGroups & ReadGroups) const;
+	std::string compileSamHeader(const TReadGroups & ReadGroups, const TChromosomes & Chromosomes) const;
 };
 
-
-
+}; //end namespace
 
 
 #endif /* BAM_TSAMHEADER_H_ */

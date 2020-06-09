@@ -30,15 +30,15 @@ TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Parameter
 	if(Parameters.parameterExists("poolReadGroups")){
 		std::string poolReadGroupsFile = Parameters.getParameterString("poolReadGroups");
 		_logfile->startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile.readGroups), poolReadGroupsFile, _logfile);
+		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile._readGroups), poolReadGroupsFile, _logfile);
 		_logfile->endIndent();
 	} else  {
 		_logfile->list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile.readGroups));
+		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile._readGroups));
 	}
 
 	//initialize recal estimator
-	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Parameters, _bamFile.readGroups, _logfile, _readGroupMap);
+	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Parameters, _bamFile._readGroups, _logfile, _readGroupMap);
 };
 
 void TEstimateRecalibration_base::_handleWindow(){

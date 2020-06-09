@@ -27,7 +27,7 @@ void TQualityDistribution::_handleAlignment(){
 void TQualityDistribution::compileQualityDistribution(){
 	//initialize counts
 	_qualDist.clear();
-	_qualDist.resize(_bamFile.readGroups.size());
+	_qualDist.resize(_bamFile._readGroups.size());
 
 	//traverseBAM
 	_traverseBAMPassedQC();
@@ -39,7 +39,7 @@ void TQualityDistribution::compileQualityDistribution(){
 
 	//get read group names
 	std::vector<std::string> readGroupNames;
-	_bamFile.readGroups.fillVectorWithNames(readGroupNames);
+	_bamFile._readGroups.fillVectorWithNames(readGroupNames);
 
 	//write combined
 	_qualDist.writeCombined(out, "allReadGroups");
@@ -55,7 +55,7 @@ TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* L
 	if(Parameters.parameterExists("recal2")){
 		std::string recalstring = Parameters.getParameterString("recal2");
 		_logfile->startIndent("Comparing recalibrated qualities to those recalibrated with altermative parameters:");
-		_otherSeqErrors.createModels(recalstring, _bamFile.readGroups, _logfile);
+		_otherSeqErrors.createModels(recalstring, _bamFile._readGroups, _logfile);
 
 		_compareToOtherSeqErrors = true;
 		_label1 = "recalibratedQuality";
@@ -86,19 +86,19 @@ void TQualityTransformation::_handleAlignment(){
 
 void TQualityTransformation::compileQualityTransformation(){
 	//initialize transformations
-	_transformations.resize(_bamFile.readGroups.size());
+	_transformations.resize(_bamFile._readGroups.size());
 
 	//traverseBAM
 	_traverseBAMPassedQC();
 
 	//write read group specific files
 	_logfile->startIndent("Writing quality transformation for each read group:");
-	for(uint16_t rg=0; rg<_bamFile.readGroups.size(); ++rg){
-		std::string filename = _outputName + _bamFile.readGroups.getName(rg) + "_qualityTransformation.txt";
+	for(uint16_t rg=0; rg<_bamFile._readGroups.size(); ++rg){
+		std::string filename = _outputName + _bamFile._readGroups.getName(rg) + "_qualityTransformation.txt";
 		_logfile->listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
 		_logfile->done();
-		_logfile->conclude("R squared for read group " + _bamFile.readGroups.getName(rg) + " is " + toString(_transformations[rg].RSquared()) + ".");
+		_logfile->conclude("R squared for read group " + _bamFile._readGroups.getName(rg) + " is " + toString(_transformations[rg].RSquared()) + ".");
 	}
 
 	//write combined distribution

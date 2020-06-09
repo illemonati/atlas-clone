@@ -310,7 +310,7 @@ TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* Ra
 	}
 
 	//set all read groups to unchanged
-	_rgSettings.setAllAsUnchanged(_bamFile.readGroups);
+	_rgSettings.setAllAsUnchanged(_bamFile._readGroups);
 };
 
 void TBamFilter::_openBamFileForWriting(){
@@ -582,7 +582,7 @@ void TAlignmentMerger_randomRead::_mergeBases(TBase & alignment, TBase & mate, c
 //-----------------------------------------
 TAlignmentSplitMerger::TAlignmentSplitMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamFilter(Params, Logfile, RandomGenerator){
 	//parse read group settings
-	_rgSettings.initialize(Params, Logfile, _bamFile.readGroups);
+	_rgSettings.initialize(Params, Logfile, _bamFile._readGroups);
 
 	//other settings
 	_numReadsMerged = 0;
@@ -652,7 +652,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 	ReadGroupType type = _rgSettings.getType(alignment->readGroupId());
 
 	if(type == single){
-		throw "Paired reads found in single-end read group '" + _bamFile.readGroups.getName(alignment->readGroupId()) + "'! Is this a 'mixed' read group?";
+		throw "Paired reads found in single-end read group '" + _bamFile._readGroups.getName(alignment->readGroupId()) + "'! Is this a 'mixed' read group?";
 	} else if(!alignment->isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();

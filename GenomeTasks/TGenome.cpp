@@ -35,10 +35,9 @@ TGenome_basic::TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerat
 
 void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam){
 	_logfile->list("Writing alignments to new BAM to file '" + filename + "'.");
-	outBam.open(filename, _bamFile);
 	if(_params->parameterExists("writeBinnedQualities")){
 		_logfile->list("When writing alignments, quality scores will be Illumina-binned. (parameter 'writeBinnedQualities').");
-		outBam.binQualityScoresLikeIllumina();
+		_qualMap.setBinQualityScores(true);
 	} else if(_params->parameterExists("minOutQual") || _params->parameterExists("minOutQual")){
 				int MinPhredInt = _params->getParameterIntWithDefault("minOutQual", 0);
 				int MaxPhredInt = _params->getParameterIntWithDefault("maxOutQual", 93);
@@ -54,6 +53,7 @@ void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputB
 	} else {
 		_logfile->list("Will use the full range of quality scores when writing alignments. (use 'writeBinnedQualities' to bin, 'minOutQual' and 'maxOutQual' to constrain).");
 	}
+	outBam.open(filename, _bamFile, &_genoMap, &_qualMap);
 };
 
 //---------------------------------------------------------------
@@ -86,7 +86,7 @@ void TGenome_filtered::_traverseBAMPassedQC(){
 //---------------------------------------------------------------
 TGenome_parsed::TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){
 	//initialize genotype likelihoods
-	_genotypeLikelihoodCalculator.init(Params, &_bamFile.readGroups, _logfile);
+	_genotypeLikelihoodCalculator.init(Params, &_bamFile._readGroups, _logfile);
 
 	//set parsing filters
 	_setReadTrimming(Params);
@@ -100,7 +100,7 @@ void TGenome_parsed::_openReference(bool required = false){
 		if(_params->parameterExists("fasta")){
 			std::string fastaFile = _params->getParameterString("fasta");
 			_logfile->list("Reading reference sequence from '" + fastaFile + "'");
-			_reference.initialize(fastaFile);
+			_reference.initialize(fastaFile, &_genoMap);
 		} else {
 			if(required){
 				throw "No reference provided! Use parameter 'fasta' to provide a reference fasta file.";
@@ -141,7 +141,7 @@ void TGenome_parsed::_setContextFilter(TParameters & params){
 				throw "Context " + c + " does not consist of two bases! (parameter 'maskContext')";
 			}
 			//ave context
-			BaseContext co = _genoMap.getContext(c[0], c[1]);
+			BaseContext co = _genoMap.toContext(c[0], c[1]);
 			_ignoreTheseContexts.emplace(co, 1);
 			_logfile->list(_genoMap.getContextString(co));
 		}
@@ -195,7 +195,7 @@ void TGenome_parsed::_traverseBAMPassedQC(){
 //---------------------------------------------------------------
 TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):
 		TGenome_parsed(Params, Logfile, RandomGenerator),
-		_chromosomes(_bamFile.chromosomes){
+		_chromosomes(_bamFile._chromosomes){
 	_setWindowParameters(Params);
 	_setParsingLimits(Params);
 	_setWindowFilters(Params);
@@ -343,7 +343,7 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 	if(_considerRegions) throw "Site subsets (parameter '" + paramName + "') and regions (parameter 'regions') can not be used at the same time!";
 	if(_doMasking) throw "Site subsets (parameter '" + paramName + "') and masks (parameter 'mask') can not be used at the same time!";
 
-	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _windowSize, _logfile, false, _reference, _bamFile.chromosomes);
+	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _windowSize, _logfile, false, _reference, _bamFile._chromosomes);
 };
 
 void TGenome_windows::_jumpToEnd(){
@@ -388,7 +388,7 @@ void TGenome_windows::_moveChromosome(GenotypeLikelihoods::TWindow_base & window
 		//now jump
 		window.move(_predefinedWindows->curWindowStart(), _predefinedWindows->curWindowEnd(), _chromosomes.curRefID(), _logfile);
 		window._chrName = _chromosomes.curName();
-		_bamFile.jump(_chromosomes.curRefID(), window.startPos);
+		_bamFile.jump(window.startPos());
 
 	} else {
 		while(_chromosomes.curInUse() == false || _skipWindows * _windowSize > _chromosomes.curLength()){
@@ -397,7 +397,7 @@ void TGenome_windows::_moveChromosome(GenotypeLikelihoods::TWindow_base & window
 		_numWindowsOnChr = ceil(_chromosomes.curLength() / (double) _windowSize);
 
 		uint32_t curStart = _skipWindows * _windowSize;
-		_bamFile.jump(_chromosomes.curRefID(), curStart);
+		_bamFile.jump(_chromosomes.curChrStart());
 		uint32_t nextEnd = curStart + _windowSize;
 
 		if(nextEnd > _chromosomes.curLength()){
@@ -420,22 +420,29 @@ void TGenome_windows::_moveChromosome(GenotypeLikelihoods::TWindow_base & window
 };
 
 bool TGenome_windows::_moveToNextWindowOnChr(GenotypeLikelihoods::TWindow_base & window){
+	//define new start and end
+	++_windowNumber;
+	BAM::TGenomePosition newStart = window.endPos();
+	BAM::TGenomePosition newEnd = newStart + _windowSize;
+
 	//if sites defined
-	int counter = 0;
-	do{
-		//move possible?
-		++_windowNumber;
-		++counter;
-	} while(_subset && !_subset->hasPositionsInWindow(window.endPos) && window.endPos + window.length * counter < _chromosomes.curLength());
+	if(_subset){
+		while(newStart < _chromosomes.curChrEnd() && !_subset->hasPositionsInWindow(newStart, newEnd)){
+			BAM::TGenomePosition newStart = window.endPos();
+			BAM::TGenomePosition newEnd = newStart + _windowSize;
+			++_windowNumber;
+		}
+	}
 
-	if(window.endPos >= _chromosomes.curLength() || _windowNumber >= _limitWindows)
+	if(newStart >= _chromosomes.curChrEnd() || _windowNumber >= _limitWindows){
 		return false;
+	}
 
-	//calculate new end
-	long nextEnd = window.endPos + _windowSize;
-	if(nextEnd > _chromosomes.curLength())
-		nextEnd = _chromosomes.curLength();
-	window.move(window.endPos, nextEnd, _chromosomes.curRefID(), _logfile);
+	//more window
+	if(newEnd > _chromosomes.curChrEnd()){
+		newEnd = _chromosomes.curChrEnd();
+	}
+	window.move(newStart, newEnd, _logfile);
 
 	return true;
 };
@@ -450,9 +457,9 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//should we jump or are we already close enough to next window
 		if(_bamFile.curPosition() > window.startPos || _bamFile.curPosition() < window.startPos - _bamFile.maxReadLength()){
 			if(window.startPos < _bamFile.maxReadLength())
-				_bamFile.jump(_chromosomes.curRefID(), 0);
+				_bamFile.jump(_chromosomes.curChrStart());
 			else{
-				_bamFile.jump(_chromosomes.curRefID(), window.startPos - _bamFile.maxReadLength());
+				_bamFile.jump(window.startPos() - _bamFile.maxReadLength());
 			}
 		}
 		return true;

@@ -10,6 +10,7 @@
 
 #include "../bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
+#include "TGenomePosition.h"
 
 namespace BAM{
 
@@ -21,43 +22,53 @@ namespace BAM{
 
 class TFastaBuffer{
 private:
-	BamTools::Fasta _reference;
-	uint32_t _bufferSize;
-	std::string _referenceSequence;
-	BAM::TGenomePosition _curPosition;
-	int _curChr;
-	long _curStart, _curEnd;
+	TGenotypeMap* _genoMap;
 	bool _hasReference;
 
-	void moveTo(const int & chr, const int32_t & pos);
+	mutable BamTools::Fasta _reference;
+	mutable uint32_t _bufferSize;
+	mutable std::string _referenceSequence;
+	mutable BAM::TGenomePosition _curStart, _curEnd;
+
+	void _moveTo(const BAM::TGenomePosition Position) const;
 
 public:
 	TFastaBuffer(){
 		_bufferSize = 100000;
 		_referenceSequence = "";
-		_curStart = -1;
-		_curChr = -1;
-		_curEnd = -1;
+		_curEnd = 0;
 		_hasReference = false;
+		_genoMap = nullptr;
 	};
 
-	TFastaBuffer(std::string fastaFile){
-		initialize(fastaFile);
+	TFastaBuffer(std::string fastaFile, TGenotypeMap* GenoMap){
+		initialize(fastaFile, GenoMap);
 	};
 
-	TFastaBuffer(std::string fastaFile, const uint32_t BufferSize){
-		initialize(fastaFile, BufferSize);
+	TFastaBuffer(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize){
+		initialize(fastaFile, GenoMap, BufferSize);
 	};
 
 	~TFastaBuffer(){};
 
-	void initialize(std::string fastaFile, const uint32_t BufferSize=1000000);
-	bool hasReference(){ return _hasReference; };
+	void initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize=1000000);
+	bool hasReference() const{ return _hasReference; };
+
+	void fill(const TGenomePosition & Position, const uint32_t Length, std::string & ref) const;
+	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const;
+	Base refAt(const TGenomePosition Position) const;
+	char refCharAt(const TGenomePosition Position) const;
+
+	/*
 	void fill(const uint16_t & chr, const uint32_t start, const uint32_t end, std::string & ref);
 	char refAt(const uint16_t & chr, const int32_t & position);
+	*/
+
+	/*
 	int getCurChr(){return _curChr;};
 	long getCurStart(){return _curStart;};
 	long getCurEnd(){return _curEnd;};
+	*/
 };
 
 }; //end namespace

@@ -10,7 +10,7 @@
 namespace GenomeTasks{
 
 TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
-	BAM::TReadGroups& readGroups = _bamFile.readGroups;
+	BAM::TReadGroups& readGroups = _bamFile._readGroups;
 
 	//read read groups to be merged
 	std::string filename = Parameters.getParameterString("readGroups");

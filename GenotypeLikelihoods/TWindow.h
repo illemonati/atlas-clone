@@ -16,6 +16,7 @@
 #include "TRandomGenerator.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include <vector>
+#include "TGenomePosition.h"
 
 namespace GenotypeLikelihoods{
 
@@ -29,7 +30,9 @@ class TWindow_base{
 protected:
 	std::vector<TSite> _sites;
 	uint32_t _numReadsInWindow;
-	uint32_t _refId;
+	BAM::TGenomePosition _start;
+	BAM::TGenomePosition _end;
+	uint32_t _length;
 	std::string _chrName;
 
 	TGenotypeMap genoMap;
@@ -43,13 +46,13 @@ protected:
 
 	bool _passedFilters;
 
-	void _setCoordinates(long Start, long End, int RefId);
+	void _setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End);
 
 	//TODO: make as much as possible private
 public:
-	unsigned int startPos;
-	unsigned int endPos; //end NOT included in window!
-	unsigned int length;
+	//unsigned int startPos;
+	//unsigned int endPos; //end NOT included in window!
+	//unsigned int length;
 
 	TWindow_base();
 	TWindow_base(TWindow_base & other);
@@ -60,11 +63,24 @@ public:
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
+	virtual void move(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile);
+	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
+	void initSites(long newLength);
+	void clear();
+	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
+	void addReferenceBaseToSites(TSiteSubset & subset);
+	void applyMask(BAM::TBedReaderWindows* mask, bool inverseMasking);
+	void maskCpG(BAM::TFastaBuffer & reference);
+	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
+	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
+
 	//getters
+	const BAM::TGenomePosition& startPos(){ return _start; };
+	const BAM::TGenomePosition& endPos(){ return _end; };
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
-	uint32_t refId() const{ return _refId; };
-	uint32_t posInRef(uint32_t internalPos) const{ return startPos + internalPos; };
+	uint32_t refId() const{ return _start.refId(); };
+	uint32_t posInRef(uint32_t internalPos) const{ return _start.position() + internalPos; };
 	double depth();
 	double fractionSitesNoData();
 	double fractionDepthAtLeastTwo();
@@ -73,17 +89,6 @@ public:
 	void dataSummary(TLog* Logfile);
 	bool filter(const double maxFracMissing, const double maxRefN, TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
-
-	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
-	void initSites(long newLength);
-	void clear();
-	virtual void move(unsigned int Start, unsigned int End, int chrNumber, TLog* logfile);
-	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
-	void addReferenceBaseToSites(TSiteSubset & subset);
-	void applyMask(BAM::TBedReaderWindows* mask, bool inverseMasking);
-	void maskCpG(BAM::TFastaBuffer & reference);
-	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
-	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
 	//loop over sites
 	std::vector<TSite>::iterator begin(){ return _sites.begin(); };
@@ -124,7 +129,7 @@ public:
 	TWindow();
 	~TWindow();
 
-	void move(unsigned int Start, unsigned int End, int RefId, TLog* logfile);
+	void move(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile);
 	void review();
 	void printStacks();
 

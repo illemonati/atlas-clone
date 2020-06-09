@@ -54,13 +54,13 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	}
 
 	//limit chromosomes?
-	chromosomes.limitAndSetPloidy(params, logfile);
+	_chromosomes.limitAndSetPloidy(params, logfile);
 
 	//limit read groups
 	if(params.parameterExists("readGroup")){
-		readGroups.filterReadGroups(params.getParameterString("readGroup"));
+		_readGroups.filterReadGroups(params.getParameterString("readGroup"));
 		logfile->startIndent("Will limit analysis to the following read groups:");
-		readGroups.printReadgroupsInUse(logfile);
+		_readGroups.printReadgroupsInUse(logfile);
 		logfile->endIndent();
 		_readGroupFilter.filter("Read group not in use");
 	} else {
@@ -300,6 +300,7 @@ void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isR
 };
 
 void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
+	//Note: chromosomes and read groups are in separate objects
 	SamHeader.set(_bamHeader.Version, _bamHeader.SortOrder, _bamHeader.GroupOrder, "none");
 
 	//add programs
@@ -318,8 +319,6 @@ void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
 	for(auto& c : _bamHeader.Comments){
 		SamHeader.addComment(c);
 	}
-
-	_bamHeader.Sequences
 };
 
 void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
@@ -348,7 +347,7 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 		//now copy rest
 		rg.description_DS = it->Description;
 		rg.flowOrder_FO = it->FlowOrder;
-		rg.KS = it->KeySequence;
+		rg.keySequence_KS = it->KeySequence;
 		rg.library_LB = it->Library;
 		rg.platformUnit_PU = it->PlatformUnit;
 		rg.predictedInsertSize_PI = it->PredictedInsertSize;
@@ -378,13 +377,13 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
 
-	_fillSamHeader(samHeader);
+	_fillSamHeader(_samHeader);
 
 	//initialize read groups
-	_fillReadGroups(readGroups);
+	_fillReadGroups(_readGroups);
 
 	//initialize chromosomes
-	_fillChromosomes(chromosomes);
+	_fillChromosomes(_chromosomes);
 
 	//parse CIGAR
 	_curCigar.clear();
@@ -393,7 +392,7 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	}
 
 	//get file size
-	_bamReader.Jump(chromosomes.size() - 1, 0);
+	_bamReader.Jump(_chromosomes.size() - 1, 0);
 	BamTools::BamAlignment bamAlignment;
 	_bamReader.GetNextAlignment(bamAlignment);
 	_fileSize = _bamReader.tell();
@@ -419,7 +418,7 @@ void TBamFile::_applyFilters(){
 						 && _failedQCFilter.pass(_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _secondaryFilter.pass(!_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _supplementaryFilter.pass(_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _readGroupFilter.pass(!readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _readGroupFilter.pass(!_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _fwdStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _revStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
@@ -450,23 +449,23 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//check if chromosome changed
-	if(_curBamAlignment.RefID != chromosomes.curRefID()){
+	if(_curBamAlignment.RefID != _chromosomes.curRefID()){
 		_previousAlignmentPos = 0;
 		_previousAlignmentChr = _curBamAlignment.RefID;
 
 		//advance chromosomes
-		chromosomes.jumpTo(_curBamAlignment.RefID);
+		_chromosomes.jumpTo(_curBamAlignment.RefID);
 
 		//if not in use: jump to next in use
-		if(!chromosomes.curInUse()){
-			while(!chromosomes.curInUse()){
-				if(!chromosomes.next()){
+		if(!_chromosomes.curInUse()){
+			while(!_chromosomes.curInUse()){
+				if(!_chromosomes.next()){
 					return false;
 				}
 			}
 
 			//jump reader and read first alignment
-			jump(chromosomes.curRefID(), 0);
+			jump(_chromosomes.curChrStart());
 			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
 				return false;
 			}
@@ -490,7 +489,7 @@ bool TBamFile::readNextAlignment(){
 	//store current read group ID
 	std::string readGroup;
 	_curBamAlignment.GetTag("RG", readGroup);
-	_curReadGroupID = readGroups.getId(readGroup);
+	_curReadGroupID = _readGroups.getId(readGroup);
 
 	//apply filters
 	_applyFilters();
@@ -540,9 +539,9 @@ bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
 	return true;
 };
 
-bool TBamFile::jump(int chr, int position){
+bool TBamFile::jump(const TGenomePosition Position){
 	_previousAlignmentPos = -1;
-	return _bamReader.Jump(chr, position);
+	return _bamReader.Jump(Position.refId(), Position.position());
 };
 
 void TBamFile::rewind(){
@@ -561,7 +560,7 @@ void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::strin
 
 	//make sure read groups are OK: copy from readGroup object
 	newHeader.ReadGroups.Clear();
-	for(auto it = readGroups.begin(); it!=readGroups.end(); ++it){
+	for(auto it = _readGroups.begin(); it!=_readGroups.end(); ++it){
 		if(it->writeToHeader){
 			BamTools::SamReadGroup newRg(it->name_ID);
 
@@ -622,7 +621,7 @@ std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t leng
 
 void TBamFile::curSetNewReadGroup(const uint16_t id){
 	if(id != _curReadGroupID){
-		_curBamAlignment.EditTag("RG", "Z", readGroups.getName(id));
+		_curBamAlignment.EditTag("RG", "Z", _readGroups.getName(id));
 	}
 };
 

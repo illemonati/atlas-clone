@@ -8,43 +8,16 @@
 #ifndef BAM_TOUTPUTBAM_H_
 #define BAM_TOUTPUTBAM_H_
 
-#include "TBamFile.h"
+#include "bamtools/api/BamReader.h"
+#include "bamtools/api/BamWriter.h"
+
+#include "TAlignment.h"
+#include "TSamHeader.h"
+#include <set>
 
 namespace BAM{
 
-//----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
-struct
-
-class TFutureAlignments{
-private:
-	uint32_t _refID;
-	uint32_t _position;
-	mutable TAlignment _alignment;
-
-public:
-	TFutureAlignments(const uint32_t RefID, const uint32_t Pos, const TAlignment & Alignment):
-		_refID(RefID),
-		_position(_position),
-		_alignment(Alignment){};
-
-	uint32_t position() const{ return _position; };
-	TAlignment& alignment() const{ return _alignment; };
-
-	bool operator<(const TFutureAlignments & other) const{
-		//are they on the same chromosome?
-		if(this->_refID < other._refID){
-			return true;
-		} else if(this->_refID > other._refID){
-			return false;
-		} else {
-			//on same chromosome: check posotion
-			return this->_position < other._position;
-		}
-	};
-};
-
+class TBamFile;
 
 //----------------------------------------------------
 //TOutputBamFile
@@ -67,7 +40,7 @@ private:
 
 public:
  	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, TBamFile & original,  TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	TOutputBamFile(const std::string filename, const TBamFile & original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
  	~TOutputBamFile();
 
  	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups,  TGenotypeMap* GenoMap, TQualityMap* QualityMap);

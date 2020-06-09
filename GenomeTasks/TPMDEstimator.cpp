@@ -17,7 +17,7 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	_openReference(true);
 
 	//prepare maps
-	_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroups, Parameters.getParameterString("poolReadGroups", false), _logfile);
+	_readGroupMap = new BAM::TReadGroupMap(&_bamFile._readGroups, Parameters.getParameterString("poolReadGroups", false), _logfile);
 
 	//prepare PMD table
 	_maxLengthForInference = Parameters.getParameterIntWithDefault("length", 50);
@@ -36,7 +36,7 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 		_estimateExponential = true;
 	}
 
-	_pmdTables.initialize(&_bamFile.readGroups, _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
+	_pmdTables.initialize(&_bamFile._readGroups, _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
 };
 
 TPMDEstimator::~TPMDEstimator(){
@@ -60,7 +60,7 @@ void TPMDEstimator::_handleAlignment(){
 		int d = 0;
 		for(auto& b : _alignment){
 			if(b.isAligned() && b.base != N){
-				Base ref = _genoMap.getBase(_alignment.referenceAtInternalPos(d));
+				Base ref = _genoMap.toBase(_alignment.referenceAtInternalPos(d));
 				_pmdTables.addFromFivePrime(b.readGroupID, b.distFrom5Prime, ref, b.base);
 				_pmdTables.addFromThreePrime(b.readGroupID, b.distFrom3Prime, ref, b.base);
 			}

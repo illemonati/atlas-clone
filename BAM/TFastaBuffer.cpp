@@ -10,19 +10,19 @@
 
 namespace BAM{
 
-void TFastaBuffer::moveTo(const BAM::TGenomePosition Position){
+void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 	//NOTE: bamtools was modified to append N in case pos < 0 or pos+length > is beyond chromosome. This is the expected behavior in ATLAS and must be preserved!
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
 	}
-	_curChr = chr;
-	_curStart = pos;
-	_curEnd = pos + _bufferSize;
-	if(!_reference.GetSequence(chr, _curStart, _curEnd, _referenceSequence))
-		throw "Problem reading " + toString(chr) + ":" + toString(_curStart) + "-" + toString(_curEnd) + " from fasta file!";
+	_curStart.update(Position);
+	_curEnd.update(_curStart.refId(), _curStart.position() + _bufferSize);
+	if(!_reference.GetSequence(_curStart.refId(), _curStart.position(), _curEnd.position(), _referenceSequence))
+		throw "Problem reading " + toString(_curStart.refId()) + ":" + toString(_curStart.position()) + "-" + toString(_curEnd.position()) + " from fasta file! Are you using the correct fasta file?";
 };
 
-void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
+void TFastaBuffer::initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize){
+	_genoMap = GenoMap;
 	if(BufferSize < 1000)
 		_bufferSize = 1000;
 	else
@@ -35,29 +35,48 @@ void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 
 	//initialize tmp variables
 	_referenceSequence = "";
-	_curStart = -1;
-	_curChr = -1;
-	_curEnd = -1;
+	_hasReference = true;
 };
 
-void TFastaBuffer::fill(const BAM::TGenomePosition & Position, const uint32_t end, std::string & ref){
+void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t Length, std::string & ref) const{
 	//move buffer, if necessary
+	if(Position  < _curStart || Position + (Length - 1) > _curEnd){
+		if(Length > _bufferSize){
+			_bufferSize = Length;
+		}
+		_moveTo(Position);
+	}
+};
+
+void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const{
+	fill(Start, Start - End + 1, ref);
+};
+
+/*
+void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t end, std::string & ref){
+	//move buffer, if necessary
+	if(Pos)
 	if(chr != _curChr || end > _curEnd || start < _curStart){
 		if(end - start + 1 > _bufferSize){
 			_bufferSize = end - start + 1;
 		}
-		moveTo(chr, start);
+		_moveTo(chr, start);
 	}
 
 	//now copy to string
 	ref.assign(_referenceSequence, start - _curStart, end - start + 1);
 };
+*/
 
-char TFastaBuffer::refAt(const uint16_t & chr, const int32_t & position){
-	if(chr != _curChr || position > _curEnd || position < _curStart){
-		moveTo(chr, position);
+char TFastaBuffer::refCharAt(const TGenomePosition Position) const{
+	if(Position  < _curStart || Position > _curEnd){
+		_moveTo(Position);
 	}
-	return _referenceSequence[position - _curStart];
+	return _referenceSequence[Position.position() - _curStart.position()];
+};
+
+Base TFastaBuffer::refAt(const TGenomePosition Position) const{
+	return _genoMap->toBase(refCharAt(Position));
 };
 
 }; //end namesapce

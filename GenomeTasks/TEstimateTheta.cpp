@@ -300,7 +300,7 @@ void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBedR
 	} else {
 		_logfile->list("Will consider all sites in regions file. (use 'siteLimit" + num + "' to limit)");
 	}
-	region = new BAM::TBedReaderWindows(regionsFile, _windowSize, _bamFile.chromosomes, siteLimit,_logfile);
+	region = new BAM::TBedReaderWindows(regionsFile, _windowSize, _bamFile._chromosomes, siteLimit,_logfile);
 	_logfile->done();
 };
 

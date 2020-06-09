@@ -365,7 +365,7 @@ char TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
 }
 
 Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
-	return genoMap.getBase(parser.getFirstAlleleOfSample(tempLine, num));
+	return genoMap.toBase(parser.getFirstAlleleOfSample(tempLine, num));
 };
 
 char TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
@@ -373,7 +373,7 @@ char TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 }
 
 Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
-	return genoMap.getBase(parser.getSecondAlleleOfSample(tempLine, num));
+	return genoMap.toBase(parser.getSecondAlleleOfSample(tempLine, num));
 }
 
 short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
@@ -382,7 +382,7 @@ short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 }
 
 Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num, TGenotypeMap & genoMap){
-	return genoMap.getGenotype(parser.getFirstAlleleOfSample(tempLine, num), parser.getSecondAlleleOfSample(tempLine, num));
+	return genoMap.toGenotype(parser.getFirstAlleleOfSample(tempLine, num), parser.getSecondAlleleOfSample(tempLine, num));
 }
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){

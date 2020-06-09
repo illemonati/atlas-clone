@@ -15,10 +15,7 @@ namespace GenomeTasks{
 //TWindow_base
 //-------------------------------------------------------
 TWindow_base::TWindow_base(){
-	startPos = 0;
-	endPos = 0;
-	length = 0;
-	_refId = 0;
+	_length = 0;
 	_sites = NULL;
 	_depth = 0;
 	_fractionSitesNoData = 0.0;
@@ -65,8 +62,10 @@ TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const doubl
 };
 
 void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	clear();
+
 	//set coordinates
-	_setCoordinates(other.startPos, other.endPos, other._refId);
+	_setCoordinates(other._start, other._end);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb, randomGenerator);
@@ -76,8 +75,10 @@ void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth,
 };
 
 void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+	clear();
+
 	//set coordinates
-	_setCoordinates(other.startPos, other.endPos, other._refId);
+	_setCoordinates(other._start, other._end);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
@@ -102,13 +103,14 @@ void TWindow_base::clear(){
 	_passedFilters = false;
 };
 
-void TWindow_base::_setCoordinates(long Start, long End, int RefID){
-	startPos = Start;
-	endPos = End;
-	_refId = RefID;
-	clear();
-	length = endPos - startPos;
-	_sites.resize(length);
+void TWindow_base::_setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End){
+	if(!Start.sameChr(End) || End < Start){
+		throw std::runtime_error("void TWindow_base::_setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile): failed to move window!");
+	}
+	_start = Start;
+	_end = End;
+	_length = 1 + (End - Start);
+	_sites.resize(_length);
 };
 
 void TWindow_base::_calcDepth(){
@@ -118,31 +120,31 @@ void TWindow_base::_calcDepth(){
 		long plentyData = 0;
 		int depthPerSite;
 		_fractionRefIsN = 0;
-		for(unsigned int i=0; i<length; ++i){
-			depthPerSite = _sites[i].depth();
+
+		for(auto& s : _sites){
+			depthPerSite = s.depth();
 			_depth += depthPerSite;
 			if(depthPerSite == 0){
 				++noData;
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(_sites[i].referenceBase == N){
+			if(s.referenceBase == N){
 				++_fractionRefIsN;
 			}
 		}
 
-		_depth = _depth / (double) length;
-		_numSitesWithData = length - noData;
-		_fractionSitesNoData = (double) noData / (double) length;
-		_fractionDepthAtLeastTwo = (double) plentyData / (double) length;
-		_fractionRefIsN /= (double) length;
+		_depth = _depth / (double) _length;
+		_numSitesWithData = _length - noData;
+		_fractionSitesNoData = (double) noData / (double) _length;
+		_fractionDepthAtLeastTwo = (double) plentyData / (double) _length;
+		_fractionRefIsN /= (double) _length;
 	}
 };
 
-void TWindow_base::move(unsigned int Start, unsigned int End, int ChrNumber, TLog* logfile){
-	_setCoordinates(Start, End, ChrNumber);
+void TWindow_base::move(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile){
+	_setCoordinates(Start, End);
 };
-
 
 double TWindow_base::depth(){
 	_calcDepth();
@@ -200,16 +202,15 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLo
 
 
 void TWindow_base::writeCoordinates(TOutputFile & out){
-	out << _chrName << startPos << endPos;
+	out << _chrName << _start.position() << _end.position();
 };
 
 void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 	if(!referenceBaseAdded && reference.hasReference()){
-		int stop = endPos - 1; //note that end is last position + 1
 		std::string ref; //fasta object fills string
-		reference.fill(_refId, startPos, stop, ref);
-		for(unsigned int i=0; i<length; ++i){
-			_sites[i].setRefBase(genoMap.getBase(ref[i]));
+		reference.fill(_start, _end, ref);
+		for(unsigned int i=0; i<_length; ++i){
+			_sites[i].setRefBase(genoMap.toBase(ref[i]));
 		}
 		referenceBaseAdded = true;
 	}
@@ -217,13 +218,13 @@ void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 
 void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	if(!referenceBaseAdded){
-		if(subset.hasPositionsInWindow(startPos)){
+		if(subset.hasPositionsInWindow(_start, _end)){
 			//now only run over sites listed in that window
-			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(startPos);
+			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(_start, _end);
 			int pos;
 			for(auto& it : thesePositions){
-				pos = it.position - startPos;
-				_sites[pos].setRefBase(it.ref);
+				pos = it._genomicPosition - startPos;
+				_sites[pos].setRefBase(it._ref);
 			}
 		}
 		referenceBaseAdded = true;
@@ -233,7 +234,7 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 void TWindow_base::applyMask(BAM::TBedReaderWindows* mask, bool doInverseMasking){
 	unsigned int first = 0;
 	if(doInverseMasking){
-		if(mask->hasPositionsInWindow(startPos)){
+		if(mask->hasPositionsInWindow(_start, _end)){
 			std::vector<unsigned int> thesePos = mask->getPositionInWindow(startPos);
 			for(std::vector<unsigned int>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
 				unsigned int pos = *it - startPos;
@@ -484,10 +485,10 @@ void TWindow::_fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> 
 			if(internalPos >= length) break; //since part of the read maps to next window
 
 			//find position in thesePos
-			while(it != thesePos.end() && it->position < alignmentIt->positionInRef(p)) ++it;
+			while(it != thesePos.end() && it->_genomicPosition < alignmentIt->positionInRef(p)) ++it;
 
 			//add
-			if(it != thesePos.end() && it->position == alignmentIt->positionInRef(p) && sites[internalPos].depth() < readUpToDepth){
+			if(it != thesePos.end() && it->_genomicPosition == alignmentIt->positionInRef(p) && sites[internalPos].depth() < readUpToDepth){
 				sites[internalPos].add(&alignmentIt->base(p));
 			}
 		}

@@ -13,6 +13,7 @@
 #include "stringFunctions.h"
 #include "TParameters.h"
 #include "TLog.h"
+#include "TGenomePosition.h"
 
 namespace BAM{
 
@@ -25,6 +26,7 @@ public:
 	std::string name; //SN field
 	uint32_t length; //LS field
 	uint8_t ploidy;
+	TGenomePosition chrStart, chrEnd;
 	bool inUse;
 
 	//the following fields are not parsed.
@@ -43,10 +45,29 @@ public:
 		length = Length;
 		ploidy = 2; //default: diploid
 		inUse = true;
+
+		//set TGenomePosition
+		chrStart.update(refID, 0);
+		chrStart.update(refID, length); //end is not included
 	};
 
 	std::string compileSamHeader() const;
 };
+
+inline bool operator<(const TGenomePosition & pos, const TChromosome & chr){
+	return pos < chr.chrStart;
+};
+inline bool operator<(const TChromosome & chr, const TGenomePosition & pos){
+	return chr.chrEnd < pos;
+};
+inline bool operator<(const TChromosome & chr, const TGenomeWindow & win){
+	return chr.chrEnd < win;
+};
+inline bool operator<(const TGenomeWindow & win, const TChromosome & chr){
+	return win < chr.chrStart;
+};
+
+
 
 //---------------------------------------------------------
 // TChromosomes
@@ -115,6 +136,12 @@ public:
 
 	uint8_t ploidy(const uint32_t RefID) const;
 	uint8_t curPloidy() const;
+
+	const TGenomePosition& chrStart(const uint32_t RefID) const;
+	const TGenomePosition& curChrStart() const;
+
+	const TGenomePosition& chrEnd(const uint32_t RefID) const;
+	const TGenomePosition& curChrEnd() const;
 
 	std::string compileSamHeader() const;
 };
