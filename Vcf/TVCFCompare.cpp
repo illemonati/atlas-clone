@@ -314,6 +314,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	TOutputFile diffFile;
 	if(writeDifferences){
 		std::string filename = out + "_differences.txt.gz";
+		logfile->list("Writing sites with different calls to file '" + filename + "'.");
 		diffFile.open(filename);
 		diffFile.writeHeader({"chr", "pos", "call1", "call2"});
 	}
