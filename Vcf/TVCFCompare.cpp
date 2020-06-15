@@ -263,7 +263,7 @@ void TVCFCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int
 		} else {
 			counts.addOtherMissing(sample, vcfFiles[sample].base(genoMap));
 		}
-	}
+	};
 };
 
 void TVCFCompare::compareVCFFiles(TParameters & parameters){
@@ -308,6 +308,16 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 		lineLimit = parameters.getParameterInt("limitLines");
 	}
 
+	//write positions that differ
+	std::string out = parameters.getParameterString("out", false);
+	bool writeDifferences = parameters.parameterExists("writeDifferences");
+	TOutputFile diffFile;
+	if(writeDifferences){
+		std::string filename = out + "_differences.txt.gz";
+		diffFile.open(filename);
+		diffFile.writeHeader({"chr", "pos", "call1", "call2"});
+	}
+
 	//set filters in VCF files
 	for(TVCFComapreVCF& it : vcfFiles){
 		it.setFilters(minDepth, minQual);
@@ -339,23 +349,39 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 					//do not add comparisons where both are missing
 					if(!vcfFiles[1].isMissing()){
 						addToOtherMissing(counts, 1);
+						if(writeDifferences)
+							diffFile << vcfFiles[1].chr() << vcfFiles[1].position() << "N" << genoMap.getGenotypeString(vcfFiles[1].genotype(genoMap)) << std::endl;
 					}
 				} else {
 					if(vcfFiles[1].isMissing()){
 						addToOtherMissing(counts, 0);
+						if(writeDifferences)
+							diffFile << vcfFiles[0].chr() << vcfFiles[0].position() << genoMap.getGenotypeString(vcfFiles[0].genotype(genoMap)) << "N" << std::endl;
 					} else {
 						//both have calls
 						if(vcfFiles[0].isDiploid()){
 							if(vcfFiles[1].isDiploid()){
 								counts.add(vcfFiles[0].genotype(genoMap), vcfFiles[1].genotype(genoMap));
+								if(writeDifferences && vcfFiles[0].genotype(genoMap) != vcfFiles[1].genotype(genoMap)){
+									diffFile << vcfFiles[0].chr() << vcfFiles[0].position() << genoMap.getGenotypeString(vcfFiles[0].genotype(genoMap)) << genoMap.getGenotypeString(vcfFiles[1].genotype(genoMap)) << std::endl;
+								}
 							} else {
 								counts.add(vcfFiles[0].genotype(genoMap), vcfFiles[1].base(genoMap));
+								if(writeDifferences){
+									diffFile << vcfFiles[0].chr() << vcfFiles[0].position() << genoMap.getGenotypeString(vcfFiles[0].genotype(genoMap)) << genoMap.getBaseAsChar(vcfFiles[1].base(genoMap)) << std::endl;
+								}
 							}
 						} else {
 							if(vcfFiles[1].isDiploid()){
 								counts.add(vcfFiles[0].base(genoMap), vcfFiles[1].genotype(genoMap));
+								if(writeDifferences){
+									diffFile << vcfFiles[0].chr() << vcfFiles[0].position() << genoMap.getBaseAsChar(vcfFiles[0].base(genoMap)) << genoMap.getGenotypeString(vcfFiles[1].genotype(genoMap)) << std::endl;
+								}
 							} else {
 								counts.add(vcfFiles[0].base(genoMap), vcfFiles[1].base(genoMap));
+								if(writeDifferences && vcfFiles[0].base(genoMap) != vcfFiles[1].base(genoMap)){
+									diffFile << vcfFiles[0].chr() << vcfFiles[0].position() << genoMap.getBaseAsChar(vcfFiles[0].base(genoMap)) << genoMap.getBaseAsChar(vcfFiles[1].base(genoMap)) << std::endl;
+								}
 							}
 						}
 					}
@@ -381,10 +407,14 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 			if(vcfFiles[1].chrParsed(vcfFiles[0].chr())){
 				//vcfFile1 is on next chromosome, hence, position is missing in vcfFile1
 				addToOtherMissing(counts, 0);
+				if(writeDifferences)
+					diffFile << vcfFiles[1].chr() << vcfFiles[1].position() << genoMap.getGenotypeString(vcfFiles[0].genotype(genoMap)) << "N" << std::endl;
 				vcfFiles[0].next();
 			} else if(vcfFiles[0].chrParsed(vcfFiles[1].chr())){
 				//vcfFile0 is on next chromosome, hence, position is missing in vcfFile0
 				addToOtherMissing(counts, 1);
+				if(writeDifferences)
+					diffFile << vcfFiles[1].chr() << vcfFiles[1].position() << "N" << genoMap.getGenotypeString(vcfFiles[1].genotype(genoMap)) << std::endl;
 				vcfFiles[1].next();
 			} else {
 				throw "Chromosomes differ between the two VCF files!";
@@ -408,7 +438,6 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	logfile->endIndent();
 
 	//write output file
-	std::string out = parameters.getParameterString("out", false);
 	if(out.empty()){
 		//guess from filename
 		//get base name of first VCF file
