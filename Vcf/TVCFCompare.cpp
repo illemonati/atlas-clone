@@ -311,7 +311,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	//write positions that differ
 	std::string out = parameters.getParameterString("out", false);
 	bool writeDifferences = parameters.parameterExists("writeDifferences");
-	TOutputFile diffFile;
+	TOutputFileZipped diffFile;
 	if(writeDifferences){
 		std::string filename = out + "_differences.txt.gz";
 		logfile->list("Writing sites with different calls to file '" + filename + "'.");
