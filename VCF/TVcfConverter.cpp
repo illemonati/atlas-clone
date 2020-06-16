@@ -467,7 +467,7 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
-            bedFiles[s]->addSite(reader->position());
+            bedFiles[s]->add(reader->position());
     }
     positionPreviousLocus = reader->position();
 };

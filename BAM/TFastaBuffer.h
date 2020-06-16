@@ -25,10 +25,11 @@ private:
 	TGenotypeMap* _genoMap;
 	bool _hasReference;
 
+	//tmp storage (mutable)
 	mutable BamTools::Fasta _reference;
 	mutable uint32_t _bufferSize;
 	mutable std::string _referenceSequence;
-	mutable BAM::TGenomePosition _curStart, _curEnd;
+	mutable TGenomeWindow _coordinates;
 
 	void _moveTo(const BAM::TGenomePosition Position) const;
 
@@ -36,7 +37,6 @@ public:
 	TFastaBuffer(){
 		_bufferSize = 100000;
 		_referenceSequence = "";
-		_curEnd = 0;
 		_hasReference = false;
 		_genoMap = nullptr;
 	};

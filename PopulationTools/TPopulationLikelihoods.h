@@ -16,8 +16,8 @@
 #include "TRandomGenerator.h"
 #include "TQualityMap.h"
 #include "TGenotypeFrequencies.h"
-#include "../TBed.h"
-#include "../VCF/TVcfFile.h"
+#include "TBed.h"
+#include "TVcfFile.h"
 
 //------------------------------------------------
 //TPopulationSamples
@@ -76,11 +76,11 @@ protected:
 	bool _initialized;
 	TLog* logfile;
 	TQualityMap phredToGTLMap;
-	TVcfFileSingleLine vcfFile;
+	VCF::TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
 
 	//BED file for windows
-	TBed* bedFile;
+	BAM::TBed* bedFile;
 	bool limitToSitesInBed;
 
 	//settings

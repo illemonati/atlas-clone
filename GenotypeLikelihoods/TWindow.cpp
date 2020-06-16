@@ -15,7 +15,6 @@ namespace GenomeTasks{
 //TWindow_base
 //-------------------------------------------------------
 TWindow_base::TWindow_base(){
-	_length = 0;
 	_sites = NULL;
 	_depth = 0;
 	_fractionSitesNoData = 0.0;
@@ -65,7 +64,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth,
 	clear();
 
 	//set coordinates
-	_setCoordinates(other._start, other._end);
+	_setCoordinates(other._coordinates);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb, randomGenerator);
@@ -78,7 +77,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, co
 	clear();
 
 	//set coordinates
-	_setCoordinates(other._start, other._end);
+	_setCoordinates(other._coordinates);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
@@ -103,14 +102,9 @@ void TWindow_base::clear(){
 	_passedFilters = false;
 };
 
-void TWindow_base::_setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End){
-	if(!Start.sameChr(End) || End < Start){
-		throw std::runtime_error("void TWindow_base::_setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile): failed to move window!");
-	}
-	_start = Start;
-	_end = End;
-	_length = 1 + (End - Start);
-	_sites.resize(_length);
+void TWindow_base::_setCoordinates(BAM::TGenomeWindow & Coordinates){
+	_coordinates = Coordinates;
+	_sites.resize(_coordinates.size());
 };
 
 void TWindow_base::_calcDepth(){
@@ -134,16 +128,16 @@ void TWindow_base::_calcDepth(){
 			}
 		}
 
-		_depth = _depth / (double) _length;
-		_numSitesWithData = _length - noData;
-		_fractionSitesNoData = (double) noData / (double) _length;
-		_fractionDepthAtLeastTwo = (double) plentyData / (double) _length;
-		_fractionRefIsN /= (double) _length;
+		_depth = _depth / (double) _coordinates.size();
+		_numSitesWithData = _coordinates.size() - noData;
+		_fractionSitesNoData = (double) noData / (double) _coordinates.size();
+		_fractionDepthAtLeastTwo = (double) plentyData / (double) _coordinates.size();
+		_fractionRefIsN /= (double) _coordinates.size();
 	}
 };
 
-void TWindow_base::move(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile){
-	_setCoordinates(Start, End);
+void TWindow_base::move(const BAM::TGenomeWindow Coordinates, TLog* logfile){
+	_setCoordinates(Coordinates);
 };
 
 double TWindow_base::depth(){
@@ -201,8 +195,8 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLo
 };
 
 
-void TWindow_base::writeCoordinates(TOutputFile & out){
-	out << _chrName << _start.position() << _end.position();
+void TWindow_base::writeCoordinates(TOutputFile & out, const BAM::TChromosomes & Chromosomes){
+	out << _coordinates(Chromosomes);
 };
 
 void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){

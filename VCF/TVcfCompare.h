@@ -13,6 +13,7 @@
 #include "TParameters.h"
 #include "TFile.h"
 #include "TVcfFile.h"
+#include "TTask.h"
 
 namespace VCF{
 

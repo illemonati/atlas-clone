@@ -15,10 +15,11 @@ void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
 	}
-	_curStart.update(Position);
-	_curEnd.update(_curStart.refId(), _curStart.position() + _bufferSize);
-	if(!_reference.GetSequence(_curStart.refId(), _curStart.position(), _curEnd.position(), _referenceSequence))
-		throw "Problem reading " + toString(_curStart.refId()) + ":" + toString(_curStart.position()) + "-" + toString(_curEnd.position()) + " from fasta file! Are you using the correct fasta file?";
+
+	_coordinates.update(Position.refID(), Position._position, Position.position() + _bufferSize);
+
+	if(!_reference.GetSequence(_coordinates.refID(), _coordinates.start(), _coordinates.end(), _referenceSequence))
+		throw "Problem reading " + toString(_coordinates.refID()) + ":" + toString(_coordinates.start()) + "-" + toString(_coordinates.end()) + " from fasta file! Are you using the correct fasta file?";
 };
 
 void TFastaBuffer::initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize){
@@ -38,9 +39,23 @@ void TFastaBuffer::initialize(std::string fastaFile, TGenotypeMap* GenoMap, cons
 	_hasReference = true;
 };
 
+void TFastaBuffer::fill(const TGenomeWindow & Window, std::string & ref) const{
+	//move buffer, if necessary
+	if(!_coordinates.within(Window)){
+		//adjust buffer size?
+		if(Window.size() > _bufferSize){
+			_bufferSize = Window.size();
+		}
+
+		//move
+		_moveTo(Window.startPos());
+	}
+};
+
+/*
 void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t Length, std::string & ref) const{
 	//move buffer, if necessary
-	if(Position  < _curStart || Position + (Length - 1) > _curEnd){
+	if(Position  < _coordinates || Position + Length - 1 > _coordinates){
 		if(Length > _bufferSize){
 			_bufferSize = Length;
 		}
@@ -51,6 +66,7 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t Length,
 void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const{
 	fill(Start, Start - End + 1, ref);
 };
+*/
 
 /*
 void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t end, std::string & ref){
@@ -69,10 +85,10 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t end, st
 */
 
 char TFastaBuffer::refCharAt(const TGenomePosition Position) const{
-	if(Position  < _curStart || Position > _curEnd){
+	if(Position  < _coordinates || Position > _coordinates){
 		_moveTo(Position);
 	}
-	return _referenceSequence[Position.position() - _curStart.position()];
+	return _referenceSequence[Position.position() - _coordinates.start()];
 };
 
 Base TFastaBuffer::refAt(const TGenomePosition Position) const{

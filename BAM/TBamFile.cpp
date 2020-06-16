@@ -541,7 +541,7 @@ bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
 
 bool TBamFile::jump(const TGenomePosition Position){
 	_previousAlignmentPos = -1;
-	return _bamReader.Jump(Position.refId(), Position.position());
+	return _bamReader.Jump(Position.refID(), Position.position());
 };
 
 void TBamFile::rewind(){

@@ -13,9 +13,11 @@
 #include "stringFunctions.h"
 #include "TParameters.h"
 #include "TLog.h"
+#include "TFile.h"
 #include "TGenomePosition.h"
 
 namespace BAM{
+
 
 //---------------------------------------------------------
 // TChromosome
@@ -66,8 +68,6 @@ inline bool operator<(const TChromosome & chr, const TGenomeWindow & win){
 inline bool operator<(const TGenomeWindow & win, const TChromosome & chr){
 	return win < chr.chrStart;
 };
-
-
 
 //---------------------------------------------------------
 // TChromosomes

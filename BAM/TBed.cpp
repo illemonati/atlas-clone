@@ -3,6 +3,172 @@
 
 namespace BAM{
 
+
+//-------------------------------------------------------------
+// TBed
+//-------------------------------------------------------------
+void TBed::add(TGenomeWindow Window){
+	//check if chromosome exists
+	if(!_chromosomes.find(Window.refID())){
+		_chromosomes.insert(Window.refID());
+		_bed.insert(Window);
+	} else {
+		//insert on chromosome that already has windows
+		//Note: windows are sorted by chr and start. Windows do not overlap.
+		//find first window with same position or later
+		auto it = _bed.lower_bound(Window);
+
+		//merge with existing
+		//can overlap with one upstream, but not more than one as otherwise the two preceding ones should overlap.
+		//can overlap with many downstream (if large)
+		//move one up
+		if(it != _bed.begin()){
+			--it;
+		}
+
+		//incorporate downstream as along as there is overlap
+		while(Window.mergeWith(*it)){
+			it = _bed.erase(it);
+		}
+
+		//insert window
+		_bed.insert(Window);
+	}
+};
+
+void TBed::add(TGenomePosition Position){
+	add(TGenomeWindow(Position));
+};
+
+void TBed::add(const uint32_t RefID, const uint32_t Pos){
+	auto it = _bed.lower_bound(TGenomeWindow(RefID, Pos));
+};
+
+void TBed::add(const std::string Filename, TChromosomes & Chromosomes){
+	//add windows from file
+	TInputFile in(Filename, false);
+
+	std::vector<std::string> vec;
+	while(in.read(vec)){
+		//parse data
+		uint32_t refId = Chromosomes.getChromosome(vec[0]);
+		uint32_t start = convertStringCheck<uint32_t>(vec[1]);
+		uint32_t end = convertStringCheck<uint32_t>(vec[2]);
+
+		add(TGenomeWindow(refId, start, end));
+	}
+};
+
+void TBed::write(const std::string Filename, TChromosomes & Chromosomes) const{
+	TOutputFile out(Filename);
+	out.noHeader(3);
+
+	for(auto& it:  _bed){
+		out << Chromosomes.name(it.refID()) << it.start() << it.end() << std::endl;
+	}
+};
+
+uint64_t TBed::size() const{
+	return _bed.size();
+};
+
+uint64_t TBed::length() const{
+	uint64_t l = 0;
+	for(auto& it : _bed){
+		l += it.size();
+	}
+	return l;
+};
+
+bool TBed::exists(const TGenomeWindow window) const{
+	//search entry according to chr and start
+	auto it = _bed.find(window);
+	if(it == _bed.end()){
+		return false;
+	}
+
+	//now check for end
+	if(it->_end == window.end()){
+		return true;
+	} else {
+		return false;
+	}
+};
+
+bool TBed::hasWindowsOnChr(uint32_t refId){
+	auto it = _bed.find(TGenomePosition(refId, 0));
+	if(it == _bed.end() || it->refID() > refId){
+		return false;
+	}
+	return true;
+};
+
+//-----------------------------------------------------
+// TGenomeWindowList
+//-----------------------------------------------------
+void TGenomeWindowList::add(const TGenomeWindow Window){
+	_list.insert(Window);
+};
+
+void TGenomeWindowList::add(const std::string Filename, TChromosomes & Chromosomes){
+	//add windows from file
+	TInputFile in(Filename, false);
+
+	std::vector<std::string> vec;
+	while(in.read(vec)){
+		//parse data
+		uint32_t refId = Chromosomes.getChromosome(vec[0]);
+		uint32_t start = convertStringCheck<uint32_t>(vec[1]);
+		uint32_t end = convertStringCheck<uint32_t>(vec[2]);
+
+		add(TGenomeWindow(refId, start, end));
+	}
+};
+
+void TGenomeWindowList::write(const std::string Filename, TChromosomes & Chromosomes) const{
+	TOutputFile out(Filename);
+	out.noHeader(3);
+
+	for(auto& it:  _list){
+		out << Chromosomes.name(it.refID()) << it.start() << it.end() << std::endl;
+	}
+};
+
+uint64_t TGenomeWindowList::size() const{
+	return _list.size();
+};
+
+uint64_t TGenomeWindowList::length() const{
+	uint64_t l = 0;
+	for(auto& it : _list){
+		l += it.size();
+	}
+	return l;
+};
+
+bool TGenomeWindowList::exists(const TGenomeWindow window) const{
+	//search entry according to chr and start
+	auto it = _list.find(window);
+	if(it == _list.end()){
+		return false;
+	}
+
+	//now check for end
+	if(it->_end == window.end()){
+		return true;
+	} else {
+		return false;
+	}
+};
+
+bool TGenomeWindowList::hasWindowsOnChr(uint32_t refId) const{
+	auto it = _list.find(TGenomePosition(refId, 0));
+	if(it == _list.end() || it->refID() > refId){
+		return false;
+	}
+	return true;
+};
+/*
 //---------------------------------------
 // TBedChromosome
 //---------------------------------------
@@ -344,5 +510,6 @@ bool TBed::test(){
 
 	return true;
 };
+*/
 
 }; // end namespace

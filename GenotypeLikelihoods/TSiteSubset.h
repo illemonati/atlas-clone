@@ -40,7 +40,7 @@ public:
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
 	void write(TOutputFile & out) const;
 
-	uint32_t refID() const{ return _genomicPosition.refId(); };
+	uint32_t refID() const{ return _genomicPosition.refID(); };
 	uint32_t position() const{ return _genomicPosition.position(); };
 	Base ref() const{ return _ref; };
 	Base alt() const{ return _alt; };

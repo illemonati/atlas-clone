@@ -30,10 +30,8 @@ class TWindow_base{
 protected:
 	std::vector<TSite> _sites;
 	uint32_t _numReadsInWindow;
-	BAM::TGenomePosition _start;
-	BAM::TGenomePosition _end;
-	uint32_t _length;
-	std::string _chrName;
+	BAM::TGenomeWindow _coordinates;
+	//std::string _chrName;
 
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
@@ -46,7 +44,7 @@ protected:
 
 	bool _passedFilters;
 
-	void _setCoordinates(const BAM::TGenomePosition Start, const BAM::TGenomePosition End);
+	void _setCoordinates(BAM::TGenomeWindow & Coordinates);
 
 	//TODO: make as much as possible private
 public:
@@ -63,7 +61,7 @@ public:
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
-	virtual void move(const BAM::TGenomePosition Start, const BAM::TGenomePosition End, TLog* logfile);
+	virtual void move(const BAM::TGenomeWindow Coordinates, TLog* logfile);
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 	void initSites(long newLength);
 	void clear();
@@ -74,13 +72,26 @@ public:
 	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
+	//comparisons
+	bool operator<(const TWindow_base & other){
+		return this->_coordinates < other._coordinates;
+	};
+	bool operator<(const BAM::TGenomePosition & pos){
+		return this->_coordinates < pos;
+	};
+	bool operator>(const BAM::TGenomePosition & pos){
+		return this->_coordinates > pos;
+	};
+	bool operator==(const BAM::TGenomePosition & pos){
+		return _coordinates == pos;
+	};
+
 	//getters
-	const BAM::TGenomePosition& startPos(){ return _start; };
-	const BAM::TGenomePosition& endPos(){ return _end; };
+	const BAM::TGenomeWindow& coordinates() const{ return _coordinates; };
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
-	uint32_t refId() const{ return _start.refId(); };
-	uint32_t posInRef(uint32_t internalPos) const{ return _start.position() + internalPos; };
+	uint32_t refId() const{ return _coordinates.refID(); };
+	uint32_t posInRef(uint32_t internalPos) const{ return _coordinates.start() + internalPos; };
 	double depth();
 	double fractionSitesNoData();
 	double fractionDepthAtLeastTwo();

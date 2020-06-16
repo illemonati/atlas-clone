@@ -8,13 +8,79 @@
 #ifndef TBED_H_
 #define TBED_H_
 
-#include <map>
-#include "stringFunctions.h"
-#include "gzstream.h"
+#include <set>
 #include "TFile.h"
+#include "TGenomePosition.h"
+#include "TChromosomes.h"
 
 namespace BAM{
 
+//-------------------------------------------------------------
+// TBed
+// a list of non-overlapping windows
+//-------------------------------------------------------------
+class TBed{
+private:
+	std::set<TGenomeWindow, std::less<>> _bed;
+	std::set<uint32_t> _chromosomes;
+
+public:
+	TBed(){};
+
+	void add(TGenomeWindow Window);
+	void add(TGenomePosition Position);
+	void add(const uint32_t Chr, const uint32_t Pos);
+
+	void add(const std::string Filename, TChromosomes & Chromosomes);
+	void write(const std::string Filename, TChromosomes & Chromosomes) const;
+
+	uint64_t size() const;
+	uint64_t length() const;
+
+	bool exists(const TGenomeWindow Window) const;
+	bool hasWindowsOnChr(uint32_t refId);
+
+	//loop
+	std::set<TGenomeWindow>::iterator begin(){ return _bed.begin(); };
+	std::set<TGenomeWindow>::iterator end(){ return _bed.end(); };
+
+	std::set<TGenomeWindow>::iterator begin(const uint32_t refId){ return _bed.find(TGenomePosition(refId, 0)); };
+	std::set<TGenomeWindow>::iterator end(const uint32_t refId){ return _bed.lower_bound(TGenomePosition(refId+1, 0)); };
+};
+
+
+//-----------------------------------------------------
+// TGenomeWindowList
+// a list of potentially overlapping windows
+//-----------------------------------------------------
+class TGenomeWindowList{
+private:
+	std::multiset<TGenomeWindow> _list;
+
+public:
+	TGenomeWindowList(){};
+
+	void add(const TGenomeWindow Window);
+	void add(const std::string Filename, TChromosomes & Chromosomes);
+	void write(const std::string Filename, TChromosomes & Chromosomes) const;
+
+	uint64_t size() const;
+	uint64_t length() const;
+
+	bool exists(const TGenomeWindow Window) const;
+	bool hasWindowsOnChr(uint32_t refId) const;
+
+	//loop
+	std::multiset<TGenomeWindow>::iterator begin(){ return _list.begin(); };
+	std::multiset<TGenomeWindow>::iterator end(){ return _list.end(); };
+};
+
+
+
+/*
+
+
+//------------------ OLD ----------------------------
 typedef std::map<uint64_t, uint64_t> TBedWindowMap;
 
 class TBedChromosome{
@@ -101,6 +167,7 @@ public:
 	bool test();
 	void write(const std::string filename);
 };
+*/
 
 }; //end namespace
 
