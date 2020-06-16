@@ -21,12 +21,13 @@ TReadGroup::TReadGroup(const uint16_t ID, const std::string Name){
 	writeToHeader = true;
 };
 
+/*
 TReadGroup::TReadGroup(const TReadGroup & other){
 	id = other.id;
 	description_DS = other.description_DS;
 	flowOrder_FO = other.flowOrder_FO;
 	name_ID = other.name_ID;
-	KS = other.KS;
+	keySequence_KS = other.keySequence_KS;
 	library_LB = other.library_LB;
 	platformUnit_PU = other.platformUnit_PU;
 	predictedInsertSize_PI = other.predictedInsertSize_PI;
@@ -39,6 +40,7 @@ TReadGroup::TReadGroup(const TReadGroup & other){
 	inUse = true;
 	writeToHeader = true;
 };
+*/
 
 std::string TReadGroup::compileSamHeader() const{
 	std::string header = "@RG\tID:" + name_ID;
@@ -63,8 +65,8 @@ std::string TReadGroup::compileSamHeader() const{
 		header += "\tFO:" + flowOrder_FO;
 	}
 
-	if(!KS.empty()){
-		header += "\tKS:" + KS;
+	if(!keySequence_KS.empty()){
+		header += "\tKS:" + keySequence_KS;
 	}
 
 	if(!library_LB.empty()){
@@ -102,12 +104,8 @@ bool TReadGroup::operator<(const TReadGroup & right){
 	return name_ID < right.name_ID;
 };
 
-bool operator<(const std::string & left, const TReadGroup & right){
-	return left < right.name_ID;
-};
-
-bool operator<(const TReadGroup & left, const std::string & right){
-	return left.name_ID < right;
+bool TReadGroup::operator<(const std::string & right){
+	return name_ID < right;
 };
 
 //---------------------------------------------------------------
@@ -252,7 +250,11 @@ void TReadGroups::fillVectorWithNames(std::vector<std::string> & vec) const{
 };
 
 std::string TReadGroups::compileSamHeader() const{
-
+	std::string header;
+	for(auto& rg : _readGroups){
+		header += rg.compileSamHeader() + "\n";
+	}
+	return header;
 };
 
 //---------------------------------------------------------------

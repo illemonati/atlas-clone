@@ -309,7 +309,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 	if(Parameters.parameterExists("window")){
 		std::string filename = Parameters.getParameterString("window");
 		logfile->list("Will limit analysis to windows listed in BED file '" + filename + "'.");
-		bedFile = new TBed(filename);
+		bedFile = new BAM::TBed(filename);
 		logfile->conclude("Will use " + toString(bedFile->size()) + " windows of cumulative length " + toString(bedFile->length()) + " bp on " + toString(bedFile->getNumChromosomes()) + " chromosomes.");
 		limitToSitesInBed = true;
 	}
@@ -657,15 +657,15 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
-		uint64_t pos = stringToLong(tmp[1]);
-		_trueAlleleFrequency = stringToDouble(tmp[2]);
+		uint64_t pos = convertString<uint64_t>(tmp[1]);
+		_trueAlleleFrequency = convertString<double>(tmp[2]);
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
 			fillVectorFromString(temp, tmp, "\t");
 			if(tmp.size() != 3)
 				throw "wrong number of columns in true allele frequency file!";
-			pos = stringToInt(tmp[1]);
+			pos = convertString<uint64_t>(tmp[1]);
 		}
 		if(pos > vcfFile.position() - 1)
 			throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);

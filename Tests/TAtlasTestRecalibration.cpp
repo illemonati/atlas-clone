@@ -404,8 +404,8 @@ void TAtlasTest_qualityTransformationRecalPlain::setVariables(TParameters & para
 	maxReadLength = 70;
 	randomGenerator = new TRandomGenerator();
 	qualDistString = "10";
-	qualityDist =  new TSimulatorQualityDist(qualDistString);
-	recalObject = new TSimulatorQualityTransformationRecal("qualFuncPosFuncContext[" + onlyRecalParams + "]", maxReadLength, qualityDist, randomGenerator);
+	qualityDist =  new Simulations::TSimulatorQualityDist(qualDistString);
+	recalObject = new Simulations::TSimulatorQualityTransformationRecal("qualFuncPosFuncContext[" + onlyRecalParams + "]", maxReadLength, qualityDist, randomGenerator);
 
 };
 
@@ -512,8 +512,8 @@ void TAtlasTest_qualityTransformationRecalBinned::setVariables(TParameters & par
 	taskList = TaskList;
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "qualFuncPosFuncContext[2,0;0,0;0{20}]");
 	qualDistString = "(10,15,20,30)";
-	qualityDist =  new TSimulatorQualityDistBinned(qualDistString, randomGenerator);
-	recalObject = new TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
+	qualityDist =  new Simulations::TSimulatorQualityDistBinned(qualDistString, randomGenerator);
+	recalObject = new Simulations::TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
 	fillVectorFromStringAnySkipEmpty(qualDistString, qualDistVec, ",");
 };
 

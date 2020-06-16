@@ -40,7 +40,7 @@ void TSequencingErrorCovariateFunction::_initializValues(std::vector<std::string
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
-			_betas[i] = stringToDoubleCheck(values[i]);
+			_betas[i] = convertStringCheck<double>(values[i]);
 		}
 	}
 };
@@ -378,11 +378,11 @@ TSequencingErrorCovariateFunction_specificMap::TSequencingErrorCovariateFunction
 		if(pos == std::string::npos){
 			throw "Can not parse value '" + s + "': missing ':'!";
 		}
-		uint16_t key = stringToIntCheck(s.substr(0, pos));
+		uint16_t key = convertStringCheck<uint16_t>(s.substr(0, pos));
 		if(tmp.find(key) != tmp.end()){
 			throw "Duplicate entry for key " + toString(key) + "!";
 		}
-		tmp.emplace(key, stringToDoubleCheck(s.substr(pos+1)));
+		tmp.emplace(key, convertStringCheck<double>(s.substr(pos+1)));
 	}
 
 	//find largest value

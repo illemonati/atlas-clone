@@ -63,13 +63,12 @@ public:
     bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
     TReadGroup(const uint16_t ID, const std::string Name);
-    TReadGroup(const TReadGroup & other);
+    TReadGroup(const TReadGroup & other) = default;
     TReadGroup* getPointer(){ return this; };
     std::string compileSamHeader() const;
 
     bool operator<(const TReadGroup & right);
-    bool operator<(const std::string & left, const TReadGroup & right);
-    bool operator<(const TReadGroup & left, const std::string & right);
+    bool operator<(const std::string & right);
 };
 
 //---------------------------------------------------------------

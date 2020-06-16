@@ -163,7 +163,7 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 		//skip empty lines
 		if(vec.size() > 0){
 			auto c = _find(vec[0]);
-			c.ploidy = stringToInt(vec[1]);
+			c.ploidy = convertString<int>(vec[1]);
 
 			//report
 			if(c.ploidy == 1){

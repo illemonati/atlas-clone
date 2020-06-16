@@ -282,7 +282,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		for(int b=0; b<4; ++b)
 			baseCounts[b] = std::count(line[5].begin(), line[5].end(), genoMap.getBaseAsChar(b));
 
-		int firstBase = (int) ((truePos-1) / readLength) % 4;
+		uint8_t firstBase = (int) ((truePos-1) / readLength) % 4;
 
 		if(chr == "Chr1"){
 			//homozgous case
@@ -299,17 +299,17 @@ bool TAtlasTest_pileup::checkPileupFile(){
 				emissionProbs[b] = pow(error/3.0, trueDepth);
 
 			//correct homozygous genotype
-			emissionProbs[genoMap.getGenotype(firstBase,firstBase)] = pow(1.0-error, trueDepth);
+			emissionProbs[genoMap.toGenotype(firstBase,firstBase)] = pow(1.0-error, trueDepth);
 
 			//all heterozygous that contain the correct base
 			for(int b=1; b<4; ++b)
-				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 - error/3.0, trueDepth);
+				emissionProbs[genoMap.toGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 - error/3.0, trueDepth);
 		} else {
 			//heterozygous case
 			//bases
 			size_t depthFirstBase = trueDepth / 2;
 			size_t depthSecondBase = trueDepth - depthFirstBase;
-			int secondBase = (firstBase + 1) % 4;
+			uint8_t secondBase = (firstBase + 1) % 4;
 			if(baseCounts[firstBase] != depthFirstBase || baseCounts[secondBase] != depthSecondBase){
 				logfile->newLine();
 				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
@@ -323,19 +323,19 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 			//all heterozygous with one correct base
 			for(int b=1; b<4; ++b){
-				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 * (1.0 - error), depthFirstBase);
-				emissionProbs[genoMap.getGenotype(firstBase,(firstBase + b) % 4)] *= pow(error / 3.0, depthSecondBase);
+				emissionProbs[genoMap.toGenotype(firstBase,(firstBase + b) % 4)] = pow(0.5 * (1.0 - error), depthFirstBase);
+				emissionProbs[genoMap.toGenotype(firstBase,(firstBase + b) % 4)] *= pow(error / 3.0, depthSecondBase);
 
-				emissionProbs[genoMap.getGenotype(secondBase,(secondBase + b) % 4)] = pow(0.5 * (1.0 - error), depthSecondBase);
-				emissionProbs[genoMap.getGenotype(secondBase,(secondBase + b) % 4)] *= pow(error / 3.0, depthFirstBase);
+				emissionProbs[genoMap.toGenotype(secondBase,(secondBase + b) % 4)] = pow(0.5 * (1.0 - error), depthSecondBase);
+				emissionProbs[genoMap.toGenotype(secondBase,(secondBase + b) % 4)] *= pow(error / 3.0, depthFirstBase);
 			}
 
 			//all homozygous that contain a correct base
-			emissionProbs[genoMap.getGenotype(firstBase,firstBase)] = pow(0.5 * (1.0 - error), trueDepth);
-			emissionProbs[genoMap.getGenotype(secondBase,secondBase)] = pow(0.5 * (1.0 - error), trueDepth);
+			emissionProbs[genoMap.toGenotype(firstBase,firstBase)] = pow(0.5 * (1.0 - error), trueDepth);
+			emissionProbs[genoMap.toGenotype(secondBase,secondBase)] = pow(0.5 * (1.0 - error), trueDepth);
 
 			//correct heterozygous genotype
-			emissionProbs[genoMap.getGenotype(firstBase,secondBase)] = pow(1.0-error, trueDepth);
+			emissionProbs[genoMap.toGenotype(firstBase,secondBase)] = pow(1.0-error, trueDepth);
 		}
 
 		//check refDepth

@@ -55,7 +55,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_refIDUsed.emplace(chr.refID);
 
 		//extract positions
-		uint32_t pos = stringToInt(line[1]) - 1; //make 0-based
+		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
 		Base ref = GenoMap.toBase(line[2][0]);
 		Base alt = GenoMap.toBase(line[3][0]);
 
@@ -89,7 +89,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_refIDUsed.emplace(chr.refID);
 
 		//extract positions
-		uint32_t pos = stringToInt(line[1]) - 1; //make 0-based
+		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
 		Base ref = GenoMap.toBase(line[2][0]);
 		Base alt = GenoMap.toBase(line[3][0]);
 

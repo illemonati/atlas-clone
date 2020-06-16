@@ -9,7 +9,6 @@
 #define TESTS_TATLASTESTFILTER_H_
 
 #include "TAtlasTest.h"
-#include "../TAlignmentParser.h"
 
 class TAtlasTest_filter:public TAtlasTest{
 private:

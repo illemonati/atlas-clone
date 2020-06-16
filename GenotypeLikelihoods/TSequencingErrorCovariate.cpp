@@ -80,7 +80,7 @@ void TSequencingErrorCovariate::_addPolynomialFunction(const size_t FirstParamet
 		if(args.size() != 1){
 			throw "Wrong number of arguments for polynomial recal function '" + functionString + "': expect one argument (order).";
 		}
-		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, stringToIntCheck(args[0])));
+		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, convertStringCheck<uint32_t>(args[0])));
 	} else {
 		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, values));
 	}

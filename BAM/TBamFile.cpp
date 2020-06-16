@@ -331,7 +331,7 @@ void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
 
 	//copy from BamHeader
 	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
-		Chromosomes.appendChromosome(chrIt->Name, stringToLong(chrIt->Length));
+		Chromosomes.appendChromosome(chrIt->Name, convertString<uint64_t>(chrIt->Length));
 	}
 };
 

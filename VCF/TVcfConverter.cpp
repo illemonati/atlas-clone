@@ -467,7 +467,7 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
-            bedFiles[s]->add(reader->position());
+            bedFiles[s]->add(reader->chr(), reader->position());
     }
     positionPreviousLocus = reader->position();
 };
@@ -475,9 +475,6 @@ void TVcfToGenotypeTruthSetFile::storeInBedFile(const std::vector<uint32_t> & sa
 void TVcfToGenotypeTruthSetFile::writeData(TPopulationLikehoodLocus & data){
     if (curChr != reader->chr()){ // new chromosome
         curChr = reader->chr();
-        for(uint32_t s = 0; s < samples.numSamples(); s++) {
-            bedFiles[s]->setChrCreateIfNew(curChr);
-        }
         resetDistance();
     }
     filterIndividuals(data);
