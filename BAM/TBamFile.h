@@ -8,11 +8,11 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
-#include "bamtools/api/BamReader.h"
-#include "bamtools/api/BamWriter.h"
-
-#include "TOutputBam.h"
+#include "../bamtools/api/BamReader.h"
+#include "../bamtools/api/BamWriter.h"
 #include "TBamFilter.h"
+#include "TSamHeader.h"
+#include "TAlignment.h"
 
 namespace BAM{
 
@@ -187,6 +187,37 @@ public:
 	void printEndNoEndIndent();
 };
 
+//----------------------------------------------------
+//TOutputBamFile
+//----------------------------------------------------
+class TOutputBamFile{
+	friend TBamFile;
+
+private:
+ 	std::string _outputFilename;
+ 	BamTools::BamWriter _bamWriter;
+ 	bool _openForWriting;
+ 	TReadGroups* const _readGroups;
+ 	TGenotypeMap* _genoMap;
+ 	TQualityMap* _qualityMap;
+
+ 	std::multiset<TAlignment, std::less<>> _futureAlignments;
+
+ 	void _writeAlignment(const TAlignment & alignment);
+ 	void _writeAlignment(BamTools::BamAlignment & alignment);
+
+public:
+ 	TOutputBamFile();
+ 	TOutputBamFile(const std::string filename, const TBamFile & original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	~TOutputBamFile();
+
+ 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups,  TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+	void open(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+	bool isOpen() const{ return _openForWriting; };
+	void close(TLog* logfile);
+	void closeNoIndex();
+	void writeAlignment(const TAlignment & alignment);
+};
 
 }; //end namespace
 

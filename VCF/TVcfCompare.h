@@ -14,6 +14,7 @@
 #include "TFile.h"
 #include "TVcfFile.h"
 #include "TTask.h"
+#include "TGenotypeMap.h"
 
 namespace VCF{
 

@@ -11,6 +11,7 @@
 #include "TGenotypeMap.h"
 #include <bitset>
 
+namespace BAM{
 
 //---------------------------------------------------------------
 //TBase
@@ -52,6 +53,8 @@ public:
 	void setReverseStrand(const bool status){ flags[0] = status; };
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
+};
+
 };
 
 #endif /* TBASE_H_ */

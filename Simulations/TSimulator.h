@@ -52,6 +52,7 @@ protected:
 
 	//Quality transformation
 	TGenotypeMap genoMap;
+	TQualityMap qualMap;
 
 	//helper tools
 	char toBase[4] = {'A', 'C', 'G', 'T'};

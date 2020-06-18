@@ -112,7 +112,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_mean = stringToDouble(s.substr(0,pos));
+	_mean = convertString<double>(s.substr(0,pos));
 	if(_mean < 0)
 		throw "Fail to understand function '" + orig + "': mean must be > 0.";
 	s.erase(0,pos+1);
@@ -120,7 +120,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(")");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_sd = stringToDouble(s.substr(0,pos));
+	_sd = convertString<double>(s.substr(0,pos));
 	if(_sd < 0)
 			throw "Fail to understand function '" + orig + "': sd must be > 0.";
 	s.erase(0,pos+1);
@@ -131,14 +131,14 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_min = stringToDouble(s.substr(0,pos));
+	_min = convertString<double>(s.substr(0,pos));
 	if(_min < 0)
 		throw "Fail to understand function '" + orig + "': min must be >= 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_max = stringToDouble(s.substr(0,pos));
+	_max = convertString<double>(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand function '" + orig + "': max must be >= min!";
 };
@@ -315,11 +315,11 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	sdPhred = qualityDist->sd();
 	std::vector<std::string> vec;
 	fillVectorFromStringAnySkipEmpty(s, vec, ",");
-	phi1 = stringToInt(vec[0]);
-	phi2 = stringToDouble(vec[1]);
+	phi1 = convertString<int>(vec[0]);
+	phi2 = convertString<double>(vec[1]);
 	logfile->list("Simulating BQSR quality effect with phi1 = " + toString(phi1) + " and phi2 = " + toString(phi2));
 
-	revIntercept = stringToDouble(vec[2]);
+	revIntercept = convertString<double>(vec[2]);
 	if(revIntercept < 0.0) throw("revIntercept cannot be negative!");
 	else if(revIntercept == 1.0){
 		m = 0.0;

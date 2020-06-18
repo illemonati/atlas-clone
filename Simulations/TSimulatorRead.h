@@ -61,7 +61,7 @@ protected:
 
 	//general functions
 	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
-	void _applyPMD(Base* _bases, BamTools::BamAlignment & alignment, int & fragmentLength);
+	void _applyPMD(Base* _bases, const uint16_t readLength, const uint16_t fragmentLength, const bool isReverseStrand);
 	std::string _getNextReadName();
 	void _fillAlignmentDetails(BAM::TAlignment & alignment, const uint16_t Length, const Base* theBases, const int* thePhredIntQualities);
 
@@ -89,8 +89,7 @@ public:
 		return readLengthDist->max();
 	};
 
-	void setRefId(int refId){ _alignment.s refId; };
-	virtual void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
+	virtual void simulate(Base* haplotype, const uint32_t refID, const long & pos, TSimulatorBamFile & bamFile);
 
 	void printDetails(TLog* logfile);
 	virtual void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){};
@@ -101,8 +100,11 @@ public:
 //-------------------------------
 class TSimulatorPairedEndReads:public TSimulatorSingleEndRead{
 private:
-	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates;
-	std::vector<BamTools::BamAlignment*> bamAlignmentSecondMates_idle;
+	BAM::TSamFlags _mateFlags;
+	//BAM::TAlignment _mate;
+
+	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
+	std::vector<BAM::TAlignment> bamAlignmentSecondMates_idle;
 
 	TSimulatorQualityTransformation* qualityTransform_secondMate;
 
@@ -113,7 +115,7 @@ public:
 	~TSimulatorPairedEndReads();
 
 	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
-	void simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile);
+	void simulate(Base* haplotype, const uint32_t refID, const long & pos, TSimulatorBamFile & bamFile);
 	void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile);
 };
 

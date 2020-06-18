@@ -211,17 +211,15 @@ void TGenome_windows::_setWindowParameters(TParameters & params){
 
 	//check if it is a number
 	if(stringIsProbablyANumber(tmp)){
-		_windowsPredefined = false;
 		_windowSize = convertString<int>(tmp);
 		_logfile->list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if(_windowSize < _bamFile.maxReadLength())
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(_bamFile.maxReadLength()) + " bp). (use parameter 'maxReadLength' to change)!";
 	} else {
-		_windowsPredefined = true;
-		_logfile->listFlush("Limiting analysis to windows defined in '" + tmp + "'...");
-		_predefinedWindows = new BAM::TBed(tmp);
+		_logfile->listFlush("Limiting analysis to windows defined in BED file '" + tmp + "'...");
+		_predefinedWindows.add(tmp, _chromosomes);
 		_logfile->done();
-		_logfile->conclude("Read " + toString(_predefinedWindows->size()) + " of cumulative length " + toString(_predefinedWindows->length()) + " bp on " + toString(_predefinedWindows->getNumChromosomes()) + " chromosomes.");
+		_logfile->conclude("Read " + toString(_predefinedWindows.size()) + " of cumulative length " + toString(_predefinedWindows.length()) + " bp on " + toString(_predefinedWindows.getNumChromosomes()) + " chromosomes.");
 	}
 	_numWindowsOnChr = 0;
 };
@@ -387,7 +385,6 @@ void TGenome_windows::_moveChromosome(GenotypeLikelihoods::TWindow_base & window
 
 		//now jump
 		window.move(_predefinedWindows->curWindowStart(), _predefinedWindows->curWindowEnd(), _chromosomes.curRefID(), _logfile);
-		window._chrName = _chromosomes.curName();
 		_bamFile.jump(window.startPos());
 
 	} else {

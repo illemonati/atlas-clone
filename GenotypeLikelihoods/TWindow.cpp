@@ -7,9 +7,7 @@
 
 #include "TWindow.h"
 
-using namespace GenotypeLikelihoods;
-
-namespace GenomeTasks{
+namespace GenotypeLikelihoods{
 
 //-------------------------------------------------------
 //TWindow_base
@@ -64,7 +62,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth,
 	clear();
 
 	//set coordinates
-	_setCoordinates(other._coordinates);
+	update(other);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb, randomGenerator);
@@ -77,7 +75,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, co
 	clear();
 
 	//set coordinates
-	_setCoordinates(other._coordinates);
+	update(other);
 
 	//fill sites by downsampling
 	_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
@@ -103,8 +101,8 @@ void TWindow_base::clear(){
 };
 
 void TWindow_base::_setCoordinates(BAM::TGenomeWindow & Coordinates){
-	_coordinates = Coordinates;
-	_sites.resize(_coordinates.size());
+	update(Coordinates);
+	_sites.resize(size());
 };
 
 void TWindow_base::_calcDepth(){
@@ -128,16 +126,12 @@ void TWindow_base::_calcDepth(){
 			}
 		}
 
-		_depth = _depth / (double) _coordinates.size();
-		_numSitesWithData = _coordinates.size() - noData;
-		_fractionSitesNoData = (double) noData / (double) _coordinates.size();
-		_fractionDepthAtLeastTwo = (double) plentyData / (double) _coordinates.size();
-		_fractionRefIsN /= (double) _coordinates.size();
+		_depth = _depth / (double) size();
+		_numSitesWithData = size() - noData;
+		_fractionSitesNoData = (double) noData / (double) size();
+		_fractionDepthAtLeastTwo = (double) plentyData / (double) size();
+		_fractionRefIsN /= (double) size();
 	}
-};
-
-void TWindow_base::move(const BAM::TGenomeWindow Coordinates, TLog* logfile){
-	_setCoordinates(Coordinates);
 };
 
 double TWindow_base::depth(){
@@ -194,16 +188,15 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLo
 	return _passedFilters;
 };
 
-
 void TWindow_base::writeCoordinates(TOutputFile & out, const BAM::TChromosomes & Chromosomes){
-	out << _coordinates(Chromosomes);
+	out << Chromosomes.name(_refID) << _start << _end;
 };
 
 void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 	if(!referenceBaseAdded && reference.hasReference()){
 		std::string ref; //fasta object fills string
-		reference.fill(_start, _end, ref);
-		for(unsigned int i=0; i<_length; ++i){
+		reference.fill(*this, ref);
+		for(unsigned int i=0; i<size(); ++i){
 			_sites[i].setRefBase(genoMap.toBase(ref[i]));
 		}
 		referenceBaseAdded = true;
@@ -212,9 +205,9 @@ void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 
 void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	if(!referenceBaseAdded){
-		if(subset.hasPositionsInWindow(_start, _end)){
+		if(subset.hasPositionsInWindow(*this)){
 			//now only run over sites listed in that window
-			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(_start, _end);
+			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
 			int pos;
 			for(auto& it : thesePositions){
 				pos = it._genomicPosition - startPos;
@@ -225,36 +218,31 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	}
 };
 
-void TWindow_base::applyMask(BAM::TBedReaderWindows* mask, bool doInverseMasking){
-	unsigned int first = 0;
+void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 	if(doInverseMasking){
-		if(mask->hasPositionsInWindow(_start, _end)){
-			std::vector<unsigned int> thesePos = mask->getPositionInWindow(startPos);
-			for(std::vector<unsigned int>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-				unsigned int pos = *it - startPos;
-				//clear sites between regions (if there are none pos==first)
-				for(unsigned int i=first; i<pos; ++i){
-					if(pos < length){
-						_sites[i].clear();
-					}
-				}
-				first = pos + 1;
+		//only keep site sin BED
+		uint32_t pos = _start;
+		auto it = mask.lower_bound(*this);
+		while(it != mask.end() && this->overlaps(*it)){
+			//mask until start of BED window
+			for(; pos < it->start() & pos < _end; ++pos){
+				_sites[pos - _start].clear();
 			}
-			//clear rest of window if necessary
-			for(unsigned int i=first; i<endPos-startPos; ++i){
-				_sites[i].clear();
-			}
-		//else clear entire window
-		} else clear();
+			//jump to end of BED window
+			pos = it->end();
+		}
+		//clear until end of window
+		for(; pos < _end; ++pos){
+			_sites[pos - _start].clear();
+		}
 	} else {
-		if(mask->hasPositionsInWindow(startPos)){
-			std::vector<unsigned int> thesePos = mask->getPositionInWindow(startPos);
-			//skip sites listed in mask by setting their hasData = false
-			for(std::vector<unsigned int>::iterator it=thesePos.begin(); it!=thesePos.end(); ++it){
-				unsigned int pos = *it - startPos;
-				if(pos < length)
-					_sites[pos].clear();
+		//mas all sites in BED
+		auto it = mask.lower_bound(*this);
+		while(it != mask.end() && this->overlaps(*it)){
+			for(uint32_t s = it->start(); s < it->end() & s < _end; ++s){
+				_sites[s - _start].clear();
 			}
+			++it;
 		}
 	}
 };
@@ -262,11 +250,12 @@ void TWindow_base::applyMask(BAM::TBedReaderWindows* mask, bool doInverseMasking
 void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	//get ref sequence with one extra base on either side of window
 	std::string ref;
-	reference.fill(_refId, startPos - 1, length+2, ref); //NOte:: appends N in case start < 0 or start + length > chr
+	BAM::TGenomePosition pos = startPos() - 1;
+	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
 
-	//now check for each base. Index in re fi shifted by 1!
-	for(size_t i=0; i<length; ++i){
-		if((ref[i+1] == 'C' && ref[i+2] == 'G') || (ref[i] == 'C' && ref[i+1] == 'G')){
+	//now check for each base. Index in ref is shifted by 1!
+	for(uint32_t i=0; i<size(); ++i){
+		if((ref[i] == 'C' && ref[i+1] == 'G') || (ref[i+1] == 'C' && ref[i+2] == 'G')){
 			_sites[i].clear();
 		}
 	}
@@ -283,7 +272,7 @@ void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
 
 
 void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
-	for(unsigned int i=0; i<length; ++i){
+	for(unsigned int i=0; i<size(); ++i){
 		if(_sites[i].hasData){
 			if(_sites[i].bases.size() < minDepth || _sites[i].bases.size() > maxDepth)
 				_sites[i].clear();
@@ -335,14 +324,11 @@ void TWindow::review(){
 	//calcDepth();
 };
 
-void TWindow::_cleanUpUsedAlignments(TLog* logfile){
+void TWindow::_cleanUpUsedAlignments(){
 	if(usedAlignments.size() > 0){
-		//measure time
-		logfile->listFlushTime("Cleaning up data storage ...");
-
 		//go through alignments
 		for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-			if((*alignmentIt)->position < endPos && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= startPos && (*alignmentIt)->refID() == _refId){
+			if((*alignmentIt)->position < _end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= _start && (*alignmentIt)->refID() == _refID){
 				++alignmentIt;
 			} else{
 				(*alignmentIt)->clear();
@@ -350,9 +336,6 @@ void TWindow::_cleanUpUsedAlignments(TLog* logfile){
 				alignmentIt = usedAlignments.erase(alignmentIt);
 			}
 		}
-
-		//report
-		logfile->doneTime();
 	}
 };
 
@@ -364,9 +347,9 @@ void TWindow::_clearAllUsedAlignments(){
 	}
 };
 
-void TWindow::move(unsigned int Start, unsigned int End, int RefId, TLog* logfile){
-	_setCoordinates(Start, End, RefId);
-	_cleanUpUsedAlignments(logfile);
+void TWindow::update(const uint32_t RefID, const uint32_t Start, const uint32_t End){
+	update(RefID, Start, End);
+	_cleanUpUsedAlignments();
 };
 
 void TWindow::printStacks(){
@@ -383,7 +366,7 @@ void TWindow::printStacks(){
 
 void TWindow::_checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt){
 	//check if alignment start is inside window
-	if(alignmentIt->position >= endPos){
+	if(alignmentIt->position >= _end){
 		throw "alignment should be assigned to next window!";
 	}
 };
@@ -401,7 +384,7 @@ void TWindow::_setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, uint16
 			++p;
 		}
 		if(p == alignmentIt->parsedLength()){
-			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name + ". In window " + toString(startPos) + "-" + toString(endPos) + ". with position " + toString(alignmentIt->position);
+			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name + ". In window " + toString(startPos) + "-" + toString(_end) + ". with position " + toString(alignmentIt->position);
 		}
 	}
 };
@@ -421,7 +404,7 @@ void TWindow::_fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & site
 			uint32_t internalPos = alignmentIt->positionInRef(p)- startPos;
 
 			//if read extends past window length
-			if(internalPos >= length) break; //since part of the read maps to next window
+			if(internalPos >= size()) break; //since part of the read maps to next window
 
 			if(sites[internalPos].depth() < readUpToDepth){
 				sites[internalPos].add(&alignmentIt->base(p));
@@ -431,7 +414,7 @@ void TWindow::_fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & site
 };
 
 void TWindow::_fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth){
-	sites.resize(length);
+	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
 	for(BAM::TAlignment* alignmentIt : usedAlignments){
@@ -441,7 +424,7 @@ void TWindow::_fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDe
 };
 
 int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
-	sites.resize(length);
+	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
@@ -476,7 +459,7 @@ void TWindow::_fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> 
 			uint32_t internalPos = alignmentIt->positionInRef(p)- startPos;
 
 			//if read extends past window length
-			if(internalPos >= length) break; //since part of the read maps to next window
+			if(internalPos >= size()) break; //since part of the read maps to next window
 
 			//find position in thesePos
 			while(it != thesePos.end() && it->_genomicPosition < alignmentIt->positionInRef(p)) ++it;
@@ -495,10 +478,10 @@ void TWindow::fillSitesSubset(TSiteSubset & subset, const uint32_t & readUpToDep
 };
 
 void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth){
-	sites.resize(length);
+	sites.resize(size());
 
 	//get positions that are used
-	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(startPos);
+	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
 
 	//add reads in usedAlignments to sites in window
 	for(BAM::TAlignment* alignmentIt : usedAlignments){
@@ -508,10 +491,10 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 };
 
 int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
-	sites.resize(length);
+	sites.resize(size());
 
 	//get positions that are used
-	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(startPos);
+	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;

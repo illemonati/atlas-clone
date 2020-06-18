@@ -397,7 +397,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 	//check if it is a single number or a file
 	if(stringIsProbablyANumber(s)){
 		//is a numberon the command line
-		double rate = stringToDouble(s);
+		double rate = convertString<double>(s);
 		logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
 		contaminationMap.emplace("-", rate);
 		perReadGroup = false;
@@ -428,7 +428,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 				//save to map
 				if(contaminationMap.find(vec[0]) != contaminationMap.end())
 						throw "Duplicated read group name '" + vec[0] + "'in file '" + s + "'!";
-				double rate = stringToDouble(s);
+				double rate = convertString<double>(s);
 				contaminationMap.emplace(vec[0], rate);
 			}
 		}

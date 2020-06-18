@@ -172,11 +172,11 @@ std::string TVcfFile_base::fieldContentAsString(std::string tag, TVcfLine* line,
 }
 
 int TVcfFile_base::fieldContentAsInt(std::string tag, TVcfLine* line, unsigned int sample){
-	return stringToInt(parser.sampleContentAt(*line, tag, sample));
+	return convertString<int>(parser.sampleContentAt(*line, tag, sample));
 }
 
 int TVcfFile_base::depthAsIntNoCheckForMissingSample(std::string tag, TVcfLine* line, unsigned int sample){
-	return stringToInt(parser.sampleContentAtNoCheckForMissingSample(*line, tag, sample));
+	return convertString<int>(parser.sampleContentAtNoCheckForMissingSample(*line, tag, sample));
 }
 
 void TVcfFile_base::setSampleMissing(TVcfLine* line, unsigned int sample){
@@ -393,8 +393,8 @@ double TVcfFileSingleLine::sampleDepth(unsigned int sample){
 	//check if depth is given
 	std::string DP = "DP";
 	if(parser.formatColExists(DP, tempLine))
-		return stringToDouble(parser.sampleContentAt(tempLine, DP, sample));
-		// return stringToInt(parser.sampleContentAt(tempLine, DP, sample));
+		return convertString<double>(parser.sampleContentAt(tempLine, DP, sample));
+		// return convertString<int>(parser.sampleContentAt(tempLine, DP, sample));
 	else return -1;
 }
 

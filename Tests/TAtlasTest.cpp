@@ -258,7 +258,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		}
 
 		//check position
-		if(stringToInt(line[1]) != truePos){
+		if(convertString<int>(line[1]) != truePos){
 			logfile->newLine();
 			logfile->conclude("Wrong position in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(truePos) + ", found " + line[1] + "!");
 			return false;
@@ -271,8 +271,8 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		}
 
 		//check depth
-		unsigned int trueDepth = depths[(truePos-1) / readLength];
-		if(stringToUnsignedInt(line[3]) != trueDepth){
+		uint32_t trueDepth = depths[(truePos-1) / readLength];
+		if(convertString<uint32_t>(line[3]) != trueDepth){
 			logfile->newLine();
 			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[3] + " instead of " + toString(trueDepth));
 			return false;
@@ -340,15 +340,15 @@ bool TAtlasTest_pileup::checkPileupFile(){
 
 		//check refDepth
 		//reference is always C
-		if(stringToUnsignedInt(line[4]) != baseCounts[1]){
+		if(convertString<uint32_t>(line[4]) != baseCounts[1]){
 			logfile->newLine();
 			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "! Estimated at " + line[4] + " instead of " + toString(baseCounts[1]));
 		}
 
 		//now check emission probabilities
 		for(size_t b=0; b<genoMap.numGenotypes; ++b){
-			emissionProbs[b] = stringToDouble(toString(emissionProbs[b]));
-			relDiff = (stringToDouble(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
+			emissionProbs[b] = convertString<double>(toString(emissionProbs[b]));
+			relDiff = (convertString<double>(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){
 				logfile->newLine();
 				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ", which corresponds to pos " + line[1] + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+6] + " (column " + toString(b+6) + ")!");
@@ -528,12 +528,12 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		}
 
 		//parse line into variables
-		int A = stringToInt(line[0]);
-		int C = stringToInt(line[1]);
-		int G = stringToInt(line[2]);
-		int T = stringToInt(line[3]);
-		int count = stringToInt(line[4]);
-		int depth = stringToInt(line[5]);
+		int A = convertString<int>(line[0]);
+		int C = convertString<int>(line[1]);
+		int G = convertString<int>(line[2]);
+		int T = convertString<int>(line[3]);
+		int count = convertString<int>(line[4]);
+		int depth = convertString<int>(line[5]);
 
 		//check depth
 		if(A + C + G + T != depth){
@@ -679,7 +679,7 @@ bool TAtlasTest_theta::checkThetaFile(){
 			return false;
 		}
 		//add new theta value to sum
-		sum += stringToDouble(line[10]);
+		sum += convertString<double>(line[10]);
 
 	}
 	mean = sum / (double) numLines;

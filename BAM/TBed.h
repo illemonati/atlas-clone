@@ -40,14 +40,46 @@ public:
 
 
 //-------------------------------------------------------------
+// TBed_base
+// base class to store a list of windows
+//-------------------------------------------------------------
+class TBed_base{
+protected:
+	std::set<TBedChromosome, std::less<>> _chromosomes; //ordered by name
+	std::map<uint32_t, std::string> _chromosomeNames; //ordered by ID
+
+	template <typename T> uint32_t _numChromosomesWithWindows(const T List) const{
+		if(List.empty()){
+			return 0;
+		}
+
+		uint32_t c = 1;
+		auto it = List.begin();
+		uint32_t curChr = it->refID();
+
+		for(; it!=List.end(); ++it){
+			if(it->refID() > curChr){
+				++c;
+				curChr = it->refID();
+			}
+		}
+		return c;
+	};
+
+public:
+
+	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string Chr);
+	void addChromosomes(const TChromosomes & Chromosomes);
+	uint32_t numChromosomesWithWindows() const;
+};
+
+//-------------------------------------------------------------
 // TBed
 // a list of non-overlapping windows
 //-------------------------------------------------------------
-class TBed{
+class TBed:public TBed_base{
 private:
 	std::set<TGenomeWindow, std::less<>> _bed;
-	std::set<TBedChromosome, std::less<>> _chromosomes; //ordered by name
-	std::map<uint32_t, std::string> _chromosomeNames; //ordered by ID
 
 public:
 	TBed(){};
@@ -57,20 +89,19 @@ public:
 	void add(const uint32_t Chr, const uint32_t Pos);
 	void add(const std::string Chr, const uint32_t Pos);
 
-	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string Chr);
-	void addChromosomes(const TChromosomes & Chromosomes);
-
 	void add(const std::string Filename);
 	void add(const std::string Filename, const TChromosomes & Chromosomes);
 	void write(const std::string Filename) const;
 
 	uint64_t size() const;
 	uint64_t length() const;
+	uint32_t numChromosomesWithWindows() const;
 
 	bool exists(const TGenomeWindow Window) const;
 	bool hasWindowsOnChr(uint32_t refId);
 
 	//loop
+	std::set<TGenomeWindow>::iterator lower_bound(const TGenomeWindow & Window){ return _bed.lower_bound(Window); };
 	std::set<TGenomeWindow>::iterator begin(){ return _bed.begin(); };
 	std::set<TGenomeWindow>::iterator end(){ return _bed.end(); };
 
@@ -83,10 +114,10 @@ public:
 // TGenomeWindowList
 // a list of potentially overlapping windows
 //-----------------------------------------------------
-class TGenomeWindowList{
+class TGenomeWindowList:public TBed_base{
 private:
 	std::multiset<TGenomeWindow> _list;
-	std::set<TBedChromosome> _chromosomes;
+	std::set<TBedChromosome, std::less<>> _chromosomes;
 
 public:
 	TGenomeWindowList(){};
@@ -95,8 +126,10 @@ public:
 	void add(const std::string Filename, TChromosomes & Chromosomes);
 	void write(const std::string Filename, TChromosomes & Chromosomes) const;
 
+	bool empty() const{ return _list.empty(); };
 	uint64_t size() const;
 	uint64_t length() const;
+	uint32_t numChromosomesWithWindows() const;
 
 	bool exists(const TGenomeWindow Window) const;
 	bool hasWindowsOnChr(uint32_t refId) const;

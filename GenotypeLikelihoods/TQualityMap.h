@@ -96,6 +96,10 @@ public:
 		maxQuality = MaxQualityForPrinting;
 	};
 
+	void  setBinQualityScores(bool BinQualityScores){
+		_binQualities = BinQualityScores;
+	};
+
 	//to error
 	double phredIntToError(uint8_t phredInt) const{
 		if(phredInt >= minPhredInt)

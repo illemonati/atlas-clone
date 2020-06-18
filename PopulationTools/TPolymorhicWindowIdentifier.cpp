@@ -13,12 +13,6 @@ TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters & Parameter
 	logfile = Logfile;
 };
 
-
-double TPolymorhicWindowIdentifier::_calcQualityPolymorphic(const TPopulationLikehoodWindow & window, const uint32_t & i){
-	//calculate likelihood for polymorphic and monomorphic
-};
-
-
 void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator* randomGenerator){
 	//read samples
 	TPopulationSamples samples;

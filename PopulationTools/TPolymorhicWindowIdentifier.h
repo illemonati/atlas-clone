@@ -15,8 +15,6 @@ private:
 	TLog* logfile;
 	TGlfConverter glfConverter;
 
-	double _calcQualityPolymorphic(const TPopulationLikehoodWindow & window, const uint32_t & i);
-
 public:
 	TPolymorhicWindowIdentifier(TParameters & Parameters, TLog* logfile);
 	void identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator* randomGenerator);

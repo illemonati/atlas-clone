@@ -18,7 +18,7 @@ TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* Ra
 	//expect string (x) -> remov ( and )!
 	s.erase(0, 1);
 	s.erase(s.length()-1, 1);
-	meanLength = stringToInt(s);
+	meanLength = convertString<int>(s);
 	if(meanLength < 5 || meanLength > 10000)
 		throw "Read length must be between 5 and 10,000!";
 
@@ -89,14 +89,14 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
-	param1 = stringToDouble(s.substr(0,pos));
+	param1 = convertString<double>(s.substr(0,pos));
 
 	s.erase(0,pos+1);
 
 	pos = s.find(")");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
-	param2 = stringToDouble(s.substr(0,pos));
+	param2 = convertString<double>(s.substr(0,pos));
 	s.erase(0,pos+1);
 
 	if(s[0] != '[')
@@ -105,14 +105,14 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 	pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
-	_min = stringToDouble(s.substr(0,pos));
+	_min = convertString<double>(s.substr(0,pos));
 	if(_min <= 0)
 		throw "Fail to understand function '" + orig + "': min read length must be > 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
-	_maxPlusOne = stringToDouble(s.substr(0,pos)) + 1;
+	_maxPlusOne = convertString<double>(s.substr(0,pos)) + 1;
 	if(_maxPlusOne < _min)
 			throw "Fail to understand function '" + orig + "': max must be > min!";
 };

@@ -64,6 +64,7 @@ private:
 
 public:
 	TGenomeWindow(){ clear(); };
+	virtual ~TGenomeWindow(){};
 	TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End);
 	TGenomeWindow(const uint32_t RefID, const uint32_t Start);
 	TGenomeWindow(const TGenomePosition & position);
@@ -74,10 +75,10 @@ public:
 	uint32_t start() const{ return _start; };
 	uint32_t end() const{ return _end; };
 	uint32_t size() const{ return _end - _start; };
-	TGenomePosition startPos(){ return TGenomePosition(_refID, _start); };
+	TGenomePosition startPos() const{ return TGenomePosition(_refID, _start); };
 
-	void update(const uint32_t RefID, const uint32_t Start, const uint32_t End);
-	void update(const TGenomeWindow & other);
+	virtual void update(const uint32_t RefID, const uint32_t Start, const uint32_t End);
+	virtual void update(const TGenomeWindow & other);
 
 	void operator=(const TGenomeWindow & other){ update(other); };
 	TGenomeWindow operator+(const uint32_t length) const;

@@ -153,20 +153,20 @@ void TSimulatorSingleEndRead::setPMD(const std::string & pmdStringCT, const std:
 	checkInitialization();
 };
 
-void TSimulatorSingleEndRead::_applyPMD(Base* _bases, const uint16_t readLength, int & fragmentLength){
+void TSimulatorSingleEndRead::_applyPMD(Base* _bases, const uint16_t readLength, const uint16_t fragmentLength, const bool isReverseStrand){
 	if(hasPMD){
-		if(alignment.IsReverseStrand()){
-			for(int p=0; p<alignment.Length; ++p){
+		if(isReverseStrand){
+			for(int p=0; p<readLength; ++p){
 				if(_bases[p] == C ){
-					if(randomGenerator->getRand() < pmdObject.getProbThreePrime(fragmentLength - alignment.Length + p))
+					if(randomGenerator->getRand() < pmdObject.getProbThreePrime(fragmentLength - readLength + p))
 						_bases[p] = T;
 				} else if(_bases[p] == G){
-					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(alignment.Length - p - 1))
+					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(readLength - p - 1))
 						_bases[p] = A;
 				}
 			}
 		} else {
-			for(int p=0; p<alignment.Length; ++p){
+			for(int p=0; p<readLength; ++p){
 				if(_bases[p] == C ){
 					if(randomGenerator->getRand() < pmdObject.getProbFivePrime(p))
 						_bases[p] = T;
@@ -217,16 +217,13 @@ void TSimulatorSingleEndRead::_fillAlignmentDetails(BAM::TAlignment & alignment,
 	alignment.setSequenceQualities(_cigar, queryBases, qualities);
 };
 
-void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
+void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t refID, const long & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length
 	uint16_t readLength, fragmentLength;
 	readLengthDist->sample(readLength, fragmentLength);
 
 	//fill bam alignment
-	_alignment.setPosition(pos);
 	bool isReverse = randomGenerator->getRand() < 0.5;
-	_alignment.setIsReverseStrand(isReverse);
-	_alignment.setName(_getNextReadName());
 
 	//copy bases
 	if(isContaminated && randomGenerator->getRand() < contaminationRate)
@@ -235,14 +232,19 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const long & pos, TSimul
 		memcpy(bases, haplotype + pos, readLength);
 
 	//apply PMD
-	_applyPMD(bases, bamAlignment, fragmentLength);
+	_applyPMD(bases, readLength, fragmentLength, isReverse);
 
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength, isReverse);
 
+	//fill bam alignment
+	_alignment.setGenomicPosition(refID, pos);
+	_alignment.setIsReverseStrand(isReverse);
+	_alignment.setName(_getNextReadName());
+
 	//add to alignment and save
 	_fillAlignmentDetails(_alignment, readLength, bases, phredIntQualities);
-	bamFile.saveAlignment(bamAlignment);
+	bamFile.saveAlignment(_alignment);
 };
 
 void TSimulatorSingleEndRead::printDetails(TLog* logfile){
@@ -280,13 +282,17 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, in
 	type = "paired-end";
 	qualityTransform_secondMate = NULL;
 
-	//add details to alignment
-	bamAlignment.SetIsPaired(true);
-	bamAlignment.SetIsProperPair(true);
-	bamAlignment.SetIsFirstMate(true);
-	bamAlignment.SetIsMateMapped(true);
-	bamAlignment.SetIsReverseStrand(false);
-	bamAlignment.SetIsMateReverseStrand(true);
+	//set SAM flags
+	_flags.setIsPaired(true);
+	_flags.setIsProperPair(true);
+	_flags.setIsRead1(true);
+	_flags.setMateIsReverseStrand(true);
+
+	//set SAM flags of second mate
+	_mateFlags.setIsPaired(true);
+	_mateFlags.setIsProperPair(true);
+	_mateFlags.setIsRead2(true);
+	_mateFlags.setIsReverseStrand(true);
 };
 
 TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){
@@ -301,14 +307,8 @@ void TSimulatorPairedEndReads::initializeSecondMateAlignment(BamTools::BamAlignm
 	alignment.AddTag("RG", "Z", _name);
 	alignment.MapQuality = 50;
 
-	alignment.SetIsPrimaryAlignment(true);
-	alignment.SetIsPaired(true);
-	alignment.SetIsProperPair(true);
-	alignment.SetIsFirstMate(false);
-	alignment.SetIsSecondMate(true);
-	alignment.SetIsMateMapped(true);
-	alignment.SetIsReverseStrand(true);
-	alignment.SetIsMateReverseStrand(false);
+
+
 };
 
 void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){
@@ -339,7 +339,7 @@ void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransfo
 	checkInitialization();
 };
 
-void TSimulatorPairedEndReads::simulate(Base* haplotype, const long & pos, TSimulatorBamFile & bamFile){
+void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, const long & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length
 	int readLength; int fragmentLength;
 	readLengthDist->sample(readLength, fragmentLength);

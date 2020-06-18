@@ -140,19 +140,19 @@ void TSiteSubset::write(const std::string Filename) const{
 	}
 };
 
-bool TSiteSubset::hasPositionsInWindow(const BAM::TGenomePosition & Start, const BAM::TGenomePosition & End) const{
-	auto it = _sites.lower_bound(Start);
-	if(it == _sites.end() || it > End){
+bool TSiteSubset::hasPositionsInWindow(const BAM::TGenomeWindow & Window) const{
+	auto it = _sites.lower_bound(Window);
+	if(it == _sites.end() || it > Window){
 		return false;
 	} else {
 		return true;
 	}
 };
 
-std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const BAM::TGenomePosition & Start, const BAM::TGenomePosition & End) const{
+std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const BAM::TGenomeWindow & Window) const{
 	std::set<TSiteSubsetSite> set;
-	auto it = _sites.lower_bound(Start);
-	while(it != _sites.end() && *it < End){
+	auto it = _sites.lower_bound(Window);
+	while(it != _sites.end() && *it < Window){
 		set.emplace(*it);
 		++it;
 	}

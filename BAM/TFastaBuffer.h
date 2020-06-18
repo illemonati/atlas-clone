@@ -54,6 +54,7 @@ public:
 	void initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize=1000000);
 	bool hasReference() const{ return _hasReference; };
 
+	void fill(const TGenomeWindow & Window, std::string & ref) const;
 	void fill(const TGenomePosition & Position, const uint32_t Length, std::string & ref) const;
 	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const;
 	Base refAt(const TGenomePosition Position) const;

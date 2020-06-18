@@ -96,8 +96,8 @@ public:
 
 	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile);
 
-	bool saveAlignment(const BamTools::BamAlignment & bamAlignment){
-		return bamWriter.SaveAlignment(bamAlignment);
+	void saveAlignment(const BAM::TAlignment & Alignment){
+		_outBam.writeAlignment(Alignment);
 	};
 	void close(TLog* Logfile);
 	void indexBamFile();

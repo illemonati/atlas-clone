@@ -108,12 +108,14 @@ protected:
 	BAM::TChromosomes& _chromosomes;
 
 	//window params
-	bool _windowsPredefined;
-	BAM::TBed* _predefinedWindows;
 	unsigned int _windowSize;
 	unsigned int _numWindowsOnChr;
 	unsigned int _windowNumber;
 	bool _chrChangedWindow;
+
+	//predefined windows
+	BAM::TGenomeWindowList _predefinedWindows;
+	std::multiset<BAM::TGenomeWindow>::iterator _curPredefinedWindow;
 
 	//window limits
 	long _limitWindows;
