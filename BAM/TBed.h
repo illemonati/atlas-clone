@@ -71,6 +71,9 @@ public:
 	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string Chr);
 	void addChromosomes(const TChromosomes & Chromosomes);
 	uint32_t numChromosomesWithWindows() const;
+	bool hasWindowsOnChr(const std::string Chr);
+	bool hasWindowsOnChr(uint32_t refId);
+	uint32_t getRefID(const std::string Chr);
 };
 
 //-------------------------------------------------------------
@@ -83,6 +86,8 @@ private:
 
 public:
 	TBed(){};
+	TBed(const std::string Filename){ add(Filename); };
+	TBed(const std::string Filename, const TChromosomes & Chromosomes){ add(Filename, Chromosomes); };
 
 	void add(TGenomeWindow Window);
 	void add(TGenomePosition Position);
@@ -98,7 +103,6 @@ public:
 	uint32_t numChromosomesWithWindows() const;
 
 	bool exists(const TGenomeWindow Window) const;
-	bool hasWindowsOnChr(uint32_t refId);
 
 	//loop
 	std::set<TGenomeWindow>::iterator lower_bound(const TGenomeWindow & Window){ return _bed.lower_bound(Window); };

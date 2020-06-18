@@ -264,8 +264,6 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameter
 
 TPopulationLikelihoodReader::~TPopulationLikelihoodReader(){
 	closeVCF();
-	if(limitToSitesInBed)
-		delete bedFile;
 };
 
 void TPopulationLikelihoodReader::_init(){
@@ -274,7 +272,6 @@ void TPopulationLikelihoodReader::_init(){
 	vcfOpen = false;
 
 	//BED file
-	bedFile = nullptr;
 	limitToSitesInBed = false;
 
 	//settings
@@ -309,8 +306,8 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 	if(Parameters.parameterExists("window")){
 		std::string filename = Parameters.getParameterString("window");
 		logfile->list("Will limit analysis to windows listed in BED file '" + filename + "'.");
-		bedFile = new BAM::TBed(filename);
-		logfile->conclude("Will use " + toString(bedFile->size()) + " windows of cumulative length " + toString(bedFile->length()) + " bp on " + toString(bedFile->getNumChromosomes()) + " chromosomes.");
+		bedFile.add(filename);
+		logfile->conclude("Will use " + toString(bedFile.size()) + " windows of cumulative length " + toString(bedFile.length()) + " bp on " + toString(bedFile.numChromosomesWithWindows()) + " chromosomes.");
 		limitToSitesInBed = true;
 	}
 
@@ -356,8 +353,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
 
 	_initialized = true;
-}
-
+};
 
 void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile){
     std::string argument = Parameters.getParameterString("keepChromosomes");
@@ -391,7 +387,7 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
 
     logfile->endIndent();
     logfile->endIndent();
-}
+};
 
 void TPopulationLikelihoodReader::resetCounters(){
 	vcfParsingStarted = false;
@@ -653,7 +649,7 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		std::string temp;
 		getline(*trueFreq, temp);
 		std::vector<std::string> tmp;
-		fillVectorFromString(temp, tmp, "\t");
+		fillVectorFromString(temp, tmp, '\t');
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
@@ -662,7 +658,7 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
-			fillVectorFromString(temp, tmp, "\t");
+			fillVectorFromString(temp, tmp, '\t');
 			if(tmp.size() != 3)
 				throw "wrong number of columns in true allele frequency file!";
 			pos = convertString<uint64_t>(tmp[1]);
@@ -684,33 +680,53 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
-		gettimeofday(&startTime, NULL);
+		timer.start();
+
+		//start bed
+		if(limitToSitesInBed){
+			_curBedWindow = bedFile.begin();
+		}
 	}
 
 	//read next
 	while(_readNextLineFromVCF()){ // new line in vcf-file (= new locus)
 		//update chr
 		if(curChr != vcfFile.chr()){
+			//advance BED if currently on this chromosome
+			if(limitToSitesInBed && !bedFile.hasWindowsOnChr(curChr)){
+				uint32_t previousRefID = bedFile.getRefID(curChr);
+
+			}
+
             // first remove previous chromosome from vector chromosomesToKeep (not needed anymore; we stop when vector is empty)
-            if (filterOnChr && std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr) != chromosomesToKeep.end()){
-                chromosomesToKeep.erase(std::remove(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr), chromosomesToKeep.end());
+			auto it = std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr);
+            if (it != chromosomesToKeep.end()){
+            	chromosomesToKeep.erase(it);
             }
 			curChr = vcfFile.chr();
-
-			if(limitToSitesInBed){
-				bedFile->setChr(vcfFile.chr());
-			}
 		}
 
 		//check if site is used
 		if(limitToSitesInBed){
 			//stop parsing if we reached end of bed file
-			if(bedFile->reachedEnd()){
+			if(_curBedWindow == bedFile.end()){
 				logfile->list("Reached end of last window (BED file).");
 				return false;
 			}
 
+			//check if we are ahead or behind
+
+			//check if
+			if(!bedFile.hasWindowsOnChr(curChr)){
+				return false;
+			}
+
+			//get location of current position
+			BAM::TGenomePosition pos(bedFile.getRefID(curChr), vcfFile.positionZeroBased());
+
+
 			//jump to next window if position is past current window
+			if(_curBedWindow)
 			while(!bedFile->reachedEndOfChr() && vcfFile.positionZeroBased() >= bedFile->curWindowEnd()){
 				bedFile->nextWindow();
 			}

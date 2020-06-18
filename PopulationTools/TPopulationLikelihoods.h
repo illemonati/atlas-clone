@@ -80,7 +80,8 @@ protected:
 	bool vcfOpen;
 
 	//BED file for windows
-	BAM::TBed* bedFile;
+	BAM::TBed bedFile;
+	std::set<BAM::TGenomeWindow>::iterator _curBedWindow;
 	bool limitToSitesInBed;
 
 	//settings
@@ -97,7 +98,7 @@ protected:
 	uint64_t progressFrequency;
 
 	//counters
-	struct timeval startTime;
+	TTimer timer;
 	bool vcfParsingStarted;
 	uint64_t _lineCounter; //lines read in VCF
 	uint64_t _notInBedFile; //sites considered (smaller than # lines if BED file is used

@@ -33,6 +33,22 @@ void TBed_base::addChromosomes(const TChromosomes & Chromosomes){
 	}
 };
 
+bool TBed_base::hasWindowsOnChr(uint32_t refId){
+	return _chromosomeNames.find(refId) != _chromosomeNames.end();
+};
+
+bool TBed_base::hasWindowsOnChr(const std::string Chr){
+	return _chromosomes.find(Chr) != _chromosomes.end();
+};
+
+uint32_t TBed_base::getRefID(const std::string Chr){
+	auto& it = _chromosomes.find(Chr);
+	if(it == _chromosomes.end()){
+		throw std::runtime_error("uint32_t TBed_base::getRefID(const std::string Chr): chromosome '" + Chr + "' does not exist!");
+	}
+	return it->refId;
+};
+
 //-------------------------------------------------------------
 // TBed
 //-------------------------------------------------------------
@@ -160,14 +176,6 @@ bool TBed::exists(const TGenomeWindow window) const{
 	} else {
 		return false;
 	}
-};
-
-bool TBed::hasWindowsOnChr(uint32_t refId){
-	auto it = _bed.find(TGenomePosition(refId, 0));
-	if(it == _bed.end() || it->refID() > refId){
-		return false;
-	}
-	return true;
 };
 
 //-----------------------------------------------------

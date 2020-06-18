@@ -19,6 +19,8 @@ namespace BAM{
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
+class TOutputBamFile; //forward declaration
+
 class TBamFile{
 	friend class TOutputBamFile;
 private:
