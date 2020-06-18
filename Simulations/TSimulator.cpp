@@ -448,9 +448,9 @@ void TSimulator::addToReadGroupVector(std::vector<std::string> & vec, const std:
 void TSimulator::initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual){
 	//single or paired end? Is indicated at beginning of readLengthString!
 	if(readLengthString.find("single:") == 0){
-		readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, randomGenerator));
+		readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, randomGenerator, genoMap));
 	} else if(readLengthString.find("paired:") == 0){
-		readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, randomGenerator));
+		readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, randomGenerator, genoMap));
 	} else
 		throw "Unable to understand read length string '" + readLengthString + "'!";
 
@@ -567,7 +567,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				} else
 					readSimulators.back()->setQualityTransformation(qtIt->second, logfile);
 			} else{
-				if(readSimulators.back()->type == "single"){
+				if(readSimulators.back()->_type == "single"){
 					TSimulatorQualityTransformParameters tp(qualTransformMap.begin()->second.type, qualTransformMap.begin()->second.parameters_firstMate, "-");
 					readSimulators.back()->setQualityTransformation(tp, logfile);
 				} else
@@ -780,10 +780,6 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 	uint64_t numReadsSimulated = 0;
 	uint32_t numReadsHere;
 
-	//prepare bam alignment
-	for(std::vector<TSimulatorSingleEndRead*>::iterator readSimsIt = readSimulators.begin(); readSimsIt!=readSimulators.end(); ++readSimsIt)
-		(*readSimsIt)->setRefId(thisChr->refID);
-
 	//initialize progress reporting
 	int prog;
 	int oldProg = 0;
@@ -803,7 +799,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;
 			for(uint32_t r=0; r<numReadsHere; ++r){
-				readSimulators[randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data())]->simulate(haplotypes[randomGenerator->pickOne(2)], l, bamFile);
+				readSimulators[randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data())]->simulate(haplotypes[randomGenerator->pickOne(2)], thisChr->refID, l, bamFile);
 			}
 
 			//report progress
@@ -824,7 +820,7 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 
 void TSimulator::runSimulations(){
 	//open bam files
-	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile);
+	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile, genoMap, qualMap);
 
 	//prepare haplotypes and
 	TSimulatorHaplotypes haplotypes(sampleSize);

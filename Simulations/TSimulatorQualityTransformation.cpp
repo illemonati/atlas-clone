@@ -16,12 +16,12 @@ namespace Simulations{
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 	size_t pos = s.find("(");
 	if(pos == std::string::npos)
-		_max = stringToIntCheck(s);
+		_max = convertStringCheck<int>(s);
 	else if(pos == 0){
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand fixed quality '" + s + "'!";
-		_max = stringToIntCheck(s.substr(1,pos - 1));
+		_max = convertStringCheck<int>(s.substr(1,pos - 1));
 	} else
 		throw "Failed to understand fixed quality '" + s + "'!";
 
@@ -149,12 +149,12 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	densities = new double[size];
 	cumulDensities = new double[size];
 
-	double nextDens = randomGenerator->normalCumulativeDistributionFunction(_min-0.5, _mean, _sd);
+	double nextDens = TNormalDistr::cumulativeDistrFunction(_min-0.5, _mean, _sd);
 	double prevDens;
 	double sum = 0;
 	for(int i=0; i<size; ++i){
 		prevDens = nextDens;
-		nextDens = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, _mean, _sd);
+		nextDens = TNormalDistr::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd);
 		densities[i] =  nextDens - prevDens;
 		sum += densities[i];
 	}
@@ -233,18 +233,18 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::vector<std::string> tmpVec, vec;
-	fillVectorFromString(string.substr(0, pos), tmpVec, ";");
+	fillVectorFromString(string.substr(0, pos), tmpVec, ';');
 	if(tmpVec.size() != 3)
 		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 
-	//precalculate transformation table
+	//prec-alculate transformation table
 	fillTransformationTable(modelTag, tmpVec, maxReadLength);
 };
 
 TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator)
 	:TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 
-	//precalculate transformation table
+	//pre-calculate transformation table
 	fillTransformationTable(modelTag, values, maxReadLength);
 };
 
@@ -305,7 +305,7 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 //------------------------------------
 //TSimulatorQualityTransformationBQSR
 //------------------------------------
-TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
+TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TReadLengthDistribution* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
 	readLengthDist = ReadLengthDist;
 	maxReadLength = readLengthDist->max();
 	minPhredInt = 1;
@@ -386,17 +386,16 @@ void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double
 	w = new double[maxPhredIntPlusOne];
 
 	//w at minQual
-	w[minPhredInt] = randomGenerator->normalCumulativeDistributionFunction(((double) minPhredInt + 0.5), kappa_cur, lambda_cur);
-
+	w[minPhredInt] = TNormalDistr::cumulativeDistrFunction((double) minPhredInt + 0.5, kappa_cur, lambda_cur);
 	//w at intermediate Q
 	for(int q = (minPhredInt + 1); q < maxPhredInt; ++q){
-		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
-		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
+		double start = TNormalDistr::cumulativeDistrFunction((double) q - 0.5, kappa_cur, lambda_cur);
+		double end   = TNormalDistr::cumulativeDistrFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q] = end - start;
 	}
 
 	//w at maxQual
-	w[maxPhredInt] = 1.0 - randomGenerator->normalCumulativeDistributionFunction(((double) maxPhredInt - 0.5), kappa_cur, lambda_cur);
+	w[maxPhredInt] = 1.0 - TNormalDistr::cumulativeDistrFunction((double) maxPhredInt - 0.5, kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 

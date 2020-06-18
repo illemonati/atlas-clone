@@ -147,7 +147,7 @@ public:
 class TSimulatorQualityTransformationBQSR:public TSimulatorQualityTransformation{
 private:
 	//quality params
-	TSimulatorReadLength* readLengthDist;
+	TReadLengthDistribution* readLengthDist;
 	int phi1;
 	double phi2;
 	int maxReadLength;
@@ -186,7 +186,7 @@ private:
 	double returnDelta(double & curMean, double & curSD);
 
 public:
-	TSimulatorQualityTransformationBQSR(const std::string & s, TSimulatorReadLength* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
+	TSimulatorQualityTransformationBQSR(const std::string & s, TReadLengthDistribution* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityTransformationBQSR(){
 		delete fakePhredDist;
 		if(weightsInitialized)

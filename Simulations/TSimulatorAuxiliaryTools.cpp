@@ -149,7 +149,13 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 //---------------------------------------------------
 //TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
+void TSimulatorBamFile::open(const std::string Filename,
+		                     const std::string SampleName,
+							 const std::vector<std::string> & ReadGroupNames,
+							 const std::vector<TSimulatorChromosome> & Chromosomes,
+							 TLog* Logfile,
+							 TGenotypeMap & GenoMap,
+							 TQualityMap & QualMap){
 	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if(_outBam.isOpen())
@@ -173,7 +179,7 @@ void TSimulatorBamFile::open(const std::string Filename, const std::string Sampl
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	_outBam.open(Filename, header, chr, readGroups);
+	_outBam.open(Filename, header, chr, readGroups, &GenoMap, &QualMap);
 
 	Logfile->done();
 };
@@ -186,18 +192,18 @@ void TSimulatorBamFile::close(TLog* Logfile){
 	_outBam.close(Logfile);
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap){
 	if(NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
 	_files.resize(NumFiles);
 
 	//open BAM files
 	if(_files.size() == 1){
-		_files[0].open(Outname + ".bam", "Ind1", ReadGroupNames, Chromosomes, Logfile);
+		_files[0].open(Outname + ".bam", "Ind1", ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	} else {
 		Logfile->startIndent("Opening " + toString(_files.size()) + " BAM files:");
 		for(int i=0; i<_files.size(); ++i){
-			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroupNames, Chromosomes, Logfile);
+			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 		}
 		Logfile->endIndent();
 	}

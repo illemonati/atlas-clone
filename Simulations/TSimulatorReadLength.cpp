@@ -10,9 +10,9 @@
 namespace Simulations{
 
 //---------------------------------------------------------
-//TSimulatorReadLength
+//TReadLengthDistribution
 //---------------------------------------------------------
-TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator){
+TReadLengthDistribution::TReadLengthDistribution(std::string & s, TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 
 	//expect string (x) -> remov ( and )!
@@ -30,7 +30,7 @@ TSimulatorReadLength::TSimulatorReadLength(std::string & s, TRandomGenerator* Ra
 	}
 };
 
-TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
+TReadLengthDistribution::TReadLengthDistribution(TRandomGenerator* RandomGenerator){
 	randomGenerator = RandomGenerator;
 	meanLength = -1;
 	cumulAtMin = 0.0;
@@ -41,21 +41,20 @@ TSimulatorReadLength::TSimulatorReadLength(TRandomGenerator* RandomGenerator){
 TSimulatorReadLength::~TSimulatorReadLength(){
 	if(meanLength > 0)
 		delete[] positionProbs;
-}
-
-void TSimulatorReadLength::sample(uint16_t & readLength, uint16_t & fragmentLength){
-	fragmentLength = meanLength;
-	readLength = meanLength;
 };
 
-void TSimulatorReadLength::printDetails(TLog* logfile){
+TReadLength TReadLengthDistribution::sample(){
+	return TReadLength(meanLength, meanLength);
+};
+
+void TReadLengthDistribution::printDetails(TLog* logfile){
 	logfile->list("Reads of fixed length " + toString(meanLength) + ".");
 };
 
 //--------------------------------------------------
 //TSimulatorReadLengthGamma
 //--------------------------------------------------
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile):TSimulatorReadLength(RandomGenerator){
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile):TReadLengthDistribution(RandomGenerator){
 	parseFunctionString(s, alpha, beta);
 	if(alpha <= 0.0)
 		throw "Shape parameter alpha must be > 0.0!";
@@ -65,7 +64,7 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGen
 	initiate(Logfile);
 };
 
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TSimulatorReadLength(RandomGenerator){
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TReadLengthDistribution(RandomGenerator){
 	alpha = -1.0;
 	beta = -1.0;
 	_min = -1.0;
@@ -131,12 +130,12 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 
 	//then calculate densities for all bins <_max
 	for(int i=_min; i<(_maxPlusOne-1); ++i){
-		gammaDensity[i] = exp(randomGenerator->gammaLogDensityFunction(i, alpha, beta));
+		gammaDensity[i] = TGammaDistr::density(i, alpha, beta);
 		totalArea += gammaDensity[i];
 	}
 
-	//add area >= max and 0's for < min to table
-	gammaDensity[_maxPlusOne - 1] = (1.0 - randomGenerator->gammaCumulativeDistributionFunction(_maxPlusOne - 0.5, alpha, beta));
+	//add area >= max
+	gammaDensity[_maxPlusOne - 1] = 1.0 - TGammaDistr::cumulativeDistrFunction(_maxPlusOne - 0.5, alpha, beta);
 	totalArea += gammaDensity[_maxPlusOne - 1];
 
 	//normalize densities (needed because truncated at _min)
@@ -167,12 +166,17 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 		logfile->warning("This readLength distribution results in "+ toString(gammaCumulDensity[_min]*100) + "% discarded fragments because they are smaller than the minimum read length! Choose different parameters to reduce run time.");
 }
 
-void TSimulatorReadLengthGamma::sample(uint16_t & readLength, uint16_t & fragmentLength){
-	fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
+TReadLength TSimulatorReadLengthGamma::sample(){
+	uint16_t fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
 	while(fragmentLength < _min){
 		fragmentLength = round(randomGenerator->getGammaRand(alpha, beta));
 	}
-	readLength = std::min(fragmentLength, _maxPlusOne-1);
+
+	if(fragmentLength < _maxPlusOne - 1){
+		return TReadLength(fragmentLength, fragmentLength);
+	} else {
+		return TReadLength(_maxPlusOne - 1, fragmentLength);
+	}
 }
 
 void TSimulatorReadLengthGamma::printDetails(TLog* logfile){

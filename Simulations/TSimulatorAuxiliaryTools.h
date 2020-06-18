@@ -89,12 +89,12 @@ private:
 	BAM::TOutputBamFile _outBam;
 
 public:
-	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile){
-		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile);
+	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap){
+		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	};
 	~TSimulatorBamFile();
 
-	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile);
+	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap);
 
 	void saveAlignment(const BAM::TAlignment & Alignment){
 		_outBam.writeAlignment(Alignment);
@@ -109,7 +109,7 @@ private:
 	TLog* _logfile;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap);
 	~TSimulatorBamFiles();
 
 	void close();

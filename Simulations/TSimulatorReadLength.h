@@ -15,9 +15,25 @@
 namespace Simulations{
 
 //---------------------------------------------------------
-//TSimulatorReadLength
+//ReadLength
 //---------------------------------------------------------
-class TSimulatorReadLength{
+struct TReadLength{
+	uint16_t read;
+	uint16_t fragment;
+	TReadLength(const uint16_t Read, const uint16_t Fragment){
+		read = Read;
+		fragment = Fragment;
+	};
+
+	uint16_t diff(){
+		return fragment - read;
+	};
+};
+
+//---------------------------------------------------------
+//TReadLengthDistribution
+//---------------------------------------------------------
+class TReadLengthDistribution{
 protected:
 	TRandomGenerator* randomGenerator;
 	int meanLength;
@@ -26,11 +42,11 @@ protected:
 public:
 	double* positionProbs; //normalized (1 - cumulDensity)
 
-	TSimulatorReadLength(std::string & s, TRandomGenerator* RandomGenerator);
-	TSimulatorReadLength(TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorReadLength();
+	TReadLengthDistribution(std::string & s, TRandomGenerator* RandomGenerator);
+	TReadLengthDistribution(TRandomGenerator* RandomGenerator);
+	virtual ~TReadLengthDistribution();
 
-	virtual void sample(uint16_t & readLength, uint16_t & fragmentLength);
+	virtual TReadLength sample();
 	virtual int max(){return meanLength;};
 	virtual double mean(){return meanLength;};
 	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
@@ -38,11 +54,11 @@ public:
 
 };
 
-class TSimulatorReadLengthGamma:public TSimulatorReadLength{
+class TSimulatorReadLengthGamma:public TReadLengthDistribution{
 protected:
 	double meanLength;
 	double alpha, beta;
-	int _min, _maxPlusOne;
+	uint16_t _min, _maxPlusOne;
 	bool initialized;
 
 	double* gammaDensity;
@@ -61,7 +77,7 @@ public:
 			delete[] positionProbs;
 		}
 	};
-	void sample(uint16_t & readLength, uint16_t & fragmentLength);
+	TReadLength sample();
 	virtual int max(){return _maxPlusOne - 1;};
 	virtual double mean(){return meanLength;};
 	virtual void printDetails(TLog* logfile);
