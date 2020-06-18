@@ -162,10 +162,10 @@ public:
 	void printFToStdOut();
 	void printJxFToStdOut();
 
-	void fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
 	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 
-	double getErrorRate(const TBase & base) const;
+	double getErrorRate(const BAM::TBase & base) const;
 	double getErrorRate(const TRecalibrationEMReadData & data) const; //TODO: REMOVE!
 };
 

@@ -23,6 +23,7 @@ private:
 	std::bitset<16> _flags;
 
 public:
+	TSamFlags(){};
 	TSamFlags(const uint16_t Flags){
 		_flags = std::bitset<16>(Flags);
 	};

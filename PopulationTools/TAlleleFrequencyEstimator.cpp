@@ -7,6 +7,7 @@
 
 #include "TAlleleFrequencyEstimator.h"
 
+namespace PopulationTools{
 
 double THardyWeinbergGenotypeProbabilities::calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
 	double LL = 0.0;
@@ -810,3 +811,4 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 
 };
 
+}; //end namespace

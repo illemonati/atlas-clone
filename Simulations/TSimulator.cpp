@@ -567,7 +567,7 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				} else
 					readSimulators.back()->setQualityTransformation(qtIt->second, logfile);
 			} else{
-				if(readSimulators.back()->_type == "single"){
+				if(readSimulators.back()->type() == "single"){
 					TSimulatorQualityTransformParameters tp(qualTransformMap.begin()->second.type, qualTransformMap.begin()->second.parameters_firstMate, "-");
 					readSimulators.back()->setQualityTransformation(tp, logfile);
 				} else

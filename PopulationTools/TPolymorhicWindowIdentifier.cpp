@@ -8,6 +8,7 @@
 
 #include <TPolymorhicWindowIdentifier.h>
 
+namespace PopulationTools{
 
 TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters & Parameters, TLog* Logfile){
 	logfile = Logfile;
@@ -99,3 +100,5 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 
 	logfile->endIndent();
 };
+
+}; //end namespace

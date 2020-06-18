@@ -7,6 +7,8 @@
 
 #include "TMajorMinor.h"
 
+namespace PopulationTools{
+
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
@@ -192,11 +194,9 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	if(params.parameterExists("fasta")){
 		logfile->list("Will only identify the most likely alternative allele (argument: fasta)");
 		std::string fastaFile = params.getParameterString("fasta");
-		std::string fastaIndex = fastaFile + ".fai";
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
-		if(!reference.Open(fastaFile, fastaIndex)) throw "Failed to open FASTA file '" + fastaFile + "'! Is index file present?";
+		glfReader.addReference(fastaFile);
 		hasReference = true;
-		glfReader.addReference(&reference);
 	}
 
 	//estimation method
@@ -295,3 +295,4 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	delete MMEstimator;
 };
 
+}; //end namespace

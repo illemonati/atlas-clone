@@ -27,7 +27,7 @@ class TSite{
 protected:
 	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
 
-	std::vector<TBase*> bases;
+	std::vector<BAM::TBase*> bases;
 	bool hasData;
 	Base referenceBase; //optional
 
@@ -37,7 +37,7 @@ public:
 
 	TSite(){
 		hasData = false;
-		referenceBase = 'N';
+		referenceBase = N;
 	};
 
 	//TSite(TSite* other):TSite(){stealFromOther(other);};
@@ -45,10 +45,10 @@ public:
 	void clear();
 	//void stealFromOther(TSite* other);
 
-	const TBase& at(size_t i) const{ return *bases[i]; };
-	TBase& operator[](size_t i){ return *bases[i]; };
+	const BAM::TBase& at(size_t i) const{ return *bases[i]; };
+	BAM::TBase& operator[](size_t i){ return *bases[i]; };
 
-	void add(const TBase * base);
+	void add(const BAM::TBase * base);
 	void setRefBase(const Base ref){ referenceBase = ref; };
 	Base getRefBase() const {return referenceBase;};
 	void addToBaseFrequencies(TBaseData & frequencies) const;
@@ -63,10 +63,10 @@ public:
 	void countFwdRev(int* frCounts) const;
 
 	//loop
-	std::vector<TBase*>::iterator begin(){ return bases.begin(); };
-	std::vector<TBase*>::iterator end(){ return bases.end(); };
-	std::vector<TBase*>::const_iterator begin() const{ return bases.begin(); };
-	std::vector<TBase*>::const_iterator end() const{ return bases.end(); };
+	std::vector<BAM::TBase*>::iterator begin(){ return bases.begin(); };
+	std::vector<BAM::TBase*>::iterator end(){ return bases.end(); };
+	std::vector<BAM::TBase*>::const_iterator cbegin() const{ return bases.cbegin(); };
+	std::vector<BAM::TBase*>::const_iterator cend() const{ return bases.cend(); };
 };
 
 }; //end namespace

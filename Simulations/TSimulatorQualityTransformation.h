@@ -150,8 +150,8 @@ private:
 	TReadLengthDistribution* readLengthDist;
 	int phi1;
 	double phi2;
-	int maxReadLength;
-	int minPhredInt, maxPhredInt, maxPhredIntPlusOne;
+	uint32_t maxReadLength;
+	uint32_t minPhredInt, maxPhredInt, maxPhredIntPlusOne;
 	double meanPhred, sdPhred;
 	double trueQual;
 	TSimulatorQualityDistNormal* fakePhredDist;

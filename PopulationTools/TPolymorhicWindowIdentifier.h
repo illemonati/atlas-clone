@@ -10,6 +10,8 @@
 
 #include "TPopulationLikelihoods.h"
 
+namespace PopulationTools{
+
 class TPolymorhicWindowIdentifier{
 private:
 	TLog* logfile;
@@ -33,6 +35,6 @@ public:
 	}
 };
 
-
+}; //end namespace
 
 #endif /* POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_ */

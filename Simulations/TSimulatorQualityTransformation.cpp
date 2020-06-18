@@ -349,8 +349,8 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
 	double sum = 0.0;
 	//gamma density starts at 0 but p at 1!
-	for(int p=0; p<maxReadLength ; ++p)
-		sum += (double) (p+1) * readLengthDist->positionProbs[p];
+	for(uint32_t p=0; p<maxReadLength ; ++p)
+		sum += (double) (p+1) * (*readLengthDist)[p];
 
 	m = (1.0 - revIntercept) / (sum - maxReadLength);
 	intercept = revIntercept - m * (double) maxReadLength;
@@ -405,7 +405,7 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
 		double sumP = 0.0;
 		for(int p = 0; p<maxReadLength; ++p){
-			sumP += QBetaQBetaP[q][p] * readLengthDist->positionProbs[p];
+			sumP += QBetaQBetaP[q][p] * (*readLengthDist)[p];
 		}
 		curMean += sumP * w[q];
 	}
@@ -417,7 +417,7 @@ double TSimulatorQualityTransformationBQSR::returnCurSD(double & kappa){
 	float lambda = 0.0;
 	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
 		for(int p = 0; p<readLengthDist->max(); ++p){
-			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * readLengthDist->positionProbs[p] * w[q]);
+			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * (*readLengthDist)[p] * w[q]);
 		}
 	}
 	return(sqrt(lambda));

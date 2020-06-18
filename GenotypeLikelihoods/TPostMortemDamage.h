@@ -14,6 +14,7 @@
 #include "TSite.h"
 #include "auxiliaryTools.h"
 #include <algorithm>
+#include "TBase.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
@@ -215,7 +216,7 @@ public:
 	bool hasDamageCT() const{ return myFunctions[pmdCT]->hasDamage(); };
 	bool hasDamageGA() const{ return myFunctions[pmdGA]->hasDamage(); };
 
-	void fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 
 //	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
 //	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
@@ -236,7 +237,7 @@ public:
 	TPostMortemDamage();
 	bool hasPMD() const{ return _hasPMD; };
 	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
-	void calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
+	void calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 };
 
 

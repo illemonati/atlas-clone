@@ -14,6 +14,8 @@
 #include "TQualityMap.h"
 #include "TRandomGenerator.h"
 
+namespace PopulationTools{
+
 //------------------------------------------------
 //THardyWeinbergGenotypeProbabilities
 //------------------------------------------------
@@ -200,5 +202,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_ */

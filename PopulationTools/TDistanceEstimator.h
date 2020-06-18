@@ -14,6 +14,8 @@
 #include "TGenotypeMap.h"
 #include "TQualityMap.h"
 
+namespace PopulationTools{
+
 //--------------------------------------------
 //TPhiToGenoMap
 //--------------------------------------------
@@ -119,11 +121,11 @@ private:
 //	void calculateDistance();
 	void guessPi(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2);
 	void guessPhi(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2);
-	void fill_K(TBaseFrequencies  & thesePi);
-	void fill_P_g_given_phi_pi(double* phi, TBaseFrequencies & pi);
+	void fill_K(GenotypeLikelihoods::TBaseData  & thesePi);
+	void fill_P_g_given_phi_pi(double* phi, GenotypeLikelihoods::TBaseData & pi);
 
 public:
-	TBaseFrequencies pi;
+	GenotypeLikelihoods::TBaseData pi;
 	double* phi;
 	double LL;
 	double distance;
@@ -205,5 +207,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* TDISTANCEESTIMATOR_H_ */

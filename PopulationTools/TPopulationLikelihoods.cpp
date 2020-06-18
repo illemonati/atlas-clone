@@ -11,6 +11,8 @@
 
 #include "TPopulationLikelihoods.h"
 
+namespace PopulationTools{
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationSamples                                                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -561,10 +563,7 @@ bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
 };
 
 void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
-	struct timeval end{};
-	gettimeofday(&end, nullptr);
-	float runtime = static_cast<double>(end.tv_sec  - startTime.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + toString(runtime) + " min");
+	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + timer.minutes() + " min");
 };
 
 void TPopulationLikelihoodReader::concludeFilters(){
@@ -805,7 +804,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
-		gettimeofday(&startTime, NULL);
+		timer.start();
 
 		//read first locus
 		if(!_readNextLineFromVCF()) return false; //reached end of VCF
@@ -1171,3 +1170,4 @@ void TPopulationLikelihoods::print(){
 	}
 };
 
+}; //end namespace

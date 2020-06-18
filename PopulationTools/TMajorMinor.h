@@ -16,6 +16,8 @@
 #include "TRandomGenerator.h"
 #include "TGenotypeFrequencies.h"
 
+namespace PopulationTools{
+
 //-----------------------------------------------
 //TMajorMinorEstimator
 //-----------------------------------------------
@@ -82,7 +84,6 @@ class TMajorMinor{
 private:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
-	BamTools::Fasta reference;
 	bool hasReference;
 	gz::ogzstream vcf;
 	bool vcfOpened;
@@ -109,5 +110,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* TMAJORMINOR_H_ */

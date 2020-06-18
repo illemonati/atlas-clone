@@ -209,10 +209,6 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outn
 	}
 };
 
-TSimulatorBamFiles::~TSimulatorBamFiles(){
-	delete[] _files;
-};
-
 void TSimulatorBamFiles::close(){
 	_logfile->startIndent("Indexing BAM files:");
 	for(auto& f : _files){

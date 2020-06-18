@@ -89,6 +89,7 @@ private:
 	BAM::TOutputBamFile _outBam;
 
 public:
+	TSimulatorBamFile(){};
 	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap){
 		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	};

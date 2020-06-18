@@ -45,17 +45,17 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	double getErrorRate(const TBase & base) const;
-	double getErrorWithPMD(const TBase & base) const;
-	uint8_t getPhredInt(const TBase & base) const;
-	uint8_t getPhredIntWithPMD(const TBase & base) const;
-	void recalibrate(TBase & base) const;
-	void recalibrateWithPMD(TBase & base) const;
-	void recalibrate(std::vector<TBase> & bases) const;
-	void recalibrateWithPMD(std::vector<TBase> & bases) const;
+	double getErrorRate(const BAM::TBase & base) const;
+	double getErrorWithPMD(const BAM::TBase & base) const;
+	uint8_t getPhredInt(const BAM::TBase & base) const;
+	uint8_t getPhredIntWithPMD(const BAM::TBase & base) const;
+	void recalibrate(BAM::TBase & base) const;
+	void recalibrateWithPMD(BAM::TBase & base) const;
+	void recalibrate(std::vector<BAM::TBase> & bases) const;
+	void recalibrateWithPMD(std::vector<BAM::TBase> & bases) const;
 
 	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;
-	double calculateLogPMDS(const TBase & base, const Base ref, const double pi) const; //TODO: move to PMDS class?
+	double calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const; //TODO: move to PMDS class?
 };
 
 

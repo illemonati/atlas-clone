@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <iostream>
 
+namespace PopulationTools{
+
 //------------------------------------------------
 // TSampleLikelihoods
 //------------------------------------------------
@@ -180,5 +182,6 @@ public:
 
 };
 
+}; //end namespace
 
 #endif /* POPULATIONTOOLS_TPOPULATIONLIKELIHOODLOCUS_H_ */

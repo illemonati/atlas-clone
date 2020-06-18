@@ -12,6 +12,8 @@
 #include "TPopulationLikelihoods.h"
 #include "TFile.h"
 
+namespace PopulationTools{
+
 class TAlleleCountFile{
 protected:
 	std::string filename;
@@ -62,5 +64,6 @@ public:
 
 };
 
+}; //end namespace
 
 #endif /* POPULATIONTOOLS_TALLELECOUNTFILEFORMAT_H_ */

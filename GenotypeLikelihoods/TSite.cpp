@@ -40,7 +40,7 @@ void TSite::stealFromOther(TSite* other){
 };
 */
 
-void TSite::add(const TBase * base){
+void TSite::add(const BAM::TBase * base){
 	bases.emplace_back(base);
 	hasData = true;
 };

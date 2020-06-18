@@ -7,6 +7,9 @@
 
 
 #include "TAlleleCountEstimator.h"
+
+namespace PopulationTools{
+
 //-------------------------------------------------
 // TSAFChooseStorage
 //-------------------------------------------------
@@ -562,3 +565,4 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	logfile->endIndent();
 };
 
+}; //end namespace

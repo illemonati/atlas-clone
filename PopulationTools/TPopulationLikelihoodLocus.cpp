@@ -19,6 +19,8 @@
 #include <iostream>
 #include "TPopulationLikelihoodLocus.h"
 
+namespace PopulationTools{
+
 //------------------------------------------------
 // TPopulationLikehoodLocus
 // class used when reading line by line
@@ -185,5 +187,4 @@ bool TPopulationLikehoodWindow::individualHasMissingData(uint32_t individual){
 	return false;
 };
 
-
-
+}; //end namespace

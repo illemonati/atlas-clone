@@ -290,7 +290,7 @@ double TSequencingErrorModel::_calcEpsilon(const double eta) const{
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TSequencingErrorModel::getErrorRate(const TBase & base) const{
+double TSequencingErrorModel::getErrorRate(const BAM::TBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -312,7 +312,7 @@ double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data
 	return _calcEpsilon(eta);
 };
 
-void TSequencingErrorModel::fillBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModel::fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const{
 	//first calculate epsilon
 	double eta = _covariates.intercept.getEtaTerm();
 	for(const auto & cov : _covariates.covariates){

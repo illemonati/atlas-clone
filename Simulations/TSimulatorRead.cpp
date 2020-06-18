@@ -311,8 +311,8 @@ TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){
 	if(_qualityTransformInitialized)
 		delete qualityTransform_secondMate;
 
-	for(BamTools::BamAlignment* alignment : bamAlignmentSecondMates_idle)
-		delete alignment;
+	for(auto& it : bamAlignmentSecondMates_idle)
+		delete it;
 };
 
 void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){

@@ -77,17 +77,11 @@ public:
 	void addNext(const TSamProgram & Next) const;
 	std::string compileSamHeader() const;
 
-	friend bool operator<(const TSamProgram & other) const{
-		return this->_ID < other->_ID;
+	bool operator<(const TSamProgram & other) const{
+		return this->_ID < other._ID;
 	};
-	friend bool operator<(const std::string & other) const{
+	bool operator<(const std::string & other) const{
 		return this->_ID < other;
-	};
-	friend bool operator<(const std::string & left, const TSamProgram & right) const{
-	    return left < right._ID;
-	};
-	friend bool operator<(const TSamProgram & left, const std::string & right) const{
-	  	return left._ID < right;
 	};
 };
 

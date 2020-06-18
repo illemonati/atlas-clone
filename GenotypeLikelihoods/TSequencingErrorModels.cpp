@@ -273,7 +273,7 @@ double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & dat
 	}
 };
 
-double TSequencingErrorModels::getErrorRate(const TBase & base) const{
+double TSequencingErrorModels::getErrorRate(const BAM::TBase & base) const{
 	if(base.base == N){
 		return 1.0;
 	} else if(doRecalibration){
@@ -283,7 +283,7 @@ double TSequencingErrorModels::getErrorRate(const TBase & base) const{
 	}
 };
 
-uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
+uint8_t TSequencingErrorModels::getPhredInt(const BAM::TBase & base) const{
 	if(base.base == N){
 		return 0;
 	} else if(doRecalibration){
@@ -293,7 +293,7 @@ uint8_t TSequencingErrorModels::getPhredInt(const TBase & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(TBase & base) const{
+void TSequencingErrorModels::recalibrate(BAM::TBase & base) const{
 	if(base.base == N){
 		base.recalibratedQualityAsPhredInt = 0;
 	} else if(doRecalibration){
@@ -303,7 +303,7 @@ void TSequencingErrorModels::recalibrate(TBase & base) const{
 	}
 };
 
-void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases, const uint16_t length) const{
+void TSequencingErrorModels::recalibrate(std::vector<BAM::TBase> & bases, const uint16_t length) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
@@ -320,7 +320,7 @@ void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases, const uint1
 	}
 };
 
-void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases) const{
+void TSequencingErrorModels::recalibrate(std::vector<BAM::TBase> & bases) const{
 	if(doRecalibration){
 		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(auto& b : bases){
@@ -337,7 +337,7 @@ void TSequencingErrorModels::recalibrate(std::vector<TBase> & bases) const{
 	}
 };
 
-void TSequencingErrorModels::calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModels::calculateBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const{
 	if(base.base == N){
 		baseLikelihoods.reset();
 	} else if(doRecalibration){

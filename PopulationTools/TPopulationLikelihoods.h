@@ -19,6 +19,8 @@
 #include "TBed.h"
 #include "TVcfFile.h"
 
+namespace PopulationTools{
+
 //------------------------------------------------
 //TPopulationSamples
 //------------------------------------------------
@@ -312,5 +314,6 @@ public:
     void print();
 };
 
+}; //end namespace
 
 #endif /* TPOPULATIONLIKELIHOODS_H_ */

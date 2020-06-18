@@ -76,12 +76,12 @@ public:
 
 	//calculate error rates
 	double getErrorRate(const TRecalibrationEMReadData & data) const;
-	double getErrorRate(const TBase & base) const;
-	uint8_t getPhredInt(const TBase & base) const;
-	void recalibrate(TBase & base) const;
-	void recalibrate(std::vector<TBase> & bases, const uint16_t  length) const; //TODO: remove
-	void recalibrate(std::vector<TBase> & bases) const;
-	void calculateBaseLikelihoods(const TBase & base, TBaseData & baseLikelihoods) const;
+	double getErrorRate(const BAM::TBase & base) const;
+	uint8_t getPhredInt(const BAM::TBase & base) const;
+	void recalibrate(BAM::TBase & base) const;
+	void recalibrate(std::vector<BAM::TBase> & bases, const uint16_t  length) const; //TODO: remove
+	void recalibrate(std::vector<BAM::TBase> & bases) const;
+	void calculateBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
 
 	//function to estimate
 	void setEMParamsToZero();

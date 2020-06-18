@@ -11,6 +11,7 @@
 #include <math.h>
 #include <cstdint>
 
+#include "TParameters.h"
 
 //TODO: make things private
 

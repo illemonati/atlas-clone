@@ -672,7 +672,7 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	functionsInitialized[type] = true;
 };
 
-void TPMDDoubleStrand::fillBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
 	//no PMD for A and C
 	baseLikelihoods[A] = baseLikelihoodsNoPMD.at(A);
 	baseLikelihoods[T] = baseLikelihoodsNoPMD.at(T);
@@ -784,7 +784,7 @@ void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & Read
 	}
 };
 
-void TPostMortemDamage::calculateBaseLikelihoods(const TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+void TPostMortemDamage::calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
 	if(_hasPMD && _pmdObjects[ base.readGroupID ].hasDamage()){
 		_pmdObjects[ base.readGroupID ].fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {

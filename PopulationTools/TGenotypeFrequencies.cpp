@@ -7,6 +7,8 @@
 
 #include "TGenotypeFrequencies.h"
 
+namespace PopulationTools{
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TGenotypeFreqencies                                                                //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -250,3 +252,5 @@ void TGenotypeFrequencies::writeHaploidFrequencies(TOutputFile & out){
 		out << "-" << "-";
 	}
 };
+
+}; //end namespace

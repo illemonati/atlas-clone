@@ -35,34 +35,36 @@ struct TReadLength{
 //---------------------------------------------------------
 class TReadLengthDistribution{
 protected:
-	TRandomGenerator* randomGenerator;
-	int meanLength;
-	double cumulAtMin;
+	TRandomGenerator* _randomGenerator;
+	int _meanLength;
+	double _cumulAtMin;
+
+	double* _positionProbs; //normalized (1 - cumulDensity)
 
 public:
-	double* positionProbs; //normalized (1 - cumulDensity)
-
 	TReadLengthDistribution(std::string & s, TRandomGenerator* RandomGenerator);
 	TReadLengthDistribution(TRandomGenerator* RandomGenerator);
 	virtual ~TReadLengthDistribution();
 
+	double operator[](const uint32_t position) const{ return _positionProbs[position]; };
+
 	virtual TReadLength sample();
-	virtual int max(){return meanLength;};
-	virtual double mean(){return meanLength;};
-	virtual double probAcceptance(){return 1.0 - cumulAtMin;};
+	virtual int max(){return _meanLength;};
+	virtual double mean(){return _meanLength;};
+	virtual double probAcceptance(){return 1.0 - _cumulAtMin;};
 	virtual void printDetails(TLog* logfile);
 
 };
 
 class TSimulatorReadLengthGamma:public TReadLengthDistribution{
 protected:
-	double meanLength;
-	double alpha, beta;
+	double _meanLength;
+	double _alpha, _beta;
 	uint16_t _min, _maxPlusOne;
-	bool initialized;
+	bool _initialized;
 
-	double* gammaDensity;
-	double* gammaCumulDensity;
+	double* _gammaDensity;
+	double* _gammaCumulDensity;
 
 	void parseFunctionString(std::string & s, double & param1, double & param2);
 	void initiate(TLog* logfile);
@@ -71,21 +73,21 @@ public:
 	TSimulatorReadLengthGamma(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile);
 	TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorReadLengthGamma(){
-		if(initialized){
-			delete[] gammaDensity;
-			delete[] gammaCumulDensity;
-			delete[] positionProbs;
+		if(_initialized){
+			delete[] _gammaDensity;
+			delete[] _gammaCumulDensity;
+			delete[] _positionProbs;
 		}
 	};
 	TReadLength sample();
 	virtual int max(){return _maxPlusOne - 1;};
-	virtual double mean(){return meanLength;};
+	virtual double mean(){return _meanLength;};
 	virtual void printDetails(TLog* logfile);
 };
 
 class TSimulatorReadLengthGammaMode:public TSimulatorReadLengthGamma{
 protected:
-	double mode, var;
+	double _mode, _var;
 
 public:
 	TSimulatorReadLengthGammaMode(std::string & s, TRandomGenerator* RandomGenerator, TLog* Logfile);

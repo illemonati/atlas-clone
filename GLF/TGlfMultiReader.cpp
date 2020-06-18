@@ -37,7 +37,7 @@ void TMultiGLFData::resize(uint32_t Size){
 	}
 };
 
-void TMultiGLFData::fill(TPopulationLikehoodLocus & storage, const int alleleicCombination){
+void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, const int alleleicCombination){
 	storage.resize(size);
 	for(uint32_t i=0; i<size; ++i){
 		storage[i].isHaploid = samples[i].isHaploid;
@@ -356,8 +356,8 @@ void TGlfMultiReader::setDepthFilter(int MinDepth, TLog* logfile){
 		logfile->list("Will only keep sites with depth >= " + toString(minDepth) + ".");
 };
 
-void TGlfMultiReader::addReference(BamTools::Fasta* Reference){
-	fastaBuffer.initialize(Reference, 1000000);
+void TGlfMultiReader::addReference(const std::string FastaFile){
+	fastaBuffer.initialize(FastaFile, &genoMap, 1000000);
 	hasReference = true;
 };
 

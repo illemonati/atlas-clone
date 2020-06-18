@@ -24,12 +24,12 @@ protected:
     std::string _outname;
     TLog * logfile;
     TGlfConverter glfConverter;
-    TPopulationLikelihoodReaderLocus * reader;
-    TPopulationSamples samples;
+    PopulationTools::TPopulationLikelihoodReaderLocus * reader;
+    PopulationTools::TPopulationSamples samples;
 
     virtual void initOutputFiles();
     virtual void writeHeader();
-    virtual void writeData(TPopulationLikehoodLocus & data);
+    virtual void writeData(PopulationTools::TPopulationLikehoodLocus & data);
     void readOutputName(TParameters & Params);
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
@@ -47,7 +47,7 @@ private:
     // beagle
     void writeHeader() override;
     void writeRefAndAlt();
-    void writeData(TPopulationLikehoodLocus & data) override;
+    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
     void writePosition();
     void initOutputFiles() override;
 
@@ -94,7 +94,7 @@ public:
 //------------------------------------------
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
-    void writeData(TPopulationLikehoodLocus & data) override ;
+    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
     void storeCalledGenotypes();
     std::vector<uint8_t *> genotypes;
 
@@ -109,9 +109,9 @@ public:
 //------------------------------------------
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
-    void writeData(TPopulationLikehoodLocus & data) override ;
-    void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
-    float computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i);
+    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
+    void storePosteriorGenotypes(PopulationTools::TPopulationLikehoodLocus & data);
+    float computePosteriorGenotype(PopulationTools::TPopulationLikehoodLocus & data, uint32_t i);
     std::vector<float *> genotypes;
 
 public:
@@ -130,7 +130,7 @@ private:
     // beagle
     void writeHeader() override;
     void writeRefAndAlt();
-    void writeData(TPopulationLikehoodLocus & data) override;
+    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
     void writePosition();
     void initOutputFiles() override;
 
@@ -154,8 +154,8 @@ private:
     std::string curChr;
 
     void writeHeader() override;
-    void writeData(TPopulationLikehoodLocus & data) override;
-    void filterIndividuals(TPopulationLikehoodLocus & data);
+    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void filterIndividuals(PopulationTools::TPopulationLikehoodLocus & data);
     void mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
     void filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<double> > & depthVsSampleIndexMap);
     void writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
@@ -177,7 +177,7 @@ class TVcfToVcf: public TVcfConverter {
 private:
 	void writeRefAndAlt();
 	void writeHeader() override;
-	void writeData(TPopulationLikehoodLocus & data) override;
+	void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
 
 public:
 	TVcfToVcf(TParameters &Params, TLog *Logfile);

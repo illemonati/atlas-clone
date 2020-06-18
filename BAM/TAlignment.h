@@ -101,13 +101,13 @@ public:
 	//getters
 	std::string name() const{ return _name; };
 	uint32_t position() const{ return _genomicPosition.position(); };
-	uint32_t refID() const{ return _genomicPosition._refID; };
+	uint32_t refID() const{ return _genomicPosition.refID(); };
 	const BAM::TGenomePosition& genomicPosition() const{ return _genomicPosition; };
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
-	uint32_t mateRefID() const{ return _mateGenomicPosition._refID; };
+	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
 	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
-	uint32_t lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
+	TGenomePosition lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	char referenceAtInternalPos(const uint32_t internalPosition) const;
 	uint32_t positionInRef(const uint32_t internalPosition) const;
@@ -125,10 +125,11 @@ public:
 	//looping
 	std::vector<TBase>::iterator begin(){ return _bases.begin(); };
 	std::vector<TBase>::iterator end(){ return _bases.end(); };
-	friend bool operator<(const TAlignment & other) const{
+
+	bool operator<(const TAlignment & other) const{
 		return this->_genomicPosition < other._genomicPosition;
 	};
-	friend bool operator<(const BAM::TGenomePosition & other) const{
+	bool operator<(const BAM::TGenomePosition & other) const{
 		return this->_genomicPosition < other;
 	};
 

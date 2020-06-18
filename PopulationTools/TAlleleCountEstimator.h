@@ -10,6 +10,8 @@
 
 #include "TAlleleCountFileFormat.h"
 
+namespace PopulationTools{
+
 //-------------------------------------------------
 // TSAFChooseStorage
 //-------------------------------------------------
@@ -108,5 +110,6 @@ public:
 	};
 };
 
-#endif /* TALLELECOUNTESTIMATOR_H_ */
+}; //end namespace
 
+#endif /* TALLELECOUNTESTIMATOR_H_ */

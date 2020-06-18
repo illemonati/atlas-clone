@@ -60,11 +60,11 @@ bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
 	return _sequencingErrorModels.recalibrationChangesQualities();
 };
 
-double TGenotypeLikelihoodCalculator::getErrorRate(const TBase & base) const{
+double TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TBase & base) const{
 	return _sequencingErrorModels.getErrorRate(base);
 };
 
-double TGenotypeLikelihoodCalculator::getErrorWithPMD(const TBase & base) const{
+double TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TBase & base) const{
 	if(base.base == N){
 		return 1.0;
 	} else {
@@ -77,11 +77,11 @@ double TGenotypeLikelihoodCalculator::getErrorWithPMD(const TBase & base) const{
 	}
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredInt(const TBase & base) const{
+uint8_t TGenotypeLikelihoodCalculator::getPhredInt(const BAM::TBase & base) const{
 	return _sequencingErrorModels.getPhredInt(base);
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const TBase & base) const{
+uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const BAM::TBase & base) const{
 	if(base.base == N){
 		return 0;
 	} else {
@@ -89,19 +89,19 @@ uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const TBase & base) co
 	}
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(TBase & base) const{
+void TGenotypeLikelihoodCalculator::recalibrate(BAM::TBase & base) const{
 	_sequencingErrorModels.recalibrate(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(TBase & base) const{
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TBase & base) const{
 	base.recalibratedQualityAsPhredInt = getPhredIntWithPMD(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(std::vector<TBase> & bases) const{
+void TGenotypeLikelihoodCalculator::recalibrate(std::vector<BAM::TBase> & bases) const{
 	_sequencingErrorModels.recalibrate(bases);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<TBase> & bases) const{
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TBase> & bases) const{
 	for(auto& b : bases){
 		recalibrateWithPMD(b);
 	}
@@ -127,7 +127,7 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite & s
 	}
 };
 
-double TGenotypeLikelihoodCalculator::calculateLogPMDS(const TBase & base, const Base ref, const double pi) const{
+double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const{
 	//get base likelihoods
 	_sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
 	_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);

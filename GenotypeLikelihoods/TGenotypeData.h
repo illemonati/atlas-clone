@@ -73,7 +73,9 @@ public:
 	void operator+=(const TBaseData & other);
 	void operator*=(const TBaseData & other);
 	double& operator[](const Base base){ return _data[base];};
-	double at(const Base base) const { return _data[base]; };
+	double& operator[](const uint8_t base){ return _data[base];};
+	double at(const Base base) const{ return _data[base]; };
+	double at(const uint8_t base) const{ return _data[base]; };
 
 	void set(const double val);
 	void set(const Base trueBase, const double error);

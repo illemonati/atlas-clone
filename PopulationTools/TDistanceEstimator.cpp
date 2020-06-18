@@ -7,6 +7,8 @@
 
 #include "TDistanceEstimator.h"
 
+namespace PopulationTools{
+
 //-------------------------------------------------
 //TPhiToGenoMap
 //-------------------------------------------------
@@ -19,45 +21,45 @@ TGenoToPhiMap::TGenoToPhiMap(){
 		genoToPhiMap[i] = new int[10];
 
 	//case aa/aa
-	for(int b=0; b<4; ++b){
-		Genotype G = genoMap.getGenotype(b, b);
+	for(uint8_t b=0; b<4; ++b){
+		Genotype G = genoMap.toGenotype(b, b);
 		genoToPhiMap[G][G] = 0;
 	}
 
 	//case aa/ab and ab/aa AND aa/bb
-	for(int b1=0; b1<4; ++b1){
-		for(int b2=0; b2<4; ++b2){
+	for(uint8_t b1=0; b1<4; ++b1){
+		for(uint8_t b2=0; b2<4; ++b2){
 			if(b2 != b1){
 				//aa/ab and ab/aa
-				Genotype G1 = genoMap.getGenotype(b1, b1);
-				Genotype G2 = genoMap.getGenotype(b1, b2);
+				Genotype G1 = genoMap.toGenotype(b1, b1);
+				Genotype G2 = genoMap.toGenotype(b1, b2);
 				genoToPhiMap[G1][G2] = 1;
 				genoToPhiMap[G2][G1] = 2;
 
 				//aa/bb
-				G1 = genoMap.getGenotype(b1, b1);
-				G2 = genoMap.getGenotype(b2, b2);
+				G1 = genoMap.toGenotype(b1, b1);
+				G2 = genoMap.toGenotype(b2, b2);
 				genoToPhiMap[G1][G2] = 3;
 			}
 		}
 	}
 
 	//case ab/ab
-	for(int b1=0; b1<3; ++b1){
-		for(int b2=b1+1; b2<4; ++b2){
-			Genotype G = genoMap.getGenotype(b1, b2);
+	for(uint8_t b1=0; b1<3; ++b1){
+		for(uint8_t b2=b1+1; b2<4; ++b2){
+			Genotype G = genoMap.toGenotype(b1, b2);
 			genoToPhiMap[G][G] = 4;
 		}
 	}
 
 	//case ab/ac
-	for(int b1=0; b1<4; ++b1){
-		for(int b2=0; b2<4; ++b2){
+	for(uint8_t b1=0; b1<4; ++b1){
+		for(uint8_t b2=0; b2<4; ++b2){
 			if(b2 != b1){
-				for(int b3=0; b3<4; ++b3){
+				for(uint8_t b3=0; b3<4; ++b3){
 					if(b3 != b1 && b3 != b2){
-						Genotype G1 = genoMap.getGenotype(b1, b2);
-						Genotype G2 = genoMap.getGenotype(b1, b3);
+						Genotype G1 = genoMap.toGenotype(b1, b2);
+						Genotype G2 = genoMap.toGenotype(b1, b3);
 						genoToPhiMap[G1][G2] = 5;
 					}
 				}
@@ -66,12 +68,12 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	}
 
 	//case aa/bc and ab/cc
-	for(int b1=0; b1<4; ++b1){
-		for(int b2=0; b2<3; ++b2){
-			for(int b3=b2+1; b3<4; ++b3){
+	for(uint8_t b1=0; b1<4; ++b1){
+		for(uint8_t b2=0; b2<3; ++b2){
+			for(uint8_t b3=b2+1; b3<4; ++b3){
 				if(b2 != b1 && b3 != b1){
-					Genotype G1 = genoMap.getGenotype(b1, b1);
-					Genotype G2 = genoMap.getGenotype(b2, b3);
+					Genotype G1 = genoMap.toGenotype(b1, b1);
+					Genotype G2 = genoMap.toGenotype(b2, b3);
 					genoToPhiMap[G1][G2] = 6;
 					genoToPhiMap[G2][G1] = 7;
 				}
@@ -234,25 +236,25 @@ void TEMforDistanceEstimation::guessPi(std::vector<uint16_t*> & genoQual1, std::
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
 
 	//just estimate pi as average posterior probability
-	pi.clear();
-	double sum1, sum2;
+	pi.set(0.0);
 
 	//now loop over sites
 	std::vector<uint16_t*>::iterator it1 = genoQual1.begin();
 	std::vector<uint16_t*>::iterator it2 = genoQual2.begin();
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
-		sum1 = 0.0; sum2 = 0.0;
+		double sum1 = 0.0;
+		double sum2 = 0.0;
 		for(int i=0; i<10; ++i){
 			sum1 += glfConverter[(*it1)[i]];
 			sum2 += glfConverter[(*it2)[i]];
 		}
 		for(int i=0; i<10; ++i){
 			double tmp = glfConverter[(*it1)[i]] / sum1;
-			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
-			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
+			pi.add(genoMap.genotypeToBase[i][0], tmp);
+			pi.add(genoMap.genotypeToBase[i][1], tmp);
 			tmp = glfConverter[(*it2)[i]] / sum2;
-			pi.addNoRef(genoMap.genotypeToBase[i][0], tmp);
-			pi.addNoRef(genoMap.genotypeToBase[i][1], tmp);
+			pi.add(genoMap.genotypeToBase[i][0], tmp);
+			pi.add(genoMap.genotypeToBase[i][1], tmp);
 		}
 	}
 
@@ -294,7 +296,7 @@ void TEMforDistanceEstimation::guessPhi(std::vector<uint16_t*> & genoQual1, std:
 		phi[i] /= sum;
 }
 
-void TEMforDistanceEstimation::fill_K(TBaseFrequencies  & thesePi){
+void TEMforDistanceEstimation::fill_K(GenotypeLikelihoods::TBaseData  & thesePi){
 	//normalizing constant for each phi class
 	//case of one base
 	K[0] = 1.0;
@@ -324,7 +326,7 @@ void TEMforDistanceEstimation::fill_K(TBaseFrequencies  & thesePi){
 	K[8] = 6.0;
 };
 
-void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, TBaseFrequencies & thesePi){
+void TEMforDistanceEstimation::fill_P_g_given_phi_pi(double* thesePhi, GenotypeLikelihoods::TBaseData & thesePi){
 	//0: case aa/aa (K[0]=1)
 	probGeno[AA][AA] = thesePhi[0] * thesePi[A];
 	probGeno[CC][CC] = thesePhi[0] * thesePi[C];
@@ -483,7 +485,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 	logfile->listFlush("Estimating initial base frequencies pi ...");
 	guessPi(genoQual1, genoQual2);
 	logfile->done();
-	logfile->conclude("Initial pi are A=" + toString(pi.freq[0]) + ", C=" + toString(pi.freq[1]) + ", G=" + toString(pi.freq[2]) + " and T=" + toString(pi.freq[3]) + ".");
+	logfile->conclude("Initial pi are A=" + toString(pi[0]) + ", C=" + toString(pi[1]) + ", G=" + toString(pi[2]) + " and T=" + toString(pi[3]) + ".");
 	logfile->listFlush("Estimating initial genotype classes phi ...");
 	guessPhi(genoQual1, genoQual2);
 	logfile->done();
@@ -556,7 +558,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 			phi[i] /= sum;
 
 		//update pi
-		pi.clear();
+		pi.set(0.0);
 		for(int g1 = 0; g1<10; ++g1){
 			for(int g2 = 0; g2<10; ++g2){
 				for(int b=0; b<4; ++b)
@@ -978,18 +980,4 @@ void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out){
 	out << "\n";
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}; //end namespace

@@ -156,7 +156,7 @@ public:
 	bool chrChanged() const{ return _chrChanged; };
 	bool curPassedQC() const{ return _QCFiltersPassed; };
 	uint16_t curReadLength() const{ return _curCigar.lengthRead(); };
-	uint16_t curUsableSequence() const{ return _curCigar.lengthSequenced()(); };
+	uint16_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
 	uint16_t curFragmentLength() const;
 	uint16_t curUsableAlignedLength(TQualityFilter & qualFilter) const;
 	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
@@ -167,7 +167,6 @@ public:
 
 	//modify cur alignment
 	void curSetNewReadGroup(const uint16_t id);
-	void curFilterOut();
 	void curAddSamField();
 	void curAddSamField(const std::string tag, const std::string value);
 	void curAddSamField(const std::string tag, const float value);

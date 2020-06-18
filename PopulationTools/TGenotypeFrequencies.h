@@ -13,6 +13,8 @@
 #include "TFile.h"
 #include "../GLF/TGLF.h"
 
+namespace PopulationTools{
+
 //------------------------------------------------
 // TGenotypeFreqencies
 //------------------------------------------------
@@ -48,7 +50,6 @@ public:
 	int numDiploid(){ return numDiploidSamples; };
 };
 
-
-
+}; //end namespace
 
 #endif /* POPULATIONTOOLS_TGENOTYPEFREQUENCIES_H_ */

@@ -9,6 +9,7 @@
 #define GLF_TGLFMULTIREADER_H_
 
 #include "TGLF.h"
+#include "TFastaBuffer.h"
 
 //----------------------------------------------------
 //TMultiGLFData
@@ -39,7 +40,7 @@ public:
 	};
 
 	void resize(uint32_t Size);
-	void fill(TPopulationLikehoodLocus & storage, const int alleleicCombination);
+	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const int alleleicCombination);
 	uint32_t totalDepth();
 };
 
@@ -116,7 +117,7 @@ private:
 
 	//reference
 	bool hasReference;
-	TFastaBuffer fastaBuffer;
+	BAM::TFastaBuffer fastaBuffer;
 
 	bool moveToNextChromosome();
 
@@ -138,7 +139,7 @@ public:
 	void openGLFs(TParameters & params, TLog* logfile);
 	void closeGLF();
 	void setDepthFilter(int MinDepth, TLog* logfile);
-	void addReference(BamTools::Fasta* Reference);
+	void addReference(const std::string FastaFile);
 	void onlyJumpToPositionsWithData(){ _onlyJumpToPositionsWithData = true; };
 
 	//set active / inactive

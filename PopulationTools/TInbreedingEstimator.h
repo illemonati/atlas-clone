@@ -13,6 +13,9 @@
 #include "TQualityMap.h"
 #include "TPopulationLikelihoods.h"
 #include <limits>
+
+namespace PopulationTools{
+
 //---------------------------
 // F
 //---------------------------
@@ -268,5 +271,6 @@ public:
 	};
 };
 
+}; //end namespace
 
 #endif /* TINBREEDINGESTIMATOR_H_ */
