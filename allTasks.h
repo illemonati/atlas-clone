@@ -725,4 +725,12 @@ public:
 	};
 };
 
+class TTask_StitchVCFToBeagle : public TTask_atlas {
+public:
+    TTask_StitchVCFToBeagle() {_explanation = "Converting a VCF file (produced by STITCH) to Beagle format.";};
+    void run(TParameters & parameters, TLog* logfile){
+        TStitchVcfToBeagle stitchVcfToBeagle(parameters, logfile);
+    };
+};
+
 #endif /* ALLTASKS_H_ */
