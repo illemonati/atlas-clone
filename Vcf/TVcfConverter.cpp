@@ -550,3 +550,110 @@ void TVcfToVcf::writeData(TPopulationLikehoodLocus & data){
 void TVcfToVcf::writeHeader(){
 	reader->writeUnknownHeader();
 };
+
+/***************************************
+ * 					                   *
+ * 	STITCH output Vcf to beagle        *
+ * 			                    	   *
+ ***************************************/
+
+// this is a hack and not very nice - can't use VCF reader without bigger refactoring, because STITCH VCF has
+// GP field (Posterior genotype probability) which can't be read by VCF reader...
+
+TStitchVcfToBeagle::TStitchVcfToBeagle(TParameters &Params, TLog *logfile) {
+    baseToNumber["A"] = 0;
+    baseToNumber["C"] = 1;
+    baseToNumber["G"] = 2;
+    baseToNumber["T"] = 3;
+
+    // open input vcf
+    std::string vcfFilename = Params.getParameterString("vcf");
+    logfile->startIndent("Reading vcf '" + vcfFilename + "'.");
+    gz::igzstream vcf(vcfFilename.c_str());
+    if(!vcf || vcf.fail() || !vcf.good()) throw "Failed to open file '" + vcfFilename + "'!";
+
+    // open output beagle
+    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    std::string outname = Params.getParameterStringWithDefault("out", tmp);
+    logfile->list("Writing output files with prefix '" + outname + "'.");
+    TOutputFileZipped beagleFile (outname + ".beagle.gz");
+
+    parseVCF(vcf, beagleFile);
+
+    vcf.close();
+    beagleFile.close();
+}
+
+void TStitchVcfToBeagle::parseVCFHeader(gz::igzstream & vcf, TOutputFileZipped & out){
+    std::vector<std::string> sampleNames;
+    std::string temp, buf;
+
+    // read header and stop after that
+    while(!vcf.eof() && vcf.peek()=='#'){
+        getline(vcf, temp);
+        if(stringContains(temp, "#CHROM")){ // here are the samples
+            //analyze header: save samples
+            trimString(temp);
+            int i=0;
+            while(!temp.empty()){
+                buf=extractBeforeWhiteSpace(temp);
+                trimString(buf);
+                temp.erase(0,1);
+                if(i >= 9) sampleNames.push_back(buf); // col 9 is the first col with sample names
+                ++i;
+            }
+        }
+    }
+
+    // now directly write header
+    std::vector <std::string> header {"marker", "allele1", "allele2"};
+    for (auto & it: sampleNames){
+        for (int r = 0; r < 3; r++)
+            header.push_back(it);
+    }
+    out.writeHeader(header);
+}
+
+void TStitchVcfToBeagle::parseVCF(gz::igzstream & vcf, TOutputFileZipped & out){
+    //parse header
+    parseVCFHeader(vcf, out);
+
+    // parse rest
+    std::vector<std::string> vec;
+    std::string temp, buf;
+    std::string gt0,gt1,gt2;
+
+    while (vcf.good() && !vcf.eof()) {
+        getline(vcf, temp);
+        fillVectorFromStringWhiteSpaceSkipEmpty(temp, vec);
+        if (!vec.empty()) {
+            std::string chr = vec[0];
+            std::string pos = vec[1];
+            std::string refAllele = vec[3];
+            std::string altAllele = vec[4];
+
+            // write to beagle
+            out << chr + "_" + pos;
+            out << baseToNumber.find(refAllele)->second << baseToNumber.find(altAllele)->second;
+
+            auto it = vec.begin(); it += 9; // jump to first data col
+            for (; it < vec.end(); it++){
+                // get GP field (in between : and :)
+                std::string tmp = extractAfter(*it, ":");
+                buf = extractBefore(tmp, ":");
+
+                // separate genotype posteriors
+                gt0 = extractBefore(buf, ",");
+                buf.erase(0,1); // erase ,
+                gt1 = extractBefore(buf, ",");
+                buf.erase(0,1); // erase ,
+                gt2 = extractBefore(buf, ",");
+                buf.erase(0,1); // erase ,
+
+                // now write
+                out << gt0 << gt1 << gt2;
+            }
+            out.endLine();
+        }
+    }
+}

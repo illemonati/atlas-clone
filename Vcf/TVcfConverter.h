@@ -157,4 +157,15 @@ public:
 	virtual ~TVcfToVcf(){};
 };
 
+class TStitchVcfToBeagle {
+private:
+    std::map<std::string, int> baseToNumber;
+    void parseVCF(gz::igzstream & vcf, TOutputFileZipped & out);
+    void parseVCFHeader(gz::igzstream & vcf, TOutputFileZipped & out);
+
+public:
+    TStitchVcfToBeagle(TParameters & Params, TLog * logfile);
+    ~TStitchVcfToBeagle(){};
+};
+
 #endif //ATLAS_TVCFCONVERTER_H

@@ -78,6 +78,7 @@ void addTaks(TMain & main) {
 	main.addDebugTask("alleleFrequencyLikelihoods", new TTask_writeAlleleFrequencyLikelihoods);
 	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
 	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
+	main.addDebugTask("stitchVCFToBeagle", new TTask_StitchVCFToBeagle());
 };
 
 void addTests(TMain & main){
