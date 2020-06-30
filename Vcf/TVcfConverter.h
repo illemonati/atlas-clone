@@ -5,6 +5,7 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
+#include <memory>
 #include "stringFunctions.h"
 #include "TLog.h"
 #include "TParameters.h"
