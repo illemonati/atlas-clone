@@ -441,6 +441,15 @@ void TVcfToGenotypeTruthSetFile::filterIndividualsWithHighestDepth(std::vector<u
 void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & data){
     std::vector<uint32_t> samplesToKeep;
     long distanceToPreviousLocus = reader->position() - positionPreviousLocus;
+
+    // does current position also appear in posfile (if given)?
+    // If not, ignore it (we only want positions in genfile that are also inside posfile)
+    if (!positionsInPosFile.empty()){
+        auto it = std::find(positionsInPosFile.begin(), positionsInPosFile.end(), toString(reader->position()));
+        if (it == positionsInPosFile.end()) // not found -> don't write to genfile, just ignore
+            return;
+    }
+
     if (distanceToPreviousLocus >= minDistanceToPreviousLocus) { // check if distance is big enough
         // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
         // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
@@ -504,6 +513,27 @@ void TVcfToGenotypeTruthSetFile::resetDistance() {
     positionPreviousLocus = -minDistanceToPreviousLocus - 1; // for first locus on chromosome
 }
 
+void TVcfToGenotypeTruthSetFile::readPosfileIntoMemory(std::string fileNamePosfile){
+    std::ifstream file(fileNamePosfile.c_str());
+    if(!file) throw "Failed to open file '" + fileNamePosfile + " for reading!";
+
+    //tmp variables
+    std::vector<std::string> vec;
+    std::string line;
+
+    //now parse and store
+    while(file.good() && !file.eof()){
+        std::getline(file, line);
+        fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+        //skip empty lines
+        if(vec.size() > 0)
+            positionsInPosFile.push_back(vec.at(1));
+    }
+
+    //close file
+    file.close();
+}
+
 void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     // read params
     minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
@@ -511,6 +541,9 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     resetDistance();
     numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
     logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamples').");
+    std::string fileNamePosfile = Params.getParameterStringWithDefault("posfile", "");
+    if (!fileNamePosfile.empty())
+        readPosfileIntoMemory(fileNamePosfile);
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);

@@ -125,6 +125,9 @@ private:
     TBed ** bedFiles;
     TOutputFilePlain * genFile;
 
+    // posfile?
+    std::vector<std::string> positionsInPosFile;
+
     int minDistanceToPreviousLocus;
     long positionPreviousLocus;
     int numSamplesPerLocus;
@@ -139,6 +142,7 @@ private:
     void storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
     void initOutputFiles() override;
     void resetDistance();
+    void readPosfileIntoMemory(std::string fileNamePosfile);
 
 public:
     TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile);
