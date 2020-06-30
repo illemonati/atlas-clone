@@ -757,7 +757,6 @@ void TStitchVcfToPosfile::parseVCF(){
     // parse rest
     while (reader.read()){
         if (reader.infoScore() > minInfoScore && reader.HWE_pVal() > minHWE_pval){
-            std::cout << reader.chr() << "\t" << reader.pos() << "\t" << reader.refAllele() << "\t" << reader.altAllele() << std::endl;
             posfile << reader.chr() << reader.pos() << reader.refAllele() << reader.altAllele();
             posfile.endLine();
         }
