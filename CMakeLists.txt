@@ -216,8 +216,8 @@ find_package(ZLIB REQUIRED)
 target_include_directories(${PROJECT_NAME} PUBLIC ${ARMADILLO_INCLUDE_DIRS}
         "${PROJECT_BINARY_DIR}" "${PROJECT_SOURCE_DIR}/commonutilities")
 
-# Define required c++ standard to C++11
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+# Define required c++ standard to C++17
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 
 # link libraries
 target_link_libraries(${PROJECT_NAME} PUBLIC commonutilities ${ARMADILLO_LIBRARIES} ${ZLIB_LIBRARIES})
