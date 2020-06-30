@@ -157,11 +157,32 @@ public:
 	virtual ~TVcfToVcf(){};
 };
 
+class TStitchVcfReader {
+private:
+    std::unique_ptr<gz::igzstream> _vcf;
+    std::vector<std::string> _oneLine;
+
+public:
+    TStitchVcfReader();
+    ~TStitchVcfReader();
+
+    void openVcf(const std::string& vcfFilename);
+    bool read();
+    void parseVCFHeader(std::vector<std::string>& sampleNames);
+    void posteriorGenotypes(std::vector<std::string>& posteriorGenotypes);
+    std::string chr();
+    std::string pos();
+    std::string refAllele();
+    std::string altAllele();
+};
+
 class TStitchVcfToBeagle {
 private:
+    TOutputFileZipped beagleFile;
+    TStitchVcfReader reader;
     std::map<std::string, int> baseToNumber;
-    void parseVCF(gz::igzstream & vcf, TOutputFileZipped & out);
-    void parseVCFHeader(gz::igzstream & vcf, TOutputFileZipped & out);
+    void parseVCF();
+    void parseVCFHeader();
 
 public:
     TStitchVcfToBeagle(TParameters & Params, TLog * logfile);
