@@ -3,11 +3,25 @@
 SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard Tests/*.cpp) $(wildcard commonutilities/*.cpp) $(wildcard commonutilities/IntegrationTests/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard Vcf/*.cpp) $(wildcard Recalibration/*.cpp) $(wildcard PopulationTools/*.cpp) $(wildcard GLF/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp)
 GIT_HEADER = commonutilities/gitversion.cpp
 
+# check if commonutilities/gitversion.cpp already exists (if it doesn't, we need to add it to SRC)
+ifeq (,$(findstring $(GIT_HEADER),$(SRC)))
+    SRC += $(GIT_HEADER)
+endif
+
 OBJ = $(SRC:%.cpp=%.o)
 BIN = atlas
 
 .PHONY : all
 all : $(BIN)
+
+# create gitversion.cpp file
+$(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG .git/index
+	touch $@
+	echo "#include \"gitversion.h\"" > $@
+	echo "std::string getGitVersion(){" >> $@
+	echo "return \"$(shell git rev-parse HEAD)\";" >> $@
+	echo "}" >> $@
+
 
 ifeq ($(ARM),)
 BINFLAG = -lz -larmadillo
@@ -19,15 +33,6 @@ endif
 
 $(BIN): $(GIT_HEADER) $(OBJ)
 	$(CXX) -O3 -o $(BIN) $(OBJ) $(BINFLAG)
-
-
-$(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG .git/index
-	touch $@
-	echo "#include \"gitversion.h\"" > $@
-	echo "std::string getGitVersion(){" >> $@
-	echo "return \"$(shell git rev-parse HEAD)\";" >> $@
-	echo "}" >> $@
-
 
 .git/COMMIT_EDITMSG :
 	touch $@
