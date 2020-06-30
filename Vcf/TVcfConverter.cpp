@@ -621,6 +621,25 @@ std::string TStitchVcfReader::altAllele() {
     return _oneLine[4];
 }
 
+double TStitchVcfReader::infoScore(){
+    std::string infoField = _oneLine[7];
+    std::string tmp = extractAfter(infoField, ";");
+    std::string infoScore = extractBefore(tmp, ";");
+    std::string actualScore = extractAfter(infoScore, "=");
+
+    return stringToDouble(actualScore);
+}
+
+double TStitchVcfReader::HWE_pVal(){
+    std::string infoField = _oneLine[7];
+    std::string tmp1 = extractAfter(infoField, ";"); // get rid of first ;
+    std::string tmp2 = extractAfter(tmp1, ";"); // get rid of second ;
+    std::string pVal = extractBefore(tmp2, ";");
+    std::string actualScore = extractAfter(pVal, "=");
+
+    return stringToDouble(actualScore);
+}
+
 void TStitchVcfReader::posteriorGenotypes(std::vector<std::string>& posteriorGenotypes){
     // parse posterior genotypes
     std::string gt0, gt1, gt2, buf;
@@ -695,5 +714,52 @@ void TStitchVcfToBeagle::parseVCF(){
         reader.posteriorGenotypes(postGeno);
         beagleFile.write(postGeno);
         beagleFile.endLine();
+    }
+}
+
+/***************************************
+ * 					                   *
+ * 	STITCH output Vcf to posfile       *
+ * 			                    	   *
+ ***************************************/
+
+TStitchVcfToPosfile::TStitchVcfToPosfile(TParameters &Params, TLog *logfile) {
+    // open input vcf
+    std::string vcfFilename = Params.getParameterString("vcf");
+    logfile->startIndent("Reading vcf '" + vcfFilename + "'.");
+    reader.openVcf(vcfFilename);
+
+    // open output posfile
+    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    std::string outname = Params.getParameterStringWithDefault("out", tmp);
+    logfile->list("Writing output files with prefix '" + outname + "'.");
+    posfile.open(outname + ".pos");
+
+    // read filters
+    minInfoScore = Params.getParameterDoubleWithDefault("minInfoScore", 0.4);
+    minHWE_pval = Params.getParameterDoubleWithDefault("minHWE_pval", 0.000001);
+
+    // parse header
+    parseVCFHeader();
+    parseVCF();
+
+    posfile.close();
+}
+
+void TStitchVcfToPosfile::parseVCFHeader(){
+    std::vector <std::string> sampleNames;
+    reader.parseVCFHeader(sampleNames);
+    // don't write to posfile
+    posfile.noHeader(4);
+}
+
+void TStitchVcfToPosfile::parseVCF(){
+    // parse rest
+    while (reader.read()){
+        if (reader.infoScore() > minInfoScore && reader.HWE_pVal() > minHWE_pval){
+            std::cout << reader.chr() << "\t" << reader.pos() << "\t" << reader.refAllele() << "\t" << reader.altAllele() << std::endl;
+            posfile << reader.chr() << reader.pos() << reader.refAllele() << reader.altAllele();
+            posfile.endLine();
+        }
     }
 }

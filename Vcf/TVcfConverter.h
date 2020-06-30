@@ -174,6 +174,8 @@ public:
     std::string pos();
     std::string refAllele();
     std::string altAllele();
+    double infoScore();
+    double HWE_pVal();
 };
 
 class TStitchVcfToBeagle {
@@ -187,6 +189,22 @@ private:
 public:
     TStitchVcfToBeagle(TParameters & Params, TLog * logfile);
     ~TStitchVcfToBeagle(){};
+};
+
+class TStitchVcfToPosfile {
+private:
+    TOutputFilePlain posfile;
+    TStitchVcfReader reader;
+    void parseVCF();
+    void parseVCFHeader();
+
+    // filters
+    double minInfoScore;
+    double minHWE_pval;
+
+public:
+    TStitchVcfToPosfile(TParameters & Params, TLog * logfile);
+    ~TStitchVcfToPosfile(){};
 };
 
 #endif //ATLAS_TVCFCONVERTER_H

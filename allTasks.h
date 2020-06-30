@@ -743,4 +743,12 @@ public:
     };
 };
 
+class TTask_StitchVCFToPosfile : public TTask_atlas {
+public:
+    TTask_StitchVCFToPosfile() {_explanation = "Converting a VCF file (produced by STITCH) to posfile (input for STITCH).";};
+    void run(TParameters & parameters, TLog* logfile){
+        TStitchVcfToPosfile stitchVcfToPosfile(parameters, logfile);
+    };
+};
+
 #endif /* ALLTASKS_H_ */

@@ -79,6 +79,7 @@ void addTaks(TMain & main) {
 	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
 	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
 	main.addDebugTask("stitchVCFToBeagle", new TTask_StitchVCFToBeagle());
+    main.addDebugTask("stitchVCFToPosfile", new TTask_StitchVCFToPosfile());
 };
 
 void addTests(TMain & main){
