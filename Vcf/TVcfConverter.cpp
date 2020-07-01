@@ -593,15 +593,22 @@ void TVcfToVcf::writeHeader(){
 // this is a hack and not very nice - can't use VCF reader without bigger refactoring, because STITCH VCF has
 // GP field (Posterior genotype probability) which can't be read by VCF reader...
 
-TStitchVcfReader::TStitchVcfReader(){}
+TStitchVcfReader::TStitchVcfReader(){
+    _vcfOpen = false;
+    _vcf = nullptr;
+}
 
 TStitchVcfReader::~TStitchVcfReader() {
     _vcf->close();
+    if (_vcfOpen)
+        delete _vcf;
 }
 
 void TStitchVcfReader::openVcf(const std::string &vcfFilename) {
-    _vcf = std::make_unique<gz::igzstream>(vcfFilename.c_str());
+    if (!_vcfOpen)
+        _vcf = new gz::igzstream(vcfFilename.c_str());
     if(!_vcf || _vcf->fail() || !_vcf->good()) throw "Failed to open file '" + vcfFilename + "'!";
+    _vcfOpen = true;
 }
 
 void TStitchVcfReader::parseVCFHeader(std::vector<std::string>& sampleNames){

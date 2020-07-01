@@ -164,7 +164,8 @@ public:
 
 class TStitchVcfReader {
 private:
-    std::unique_ptr<gz::igzstream> _vcf;
+    gz::igzstream * _vcf;
+    bool _vcfOpen;
     std::vector<std::string> _oneLine;
 
 public:
