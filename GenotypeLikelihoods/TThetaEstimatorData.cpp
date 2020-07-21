@@ -140,7 +140,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite & site, GenotypeL
 	++totNumSitesAdded;
 
 	//add if site has data
-	if(site.hasData){
+	if(site._hasData){
 		++numSitesWithData;
 		cumulativeDepth += site.depth();
 

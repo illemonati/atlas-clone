@@ -105,7 +105,7 @@ void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & p
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
-				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				fillVectorFromStringWhiteSpace(line, vec, true);
 				if(vec.size() != 2)
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
 
@@ -155,7 +155,7 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
-				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				fillVectorFromStringWhiteSpace(line, vec, true);
 				if(vec.size() != 2)
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
 
@@ -230,7 +230,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 				line = extractBefore(line, "//");
 				trimString(line);
 				if(!line.empty()){
-					fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+					fillVectorFromStringWhiteSpace(line, vec, true);
 
 					//remove header
 					if(vec[0] == "readGroup") continue;
@@ -344,7 +344,7 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
-				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				fillVectorFromStringWhiteSpace(line, vec, true);
 				if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 
 				//save read group name, but check if name already exists!
@@ -421,7 +421,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
-				fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+				fillVectorFromStringWhiteSpace(line, vec, true);
 				if(vec.size() != 2)
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) contamination rate.";
 

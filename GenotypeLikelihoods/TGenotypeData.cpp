@@ -79,10 +79,11 @@ double TBaseData::sum() const{
 };
 
 double TBaseData::weightedSum(const TBaseData & weights) const{
-	return   _data[A] * weights[A]
-		   + _data[C] * weights[C]
-		   + _data[G] * weights[G]
-	       + _data[T] * weights[T];
+	return   _data[A] * weights.at(A)
+		   + _data[C] * weights.at(C)
+		   + _data[G] * weights.at(G)
+	       + _data[T] * weights.at(T);
+
 };
 
 void TBaseData::normalize(){
@@ -106,14 +107,6 @@ void TBaseCounts::reset(){
 	_counts[G] = 0;
 	_counts[T] = 0;
 	_counts[N] = 0;
-};
-
-uint32_t& TBaseCounts::operator[](const Base base){
-	return _counts[base];
-};
-
-void TBaseCounts::add(const Base base){
-	++_counts[base];
 };
 
 uint32_t TBaseCounts::size() const{
@@ -306,7 +299,7 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 	}
 };
 
-void TGenotypeData::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
 	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
 		vec.push_back("P(D|" + genoMap.getGenotypeString(g) + ")");
 	}

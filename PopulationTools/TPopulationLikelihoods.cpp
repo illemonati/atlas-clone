@@ -542,7 +542,7 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 	return true;
 };
 
-void TPopulationLikelihoodReader::_updateChromosomeInfo(){
+bool TPopulationLikelihoodReader::_updateChromosomeInfo(){
 	//function called when VCF is on new chromosome
 	// first remove previous chromosome from vector chromosomesToKeep (not needed anymore; we stop when vector is empty)
 	auto it = std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr);
@@ -552,6 +552,14 @@ void TPopulationLikelihoodReader::_updateChromosomeInfo(){
 
 	//update curChr
 	curChr = vcfFile.chr();
+
+	// Is there any chromosome left that should be kept?
+	if (filterOnChr && chromosomesToKeep.empty()){
+		logfile->list("Parsed all chromosomes that were defined with parameter 'keepChromosomes'.");
+		return false;
+	}
+
+	return true;
 };
 
 bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
@@ -564,13 +572,12 @@ bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
 	if(vcfFile.eof){
 		return false;
 	} else {
-		_updateChromosomeInfo();
-		return true;
+		return _updateChromosomeInfo();
 	}
 };
 
 void TPopulationLikelihoodReader::printProgressFrequencyFiltering(){
-	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + timer.minutes() + " min");
+	logfile->list("Parsed " + toString(_lineCounter) + " lines, retained " + toString(_numAcceptedLoci) + " loci in " + timer.formattedTime() + ".");
 };
 
 void TPopulationLikelihoodReader::concludeFilters(){
@@ -698,13 +705,17 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 	while(_readNextLineFromVCF()){ // new line in vcf-file (= new locus)
 		//update chr
 		if(curChr != vcfFile.chr()){
-			_updateChromosomeInfo();
+			if(!_updateChromosomeInfo()){
+				return false;
+			}
 
 			//jump bed to this chromosome
 			if(limitToSitesInBed){
 				//jump to next chromosome until we are on a chromsome with BED windows
 				while(!bedFile.hasWindowsOnChr(curChr)){
-					_jumpToNextChromosome();
+					if(!_jumpToNextChromosome()){
+						return false;
+					}
 				}
 
 				//get ref id of this chromosome
@@ -727,7 +738,7 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 			BAM::TGenomePosition pos(_curRefId, vcfFile.positionZeroBased());
 
 			//jump to next window if position is past current window
-			while(_curBedWindow < pos){
+			while(*_curBedWindow < pos){
 				++_curBedWindow;
 				if(_curBedWindow == bedFile.end()){
 					logfile->list("Reached end of last window (BED file).");
@@ -736,19 +747,15 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 			}
 
 			//continue to next pos in VCF is window is ahead
-			if(pos < _curBedWindow){
+			if(pos < *_curBedWindow){
 				++_notInBedFile;
 				continue;
 			}
 
 			//else accept current position
-			if(_curBedWindow->overlaps())
-		}
-
-		// Is there any chromosome left that should be kept?
-		if (filterOnChr && chromosomesToKeep.empty()){
-		    logfile->list("Parsed all chromosomes that were defined with parameter 'keepChromosomes'.");
-		    return false;
+			if(!_curBedWindow->within(pos)){
+				throw std::runtime_error("TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter): something went wrong!");
+			}
 		}
 
 		//filter
@@ -801,37 +808,63 @@ TPopulationLikelihoodReaderWindow::~TPopulationLikelihoodReaderWindow(){
 
 };
 
-bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindow & window, TPopulationSamples & samples, TGlfConverter & glfConverter){
-	//set time at beginning
-	if(!vcfParsingStarted){
-		vcfParsingStarted = true;
-		timer.start();
 
-		//read first locus
-		if(!_readNextLineFromVCF()) return false; //reached end of VCF
+bool TPopulationLikelihoodReaderWindow::_readNextLocusAndUpdateChromosome(){
+	//read next locus
+	if(!_readNextLineFromVCF()) return false; //reached end of VCF
+
+	//update chr
+	if(curChr != vcfFile.chr()){
+		if(!_updateChromosomeInfo()){
+			return false;
+		}
+
+		//jump to next chromosome until we are on a chromsome with BED windows
+		while(!bedFile.hasWindowsOnChr(curChr)){
+			if(!_jumpToNextChromosome()){
+				return false;
+			}
+		}
+
+		//get ref id of this chromosome
+		_curRefId = bedFile.getRefID(curChr);
 	}
 
+	return true;
+};
+
+bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindow & window, TPopulationSamples & samples, TGlfConverter & glfConverter){
+	//ASSUMPTION: all chromosomes are present in VCF with at least on position!
 	//only works if BED file is open
 	if(!limitToSitesInBed){
 		throw "Can not read data from VCF into window: no windows defined!";
 	}
 
-	//1) make sure we are at right window and place in VCF
-	//----------------------------------------------------
-	//go to next window on current chromosome
-	++_curBedWindow;
-	if(_curBedWindow == bedFile.end()) return false;
+	//initialize if at befinning of VCF
+	if(!vcfParsingStarted){
+		vcfParsingStarted = true;
+		timer.start();
 
-	//if VCF is behind window, advance VCF
-	while(!vcfFile.eof && vcfFile.chr() == bedFile->curChr() && vcfFile.positionZeroBased() < bedFile->curWindowStart()){
-		_readNextLineFromVCF();
+		//read first locus on first chromosome with windows
+		_readNextLocusAndUpdateChromosome();
+	} else {
+		//advance window
+		++_curBedWindow;
+		if(_curBedWindow == bedFile.end()) return false;
 	}
 
 	//resize window
-	window.resize(bedFile->curWindowSize(), samples.numSamples());
+	window.resize(_curBedWindow->size(), samples.numSamples());
+
+	//1) make sure we are at right window and place in VCF
+	//----------------------------------------------------
+	//if VCF is ahead of window on same chromosome, advance VCF
+	while(!vcfFile.eof && _curRefId == _curBedWindow->refID() && vcfFile.positionZeroBased() < _curBedWindow->start()){
+		_readNextLocusAndUpdateChromosome();
+	}
 
 	//if VCF is at end, is on next chromosome or past window, return empty
-	if(vcfFile.eof || vcfFile.chr() != bedFile->curChr() || vcfFile.positionZeroBased() > bedFile->curWindowEnd()){
+	if(vcfFile.eof || _curRefId != _curBedWindow->refID() || vcfFile.positionZeroBased() >= _curBedWindow->end()){
 		window.fillAsMissing();
 		return true;
 	}
@@ -839,8 +872,8 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 	//2) fill window!
 	//---------------
 	uint32_t index = 0;
-	while(vcfFile.positionZeroBased() < bedFile->curWindowEnd()){
-		uint32_t curIndex = vcfFile.positionZeroBased() - bedFile->curWindowStart();
+	while(vcfFile.positionZeroBased() < _curBedWindow->end()){
+		uint32_t curIndex = vcfFile.positionZeroBased() - _curBedWindow->start();
 
 		//fill empty until cur position
 		for(; index<curIndex; ++index){
@@ -857,7 +890,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 		++index;
 
 		//read next
-		if(!_readNextLineFromVCF()){
+		if(!_readNextLocusAndUpdateChromosome()){
 			//end of file: fill empty until end
 			for(; index<window.numLoci(); ++index){
 				window[index].fillAsMissing();
@@ -866,7 +899,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 		}
 
 		//if VCF is on next chromosome, fill empty until end
-		if(vcfFile.chr() != bedFile->curChr()){
+		if(_curRefId != _curBedWindow->refID()){
 			for(; index<window.numLoci(); ++index){
 				window[index].fillAsMissing();
 			}
@@ -879,7 +912,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 };
 
 void TPopulationLikelihoodReaderWindow::writeWindow(TOutputFile & out){
-	out << bedFile->curChr() << bedFile->curWindowStart() + 1 << bedFile->curWindowEnd() + 1;
+	out << bedFile.getChromosomeName(_curBedWindow->refID()) << _curBedWindow->start() << _curBedWindow->end();
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////

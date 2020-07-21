@@ -49,13 +49,13 @@ void TEstimateRecalibration_base::_handleWindow(){
 		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos);
 		for(auto& it : thesePositions){
 			uint32_t internalPos = it.position - _window.startPos;
-			if(_window[internalPos].hasData && it.ref==it.alt){
+			if(_window[internalPos]._hasData && it.ref==it.alt){
 				recalObjectEM->addSite(_window[internalPos], _qualMap);
 			}
 		}
 	} else {
 		for(auto& s : _window){
-			if(s.hasData){
+			if(s._hasData){
 				recalObjectEM->addSite(s, _qualMap);
 			}
 		}

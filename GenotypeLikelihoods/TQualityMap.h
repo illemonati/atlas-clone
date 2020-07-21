@@ -124,7 +124,7 @@ public:
 	};
 
 	char qualityToIlluminaQuality(char quality) const{
-		return illuminaQualityBins[quality];
+		return illuminaQualityBins[(uint8_t) quality];
 	};
 
 	//to quality

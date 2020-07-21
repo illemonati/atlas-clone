@@ -178,29 +178,19 @@ public:
 //------------------------------------------------------
 class TPMDDoubleStrand{
 private:
-	TPMDFunction* myFunctions[4];
-	bool functionsInitialized[4];
+	TPMDFunction* myFunctions[2];
+	bool functionsInitialized[2];
 
 public:
-	TPMDDoubleStrand(){
-		for(int pmdType=0; pmdType<4; ++pmdType){
-			myFunctions[pmdType] = NULL;
-			functionsInitialized[pmdType] = false;
-		}
-	};
+	TPMDDoubleStrand();
+	TPMDDoubleStrand(TParameters & params, TLog* logfile);
+	TPMDDoubleStrand(const TPMDDoubleStrand & other);
+	TPMDDoubleStrand(TPMDDoubleStrand && other);
 
-	TPMDDoubleStrand(TParameters & params, TLog* logfile){
-		TPMDDoubleStrand();
-		initialize(params, logfile);
-	};
+	~TPMDDoubleStrand();
 
-	TPMDDoubleStrand(TPMDDoubleStrand & other){initialize(other);};
-	~TPMDDoubleStrand(){
-		if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
-		if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
-	};
 	void initialize(TParameters & params, TLog* logfile);
-	void initialize(TPMDDoubleStrand & other);
+	void initialize(const TPMDDoubleStrand & other);
 	void initializeFunction(std::string pmdString, PMDType type);
 
 	//for getProb: distance is zero based!!! TODO: remove these functions
@@ -239,15 +229,6 @@ public:
 	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
 	void calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 };
-
-
-
-
-
-
-
-
-
 
 }; //end namespace
 

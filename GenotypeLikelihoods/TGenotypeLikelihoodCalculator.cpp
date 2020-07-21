@@ -73,7 +73,7 @@ double TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TBase & base) c
 		_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
 
 		//return 1 - P(base|base) as in mapdamage2
-		return 1.0 - _baseLikelihoods[base.base];
+		return 1.0 - _baseLikelihoods[base.base][base.base];
 	}
 };
 

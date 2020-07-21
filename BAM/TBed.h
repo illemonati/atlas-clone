@@ -72,8 +72,9 @@ public:
 	void addChromosomes(const TChromosomes & Chromosomes);
 	uint32_t numChromosomesWithWindows() const;
 	bool hasWindowsOnChr(const std::string Chr);
-	bool hasWindowsOnChr(uint32_t refId);
+	bool hasWindowsOnChr(const uint32_t refId);
 	uint32_t getRefID(const std::string Chr);
+	std::string getChromosomeName(const uint32_t refId);
 };
 
 //-------------------------------------------------------------

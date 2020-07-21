@@ -117,7 +117,7 @@ void TPileup::_handleWindow(){
 
 		//reference
 		if(_reference.hasReference()){
-			out << site.referenceBase;
+			out << site._referenceBase;
 		}
 
 		//depth
@@ -152,7 +152,7 @@ void TPileup::_handleWindow(){
 		}
 
 		if(_printLikelihoods){
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site.bases, _genoLik);
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site._bases, _genoLik);
 			_genoLik.write(out);
 		}
 

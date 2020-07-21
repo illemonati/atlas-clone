@@ -396,7 +396,7 @@ void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	_changed = true;
 };
 
-void TAlignment::recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator){
+void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator){
 	GLCalculator.recalibrateWithPMD(_bases);
 	_sequenceAndQualitiesChanged = true;
 	_changed = true;

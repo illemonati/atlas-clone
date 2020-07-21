@@ -202,7 +202,7 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outn
 		_files[0].open(Outname + ".bam", "Ind1", ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	} else {
 		Logfile->startIndent("Opening " + toString(_files.size()) + " BAM files:");
-		for(int i=0; i<_files.size(); ++i){
+		for(size_t i=0; i<_files.size(); ++i){
 			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 		}
 		Logfile->endIndent();

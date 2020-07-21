@@ -195,7 +195,7 @@ void TCaller::fillInfoFieldFunctionPointers(){
 };
 
 std::string TCaller::getVCFInfoString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return "DP=" + toString(site.bases.size());
+	return "DP=" + toString(site._bases.size());
 };
 
 //-------------------------------------------------------------------------------------------
@@ -245,7 +245,7 @@ std::string TCaller::getVCFGenotypeString_GT(const TSite & site, TGenotypeLikeli
 };
 
 std::string TCaller::getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return toString(site.bases.size());
+	return toString(site._bases.size());
 };
 
 std::string TCaller::getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -298,7 +298,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, const TSit
 	vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
 
 	//write reference and alternative alleles
-	vcf << site.referenceBase << "\t";
+	vcf << site._referenceBase << "\t";
 	writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
@@ -319,7 +319,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, const TSit
 
 void TCaller::writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
-		vcf << "\t.\t" << site.referenceBase << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0";
+		vcf << "\t.\t" << site._referenceBase << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0";
 };
 
 void TCaller::clearAfterCall(){
@@ -347,10 +347,10 @@ void TCaller::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods 
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
-	referenceBase = genoMap.toBase(site.referenceBase);
+	referenceBase = genoMap.toBase(site._referenceBase);
 
 	//check if there is data
-	if(!site.hasData || (referenceBase == N && !_allowTriallelicSites))
+	if(!site._hasData || (referenceBase == N && !_allowTriallelicSites))
 		writeMissingDataToVCF(site);
 	else {
 		//call
@@ -363,9 +363,9 @@ void TCaller::call(const std::string & chr, const long pos, const TSite & site, 
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele){
 	//check if there is data
-	if(site.hasData){
+	if(site._hasData){
 		//set reference base from site
-		referenceBase = genoMap.toBase(site.referenceBase);
+		referenceBase = genoMap.toBase(site._referenceBase);
 
 		//call
 		if(referenceBase == genoMap.toBase(firstAllele))
@@ -396,7 +396,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	Base allele = site.bases[randomGenerator->pickOne(site.bases.size())]->base;
+	Base allele = site._bases[randomGenerator->pickOne(site._bases.size())]->base;
 
 	//decide on alt
 	if(allele == referenceBase){

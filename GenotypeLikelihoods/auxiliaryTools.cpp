@@ -9,41 +9,6 @@
 
 namespace GenotypeLikelihoods{
 
-
-//--------------------------------------------------------------------
-// TRecalibrationEMReadData
-//--------------------------------------------------------------------
-void TRecalibrationEMReadData::setD(Base base, double PMD_CT, double PMD_GA){
-	switch(base){
-		case A: D[0] = 0.0; //geno = AA
-				D[1] = 1.0; //geno = CC
-				D[2] = 1.0 - PMD_GA; //geno = GG
-				D[3] = 1.0; //geno = TT
-				break;
-		case C: D[0] = 1.0; //geno = AA
-				D[1] = PMD_CT; //geno = CC
-				D[2] = 1.0; //geno = GG
-				D[3] = 1.0; //geno = TT
-				break;
-		case G: D[0] = 1.0; //geno = AA
-				D[1] = 1.0; //geno = CC
-				D[2] = PMD_GA; //geno = GG
-				D[3] = 1.0; //geno = TT
-				break;
-		case T: D[0] = 1.0; //geno = AA
-				D[1] = 1.0 - PMD_CT; //geno = CC
-				D[2] = 1.0; //geno = GG
-				D[3] = 0.0; //geno = TT
-				break;
-		case N:
-				D[0] = 0.0;
-				D[1] = 0.0;
-				D[2] = 0.0;
-				D[3] = 0.0;
-				break;
-	}
-};
-
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
 //--------------------------------------------------------------------
@@ -89,17 +54,18 @@ void TRecalibrationEMDataTable::initialize(const int MaxQual, const int MaxFragm
 	clear();
 };
 
-void TRecalibrationEMDataTable::add(TRecalibrationEMReadData & data){
-	/*
-	if(data.quality > maxQual){
-		throw "Can not add data point to TRecalibrationEMDataTable: quality > maxQual!";
+void TRecalibrationEMDataTable::add(const BAM::TBase & base){
+	++qualities[base.originalQuality_phredInt];
+	++fragmentLengths[base.fragmentLength];
+	++MQ[base.mappingQuality];
+	if(maxPos < base.distFrom5Prime)
+		maxPos = base.distFrom5Prime;
+};
+
+void TRecalibrationEMDataTable::add(const TSiteStorage & site){
+	for(const auto& b : site){
+		add(b);
 	}
-	*/
-	++qualities[data.qualityAsPhredInt];
-	++fragmentLengths[data.fragmentLength];
-	++MQ[data.mappingQuality];
-	if(maxPos < data.positionFrom5Prime)
-		maxPos = data.positionFrom5Prime;
 };
 
 void TRecalibrationEMDataTable::assembleCounts(){
@@ -184,9 +150,11 @@ void TRecalibrationEMDataTables::clear(){
 	totalCounts = 0;
 };
 
-void TRecalibrationEMDataTables::add(TRecalibrationEMReadData & data){
-	tables[data.readGroup][(int) data.isSecond].add(data);
+void TRecalibrationEMDataTables::add(const BAM::TBase & base){
+	tables[base.readGroupID][(int) base.isSecondMate()].add(base);
 };
+
+
 
 void TRecalibrationEMDataTables::assembleCountsPerReadGroup(){
 	totalCounts = 0;

@@ -100,7 +100,7 @@ public:
 	//access header info
 	const TChromosomes& chromosomes() const{ return _chromosomes; };
 	const TReadGroups& readGroups() const { return _readGroups; };
-	const TSamHeader& samHeader() const{ return _samHeader; };
+	const TSamHeader samHeader() const{ return _samHeader; };
 
 	//filters
 	void setLimits(TParameters & params, TLog* logfile);

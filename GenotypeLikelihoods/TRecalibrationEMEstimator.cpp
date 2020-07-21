@@ -9,18 +9,12 @@
 
 namespace GenotypeLikelihoods{
 
+/*
 //---------------------------------------------------------------
 //RecalibrationEMSite
 //---------------------------------------------------------------
 TRecalibrationEMSite::TRecalibrationEMSite(){
-	numReads = 0;
-	data = NULL;
 	trueBase = N;
-};
-
-TRecalibrationEMSite::~TRecalibrationEMSite(){
-	if(numReads > 0)
-		delete[] data;
 };
 
 TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
@@ -34,49 +28,32 @@ TRecalibrationEMSite::TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & Re
 };
 
 void TRecalibrationEMSite::_save(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap){
-	numReads = site.bases.size();
-	data = new TRecalibrationEMReadData[numReads];
-	int k = 0;
+	data.reserve(site.depth());
 
-	REPLACE WITH JUST TBASE!!!
-
-	for(TBaseOld* it : site.bases){
-		//read group. Note: also encodes whether it is first or second mate
-		data[k].readGroup = ReadGroupMap.getIndex(it->data.readGroup);
-
-		//quality
-		data[k].qualityAsPhredInt = it->data.originalQuality_phredInt;
-
-		//position
-		data[k].positionFrom5Prime = it->data.distFrom5Prime;
-
-		//context
-		data[k].context = it->data.context;
-
-		//fragmentLength
-		data[k].fragmentLength = it->data.fragmentLength;
-
-		//mappingQuality
-		data[k].mappingQuality = it->data.mappingQuality;
-
-		//isSecond
-		data[k].isSecond = it->isSecondMate();
-
-		//now also store D: D[ref][read]
-		data[k].setD(it->getBaseAsEnum(), it->PMD_CT, it->PMD_GA);
-
-		++k;
+	for(auto& b : site){
+		data.push_back(*b);
 	}
 };
 
 void TRecalibrationEMSite::addToDataTable(TRecalibrationEMDataTables & dataTable){
-	for(unsigned int k=0; k<numReads; ++k)
-		dataTable.add(data[k]);
+	for(auto& b : data){
+		dataTable.add(b);
+	}
 };
 
-double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon){
+double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, TPostMortemDamage _pmd, double* freqs, double* epsilon){
 	calcEpsilon(models, epsilon);
 
+	_pmd.
+
+	for(uint8_t b = 0; b<4; ++b){
+		P_bbar_given_d_oldTheta
+
+	}
+
+
+
+	//------ OLD ------------- ///
 	//over all genotypes
 	double P_g_given_d_theta_denominator = 0.0;
 	for(int g=0; g<4; ++g){
@@ -85,8 +62,8 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorMo
 		for(unsigned int k=0; k<numReads; ++k){
 			tmp *= calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0;
 		}
-		P_g_given_d_oldBeta[g] = tmp * freqs[g];
-		P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
+		P_bbar_given_d_oldTheta[g] = tmp * freqs[g];
+		P_g_given_d_theta_denominator += P_bbar_given_d_oldTheta[g];
 	}
 
 	double max = 0.0;
@@ -100,29 +77,29 @@ double TRecalibrationEMSite::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorMo
 			for(unsigned int k=0; k<numReads; ++k){
 				tmp += log( calcB(data[k].D[g]) * epsilon[k] - data[k].D[g] + 1.0 );
 			}
-			P_g_given_d_oldBeta[g] = tmp + log(freqs[g]);
-			if(g==0) max = P_g_given_d_oldBeta[g];
-			else if(P_g_given_d_oldBeta[g] > max) max = P_g_given_d_oldBeta[g];
+			P_bbar_given_d_oldTheta[g] = tmp + log(freqs[g]);
+			if(g==0) max = P_bbar_given_d_oldTheta[g];
+			else if(P_bbar_given_d_oldTheta[g] > max) max = P_bbar_given_d_oldTheta[g];
 		}
 
 		//rescale and delog
 		P_g_given_d_theta_denominator = 0.0;
 		for(int g=0; g<4; ++g){
-			P_g_given_d_oldBeta[g] = exp(P_g_given_d_oldBeta[g] - max);
-			P_g_given_d_theta_denominator += P_g_given_d_oldBeta[g];
+			P_bbar_given_d_oldTheta[g] = exp(P_bbar_given_d_oldTheta[g] - max);
+			P_g_given_d_theta_denominator += P_bbar_given_d_oldTheta[g];
 		}
 	}
 
 	//calculate P(g|d, theta)
 	for(int g=0; g<4; ++g){
-		P_g_given_d_oldBeta[g] = P_g_given_d_oldBeta[g] / P_g_given_d_theta_denominator;
+		P_bbar_given_d_oldTheta[g] = P_bbar_given_d_oldTheta[g] / P_g_given_d_theta_denominator;
 	}
 
 	//return LL = P_g_given_d_theta_denominator
 	return log(P_g_given_d_theta_denominator) + max;
 };
 
-double TRecalibrationEMSite::calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon){
+double TRecalibrationEMSite::calcLL(TSequencingErrorModels & models, double* freqs, double* epsilon){
 	calcEpsilon(models, epsilon);
 
 	//over all genotypes
@@ -166,7 +143,7 @@ double TRecalibrationEMSite::calcLL(TSequencingErrorModels & models, double* & f
 void TRecalibrationEMSite::addToQ(TSequencingErrorModels & models){
 	if(trueBase == N){
 		for(unsigned int k=0; k<numReads; ++k){
-			models.addToQ(data[k], P_g_given_d_oldBeta);
+			models.addToQ(data[k], P_bbar_given_d_oldTheta);
 		}
 	} else {
 		for(unsigned int k=0; k<numReads; ++k){
@@ -175,7 +152,7 @@ void TRecalibrationEMSite::addToQ(TSequencingErrorModels & models){
 	}
 };
 
-void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon){
+void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, double* epsilon){
 	//tmp variables
 	double* eps1MinusEps = new double[numReads];
 	double* oneMinus2Eps = new double[numReads];
@@ -192,8 +169,8 @@ void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, d
 			double B = calcB(data[k].D[g]);
 			double weightF = B / (1.0 - data[k].D[g] + B * epsilon[k]) * eps1MinusEps[k];
 			double weightJacobian = weightF * (oneMinus2Eps[k] - weightF);
-			weightF *=  P_g_given_d_oldBeta[g];
-			weightJacobian *=  P_g_given_d_oldBeta[g];
+			weightF *=  P_bbar_given_d_oldTheta[g];
+			weightJacobian *=  P_bbar_given_d_oldTheta[g];
 
 			//add to model
 			models.addToFandJacobian(data[k], weightF, weightJacobian);
@@ -205,7 +182,7 @@ void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, d
 	delete[] oneMinus2Eps;
 };
 
-void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* & epsilon){
+void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* epsilon){
 	//fill F and Jacobian
 	for(unsigned int k=0; k<numReads; ++k){
 		//tmp variables
@@ -222,7 +199,7 @@ void TRecalibrationEMSite::_addToJacobianAndFKnownGenotype(TSequencingErrorModel
 	}
 };
 
-void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon){
+void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, double* epsilon){
 	//calculate tmpEpsilon with current parameters
 	calcEpsilon(models, epsilon);
 
@@ -232,6 +209,7 @@ void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, do
 		_addToJacobianAndFKnownGenotype(models, epsilon);
 	}
 };
+*/
 
 //---------------------------------------------------------------
 //TRecalibrationEMWindow
@@ -247,20 +225,20 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM:
 
 unsigned int TRecalibrationEMWindow::getMaxDepth(){
 	unsigned int maxDepth = 0;
-	for(TRecalibrationEMSite* site : sites){
-		if(maxDepth < site->numReads)
+	for(auto& s : sites){
+		if(maxDepth < s.depth())
 			maxDepth = site->numReads;
 	}
 	return maxDepth;
 };
 
 void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
-	if(site.hasData)
+	if(!site.empty())
 		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap));
 };
 
 void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase){
-	if(site.hasData)
+	if(!site.empty())
 		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap, TrueBase));
 };
 
@@ -290,7 +268,7 @@ long TRecalibrationEMWindow::cumulativeDepth(){
 	return cumulDepth;
 }
 
-double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & tmpEpsilon){
+double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites){
 		LL += site->fill_P_g_given_d_beta_AND_calcLL(models, freqs, tmpEpsilon);
@@ -298,7 +276,7 @@ double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TSequencingError
 	return LL;
 }
 
-double TRecalibrationEMWindow::calcLL(TSequencingErrorModels & models, double* & tmpEpsilon){
+double TRecalibrationEMWindow::calcLL(TSequencingErrorModels & models, double* tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites)
 		LL += site->calcLL(models, freqs, tmpEpsilon);
@@ -310,7 +288,7 @@ void TRecalibrationEMWindow::addToQ(TSequencingErrorModels & models){
 		site->addToQ(models);
 };
 
-void TRecalibrationEMWindow::addToJacobianAndF(TSequencingErrorModels & models, double* & tmpEpsilon){
+void TRecalibrationEMWindow::addToJacobianAndF(TSequencingErrorModels & models, double* tmpEpsilon){
 	for(TRecalibrationEMSite* site : sites)
 		site->addToJacobianAndF(models, tmpEpsilon);
 };
@@ -500,9 +478,9 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 	for(int iter = 0; iter < numEMIterations; ++iter){
 		logfile->number("EM Iteration:"); logfile->addIndent();
 
-		//calculate P(g|d, oldbeta) for all sites and calculate LL
+		//calculate EM weights P(g|d, theta_eps') for all sites and calculate LL
 		LL = 0.0;
-		logfile->listFlush("Calculating P(g|d, beta') ...");
+		logfile->listFlush("Calculating P(g|d, theta_eps') ...");
 		for(TRecalibrationEMWindow* curWindow : windows)
 			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(models, tmpEpsilon);
 		logfile->done();

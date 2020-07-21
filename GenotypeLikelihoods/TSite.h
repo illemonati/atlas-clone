@@ -19,42 +19,45 @@ namespace GenotypeLikelihoods{
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100
 
-
-//---------------------------------------------------------------
-//TSite
-//---------------------------------------------------------------
-class TSite{
+//----------------------------------------------------------------------------------------------------------------------------------
+// TSite_base
+// Base class not meant to be used.
+//----------------------------------------------------------------------------------------------------------------------------------
+class TSite_base{
 protected:
-	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
+	Base _referenceBase;
 
-	std::vector<BAM::TBase*> bases;
-	bool hasData;
-	Base referenceBase; //optional
+public:
+	TSite_base(){
+		_referenceBase = N;
+	};
+
+	void setRefBase(const Base ref){ _referenceBase = ref; };
+	Base getRefBase() const {return _referenceBase;};
+
+};
+
+//----------------------------------------------------------------------------------------------------------------------------------
+// TSite
+// Class that used pointer to bases.
+// Used in routines based in windows that store alignments with bases (no need to copy memory).
+//----------------------------------------------------------------------------------------------------------------------------------
+class TSite:public TSite_base{
+protected:
+	std::vector<BAM::TBase*> _bases;
+
+	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
 
 public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
-
-	TSite(){
-		hasData = false;
-		referenceBase = N;
-	};
-
-	//TSite(TSite* other):TSite(){stealFromOther(other);};
-	virtual ~TSite(){ clear(); };
 	void clear();
-	//void stealFromOther(TSite* other);
-
-	const BAM::TBase& at(size_t i) const{ return *bases[i]; };
-	BAM::TBase& operator[](size_t i){ return *bases[i]; };
+	const BAM::TBase& at(size_t i) const{ return *_bases[i]; };
+	BAM::TBase& operator[](size_t i){ return *_bases[i]; };
 
 	void add(const BAM::TBase * base);
-	void setRefBase(const Base ref){ referenceBase = ref; };
-	Base getRefBase() const {return referenceBase;};
 	void addToBaseFrequencies(TBaseData & frequencies) const;
-	std::string getBases(const TGenotypeMap & genoMap) const;
-	std::string getQualities(const TQualityMap & qualMap) const;
-	bool empty() const{ return bases.empty(); };
+	bool empty() const{ return _bases.empty(); };
 	uint32_t depth() const;
 	uint32_t refDepth() const;
 
@@ -63,11 +66,44 @@ public:
 	void countFwdRev(int* frCounts) const;
 
 	//loop
-	std::vector<BAM::TBase*>::iterator begin(){ return bases.begin(); };
-	std::vector<BAM::TBase*>::iterator end(){ return bases.end(); };
-	std::vector<BAM::TBase*>::const_iterator cbegin() const{ return bases.cbegin(); };
-	std::vector<BAM::TBase*>::const_iterator cend() const{ return bases.cend(); };
+	std::vector<BAM::TBase*>::iterator begin(){ return _bases.begin(); };
+	std::vector<BAM::TBase*>::iterator end(){ return _bases.end(); };
+	std::vector<BAM::TBase*>::const_iterator cbegin() const{ return _bases.cbegin(); };
+	std::vector<BAM::TBase*>::const_iterator cend() const{ return _bases.cend(); };
 };
+
+//----------------------------------------------------------------------------------------------------------------------------------
+// TSiteStorage
+// Class that stores bases (not pointers)
+// Used in routines that need to keep sites in memory beyond scope of windows.
+// Standard way of using is to first read data into TSites, then to filter sites and "copy" the data of TSite into TSiteStorage
+//----------------------------------------------------------------------------------------------------------------------------------
+class TSiteStorage:TSite_base{
+protected:
+	std::vector<BAM::TBase> _bases;
+
+public:
+	void clear();
+
+	const BAM::TBase& at(size_t i) const{ return _bases[i]; };
+	BAM::TBase& operator[](size_t i){ return _bases[i]; };
+
+	void add(const BAM::TBase * base);
+	void add(const BAM::TBase & base);
+
+	void addToBaseFrequencies(TBaseData & frequencies) const;
+	std::string getBases(const TGenotypeMap & genoMap) const;
+	std::string getQualities(const TQualityMap & qualMap) const;
+	bool empty() const{ return _bases.empty(); };
+	uint32_t depth() const;
+
+	//loop
+	std::vector<BAM::TBase>::iterator begin(){ return _bases.begin(); };
+	std::vector<BAM::TBase>::iterator end(){ return _bases.end(); };
+	std::vector<BAM::TBase>::const_iterator cbegin() const{ return _bases.cbegin(); };
+	std::vector<BAM::TBase>::const_iterator cend() const{ return _bases.cend(); };
+};
+
 
 }; //end namespace
 

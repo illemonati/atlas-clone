@@ -139,7 +139,7 @@ public:
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void binQualityScores(TQualityMap & qualityMap);
-	void recalibrateWithPMD(GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
+	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
 	void setIsProperPair(const bool & ok);
 	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 

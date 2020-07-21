@@ -8,7 +8,7 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
-#include <TBase.h>
+#include <TSite.h>
 #include <TGenotypeData.h>
 #include <cstddef>
 #include "TQualityMap.h"
@@ -20,23 +20,6 @@
 #include "TFile.h"
 
 namespace GenotypeLikelihoods{
-
-//--------------------------------------------------------------------
-// TRecalibrationEMReadData
-// Per site data storage
-//--------------------------------------------------------------------
-struct TRecalibrationEMReadData{
-	uint8_t qualityAsPhredInt;
-	uint16_t positionFrom5Prime;
-	float D[4];
-	uint8_t context;
-	uint16_t readGroup;
-	bool isSecond;
-	uint16_t fragmentLength;
-	uint8_t mappingQuality;
-
-	void setD(Base base, double PMD_CT, double PMD_GA);
-};
 
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
@@ -63,7 +46,8 @@ public:
 
 	void initialize(const int MaxQual, const int MaxFragmentLength, const int MQ);
 	void clear();
-	void add(TRecalibrationEMReadData & data);
+	void add(const BAM::TBase & base);
+	void add(const TSiteStorage & site);
 	size_t size();
 	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
 	void fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths);
@@ -81,7 +65,7 @@ public:
 	~TRecalibrationEMDataTables();
 
 	void clear();
-	void add(TRecalibrationEMReadData & data);
+	void add(const BAM::TBase & base);
 	void assembleCountsPerReadGroup();
 	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
 	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);
@@ -132,10 +116,6 @@ public:
 
 	int index(const BAM::TBase & base) const{
 		return readGroupIndex[base.readGroupID][base.isSecondMate()];
-	};
-
-	int index(const TRecalibrationEMReadData & data) const{
-		return readGroupIndex[data.readGroup][data.isSecond];
 	};
 
 	//std::string name(int readGroup, bool isSecondMate);

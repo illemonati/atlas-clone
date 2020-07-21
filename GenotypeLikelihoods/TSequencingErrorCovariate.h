@@ -37,9 +37,6 @@ protected:
 	virtual uint16_t _extractCovariate(const BAM::TBase & base){
 		throw "No covariate defined for base class TRecalibrationEMCovariate!";
 	};
-	virtual uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		throw "No covariate defined for base class TRecalibrationEMCovariate!";
-	};
 
 public:
 	TSequencingErrorCovariate(){};
@@ -63,12 +60,9 @@ public:
 	double getEtaTerm(const BAM::TBase & base){
 		return _function->getEtaTerm( _extractCovariate(base) );
 	};
-	double getEtaTerm(const TRecalibrationEMReadData & data){
-		return _function->getEtaTerm( _extractCovariate(data) );
-	};
 
-	void fillDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
-		_function->fillDerivatives(_extractCovariate(data), first, second);
+	void fillDerivatives(const BAM::TBase & base, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+		_function->fillDerivatives(_extractCovariate(base), first, second);
 	};
 
 	double adjustParametersPostEstimation(){
@@ -86,9 +80,6 @@ private:
 	uint16_t _extractCovariate(const BAM::TBase & base){
 		return base.originalQuality_phredInt;
 	};
-	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.qualityAsPhredInt;
-	};
 
 public:
 	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -99,8 +90,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
-	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
 };
 
 //-------------------------------------------
@@ -110,9 +99,6 @@ class TSequencingErrorCovariate_position:public TSequencingErrorCovariate{
 private:
 	uint16_t _extractCovariate(const BAM::TBase & base){
 		return base.distFrom5Prime;
-	};
-	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.positionFrom5Prime;
 	};
 
 public:
@@ -136,9 +122,6 @@ private:
 	uint16_t _extractCovariate(const BAM::TBase & base){
 		return base.context;
 	};
-	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.context;
-	};
 
 public:
 	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -160,9 +143,6 @@ private:
 	uint16_t _extractCovariate(const BAM::TBase & base){
 		return base.fragmentLength;
 	};
-	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.fragmentLength;
-	};
 
 public:
 	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -173,9 +153,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
-	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
-
 };
 
 //-------------------------------------------
@@ -187,9 +164,6 @@ private:
 	uint16_t _extractCovariate(const BAM::TBase & base){
 		return base.mappingQuality;
 	};
-	uint16_t _extractCovariate(const TRecalibrationEMReadData & data){
-		return data.mappingQuality;
-	};
 
 public:
 	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
@@ -200,9 +174,6 @@ public:
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
 	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
-	void fillFirstDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMFirstDerivatives & first, size_t & index);
-	void fillSecondDerivatives(const TRecalibrationEMReadData & data, TRecalibrationEMSecondDerivatives & second, size_t & index);
-
 };
 
 }; //end namespace recal

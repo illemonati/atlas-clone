@@ -7,6 +7,8 @@
 
 #include "TOutputBam.h"
 
+/*
+
 namespace BAM{
 
 
@@ -22,7 +24,8 @@ TOutputBamFile::TOutputBamFile(){
 
 TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
 	_openForWriting = false;
-	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
+	const TSamHeader & Header = Original.samHeader();
+	open(Filename, Header, Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
 };
 
 TOutputBamFile::~TOutputBamFile(){
@@ -153,3 +156,5 @@ void TOutputBamFile::writeAlignment(const TAlignment & alignment){
 };
 
 }; //end namespace
+
+*/

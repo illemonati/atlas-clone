@@ -12,7 +12,6 @@
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
-#include "TAlignment.h"
 
 namespace GenotypeLikelihoods{
 

@@ -9,24 +9,29 @@
 #define TRECALIBRATIONEMESTIMATOR_H_
 
 #include "auxiliaryTools.h"
+#include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TSite.h"
 
 namespace GenotypeLikelihoods{
 
+
+/*
 //--------------------------------------------------------------------
 // TRecalibrationEMSite
 // Object to store all data at one site
 //--------------------------------------------------------------------
 class TRecalibrationEMSite{
 private:
-	TRecalibrationEMReadData* data;
+	std::vector<BAM::TBase> data;
+	//TRecalibrationEMReadData* data;
 	Base trueBase;
-	double P_g_given_d_oldBeta[4];
+	double P_bbar_given_d_oldTheta[4];
 
-	inline void calcEpsilon(TSequencingErrorModels & models, double* & epsilon){
-		for(unsigned int k=0; k<numReads; ++k)
-			epsilon[k] = models.getErrorRate(data[k]);
+	inline void calcEpsilon(TSequencingErrorModels & models, double* epsilon){
+		for(auto& b : data){
+			epsilon[k] = models.getErrorRate(b);
+		}
 	};
 
 	inline double calcB(const double & D){
@@ -34,53 +39,48 @@ private:
 	};
 
 	void _save(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
-	void _addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon);
-	void _addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* & epsilon);
+	void _addToJacobianAndF(TSequencingErrorModels & models, double* epsilon);
+	void _addToJacobianAndFKnownGenotype(TSequencingErrorModels & models, double* epsilon);
 
 public:
-	unsigned int numReads;
+	//unsigned int numReads;
 
 	TRecalibrationEMSite();
-	~TRecalibrationEMSite();
 	TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap);
 	TRecalibrationEMSite(TSite & site, BAM::TReadGroupMap & ReadGroupMap, TQualityMap & qualiMap, const Base TrueBase);
 
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);
-	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon);
-	double calcLL(TSequencingErrorModels & models, double* & freqs, double* & epsilon);
+	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* freqs, double* epsilon);
+	double calcLL(TSequencingErrorModels & models, double* freqs, double* epsilon);
 	void addToQ(TSequencingErrorModels & models);
-	void addToJacobianAndF(TSequencingErrorModels & models, double* & epsilon);
+	void addToJacobianAndF(TSequencingErrorModels & models, double* epsilon);
 };
+
+*/
 
 //--------------------------------------------------------------------
 // TRecalibrationEMWindow
 //--------------------------------------------------------------------
 class TRecalibrationEMWindow{
 public:
-	std::vector<TRecalibrationEMSite*> sites;
+	std::vector<TSiteStorage> sites;
 	double freqs[4]; //base frequencies
 	BAM::TReadGroupMap* readGroupMapObject;
 
 	TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM::TReadGroupMap* ReadGroupMap);
-	virtual ~TRecalibrationEMWindow(){
-		delete[] freqs;
-		for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-			delete *site;
-		}
-		sites.clear();
-	};
+
 	unsigned int getMaxDepth();
 	void addSite(TSite & site, TQualityMap & qualiMap);
 	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
-	long numSites();
-	long numSitesDepthTwoOrMore();
+	size_t numSites();
+	size_t numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);
-	long cumulativeDepth();
-	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* & tmpEpsilon);
-	double calcLL(TSequencingErrorModels & models, double* & tmpEpsilon);
+	size_t cumulativeDepth();
+	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* tmpEpsilon);
+	double calcLL(TSequencingErrorModels & models, double* tmpEpsilon);
 	//double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void addToQ(TSequencingErrorModels & models);
-	void addToJacobianAndF(TSequencingErrorModels & models, double* & tmpEpsilon);
+	void addToJacobianAndF(TSequencingErrorModels & models, double* tmpEpsilon);
 	void setEuqalBaseFrequencies();
 };
 
@@ -92,6 +92,7 @@ protected:
 	TLog* logfile;
 	BAM::TReadGroups* _readGroups;
 	BAM::TReadGroupMap* _readGroupMap;
+	TPostMortemDamage _pmd;
 	TSequencingErrorModels models;
 	std::vector<TRecalibrationEMWindow*> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;

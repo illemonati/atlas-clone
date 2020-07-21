@@ -54,8 +54,8 @@ void TPSMCInput::_handleWindow(){
 		double logPHomo = 0.0;
 
 		for(int i=0; i<_blockSize; ++i){
-			if(_window[blockStart + i].hasData){
-				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1].bases, _genoLik);
+			if(_window[blockStart + i]._hasData){
+				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]._bases, _genoLik);
 				_posterior.fill(_genoLik, _prior);
 				logPHomo += log(_posterior.probHomozygous());
 			}

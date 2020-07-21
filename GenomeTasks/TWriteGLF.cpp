@@ -33,8 +33,8 @@ void TWriteGLF::_handleWindow(){
 	_logfile->listFlushTime("Adding window to GLF file ...");
 	uint32_t pos = 0;
 	for(auto& s : _window){
-		if(s.hasData || _printAll){
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s.bases, _genoLik);
+		if(s._hasData || _printAll){
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s._bases, _genoLik);
 			_writer.writeSite(_window.posInRef(pos), s.depth(), 0, _genoLik);
 		}
 		++pos;

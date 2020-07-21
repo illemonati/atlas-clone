@@ -449,11 +449,11 @@ void TPMDTables::initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInfere
 };
 
 void TPMDTables::addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read){
-	forward[readGroupMap[readGroup]]->add(pos, ref, read);
+	forward[readGroupMap->getIndex(readGroup)]->add(pos, ref, read);
 };
 
 void TPMDTables::addFromThreePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read){
-	reverse[readGroupMap[readGroup]]->add(pos, ref, read);
+	reverse[readGroupMap->getIndex(readGroup)]->add(pos, ref, read);
 };
 
 void TPMDTables::writePMDFile(std::string filename){
@@ -463,10 +463,11 @@ void TPMDTables::writePMDFile(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->readGroupInUse(i)){
-			out << readGroups->getName(i) << "\tCT\t" << forward[readGroupMap[i]]->getPMDString(C, T) << "\n";
-			out << readGroups->getName(i) << "\tGA\t" << reverse[readGroupMap[i]]->getPMDString(G, A) << "\n";
-			out << readGroups->getName(i) << "\tGT\t" << forward[readGroupMap[i]]->getPMDString(G, T) << "\n";
-			out << readGroups->getName(i) << "\tCA\t" << reverse[readGroupMap[i]]->getPMDString(C, A) << "\n";
+			uint16_t index = readGroupMap->getIndex(i);
+			out << readGroups->getName(i) << "\tCT\t" << forward[index]->getPMDString(C, T) << "\n";
+			out << readGroups->getName(i) << "\tGA\t" << reverse[index]->getPMDString(G, A) << "\n";
+			out << readGroups->getName(i) << "\tGT\t" << forward[index]->getPMDString(G, T) << "\n";
+			out << readGroups->getName(i) << "\tCA\t" << reverse[index]->getPMDString(C, A) << "\n";
 		}
 	}
 	out.close();
@@ -479,8 +480,9 @@ void TPMDTables::writeTable(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->readGroupInUse(i)){
-			forward[readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMap[i]]->writeTable(out, readGroups->getName(i) + "\treverse\t");
+			uint16_t index = readGroupMap->getIndex(i);
+			forward[index]->writeTable(out, readGroups->getName(i) + "\tforward\t");
+			reverse[index]->writeTable(out, readGroups->getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -493,8 +495,9 @@ void TPMDTables::writeTableWithCounts(std::string filename){
 	//loop over all read groups
 	for(int i=0; i<origNumReadGroups; ++i){
 		if(readGroups->readGroupInUse(i)){
-			forward[readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-			reverse[readGroupMap[i]]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
+			uint16_t index = readGroupMap->getIndex(i);
+			forward[index]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
+			reverse[index]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
 		}
 	}
 	out.close();
@@ -507,8 +510,11 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 
 	//loop over all read groups, fit and write exponential model
 	for(size_t i=0; i<readGroups->size(); ++i){
-		if(readGroups->readGroupInUse(i)) out << readGroups->getName(i) << "\t" << forward[readGroupMap[i]]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), maxReadLength, logfile)
-			<< "\t" << reverse[readGroupMap[i]]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), maxReadLength, logfile) << "\n";
+		if(readGroups->readGroupInUse(i)){
+			uint16_t index = readGroupMap->getIndex(i);
+			out << readGroups->getName(i) << "\t" << forward[index]->fitExponentialModel(C, T, numNRIterations, eps, readGroups->getName(i), maxReadLength, logfile);
+			out <<                           "\t" << reverse[index]->fitExponentialModel(G, A, numNRIterations, eps, readGroups->getName(i), maxReadLength, logfile) << "\n";
+		}
 	}
 	out.close();
 }
@@ -571,8 +577,41 @@ std::string TPMDEmpiric::getString() const{
 };
 
 //------------------------------------------------------
-//TPMD
+//TPMDDoubleStrand
 //------------------------------------------------------
+TPMDDoubleStrand::TPMDDoubleStrand(){
+	myFunctions[pmdCT] = nullptr;
+	functionsInitialized[pmdCT] = false;
+
+	myFunctions[pmdGA] = nullptr;
+	functionsInitialized[pmdGA] = false;
+};
+
+TPMDDoubleStrand::TPMDDoubleStrand(TParameters & params, TLog* logfile):TPMDDoubleStrand(){
+	initialize(params, logfile);
+};
+
+TPMDDoubleStrand::TPMDDoubleStrand(const TPMDDoubleStrand & other){
+	initialize(other);
+};
+
+TPMDDoubleStrand::TPMDDoubleStrand(TPMDDoubleStrand && other){
+	myFunctions[pmdCT] = other.myFunctions[pmdCT];
+	functionsInitialized[pmdCT] = other.functionsInitialized[pmdCT];
+	other.myFunctions[pmdCT] = nullptr;
+	other.functionsInitialized[pmdCT] = false;
+
+	myFunctions[pmdGA] = other.myFunctions[pmdGA];
+	functionsInitialized[pmdGA] = other.functionsInitialized[pmdGA];
+	other.myFunctions[pmdGA] = nullptr;
+	other.functionsInitialized[pmdGA] = false;
+};
+
+TPMDDoubleStrand::~TPMDDoubleStrand(){
+	if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
+	if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
+};
+
 void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 	if(params.parameterExists("pmd")){
 		std::string pmdString = params.getParameterString("pmd");
@@ -601,7 +640,7 @@ void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 	}
 };
 
-void TPMDDoubleStrand::initialize(TPMDDoubleStrand & other){
+void TPMDDoubleStrand::initialize(const TPMDDoubleStrand & other){
 	for(int i=0; i<2; ++i){
 		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
 		other.myFunctions[i]->getCopy(myFunctions[i]);
@@ -697,7 +736,6 @@ void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseD
 //------------------------------------------------------
 TPostMortemDamage::TPostMortemDamage(){
 	_hasPMD = false;
-	_pmdObjects = NULL;
 };
 
 PMDType TPostMortemDamage::getEnumPMDType(std::string pmdType){
@@ -735,7 +773,7 @@ void TPostMortemDamage::initializeFromFile(BAM::TReadGroups & ReadGroups, const 
 		line = extractBefore(line, "//");
 		trimString(line);
 		if(!line.empty()){
-			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			fillVectorFromStringWhiteSpace(line, vec,true);
 			if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			if(ReadGroups.readGroupExists(vec[0])){ //ignore if it does not exist
 				//get read group and PMD type

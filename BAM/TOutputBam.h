@@ -15,6 +15,7 @@
 #include "TSamHeader.h"
 #include <set>
 
+/*
 namespace BAM{
 
 class TBamFile;
@@ -52,5 +53,7 @@ public:
 };
 
 }; //end namespace
+
+*/
 
 #endif /* BAM_TOUTPUTBAM_H_ */

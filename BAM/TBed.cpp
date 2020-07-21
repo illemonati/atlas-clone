@@ -33,7 +33,7 @@ void TBed_base::addChromosomes(const TChromosomes & Chromosomes){
 	}
 };
 
-bool TBed_base::hasWindowsOnChr(uint32_t refId){
+bool TBed_base::hasWindowsOnChr(const uint32_t refId){
 	return _chromosomeNames.find(refId) != _chromosomeNames.end();
 };
 
@@ -47,6 +47,14 @@ uint32_t TBed_base::getRefID(const std::string Chr){
 		throw std::runtime_error("uint32_t TBed_base::getRefID(const std::string Chr): chromosome '" + Chr + "' does not exist!");
 	}
 	return it->refId;
+};
+
+std::string TBed_base::getChromosomeName(const uint32_t refId){
+	auto& it = _chromosomeNames.find(refId);
+	if(it == _chromosomeNames.end()){
+		throw std::runtime_error("std::string TBed_base::getChromosomeName(const uint32_t refId): ref ID '" + refId + "' does not exist!");
+	}
+	return *it;
 };
 
 //-------------------------------------------------------------

@@ -121,7 +121,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s.referenceBase == N){
+			if(s._referenceBase == N){
 				++_fractionRefIsN;
 			}
 		}
@@ -273,8 +273,8 @@ void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
 
 void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(unsigned int i=0; i<size(); ++i){
-		if(_sites[i].hasData){
-			if(_sites[i].bases.size() < minDepth || _sites[i].bases.size() > maxDepth)
+		if(_sites[i]._hasData){
+			if(_sites[i]._bases.size() < minDepth || _sites[i]._bases.size() > maxDepth)
 				_sites[i].clear();
 		}
 	}
