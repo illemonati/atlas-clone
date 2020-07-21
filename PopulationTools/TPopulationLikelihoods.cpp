@@ -542,6 +542,18 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 	return true;
 };
 
+void TPopulationLikelihoodReader::_updateChromosomeInfo(){
+	//function called when VCF is on new chromosome
+	// first remove previous chromosome from vector chromosomesToKeep (not needed anymore; we stop when vector is empty)
+	auto it = std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr);
+	if (it != chromosomesToKeep.end()){
+		chromosomesToKeep.erase(it);
+	}
+
+	//update curChr
+	curChr = vcfFile.chr();
+};
+
 bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
 	while(!vcfFile.eof && vcfFile.chr() == curChr){
 		vcfFile.next();
@@ -552,12 +564,7 @@ bool TPopulationLikelihoodReader::_jumpToNextChromosome(){
 	if(vcfFile.eof){
 		return false;
 	} else {
-		//update chr
-		curChr = vcfFile.chr();
-
-		if(limitToSitesInBed){
-			bedFile->setChr(vcfFile.chr());
-		}
+		_updateChromosomeInfo();
 		return true;
 	}
 };
@@ -691,18 +698,21 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 	while(_readNextLineFromVCF()){ // new line in vcf-file (= new locus)
 		//update chr
 		if(curChr != vcfFile.chr()){
-			//advance BED if currently on this chromosome
-			if(limitToSitesInBed && !bedFile.hasWindowsOnChr(curChr)){
-				uint32_t previousRefID = bedFile.getRefID(curChr);
+			_updateChromosomeInfo();
 
+			//jump bed to this chromosome
+			if(limitToSitesInBed){
+				//jump to next chromosome until we are on a chromsome with BED windows
+				while(!bedFile.hasWindowsOnChr(curChr)){
+					_jumpToNextChromosome();
+				}
+
+				//get ref id of this chromosome
+				_curRefId = bedFile.getRefID(curChr);
+
+				//start windows on this chromosome
+				_curBedWindow = bedFile.begin(_curRefId);
 			}
-
-            // first remove previous chromosome from vector chromosomesToKeep (not needed anymore; we stop when vector is empty)
-			auto it = std::find(chromosomesToKeep.begin(), chromosomesToKeep.end(), curChr);
-            if (it != chromosomesToKeep.end()){
-            	chromosomesToKeep.erase(it);
-            }
-			curChr = vcfFile.chr();
 		}
 
 		//check if site is used
@@ -713,35 +723,26 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 				return false;
 			}
 
-			//check if we are ahead or behind
-
-			//check if
-			if(!bedFile.hasWindowsOnChr(curChr)){
-				return false;
-			}
-
-			//get location of current position
-			BAM::TGenomePosition pos(bedFile.getRefID(curChr), vcfFile.positionZeroBased());
-
+			//check if VCF is ahead or behind BED window
+			BAM::TGenomePosition pos(_curRefId, vcfFile.positionZeroBased());
 
 			//jump to next window if position is past current window
-			if(_curBedWindow)
-			while(!bedFile->reachedEndOfChr() && vcfFile.positionZeroBased() >= bedFile->curWindowEnd()){
-				bedFile->nextWindow();
+			while(_curBedWindow < pos){
+				++_curBedWindow;
+				if(_curBedWindow == bedFile.end()){
+					logfile->list("Reached end of last window (BED file).");
+					return false;
+				}
 			}
 
-			if(bedFile->reachedEndOfChr()){
-				++_notInBedFile;
-				continue;
-			}
-
-			//skip if position ahead of current window
-			if(vcfFile.positionZeroBased() < bedFile->curWindowStart()){
+			//continue to next pos in VCF is window is ahead
+			if(pos < _curBedWindow){
 				++_notInBedFile;
 				continue;
 			}
 
 			//else accept current position
+			if(_curBedWindow->overlaps())
 		}
 
 		// Is there any chromosome left that should be kept?
@@ -818,22 +819,10 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 	//1) make sure we are at right window and place in VCF
 	//----------------------------------------------------
 	//go to next window on current chromosome
-	bedFile->nextWindow();
-	if(bedFile->reachedEnd() || vcfFile.eof) return false;
+	++_curBedWindow;
+	if(_curBedWindow == bedFile.end()) return false;
 
-	//if bed is at end of chr, jump to next chr
-	while(bedFile->reachedEndOfChr()){
-		if(!_jumpToNextChromosome()){
-			//return false at end of file
-			logfile->list("Reached end of VCF file.");
-			return false;
-		}
-		bedFile->setChr(curChr);
-
-		if(bedFile->reachedEnd()) return false;
-	}
-
-	//if VCF is on same chromosome but behind, advance VCF
+	//if VCF is behind window, advance VCF
 	while(!vcfFile.eof && vcfFile.chr() == bedFile->curChr() && vcfFile.positionZeroBased() < bedFile->curWindowStart()){
 		_readNextLineFromVCF();
 	}

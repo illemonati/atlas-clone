@@ -84,6 +84,7 @@ protected:
 	//BED file for windows
 	BAM::TBed bedFile;
 	std::set<BAM::TGenomeWindow>::iterator _curBedWindow;
+	uint32_t _curRefId;
 	bool limitToSitesInBed;
 
 	//settings
@@ -126,6 +127,7 @@ protected:
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
     virtual bool _readNextLineFromVCF();
     bool _filterSite(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+    void _updateChromosomeInfo();
     bool _jumpToNextChromosome();
 
 public:
@@ -196,6 +198,7 @@ public:
 
 class TPopulationLikelihoodReaderWindow:public TPopulationLikelihoodReader{
 private:
+
 
 public:
 	TPopulationLikelihoodReaderWindow();
