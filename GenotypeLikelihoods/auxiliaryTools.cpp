@@ -62,12 +62,6 @@ void TRecalibrationEMDataTable::add(const BAM::TBase & base){
 		maxPos = base.distFrom5Prime;
 };
 
-void TRecalibrationEMDataTable::add(const TSiteStorage & site){
-	for(const auto& b : site){
-		add(b);
-	}
-};
-
 void TRecalibrationEMDataTable::assembleCounts(){
 	if(!countsAssembled){
 		counts = 0;
@@ -154,7 +148,11 @@ void TRecalibrationEMDataTables::add(const BAM::TBase & base){
 	tables[base.readGroupID][(int) base.isSecondMate()].add(base);
 };
 
-
+void TRecalibrationEMDataTables::add(const TSiteStorage & site){
+	for(std::vector<BAM::TBase>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
+		tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
+	}
+};
 
 void TRecalibrationEMDataTables::assembleCountsPerReadGroup(){
 	totalCounts = 0;

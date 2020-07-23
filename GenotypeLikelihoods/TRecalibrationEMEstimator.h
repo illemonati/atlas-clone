@@ -12,6 +12,7 @@
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TSite.h"
+#include "TGenotypeDistribution.h"
 
 namespace GenotypeLikelihoods{
 
@@ -58,30 +59,60 @@ public:
 
 */
 
+
+//--------------------------------------------------------------------
+// TRecalibrationEMSite
+// Object to store all data at one site.
+// Inhertis from TSiteStorage, but adds functions to calculate specific probabilities.
+//--------------------------------------------------------------------
+class TRecalibrationEMSite:public TSiteStorage{
+private:
+
+public:
+
+};
+
 //--------------------------------------------------------------------
 // TRecalibrationEMWindow
 //--------------------------------------------------------------------
 class TRecalibrationEMWindow{
+private:
+	std::vector<TRecalibrationEMSite> sites;
+	TGenotypeDistribution* genoDist;
+
+
+	//tmp variables
+	TBaseData _baseLikelihoods;
 public:
-	std::vector<TSiteStorage> sites;
+
 	double freqs[4]; //base frequencies
 	BAM::TReadGroupMap* readGroupMapObject;
 
 	TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM::TReadGroupMap* ReadGroupMap);
 
-	unsigned int getMaxDepth();
-	void addSite(TSite & site, TQualityMap & qualiMap);
-	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
-	size_t numSites();
+	uint32_t getMaxDepth();
+	void addSite(TSite & site);
+	size_t size();
 	size_t numSitesDepthTwoOrMore();
-	void addToDataTable(TRecalibrationEMDataTables & dataTable);
-	size_t cumulativeDepth();
+	void addToDataTable(TRecalibrationEMDataTables & dataTables);
+	uint64_t cumulativeDepth();
+
+
+	void setGenotypeDistribution(TGenotypeDistribution* GenoDist){ genoDist = GenoDist; };
+
+
+
+	//------------ OLD -----------------
 	double fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* tmpEpsilon);
 	double calcLL(TSequencingErrorModels & models, double* tmpEpsilon);
 	//double calcQ(TRecalibrationEMModels & models, double* & tmpEpsilon);
 	void addToQ(TSequencingErrorModels & models);
 	void addToJacobianAndF(TSequencingErrorModels & models, double* tmpEpsilon);
 	void setEuqalBaseFrequencies();
+	//------------ END OLD -----------------
+
+	std::vector<TRecalibrationEMSite>::iterator begin(){ return sites.begin(); };
+	std::vector<TRecalibrationEMSite>::iterator end(){ return sites.end(); };
 };
 
 //--------------------------------------------------------------------
@@ -128,8 +159,7 @@ public:
 
 	//functions to add data
 	void addNewWindow(const TBaseData & freqs);
-	void addSite(TSite & site, TQualityMap & qualiMap);
-	void addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase);
+	void addSite(TSite & site);
 	long numSites();
 	long numSitesDepthTwoOrMore();
 	void addToDataTable(TRecalibrationEMDataTables & dataTable);

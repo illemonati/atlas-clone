@@ -66,6 +66,7 @@ public:
 
 	void clear();
 	void add(const BAM::TBase & base);
+	void add(const TSiteStorage & site);
 	void assembleCountsPerReadGroup();
 	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
 	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);

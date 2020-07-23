@@ -163,7 +163,7 @@ void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, d
 	}
 
 	//fill F and Jacobian
-	for(int g=0; g<4; ++g){
+	for(int g=0; g<4; ++g){TSiteStorage
 		for(unsigned int k=0; k<numReads; ++k){
 			//calc weights
 			double B = calcB(data[k].D[g]);
@@ -223,58 +223,54 @@ TRecalibrationEMWindow::TRecalibrationEMWindow(const TBaseData & baseFreqs, BAM:
 	readGroupMapObject = ReadGroupMap;
 }
 
-unsigned int TRecalibrationEMWindow::getMaxDepth(){
-	unsigned int maxDepth = 0;
+uint32_t TRecalibrationEMWindow::getMaxDepth(){
+	uint32_t maxDepth = 0;
 	for(auto& s : sites){
 		if(maxDepth < s.depth())
-			maxDepth = site->numReads;
+			maxDepth = s.depth();
 	}
 	return maxDepth;
 };
 
-void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap){
+void TRecalibrationEMWindow::addSite(TSite & site){
 	if(!site.empty())
-		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap));
+		sites.emplace_back(site);
 };
 
-void TRecalibrationEMWindow::addSite(TSite & site, TQualityMap & qualiMap, const Base TrueBase){
-	if(!site.empty())
-		sites.push_back(new TRecalibrationEMSite(site, *readGroupMapObject, qualiMap, TrueBase));
-};
-
-long TRecalibrationEMWindow::numSites(){
+size_t TRecalibrationEMWindow::size(){
 	return sites.size();
 };
 
-long TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
-	long _numSites = 0;
-	for(std::vector<TRecalibrationEMSite*>::iterator site = sites.begin(); site != sites.end(); ++site){
-		if((*site)->numReads > 1)
+size_t TRecalibrationEMWindow::numSitesDepthTwoOrMore(){
+	size_t _numSites = 0;
+	for(auto& s : sites){
+		if(s.depth() > 1)
 		++_numSites;
 	}
 	return _numSites;
 };
 
-void TRecalibrationEMWindow::addToDataTable(TRecalibrationEMDataTables & dataTable){
-	for(TRecalibrationEMSite* site : sites)
-		site->addToDataTable(dataTable);
-}
+void TRecalibrationEMWindow::addToDataTable(TRecalibrationEMDataTables & dataTables){
+	for(auto& s : sites)
+		dataTables.add(s);
+};
 
-long TRecalibrationEMWindow::cumulativeDepth(){
-	long cumulDepth = 0;
-	for(TRecalibrationEMSite* site : sites){
-		cumulDepth += site->numReads;
+uint64_t TRecalibrationEMWindow::cumulativeDepth(){
+	uint64_t cumulDepth = 0;
+	for(auto& s : sites){
+		cumulDepth += s.depth();
 	}
 	return cumulDepth;
-}
+};
 
+/*
 double TRecalibrationEMWindow::fill_P_g_given_d_beta_AND_calcLL(TSequencingErrorModels & models, double* tmpEpsilon){
 	double LL = 0.0;
 	for(TRecalibrationEMSite* site : sites){
 		LL += site->fill_P_g_given_d_beta_AND_calcLL(models, freqs, tmpEpsilon);
 	}
 	return LL;
-}
+};
 
 double TRecalibrationEMWindow::calcLL(TSequencingErrorModels & models, double* tmpEpsilon){
 	double LL = 0.0;
@@ -292,6 +288,8 @@ void TRecalibrationEMWindow::addToJacobianAndF(TSequencingErrorModels & models, 
 	for(TRecalibrationEMSite* site : sites)
 		site->addToJacobianAndF(models, tmpEpsilon);
 };
+
+*/
 
 void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
 	for(int i=0; i<4; ++i) freqs[i] = 0.25;
@@ -463,6 +461,13 @@ void TRecalibrationEMEstimator::performEstimationKnownGenotypes(std::string outp
 	logfile->done();
 };
 
+
+void TRecalibrationEMEstimator::calculateEMWeights(TSiteStorage & site){
+
+
+	_pmd.calculateBaseLikelihoods(site,  _baseLikelihoods)
+};
+
 void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTables){
 	//run EM
 	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
@@ -477,6 +482,9 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 	//running iterations
 	for(int iter = 0; iter < numEMIterations; ++iter){
 		logfile->number("EM Iteration:"); logfile->addIndent();
+
+		//calculate EM weights
+
 
 		//calculate EM weights P(g|d, theta_eps') for all sites and calculate LL
 		LL = 0.0;
@@ -531,7 +539,7 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 	models.setQToZero();
 	for(TRecalibrationEMWindow* curWindow : windows)
 		curWindow->addToQ(models);
-	double curQ = models.curQ();
+	double curQ = modTSiteStorageTSiteStorageTSiteStorageels.curQ();
 
 	//run up to maxNewtonRaphsonIteratios iterations, but stop if max(F) < maxFThreshold
 	logfile->startIndent("Running Newton-Raphson optimization:");
@@ -636,7 +644,7 @@ void TRecalibrationEMEstimator::addSite(TSite & site, TQualityMap & qualiMap, co
 long TRecalibrationEMEstimator::numSites(){
 	long _numSites = 0;
 	for(TRecalibrationEMWindow* curWindow : windows)
-		_numSites += curWindow->numSites();
+		_numSites += curWindow->size();
 	return _numSites;
 };
 
